@@ -175,3 +175,67 @@ const users = await db
 ```
 
 ---
+
+### 22.4 审计日志保留策略
+
+审计日志是合规和安全调查的关键数据，但无限期保留会导致存储成本激增。本节定义各类型日志的保留周期和自动化清理机制。
+
+#### 保留周期
+
+| 日志类型 | 保留周期 | 说明 |
+|----------|----------|------|
+| 审计日志（audit_logs） | 1 年 | 满足等保三级、ISO 27001 等合规要求 |
+| 登录历史（login_history） | 90 天 | 账户安全审计，异常登录追踪 |
+| 会话数据（sessions） | 过期后 7 天 | 过期后保留用于异常分析，超期自动清理 |
+
+#### 自动化清理机制
+
+通过定时任务（cron）自动执行清理，避免人工干预：
+
+```sql
+-- 审计日志：删除超过 1 年的记录
+DELETE FROM audit_logs
+WHERE created_at < NOW() - INTERVAL '1 year';
+
+-- 登录历史：删除超过 90 天的记录
+DELETE FROM login_history
+WHERE created_at < NOW() - INTERVAL '90 days';
+
+-- 会话数据：删除过期超过 7 天的记录
+DELETE FROM sessions
+WHERE expires_at < NOW() - INTERVAL '7 days';
+```
+
+#### 归档策略
+
+清理前先将数据迁移至冷存储，确保数据可追溯：
+
+1. **导出阶段**：按月分区导出为 Parquet 格式，压缩后上传至对象存储（S3/MinIO）
+2. **校验阶段**：对导出文件计算 SHA-256 哈希，记录至归档元数据表
+3. **删除阶段**：校验通过后执行数据库清理
+4. **保留元数据**：归档索引表（archive_index）记录归档时间范围和存储位置，支持按需检索
+
+```sql
+-- 归档索引表
+CREATE TABLE archive_index (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  table_name VARCHAR(100) NOT NULL,
+  archive_month DATE NOT NULL,
+  storage_path VARCHAR(500) NOT NULL,
+  record_count INTEGER NOT NULL,
+  checksum VARCHAR(64) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_archive_table ON archive_index(table_name, archive_month);
+```
+
+#### Cron 调度配置
+
+| 任务 | Cron 表达式 | 执行时间 |
+|------|------------|----------|
+| 审计日志清理 | `0 3 1 * *` | 每月 1 日凌晨 3:00 |
+| 登录历史清理 | `0 3 * * 0` | 每周日凌晨 3:00 |
+| 会话数据清理 | `0 2 * * *` | 每日凌晨 2:00 |
+
+> **注意事项**：清理任务应在业务低峰期执行，建议使用批量删除（每批 1000 条）避免长时间锁表影响在线业务。

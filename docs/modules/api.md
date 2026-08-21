@@ -123,3 +123,63 @@ fastify.register(fastifySwaggerUi, {
 | 文档 | `/docs` | GET | Swagger UI |
 
 ---
+
+### 23.10 API Key 格式规范
+
+API Key 用于服务间通信和第三方集成认证。
+
+#### 格式
+
+```
+ab_<32位字母数字随机串>
+```
+
+示例：`ab_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p`
+
+- 固定前缀 `ab_`（AccessBase 标识）
+- 后续 32 位随机字母数字（a-z、0-9）
+- 总共 35 个字符
+
+#### 存储
+
+- 数据库中仅存储 SHA-256 哈希值，原始密钥永不持久化
+- 创建时一次性展示完整密钥，之后无法再次查看
+- 支持密钥哈希轮转（重新生成）
+
+#### 作用域
+
+API Key 支持细粒度权限作用域，限制密钥可调用的资源范围：
+
+```typescript
+interface ApiKeyScope {
+  resource: string    // 资源路径，如 'users', 'roles:*'
+  actions: string[]   // 允许的操作，如 ['read', 'write']
+}
+
+interface ApiKey {
+  id: string
+  name: string          // 密钥名称（便于管理）
+  prefix: string        // 前缀（ab_），用于识别密钥类型
+  hash: string          // SHA-256 哈希
+  scopes: ApiKeyScope[] // 权限作用域
+  expiresAt?: Date      // 可选过期时间
+  rateLimit?: number    // 可选每秒请求上限
+  createdAt: Date
+  lastUsedAt?: Date
+  enabled: boolean
+}
+```
+
+#### 过期时间
+
+- 支持设置可选的过期时间戳
+- 过期密钥自动失效，返回 401
+- 创建时未设置过期时间视为永不过期
+
+#### 速率限制
+
+- 支持按密钥设置独立的速率限制
+- 超出限制返回 429 Too Many Requests
+- 默认值由全局配置决定，密钥级别设置可覆盖全局
+
+---

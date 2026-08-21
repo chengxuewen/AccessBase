@@ -1039,3 +1039,404 @@ license:
 ```
 
 ---
+
+### 19.11 CORS 策略
+
+```typescript
+// CORS 白名单策略
+fastify.register(cors, {
+  origin: (origin, callback) => {
+    // 生产环境必须使用白名单，不允许通配符
+    const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || []
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true,  // 允许携带 Cookie
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Request-ID'],
+  exposedHeaders: ['X-Request-ID', 'X-RateLimit-Remaining'],
+  maxAge: 86400  // 24 小时预检缓存
+})
+```
+
+**设计要点**：
+
+- `origin` 必须基于白名单校验，禁止 `origin: '*'`（与 `credentials: true` 冲突）
+- 开发环境白名单通过 `CORS_ORIGINS` 环境变量注入，不硬编码
+- `maxAge` 控制预检请求缓存时间，减少 OPTIONS 请求开销
+- `exposedHeaders` 暴露必要的响应头给前端（如限流剩余次数）
+
+---
+
+### 19.12 密码策略
+
+```typescript
+import { z } from 'zod'
+
+// 密码复杂度校验
+const passwordSchema = z.string()
+  .min(12, '密码长度至少 12 位')
+  .max(128, '密码长度不超过 128 位')
+  .regex(/[A-Z]/, '必须包含大写字母')
+  .regex(/[a-z]/, '必须包含小写字母')
+  .regex(/[0-9]/, '必须包含数字')
+  .regex(/[^A-Za-z0-9]/, '必须包含特殊字符')
+
+// 密码历史校验（禁止重用最近 5 次密码）
+async function checkPasswordHistory(userId: string, newPasswordHash: string): Promise<boolean> {
+  const history = await db.select()
+    .from(passwordHistoryTable)
+    .where(eq(passwordHistoryTable.userId, userId))
+    .orderBy(desc(passwordHistoryTable.createdAt))
+    .limit(5)
+  
+  return history.some(record => record.passwordHash === newPasswordHash)
+}
+
+// 账户锁定策略
+const LOCKOUT_CONFIG = {
+  maxAttempts: 5,          // 最大失败尝试次数
+  lockoutDuration: 15 * 60, // 锁定时长 15 分钟（秒）
+  windowDuration: 15 * 60   // 统计窗口 15 分钟（秒）
+}
+```
+
+**策略矩阵**：
+
+| 项目 | 要求 |
+|------|------|
+| 最小长度 | 12 字符 |
+| 大写字母 | 至少 1 个 |
+| 小写字母 | 至少 1 个 |
+| 数字 | 至少 1 个 |
+| 特殊字符 | 至少 1 个 |
+| 密码历史 | 禁止重用最近 5 次 |
+| 最大失败尝试 | 5 次 / 15 分钟窗口 |
+| 锁定时长 | 15 分钟 |
+
+---
+
+### 19.13 生产环境错误处理
+
+```typescript
+// 统一错误响应（生产环境隐藏堆栈）
+fastify.setErrorHandler((error, request, reply) => {
+  const isProduction = process.env.NODE_ENV === 'production'
+  
+  // 详细信息仅写入服务端日志
+  request.log.error({
+    err: error,
+    requestId: request.id,
+    url: request.url,
+    method: request.method
+  }, 'Request error')
+  
+  // 返回给客户端的响应（生产环境仅返回错误码）
+  const statusCode = error.statusCode || 500
+  const responseBody: Record<string, unknown> = {
+    success: false,
+    error: {
+      code: error.code || 'INTERNAL_ERROR',
+      message: isProduction ? '服务器内部错误' : error.message,
+      timestamp: new Date().toISOString(),
+      requestId: request.id,
+      path: request.url
+    }
+  }
+  
+  // 仅开发环境返回堆栈
+  if (!isProduction) {
+    responseBody.error.stack = error.stack
+  }
+  
+  reply.status(statusCode).send(responseBody)
+})
+```
+
+**原则**：
+
+- 生产环境**绝不**返回堆栈信息，仅返回错误码 + 通用消息
+- 详细错误上下文（堆栈、请求参数、用户信息）仅写入服务端日志
+- 客户端通过 `requestId` 关联服务端日志进行排查
+- 已知业务错误（如 `AUTH_001`）返回具体消息，未知错误返回通用消息
+
+---
+
+### 19.14 安全头增强
+
+```typescript
+// 在现有 helmet 配置中补充以下安全头
+fastify.register(helmet, {
+  // ... 已有配置 ...
+  
+  // 权限策略（限制浏览器功能）
+  permissionsPolicy: {
+    features: {
+      geolocation: ["'none'"],       // 禁用地理位置
+      camera: ["'none'"],            // 禁用摄像头
+      microphone: ["'none'"],        // 禁用麦克风
+      payment: ["'none'"],           // 禁用支付 API
+      usb: ["'none'"],               // 禁用 USB
+      magnetometer: ["'none'"]       // 禁用磁力计
+    }
+  },
+  
+  // IE 专用：禁止直接下载执行
+  xDownloadOptions: 'noopen',
+  
+  // 跨域策略：禁止 Flash/PDF 跨域访问
+  permittedCrossDomainPolicies: { permittedPolicies: 'none' }
+})
+```
+
+| 安全头 | 值 | 作用 |
+|--------|-----|------|
+| `Permissions-Policy` | `geolocation/camera/microphone/payment=none` | 禁用浏览器敏感 API |
+| `X-Download-Options` | `noopen` | 阻止 IE 直接执行下载文件 |
+| `X-Permitted-Cross-Domain-Policies` | `none` | 禁止 Flash/PDF 跨域策略文件 |
+
+---
+
+### 19.15 LDAP 注入防护
+
+```typescript
+import { escape } from 'ldap-escape'
+
+// DN 构造时必须转义特殊字符
+function buildUserDN(username: string, baseDN: string): string {
+  // LDAP DN 特殊字符：, + " \ < > ;
+  const sanitized = escape.dn(username)
+  return `uid=${sanitized},${baseDN}`
+}
+
+// LDAP 搜索过滤器转义
+function buildSearchFilter(username: string): string {
+  // LDAP 过滤器特殊字符：* ( ) \ NUL
+  const sanitized = escape.filter(username)
+  return `(uid=${sanitized})`
+}
+
+// 输入校验（在转义之前先做白名单校验）
+const ldapInputSchema = z.string()
+  .min(1, '输入不能为空')
+  .max(256, '输入过长')
+  .regex(/^[a-zA-Z0-9._@\-]+$/, '包含非法字符')
+  .refine(
+    (val) => !val.includes('*') && !val.includes('(') && !val.includes(')',),
+    { message: '包含 LDAP 特殊字符' }
+  )
+```
+
+**防护层次**：
+
+1. **白名单校验** — 拒绝不符合预期格式的输入（第一道防线）
+2. **LDAP 转义** — 对通过校验的输入进行特殊字符转义（第二道防线）
+3. **最小权限** — LDAP 绑定账户使用只读权限，禁止写操作
+
+---
+
+### 19.16 OAuth 会话固定防护
+
+```typescript
+import crypto from 'crypto'
+
+// State 参数验证（防 CSRF + 会话固定）
+function generateOAuthState(sessionId: string): string {
+  const state = crypto.randomBytes(32).toString('hex')
+  const nonce = crypto.randomBytes(16).toString('hex')
+  
+  // state 绑定到当前会话，防止会话固定攻击
+  return `${state}:${sessionId}:${nonce}`
+}
+
+function verifyOAuthState(
+  receivedState: string,
+  sessionState: string,
+  sessionId: string
+): boolean {
+  const [state, boundSessionId, _nonce] = receivedState.split(':')
+  
+  // 验证 state 与 session 绑定关系
+  if (boundSessionId !== sessionId) {
+    return false
+  }
+  
+  // 使用 timingSafeEqual 防止时序攻击
+  return crypto.timingSafeEqual(
+    Buffer.from(receivedState),
+    Buffer.from(sessionState)
+  )
+}
+
+// PKCE 支持（防授权码拦截）
+function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
+  const codeVerifier = crypto.randomBytes(32).toString('base64url')
+  const codeChallenge = crypto
+    .createHash('sha256')
+    .update(codeVerifier)
+    .digest('base64url')
+  return { codeVerifier, codeChallenge }
+}
+
+// Nonce 验证（防 ID Token 重放）
+function verifyNonce(receivedNonce: string, sessionNonce: string): boolean {
+  return crypto.timingSafeEqual(
+    Buffer.from(receivedNonce),
+    Buffer.from(sessionNonce)
+  )
+}
+```
+
+**防护链**：
+
+1. `state` 参数绑定当前会话 ID，回调时校验绑定关系
+2. `PKCE`（S256）防止授权码被拦截后使用
+3. `nonce` 写入 ID Token，回调时验证防重放
+4. 回调成功后立即**轮换 session ID**（`request.session.regenerate()`）
+
+---
+
+### 19.17 审计日志完整性保护
+
+```typescript
+import crypto from 'crypto'
+
+// 审计日志哈希链
+class AuditLogIntegrity {
+  private previousHash: string = 'GENESIS'
+  
+  // 计算日志条目哈希（含前一条哈希，形成链）
+  computeHash(entry: AuditLogEntry): string {
+    const payload = JSON.stringify({
+      ...entry,
+      previousHash: this.previousHash,
+      timestamp: entry.timestamp.toISOString()
+    })
+    
+    const hash = crypto.createHash('sha256').update(payload).digest('hex')
+    this.previousHash = hash
+    return hash
+  }
+  
+  // 验证哈希链完整性
+  async verifyChain(logs: AuditLogEntry[]): Promise<boolean> {
+    let expectedHash = 'GENESIS'
+    
+    for (const log of logs) {
+      const payload = JSON.stringify({
+        ...log,
+        previousHash: expectedHash,
+        timestamp: log.timestamp.toISOString()
+      })
+      const computed = crypto.createHash('sha256').update(payload).digest('hex')
+      
+      if (computed !== log.hash) {
+        return false  // 链断裂，日志被篡改
+      }
+      expectedHash = computed
+    }
+    
+    return true
+  }
+}
+
+// 审计日志写入（仅追加，不可修改/删除）
+async function writeAuditLog(entry: Omit<AuditLogEntry, 'hash'>): Promise<void> {
+  const hash = auditIntegrity.computeHash(entry as AuditLogEntry)
+  
+  // 写入专用审计数据库（与业务数据库分离）
+  await auditDb.insert(auditLogsTable).values({
+    ...entry,
+    hash,
+    createdAt: new Date()
+  })
+}
+```
+
+**设计要点**：
+
+- **仅追加存储** — 审计日志不提供 UPDATE/DELETE 接口，数据库层面通过只读账户限制
+- **哈希链** — 每条日志包含前一条的哈希值，篡改任意一条会导致后续所有哈希失效
+- **独立数据库** — 审计日志存储在独立数据库，业务管理员无权限访问
+- **定期校验** — 后台任务定期验证哈希链完整性，异常时触发告警
+
+---
+
+### 19.18 Refresh Token 轮换策略
+
+```typescript
+// Refresh Token 轮换管理器
+class RefreshTokenRotation {
+  // 每次使用 Refresh Token 时轮换
+  async rotate(
+    oldRefreshToken: string,
+    userId: string,
+    deviceInfo: DeviceInfo
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    
+    // 1. 验证旧 token
+    const session = await this.validateToken(oldRefreshToken)
+    
+    // 2. 重用检测：如果旧 token 已被使用过，撤销该用户所有会话
+    if (session.usedAt) {
+      await this.revokeAllUserSessions(userId)
+      throw new AppError('AUTH_003', '检测到 Refresh Token 重用，已撤销所有会话')
+    }
+    
+    // 3. 标记旧 token 已使用
+    await this.markTokenUsed(oldRefreshToken)
+    
+    // 4. 生成新 token 对
+    const newAccessToken = this.generateAccessToken(userId)
+    const newRefreshToken = this.generateRefreshToken(userId)
+    
+    // 5. 持久化新 session（滑动窗口）
+    await this.createSession({
+      userId,
+      refreshTokenHash: await bcrypt.hash(newRefreshToken, 12),
+      deviceInfo,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 固定 30 天上限
+      createdAt: new Date()
+    })
+    
+    // 6. 撤销旧 session
+    await this.revokeSession(oldRefreshToken)
+    
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken }
+  }
+  
+  // 重用检测（核心安全机制）
+  async detectReuse(oldRefreshToken: string): Promise<boolean> {
+    const session = await this.findSessionByToken(oldRefreshToken)
+    return session?.usedAt !== null  // 已使用过的 token 被再次提交 = 重用
+  }
+}
+
+// 过期策略配置
+const TOKEN_CONFIG = {
+  accessTokenTTL: '15m',        // Access Token 有效期 15 分钟
+  refreshTokenTTL: '30d',       // Refresh Token 最长有效期 30 天（固定上限）
+  slidingWindow: true,          // 启用滑动窗口：每次刷新延长有效期
+  maxSlidingTTL: '90d',         // 滑动窗口最大延长至 90 天
+  rotationOnEveryUse: true      // 每次使用都轮换
+}
+```
+
+**轮换策略对比**：
+
+| 策略 | 说明 | 适用场景 |
+|------|------|---------|
+| **固定过期** | Token 到期即失效，不因使用而延长 | 高安全要求（金融、政务） |
+| **滑动窗口** | 每次刷新延长有效期，但不超过最大上限 | 持续活跃的 Web 应用 |
+| **混合模式** | 固定上限 + 滑动窗口（当前方案） | 平衡安全与用户体验 |
+
+**重用检测流程**：
+
+1. 客户端提交 Refresh Token
+2. 检查该 token 是否已被使用（`usedAt` 字段）
+3. 若已使用 → **检测到重用攻击** → 撤销该用户**所有**活跃会话
+4. 若未使用 → 标记已使用 → 生成新 token 对 → 撤销旧 token
