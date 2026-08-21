@@ -1,0 +1,50 @@
+{
+  "common": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error"
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "roles": "Roles",
+    "permissions": "Permissions",
+    "settings": "Settings"
+  },
+  "login": {
+    "title": "AccessBase Login",
+    "emailPlaceholder": "Enter your email",
+    "emailRequired": "Please enter your email",
+    "emailInvalid": "Please enter a valid email",
+    "passwordPlaceholder": "Enter your password",
+    "passwordRequired": "Please enter your password",
+    "submit": "Login",
+    "success": "Login successful",
+    "error": "Login failed"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalUsers": "Total Users",
+    "activeRoles": "Active Roles",
+    "permissions": "Permissions",
+    "auditLogs": "Audit Logs"
+  },
+  "users": {
+    "title": "User Management",
+    "name": "Name",
+    "email": "Email",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusSuspended": "Suspended",
+    "statusPending": "Pending",
+    "roles": "Roles",
+    "createdAt": "Created At",
+    "actions": "Actions",
+    "create": "Create User"
+  }
+}
