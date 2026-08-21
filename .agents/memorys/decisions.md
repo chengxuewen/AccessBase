@@ -1,6 +1,6 @@
 # AccessBase 设计决策
 
-**更新日期**: 2026-08-20
+**更新日期**: 2026-08-21
 
 ## D1: AccessBase 命名决策 (2026-08-20)
 
@@ -1637,3 +1637,326 @@ interface ErrorResponse {
 - PDF
 
 **参考**: `docs/architecture.md` §42.6
+
+---
+
+## D81: 多租户逻辑隔离 + 域名路由 (2026-08-21)
+
+**决策**: 采用逻辑隔离（共享 PostgreSQL，tenant_id 列隔离）+ 域名路由（org.accessbase.example.com）的混合多租户架构
+
+**理由**:
+- 参考 Zitadel 域名发现 + Auth0 逻辑隔离的最佳实践
+- PostgreSQL 已选定，逻辑隔离 + 索引优化可满足企业级性能需求
+- 域名路由提供用户友好体验，支持自定义域名映射（CNAME 记录）
+- 避免 Schema 隔离（Authentik 模式）的运维复杂度
+- 组织级 RBAC + 项目级角色，天然支持 B2B 多组织管理
+
+**实现要点**:
+- 所有核心表添加 `tenant_id` 列，建立复合索引
+- 中间件层自动注入 tenant_id，防止跨租户数据泄露
+- 支持自定义域名映射（CNAME 记录）
+- 组织管理 API 支持邀请、成员管理、角色定义
+
+**参考**: docs/reference/synthesis-iam.md §1.3
+
+---
+
+## D82: 认证提供商 Connectors + Actions 混合模式 (2026-08-21)
+
+**决策**: 采用 Connectors（标准化连接器）+ Actions（认证流程扩展）的两层认证提供商架构
+
+**理由**:
+- 参考 Logto Connector 模式标准化社交/企业/通知连接器
+- 参考 Auth0 Actions 模式在认证流程节点注入自定义函数
+- Connector 接口统一：SocialConnector、EnterpriseConnector、NotificationConnector
+- Actions 覆盖 PreAuthentication、PostAuthentication、TokenGeneration 扩展点
+- 支持 50+ 社交登录提供商，与企业 SSO（SAML/LDAP）统一接口
+
+**实现要点**:
+- Connector 接口定义标准生命周期：initialize → authenticate → callback
+- Actions 存储为 TypeScript 函数，通过事件系统触发
+- 提供可视化 Flow 编辑器（参考 Authentik），降低配置门槛
+- 支持 Actions 版本控制和回滚
+
+**参考**: docs/reference/synthesis-iam.md §2.3
+
+---
+
+## D83: 会话管理 JWT + HttpOnly Cookie + 旋转刷新 (2026-08-21)
+
+**决策**: Access Token 15 分钟（内存存储）+ Refresh Token 7 天（HttpOnly Cookie）+ 旋转刷新 + Redis 会话存储
+
+**理由**:
+- 参考 SuperTokens 的 JWT + HttpOnly Cookie 安全模型
+- 参考 Clerk 60 秒超短期 Token 的安全理念，15 分钟平衡安全性与性能
+- HttpOnly Secure SameSite=Strict Cookie 防止 XSS 窃取 Refresh Token
+- 旋转刷新 Token 防止 Token 重放攻击，旧 Token 立即失效
+- Redis 会话存储支持强制登出、会话管理和 SSO 单点登出广播
+
+**实现要点**:
+- Access Token 存储在 JavaScript 变量中，不写入 Cookie/LocalStorage
+- Refresh Token 通过 HttpOnly Secure SameSite=Strict Cookie 传输
+- Token 刷新使用幂等请求，防止并发刷新冲突
+- 会话管理 API 支持：查询活跃会话、强制登出、会话续期
+- 单点登出（SSO Logout）通过 Redis Pub/Sub 广播
+
+**参考**: docs/reference/synthesis-iam.md §3.3
+
+---
+
+## D84: 智能 MFA + Step-up Authentication (2026-08-21)
+
+**决策**: 三层 MFA 策略——基础 MFA（TOTP + WebAuthn + 恢复码）+ 智能 MFA（风险评分引擎）+ Step-up Authentication（敏感操作二次验证）
+
+**理由**:
+- TOTP + WebAuthn 覆盖主流 MFA 场景，WebAuthn 支持平台认证器和漫游认证器
+- 智能 MFA 参考 Auth0 Security Center，基于 IP 信誉、设备指纹、地理位置、登录时间动态触发
+- 风险阈值可配置：低风险（0-30）跳过，中风险（31-70）可选，高风险（71-100）强制
+- Step-up Authentication 参考 Keycloak，敏感操作（修改密码/MFA/查看审计日志/导出数据）要求 5 分钟内 MFA 验证
+
+**实现要点**:
+- MFA 注册流程：引导用户设置至少一种 MFA 方式
+- 恢复码生成：加密存储，使用后标记为已用
+- 风险评分：基于 IP 信誉库、设备指纹库、地理位置数据库
+- 学习模式：前 N 次登录记录基线，后续对比异常
+
+**参考**: docs/reference/synthesis-iam.md §4.3
+
+---
+
+## D85: OAuth 2.1 + OIDC + SAML 桥接 (2026-08-21)
+
+**决策**: 核心协议采用 OAuth 2.1（强制 PKCE）+ OpenID Connect 1.0（目标 OpenID Certified™）+ SAML 2.0 桥接器
+
+**理由**:
+- OAuth 2.1 强制 PKCE 防止授权码拦截攻击，废弃 Implicit 流程
+- OIDC 提供标准化身份层，兼容所有主流客户端库
+- SAML 桥接器参考 Ory Polis，将 SAML 断言转换为 OIDC Claims，满足企业遗留系统集成
+- 参考 Authelia 的 OpenID Certified™ 实现作为合规目标
+
+**授权流程**:
+- Authorization Code + PKCE：主要流程（SPA、移动应用）
+- Client Credentials：M2M 服务间认证
+- Device Authorization：IoT/CLI 设备认证
+
+**Token 策略**:
+- Access Token：JWT 格式（RS256），15 分钟有效期
+- Refresh Token：旋转刷新，7 天有效期
+- ID Token：OIDC 标准 Claims，自定义 Claims 支持
+- Token 格式：JWT（RS256 签名），支持 JWE 加密
+
+**参考**: docs/reference/synthesis-iam.md §5.3
+
+---
+
+## D86: 设计令牌三层架构 + 业务语义层 (2026-08-21)
+
+**决策**: 保持 Ant Design 5 三层令牌架构（种子→映射→别名），补充 AccessBase 业务语义令牌层
+
+**理由**:
+- Ant Design 5 三层架构（种子令牌→映射令牌→别名令牌）已采用，迁移成本为零
+- 在 Ant Design 别名令牌之上增加业务语义令牌（如 `colorAuthSuccess`、`colorAuditWarning`）
+- 参考 Carbon 上下文令牌，为多层嵌套 UI 引入上下文感知令牌
+- 启用 Ant Design 5.12+ CSS 变量模式（`cssVar: true`），获得零运行时主题切换能力
+
+**令牌层次**:
+- L0：种子令牌（seedColor、seedRadius、seedFontSize）
+- L1：映射令牌（colorPrimary、colorBgContainer）
+- L2：别名令牌（colorSuccess、colorWarning）
+- L3：业务语义令牌（colorAuthSuccess、colorAuditWarning、colorMfaRequired）
+
+**参考**: docs/reference/synthesis-ui.md §1.4
+
+---
+
+## D87: 主题定制 ConfigProvider + CSS 变量模式 (2026-08-21)
+
+**决策**: ConfigProvider 注入 + CSS 变量模式 + 三种算法（defaultAlgorithm + darkAlgorithm + compactAlgorithm）+ 主题预设
+
+**理由**:
+- ConfigProvider 是 Ant Design 原生 Provider 模式，已有实践
+- CSS 变量模式实现零闪烁（FOUC）主题切换
+- 紧凑算法为数据密集页面（审计日志、用户列表）提供更优信息密度
+- 参考 Ant Design Pro 的 Default/Dark/Glass 预设，为 AccessBase 创建 3-4 套内置主题
+
+**主题预设**:
+- Default：标准亮色主题
+- Dark：暗色主题（darkAlgorithm）
+- Compact：紧凑模式（compactAlgorithm）
+- HighContrast：高对比度主题（无障碍）
+
+**参考**: docs/reference/synthesis-ui.md §2.4
+
+---
+
+## D88: 暗色模式系统偏好检测 + 层级模型 (2026-08-21)
+
+**决策**: 首次访问读取 `prefers-color-scheme` + `<meta name="color-scheme">` 防闪烁 + 暗色模式层级模型（参考 Carbon layer-01/02/03）
+
+**理由**:
+- 系统偏好检测提供无感知的首次体验，无 localStorage 记录时跟随系统
+- `<meta name="color-scheme" content="light dark">` 消除暗色模式闪烁
+- 参考 Carbon 层级模型，在暗色模式下使用颜色层级替代阴影表达界面深度
+- CI/CD 集成 WCAG 对比度验证，确保暗色模式下文字可读性
+
+**实现要点**:
+- 添加系统偏好检测：`window.matchMedia('(prefers-color-scheme: dark)')`
+- 图片/媒体暗色适配：CSS `filter: brightness()` 或暗色版本资源
+- 第三方组件适配：CSS 变量统一覆盖
+
+**参考**: docs/reference/synthesis-ui.md §3.4
+
+---
+
+## D89: 多租户品牌定制动态加载 (2026-08-21)
+
+**决策**: 定义 AccessBase 品牌色种子令牌 + 多租户品牌令牌动态加载 + 品牌资源统一管理
+
+**理由**:
+- 参考 M3 Theme Builder 从品牌标识提取核心色，算法自动生成完整色板
+- 参考 Fluent 多主题机制，通过 tenantId 动态加载品牌令牌
+- 品牌资源统一管理：logo（亮/暗版本）、favicon、邮件模板品牌元素
+- CI/CD 验证所有 UI 组件颜色均来自令牌系统，禁止硬编码色值
+
+**品牌令牌层**:
+```typescript
+// theme/brand-tokens.ts
+const brandTokens = {
+  colorBrandPrimary: '#0052CC',    // AccessBase 主色
+  colorBrandSecondary: '#00875A',  // 辅助色
+  colorBrandAccent: '#FF991F',     // 强调色
+  brandFontFamily: '"PingFang SC", "Noto Sans SC", sans-serif',
+}
+```
+
+**参考**: docs/reference/synthesis-ui.md §4.4
+
+---
+
+## D90: 插件架构分类扩展 + 三层钩子 + Provider 隔离 (2026-08-21)
+
+**决策**: 采用分类扩展体系（Directus 6 类前端 + 3 类后端）+ 三层生命周期钩子（PocketBase Before→Execute→After）+ Provider 隔离（new-api/LiteLLM 适配器模式）的组合插件架构
+
+**理由**:
+- 分类扩展参考 Directus，按用途定义扩展类型（Interface/Display/Layout/Panel/Module/Theme + Hook/Endpoint/Operation）
+- 三层钩子参考 PocketBase，覆盖完整生命周期（beforeAuth→onAuth→afterAuth）
+- Provider 隔离参考 new-api `relay/channel/` 和 LiteLLM Provider Transform，新增提供商零侵入
+- CLI 脚手架 + 模板降低插件开发门槛
+
+**扩展类型**:
+- Auth Provider 插件：`@accessbase/auth-providers/{ldap,oauth,webauthn}` 独立目录
+- 前端扩展（6 类）：Interface/Display/Layout/Panel/Module/Theme
+- 后端钩子（3 层）：beforeAuth / onAuth / afterAuth
+- 工作流节点：`@accessbase/workflow-nodes/` npm 包 + CLI 脚手架
+- UI Widget 沙箱：isolated-vm 隔离执行，postMessage 通信
+
+**参考**: docs/reference/synthesis-platforms.md §1.3
+
+---
+
+## D91: 数据模型 Auth Schema 隔离 + Drizzle Migration (2026-08-21)
+
+**决策**: 认证数据在独立 `auth` PostgreSQL Schema（参考 Supabase），业务数据在 `public` Schema，Schema 变更通过 Drizzle Migration 管理（Database-first 理念）
+
+**理由**:
+- 参考 Supabase `auth` schema 实现认证数据与业务数据物理隔离，安全边界清晰
+- Database-first 理念（参考 Directus），Schema 变更通过 Drizzle Migration 管理，不允许运行时动态改表
+- 参考 Directus Policy-based RBAC，`policies` → `roles` → `users` 可组合模型，支持字段级 + 行级权限
+- 所有核心表包含 `tenant_id`，查询自动注入租户过滤（参考 ToolJet Workspace + Supabase RLS）
+
+**Schema 分离**:
+- `auth` Schema：users、roles、permissions、oauth_accounts、sessions、mfa_recovery_codes
+- `public` Schema：业务数据、审计日志、配置数据
+- PG RLS 作为纵深防御层（非唯一控制），复杂行级权限参考 Supabase RLS
+
+**参考**: docs/reference/synthesis-platforms.md §2.3
+
+---
+
+## D92: 工作流异步后台 + 生命周期钩子 + 事件驱动 (2026-08-21)
+
+**决策**: 请求路径零 DB 写入（审计事件→Redis Stream→后台 Worker 批量写入 PG）+ 认证生命周期三层钩子 + 事件驱动操作链（IAM 自动化）
+
+**理由**:
+- 异步后台参考 LiteLLM，请求路径零 DB 写入，审计/用量事件通过 Redis Stream 缓冲，后台批量写入 PG
+- 生命周期钩子参考 PocketBase，`beforeAuth`（校验/限流）→ `onAuth`（认证执行）→ `afterAuth`（审计/通知）
+- 事件驱动操作链参考 n8n + Directus Flows，支持用户创建→分配角色→发通知→创建工单的自动化流程
+- 权限变更审批参考 Strapi Review Workflows，Draft → Review → Published 状态机
+
+**实现要点**:
+- 审计事件 → Redis Stream → 后台 Worker 批量写入 PG，不影响请求延迟
+- Webhook 通知：事件 → 条件过滤 → HTTP Webhook 调用，失败重试 + 死信队列
+- 用量事件异步写入，Redis 缓冲，批量持久化
+
+**参考**: docs/reference/synthesis-platforms.md §3.3
+
+---
+
+## D93: API 多 Token 类型 + Key 生命周期管理 (2026-08-21)
+
+**决策**: 支持四种 Token 类型（参考 Directus）+ API Key 全生命周期管理（参考 Strapi）+ 统一信封响应格式 + 多级限流
+
+**理由**:
+- 参考 Directus 四种 Token 类型覆盖全场景：access_token（JWT RS256, 15min）、refresh_token（7d）、api_key（长期，可撤销）、session_cookie（Web 场景）
+- 参考 Strapi API Token 全生命周期：创建/查询/更新/删除/重新生成/作用域分配/过期时间
+- 统一响应格式 `{ success, data, error, meta }` 参考 LiteLLM，所有端点一致
+- 多级限流参考 PocketBase + LiteLLM：全局限流 + 用户级限流 + 端点级限流，Redis 滑动窗口
+
+**Token 类型**:
+- `access_token`：JWT RS256，15 分钟有效期，内存存储
+- `refresh_token`：7 天有效期，HttpOnly Cookie
+- `api_key`：长期有效，可撤销，作用域控制
+- `session_cookie`：Web 场景，Session 会话
+
+**参考**: docs/reference/synthesis-platforms.md §4.3
+
+---
+
+## D94: 计费按用户分层 + 多级配额 (2026-08-21)
+
+**决策**: 定价模型采用按用户数分层（参考 Appsmith/Odoo）+ API 配额采用 Tenant→User→API Key 三级配额（参考 LiteLLM）+ 计费安全不变量（参考 new-api）
+
+**理由**:
+- 按用户数分层定价简单，用户易理解：Free (5 用户) → Pro → Team → Enterprise，功能渐进解锁
+- 多级配额参考 LiteLLM Key→User→Team→Server 四级预算，Redis 实时计数，异步批量写入 PG
+- 计费安全不变量参考 new-api：配额扣减永不溢出，饱和边界保护，所有扣减写审计日志
+- 功能模块通过许可证控制（SSO/LDAP/Audit/Workflow 等），参考 ToolJet + Appsmith
+
+**配额层次**:
+- Tenant 级：租户总配额（用户数、API 调用量、存储空间）
+- User 级：用户个人配额（API Key 数量、登录频率）
+- API Key 级：单个 Key 配额（调用频率、作用域限制）
+- Redis 实时计数，不影响请求延迟
+
+**注意**: AccessBase 是 IAM 平台而非 API 网关，计费系统主要面向平台订阅而非请求计费。API 配额管理用于防止滥用，而非精确计费。
+
+**参考**: docs/reference/synthesis-platforms.md §5.3
+
+---
+
+## D95: 组件架构无头业务层 + Registry 分发 (2026-08-21)
+
+**决策**: UI 层采用 Ant Design 5 + ProComponents，业务层参考 Refine 无头架构解耦，组件分 L0-L3 四层，插件通过 Registry 注册自定义页面/组件
+
+**理由**:
+- Ant Design 5 + ProComponents（ProTable、ProForm、ProLayout）构建 IAM 管理界面，组件充足、企业级验证完善
+- 参考 Refine 无头架构，业务逻辑与 UI 解耦，通过数据提供者模式抽象 API 层
+- 组件分层：L0（Ant Design 原生）→ L1（ProComponents 高级）→ L2（@accessbase/ui 业务）→ L3（页面级）
+- 参考 Shadcn/ui Registry 系统设计插件 UI 分发机制，插件可注册自定义页面/组件，核心组件不可覆盖
+
+**组件分层**:
+- L0：Ant Design 原生组件（Button, Input, Table...）
+- L1：ProComponents 高级组件（ProTable, ProForm...）
+- L2：@accessbase/ui 业务组件（PermissionGuard, AuditLog...）
+- L3：页面级组件（UserManagement, RoleConfig...）
+
+**性能优化**:
+- Ant Design 5 CSS-in-JS 启用 CSS 变量模式减少运行时开销
+- Tree Shaking：按需引入组件，ProComponents 按模块引入
+- 参考 Mantine CSS Modules 零运行时方案优化高频渲染组件
+
+**参考**: docs/reference/synthesis-ui.md §5.4
+
+---
+
+**更新日期**: 2026-08-21（D81-D95 补充完成）
