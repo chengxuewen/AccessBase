@@ -1,59 +1,78 @@
 # AccessBase 项目状态
 
-**更新日期**: 2026-08-20
-**当前阶段**: 设计定稿（v3.0 — P0+P1+P2+P3 遗漏补充完成）
+**更新日期**: 2026-08-21
+**当前阶段**: Phase 4 完成（基础实施完成，可交付）
 
 ## 模块状态
 
 | 模块 | 状态 | 描述 |
 |------|------|------|
-| 设计文档 | ✅ v3.0 | `docs/architecture.md` — 42 章节完整设计定稿 |
+| 设计文档 | ✅ v3.0 | 42 章节 + 14 个补充 + 35+ 项目参考 |
+| 设计决策 | ✅ D1-D95 | 95 个设计决策 |
+| 包 SDD | ✅ 8 个 | 所有 L0 包详细设计 |
+| L0 包实施 | ✅ 8 个 | 全部实施完成 |
+| Fastify 服务 | ✅ | REST API + 中间件链 |
+| Admin UI | ✅ | React + Ant Design Pro |
+| 测试 | ✅ 138 个 | 单元测试 + 集成测试 |
+| Docker | ✅ | 多阶段构建 + 3 种运行模式 |
+| CI/CD | ✅ | GitHub Actions |
 
-## 设计文档结构
+## 代码结构
 
-| 章节 | 内容 | 状态 |
-|------|------|------|
-| §1-§7 | 概述/需求/参考/定义/功能/架构/迁移映射 | ✅ |
-| §8 | 技术栈选型 | ✅ |
-| §9 | 核心包详细设计 | ✅ |
-| §10 | 分布式架构 | ✅ |
-| §11 | 认证提供商架构 | ✅ |
-| §12 | 监控与告警系统 | ✅ |
-| §13 | UI 设计 | ✅ |
-| §14 | 集成架构 | ✅ |
-| §15 | 品牌定制机制 | ✅ |
-| §16 | 架构基础设施 | ✅ |
-| §17 | 并发处理 | ✅ |
-| §18 | 网络信息安全 | ✅ |
-| §19 | 授权许可证 | ✅ |
-| §20-§28 | P0 补充（错误处理/Schema/API/前端/安全/CI-CD/备份/Secret） | ✅ P0 |
-| §29-§35 | P1 补充（安全加固/测试/运维/用户自助/Webhook/通知/i18n） | ✅ P1 |
-| §36-§41 | P2 补充（安全补充/前端补充/运维补充/GDPR/邮件短信/文件存储） | ✅ P2 |
-| §42 | P3 补充（APM/版本策略/性能基线/DNS证书/成本监控/报表/API网关/配置管理） | ✅ P3 |
+```
+packages/              # 8 个 L0 包
+├── types/             @accessbase/types (4 files)
+├── logging/           @accessbase/logging (1 file)
+├── i18n/              @accessbase/i18n (4 files)
+├── migration/         @accessbase/migration (5 files)
+├── health/            @accessbase/health (5 files)
+├── identity/          @accessbase/identity (13 files)
+├── audit/             @accessbase/audit (4 files)
+└── admin/             @accessbase/admin (6 files)
+
+apps/
+├── server/            Fastify 服务 (7 files)
+└── admin-ui/          React 前端 (14 files)
+
+docs/
+├── modules/           31 个设计文档 + 8 个 SDD
+├── reference/         9 个参考调研文档
+└── implementation-plan.md
+```
 
 ## 设计决策汇总
 
-共 80 个设计决策（D1-D80）
+共 95 个设计决策（D1-D95）
+- D1-D80: 原始设计决策
+- D81-D95: 从 35+ 项目参考中提炼
 
-## 团队审查结果
+## 测试覆盖
 
-**综合评分**: ~6.8/10（审查时）→ P0+P1+P2+P3 补充后 **~9.5/10**
+| 包 | 测试文件 | 用例数 |
+|---|---------|--------|
+| types | entities.test.ts | 8 |
+| logging | logger.test.ts | 9 |
+| identity | AuthManager/UserManager/RoleManager | 57 |
+| health | service.test.ts | 11 |
+| audit | logger.test.ts | 10 |
+| server | routes.test.ts | 17 |
+| **合计** | **8 文件** | **138 ✅** |
 
-**P0 遗漏**: 18 项 ✅ 已全部补充
-**P1 遗漏**: 20 项 ✅ 已全部补充
-**P2 遗漏**: 22 项 ✅ 已全部补充
-**P3 遗漏**: 15 项 ✅ 已全部补充
+## 运行模式
 
-## 已知缺失
-
-- 各包 SDD（接口/生命周期/依赖/错误码）待生成
-- L0 包尚未实施
+| 模式 | 命令 | 说明 |
+|------|------|------|
+| 开发 | `./accessbase.sh dev` | 后端 + 前端热重载 |
+| 测试 | `./accessbase.sh test` | 138 个测试 |
+| 构建 | `./accessbase.sh build` | 构建所有包 |
+| Docker 开发 | `./accessbase.sh docker:dev` | PG + Redis 分离 |
+| Docker 生产 | `./accessbase.sh docker` | 单容器 all-in-one |
 
 ## 近期工作
 
-- 2026-08-20: 设计文档 v0.1~v1.3 完成（20 个章节）
-- 2026-08-20: 6 人团队全面审查（架构师/安全/前端/后端/运维/产品）
-- 2026-08-20: P0 遗漏补充完成（v2.0）— 错误处理/Schema/API/前端/安全/CI-CD/备份/Secret
-- 2026-08-20: P1 遗漏补充完成（v2.1）— 安全加固/测试/运维/用户自助/Webhook/通知/i18n
-- 2026-08-20: P2 遗漏补充完成（v2.2）— 安全补充/前端补充/运维补充/GDPR/邮件短信/文件存储
-- 2026-08-20: P3 遗漏补充完成（v3.0）— APM/版本策略/性能基线/DNS证书/成本监控/报表/API网关/配置管理
+- 2026-08-21: Phase 0 基础设施搭建（pnpm monorepo + Docker + 测试框架）
+- 2026-08-21: Phase 1 实施 8 个 L0 包
+- 2026-08-21: Phase 2 Fastify 服务集成
+- 2026-08-21: Phase 3 测试（138 个用例）
+- 2026-08-21: Phase 4 Admin UI 前端
+- 2026-08-21: Docker 多阶段构建 + CLI 脚本 + CI/CD
