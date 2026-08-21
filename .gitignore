@@ -88,3 +88,6 @@ coverage/
 .env.*
 !.env.example
 !.env.template
+# Playwright
+test-results/
+playwright-report/
