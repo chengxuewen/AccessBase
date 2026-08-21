@@ -1960,3 +1960,73 @@ const brandTokens = {
 ---
 
 **更新日期**: 2026-08-21（D81-D95 补充完成）
+
+---
+
+## D96: 包命名简化 (2026-08-21)
+
+**决策**: `shared-types` → `types`, `health-check` → `health`
+
+**理由**:
+- 简洁：单音节包名更易引用
+- 主流：参考 NestJS `@nestjs/common`, Prisma `@prisma/client`
+- 语义足够：`@accessbase/types` 和 `@accessbase/health` 语义清晰
+
+**参考**: 社区调研
+
+---
+
+## D97: Fastify 类型增强隔离 (2026-08-21)
+
+**决策**: Fastify 类型增强放在单独的 `fastify.d.ts` 文件
+
+**理由**:
+- 避免多插件文件中 `declare module 'fastify'` 冲突
+- TypeScript 模块增强在同一编译单元中多次声明会冲突
+- 单独文件便于维护和查找
+
+**参考**: PIT-002
+
+---
+
+## D98: Docker 单容器 all-in-one 模式 (2026-08-21)
+
+**决策**: 生产环境支持单容器运行 PostgreSQL + Redis + Server + UI
+
+**理由**:
+- 简化部署：无需 docker-compose
+- 适合小规模部署：单机即可运行完整系统
+- 数据持久化：通过 Docker volume 持久化
+
+**权衡**:
+- 单容器不适合高可用场景
+- 高可用应使用分离的 PostgreSQL 和 Redis
+
+**参考**: MediaServo Dockerfile
+
+---
+
+## D99: pnpm + nvm 替代 pixi (2026-08-21)
+
+**决策**: 使用 pnpm + nvm 管理 Node.js 依赖，不使用 pixi
+
+**理由**:
+- AccessBase 是纯 TypeScript 项目，无原生依赖
+- pnpm 已满足 monorepo 需求
+- nvm 管理 Node.js 版本
+- pixi 适合有 Rust/GStreamer 等原生依赖的项目（如 MediaServo）
+
+**参考**: pixi vs mise 调研
+
+---
+
+## D100: CLI 脚本架构 (2026-08-21)
+
+**决策**: 参考 MediaServo 创建 `bootstrap.sh` + `accessbase.sh` CLI
+
+**理由**:
+- 统一入口：`./accessbase.sh <command>`
+- 首次安装：`source bootstrap.sh`
+- 命令覆盖：dev/build/test/docker/db
+
+**参考**: MediaServo mediaservo.sh + bootstrap.sh
