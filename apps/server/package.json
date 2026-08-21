@@ -1,0 +1,42 @@
+{
+  "name": "@accessbase/server",
+  "version": "0.1.0",
+  "description": "AccessBase API server",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@accessbase/identity": "workspace:*",
+    "@accessbase/audit": "workspace:*",
+    "@accessbase/health-check": "workspace:*",
+    "@accessbase/i18n": "workspace:*",
+    "@accessbase/logging": "workspace:*",
+    "fastify": "^4.25.0",
+    "@fastify/cors": "^10.0.0",
+    "@fastify/swagger": "^9.0.0",
+    "@fastify/swagger-ui": "^5.0.0",
+    "@fastify/jwt": "^8.0.0",
+    "drizzle-orm": "^0.29.0",
+    "pg": "^8.11.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.7.0"
+  }
+}

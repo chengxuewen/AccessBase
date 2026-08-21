@@ -71,8 +71,3 @@ export const fastifyHealthCheck = fp(healthCheckPlugin, {
   fastify: '4.x',
 });
 
-declare module 'fastify' {
-  interface FastifyInstance {
-    healthCheck: HealthCheckServiceImpl;
-  }
-}

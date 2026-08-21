@@ -20,26 +20,8 @@ export interface IdentityPluginOptions {
   config?: IdentityConfig;
 }
 
-/**
- * Extend Fastify instance with identity service
- */
-declare module 'fastify' {
-  interface FastifyInstance {
-    identity: IdentityService;
-  }
-  interface FastifyRequest {
-    user?: {
-      sub: string;
-      email: string;
-      tenantId: string;
-      roles: string[];
-      permissions: string[];
-      tokenVersion: number;
-      iat: number;
-      exp: number;
-    };
-  }
-}
+// Type augmentation is handled by @fastify/jwt
+// Use fastify.jwt.verify() to get user payload
 
 /**
  * Identity Fastify plugin
