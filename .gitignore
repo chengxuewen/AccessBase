@@ -1,0 +1,90 @@
+# NocoBase test app (Phase 0 spike / development)
+nocobase-app/
+
+# This file is used to ignore files which are generated
+# Project extension directory (local customization, gitignored)
+extensions/
+# ----------------------------------------------------------------------------
+
+*~
+*.autosave
+*.core
+*.orig
+*.rej
+.#*
+*.*#
+tags
+.DS_Store
+.directory
+*.debug
+*.app
+Thumbs.db
+
+# Vim temporary files
+.*.swp
+
+
+# Python byte code
+*.pyc
+
+# Binaries
+# --------
+*.dll
+*.exe
+
+# Redis/Valkey dump
+dump.rdb
+
+# IDE files
+# --------
+.vs
+.idea
+.cache
+.vscode
+!.vscode/settings.json
+
+# Build dirs
+# --------
+out
+log
+dist
+build
+install
+
+# Temp dirs
+# --------
+.refinfo
+nodejs
+stash
+
+# nodejs environments
+node_modules
+.npm-cache
+.turbo
+
+# Don't ignore files
+# --------
+!.vscode/settings.json
+!.omo/omo.jsonc
+
+# Agent dirs
+.venv-openspace
+.playwright-mcp
+.codegraph
+.sisyphus
+.omo
+
+# Test and build artifacts
+test-results
+coverage/
+*.tsbuildinfo
+*.log
+
+# Pixi environments
+.pixi*
+
+# Environment files
+*.env
+.env.*
+!.env.example
+!.env.template
