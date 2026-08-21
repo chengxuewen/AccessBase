@@ -1,0 +1,58 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "reset": "Reset",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "warning": "Warning",
+    "info": "Information",
+    "debug": "Debug",
+    "trace": "Trace",
+    "fatal": "Fatal"
+  },
+  "pagination": {
+    "total": "Total {{total}} items",
+    "page": "Page {{current}} of {{total}}",
+    "perPage": "{{count}} per page",
+    "showSizeChanger": "Show size changer"
+  },
+  "table": {
+    "noData": "No data",
+    "loading": "Loading data...",
+    "sort": "Sort",
+    "filter": "Filter",
+    "reset": "Reset filters"
+  },
+  "form": {
+    "required": "This field is required",
+    "invalid": "Invalid value",
+    "email": "Please enter a valid email",
+    "minLength": "Minimum length is {{min}} characters",
+    "maxLength": "Maximum length is {{max}} characters",
+    "pattern": "Invalid format"
+  },
+  "modal": {
+    "confirm": "Are you sure?",
+    "deleteConfirm": "Are you sure you want to delete this item?",
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+  },
+  "greeting": "Hello, {{name}}",
+  "items": "{{count}} item",
+  "items_plural": "{{count}} items"
+}

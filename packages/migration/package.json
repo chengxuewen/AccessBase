@@ -1,0 +1,40 @@
+{
+  "name": "@accessbase/migration",
+  "version": "0.1.0",
+  "description": "Database migration management for AccessBase",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    }
+  },
+  "files": ["dist"],
+  "bin": {
+    "accessbase-migrate": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@accessbase/logging": "workspace:*",
+    "drizzle-orm": "^0.29.0",
+    "pg": "^8.11.0",
+    "commander": "^11.0.0",
+    "dotenv": "^16.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/pg": "^8.11.0",
+    "drizzle-kit": "^0.20.0"
+  }
+}

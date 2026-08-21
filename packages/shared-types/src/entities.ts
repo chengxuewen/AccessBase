@@ -8,6 +8,7 @@ export interface User {
   avatar?: string;
   isActive: boolean;
   tenantId: string;
+  tokenVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
