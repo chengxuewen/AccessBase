@@ -50,9 +50,9 @@ importers:
       '@accessbase/audit':
         specifier: workspace:*
         version: link:../../packages/audit
-      '@accessbase/health-check':
+      '@accessbase/health':
         specifier: workspace:*
-        version: link:../../packages/health-check
+        version: link:../../packages/health
       '@accessbase/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -102,9 +102,9 @@ importers:
       '@accessbase/logging':
         specifier: workspace:*
         version: link:../logging
-      '@accessbase/shared-types':
+      '@accessbase/types':
         specifier: workspace:*
-        version: link:../shared-types
+        version: link:../types
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -116,7 +116,7 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  packages/health-check:
+  packages/health:
     dependencies:
       '@accessbase/logging':
         specifier: workspace:*
@@ -153,9 +153,9 @@ importers:
       '@accessbase/logging':
         specifier: workspace:*
         version: link:../logging
-      '@accessbase/shared-types':
+      '@accessbase/types':
         specifier: workspace:*
-        version: link:../shared-types
+        version: link:../types
       bcrypt:
         specifier: ^5.1.1
         version: 5.1.1
@@ -229,7 +229,7 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  packages/shared-types:
+  packages/types:
     devDependencies:
       typescript:
         specifier: ^5.7.0

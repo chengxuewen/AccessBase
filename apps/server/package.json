@@ -22,7 +22,7 @@
   "dependencies": {
     "@accessbase/identity": "workspace:*",
     "@accessbase/audit": "workspace:*",
-    "@accessbase/health-check": "workspace:*",
+    "@accessbase/health": "workspace:*",
     "@accessbase/i18n": "workspace:*",
     "@accessbase/logging": "workspace:*",
     "fastify": "^4.25.0",

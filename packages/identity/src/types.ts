@@ -4,7 +4,7 @@
  */
 
 // Re-export shared types
-import type { User, Role, Permission, Session } from '@accessbase/shared-types';
+import type { User, Role, Permission, Session } from '@accessbase/types';
 export type { User, Role, Permission, Session };
 
 /**

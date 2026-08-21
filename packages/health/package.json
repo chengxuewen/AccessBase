@@ -1,5 +1,5 @@
 {
-  "name": "@accessbase/health-check",
+  "name": "@accessbase/health",
   "version": "0.1.0",
   "description": "Health check endpoints for AccessBase",
   "type": "module",

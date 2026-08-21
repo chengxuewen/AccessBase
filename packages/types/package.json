@@ -1,5 +1,5 @@
 {
-  "name": "@accessbase/shared-types",
+  "name": "@accessbase/types",
   "version": "0.1.0",
   "description": "Shared TypeScript types for AccessBase",
   "type": "module",

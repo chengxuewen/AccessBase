@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@accessbase/logging": "workspace:*",
-    "@accessbase/shared-types": "workspace:*"
+    "@accessbase/types": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

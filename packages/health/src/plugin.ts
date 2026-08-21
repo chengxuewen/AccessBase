@@ -67,7 +67,7 @@ const healthCheckPlugin: FastifyPluginAsync<HealthCheckOptions> = async (fastify
 }
 
 export const fastifyHealthCheck = fp(healthCheckPlugin, {
-  name: '@accessbase/health-check',
+  name: '@accessbase/health',
   fastify: '4.x',
 });
 
