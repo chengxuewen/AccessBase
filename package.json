@@ -22,7 +22,12 @@
     "test:e2e": "playwright test",
     "clean": "pnpm -r run clean",
     "db:push": "pnpm --filter @accessbase/migration run db:push",
-    "db:generate": "pnpm --filter @accessbase/migration run db:generate"
+    "db:generate": "pnpm --filter @accessbase/migration run db:generate",
+    "docker:dev": "docker compose -f docker-compose.dev.yml up -d",
+    "docker:dev:down": "docker compose -f docker-compose.dev.yml down",
+    "docker:build": "docker build -t accessbase:latest .",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up -d",
+    "docker:prod:down": "docker compose -f docker-compose.prod.yml down"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
