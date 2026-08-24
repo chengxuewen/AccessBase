@@ -37,9 +37,10 @@ cmd_dev() {
     # Step 1: Start PostgreSQL + Redis if not running
     log_info "Checking dev services..."
     if has_docker; then
-        if ! docker compose -f docker-compose.dev.yml ps --status running 2>/dev/null | grep -q postgres; then
+        local DC=$(get_docker_compose_cmd)
+        if ! $DC -f docker-compose.dev.yml ps --status running 2>/dev/null | grep -q postgres; then
             log_info "Starting PostgreSQL + Redis..."
-            docker compose -f docker-compose.dev.yml up -d
+            $DC -f docker-compose.dev.yml up -d
             sleep 3
         fi
         log_ok "Dev services running"
@@ -128,14 +129,16 @@ cmd_docker_dev() {
         log_error "Docker not available"
         exit 1
     fi
+    local DC=$(get_docker_compose_cmd)
     log_info "Starting dev services..."
-    docker compose -f docker-compose.dev.yml up -d
+    $DC -f docker-compose.dev.yml up -d
     log_ok "PostgreSQL (5432) and Redis (6379) running"
 }
 
 cmd_docker_down() {
-    docker compose -f docker-compose.dev.yml down 2>/dev/null || true
-    docker compose -f docker-compose.prod.yml down 2>/dev/null || true
+    local DC=$(get_docker_compose_cmd)
+    $DC -f docker-compose.dev.yml down 2>/dev/null || true
+    $DC -f docker-compose.prod.yml down 2>/dev/null || true
     log_ok "Services stopped"
 }
 

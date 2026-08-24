@@ -38,5 +38,26 @@ ensure_pnpm() {
 
 # Check if Docker is available
 has_docker() {
-    command -v docker &>/dev/null && docker info &>/dev/null 2>&1
+    if command -v docker &>/dev/null; then
+        if docker info &>/dev/null 2>&1; then
+            return 0
+        fi
+        # Try with sudo
+        if sudo -n docker info &>/dev/null 2>&1; then
+            export DOCKER_CMD="sudo docker"
+            export DOCKER_COMPOSE_CMD="sudo docker compose"
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# Get docker command (with or without sudo)
+get_docker_cmd() {
+    echo "${DOCKER_CMD:-docker}"
+}
+
+# Get docker compose command
+get_docker_compose_cmd() {
+    echo "${DOCKER_COMPOSE_CMD:-docker compose}"
 }
