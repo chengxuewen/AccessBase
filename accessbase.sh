@@ -35,7 +35,7 @@ cmd_dev() {
     ensure_pnpm
     log_info "Starting development servers..."
     pnpm --filter @accessbase/server dev &
-    pnpm --filter @accessbase/admin-ui dev &
+    pnpm --filter @accessbase/admin-ui dev -- --host 0.0.0.0 &
     wait
 }
 
