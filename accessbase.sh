@@ -111,9 +111,17 @@ cmd_dev_docker() {
     fi
 
     local D=$(get_docker_cmd)
+    local BUILD_ARGS=""
+
+    # Parse arguments
+    for arg in "$@"; do
+        case $arg in
+            --no-cache) BUILD_ARGS="--no-cache" ;;
+        esac
+    done
 
     log_info "Building Docker image..."
-    $D build -t accessbase:dev .
+    $D build $BUILD_ARGS -t accessbase:dev .
 
     log_info "Starting all-in-one container..."
     $D run -d --name accessbase-dev \
@@ -257,8 +265,14 @@ cmd_docker_build() {
         exit 1
     fi
     local D=$(get_docker_cmd)
+    local BUILD_ARGS=""
+    for arg in "$@"; do
+        case $arg in
+            --no-cache) BUILD_ARGS="--no-cache" ;;
+        esac
+    done
     log_info "Building Docker image..."
-    $D build -t accessbase:latest .
+    $D build $BUILD_ARGS -t accessbase:latest .
     log_ok "Docker image built"
 }
 
