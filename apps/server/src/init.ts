@@ -8,7 +8,7 @@ import { logger } from '@accessbase/logging'
 import { config } from './config.js'
 
 const ADMIN_EMAIL = 'admin@accessbase.local'
-const DEFAULT_TENANT = 'default'
+const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001'
 
 /**
  * Generate a random password
