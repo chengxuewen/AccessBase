@@ -74,9 +74,10 @@ ENV PGUSER=accessbase
 ENV PGPASSWORD=accessbase
 ENV PGDATABASE=accessbase
 ENV PATH="/usr/lib/postgresql/16/bin:$PATH"
-RUN mkdir -p /var/run/postgresql && chown -R accessbase:accessbase /var/run/postgresql
+RUN mkdir -p /var/run/postgresql /var/lib/postgresql/data && \
+    chown -R accessbase:accessbase /var/run/postgresql /var/lib/postgresql/data
 USER accessbase
-RUN /usr/lib/postgresql/16/bin/initdb -D $PGDATA --auth=trust --username=accessbase && \
+RUN initdb -D $PGDATA --auth=trust --username=accessbase && \
     echo "listen_addresses='*'" >> $PGDATA/postgresql.conf && \
     echo "host all all 0.0.0.0/0 trust" >> $PGDATA/pg_hba.conf
 
