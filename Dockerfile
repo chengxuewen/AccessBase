@@ -11,8 +11,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl postgresql-client redis-tools \
     && rm -rf /var/lib/apt/lists/*
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/*/package.json packages/*/
-COPY apps/*/package.json apps/*/
+COPY packages/types/package.json packages/types/
+COPY packages/logging/package.json packages/logging/
+COPY packages/i18n/package.json packages/i18n/
+COPY packages/migration/package.json packages/migration/
+COPY packages/health/package.json packages/health/
+COPY packages/identity/package.json packages/identity/
+COPY packages/audit/package.json packages/audit/
+COPY packages/admin/package.json packages/admin/
+COPY apps/server/package.json apps/server/
+COPY apps/admin-ui/package.json apps/admin-ui/
 RUN pnpm install --no-frozen-lockfile
 COPY . .
 CMD ["bash"]
@@ -20,8 +28,16 @@ CMD ["bash"]
 # ---- Builder: build backend + frontend ----
 FROM base AS builder
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/*/package.json packages/*/
-COPY apps/*/package.json apps/*/
+COPY packages/types/package.json packages/types/
+COPY packages/logging/package.json packages/logging/
+COPY packages/i18n/package.json packages/i18n/
+COPY packages/migration/package.json packages/migration/
+COPY packages/health/package.json packages/health/
+COPY packages/identity/package.json packages/identity/
+COPY packages/audit/package.json packages/audit/
+COPY packages/admin/package.json packages/admin/
+COPY apps/server/package.json apps/server/
+COPY apps/admin-ui/package.json apps/admin-ui/
 RUN pnpm install --no-frozen-lockfile
 COPY . .
 RUN pnpm --filter @accessbase/types build && \
