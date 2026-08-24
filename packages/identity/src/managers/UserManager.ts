@@ -13,7 +13,8 @@ import type {
   UserStatus,
   PaginatedResult,
 } from '../types.js';
-import { hash, compare } from 'bcryptjs';
+import bcryptjs from 'bcryptjs';
+const { hash, compare } = bcryptjs;
 
 export class UserManager {
   private readonly db: DrizzleDB;
