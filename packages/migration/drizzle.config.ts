@@ -6,6 +6,6 @@ export default defineConfig({
   dialect: 'postgresql',
   driver: 'pg',
   dbCredentials: {
-    url: process.env['DATABASE_URL'] || 'postgresql://accessbase:accessbase_dev@localhost:5432/accessbase',
+    connectionString: process.env['DATABASE_URL'] || 'postgresql://accessbase:accessbase_dev@localhost:5432/accessbase',
   },
 });
