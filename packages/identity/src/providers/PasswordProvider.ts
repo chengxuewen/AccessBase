@@ -1,7 +1,7 @@
 /**
  * PasswordProvider - Email/password authentication (SDD 2.1)
  */
-import bcrypt from 'bcrypt';
+import { hash, compare } from 'bcryptjs';
 import { logger } from '@accessbase/logging';
 import type { AuthProvider, AuthResult, PasswordConfig } from '../types.js';
 
