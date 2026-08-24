@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/*/package.json packages/*/
 COPY apps/*/package.json apps/*/
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 COPY . .
 CMD ["bash"]
 
@@ -22,7 +22,7 @@ FROM base AS builder
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/*/package.json packages/*/
 COPY apps/*/package.json apps/*/
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 COPY . .
 RUN pnpm --filter @accessbase/types build && \
     pnpm --filter @accessbase/logging build && \
