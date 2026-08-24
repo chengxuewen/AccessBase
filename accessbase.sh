@@ -61,6 +61,18 @@ cmd_dev() {
             sleep 3
         fi
         log_ok "Dev services running"
+
+        # Auto-set DATABASE_URL if not set
+        if [ -z "${DATABASE_URL:-}" ]; then
+            export DATABASE_URL="postgresql://accessbase:accessbase_dev@localhost:5432/accessbase"
+            log_info "DATABASE_URL set to localhost:5432"
+        fi
+
+        # Auto-set REDIS_URL if not set
+        if [ -z "${REDIS_URL:-}" ]; then
+            export REDIS_URL="redis://localhost:6379"
+            log_info "REDIS_URL set to localhost:6379"
+        fi
     else
         log_warn "Docker not available, skipping dev services"
     fi
@@ -92,6 +104,11 @@ cmd_dev_compose() {
     $DC -f docker-compose.dev.yml up -d
     sleep 3
     log_ok "PostgreSQL (5432) and Redis (6379) running"
+
+    # Auto-set environment variables
+    export DATABASE_URL="postgresql://accessbase:accessbase_dev@localhost:5432/accessbase"
+    export REDIS_URL="redis://localhost:6379"
+    log_info "DATABASE_URL and REDIS_URL configured"
 
     # Step 2: Push database schema
     log_info "Pushing database schema..."
