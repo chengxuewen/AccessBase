@@ -33,7 +33,26 @@ EOF
 cmd_dev() {
     ensure_node
     ensure_pnpm
-    log_info "Starting development servers..."
+
+    # Step 1: Start PostgreSQL + Redis if not running
+    log_info "Checking dev services..."
+    if has_docker; then
+        if ! docker compose -f docker-compose.dev.yml ps --status running 2>/dev/null | grep -q postgres; then
+            log_info "Starting PostgreSQL + Redis..."
+            docker compose -f docker-compose.dev.yml up -d
+            sleep 3
+        fi
+        log_ok "Dev services running"
+    else
+        log_warn "Docker not available, skipping dev services"
+    fi
+
+    # Step 2: Push database schema
+    log_info "Pushing database schema..."
+    pnpm db:push 2>/dev/null || log_warn "Schema push skipped (DB not ready)"
+
+    # Step 3: Start dev servers
+    log_info "Starting dev servers..."
     pnpm --filter @accessbase/server dev &
     pnpm --filter @accessbase/admin-ui dev -- --host 0.0.0.0 &
     wait
