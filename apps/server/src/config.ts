@@ -6,6 +6,7 @@ export interface AppConfig {
   jwtSecret: string
   nodeEnv: 'development' | 'production' | 'test'
   logLevel: 'debug' | 'info' | 'warn' | 'error'
+  adminPassword: string
 }
 
 function env(key: string, fallback?: string): string {
@@ -24,4 +25,5 @@ export const config: AppConfig = {
   jwtSecret: env('JWT_SECRET', 'dev-secret-do-not-use-in-production'),
   nodeEnv: (env('NODE_ENV', 'development') as AppConfig['nodeEnv']),
   logLevel: (env('NODE_ENV', 'development') === 'production' ? 'info' : 'debug') as AppConfig['logLevel'],
+  adminPassword: process.env['ADMIN_PASSWORD'] || '',
 }
