@@ -31,7 +31,7 @@ function SetupGuard({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}>;
+  return <>{children}</>;
 }
 
 function GlobalGuard({ children }: { children: React.ReactNode }) {
@@ -51,7 +51,7 @@ function GlobalGuard({ children }: { children: React.ReactNode }) {
     return <Navigate to="/setup" replace />;
   }
 
-  return <>{children}>;
+  return <>{children}</>;
 }
 
 export default function App() {

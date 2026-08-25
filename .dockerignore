@@ -1,0 +1,54 @@
+# Version control
+.git
+.gitignore
+
+# Documentation (not needed in image)
+docs/
+*.md
+LICENSE
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Agent/AI config (not needed in build)
+.agents/
+.opencode/
+
+# Reference material
+.refinfo/
+
+# Test files (not needed in production)
+**/__tests__/
+**/*.test.ts
+**/*.spec.ts
+e2e/
+
+# Build artifacts (will be rebuilt)
+packages/*/dist/
+apps/*/dist/
+
+# Docker files (avoid recursive context)
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Logs and temp
+*.log
+tmp/
+.tmp/
+
+# CI/CD
+.github/
+
+# Environment files (secrets)
+.env
+.env.*
+!.env.example

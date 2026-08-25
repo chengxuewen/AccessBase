@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 # ---- Base: Node.js 22 + pnpm ----
 FROM node:22-slim AS base
 ENV PNPM_HOME="/root/.local/share/pnpm"
@@ -21,7 +23,8 @@ COPY packages/audit/package.json packages/audit/
 COPY packages/admin/package.json packages/admin/
 COPY apps/server/package.json apps/server/
 COPY apps/admin-ui/package.json apps/admin-ui/
-RUN pnpm install --no-frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 COPY . .
 CMD ["bash"]
 
@@ -38,7 +41,8 @@ COPY packages/audit/package.json packages/audit/
 COPY packages/admin/package.json packages/admin/
 COPY apps/server/package.json apps/server/
 COPY apps/admin-ui/package.json apps/admin-ui/
-RUN pnpm install --no-frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm --filter @accessbase/types build && \
     pnpm --filter @accessbase/logging build && \
@@ -52,29 +56,28 @@ RUN pnpm --filter @accessbase/types build && \
 RUN pnpm --filter @accessbase/admin-ui build
 
 # ---- Runtime: all-in-one (PostgreSQL + Redis + Server + UI) ----
-FROM debian:bookworm-slim AS runtime
+# Use postgres:16-bookworm as base — PostgreSQL pre-installed, no external repo download
+FROM postgres:16-bookworm AS runtime
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install PostgreSQL 16 + Redis + Node.js 22
+# Install Node.js 22 + Redis in one layer (much faster than installing PG from scratch)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl gnupg2 lsb-release ca-certificates \
-    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/postgresql-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    curl ca-certificates redis-server \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-16 redis-server nodejs \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Create accessbase user
+# Create accessbase user (postgres:16-bookworm defaults to postgres user, switch to root for setup)
+USER root
 RUN useradd -m -s /bin/bash accessbase
 
-# PostgreSQL setup
+# PostgreSQL setup (postgres image uses 'postgres' user by default)
 ENV PGDATA=/var/lib/postgresql/data
 ENV PGUSER=accessbase
 ENV PGPASSWORD=accessbase
 ENV PGDATABASE=accessbase
 ENV PATH="/usr/lib/postgresql/16/bin:$PATH"
-RUN mkdir -p /var/run/postgresql /var/lib/postgresql/data && \
+RUN mkdir -p /var/run/postgresql && \
     chown -R accessbase:accessbase /var/run/postgresql /var/lib/postgresql/data
 USER accessbase
 RUN initdb -D $PGDATA --auth=trust --username=accessbase && \
