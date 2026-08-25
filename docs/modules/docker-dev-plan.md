@@ -7,10 +7,10 @@
 
 AccessBase 支持三种开发模式，本文档详细说明单容器和 Compose 两种 Docker 开发模式的实施方案。
 
-| 模式 | 命令 | 适用场景 | 特点 |
-|------|------|---------|------|
-| 非容器 | `bash accessbase.sh dev` | 日常开发 | 前后端本地，DB/Redis 在 Docker |
-| **单容器** | `bash accessbase.sh dev:docker` | 快速演示、CI 测试 | 全部在单容器，无热重载 |
+| 模式        | 命令                             | 适用场景           | 特点                                 |
+| ----------- | -------------------------------- | ------------------ | ------------------------------------ |
+| 非容器      | `bash accessbase.sh dev`         | 日常开发           | 前后端本地，DB/Redis 在 Docker       |
+| **单容器**  | `bash accessbase.sh dev:docker`  | 快速演示、CI 测试  | 全部在单容器，无热重载               |
 | **Compose** | `bash accessbase.sh dev:compose` | 团队开发、完整环境 | 前后端+DB/Redis 分离容器，支持热重载 |
 
 ---
@@ -43,7 +43,7 @@ services:
   postgres:
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_USER: accessbase
       POSTGRES_PASSWORD: accessbase_dev
@@ -52,7 +52,7 @@ services:
       - postgres-dev:/var/lib/postgresql/data
     command: postgres -c listen_addresses='*'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U accessbase -d accessbase"]
+      test: ['CMD-SHELL', 'pg_isready -U accessbase -d accessbase']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,12 +60,12 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis-dev:/data
     command: redis-server --appendonly yes
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -75,7 +75,7 @@ services:
       context: .
       target: dev
     ports:
-      - "5101:5101"
+      - '5101:5101'
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://accessbase:accessbase_dev@postgres:5432/accessbase
@@ -107,7 +107,7 @@ services:
       context: .
       target: dev
     ports:
-      - "5173:5173"
+      - '5173:5173'
     environment:
       VITE_API_URL: http://server:5101
     volumes:
@@ -176,13 +176,13 @@ cmd_dev_compose() {
 
 ### 1.5 优势
 
-| 优势 | 说明 |
-|------|------|
-| ✅ 热重载 | 前后端代码变更自动重启 |
+| 优势        | 说明                       |
+| ----------- | -------------------------- |
+| ✅ 热重载   | 前后端代码变更自动重启     |
 | ✅ 网络隔离 | 服务间通过 Docker 网络通信 |
-| ✅ 一致性 | 与生产环境架构一致 |
-| ✅ 依赖隔离 | node_modules 在容器内 |
-| ✅ 团队协作 | 统一开发环境 |
+| ✅ 一致性   | 与生产环境架构一致         |
+| ✅ 依赖隔离 | node_modules 在容器内      |
+| ✅ 团队协作 | 统一开发环境               |
 
 ---
 
@@ -350,11 +350,11 @@ cmd_dev_docker() {
 
 ### 2.5 优势
 
-| 优势 | 说明 |
-|------|------|
-| ✅ 快速启动 | 单容器，启动快 |
-| ✅ 资源占用少 | 仅一个容器 |
-| ✅ 简单部署 | 适合演示和测试 |
+| 优势          | 说明            |
+| ------------- | --------------- |
+| ✅ 快速启动   | 单容器，启动快  |
+| ✅ 资源占用少 | 仅一个容器      |
+| ✅ 简单部署   | 适合演示和测试  |
 | ✅ 数据持久化 | Volume 挂载源码 |
 
 ---
@@ -363,28 +363,28 @@ cmd_dev_docker() {
 
 ### 3.1 Phase 1: Compose 模式（优先）
 
-| 任务 | 文件 | 工作量 |
-|------|------|--------|
-| 更新 docker-compose.dev.yml | `docker-compose.dev.yml` | 小 |
-| 更新 Vite 代理配置 | `apps/admin-ui/vite.config.ts` | 小 |
-| 更新 CLI 命令 | `accessbase.sh` | 小 |
-| 测试验证 | - | 中 |
+| 任务                        | 文件                           | 工作量 |
+| --------------------------- | ------------------------------ | ------ |
+| 更新 docker-compose.dev.yml | `docker-compose.dev.yml`       | 小     |
+| 更新 Vite 代理配置          | `apps/admin-ui/vite.config.ts` | 小     |
+| 更新 CLI 命令               | `accessbase.sh`                | 小     |
+| 测试验证                    | -                              | 中     |
 
 ### 3.2 Phase 2: 单容器模式
 
-| 任务 | 文件 | 工作量 |
-|------|------|--------|
-| 创建 Dockerfile.dev | `Dockerfile.dev` | 中 |
-| 创建 entrypoint-dev.sh | `docker/entrypoint-dev.sh` | 小 |
-| 更新 CLI 命令 | `accessbase.sh` | 小 |
-| 测试验证 | - | 中 |
+| 任务                   | 文件                       | 工作量 |
+| ---------------------- | -------------------------- | ------ |
+| 创建 Dockerfile.dev    | `Dockerfile.dev`           | 中     |
+| 创建 entrypoint-dev.sh | `docker/entrypoint-dev.sh` | 小     |
+| 更新 CLI 命令          | `accessbase.sh`            | 小     |
+| 测试验证               | -                          | 中     |
 
 ### 3.3 Phase 3: 文档更新
 
-| 任务 | 文件 | 工作量 |
-|------|------|--------|
-| 更新 README | `README.md` | 小 |
-| 更新 CLI 帮助 | `accessbase.sh` | 小 |
+| 任务          | 文件            | 工作量 |
+| ------------- | --------------- | ------ |
+| 更新 README   | `README.md`     | 小     |
+| 更新 CLI 帮助 | `accessbase.sh` | 小     |
 
 ---
 
@@ -410,12 +410,12 @@ cmd_dev_docker() {
 
 ## 五、风险与缓解
 
-| 风险 | 影响 | 缓解措施 |
-|------|------|---------|
-| Volume 挂载权限问题 | 高 | 使用 `--chown` 参数 |
-| node_modules 冲突 | 中 | 使用匿名 volume 隔离 |
-| 网络延迟 | 低 | 使用 Docker 网络优化 |
-| 构建时间长 | 中 | 使用 BuildKit 缓存 |
+| 风险                | 影响 | 缓解措施             |
+| ------------------- | ---- | -------------------- |
+| Volume 挂载权限问题 | 高   | 使用 `--chown` 参数  |
+| node_modules 冲突   | 中   | 使用匿名 volume 隔离 |
+| 网络延迟            | 低   | 使用 Docker 网络优化 |
+| 构建时间长          | 中   | 使用 BuildKit 缓存   |
 
 ---
 

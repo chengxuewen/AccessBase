@@ -9,13 +9,13 @@
 
 ## 审查项目总览
 
-| # | 审查项 | 状态 | 说明 |
-|---|--------|------|------|
-| 1 | CSRF 防护 | ✅ 通过 | 完整的 token 机制 |
-| 2 | 速率限制 | ✅ 通过 | 全局 + 端点级别限制 |
-| 3 | 密码强度要求 | ✅ 通过 | 前后端双重验证 |
-| 4 | 设置端点防重复触发 | ✅ 通过 | 双向 guard + 410 Gone |
-| 5 | Token 安全性（设置完成后） | ⚠️ 有条件通过 | 需补充 token 清理逻辑 |
+| #   | 审查项                     | 状态          | 说明                  |
+| --- | -------------------------- | ------------- | --------------------- |
+| 1   | CSRF 防护                  | ✅ 通过       | 完整的 token 机制     |
+| 2   | 速率限制                   | ✅ 通过       | 全局 + 端点级别限制   |
+| 3   | 密码强度要求               | ✅ 通过       | 前后端双重验证        |
+| 4   | 设置端点防重复触发         | ✅ 通过       | 双向 guard + 410 Gone |
+| 5   | Token 安全性（设置完成后） | ⚠️ 有条件通过 | 需补充 token 清理逻辑 |
 
 ---
 
@@ -24,12 +24,14 @@
 ### 1. CSRF 防护 ✅ 通过
 
 **实现方案**:
+
 - `GET /api/v1/setup/status` 返回一次性 `setupToken`
 - 所有 POST 端点必须在 `X-Setup-Token` header 中携带此 token
 - Token 存储在 `system_config` 表中
 - 验证时比对数据库中的存储值
 
 **优点**:
+
 - 使用 `randomBytes(32).toString('hex')` 生成 32 字节随机 token
 - 每次请求 status 都会刷新 token（`onConflictDoUpdate`）
 - 测试覆盖了缺少 token 和无效 token 的场景
@@ -41,11 +43,13 @@
 ### 2. 速率限制 ✅ 通过
 
 **实现方案**:
+
 - 全局限制：`max: 60, timeWindow: '1 minute'`（基于 IP）
 - Setup 端点限制：`max: 5, timeWindow: '5 minutes'`（更严格）
 - 使用 `@fastify/rate-limit` 插件 + Redis 存储
 
 **优点**:
+
 - 区分全局和端点级别限制
 - 错误响应格式统一：`RATE_LIMIT_EXCEEDED`
 - 测试验证了超限返回 429
@@ -59,28 +63,33 @@
 **实现方案**:
 
 **后端验证**（不可绕过）:
+
 ```typescript
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 ```
 
 **前端验证**（用户体验）:
+
 ```typescript
 pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
 // 配合 min: 8 规则
 ```
 
 **要求**:
+
 - 最少 8 位字符
 - 必须包含大写字母
 - 必须包含小写字母
 - 必须包含数字
 
 **优点**:
+
 - 前后端双重验证，不信任前端
 - 后端返回明确错误码 `WEAK_PASSWORD`
 - 测试覆盖了弱密码拒绝场景
 
 **建议增强**（非阻塞）:
+
 - 考虑添加特殊字符要求（如 `?=.*[!@#$%^&*]`）
 - 考虑添加常见密码字典检查
 
@@ -93,6 +102,7 @@ pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
 **双重保护机制**:
 
 1. **端点内部检查**（任务 2/3/4）:
+
    ```typescript
    const setupComplete = await app.db.query.systemConfig.findFirst({
      where: (fields, { eq }) => eq(fields.key, 'setup_complete'),
@@ -111,6 +121,7 @@ pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
    - 始终允许：`GET /setup/status`、`/health`、`/docs`
 
 **优点**:
+
 - 防御深度：即使绕过 guard，端点内部仍有检查
 - 使用 `system_config` 表的 `setup_complete` 键作为单一事实来源
 - 测试覆盖了完整的设置流程和重复触发场景
@@ -122,6 +133,7 @@ pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
 ### 5. Token 安全性（设置完成后）⚠️ 有条件通过
 
 **当前实现**:
+
 - Setup token 存储在 `system_config` 表中
 - Token 用于 CSRF 防护
 - 设置完成后，guard 阻止写入端点
@@ -130,12 +142,14 @@ pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
 
 #### 问题 5.1: 设置完成后 Token 未显式清理 🔶 中
 
-**现象**: 
+**现象**:
 计划中提到"设置完成后 setup token 失效"（API 计划第 47 行），但实现代码中：
+
 - `POST /api/v1/setup/complete` 端点（任务 4）只标记 `setup_complete = true` 并返回 JWT
 - 未显式删除或失效 `setup_token` 记录
 
 **风险**:
+
 - 设置完成后，`setup_token` 仍存在于数据库中
 - `GET /setup/status` 在设置完成后仍然可访问（guard 允许）
 - 虽然写入端点被 guard 阻止，但 token 本身未清理
@@ -145,14 +159,14 @@ pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
 
 ```typescript
 // 在标记 setup_complete 之后，清理 setup_token
-await app.db.delete(app.schema.systemConfig)
-  .where(eq(app.schema.systemConfig.key, 'setup_token'));
+await app.db.delete(app.schema.systemConfig).where(eq(app.schema.systemConfig.key, 'setup_token'));
 ```
 
 或将其值设为 null：
 
 ```typescript
-await app.db.update(app.schema.systemConfig)
+await app.db
+  .update(app.schema.systemConfig)
   .set({ value: null, updatedAt: new Date() })
   .where(eq(app.schema.systemConfig.key, 'setup_token'));
 ```
@@ -161,11 +175,13 @@ await app.db.update(app.schema.systemConfig)
 
 **现象**:
 配置保存端点（任务 3）将 SMTP 密码直接存入 `system_config` 表：
+
 ```typescript
 ...(config.smtpPassword ? [{ key: 'smtp_password', value: config.smtpPassword, category: 'smtp' }] : []),
 ```
 
 **风险**:
+
 - 数据库泄露时 SMTP 密码可被直接读取
 - 违反敏感数据加密存储最佳实践
 
@@ -250,6 +266,7 @@ const smtpPassword = decrypt(storedPassword);
 ### 总体评定: ⚠️ 有条件通过 (CONDITIONAL PASS)
 
 **通过条件**:
+
 1. ✅ CSRF 防护完整实现
 2. ✅ 速率限制配置合理
 3. ✅ 密码强度要求足够
@@ -258,18 +275,18 @@ const smtpPassword = decrypt(storedPassword);
 
 ### 必须修复项
 
-| 优先级 | 问题 | 修复建议 |
-|--------|------|----------|
-| 🔶 中 | 设置完成后 setup_token 未清理 | 在 complete 端点中删除或失效 token |
-| 🔶 中 | SMTP 密码明文存储 | 使用加密或环境变量 |
+| 优先级 | 问题                          | 修复建议                           |
+| ------ | ----------------------------- | ---------------------------------- |
+| 🔶 中  | 设置完成后 setup_token 未清理 | 在 complete 端点中删除或失效 token |
+| 🔶 中  | SMTP 密码明文存储             | 使用加密或环境变量                 |
 
 ### 建议改进项（非阻塞）
 
-| 优先级 | 问题 | 修复建议 |
-|--------|------|----------|
-| 🔵 低 | 前端 localStorage 存储密码 | 改用 sessionStorage 或不持久化密码 |
-| 🔵 低 | 缺少审计日志 | 集成 @accessbase/audit |
-| 🔵 低 | Token 无过期机制 | 添加 TTL |
+| 优先级 | 问题                       | 修复建议                           |
+| ------ | -------------------------- | ---------------------------------- |
+| 🔵 低  | 前端 localStorage 存储密码 | 改用 sessionStorage 或不持久化密码 |
+| 🔵 低  | 缺少审计日志               | 集成 @accessbase/audit             |
+| 🔵 低  | Token 无过期机制           | 添加 TTL                           |
 
 ---
 

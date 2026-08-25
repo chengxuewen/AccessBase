@@ -2,7 +2,12 @@ import { useEffect } from 'react';
 import { Button, Result, Space, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircleOutlined, UserOutlined, TeamOutlined, FileTextOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  UserOutlined,
+  TeamOutlined,
+  FileTextOutlined,
+} from '@ant-design/icons';
 import { useSetupStore } from '../../../stores/setup';
 import { useAuthStore } from '../../../stores/auth';
 import { completeSetup } from '../../../api/setup';
@@ -43,7 +48,12 @@ export default function CompleteStep({ stepTitleRef }: StepProps) {
 
   return (
     <div role="region" aria-labelledby="complete-title" style={{ textAlign: 'center' }}>
-      <h2 id="complete-title" ref={stepTitleRef} tabIndex={-1} style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}>
+      <h2
+        id="complete-title"
+        ref={stepTitleRef}
+        tabIndex={-1}
+        style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}
+      >
         {t('setup.complete.title')}
       </h2>
 

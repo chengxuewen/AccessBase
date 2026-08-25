@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Steps, Card, Grid } from 'antd';
-import { SmileOutlined, UserOutlined, SettingOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import {
+  SmileOutlined,
+  UserOutlined,
+  SettingOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useSetupStore } from '../../stores/setup';
 import WelcomeStep from './steps/WelcomeStep';

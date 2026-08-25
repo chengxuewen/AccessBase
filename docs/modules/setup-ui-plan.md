@@ -154,10 +154,10 @@ export default function SetupWizard() {
     <div
       role="main"
       aria-label="设置向导"
-      style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         minHeight: '100vh',
         background: '#f0f2f5',
         padding: md ? 0 : '16px',
@@ -186,11 +186,13 @@ export default function SetupWizard() {
 ### 3.3 步骤0：语言选择 (`LanguageStep.tsx`)
 
 **功能**：
+
 - 选择系统界面语言
 - 支持中文、英文
 - 预留其他语言扩展
 
 **UI 元素**：
+
 ```typescript
 import { Radio, Button, Space } from 'antd';
 
@@ -238,11 +240,13 @@ function LanguageStep({ next }: StepProps) {
 ### 3.4 步骤1：欢迎 + 系统检查 (`WelcomeStep.tsx`)
 
 **功能**：
+
 - 显示欢迎信息和系统介绍
 - 执行系统环境检查（数据库连接、Redis 连接、磁盘空间等）
 - 显示检查结果，全部通过后才能进入下一步
 
 **UI 元素**：
+
 - Logo + 欢迎标题
 - 系统检查列表（带状态图标）
 - "开始设置" 按钮
@@ -255,7 +259,7 @@ interface CheckItem {
   label: string;
   status: 'pending' | 'checking' | 'success' | 'error';
   message?: string;
-  recovery?: string;  // 恢复建议（新增）
+  recovery?: string; // 恢复建议（新增）
 }
 
 const checks: CheckItem[] = [
@@ -267,6 +271,7 @@ const checks: CheckItem[] = [
 ```
 
 **系统检查 UI（含无障碍）**：
+
 ```typescript
 function SystemCheck({ checks }: { checks: CheckItem[] }) {
   return (
@@ -286,8 +291,8 @@ function SystemCheck({ checks }: { checks: CheckItem[] }) {
           <span style={{ marginLeft: 8 }}>{check.label}</span>
           {/* 屏幕阅读器文本 */}
           <span className="sr-only">
-            {check.status === 'success' ? '检查通过' : 
-             check.status === 'error' ? `检查失败: ${check.message}` : 
+            {check.status === 'success' ? '检查通过' :
+             check.status === 'error' ? `检查失败: ${check.message}` :
              check.status === 'checking' ? '检查中' : '等待检查'}
           </span>
           {check.status === 'error' && (
@@ -309,6 +314,7 @@ function SystemCheck({ checks }: { checks: CheckItem[] }) {
 ### 3.5 步骤2：创建管理员账户 (`AdminStep.tsx`)
 
 **功能**：
+
 - 创建第一个管理员账户
 - 表单验证（邮箱格式、密码强度）
 
@@ -316,20 +322,22 @@ function SystemCheck({ checks }: { checks: CheckItem[] }) {
 
 ```typescript
 interface AdminFormData {
-  name: string;        // 管理员姓名
-  email: string;       // 邮箱地址
-  password: string;    // 密码
-  confirmPassword: string;  // 确认密码
+  name: string; // 管理员姓名
+  email: string; // 邮箱地址
+  password: string; // 密码
+  confirmPassword: string; // 确认密码
 }
 ```
 
 **验证规则**：
+
 - 姓名：必填，2-50 字符
 - 邮箱：必填，有效邮箱格式
 - 密码：必填，至少 8 位，包含大小写字母和数字
 - 确认密码：必须与密码一致
 
 **表单 UI（含 ARIA 标签）**：
+
 ```typescript
 <Form layout={md ? 'horizontal' : 'vertical'} aria-label="创建管理员账户">
   <Form.Item
@@ -387,6 +395,7 @@ interface AdminFormData {
 ### 3.6 步骤3：基础配置 (`ConfigStep.tsx`)
 
 **功能**：
+
 - 配置系统基础参数
 - SMTP 配置为可选
 
@@ -394,17 +403,18 @@ interface AdminFormData {
 
 ```typescript
 interface ConfigFormData {
-  siteName: string;      // 站点名称（必填）
-  siteUrl?: string;      // 站点 URL（可选）
-  smtpHost?: string;     // SMTP 服务器（可选）
-  smtpPort?: number;     // SMTP 端口（可选）
-  smtpUser?: string;     // SMTP 用户名（可选）
+  siteName: string; // 站点名称（必填）
+  siteUrl?: string; // 站点 URL（可选）
+  smtpHost?: string; // SMTP 服务器（可选）
+  smtpPort?: number; // SMTP 端口（可选）
+  smtpUser?: string; // SMTP 用户名（可选）
   smtpPassword?: string; // SMTP 密码（可选）
-  smtpFrom?: string;     // 发件人地址（可选）
+  smtpFrom?: string; // 发件人地址（可选）
 }
 ```
 
 **UI 设计**：
+
 - 必填项和可选项分组显示
 - SMTP 配置可折叠/展开
 - 提供 "跳过" 按钮，跳过 SMTP 配置
@@ -412,11 +422,13 @@ interface ConfigFormData {
 ### 3.7 步骤4：完成 (`CompleteStep.tsx`)
 
 **功能**：
+
 - 显示设置完成的确认信息
 - 自动登录到管理后台
 - 显示下一步操作建议
 
 **UI 元素**：
+
 - 成功动画（Ant Design 的 `Result` 组件）
 - 摘要信息（站点名称、管理员邮箱）
 - "进入管理后台" 按钮
@@ -454,10 +466,10 @@ export async function saveConfig(formData: ConfigFormData): Promise<void> {
 }
 
 /** 完成设置并获取 token */
-export async function completeSetup(): Promise<{ 
-  accessToken: string; 
-  refreshToken: string; 
-  user: User 
+export async function completeSetup(): Promise<{
+  accessToken: string;
+  refreshToken: string;
+  user: User;
 }> {
   const { data } = await client.post('/api/v1/setup/complete');
   return data;
@@ -466,12 +478,12 @@ export async function completeSetup(): Promise<{
 
 ### 4.2 后端接口说明
 
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/api/v1/setup/status` | GET | 检查系统是否需要初始化 |
-| `/api/v1/setup/checks` | GET | 执行系统环境检查 |
-| `/api/v1/setup/admin` | POST | 创建管理员账户 |
-| `/api/v1/setup/config` | POST | 保存基础配置 |
+| 接口                     | 方法 | 说明                   |
+| ------------------------ | ---- | ---------------------- |
+| `/api/v1/setup/status`   | GET  | 检查系统是否需要初始化 |
+| `/api/v1/setup/checks`   | GET  | 执行系统环境检查       |
+| `/api/v1/setup/admin`    | POST | 创建管理员账户         |
+| `/api/v1/setup/config`   | POST | 保存基础配置           |
 | `/api/v1/setup/complete` | POST | 完成设置，返回登录凭证 |
 
 ### 4.3 响应格式
@@ -483,7 +495,7 @@ interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: {
-    code: string;    // 如 'ADMIN_EXISTS', 'INVALID_PASSWORD'
+    code: string; // 如 'ADMIN_EXISTS', 'INVALID_PASSWORD'
     message: string; // 用户友好的错误信息
   };
 }
@@ -512,7 +524,7 @@ interface SetupState {
   systemChecks: CheckItem[];
   error: string | null;
   isLoading: boolean;
-  
+
   setCurrentStep: (step: number) => void;
   setSelectedLanguage: (lang: string) => void;
   setAdminData: (data: AdminFormData) => void;
@@ -532,24 +544,26 @@ export const useSetupStore = create<SetupState>()(
       systemChecks: [],
       error: null,
       isLoading: false,
-      
+
       setCurrentStep: (step) => set({ currentStep: step }),
       setSelectedLanguage: (lang) => set({ selectedLanguage: lang }),
-      setAdminData: (data) => set((state) => ({ 
-        formData: { ...state.formData, admin: data } 
-      })),
-      setConfigData: (data) => set((state) => ({ 
-        formData: { ...state.formData, config: data } 
-      })),
+      setAdminData: (data) =>
+        set((state) => ({
+          formData: { ...state.formData, admin: data },
+        })),
+      setConfigData: (data) =>
+        set((state) => ({
+          formData: { ...state.formData, config: data },
+        })),
       setSystemChecks: (checks) => set({ systemChecks: checks }),
       setError: (error) => set({ error }),
       setLoading: (loading) => set({ isLoading: loading }),
       reset: () => {
         localStorage.removeItem('accessbase-setup-store');
-        set({ 
-          currentStep: 0, 
+        set({
+          currentStep: 0,
           selectedLanguage: 'zh-CN',
-          formData: {}, 
+          formData: {},
           systemChecks: [],
           error: null,
           isLoading: false,
@@ -563,8 +577,8 @@ export const useSetupStore = create<SetupState>()(
         selectedLanguage: state.selectedLanguage,
         formData: state.formData,
       }),
-    }
-  )
+    },
+  ),
 );
 ```
 
@@ -707,6 +721,7 @@ const { sm, md, lg } = Grid.useBreakpoint();
 ### 7.3 配色
 
 遵循 AccessBase 设计系统：
+
 - 主色：`#1890ff`（Ant Design 默认蓝）
 - 成功色：`#52c41a`
 - 错误色：`#cf1322`（**已修正**：原 `#ff4d4f` 对比度不足，改为 `#cf1322` 对比度 7.1:1）
@@ -813,18 +828,18 @@ const handleSubmit = async (values: AdminFormData) => {
 
 ### 9.1 ARIA 标签清单
 
-| 元素 | ARIA 属性 | 说明 |
-|------|-----------|------|
-| 页面主容器 | `role="main"`, `aria-label="设置向导"` | 页面 landmark |
-| Steps 组件 | `aria-label="设置向导进度"` | 步骤导航 |
-| 每个步骤 | `ariaLabel="步骤 N: 标题"` | 步骤描述 |
-| 系统检查列表 | `role="list"`, `aria-label="系统检查项目"` | 列表容器 |
-| 检查项 | `role="listitem"` | 列表项 |
-| 错误信息 | `role="alert"`, `aria-live="polite"` | 实时播报 |
-| 表单 | `aria-label="创建管理员账户"` | 表单描述 |
-| 必填字段 | `aria-required="true"` | 必填标识 |
-| 无效字段 | `aria-invalid="true"` | 由 Ant Design Form 自动添加 |
-| 加载状态 | `aria-label="检查系统状态中"` | 加载提示 |
+| 元素         | ARIA 属性                                  | 说明                        |
+| ------------ | ------------------------------------------ | --------------------------- |
+| 页面主容器   | `role="main"`, `aria-label="设置向导"`     | 页面 landmark               |
+| Steps 组件   | `aria-label="设置向导进度"`                | 步骤导航                    |
+| 每个步骤     | `ariaLabel="步骤 N: 标题"`                 | 步骤描述                    |
+| 系统检查列表 | `role="list"`, `aria-label="系统检查项目"` | 列表容器                    |
+| 检查项       | `role="listitem"`                          | 列表项                      |
+| 错误信息     | `role="alert"`, `aria-live="polite"`       | 实时播报                    |
+| 表单         | `aria-label="创建管理员账户"`              | 表单描述                    |
+| 必填字段     | `aria-required="true"`                     | 必填标识                    |
+| 无效字段     | `aria-invalid="true"`                      | 由 Ant Design Form 自动添加 |
+| 加载状态     | `aria-label="检查系统状态中"`              | 加载提示                    |
 
 ### 9.2 键盘导航
 
@@ -849,11 +864,11 @@ useEffect(() => {
 
 ### 9.4 色彩对比度
 
-| 元素 | 前景色 | 背景色 | 对比度 | WCAG AA 要求 |
-|------|--------|--------|--------|-------------|
-| 主要按钮文字 | #fff | #1890ff | 4.56:1 | ✅ 通过（4.5:1） |
-| 错误文字 | **#cf1322** | #fff | 7.1:1 | ✅ 通过（4.5:1） |
-| 次要文字 | #00000073 | #fff | 5.65:1 | ✅ 通过 |
+| 元素         | 前景色      | 背景色  | 对比度 | WCAG AA 要求     |
+| ------------ | ----------- | ------- | ------ | ---------------- |
+| 主要按钮文字 | #fff        | #1890ff | 4.56:1 | ✅ 通过（4.5:1） |
+| 错误文字     | **#cf1322** | #fff    | 7.1:1  | ✅ 通过（4.5:1） |
+| 次要文字     | #00000073   | #fff    | 5.65:1 | ✅ 通过          |
 
 ---
 
@@ -938,21 +953,21 @@ useEffect(() => {
 
 ### UX 审查（ux-reviewer）
 
-| 问题 | 严重度 | 修复状态 |
-|------|--------|----------|
-| F1: 缺少语言选择步骤 | 中 | ✅ 已添加步骤0 |
-| F3: 无进度保存 | 高 | ✅ Zustand persist |
-| E1: 系统检查失败无恢复指引 | 高 | ✅ 添加 recovery 字段 |
-| E2: 表单提交无 loading 状态 | 中 | ✅ isLoading 状态 |
-| E4: 无错误状态视觉设计规范 | 中 | ✅ 定义错误处理策略 |
-| A1-A8: 无障碍缺失 | 高 | ✅ 添加 ARIA 标签 |
-| M1-M2: 响应式未处理 | 高 | ✅ Grid.useBreakpoint |
+| 问题                        | 严重度 | 修复状态              |
+| --------------------------- | ------ | --------------------- |
+| F1: 缺少语言选择步骤        | 中     | ✅ 已添加步骤0        |
+| F3: 无进度保存              | 高     | ✅ Zustand persist    |
+| E1: 系统检查失败无恢复指引  | 高     | ✅ 添加 recovery 字段 |
+| E2: 表单提交无 loading 状态 | 中     | ✅ isLoading 状态     |
+| E4: 无错误状态视觉设计规范  | 中     | ✅ 定义错误处理策略   |
+| A1-A8: 无障碍缺失           | 高     | ✅ 添加 ARIA 标签     |
+| M1-M2: 响应式未处理         | 高     | ✅ Grid.useBreakpoint |
 
 ### 架构评审（architecture-reviewer）
 
-| 问题 | 严重度 | 修复状态 |
-|------|--------|----------|
-| API 前缀不一致 | 高 | ✅ 统一为 `/api/v1/setup` |
-| 响应格式不一致 | 中 | ✅ 统一 `{ success, data, error }` |
-| 状态持久化缺失 | 高 | ✅ Zustand persist |
-| 错误状态处理不足 | 中 | ✅ 添加 error/loading 字段 |
+| 问题             | 严重度 | 修复状态                           |
+| ---------------- | ------ | ---------------------------------- |
+| API 前缀不一致   | 高     | ✅ 统一为 `/api/v1/setup`          |
+| 响应格式不一致   | 中     | ✅ 统一 `{ success, data, error }` |
+| 状态持久化缺失   | 高     | ✅ Zustand persist                 |
+| 错误状态处理不足 | 中     | ✅ 添加 error/loading 字段         |

@@ -57,8 +57,22 @@ function GlobalGuard({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/setup" element={<SetupGuard><SetupWizard /></SetupGuard>} />
-      <Route path="/login" element={<GlobalGuard><Login /></GlobalGuard>} />
+      <Route
+        path="/setup"
+        element={
+          <SetupGuard>
+            <SetupWizard />
+          </SetupGuard>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <GlobalGuard>
+            <Login />
+          </GlobalGuard>
+        }
+      />
       <Route
         path="/"
         element={

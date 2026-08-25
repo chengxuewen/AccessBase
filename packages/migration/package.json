@@ -27,8 +27,8 @@
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "db:push": "drizzle-kit push:pg",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:generate": "drizzle-kit generate:pg",
+    "db:migrate": "drizzle-kit up:pg"
   },
   "dependencies": {
     "@accessbase/logging": "workspace:*",

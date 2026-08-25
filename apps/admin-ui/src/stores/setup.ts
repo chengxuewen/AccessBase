@@ -54,10 +54,8 @@ export const useSetupStore = create<SetupState>()(
       isLoading: false,
 
       setCurrentStep: (step) => set({ currentStep: step }),
-      setAdminData: (data) =>
-        set((state) => ({ formData: { ...state.formData, admin: data } })),
-      setConfigData: (data) =>
-        set((state) => ({ formData: { ...state.formData, config: data } })),
+      setAdminData: (data) => set((state) => ({ formData: { ...state.formData, admin: data } })),
+      setConfigData: (data) => set((state) => ({ formData: { ...state.formData, config: data } })),
       setSystemChecks: (checks) => set({ systemChecks: checks }),
       setError: (error) => set({ error }),
       setLoading: (loading) => set({ isLoading: loading }),

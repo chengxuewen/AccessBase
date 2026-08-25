@@ -25,6 +25,7 @@ server:
 - **缺失**: 两个服务（server、admin-ui）使用同一个 Dockerfile 但都用 `context: .`，意味着构建上下文被发送两次。
 
 **建议**:
+
 1. 明确列出 `.dockerignore` 内容（至少排除 `node_modules`、`.git`、`docs`、`.refinfo`）
 2. 在 docker-compose.dev.yml 中为两个服务声明 `cache_from` 互相引用，避免重复构建基础层
 3. 优先使用 `docker compose build` 的 `--parallel` 选项（默认行为）
@@ -42,6 +43,7 @@ RUN pnpm install --no-frozen-lockfile
 - PostgreSQL + Redis apt 安装是重操作（~200MB），应利用 BuildKit 缓存挂载。
 
 **建议**:
+
 1. 使用 `RUN --mount=type=cache,target=/root/.local/share/pnpm pnpm install` 避免重复下载
 2. apt 层使用 `RUN --mount=type=cache,target=/var/cache/apt` 加速
 3. 考虑在 Dockerfile.dev 基础镜像中预装 PG+Redis，减少重复安装
@@ -71,6 +73,7 @@ volumes:
 **严重性**: 🔴 高 — 如果 glob 不生效，宿主 node_modules 会覆盖容器内的 node_modules，导致架构不匹配（macOS arm64 vs Linux amd64）的原生模块崩溃。
 
 **修正**:
+
 ```yaml
 volumes:
   - .:/app
@@ -90,7 +93,7 @@ volumes:
 **评分**: ⚠️ 可用但有性能代价
 
 ```yaml
-- "$(pwd):/app"
+- '$(pwd):/app'
 - /app/node_modules
 ```
 
@@ -122,6 +125,7 @@ FROM node:22-slim AS dev
 - 无 cgroup 限制：如果宿主内存紧张，OOM killer 可能随机杀进程。
 
 **建议**:
+
 1. entrypoint 中为 PG 设置 `shared_buffers=64MB` 降低内存占用
 2. 考虑使用 `tini` 或 `dumb-init` 作为 PID 1，正确处理信号传播
 3. 文档中注明最低内存要求 1GB
@@ -135,6 +139,7 @@ FROM node:22-slim AS dev
 **评分**: ⚠️ 部分有效
 
 单容器 Dockerfile 的分层策略：
+
 ```dockerfile
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/*/package.json packages/*/
@@ -151,6 +156,7 @@ COPY . .
 **严重性**: 🔴 高 — 这是已知 PIT（见 `memorys/pitfalls.md` Docker COPY glob），方案重复了已知错误。
 
 **修正**:
+
 ```dockerfile
 COPY packages/types/package.json packages/types/
 COPY packages/logging/package.json packages/logging/
@@ -200,6 +206,7 @@ done
 - **总计预估启动时间**: 20-80 秒（取决于机器性能和首次编译）。
 
 **建议**:
+
 1. PG 和 Redis 等待可并行（用 `&` 并行等待 + `wait`）
 2. `pnpm db:push` 失败时 `|| echo "skipped"` 会吞掉错误——应至少记录 exit code
 3. 添加启动完成标志，避免用户在服务就绪前访问
@@ -208,26 +215,22 @@ done
 
 ## 综合评定
 
-| 维度 | Compose 模式 | 单容器模式 | 权重 |
-|------|-------------|-----------|------|
-| 构建时间 | ⚠️ 中（缺 .dockerignore） | ⚠️ 中（缺 cache mount） | 20% |
-| 热重载 | 🔴 **需修正**（glob volume） | ⚠️ 同样问题 | 25% |
-| 资源使用 | ✅ 合理 | ⚠️ 需注释限制 | 15% |
-| 缓存利用率 | ⚠️ 部分 | 🔴 **需修正**（COPY glob PIT） | 20% |
-| 启动时间 | ✅ 良好 | ⚠️ 可优化 | 20% |
+| 维度       | Compose 模式                 | 单容器模式                     | 权重 |
+| ---------- | ---------------------------- | ------------------------------ | ---- |
+| 构建时间   | ⚠️ 中（缺 .dockerignore）    | ⚠️ 中（缺 cache mount）        | 20%  |
+| 热重载     | 🔴 **需修正**（glob volume） | ⚠️ 同样问题                    | 25%  |
+| 资源使用   | ✅ 合理                      | ⚠️ 需注释限制                  | 15%  |
+| 缓存利用率 | ⚠️ 部分                      | 🔴 **需修正**（COPY glob PIT） | 20%  |
+| 启动时间   | ✅ 良好                      | ⚠️ 可优化                      | 20%  |
 
 ### 结论: ⚠️ CONDITIONAL PASS
 
 **必须修复（阻塞）**:
+
 1. 🔴 Compose volumes glob 不生效 — 逐行声明 workspace 包 volume
 2. 🔴 Dockerfile COPY glob 已知 PIT — 逐行 COPY 每个包的 package.json
 
-**建议修复（非阻塞）**:
-3. 添加 `.dockerignore` 说明
-4. 使用 BuildKit cache mount 加速 pnpm install
-5. 单容器模式使用 `tini` 作为 PID 1
-6. 设置 `start_period` 在 healthcheck 中
-7. 并行化单容器启动等待
+**建议修复（非阻塞）**: 3. 添加 `.dockerignore` 说明 4. 使用 BuildKit cache mount 加速 pnpm install 5. 单容器模式使用 `tini` 作为 PID 1 6. 设置 `start_period` 在 healthcheck 中 7. 并行化单容器启动等待
 
 ---
 
@@ -242,14 +245,14 @@ done
 
 ## 审查总览
 
-| 维度 | 结论 | 备注 |
-|------|------|------|
+| 维度            | 结论    | 备注                           |
+| --------------- | ------- | ------------------------------ |
 | 1. Compose 架构 | ⚠️ PASS | 设计合理，COPY glob 有已知陷阱 |
-| 2. Volume 挂载 | ✅ PASS | 热重载配置正确 |
-| 3. 网络配置 | ✅ PASS | 默认 Docker 网络可用 |
-| 4. 健康检查 | ⚠️ PASS | 缺少 server/admin-ui 健康检查 |
-| 5. 安全问题 | ⚠️ PASS | 开发环境可接受，需文档化 |
-| 6. 单容器可行性 | ⚠️ PASS | 进程管理需加固 |
+| 2. Volume 挂载  | ✅ PASS | 热重载配置正确                 |
+| 3. 网络配置     | ✅ PASS | 默认 Docker 网络可用           |
+| 4. 健康检查     | ⚠️ PASS | 缺少 server/admin-ui 健康检查  |
+| 5. 安全问题     | ⚠️ PASS | 开发环境可接受，需文档化       |
+| 6. 单容器可行性 | ⚠️ PASS | 进程管理需加固                 |
 
 ---
 
@@ -303,9 +306,9 @@ COPY apps/admin-ui/package.json apps/admin-ui/
 
 ```yaml
 volumes:
-  - .:/app                              # 源码挂载 → 热重载生效
-  - /app/node_modules                   # 匿名 volume 保护容器内依赖
-  - /app/packages/*/node_modules        # 逐包依赖隔离
+  - .:/app # 源码挂载 → 热重载生效
+  - /app/node_modules # 匿名 volume 保护容器内依赖
+  - /app/packages/*/node_modules # 逐包依赖隔离
 ```
 
 **评价**: 正确。匿名 volume 防止宿主机 `node_modules` 覆盖容器内已安装的依赖，这是 Docker 开发的标准模式。
@@ -322,6 +325,7 @@ volumes:
 ### Vite 代理冗余（LOW）
 
 方案同时配置了：
+
 1. `vite.config.ts` 中 `host: '0.0.0.0'`
 2. CLI 命令中 `-- --host 0.0.0.0`
 
@@ -348,19 +352,19 @@ volumes:
 
 ### Compose 模式
 
-| 服务 | 健康检查 | 状态 |
-|------|---------|------|
+| 服务     | 健康检查                                 | 状态    |
+| -------- | ---------------------------------------- | ------- |
 | postgres | `pg_isready -U accessbase -d accessbase` | ✅ 完善 |
-| redis | `redis-cli ping` | ✅ 完善 |
-| server | **未定义** | ❌ 缺失 |
-| admin-ui | **未定义** | ❌ 缺失 |
+| redis    | `redis-cli ping`                         | ✅ 完善 |
+| server   | **未定义**                               | ❌ 缺失 |
+| admin-ui | **未定义**                               | ❌ 缺失 |
 
 **建议**: 为 server 和 admin-ui 添加健康检查：
 
 ```yaml
 server:
   healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:5101/health/live"]
+    test: ['CMD', 'curl', '-f', 'http://localhost:5101/health/live']
     interval: 15s
     timeout: 5s
     retries: 3
@@ -368,7 +372,7 @@ server:
 
 admin-ui:
   healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:5173"]
+    test: ['CMD', 'curl', '-f', 'http://localhost:5173']
     interval: 15s
     timeout: 5s
     retries: 3
@@ -378,6 +382,7 @@ admin-ui:
 ### 单容器模式
 
 entrypoint-dev.sh 中有等待循环（`pg_isready` + `redis-cli ping`），但：
+
 - 使用 `for i in $(seq 1 30)` + `sleep 1` 但无 `break` 条件检查失败
 - 若 postgres 启动超时，脚本会继续执行（`set -e` 不捕获循环内的失败）
 
@@ -387,13 +392,13 @@ entrypoint-dev.sh 中有等待循环（`pg_isready` + `redis-cli ping`），但�
 
 ### 安全风险清单
 
-| 风险 | 严重性 | 说明 | 是否可接受 |
-|------|--------|------|-----------|
-| `JWT_SECRET: dev-jwt-secret` | 中 | 弱密钥 | ✅ 开发环境 |
-| Redis 无密码 | 中 | `redis-server --appendonly yes` 无 `--requirepass` | ✅ 仅开发 |
-| PG trust 认证 | 中 | `host all all 0.0.0.0/0 trust` | ✅ 仅开发 |
-| 端口暴露到宿主机 | 低 | 5432/6379 对外开放 | ⚠️ 需注意 |
-| `pg_hba.conf` trust all | 中 | 允许任何 IP 无密码连接 | ✅ 仅开发 |
+| 风险                         | 严重性 | 说明                                               | 是否可接受  |
+| ---------------------------- | ------ | -------------------------------------------------- | ----------- |
+| `JWT_SECRET: dev-jwt-secret` | 中     | 弱密钥                                             | ✅ 开发环境 |
+| Redis 无密码                 | 中     | `redis-server --appendonly yes` 无 `--requirepass` | ✅ 仅开发   |
+| PG trust 认证                | 中     | `host all all 0.0.0.0/0 trust`                     | ✅ 仅开发   |
+| 端口暴露到宿主机             | 低     | 5432/6379 对外开放                                 | ⚠️ 需注意   |
+| `pg_hba.conf` trust all      | 中     | 允许任何 IP 无密码连接                             | ✅ 仅开发   |
 
 ### 对比：现有 docker-compose.yml 的差异
 
@@ -423,6 +428,7 @@ wait
 ```
 
 **问题**:
+
 1. `set -e` 不捕获后台进程（`&`）的失败
 2. `wait` 等待所有后台进程，但任一进程崩溃不会导致容器退出
 3. 若 server 崩溃，admin-ui 继续运行，容器显示"健康"但实际不可用
@@ -462,14 +468,14 @@ cleanup
 
 ## 与现有文件的一致性检查
 
-| 项目 | 计划 | 现有 | 一致性 |
-|------|------|------|--------|
-| PG listen_addresses | `postgres -c listen_addresses='*'` | 相同 | ✅ |
-| PG 用户/密码 | `accessbase/accessbase_dev` | 相同 | ✅ |
-| Redis 命令 | `redis-server --appendonly yes` | 生产有密码 | ⚠️ |
-| 端口映射 | 5101/5173/5432/6379 | 相同 | ✅ |
-| 健康检查（PG） | `pg_isready -U accessbase -d accessbase` | 相同 | ✅ |
-| COPY 模式 | glob（有问题） | 逐行（正确） | ❌ |
+| 项目                | 计划                                     | 现有         | 一致性 |
+| ------------------- | ---------------------------------------- | ------------ | ------ |
+| PG listen_addresses | `postgres -c listen_addresses='*'`       | 相同         | ✅     |
+| PG 用户/密码        | `accessbase/accessbase_dev`              | 相同         | ✅     |
+| Redis 命令          | `redis-server --appendonly yes`          | 生产有密码   | ⚠️     |
+| 端口映射            | 5101/5173/5432/6379                      | 相同         | ✅     |
+| 健康检查（PG）      | `pg_isready -U accessbase -d accessbase` | 相同         | ✅     |
+| COPY 模式           | glob（有问题）                           | 逐行（正确） | ❌     |
 
 ---
 

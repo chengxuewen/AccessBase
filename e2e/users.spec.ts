@@ -4,15 +4,18 @@ test.describe('Users', () => {
   test.beforeEach(async ({ page }) => {
     // Stub auth
     await page.addInitScript(() => {
-      localStorage.setItem('auth-storage', JSON.stringify({
-        state: {
-          token: 'test-token',
-          refreshToken: 'test-refresh',
-          user: { id: '1', email: 'admin@example.com', name: 'Admin', roles: ['admin'] },
-          isAuthenticated: true,
-        },
-        version: 0,
-      }));
+      localStorage.setItem(
+        'auth-storage',
+        JSON.stringify({
+          state: {
+            token: 'test-token',
+            refreshToken: 'test-refresh',
+            user: { id: '1', email: 'admin@example.com', name: 'Admin', roles: ['admin'] },
+            isAuthenticated: true,
+          },
+          version: 0,
+        }),
+      );
     });
 
     await page.route('**/api/v1/auth/me', async (route) => {

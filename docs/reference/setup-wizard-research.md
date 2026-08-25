@@ -22,15 +22,15 @@ GitLab 的设置分为**安装阶段**和**首次登录配置**两个阶段：
 
 ### 1.2 收集的信息
 
-| 阶段 | 收集/配置内容 |
-|------|-------------|
-| 安装时 | EXTERNAL_URL（外部访问地址） |
-| 安装时 | GITLAB_ROOT_EMAIL（管理员邮箱，可选） |
-| 安装时 | GITLAB_ROOT_PASSWORD（管理员密码，可选） |
-| 安装时 | 数据库连接信息（host/port/user/password） |
-| 安装时 | SMTP 邮件配置 |
-| 首次登录 | 新密码（强制要求修改） |
-| 首次登录 | 管理员邮箱（确认/修改） |
+| 阶段     | 收集/配置内容                             |
+| -------- | ----------------------------------------- |
+| 安装时   | EXTERNAL_URL（外部访问地址）              |
+| 安装时   | GITLAB_ROOT_EMAIL（管理员邮箱，可选）     |
+| 安装时   | GITLAB_ROOT_PASSWORD（管理员密码，可选）  |
+| 安装时   | 数据库连接信息（host/port/user/password） |
+| 安装时   | SMTP 邮件配置                             |
+| 首次登录 | 新密码（强制要求修改）                    |
+| 首次登录 | 管理员邮箱（确认/修改）                   |
 
 ### 1.3 安全考虑
 
@@ -59,6 +59,7 @@ GitLab 的设置分为**安装阶段**和**首次登录配置**两个阶段：
 Strapi 采用 **CLI 创建项目 + 浏览器注册管理员** 两阶段模式：
 
 **阶段一：CLI 创建项目**
+
 1. 运行 `npx create-strapi@latest`
 2. 选择登录/注册或跳过（跳过则使用 Free 计划）
 3. 选择数据库类型（默认 SQLite，或自定义 PostgreSQL/MySQL）
@@ -66,6 +67,7 @@ Strapi 采用 **CLI 创建项目 + 浏览器注册管理员** 两阶段模式：
 5. 自动安装依赖并启动服务
 
 **阶段二：浏览器注册管理员**
+
 1. 访问 `http://localhost:1337/admin`
 2. 填写第一个管理员账户信息：
    - First name、Last name
@@ -76,14 +78,14 @@ Strapi 采用 **CLI 创建项目 + 浏览器注册管理员** 两阶段模式：
 
 ### 2.2 收集的信息
 
-| 阶段 | 收集/配置内容 |
-|------|-------------|
-| CLI | 数据库类型、连接信息（可选） |
-| CLI | 是否登录 Strapi Cloud 账户 |
-| 浏览器注册 | 管理员姓名（名、姓） |
-| 浏览器注册 | 管理员邮箱 |
-| 浏览器注册 | 管理员密码（含确认） |
-| 后续配置 | 界面语言、深色/浅色模式 |
+| 阶段       | 收集/配置内容                |
+| ---------- | ---------------------------- |
+| CLI        | 数据库类型、连接信息（可选） |
+| CLI        | 是否登录 Strapi Cloud 账户   |
+| 浏览器注册 | 管理员姓名（名、姓）         |
+| 浏览器注册 | 管理员邮箱                   |
+| 浏览器注册 | 管理员密码（含确认）         |
+| 后续配置   | 界面语言、深色/浅色模式      |
 
 ### 2.3 安全考虑
 
@@ -112,12 +114,14 @@ Strapi 采用 **CLI 创建项目 + 浏览器注册管理员** 两阶段模式：
 WordPress 著名的"5 分钟安装"是最经典的 Web 安装向导：
 
 **阶段一：环境准备（CLI/手动）**
+
 1. 下载并解压 WordPress 包
 2. 创建数据库和数据库用户（通过 phpMyAdmin 或 CLI）
 3. 配置 `wp-config.php`（可选，安装脚本可自动创建）
 4. 上传文件到 Web 服务器
 
 **阶段二：Web 安装向导**
+
 1. 访问 `http://example.com/wp-admin/install.php`
 2. **语言选择**：选择站点语言（Step 0）
 3. **数据库配置**（如未创建 wp-config.php）：
@@ -138,14 +142,14 @@ WordPress 著名的"5 分钟安装"是最经典的 Web 安装向导：
 
 ### 3.2 收集的信息
 
-| 阶段 | 收集/配置内容 |
-|------|-------------|
+| 阶段       | 收集/配置内容                                         |
+| ---------- | ----------------------------------------------------- |
 | 数据库配置 | Database Name、Username、Password、Host、Table Prefix |
-| 站点设置 | Site Title（站点标题） |
-| 管理员账户 | Username（用户名，不建议用 admin） |
-| 管理员账户 | Password（强密码） |
-| 管理员账户 | Email（管理员邮箱） |
-| 站点设置 | Search engine visibility（搜索引擎索引） |
+| 站点设置   | Site Title（站点标题）                                |
+| 管理员账户 | Username（用户名，不建议用 admin）                    |
+| 管理员账户 | Password（强密码）                                    |
+| 管理员账户 | Email（管理员邮箱）                                   |
+| 站点设置   | Search engine visibility（搜索引擎索引）              |
 
 ### 3.3 安全考虑
 
@@ -190,17 +194,17 @@ Supabase 采用**云端 Dashboard 向导**模式：
 
 ### 4.2 收集的信息
 
-| 阶段 | 收集/配置内容 |
-|------|-------------|
-| 注册 | GitHub/Google OAuth 或邮箱+密码 |
-| 项目创建 | Organization（组织选择/创建） |
-| 项目创建 | Project Name（项目名称） |
-| 项目创建 | Database Password（数据库密码） |
-| 项目创建 | Region（地理区域） |
-| 项目创建 | Pricing Plan（免费/付费） |
+| 阶段     | 收集/配置内容                            |
+| -------- | ---------------------------------------- |
+| 注册     | GitHub/Google OAuth 或邮箱+密码          |
+| 项目创建 | Organization（组织选择/创建）            |
+| 项目创建 | Project Name（项目名称）                 |
+| 项目创建 | Database Password（数据库密码）          |
+| 项目创建 | Region（地理区域）                       |
+| 项目创建 | Pricing Plan（免费/付费）                |
 | 后续配置 | Authentication providers（OAuth 提供商） |
-| 后续配置 | Site URL、Redirect URLs |
-| 后续配置 | Email templates |
+| 后续配置 | Site URL、Redirect URLs                  |
+| 后续配置 | Email templates                          |
 
 ### 4.3 安全考虑
 
@@ -230,11 +234,13 @@ Supabase 采用**云端 Dashboard 向导**模式：
 Keycloak 采用**启动后在 Admin Console 中逐步配置**的模式：
 
 **阶段一：安装与启动**
+
 1. 下载或通过 Docker 拉取 Keycloak
 2. 设置初始管理员账户（环境变量 `KEYCLOAK_ADMIN` + `KEYCLOAK_ADMIN_PASSWORD`）
 3. 启动 Keycloak 服务器（`start-dev` 开发模式或生产模式）
 
 **阶段二：Admin Console 配置**
+
 1. 访问 `http://localhost:8080/admin/` 登录 Admin Console
 2. **创建 Realm**（租户）：
    - 点击"Create realm"
@@ -258,17 +264,17 @@ Keycloak 采用**启动后在 Admin Console 中逐步配置**的模式：
 
 ### 5.2 收集的信息
 
-| 阶段 | 收集/配置内容 |
-|------|-------------|
-| 安装时 | KEYCLOAK_ADMIN（管理员用户名） |
-| 安装时 | KEYCLOAK_ADMIN_PASSWORD（管理员密码） |
-| Realm 配置 | Realm name |
-| Realm 配置 | 登录设置（注册、忘记密码、邮箱验证） |
-| Realm 配置 | Token 过期时间 |
-| Client 配置 | Client ID、Client type |
-| Client 配置 | Redirect URIs、Web origins |
-| User 配置 | Username、Email、Password |
-| User 配置 | Roles、Groups |
+| 阶段        | 收集/配置内容                         |
+| ----------- | ------------------------------------- |
+| 安装时      | KEYCLOAK_ADMIN（管理员用户名）        |
+| 安装时      | KEYCLOAK_ADMIN_PASSWORD（管理员密码） |
+| Realm 配置  | Realm name                            |
+| Realm 配置  | 登录设置（注册、忘记密码、邮箱验证）  |
+| Realm 配置  | Token 过期时间                        |
+| Client 配置 | Client ID、Client type                |
+| Client 配置 | Redirect URIs、Web origins            |
+| User 配置   | Username、Email、Password             |
+| User 配置   | Roles、Groups                         |
 
 ### 5.3 安全考虑
 
@@ -300,6 +306,7 @@ Keycloak 采用**启动后在 Admin Console 中逐步配置**的模式：
 NocoBase 提供 **CLI UI 向导**和**终端交互**两种模式：
 
 **模式一：UI 向导（推荐）**
+
 1. 安装 CLI：`npm install -g @nocobase/cli`
 2. 运行 `nb init --ui` 启动浏览器向导
 3. **Step 1 - Getting started**：
@@ -323,6 +330,7 @@ NocoBase 提供 **CLI UI 向导**和**终端交互**两种模式：
    - 选择认证方式（OAuth / Basic / Token）
 
 **模式二：Docker Compose**
+
 1. 创建 `docker-compose.yml`
 2. 配置环境变量（APP_KEY、DB_*、端口映射）
 3. `docker compose up -d`
@@ -330,14 +338,14 @@ NocoBase 提供 **CLI UI 向导**和**终端交互**两种模式：
 
 ### 6.2 收集的信息
 
-| 阶段 | 收集/配置内容 |
-|------|-------------|
-| CLI 向导 | env 标识符、安装来源、版本 |
-| CLI 向导 | 应用路径、端口、语言 |
+| 阶段       | 收集/配置内容                                    |
+| ---------- | ------------------------------------------------ |
+| CLI 向导   | env 标识符、安装来源、版本                       |
+| CLI 向导   | 应用路径、端口、语言                             |
 | 数据库配置 | 数据库类型、host、port、database、user、password |
-| 管理员账户 | Username、Email、Password、Nickname |
-| 连接配置 | API Base URL、认证方式（OAuth/Basic/Token） |
-| Docker | APP_KEY、DB_* 环境变量 |
+| 管理员账户 | Username、Email、Password、Nickname              |
+| 连接配置   | API Base URL、认证方式（OAuth/Basic/Token）      |
+| Docker     | APP_KEY、DB_* 环境变量                           |
 
 ### 6.3 安全考虑
 
@@ -368,6 +376,7 @@ NocoBase 提供 **CLI UI 向导**和**终端交互**两种模式：
 Directus 提供 **CLI 初始化 + 浏览器引导**两种模式：
 
 **模式一：CLI 初始化**
+
 1. 创建项目目录
 2. 运行 `npx directus init` 或 `npx create-directus-project <name>`
 3. **数据库选择**：PostgreSQL / MySQL / SQLite / MS SQL / Oracle
@@ -377,28 +386,30 @@ Directus 提供 **CLI 初始化 + 浏览器引导**两种模式：
 7. 运行 `npx directus start` 启动服务
 
 **模式二：Docker + 浏览器引导**
+
 1. 创建 `docker-compose.yml`，配置环境变量
 2. `docker compose up`
 3. 访问 `http://localhost:8055` 看到**浏览器引导页面**
 4. 配置第一个 Admin 账户（Email + Password + Project Owner 信息）
 
 **模式三：环境变量预配置**
+
 1. 设置 `ADMIN_EMAIL`、`ADMIN_PASSWORD`、`ADMIN_TOKEN` 环境变量
 2. 启动时自动创建管理员账户
 3. 跳过浏览器引导
 
 ### 7.2 收集的信息
 
-| 阶段 | 收集/配置内容 |
-|------|-------------|
-| CLI | 数据库类型（Database client） |
-| CLI | 数据库连接信息（host/port/database/user/password） |
-| CLI | 管理员 Email、Password |
-| 浏览器引导 | 管理员 Email、Password |
-| 浏览器引导 | Project Owner 信息（姓名、邮箱） |
-| 环境变量 | SECRET（安全密钥） |
-| 环境变量 | DB_CLIENT、DB_HOST、DB_PORT 等 |
-| 环境变量 | ADMIN_EMAIL、ADMIN_PASSWORD（可选预配置） |
+| 阶段       | 收集/配置内容                                      |
+| ---------- | -------------------------------------------------- |
+| CLI        | 数据库类型（Database client）                      |
+| CLI        | 数据库连接信息（host/port/database/user/password） |
+| CLI        | 管理员 Email、Password                             |
+| 浏览器引导 | 管理员 Email、Password                             |
+| 浏览器引导 | Project Owner 信息（姓名、邮箱）                   |
+| 环境变量   | SECRET（安全密钥）                                 |
+| 环境变量   | DB_CLIENT、DB_HOST、DB_PORT 等                     |
+| 环境变量   | ADMIN_EMAIL、ADMIN_PASSWORD（可选预配置）          |
 
 ### 7.3 安全考虑
 
@@ -426,38 +437,38 @@ Directus 提供 **CLI 初始化 + 浏览器引导**两种模式：
 
 ### 向导模式分类
 
-| 模式 | 代表项目 | 特点 |
-|------|---------|------|
-| **纯 CLI 配置** | GitLab | 通过配置文件和环境变量完成，无浏览器向导 |
-| **CLI + 浏览器分离** | Strapi、Directus | CLI 处理技术配置，浏览器处理用户信息 |
-| **纯浏览器向导** | WordPress | 经典 Web 安装向导，全部在浏览器完成 |
-| **Dashboard 云向导** | Supabase | 云端 Dashboard 创建项目，无需本地安装 |
-| **Admin Console 逐步配置** | Keycloak | 安装后在 Admin Console 中逐步创建资源 |
-| **CLI UI 向导** | NocoBase | CLI 启动浏览器向导，6 步完成全部配置 |
+| 模式                       | 代表项目         | 特点                                     |
+| -------------------------- | ---------------- | ---------------------------------------- |
+| **纯 CLI 配置**            | GitLab           | 通过配置文件和环境变量完成，无浏览器向导 |
+| **CLI + 浏览器分离**       | Strapi、Directus | CLI 处理技术配置，浏览器处理用户信息     |
+| **纯浏览器向导**           | WordPress        | 经典 Web 安装向导，全部在浏览器完成      |
+| **Dashboard 云向导**       | Supabase         | 云端 Dashboard 创建项目，无需本地安装    |
+| **Admin Console 逐步配置** | Keycloak         | 安装后在 Admin Console 中逐步创建资源    |
+| **CLI UI 向导**            | NocoBase         | CLI 启动浏览器向导，6 步完成全部配置     |
 
 ### 信息收集对比
 
-| 项目 | 数据库配置 | 管理员账户 | 站点信息 | OAuth 提供商 | 认证配置 |
-|------|-----------|-----------|---------|-------------|---------|
-| GitLab | 安装时 | 安装时+首次登录 | 无 | 后续配置 | 后续配置 |
-| Strapi | CLI | 浏览器注册 | 无 | 配置文件 | 配置文件 |
-| WordPress | 安装向导 | 安装向导 | 站点标题 | 插件 | 插件 |
-| Supabase | 自动管理 | OAuth 注册 | 项目名称 | Dashboard | Dashboard |
-| Keycloak | 环境变量 | 环境变量 | Realm 名称 | Admin Console | Admin Console |
-| NocoBase | CLI 向导 | CLI 向导 | 应用名称 | 后续配置 | CLI 向导 |
-| Directus | CLI/环境变量 | CLI/浏览器/环境变量 | 无 | 配置文件 | 配置文件 |
+| 项目      | 数据库配置   | 管理员账户          | 站点信息   | OAuth 提供商  | 认证配置      |
+| --------- | ------------ | ------------------- | ---------- | ------------- | ------------- |
+| GitLab    | 安装时       | 安装时+首次登录     | 无         | 后续配置      | 后续配置      |
+| Strapi    | CLI          | 浏览器注册          | 无         | 配置文件      | 配置文件      |
+| WordPress | 安装向导     | 安装向导            | 站点标题   | 插件          | 插件          |
+| Supabase  | 自动管理     | OAuth 注册          | 项目名称   | Dashboard     | Dashboard     |
+| Keycloak  | 环境变量     | 环境变量            | Realm 名称 | Admin Console | Admin Console |
+| NocoBase  | CLI 向导     | CLI 向导            | 应用名称   | 后续配置      | CLI 向导      |
+| Directus  | CLI/环境变量 | CLI/浏览器/环境变量 | 无         | 配置文件      | 配置文件      |
 
 ### 安全实践对比
 
-| 项目 | 默认密码处理 | HTTPS | 强制改密 | 二次验证 | 审计日志 |
-|------|------------|-------|---------|---------|---------|
-| GitLab | 24h 过期文件 | 自动 Let's Encrypt | ✅ 首次强制 | 支持 | 支持 |
-| Strapi | 用户注册时设置 | 手动配置 | ❌ | 插件支持 | 企业版 |
-| WordPress | 自动生成强密码 | 手动配置 | ❌ | 插件支持 | 插件 |
-| Supabase | OAuth/随机 | 云平台默认 | ❌ | OAuth 2FA | Dashboard |
-| Keycloak | 环境变量设置 | 手动配置 | 可配置 | 内置 TOTP/WebAuthn | 内置 |
-| NocoBase | `admin123` 默认 | 手动配置 | ❌ | 后续配置 | 后续配置 |
-| Directus | 随机/环境变量 | 手动配置 | ❌ | 后续配置 | 内置 |
+| 项目      | 默认密码处理    | HTTPS              | 强制改密    | 二次验证           | 审计日志  |
+| --------- | --------------- | ------------------ | ----------- | ------------------ | --------- |
+| GitLab    | 24h 过期文件    | 自动 Let's Encrypt | ✅ 首次强制 | 支持               | 支持      |
+| Strapi    | 用户注册时设置  | 手动配置           | ❌          | 插件支持           | 企业版    |
+| WordPress | 自动生成强密码  | 手动配置           | ❌          | 插件支持           | 插件      |
+| Supabase  | OAuth/随机      | 云平台默认         | ❌          | OAuth 2FA          | Dashboard |
+| Keycloak  | 环境变量设置    | 手动配置           | 可配置      | 内置 TOTP/WebAuthn | 内置      |
+| NocoBase  | `admin123` 默认 | 手动配置           | ❌          | 后续配置           | 后续配置  |
+| Directus  | 随机/环境变量   | 手动配置           | ❌          | 后续配置           | 内置      |
 
 ### UX 最佳实践提炼
 

@@ -29,6 +29,7 @@ if (existingAdmin) {
 ```
 
 **修复方案：**
+
 - 必须增加全局 `isInitialized` 标志（数据库中的 `system_config` 表或 Redis 键）
 - `POST /setup/admin` 和 `POST /setup/config` 端点必须检查此标志，已初始化则返回 `410 Gone`
 - 建议中间件层统一拦截：`if (isSetupComplete) → reject all /api/v1/setup/*` (除 GET /status)
@@ -38,6 +39,7 @@ if (existingAdmin) {
 **问题：** `setupGuard` 仅在管理员不存在时阻断其他路由，但设置完成后，`/api/v1/setup/admin` 端点仍然暴露，可以被再次调用（见 CRITICAL-1）。
 
 **修复方案：** setup-guard 需双向保护：
+
 - 设置完成前：阻断非 setup 路由 ✅ 已有
 - 设置完成后：阻断 setup 写入端点（`POST /setup/admin`, `POST /setup/config`）❌ 缺失
 
@@ -52,6 +54,7 @@ if (existingAdmin) {
 **场景：** 攻击者直接访问 `https://target.com/setup`，如果后端未阻断，可以走完向导流程。
 
 **修复方案：**
+
 - 前端 `SetupGuard` 需要在 `needsSetup === false` 时重定向到登录页
 - 后端必须作为最终防线（前端绕过容易）
 
@@ -69,6 +72,7 @@ password: { type: 'string', minLength: 8 }
 ```
 
 **修复方案：**
+
 - 后端必须独立验证密码复杂度（不信任前端）
 - 建议使用 Ajv 自定义关键字或在 handler 中添加验证：
   ```typescript
@@ -94,10 +98,12 @@ password: { type: 'string', minLength: 8 }
 **问题：** 计划中所有 setup 端点都是标准 POST 请求，无 CSRF token 验证。虽然项目安全设计文档（`security.md` §19.4）有 CSRF 方案，但**实际代码中未实现任何 CSRF 保护**。
 
 设置向导特别容易受 CSRF 攻击，因为：
+
 - 未初始化系统没有认证会话（无 cookie 中的 session token 可验证）
 - 请求来自浏览器，天然携带 cookie
 
 **修复方案：**
+
 - 最低限度：setup 端点必须验证 `Origin` 或 `Referer` 头，确保请求来自同源
 - 推荐：实现 `SameSite=Strict` cookie + 自定义 header 验证（`X-Setup-Token`）
 - setup 令牌可从 `GET /setup/status` 返回，后续 POST 请求必须携带
@@ -115,6 +121,7 @@ password: { type: 'string', minLength: 8 }
 - `GET /setup/status`：信息泄露（确认系统是否已部署）
 
 **修复方案：**
+
 - 必须在实现 setup API 前或同时实现速率限制
 - 建议使用 `@fastify/rate-limit`：
   ```typescript
@@ -142,6 +149,7 @@ logger.info({ config }, 'Setup configuration saved');
 ```
 
 **修复方案：**
+
 ```typescript
 const { smtpPassword: _, ...safeConfig } = config;
 logger.info({ config: safeConfig }, 'Setup configuration saved');
@@ -152,6 +160,7 @@ logger.info({ config: safeConfig }, 'Setup configuration saved');
 **问题：** UI 计划中 `GET /api/setup/checks` 返回数据库连接、Redis 连接、磁盘空间等信息。在未认证状态下暴露这些信息，有助于攻击者进行侦察。
 
 **修复方案：**
+
 - `checks` 端点应返回通过/失败状态，不暴露具体的错误信息、版本号、连接字符串
 - 磁盘空间信息不应暴露具体的路径和容量
 
@@ -168,6 +177,7 @@ logger.info({ config: safeConfig }, 'Setup configuration saved');
 **风险：** 实现时可能跳过认证逻辑，直接生成 token，缺少必要的安全检查。
 
 **修复方案：** 后端计划必须补充此端点，且需要：
+
 - 验证管理员已创建
 - 验证配置已保存
 - 使用标准的 JWT 签发流程
@@ -183,36 +193,32 @@ logger.info({ config: safeConfig }, 'Setup configuration saved');
 
 ## 问题汇总
 
-| ID | 严重度 | 问题 | 状态 |
-|----|--------|------|------|
-| C-1 | 🔴 CRITICAL | 设置完成后可重复创建管理员 | 必须修复 |
-| C-2 | 🔴 CRITICAL | setup-guard 不阻断已完成系统的 setup 写入端点 | 必须修复 |
+| ID  | 严重度      | 问题                                             | 状态     |
+| --- | ----------- | ------------------------------------------------ | -------- |
+| C-1 | 🔴 CRITICAL | 设置完成后可重复创建管理员                       | 必须修复 |
+| C-2 | 🔴 CRITICAL | setup-guard 不阻断已完成系统的 setup 写入端点    | 必须修复 |
 | C-3 | 🔴 CRITICAL | UI/后端缺少反向保护（已初始化后阻止访问 /setup） | 必须修复 |
-| C-4 | 🔴 CRITICAL | 无 CSRF 防护 | 必须修复 |
-| C-5 | 🔴 CRITICAL | 无速率限制 | 必须修复 |
-| H-1 | 🟡 HIGH | 后端密码复杂度验证不足 | 应修复 |
-| H-2 | 🟡 HIGH | 管理员邮箱硬编码导致 guard 检查失效 | 应修复 |
-| H-3 | 🟡 HIGH | SMTP 密码写入日志 | 应修复 |
-| H-4 | 🟡 HIGH | 系统检查端点信息泄露 | 应修复 |
-| M-1 | 🟡 MEDIUM | UserManager 每请求实例化 | 建议修复 |
-| M-2 | 🟡 MEDIUM | completeSetup 端点后端缺失 | 建议补充 |
-| L-1 | 🟢 LOW | 缺少审计日志 | 建议补充 |
+| C-4 | 🔴 CRITICAL | 无 CSRF 防护                                     | 必须修复 |
+| C-5 | 🔴 CRITICAL | 无速率限制                                       | 必须修复 |
+| H-1 | 🟡 HIGH     | 后端密码复杂度验证不足                           | 应修复   |
+| H-2 | 🟡 HIGH     | 管理员邮箱硬编码导致 guard 检查失效              | 应修复   |
+| H-3 | 🟡 HIGH     | SMTP 密码写入日志                                | 应修复   |
+| H-4 | 🟡 HIGH     | 系统检查端点信息泄露                             | 应修复   |
+| M-1 | 🟡 MEDIUM   | UserManager 每请求实例化                         | 建议修复 |
+| M-2 | 🟡 MEDIUM   | completeSetup 端点后端缺失                       | 建议补充 |
+| L-1 | 🟢 LOW      | 缺少审计日志                                     | 建议补充 |
 
 ---
 
 ## 建议的修复优先级
 
 **第一阶段（实现前必须）：**
+
 1. 实现 `isInitialized` 全局标志 + 数据库支持
 2. setup-guard 双向保护
 3. 后端密码复杂度验证
 4. 敏感信息日志脱敏
 
-**第二阶段（实现同时）：**
-5. 速率限制（`@fastify/rate-limit`）
-6. CSRF 防护（Origin/Referer 验证）
-7. 补充 `completeSetup` 后端端点
+**第二阶段（实现同时）：** 5. 速率限制（`@fastify/rate-limit`）6. CSRF 防护（Origin/Referer 验证）7. 补充 `completeSetup` 后端端点
 
-**第三阶段（实现后）：**
-8. 审计日志集成
-9. 系统检查端点信息最小化
+**第三阶段（实现后）：** 8. 审计日志集成 9. 系统检查端点信息最小化

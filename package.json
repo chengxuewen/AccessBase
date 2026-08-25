@@ -23,6 +23,7 @@
     "clean": "pnpm -r run clean",
     "db:push": "pnpm --filter @accessbase/migration run db:push",
     "db:generate": "pnpm --filter @accessbase/migration run db:generate",
+    "db:migrate": "pnpm --filter @accessbase/migration run db:migrate",
     "docker:dev": "docker compose -f docker-compose.dev.yml up -d",
     "docker:dev:down": "docker compose -f docker-compose.dev.yml down",
     "docker:build": "docker build -t accessbase:latest .",

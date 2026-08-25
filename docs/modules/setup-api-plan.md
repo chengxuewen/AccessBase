@@ -57,6 +57,7 @@ async function isSetupComplete(): Promise<boolean> {
 ### 迁移任务：创建 system_config 表
 
 **文件：**
+
 - 创建：`packages/migration/src/migrations/XXXX_create_system_config.ts`
 
 **Schema（Drizzle ORM）：**
@@ -78,14 +79,14 @@ export const systemConfig = pgTable('system_config', {
 
 **关键配置键：**
 
-| Key | Category | Type | 说明 |
-|-----|----------|------|------|
-| `setup_complete` | status | `boolean` | 系统是否已完成初始化 |
-| `setup_token` | security | `string` | CSRF 防护 token |
-| `site_name` | general | `string` | 站点名称 |
-| `site_url` | general | `string` | 站点 URL |
-| `admin_email` | general | `string` | 管理员邮箱 |
-| `smtp_*` | smtp | `string/number` | SMTP 配置 |
+| Key              | Category | Type            | 说明                 |
+| ---------------- | -------- | --------------- | -------------------- |
+| `setup_complete` | status   | `boolean`       | 系统是否已完成初始化 |
+| `setup_token`    | security | `string`        | CSRF 防护 token      |
+| `site_name`      | general  | `string`        | 站点名称             |
+| `site_url`       | general  | `string`        | 站点 URL             |
+| `admin_email`    | general  | `string`        | 管理员邮箱           |
+| `smtp_*`         | smtp     | `string/number` | SMTP 配置            |
 
 **种子数据：**
 
@@ -104,11 +105,13 @@ await db.insert(systemConfig).values({
 ### 任务 0：速率限制与 CSRF 基础设施
 
 **文件：**
+
 - 创建：`apps/server/src/plugins/rate-limit.ts`
 - 创建：`apps/server/src/plugins/setup-csrf.ts`
 - 修改：`apps/server/src/app.ts`（注册插件）
 
 **接口：**
+
 - 消费：`@fastify/rate-limit`, Redis
 - 生产：速率限制插件 + CSRF token 管理
 
@@ -122,7 +125,7 @@ import { buildApp } from '../../app.js';
 describe('Rate Limiting', () => {
   it('should return 429 after exceeding setup endpoint limit', async () => {
     const app = await buildApp();
-    
+
     // Make 6 requests (limit is 5)
     for (let i = 0; i < 6; i++) {
       await app.inject({
@@ -135,7 +138,7 @@ describe('Rate Limiting', () => {
         },
       });
     }
-    
+
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/setup/admin',
@@ -145,7 +148,7 @@ describe('Rate Limiting', () => {
         password: 'SecurePass123!',
       },
     });
-    
+
     expect(response.statusCode).toBe(429);
   });
 });
@@ -159,7 +162,7 @@ import { buildApp } from '../../app.js';
 describe('Setup CSRF', () => {
   it('should reject POST without X-Setup-Token', async () => {
     const app = await buildApp();
-    
+
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/setup/admin',
@@ -169,15 +172,15 @@ describe('Setup CSRF', () => {
         password: 'SecurePass123!',
       },
     });
-    
+
     expect(response.statusCode).toBe(403);
     const body = JSON.parse(response.payload);
     expect(body.error.code).toBe('CSRF_TOKEN_MISSING');
   });
-  
+
   it('should accept POST with valid X-Setup-Token', async () => {
     const app = await buildApp();
-    
+
     // Get token from status endpoint
     const statusResponse = await app.inject({
       method: 'GET',
@@ -185,7 +188,7 @@ describe('Setup CSRF', () => {
     });
     const { data } = JSON.parse(statusResponse.payload);
     const setupToken = data.setupToken;
-    
+
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/setup/admin',
@@ -198,7 +201,7 @@ describe('Setup CSRF', () => {
         password: 'SecurePass123!',
       },
     });
-    
+
     // Should not be 403 CSRF error (might be other error)
     expect(response.statusCode).not.toBe(403);
   });
@@ -247,19 +250,19 @@ const SETUP_TOKEN_HEADER = 'x-setup-token';
 const setupCsrfPlugin: FastifyPluginAsync = async (fastify) => {
   // Generate setup token on status request
   fastify.decorateRequest('setupToken', null as string | null);
-  
+
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip CSRF for GET requests
     if (request.method === 'GET') return;
-    
+
     // Skip for non-setup routes
     if (!request.url.startsWith('/api/v1/setup')) return;
-    
+
     // Skip for /setup/complete (uses regular auth)
     if (request.url.startsWith('/api/v1/setup/complete')) return;
-    
+
     const token = request.headers[SETUP_TOKEN_HEADER] as string | undefined;
-    
+
     if (!token) {
       return reply.status(403).send({
         success: false,
@@ -269,12 +272,12 @@ const setupCsrfPlugin: FastifyPluginAsync = async (fastify) => {
         },
       });
     }
-    
+
     // Validate token against stored value
     const storedToken = await fastify.db.query.systemConfig.findFirst({
       where: (fields, { eq }) => eq(fields.key, 'setup_token'),
     });
-    
+
     if (!storedToken || storedToken.value !== token) {
       return reply.status(403).send({
         success: false,
@@ -285,19 +288,22 @@ const setupCsrfPlugin: FastifyPluginAsync = async (fastify) => {
       });
     }
   });
-  
+
   // Generate and store new setup token
   fastify.decorate('generateSetupToken', async () => {
     const token = randomBytes(32).toString('hex');
-    await fastify.db.insert(fastify.schema.systemConfig).values({
-      key: 'setup_token',
-      value: token,
-      category: 'security',
-      description: 'CSRF token for setup wizard',
-    }).onConflictDoUpdate({
-      target: fastify.schema.systemConfig.key,
-      set: { value: token, updatedAt: new Date() },
-    });
+    await fastify.db
+      .insert(fastify.schema.systemConfig)
+      .values({
+        key: 'setup_token',
+        value: token,
+        category: 'security',
+        description: 'CSRF token for setup wizard',
+      })
+      .onConflictDoUpdate({
+        target: fastify.schema.systemConfig.key,
+        set: { value: token, updatedAt: new Date() },
+      });
     return token;
   });
 };
@@ -322,10 +328,12 @@ git commit -m "feat: add rate limiting and CSRF protection for setup endpoints"
 ### 任务 1：创建设置状态检查端点
 
 **文件：**
+
 - 创建：`apps/server/src/routes/setup.ts`
 - 修改：`apps/server/src/app.ts`（注册路由）
 
 **接口：**
+
 - 消费：无
 - 生产：`GET /api/v1/setup/status` 端点，返回系统初始化状态 + setupToken
 
@@ -397,20 +405,20 @@ export async function setupRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const userManager = new UserManager();
-      
+
       // Check isInitialized from system_config table
       const setupComplete = await app.db.query.systemConfig.findFirst({
         where: (fields, { eq }) => eq(fields.key, 'setup_complete'),
       });
       const isInitialized = setupComplete?.value === true;
-      
+
       // Check if admin user exists
       const adminUser = await userManager.findByEmail('admin@accessbase.local');
       const adminExists = !!adminUser;
-      
+
       // Generate setup token for CSRF protection
       const setupToken = await app.generateSetupToken();
-      
+
       return {
         success: true,
         data: {
@@ -442,14 +450,17 @@ git commit -m "feat: add setup status check endpoint with CSRF token"
 ### 任务 2：创建管理员创建端点
 
 **文件：**
+
 - 修改：`apps/server/src/routes/setup.ts`
 - 修改：`apps/server/src/routes/__tests__/setup.test.ts`
 
 **接口：**
+
 - 消费：`UserManager.create()`, `RoleManager.create()`, Redis（分布式锁）
 - 生产：`POST /api/v1/setup/admin` 端点，创建初始管理员用户
 
 **关键修复：**
+
 - **CRITICAL-1**: 检查 `isInitialized` 标志，已初始化返回 `410 Gone`
 - **HIGH-1**: 后端密码复杂度验证（不信任前端）
 - **并发控制**: Redis 分布式锁防止重复创建
@@ -461,14 +472,16 @@ git commit -m "feat: add setup status check endpoint with CSRF token"
 // 在 setup.test.ts 中添加
 it('should create admin user with CSRF token', async () => {
   const app = await buildApp();
-  
+
   // Get setup token first
   const statusResponse = await app.inject({
     method: 'GET',
     url: '/api/v1/setup/status',
   });
-  const { data: { setupToken } } = JSON.parse(statusResponse.payload);
-  
+  const {
+    data: { setupToken },
+  } = JSON.parse(statusResponse.payload);
+
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/setup/admin',
@@ -491,13 +504,15 @@ it('should create admin user with CSRF token', async () => {
 
 it('should reject weak password', async () => {
   const app = await buildApp();
-  
+
   const statusResponse = await app.inject({
     method: 'GET',
     url: '/api/v1/setup/status',
   });
-  const { data: { setupToken } } = JSON.parse(statusResponse.payload);
-  
+  const {
+    data: { setupToken },
+  } = JSON.parse(statusResponse.payload);
+
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/setup/admin',
@@ -518,20 +533,22 @@ it('should reject weak password', async () => {
 
 it('should return 410 if setup already complete', async () => {
   const app = await buildApp();
-  
+
   // Simulate setup complete
   await app.db.insert(app.schema.systemConfig).values({
     key: 'setup_complete',
     value: true,
     category: 'status',
   });
-  
+
   const statusResponse = await app.inject({
     method: 'GET',
     url: '/api/v1/setup/status',
   });
-  const { data: { setupToken } } = JSON.parse(statusResponse.payload);
-  
+  const {
+    data: { setupToken },
+  } = JSON.parse(statusResponse.payload);
+
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/setup/admin',
@@ -626,7 +643,7 @@ app.post(
       name: string;
       password: string;
     };
-    
+
     // CRITICAL-1: Check if setup already complete
     const setupComplete = await app.db.query.systemConfig.findFirst({
       where: (fields, { eq }) => eq(fields.key, 'setup_complete'),
@@ -640,7 +657,7 @@ app.post(
         },
       });
     }
-    
+
     // HIGH-1: Validate password complexity (don't trust frontend)
     const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!PASSWORD_REGEX.test(password)) {
@@ -648,11 +665,12 @@ app.post(
         success: false,
         error: {
           code: 'WEAK_PASSWORD',
-          message: 'Password must be at least 8 characters and include uppercase, lowercase, and numbers.',
+          message:
+            'Password must be at least 8 characters and include uppercase, lowercase, and numbers.',
         },
       });
     }
-    
+
     // Concurrent control: Use Redis lock to prevent duplicate creation
     const lockKey = 'setup:admin:creation';
     const lock = await app.redis.set(lockKey, '1', 'EX', 30, 'NX');
@@ -665,12 +683,12 @@ app.post(
         },
       });
     }
-    
+
     try {
       const userManager = new UserManager();
       const roleManager = new RoleManager();
       const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
-      
+
       // Check if admin already exists
       const existingAdmin = await userManager.findByEmail(email);
       if (existingAdmin) {
@@ -682,7 +700,7 @@ app.post(
           },
         });
       }
-      
+
       // Transaction: Create role and user atomically
       const result = await app.db.transaction(async (tx) => {
         const adminRole = await roleManager.create(
@@ -693,7 +711,7 @@ app.post(
           DEFAULT_TENANT,
           tx, // Pass transaction context
         );
-        
+
         const adminUser = await userManager.create(
           {
             email,
@@ -704,13 +722,13 @@ app.post(
           DEFAULT_TENANT,
           tx, // Pass transaction context
         );
-        
+
         return adminUser;
       });
-      
+
       // Log without sensitive data
       logger.info({ userId: result.id, email }, 'Admin user created via setup wizard');
-      
+
       return reply.status(201).send({
         success: true,
         data: {
@@ -744,14 +762,17 @@ git commit -m "feat: add admin creation with CSRF, rate limiting, password valid
 ### 任务 3：创建配置保存端点
 
 **文件：**
+
 - 修改：`apps/server/src/routes/setup.ts`
 - 修改：`apps/server/src/routes/__tests__/setup.test.ts`
 
 **接口：**
+
 - 消费：配置数据
 - 生产：`POST /api/v1/setup/config` 端点，保存配置到 system_config 表
 
 **关键修复：**
+
 - **CRITICAL-1**: 检查 `isInitialized` 标志
 - **HIGH-3**: 日志脱敏（不记录 SMTP 密码）
 - **配置持久化**: 写入 system_config 表
@@ -762,13 +783,15 @@ git commit -m "feat: add admin creation with CSRF, rate limiting, password valid
 // 在 setup.test.ts 中添加
 it('should save configuration to database', async () => {
   const app = await buildApp();
-  
+
   const statusResponse = await app.inject({
     method: 'GET',
     url: '/api/v1/setup/status',
   });
-  const { data: { setupToken } } = JSON.parse(statusResponse.payload);
-  
+  const {
+    data: { setupToken },
+  } = JSON.parse(statusResponse.payload);
+
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/setup/config',
@@ -790,7 +813,7 @@ it('should save configuration to database', async () => {
   const body = JSON.parse(response.payload);
   expect(body.success).toBe(true);
   expect(body.data).toHaveProperty('saved', true);
-  
+
   // Verify config was saved to database
   const siteName = await app.db.query.systemConfig.findFirst({
     where: (fields, { eq }) => eq(fields.key, 'site_name'),
@@ -854,7 +877,7 @@ app.post(
       smtpUser?: string;
       smtpPassword?: string;
     };
-    
+
     // CRITICAL-1: Check if setup already complete
     const setupComplete = await app.db.query.systemConfig.findFirst({
       where: (fields, { eq }) => eq(fields.key, 'setup_complete'),
@@ -868,7 +891,7 @@ app.post(
         },
       });
     }
-    
+
     // Save each config to system_config table
     const configs = [
       { key: 'site_name', value: config.siteName, category: 'general' },
@@ -877,26 +900,31 @@ app.post(
       ...(config.smtpHost ? [{ key: 'smtp_host', value: config.smtpHost, category: 'smtp' }] : []),
       ...(config.smtpPort ? [{ key: 'smtp_port', value: config.smtpPort, category: 'smtp' }] : []),
       ...(config.smtpUser ? [{ key: 'smtp_user', value: config.smtpUser, category: 'smtp' }] : []),
-      ...(config.smtpPassword ? [{ key: 'smtp_password', value: config.smtpPassword, category: 'smtp' }] : []),
+      ...(config.smtpPassword
+        ? [{ key: 'smtp_password', value: config.smtpPassword, category: 'smtp' }]
+        : []),
     ];
-    
+
     await app.db.transaction(async (tx) => {
       for (const cfg of configs) {
-        await tx.insert(app.schema.systemConfig).values({
-          key: cfg.key,
-          value: cfg.value,
-          category: cfg.category,
-        }).onConflictDoUpdate({
-          target: app.schema.systemConfig.key,
-          set: { value: cfg.value, updatedAt: new Date() },
-        });
+        await tx
+          .insert(app.schema.systemConfig)
+          .values({
+            key: cfg.key,
+            value: cfg.value,
+            category: cfg.category,
+          })
+          .onConflictDoUpdate({
+            target: app.schema.systemConfig.key,
+            set: { value: cfg.value, updatedAt: new Date() },
+          });
       }
     });
-    
+
     // HIGH-3: Log without sensitive data (redact smtpPassword)
     const { smtpPassword: _, ...safeConfig } = config;
     logger.info({ config: safeConfig }, 'Setup configuration saved');
-    
+
     return {
       success: true,
       data: {
@@ -924,10 +952,12 @@ git commit -m "feat: add config save with database persistence and log redaction
 ### 任务 4：创建设置完成端点
 
 **文件：**
+
 - 修改：`apps/server/src/routes/setup.ts`
 - 修改：`apps/server/src/routes/__tests__/setup.test.ts`
 
 **接口：**
+
 - 消费：无
 - 生产：`POST /api/v1/setup/complete` 端点，标记设置完成并返回 JWT
 
@@ -939,14 +969,16 @@ git commit -m "feat: add config save with database persistence and log redaction
 // 在 setup.test.ts 中添加
 it('should complete setup and return tokens', async () => {
   const app = await buildApp();
-  
+
   // First create admin (prerequisite)
   const statusResponse = await app.inject({
     method: 'GET',
     url: '/api/v1/setup/status',
   });
-  const { data: { setupToken } } = JSON.parse(statusResponse.payload);
-  
+  const {
+    data: { setupToken },
+  } = JSON.parse(statusResponse.payload);
+
   await app.inject({
     method: 'POST',
     url: '/api/v1/setup/admin',
@@ -957,7 +989,7 @@ it('should complete setup and return tokens', async () => {
       password: 'SecurePass123!',
     },
   });
-  
+
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/setup/complete',
@@ -969,7 +1001,7 @@ it('should complete setup and return tokens', async () => {
   expect(body.success).toBe(true);
   expect(body.data).toHaveProperty('accessToken');
   expect(body.data).toHaveProperty('refreshToken');
-  
+
   // Verify setup is marked complete
   const setupComplete = await app.db.query.systemConfig.findFirst({
     where: (fields, { eq }) => eq(fields.key, 'setup_complete'),
@@ -1015,7 +1047,7 @@ app.post(
     // Verify admin exists
     const userManager = new UserManager();
     const adminUser = await userManager.findByEmail('admin@accessbase.local');
-    
+
     if (!adminUser) {
       return reply.status(400).send({
         success: false,
@@ -1025,22 +1057,25 @@ app.post(
         },
       });
     }
-    
+
     // Mark setup as complete
-    await app.db.insert(app.schema.systemConfig).values({
-      key: 'setup_complete',
-      value: true,
-      category: 'status',
-    }).onConflictDoUpdate({
-      target: app.schema.systemConfig.key,
-      set: { value: true, updatedAt: new Date() },
-    });
-    
+    await app.db
+      .insert(app.schema.systemConfig)
+      .values({
+        key: 'setup_complete',
+        value: true,
+        category: 'status',
+      })
+      .onConflictDoUpdate({
+        target: app.schema.systemConfig.key,
+        set: { value: true, updatedAt: new Date() },
+      });
+
     // Generate JWT tokens using standard auth flow
     const tokens = await app.generateTokens(adminUser);
-    
+
     logger.info({ userId: adminUser.id }, 'System setup completed');
-    
+
     return {
       success: true,
       data: {
@@ -1069,10 +1104,12 @@ git commit -m "feat: add setup complete endpoint with JWT token generation"
 ### 任务 5：创建双向 setup-guard 中间件
 
 **文件：**
+
 - 创建：`apps/server/src/middleware/setup-guard.ts`
 - 修改：`apps/server/src/app.ts`（注册中间件）
 
 **接口：**
+
 - 消费：`system_config` 表的 `setup_complete` 键
 - 生产：中间件函数，双向保护：
   - 设置完成前：阻止非 setup 路由
@@ -1088,39 +1125,39 @@ import { buildApp } from '../../app.js';
 describe('Setup Guard Middleware', () => {
   it('should block API routes when setup is not complete', async () => {
     const app = await buildApp();
-    
+
     const response = await app.inject({
       method: 'GET',
       url: '/api/v1/users',
     });
-    
+
     expect(response.statusCode).toBe(403);
     const body = JSON.parse(response.payload);
     expect(body.success).toBe(false);
     expect(body.error.code).toBe('SETUP_REQUIRED');
   });
-  
+
   it('should allow setup routes when setup is not complete', async () => {
     const app = await buildApp();
-    
+
     const response = await app.inject({
       method: 'GET',
       url: '/api/v1/setup/status',
     });
-    
+
     expect(response.statusCode).toBe(200);
   });
-  
+
   it('should block setup write endpoints after setup complete', async () => {
     const app = await buildApp();
-    
+
     // Simulate setup complete
     await app.db.insert(app.schema.systemConfig).values({
       key: 'setup_complete',
       value: true,
       category: 'status',
     });
-    
+
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/setup/admin',
@@ -1130,27 +1167,27 @@ describe('Setup Guard Middleware', () => {
         password: 'SecurePass123!',
       },
     });
-    
+
     expect(response.statusCode).toBe(410);
     const body = JSON.parse(response.payload);
     expect(body.error.code).toBe('SETUP_ALREADY_COMPLETE');
   });
-  
+
   it('should allow GET /setup/status after setup complete', async () => {
     const app = await buildApp();
-    
+
     // Simulate setup complete
     await app.db.insert(app.schema.systemConfig).values({
       key: 'setup_complete',
       value: true,
       category: 'status',
     });
-    
+
     const response = await app.inject({
       method: 'GET',
       url: '/api/v1/setup/status',
     });
-    
+
     expect(response.statusCode).toBe(200);
   });
 });
@@ -1173,18 +1210,18 @@ const ALLOWED_PATHS = ['/api/v1/setup/status', '/health', '/docs', '/api/v1/setu
 
 export async function setupGuard(request: FastifyRequest, reply: FastifyReply) {
   // Always allow GET /setup/status and health/docs
-  if (ALLOWED_PATHS.some(path => request.url.startsWith(path))) {
+  if (ALLOWED_PATHS.some((path) => request.url.startsWith(path))) {
     return;
   }
-  
+
   // Check if setup is complete
   const setupComplete = await request.server.db.query.systemConfig.findFirst({
     where: (fields, { eq }) => eq(fields.key, 'setup_complete'),
   });
   const isSetupComplete = setupComplete?.value === true;
-  
+
   // CRITICAL-2: After setup complete, block setup write endpoints
-  if (isSetupComplete && SETUP_WRITE_PATHS.some(path => request.url.startsWith(path))) {
+  if (isSetupComplete && SETUP_WRITE_PATHS.some((path) => request.url.startsWith(path))) {
     return reply.status(410).send({
       success: false,
       error: {
@@ -1193,7 +1230,7 @@ export async function setupGuard(request: FastifyRequest, reply: FastifyReply) {
       },
     });
   }
-  
+
   // Before setup complete, block non-setup routes
   if (!isSetupComplete && !request.url.startsWith('/api/v1/setup')) {
     logger.warn({ url: request.url }, 'Setup not complete, blocking request');
@@ -1225,9 +1262,11 @@ git commit -m "feat: add bidirectional setup guard middleware"
 ### 任务 6：集成路由、中间件和插件
 
 **文件：**
+
 - 修改：`apps/server/src/app.ts`
 
 **接口：**
+
 - 消费：`setupRoutes`, `setupGuard`, rate-limit, setup-csrf
 - 生产：完整的设置向导 API 集成
 
@@ -1241,7 +1280,7 @@ import { buildApp } from '../app.js';
 describe('Setup Integration', () => {
   it('should complete full setup flow', async () => {
     const app = await buildApp();
-    
+
     // 1. Check status (not initialized) + get setup token
     const statusResponse = await app.inject({
       method: 'GET',
@@ -1251,7 +1290,7 @@ describe('Setup Integration', () => {
     const status = JSON.parse(statusResponse.payload);
     expect(status.data.isInitialized).toBe(false);
     const setupToken = status.data.setupToken;
-    
+
     // 2. Create admin (with CSRF token)
     const adminResponse = await app.inject({
       method: 'POST',
@@ -1264,7 +1303,7 @@ describe('Setup Integration', () => {
       },
     });
     expect(adminResponse.statusCode).toBe(201);
-    
+
     // 3. Save config (with CSRF token)
     const configResponse = await app.inject({
       method: 'POST',
@@ -1277,7 +1316,7 @@ describe('Setup Integration', () => {
       },
     });
     expect(configResponse.statusCode).toBe(200);
-    
+
     // 4. Complete setup
     const completeResponse = await app.inject({
       method: 'POST',
@@ -1287,7 +1326,7 @@ describe('Setup Integration', () => {
     expect(completeResponse.statusCode).toBe(200);
     const completeBody = JSON.parse(completeResponse.payload);
     expect(completeBody.data).toHaveProperty('accessToken');
-    
+
     // 5. Check status again (initialized)
     const finalStatusResponse = await app.inject({
       method: 'GET',
@@ -1296,7 +1335,7 @@ describe('Setup Integration', () => {
     expect(finalStatusResponse.statusCode).toBe(200);
     const finalStatus = JSON.parse(finalStatusResponse.payload);
     expect(finalStatus.data.isInitialized).toBe(true);
-    
+
     // 6. Setup write endpoints now blocked
     const blockedResponse = await app.inject({
       method: 'POST',
@@ -1354,10 +1393,12 @@ git commit -m "feat: integrate setup routes, guard, CSRF, and rate limiting"
 ### 任务 7：创建系统检查端点
 
 **文件：**
+
 - 修改：`apps/server/src/routes/setup.ts`
 - 修改：`apps/server/src/routes/__tests__/setup.test.ts`
 
 **接口：**
+
 - 消费：数据库连接、Redis 连接
 - 生产：`GET /api/v1/setup/checks` 端点，返回系统环境检查结果
 
@@ -1369,7 +1410,7 @@ git commit -m "feat: integrate setup routes, guard, CSRF, and rate limiting"
 // 在 setup.test.ts 中添加
 it('should return system checks without sensitive info', async () => {
   const app = await buildApp();
-  
+
   const response = await app.inject({
     method: 'GET',
     url: '/api/v1/setup/checks',
@@ -1380,14 +1421,14 @@ it('should return system checks without sensitive info', async () => {
   expect(body.success).toBe(true);
   expect(body.data).toHaveProperty('checks');
   expect(Array.isArray(body.data.checks)).toBe(true);
-  
+
   // Each check should have name, status, and message
   for (const check of body.data.checks) {
     expect(check).toHaveProperty('name');
     expect(check).toHaveProperty('status'); // 'pass' | 'fail'
     expect(check).toHaveProperty('message');
   }
-  
+
   // Should NOT contain sensitive info
   const responseStr = JSON.stringify(body);
   expect(responseStr).not.toContain('connection string');
@@ -1439,7 +1480,7 @@ app.get(
   },
   async (request, reply) => {
     const checks = [];
-    
+
     // Database check
     try {
       await app.db.execute(sql`SELECT 1`);
@@ -1447,7 +1488,7 @@ app.get(
     } catch (err) {
       checks.push({ name: 'database', status: 'fail', message: 'Database connection failed' });
     }
-    
+
     // Redis check
     try {
       await app.redis.ping();
@@ -1455,7 +1496,7 @@ app.get(
     } catch (err) {
       checks.push({ name: 'redis', status: 'fail', message: 'Redis connection failed' });
     }
-    
+
     // Disk space check (without exposing specific paths)
     try {
       const { statfs } = await import('node:fs/promises');
@@ -1469,7 +1510,7 @@ app.get(
     } catch {
       checks.push({ name: 'disk_space', status: 'pass', message: 'Disk check skipped' });
     }
-    
+
     return {
       success: true,
       data: { checks },
@@ -1494,28 +1535,28 @@ git commit -m "feat: add system checks endpoint with minimal info exposure"
 
 ## 问题修复对照表
 
-| Review ID | Issue | Fix Location |
-|-----------|-------|--------------|
-| C-1 | 设置完成后可重复创建管理员 | 任务 2 (isInitialized check) + 任务 5 (guard) |
-| C-2 | setup-guard 不阻断已完成系统的 setup 写入端点 | 任务 5 (bidirectional guard) |
-| C-3 | UI/后端缺少反向保护 | 任务 5 (guard blocks write endpoints after setup) |
-| C-4 | 无 CSRF 防护 | 任务 0 (setup-csrf plugin) |
-| C-5 | 无速率限制 | 任务 0 (rate-limit plugin) |
-| H-1 | 后端密码复杂度验证不足 | 任务 2 (PASSWORD_REGEX) |
-| H-2 | 管理员邮箱硬编码导致 guard 检查失效 | 任务 5 (guard uses isInitialized) |
-| H-3 | SMTP 密码写入日志 | 任务 3 (log redaction) |
-| H-4 | 系统检查端点信息泄露 | 任务 7 (minimal info) |
-| M-1 | UserManager 每请求实例化 | 任务 2 (use app-scoped instance) |
-| M-2 | completeSetup 端点后端缺失 | 任务 4 (new endpoint) |
-| L-1 | 缺少审计日志 | 可后续添加 |
-| Arch-1 | API 前缀不一致 | 已统一为 `/api/v1/setup` |
-| Arch-2 | 响应格式不一致 | 已统一为 `{ success, data, error }` |
-| Arch-3 | 缺少系统检查端点 | 任务 7 (new endpoint) |
-| Arch-4 | 缺少事务处理 | 任务 2 (db.transaction) |
-| Arch-5 | 并发控制缺失 | 任务 2 (Redis distributed lock) |
-| Arch-6 | 配置存储缺失 | 任务 3 (system_config table) |
-| Arch-7 | 设置状态标志缺失 | 迁移任务 (system_config + setup_complete key) |
-| Arch-8 | 迁移计划缺失 | 新增迁移任务 |
+| Review ID | Issue                                         | Fix Location                                      |
+| --------- | --------------------------------------------- | ------------------------------------------------- |
+| C-1       | 设置完成后可重复创建管理员                    | 任务 2 (isInitialized check) + 任务 5 (guard)     |
+| C-2       | setup-guard 不阻断已完成系统的 setup 写入端点 | 任务 5 (bidirectional guard)                      |
+| C-3       | UI/后端缺少反向保护                           | 任务 5 (guard blocks write endpoints after setup) |
+| C-4       | 无 CSRF 防护                                  | 任务 0 (setup-csrf plugin)                        |
+| C-5       | 无速率限制                                    | 任务 0 (rate-limit plugin)                        |
+| H-1       | 后端密码复杂度验证不足                        | 任务 2 (PASSWORD_REGEX)                           |
+| H-2       | 管理员邮箱硬编码导致 guard 检查失效           | 任务 5 (guard uses isInitialized)                 |
+| H-3       | SMTP 密码写入日志                             | 任务 3 (log redaction)                            |
+| H-4       | 系统检查端点信息泄露                          | 任务 7 (minimal info)                             |
+| M-1       | UserManager 每请求实例化                      | 任务 2 (use app-scoped instance)                  |
+| M-2       | completeSetup 端点后端缺失                    | 任务 4 (new endpoint)                             |
+| L-1       | 缺少审计日志                                  | 可后续添加                                        |
+| Arch-1    | API 前缀不一致                                | 已统一为 `/api/v1/setup`                          |
+| Arch-2    | 响应格式不一致                                | 已统一为 `{ success, data, error }`               |
+| Arch-3    | 缺少系统检查端点                              | 任务 7 (new endpoint)                             |
+| Arch-4    | 缺少事务处理                                  | 任务 2 (db.transaction)                           |
+| Arch-5    | 并发控制缺失                                  | 任务 2 (Redis distributed lock)                   |
+| Arch-6    | 配置存储缺失                                  | 任务 3 (system_config table)                      |
+| Arch-7    | 设置状态标志缺失                              | 迁移任务 (system_config + setup_complete key)     |
+| Arch-8    | 迁移计划缺失                                  | 新增迁移任务                                      |
 
 ---
 

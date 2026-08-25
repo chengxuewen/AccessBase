@@ -30,7 +30,10 @@ export default function AdminStep({ next, prev, stepTitleRef }: StepProps) {
       setAdminData({ name: values.name, email: values.email, password: values.password });
       next();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: { code?: string } } }; message?: string };
+      const error = err as {
+        response?: { data?: { error?: { code?: string } } };
+        message?: string;
+      };
       const code = error.response?.data?.error?.code;
       if (code === 'ADMIN_EXISTS') {
         notification.error({ message: t('setup.errors.adminExists') });
@@ -90,10 +93,7 @@ export default function AdminStep({ next, prev, stepTitleRef }: StepProps) {
             },
           ]}
         >
-          <Input.Password
-            aria-required="true"
-            placeholder={t('setup.admin.passwordPlaceholder')}
-          />
+          <Input.Password aria-required="true" placeholder={t('setup.admin.passwordPlaceholder')} />
         </Form.Item>
 
         <Form.Item
@@ -107,9 +107,7 @@ export default function AdminStep({ next, prev, stepTitleRef }: StepProps) {
                 if (!value || getFieldValue('password') === value) {
                   return Promise.resolve();
                 }
-                return Promise.reject(
-                  new Error(t('setup.admin.confirmPasswordMismatch')),
-                );
+                return Promise.reject(new Error(t('setup.admin.confirmPasswordMismatch')));
               },
             }),
           ]}

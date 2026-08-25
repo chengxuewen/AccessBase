@@ -42,7 +42,7 @@ COPY packages/admin/package.json packages/admin/
 COPY apps/server/package.json apps/server/
 COPY apps/admin-ui/package.json apps/admin-ui/
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --no-frozen-lockfile
 COPY . .
 RUN pnpm --filter @accessbase/types build && \
     pnpm --filter @accessbase/logging build && \
