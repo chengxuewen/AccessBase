@@ -35,6 +35,9 @@ e2e/
 packages/*/dist/
 apps/*/dist/
 
+# Dependencies (container installs fresh)
+node_modules/
+
 # Docker files (avoid recursive context)
 docker-compose*.yml
 Dockerfile*

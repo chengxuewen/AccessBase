@@ -1,0 +1,71 @@
+# syntax=docker/dockerfile:1
+
+# ---- Dev: all-in-one with PostgreSQL + Redis + hot reload ----
+FROM node:22-slim AS dev
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+
+# Install tini, PostgreSQL 16, Redis, and tools
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        tini \
+        gnupg \
+        curl \
+        lsb-release \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/postgresql-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        postgresql-16 \
+        redis-server \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create accessbase user
+RUN useradd -m -s /bin/bash accessbase
+
+# PostgreSQL setup
+ENV PGDATA=/var/lib/postgresql/data
+ENV PGUSER=accessbase
+ENV PGPASSWORD=accessbase_dev
+ENV PGDATABASE=accessbase
+RUN mkdir -p /var/run/postgresql /var/lib/postgresql/data && \
+    chown -R accessbase:accessbase /var/run/postgresql /var/lib/postgresql/data
+USER accessbase
+RUN /usr/lib/postgresql/16/bin/initdb -D $PGDATA --auth=trust --username=accessbase && \
+    echo "listen_addresses='*'" >> $PGDATA/postgresql.conf && \
+    echo "host all all 0.0.0.0/0 trust" >> $PGDATA/pg_hba.conf
+USER root
+
+# Redis setup
+RUN mkdir -p /var/lib/redis && chown accessbase:accessbase /var/lib/redis
+
+WORKDIR /app
+
+# Copy package files first for layer caching
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/types/package.json packages/types/
+COPY packages/logging/package.json packages/logging/
+COPY packages/i18n/package.json packages/i18n/
+COPY packages/migration/package.json packages/migration/
+COPY packages/health/package.json packages/health/
+COPY packages/identity/package.json packages/identity/
+COPY packages/audit/package.json packages/audit/
+COPY packages/admin/package.json packages/admin/
+COPY apps/server/package.json apps/server/
+COPY apps/admin-ui/package.json apps/admin-ui/
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# Copy source
+COPY . .
+
+# Entrypoint
+COPY docker/entrypoint-dev.sh /entrypoint-dev.sh
+RUN chmod +x /entrypoint-dev.sh
+
+EXPOSE 5101 5173 5432 6379
+
+ENTRYPOINT ["tini", "--", "/entrypoint-dev.sh"]

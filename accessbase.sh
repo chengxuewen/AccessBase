@@ -138,18 +138,25 @@ cmd_dev_docker() {
         esac
     done
 
-    log_info "Building Docker image..."
-    $D build $BUILD_ARGS -t accessbase:dev .
+    log_info "Building Docker dev image..."
+    $D build $BUILD_ARGS -t accessbase:dev -f Dockerfile.dev .
 
-    log_info "Starting all-in-one container..."
+    log_info "Starting all-in-one dev container..."
     $D run -d --name accessbase-dev \
+        --init \
         -p 5101:5101 \
         -p 5173:5173 \
-        -e JWT_SECRET="${JWT_SECRET:-dev-secret}" \
-        -e NODE_ENV=development \
+        -p 5432:5432 \
+        -p 6379:6379 \
+        -v "$(pwd):/app" \
+        -v /app/node_modules \
         accessbase:dev
 
-    log_ok "AccessBase running at http://localhost:5173"
+    log_ok "AccessBase dev container running"
+    log_info "  Frontend: http://localhost:5173"
+    log_info "  Backend:  http://localhost:5101"
+    log_info "  Database: localhost:5432"
+    log_info "  Redis:    localhost:6379"
 }
 
 # ===== Production Commands =====
