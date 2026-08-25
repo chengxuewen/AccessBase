@@ -40,6 +40,7 @@ Docker:
 
 Other:
   clean            Clean build artifacts
+  reset            Reset database and restart (for testing initialization)
   status           Show project status
 
 EOF
@@ -350,6 +351,31 @@ cmd_status() {
     done
 }
 
+cmd_reset() {
+    if ! has_docker; then
+        log_error "Docker not available"
+        exit 1
+    fi
+
+    local DC=$(get_docker_compose_cmd)
+
+    log_warn "This will DELETE all data and restart from scratch"
+    log_info "Stopping services..."
+    $DC -f docker-compose.dev.yml down -v 2>/dev/null || true
+
+    log_info "Starting PostgreSQL + Redis..."
+    $DC -f docker-compose.dev.yml up -d
+    sleep 3
+
+    log_info "Pushing database schema..."
+    export DATABASE_URL="postgresql://accessbase:accessbase_dev@localhost:5432/accessbase"
+    export REDIS_URL="redis://localhost:6379"
+    pnpm db:push 2>/dev/null || log_warn "Schema push skipped"
+
+    log_info "Starting dev servers..."
+    log_ok "Database reset complete. Run 'bash accessbase.sh dev' to start."
+}
+
 # Main
 case "${1:-}" in
     # Development
@@ -380,6 +406,7 @@ case "${1:-}" in
 
     # Other
     clean)          cmd_clean ;;
+    reset)          cmd_reset ;;
     status)         cmd_status ;;
     -h|--help|"")   usage ;;
     *)              log_error "Unknown command: $1"; usage; exit 1 ;;
