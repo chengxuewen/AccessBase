@@ -31,20 +31,42 @@ function SetupGuard({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}</>;
+  return <>{children}>;
+}
+
+function GlobalGuard({ children }: { children: React.ReactNode }) {
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    checkSetupStatus()
+      .then((status) => setNeedsSetup(status.needsSetup))
+      .catch(() => setNeedsSetup(false));
+  }, []);
+
+  if (needsSetup === null) {
+    return <Spin size="large" style={{ display: 'block', margin: '40vh auto' }} />;
+  }
+
+  if (needsSetup) {
+    return <Navigate to="/setup" replace />;
+  }
+
+  return <>{children}>;
 }
 
 export default function App() {
   return (
     <Routes>
       <Route path="/setup" element={<SetupGuard><SetupWizard /></SetupGuard>} />
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<GlobalGuard><Login /></GlobalGuard>} />
       <Route
         path="/"
         element={
-          <PrivateRoute>
-            <AdminLayout />
-          </PrivateRoute>
+          <GlobalGuard>
+            <PrivateRoute>
+              <AdminLayout />
+            </PrivateRoute>
+          </GlobalGuard>
         }
       >
         <Route index element={<Navigate to="/dashboard" replace />} />

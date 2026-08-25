@@ -27,7 +27,8 @@ interface ConfigFormData {
 /** Check if the system needs initial setup */
 export async function checkSetupStatus(): Promise<{ needsSetup: boolean }> {
   const { data } = await client.get('/v1/setup/status');
-  return data;
+  // Backend returns { success, data: { isInitialized, adminExists, configComplete } }
+  return { needsSetup: !data.data?.isInitialized };
 }
 
 /** Run system environment checks */
