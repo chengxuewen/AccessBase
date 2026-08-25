@@ -46,5 +46,90 @@
     "createdAt": "Created At",
     "actions": "Actions",
     "create": "Create User"
+  },
+  "setup": {
+    "welcome": {
+      "title": "Welcome to AccessBase",
+      "subtitle": "Let's set up your access control system",
+      "startButton": "Start Setup"
+    },
+    "checks": {
+      "title": "System Checks",
+      "database": "Database Connection",
+      "redis": "Redis Connection",
+      "disk": "Disk Space",
+      "migrations": "Database Migrations",
+      "checking": "Checking...",
+      "success": "Passed",
+      "error": "Failed",
+      "retry": "Retry",
+      "databaseRecovery": "Please confirm PostgreSQL is running and check DATABASE_URL",
+      "redisRecovery": "Please confirm Redis is running and check REDIS_URL",
+      "diskRecovery": "Insufficient disk space, please free at least 1GB",
+      "migrationsRecovery": "Run pnpm db:push to execute database migrations"
+    },
+    "admin": {
+      "title": "Create Admin Account",
+      "name": "Name",
+      "namePlaceholder": "Enter admin name",
+      "email": "Email",
+      "emailPlaceholder": "Enter email address",
+      "password": "Password",
+      "passwordPlaceholder": "Enter password (min 8 chars, upper+lower+digit)",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Re-enter password",
+      "nameRequired": "Please enter name",
+      "emailRequired": "Please enter email",
+      "emailInvalid": "Please enter a valid email",
+      "passwordRequired": "Please enter password",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordPattern": "Password must include uppercase, lowercase, and digit",
+      "confirmPasswordRequired": "Please confirm password",
+      "confirmPasswordMismatch": "Passwords do not match"
+    },
+    "config": {
+      "title": "Basic Configuration",
+      "siteName": "Site Name",
+      "siteNamePlaceholder": "Enter site name",
+      "siteNameRequired": "Please enter site name",
+      "siteUrl": "Site URL",
+      "siteUrlPlaceholder": "https://example.com",
+      "smtp": "Email Server Configuration (Optional)",
+      "smtpHost": "SMTP Server",
+      "smtpHostPlaceholder": "smtp.example.com",
+      "smtpPort": "Port",
+      "smtpPortPlaceholder": "587",
+      "smtpUser": "Username",
+      "smtpUserPlaceholder": "Enter SMTP username",
+      "smtpPassword": "Password",
+      "smtpPasswordPlaceholder": "Enter SMTP password",
+      "smtpFrom": "From Address",
+      "smtpFromPlaceholder": "noreply@example.com",
+      "skip": "Skip"
+    },
+    "complete": {
+      "title": "Setup Complete!",
+      "subtitle": "Your AccessBase system is ready",
+      "summary": "Setup Summary",
+      "siteName": "Site Name",
+      "adminEmail": "Admin Email",
+      "enterDashboard": "Enter Dashboard",
+      "quickLinks": "Quick Start",
+      "createUser": "Create User",
+      "createRole": "Create Role",
+      "viewDocs": "View Docs"
+    },
+    "navigation": {
+      "previous": "Previous",
+      "next": "Next",
+      "finish": "Finish"
+    },
+    "errors": {
+      "networkError": "Network connection failed, please check settings",
+      "serverError": "Server error, please try again later",
+      "adminExists": "Admin account already exists",
+      "invalidConfig": "Invalid configuration, please check input",
+      "setupFailed": "Setup failed, please try again"
+    }
   }
 }

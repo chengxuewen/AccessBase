@@ -70,125 +70,94 @@ describe('GET /health/startup', () => {
   });
 });
 
-// --- Auth endpoints (stub/mocked — all return 501 NOT_IMPLEMENTED) ---
+// --- Setup endpoints (should work before setup is complete) ---
+describe('GET /api/v1/setup/status', () => {
+  it('returns setup status', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/setup/status' });
 
-describe('POST /api/v1/auth/login', () => {
-  it('returns 501 NOT_IMPLEMENTED (identity not wired)', async () => {
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveProperty('isInitialized');
+    expect(body.data).toHaveProperty('adminExists');
+    expect(body.data).toHaveProperty('configComplete');
+  });
+});
+
+describe('GET /api/v1/setup/checks', () => {
+  it('returns system checks', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/setup/checks' });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveProperty('checks');
+    expect(Array.isArray(body.data.checks)).toBe(true);
+  });
+});
+
+// --- Auth endpoints (blocked by setup guard when setup not complete) ---
+describe('POST /api/v1/auth/login (setup guard)', () => {
+  it('returns 403 SETUP_REQUIRED when setup is not complete', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
       payload: { email: 'user@test.com', password: 'password123' },
     });
 
-    expect(res.statusCode).toBe(501);
+    expect(res.statusCode).toBe(403);
     const body = res.json();
     expect(body.success).toBe(false);
-    expect(body.error.code).toBe('NOT_IMPLEMENTED');
-  });
-
-  it('rejects missing password with 400', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/login',
-      payload: { email: 'user@test.com' },
-    });
-
-    expect(res.statusCode).toBe(400);
-  });
-
-  it('rejects empty body with 400', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/login',
-      payload: {},
-    });
-
-    expect(res.statusCode).toBe(400);
+    expect(body.error.code).toBe('SETUP_REQUIRED');
   });
 });
 
-describe('POST /api/v1/auth/register', () => {
-  it('returns 501 NOT_IMPLEMENTED (identity not wired)', async () => {
+describe('POST /api/v1/auth/register (setup guard)', () => {
+  it('returns 403 SETUP_REQUIRED when setup is not complete', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/register',
       payload: { email: 'new@test.com', name: 'Test User', password: 'password123' },
     });
 
-    expect(res.statusCode).toBe(501);
+    expect(res.statusCode).toBe(403);
     const body = res.json();
     expect(body.success).toBe(false);
-    expect(body.error.code).toBe('NOT_IMPLEMENTED');
-  });
-
-  it('rejects missing name with 400', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/register',
-      payload: { email: 'new@test.com', password: 'password123' },
-    });
-
-    expect(res.statusCode).toBe(400);
-  });
-
-  it('rejects short password with 400', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/register',
-      payload: { email: 'new@test.com', name: 'Test', password: 'short' },
-    });
-
-    expect(res.statusCode).toBe(400);
+    expect(body.error.code).toBe('SETUP_REQUIRED');
   });
 });
 
-describe('POST /api/v1/auth/logout', () => {
-  it('rejects unauthenticated request with 401', async () => {
+describe('POST /api/v1/auth/logout (setup guard)', () => {
+  it('returns 403 SETUP_REQUIRED when setup is not complete', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/logout',
     });
 
-    expect(res.statusCode).toBe(401);
+    expect(res.statusCode).toBe(403);
     const body = res.json();
     expect(body.success).toBe(false);
-    expect(body.error.code).toBe('AUTH_001');
-  });
-
-  it('returns 501 for authenticated request (identity not wired)', async () => {
-    const token = app.jwt.sign({ sub: 'user-1', email: 'test@test.com' });
-
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/logout',
-      headers: { authorization: `Bearer ${token}` },
-    });
-
-    expect(res.statusCode).toBe(501);
-    const body = res.json();
-    expect(body.success).toBe(false);
-    expect(body.error.code).toBe('NOT_IMPLEMENTED');
+    expect(body.error.code).toBe('SETUP_REQUIRED');
   });
 });
 
-describe('POST /api/v1/auth/refresh', () => {
-  it('returns 501 NOT_IMPLEMENTED', async () => {
+describe('POST /api/v1/auth/refresh (setup guard)', () => {
+  it('returns 403 SETUP_REQUIRED when setup is not complete', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/refresh',
       payload: { refreshToken: 'some-refresh-token' },
     });
 
-    expect(res.statusCode).toBe(501);
+    expect(res.statusCode).toBe(403);
     const body = res.json();
     expect(body.success).toBe(false);
-    expect(body.error.code).toBe('NOT_IMPLEMENTED');
+    expect(body.error.code).toBe('SETUP_REQUIRED');
   });
 });
 
-// --- Protected routes require auth ---
-
-describe('protected routes authentication', () => {
+// --- Protected routes (blocked by setup guard when setup not complete) ---
+describe('protected routes authentication (setup guard)', () => {
   const protectedRoutes = [
     { method: 'GET' as const, url: '/api/v1/users' },
     { method: 'GET' as const, url: '/api/v1/users/me' },
@@ -198,11 +167,12 @@ describe('protected routes authentication', () => {
   ];
 
   for (const route of protectedRoutes) {
-    it(`${route.method} ${route.url} rejects unauthenticated with 401`, async () => {
+    it(`${route.method} ${route.url} returns 403 SETUP_REQUIRED when setup is not complete`, async () => {
       const res = await app.inject(route);
-      expect(res.statusCode).toBe(401);
+      expect(res.statusCode).toBe(403);
       const body = res.json();
-      expect(body.error.code).toBe('AUTH_001');
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('SETUP_REQUIRED');
     });
   }
 });

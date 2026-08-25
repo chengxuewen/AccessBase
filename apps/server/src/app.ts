@@ -8,6 +8,8 @@ import { authRoutes } from './routes/auth.js';
 import { userRoutes } from './routes/users.js';
 import { roleRoutes } from './routes/roles.js';
 import { healthRoutes } from './routes/health.js';
+import { setupRoutes } from './routes/setup.js';
+import { setupGuard } from './middleware/setup-guard.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -74,9 +76,12 @@ export async function buildApp() {
     }
   });
 
-  // --- Routes ---
+  // --- Setup Guard Middleware (must be registered before other routes) ---
+  app.addHook('onRequest', setupGuard);
 
+  // --- Routes ---
   await app.register(healthRoutes, { prefix: '/health' });
+  await app.register(setupRoutes, { prefix: '/api/v1/setup' });
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
   await app.register(userRoutes, { prefix: '/api/v1/users' });
   await app.register(roleRoutes, { prefix: '/api/v1/roles' });
