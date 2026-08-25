@@ -85,7 +85,16 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - /app/packages/*/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/logging/node_modules
+      - /app/packages/i18n/node_modules
+      - /app/packages/migration/node_modules
+      - /app/packages/health/node_modules
+      - /app/packages/identity/node_modules
+      - /app/packages/audit/node_modules
+      - /app/packages/admin/node_modules
+      - /app/apps/server/node_modules
+      - /app/apps/admin-ui/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,6 +114,14 @@ services:
       - .:/app
       - /app/node_modules
       - /app/apps/admin-ui/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/logging/node_modules
+      - /app/packages/i18n/node_modules
+      - /app/packages/migration/node_modules
+      - /app/packages/health/node_modules
+      - /app/packages/identity/node_modules
+      - /app/packages/audit/node_modules
+      - /app/packages/admin/node_modules
     depends_on:
       - server
     command: pnpm --filter @accessbase/admin-ui dev -- --host 0.0.0.0
@@ -225,9 +242,17 @@ WORKDIR /app
 
 # Copy package files first for caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/*/package.json packages/*/
-COPY apps/*/package.json apps/*/
-RUN pnpm install --no-frozen-lockfile
+COPY packages/types/package.json packages/types/
+COPY packages/logging/package.json packages/logging/
+COPY packages/i18n/package.json packages/i18n/
+COPY packages/migration/package.json packages/migration/
+COPY packages/health/package.json packages/health/
+COPY packages/identity/package.json packages/identity/
+COPY packages/audit/package.json packages/audit/
+COPY packages/admin/package.json packages/admin/
+COPY apps/server/package.json apps/server/
+COPY apps/admin-ui/package.json apps/admin-ui/
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 
 # Copy source
 COPY . .
