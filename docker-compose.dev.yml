@@ -1,4 +1,4 @@
-# Development docker-compose — build-based, source mount
+# Development docker-compose — all services with hot reload
 name: accessbase-dev
 services:
   postgres:
@@ -17,6 +17,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
@@ -30,6 +31,64 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+
+  server:
+    build:
+      context: .
+      target: dev
+    ports:
+      - "5101:5101"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://accessbase:accessbase_dev@postgres:5432/accessbase
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret
+      LOG_LEVEL: debug
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/logging/node_modules
+      - /app/packages/i18n/node_modules
+      - /app/packages/migration/node_modules
+      - /app/packages/health/node_modules
+      - /app/packages/identity/node_modules
+      - /app/packages/audit/node_modules
+      - /app/packages/admin/node_modules
+      - /app/apps/server/node_modules
+      - /app/apps/admin-ui/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: pnpm --filter @accessbase/server dev
+
+  admin-ui:
+    build:
+      context: .
+      target: dev
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://server:5101
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/admin-ui/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/logging/node_modules
+      - /app/packages/i18n/node_modules
+      - /app/packages/migration/node_modules
+      - /app/packages/health/node_modules
+      - /app/packages/identity/node_modules
+      - /app/packages/audit/node_modules
+      - /app/packages/admin/node_modules
+      - /app/apps/server/node_modules
+    depends_on:
+      - server
+    command: pnpm --filter @accessbase/admin-ui dev -- --host 0.0.0.0
 
 volumes:
   postgres-dev:

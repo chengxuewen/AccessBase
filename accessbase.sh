@@ -90,9 +90,6 @@ cmd_dev() {
 }
 
 cmd_dev_compose() {
-    ensure_node
-    ensure_pnpm
-
     if ! has_docker; then
         log_error "Docker not available"
         exit 1
@@ -100,26 +97,14 @@ cmd_dev_compose() {
 
     local DC=$(get_docker_compose_cmd)
 
-    # Step 1: Start PostgreSQL + Redis
-    log_info "Starting PostgreSQL + Redis..."
-    $DC -f docker-compose.dev.yml up -d
-    sleep 3
-    log_ok "PostgreSQL (5432) and Redis (6379) running"
+    log_info "Starting all services with Docker Compose..."
+    $DC -f docker-compose.dev.yml up --build
 
-    # Auto-set environment variables
-    export DATABASE_URL="postgresql://accessbase:accessbase_dev@localhost:5432/accessbase"
-    export REDIS_URL="redis://localhost:6379"
-    log_info "DATABASE_URL and REDIS_URL configured"
-
-    # Step 2: Push database schema
-    log_info "Pushing database schema..."
-    pnpm db:push 2>/dev/null || log_warn "Schema push skipped"
-
-    # Step 3: Start dev servers
-    log_info "Starting dev servers..."
-    pnpm --filter @accessbase/server dev &
-    pnpm --filter @accessbase/admin-ui dev -- --host 0.0.0.0 &
-    wait
+    log_ok "All services running:"
+    log_info "  Frontend: http://localhost:5173"
+    log_info "  Backend:  http://localhost:5101"
+    log_info "  Database: localhost:5432"
+    log_info "  Redis:    localhost:6379"
 }
 
 cmd_dev_docker() {
