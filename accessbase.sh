@@ -25,6 +25,7 @@ Production:
 Build & Test:
   build            Build all packages
   test             Run all tests
+  test:e2e         Run E2E tests (Playwright)
   typecheck        Run TypeScript type checking
   lint             Run linting
   format           Format code
@@ -32,7 +33,7 @@ Build & Test:
 Database:
   db:push          Push database schema
   db:generate      Generate migration files
-
+  db:migrate       Run database migrations
 Docker:
   docker:build     Build Docker image
   docker:dev       Start dev services (PostgreSQL + Redis)
@@ -41,8 +42,8 @@ Docker:
 Other:
   clean            Clean build artifacts
   reset            Reset database and restart (for testing initialization)
+  logs             Show service logs
   status           Show project status
-
 EOF
 }
 
@@ -224,6 +225,14 @@ cmd_test() {
     log_ok "Tests complete"
 }
 
+cmd_test_e2e() {
+    ensure_node
+    ensure_pnpm
+    log_info "Running E2E tests..."
+    pnpm --filter @accessbase/admin-ui test:e2e
+    log_ok "E2E tests complete"
+}
+
 cmd_typecheck() {
     ensure_node
     ensure_pnpm
@@ -265,6 +274,14 @@ cmd_db_generate() {
     log_info "Generating migrations..."
     pnpm db:generate
     log_ok "Migrations generated"
+}
+
+cmd_db_migrate() {
+    ensure_node
+    ensure_pnpm
+    log_info "Running database migrations..."
+    pnpm db:migrate
+    log_ok "Migrations applied"
 }
 
 # ===== Docker Commands =====
@@ -343,6 +360,11 @@ cmd_status() {
     done
 }
 
+cmd_logs() {
+    local DC=$(get_docker_compose_cmd)
+    $DC -f docker-compose.dev.yml logs -f
+}
+
 cmd_reset() {
     if ! has_docker; then
         log_error "Docker not available"
@@ -383,6 +405,7 @@ case "${1:-}" in
     # Build & Test
     build)          cmd_build ;;
     test)           cmd_test ;;
+    test:e2e)       cmd_test_e2e ;;
     typecheck)      cmd_typecheck ;;
     lint)           cmd_lint ;;
     format)         cmd_format ;;
@@ -390,7 +413,7 @@ case "${1:-}" in
     # Database
     db:push)        cmd_db_push ;;
     db:generate)    cmd_db_generate ;;
-
+    db:migrate)     cmd_db_migrate ;;
     # Docker
     docker:build)   cmd_docker_build ;;
     docker:dev)     cmd_docker_dev ;;
@@ -399,6 +422,7 @@ case "${1:-}" in
     # Other
     clean)          cmd_clean ;;
     reset)          cmd_reset ;;
+    logs)           cmd_logs ;;
     status)         cmd_status ;;
     -h|--help|"")   usage ;;
     *)              log_error "Unknown command: $1"; usage; exit 1 ;;
