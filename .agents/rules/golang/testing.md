@@ -1,9 +1,10 @@
 ---
 paths:
-  - "**/*.go"
-  - "**/go.mod"
-  - "**/go.sum"
+  - '**/*.go'
+  - '**/go.mod'
+  - '**/go.sum'
 ---
+
 # Go Testing
 
 > This file extends [common/testing.md](../common/testing.md) with Go specific content.

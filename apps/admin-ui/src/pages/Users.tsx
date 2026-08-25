@@ -1,21 +1,21 @@
-import { useRef } from 'react'
-import { useTranslation } from 'react-i18next'
-import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components'
-import { Tag } from 'antd'
-import client from '../api/client'
+import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
+import { Tag } from 'antd';
+import client from '../api/client';
 
 interface User {
-  id: string
-  email: string
-  name: string
-  status: 'active' | 'suspended' | 'pending'
-  roles: string[]
-  createdAt: string
+  id: string;
+  email: string;
+  name: string;
+  status: 'active' | 'suspended' | 'pending';
+  roles: string[];
+  createdAt: string;
 }
 
 export default function Users() {
-  const { t } = useTranslation()
-  const actionRef = useRef<ActionType>(null)
+  const { t } = useTranslation();
+  const actionRef = useRef<ActionType>(null);
 
   const columns: ProColumns<User>[] = [
     {
@@ -40,15 +40,14 @@ export default function Users() {
           active: 'green',
           suspended: 'red',
           pending: 'orange',
-        }
-        return <Tag color={colorMap[record.status]}>{record.status}</Tag>
+        };
+        return <Tag color={colorMap[record.status]}>{record.status}</Tag>;
       },
     },
     {
       title: t('users.roles'),
       dataIndex: 'roles',
-      render: (_, record) =>
-        record.roles.map((role) => <Tag key={role}>{role}</Tag>),
+      render: (_, record) => record.roles.map((role) => <Tag key={role}>{role}</Tag>),
     },
     {
       title: t('users.createdAt'),
@@ -66,7 +65,7 @@ export default function Users() {
         </a>,
       ],
     },
-  ]
+  ];
 
   return (
     <ProTable<User>
@@ -75,15 +74,15 @@ export default function Users() {
       rowKey="id"
       columns={columns}
       request={async (params) => {
-        const { current, pageSize, ...rest } = params
+        const { current, pageSize, ...rest } = params;
         const { data } = await client.get('/users', {
           params: { page: current, pageSize, ...rest },
-        })
+        });
         return {
           data: data.data,
           total: data.total,
           success: true,
-        }
+        };
       }}
       pagination={{ defaultPageSize: 10 }}
       search={{ labelWidth: 'auto' }}
@@ -93,5 +92,5 @@ export default function Users() {
         </a>,
       ]}
     />
-  )
+  );
 }

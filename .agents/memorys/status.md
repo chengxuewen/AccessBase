@@ -5,17 +5,17 @@
 
 ## 模块状态
 
-| 模块 | 状态 | 描述 |
-|------|------|------|
-| 设计文档 | ✅ v3.0 | 42 章节 + 14 个补充 + 35+ 项目参考 |
-| 设计决策 | ✅ D1-D95 | 95 个设计决策 |
-| 包 SDD | ✅ 8 个 | 所有 L0 包详细设计 |
-| L0 包实施 | ✅ 8 个 | 全部实施完成 |
-| Fastify 服务 | ✅ | REST API + 中间件链 |
-| Admin UI | ✅ | React + Ant Design Pro |
-| 测试 | ✅ 138 个 | 单元测试 + 集成测试 |
-| Docker | ✅ | 多阶段构建 + 3 种运行模式 |
-| CI/CD | ✅ | GitHub Actions |
+| 模块         | 状态      | 描述                               |
+| ------------ | --------- | ---------------------------------- |
+| 设计文档     | ✅ v3.0   | 42 章节 + 14 个补充 + 35+ 项目参考 |
+| 设计决策     | ✅ D1-D95 | 95 个设计决策                      |
+| 包 SDD       | ✅ 8 个   | 所有 L0 包详细设计                 |
+| L0 包实施    | ✅ 8 个   | 全部实施完成                       |
+| Fastify 服务 | ✅        | REST API + 中间件链                |
+| Admin UI     | ✅        | React + Ant Design Pro             |
+| 测试         | ✅ 138 个 | 单元测试 + 集成测试                |
+| Docker       | ✅        | 多阶段构建 + 3 种运行模式          |
+| CI/CD        | ✅        | GitHub Actions                     |
 
 ## 代码结构
 
@@ -43,30 +43,31 @@ docs/
 ## 设计决策汇总
 
 共 95 个设计决策（D1-D95）
+
 - D1-D80: 原始设计决策
 - D81-D95: 从 35+ 项目参考中提炼
 
 ## 测试覆盖
 
-| 包 | 测试文件 | 用例数 |
-|---|---------|--------|
-| types | entities.test.ts | 8 |
-| logging | logger.test.ts | 9 |
-| identity | AuthManager/UserManager/RoleManager | 57 |
-| health | service.test.ts | 11 |
-| audit | logger.test.ts | 10 |
-| server | routes.test.ts | 17 |
-| **合计** | **8 文件** | **138 ✅** |
+| 包       | 测试文件                            | 用例数     |
+| -------- | ----------------------------------- | ---------- |
+| types    | entities.test.ts                    | 8          |
+| logging  | logger.test.ts                      | 9          |
+| identity | AuthManager/UserManager/RoleManager | 57         |
+| health   | service.test.ts                     | 11         |
+| audit    | logger.test.ts                      | 10         |
+| server   | routes.test.ts                      | 17         |
+| **合计** | **8 文件**                          | **138 ✅** |
 
 ## 运行模式
 
-| 模式 | 命令 | 说明 |
-|------|------|------|
-| 开发 | `./accessbase.sh dev` | 后端 + 前端热重载 |
-| 测试 | `./accessbase.sh test` | 138 个测试 |
-| 构建 | `./accessbase.sh build` | 构建所有包 |
-| Docker 开发 | `./accessbase.sh docker:dev` | PG + Redis 分离 |
-| Docker 生产 | `./accessbase.sh docker` | 单容器 all-in-one |
+| 模式        | 命令                         | 说明              |
+| ----------- | ---------------------------- | ----------------- |
+| 开发        | `./accessbase.sh dev`        | 后端 + 前端热重载 |
+| 测试        | `./accessbase.sh test`       | 138 个测试        |
+| 构建        | `./accessbase.sh build`      | 构建所有包        |
+| Docker 开发 | `./accessbase.sh docker:dev` | PG + Redis 分离   |
+| Docker 生产 | `./accessbase.sh docker`     | 单容器 all-in-one |
 
 ## 近期工作
 

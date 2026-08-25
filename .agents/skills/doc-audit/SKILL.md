@@ -1,6 +1,6 @@
 ---
 name: doc-audit
-description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、记忆文件、决策记录、规则体系之间的自洽性、完整性、缺口和优化机会。以交互式问答与用户逐项确认每项发现，列出详情、方案与优劣、来源、影响、推荐。支持团队模式(大型审计)和背景代理模式(轻量检查)。"
+description: 'AccessBase 项目文档与架构审计。并行检查 AGENTS.md、记忆文件、决策记录、规则体系之间的自洽性、完整性、缺口和优化机会。以交互式问答与用户逐项确认每项发现，列出详情、方案与优劣、来源、影响、推荐。支持团队模式(大型审计)和背景代理模式(轻量检查)。'
 ---
 
 # 文档架构审计 (Document & Architecture Audit)
@@ -14,6 +14,7 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 ## 入口：审计类型
 
 ### `/doc-audit`（无参数）
+
 弹出审计类型菜单：
 
 ```
@@ -27,15 +28,19 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 ```
 
 ### `/doc-audit full`
+
 直接启动全量审计，跳过菜单。等效于 `[1] 完整审计`。
 
 ### `/doc-audit <维度名>`
+
 启动指定维度。如 `decisions` / `consistency` / `references` / `gaps` / `phase` / `pitfalls`。
 
 ### `/doc-audit quick-fix`
+
 仅检查 LOW/MEDIUM 级别问题并自动修复，不进入交互审核。
 
 ### `/doc-audit custom`
+
 进入自定义模式：选择维度 + 文件范围 + 是否包含规则文件。
 
 ---
@@ -43,9 +48,11 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 ## 审计维度
 
 ### 1. 决策验证 (Decision-Validator)
+
 核查 `.agents/memorys/decisions.md` D1-D24 (+ D1.1-D1.14 子决策 + G1-G5 通用决策) 在 AGENTS.md / conventions.md / status.md / pitfalls.md 中的落实。
 
 **核心问题**：
+
 - D 系列决策结论是否正确反映在文档中？
 - 是否存在「决策说了A，文档写了B」的矛盾？
 - D 系列中的陈旧引用是否需要更新？（如已被后续决策替代）
@@ -54,6 +61,7 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - **废弃决策追踪**：D6(旧 shadcn/ui)、D6.1(旧 registry fork) 等已废弃决策是否在相关文档中清除残留引用？
 
 **检查范围**：
+
 - `.agents/memorys/decisions.md` (D1-D24, D1.1-D1.14, G1-G5)
 - `AGENTS.md` (项目知识库)
 - `.agents/memorys/status.md` (项目状态)
@@ -61,9 +69,11 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - `.agents/memorys/pitfalls.md` (踩坑记录)
 
 ### 2. 文档一致性 (Consistency-Checker)
+
 核查 AGENTS.md ↔ memorys/ ↔ rules/ ↔ skills/ 交叉一致性。
 
 **核心问题**：
+
 - 技术栈描述是否一致？（AGENTS.md 的 Tech Stack vs conventions.md vs agent-guide.md vs docs/modules/tech-stack.md）
 - 路径引用是否一致？（文件位置在 AGENTS.md STRUCTURE vs 实际目录树）
 - 命名规则是否一致？（npm scope `@audebase/`、插件包名 `@audebase/plugin-{name}`、路由 dot 命名、Slot dot 命名）
@@ -77,6 +87,7 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - **Phase 划分一致性**：phase-planning.md vs status.md 模块状态表 vs architecture.md 路线图
 
 **检查范围**：
+
 - `AGENTS.md`
 - `.agents/memorys/*.md`
 - `.agents/rules/**/*.md`
@@ -89,9 +100,11 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - `docs/modules/tech-stack.md`
 
 ### 3. 参考验证 (Reference-Crosschecker)
+
 核查 `docs/` 中竞品调研、插件架构分析等参考文档对 AccessBase 设计的吸收情况。
 
 **核心问题**：
+
 - `competitive-landscape.md` 39+ 产品调研中的关键发现是否反映在架构决策中？
 - `plugin-architecture-analysis.md` 四层信任分组分析中的发现是否与当前 D1.1 决策一致？
 - `docs/reference/` 15 份竞品画像中的安全 CVE 教训是否落实在 pitfalls.md 行业安全教训表中？
@@ -99,6 +112,7 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - 已验证的模式可映射到 AccessBase 架构？
 
 **检查范围**：
+
 - `docs/competitive-landscape.md`
 - `docs/plugin-architecture-analysis.md`
 - `docs/reference/*.md` (15 份竞品画像)
@@ -106,9 +120,11 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - `.agents/memorys/decisions.md` (D 系列决策引用)
 
 ### 4. 缺口优化 (Gap-Optimizer)
+
 扫描缺失的关键设计章节和未实现功能。
 
 **核心问题**：
+
 - **运维/可观测性**：健康检查端点 (D1.13)、结构化日志 (logging-infra-sdd)、Core 日志聚合、Redis 连接监控、Drizzle 连接池监控 (D9.1)
 - **安全架构**：JWT 密钥管理 (D8.1)、Zod 边界验证 (D8)、Core 数据 API 代理防绕过 (D12)、Record Rules 自动注入 (D10)、RBAC 权限引擎、审计日志 (D1.12)
 - **错误模型**：Fastify 请求错误处理、插件加载失败恢复 (migration_failed 状态)、Saga 补偿事务 (D13)、前端 Error Boundary (D20)
@@ -119,6 +135,7 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - **未实现功能**：packages/ 目录未创建（Phase 1a Week 0）、shared-types 未初始化、无 build scripts、无 CI/CD 配置
 
 **检查范围**：
+
 - `AGENTS.md` 项目状态概览（CODE MAP 表）
 - `.agents/memorys/status.md` 已知缺失 + 模块状态
 - `docs/architecture.md` MVP 验收标准
@@ -127,9 +144,11 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 ### 5. 阶段审计 (Phase Audit)
 
 #### 5a. SDD 文档审计
+
 核查 `docs/modules/*-sdd.md` 是否覆盖 AGENTS.md 架构描述的所有功能点。
 
 **核心问题**：
+
 - SDD 文档是否覆盖所有 Phase 1a 模块的接口定义？（shared-types, plugin-framework, plugin-core, manifest-engine, migration-engine, rbac, audit, health-check, i18n, admin-ui, logging-infra）
 - SDD 接口定义与 architecture.md 中的 API 规范是否一致？
 - 边界条件是否枚举完整？
@@ -137,15 +156,18 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - SDD 文档中的生命周期钩子是否与 D1.4（7 钩子）一致？
 
 **检查范围**：
+
 - `docs/modules/*-sdd.md` (11 份 SDD 文档)
 - `docs/modules/api-specification.md` (19 端点)
 - `docs/modules/database-schema.md` (11 张表 DDL)
 - `docs/architecture.md` (架构描述)
 
 #### 5b. TDD 测试审计
+
 核查测试计划是否覆盖关键功能点。
 
 **核心问题**：
+
 - TDD 测试用例是否覆盖 SDD 定义的接口契约？
 - 测试用例是否遵循 AAA 结构（Arrange-Act-Assert）？
 - 种子工厂策略是否与 test-seed-strategy.md 一致？
@@ -155,6 +177,7 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - 测试文件命名是否遵循 `{module}.test.ts` / `{module}.spec.ts` / `{module}.contract.test.ts` 约定？
 
 **检查范围**：
+
 - `docs/modules/*-tdd.md` (11 份 TDD 文档)
 - `docs/modules/test-seed-strategy.md`
 - `docs/modules/redis-mock-guide.md`
@@ -162,9 +185,11 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - `docs/modules/dev-workflow.md` (测试策略)
 
 #### 5c. 实施计划审计
+
 核查实施计划是否与架构文档对齐。
 
 **核心问题**：
+
 - `docs/plans/*.md` 实施步骤是否按依赖顺序编排？
 - 并行 Wave 划分是否合理？（无文件重叠、无依赖缺失）
 - 计划中的文件路径是否与实际项目结构匹配？（packages/ 目录规划）
@@ -172,6 +197,7 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - 验收标准是否与 phase1a-acceptance-checklist.md 一致？
 
 **检查范围**：
+
 - `docs/plans/phase1a-master-plan.md`
 - `docs/plans/phase1a-week0.md`
 - `docs/plans/phase1a-execution-guide.md`
@@ -179,9 +205,11 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - `docs/phase-planning.md` (Phase 划分单一真实来源)
 
 ### 6. 踩坑验证 (Pitfall-Validator)
+
 核查 `.agents/memorys/pitfalls.md` 中的踩坑记录是否仍然有效。
 
 **核心问题**：
+
 - 踩坑记录引用的文件路径/行号是否仍然准确？（文档重构后路径漂移）
 - 踩坑记录的解决方案是否已被后续变更覆盖或替代？
 - 是否有新的踩坑未记录？（git log 中有 fix 但 pitfalls.md 无对应条目）
@@ -191,14 +219,17 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - **前端架构坑点**：ProLayout findDOMNode、ProTable antd v6 兼容性、动态 import() 签名、CWE-524 信息泄露等是否仍然有效？
 
 **检查范围**：
+
 - `.agents/memorys/pitfalls.md`
 - `.agents/memorys/decisions.md` (交叉引用)
 - `git log` (近期 fix 提交)
 
 ### 7. 代码→规范追溯 (Phase 1a+ 预留)
+
 当源代码存在时：核查 TypeScript 代码实现是否与设计文档一致。
 
 **核心问题**：
+
 - 实现是否匹配 AGENTS.md 中描述的插件框架架构？（微内核 + 四层信任分组 + 7 生命周期钩子）
 - TypeScript 类型定义是否与 SDD 接口定义一致？
 - 测试是否覆盖 SDD 中定义的边界条件？
@@ -208,6 +239,7 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 - 插件 manifest.yaml 解析是否满足 D1.5 字段规范？
 
 **检查范围**：
+
 - `packages/shared-types/` (Phase 1a Week 0)
 - `packages/plugin-framework/`
 - `plugins/plugin-core/`
@@ -225,6 +257,7 @@ description: "AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 ## 审计模式
 
 ### A. 团队模式（推荐 - 大型审计）
+
 3+ 份大型文档 -> `team_create` 4-6 个 `ultrabrain` 成员并行。
 
 ```
@@ -240,6 +273,7 @@ team_create(inline_spec={
 ```
 
 **Conductor 规范**（调度者行为）：
+
 - 启动后立即向用户报告：「启动 N 路并行审计，预计 3-5 分钟」
 - 等待全部完成前只做「非重叠工作」（如预读文档）
 - 全部完成后：**去重合并**（同问题被 2+ 维度发现 -> 合并为 1 项，标注多来源）
@@ -248,9 +282,11 @@ team_create(inline_spec={
 - 冲突处理：维度 A 说 X、维度 B 说 Y -> 标记为人类审核
 
 ### B. 背景代理模式（轻量审计）
+
 少量文档 -> `task(category="deep", run_in_background=true)` × N 并行。
 
 ### C. 单线程模式
+
 极小范围 -> 直接用 Read/Grep 检查，不启动子代理。
 
 ---
@@ -263,29 +299,35 @@ team_create(inline_spec={
 ## 🔴/🟠/🟡/🔵 [编号]: [标题]
 
 ### 详情
+
 | 来源1 | 位置 | 内容 |
-|--------|------|------|
-| 文档A | 行X | ... |
-| 文档B | 行Y | ... |
+| ----- | ---- | ---- |
+| 文档A | 行X  | ...  |
+| 文档B | 行Y  | ...  |
 
 ### 来源
+
 - 审计维度：[维度名]
 - 原始发现：[报告] 第N项
 
 ### 可选方案
-| 方案 | 优势 | 劣势 |
-|------|------|------|
-| A. [方案名] | ... | ... |
-| B. [方案名] | ... | ... |
+
+| 方案        | 优势 | 劣势 |
+| ----------- | ---- | ---- |
+| A. [方案名] | ...  | ...  |
+| B. [方案名] | ...  | ...  |
 
 ### 影响
+
 - 选A：[连锁修改清单]
 
 ### 推荐
+
 [方案X]。[理由]
 ```
 
 选项：
+
 - 采纳推荐方案 / 选择其他方案 / 不处理 / 自定义
 
 进度：`[第N/共M项]`
@@ -295,24 +337,29 @@ team_create(inline_spec={
 ## 工作流
 
 ### Phase 1: 启动
+
 1. 确认审计范围和类型
 2. 选择模式（团队/背景/单线程）
 3. 报告：「启动 N 路并行审计，预计 3-5 分钟」
 
 ### Phase 2: 合并
+
 1. 去重：同问题多来源 -> 合并标注
 2. 排序：CRITICAL -> HIGH -> MEDIUM -> LOW
 3. 交叉印证：2+ 维度同意的提升优先级
 
 ### Phase 3: 交互审核
+
 逐项审核，question() 交互确认。
 
 ### Phase 4: 修复
+
 1. 创建 todo list
 2. 按依赖顺序：先改 decisions.md -> 再改 AGENTS.md -> 再改 memorys -> 最后改 rules
 3. 每次编辑后验证（grep 残留引用、MODACS 残留检查）
 
 ### Phase 5: 报告
+
 ```
 审计完成 - [日期]
 审计类型: [全量/决策/一致性/参考/缺口/阶段/踩坑]
@@ -325,6 +372,7 @@ team_create(inline_spec={
 ## 快速参考
 
 ### 审计命令
+
 ```
 /doc-audit              -> 选择类型
 /doc-audit full         -> 全量审计
@@ -336,43 +384,45 @@ team_create(inline_spec={
 ```
 
 ### 严重性标准
-| 严重性 | 触发条件 | 阻断当前迭代? |
-|--------|---------|:---:|
-| 🔴 CRITICAL | 文档矛盾导致实现路径错误 / 决策被推翻 / 核心接口缺失 | ✅ |
-| 🟠 HIGH | 陈旧引用 / 路径不一致 / 构建命令矛盾 / 重复文档 | ⚠️ |
-| 🟡 MEDIUM | 表述差异 / 示例冲突 / 缺失不阻断当前迭代 | ❌ |
-| 🔵 LOW | 格式不一致 / 引用缺失 / 待确认标记 | ❌ |
+
+| 严重性      | 触发条件                                             | 阻断当前迭代? |
+| ----------- | ---------------------------------------------------- | :-----------: |
+| 🔴 CRITICAL | 文档矛盾导致实现路径错误 / 决策被推翻 / 核心接口缺失 |      ✅       |
+| 🟠 HIGH     | 陈旧引用 / 路径不一致 / 构建命令矛盾 / 重复文档      |      ⚠️       |
+| 🟡 MEDIUM   | 表述差异 / 示例冲突 / 缺失不阻断当前迭代             |      ❌       |
+| 🔵 LOW      | 格式不一致 / 引用缺失 / 待确认标记                   |      ❌       |
 
 ### AccessBase 文档体系总览
 
-| 文档 | 路径 | 受众 | 审计维度 |
-|------|------|------|----------|
-| 项目知识库 | `AGENTS.md` | AI/Agent | 一致性、缺口 |
-| 项目状态 | `.agents/memorys/status.md` | AI/Agent | 决策、缺口 |
-| 编码约定 | `.agents/memorys/conventions.md` | AI/Agent | 决策、一致性 |
-| 架构决策 | `.agents/memorys/decisions.md` | AI/Agent | 决策验证 |
-| 踩坑记录 | `.agents/memorys/pitfalls.md` | AI/Agent | 踩坑验证 |
-| 编码规则 | `.agents/rules/**/*.md` | AI/Agent | 一致性 |
-| 技能定义 | `.agents/skills/*/SKILL.md` | AI/Agent | 一致性 |
-| 架构文档 | `docs/architecture.md` | AI/Agent + 人类 | 一致性、缺口 |
-| Phase 划分 | `docs/phase-planning.md` | AI/Agent + 人类 | 一致性、阶段 |
-| 插件架构分析 | `docs/plugin-architecture-analysis.md` | AI/Agent | 参考验证 |
-| 竞品调研 | `docs/competitive-landscape.md` | AI/Agent + 人类 | 参考验证 |
-| 竞品画像 | `docs/reference/*.md` | AI/Agent + 人类 | 参考验证 |
-| SDD 文档 | `docs/modules/*-sdd.md` | AI/Agent | SDD 审计 |
-| TDD 文档 | `docs/modules/*-tdd.md` | AI/Agent | TDD 审计 |
-| 测试策略 | `docs/modules/test-seed-strategy.md`, `redis-mock-guide.md`, `e2e-test-flows.md` | AI/Agent | TDD 审计 |
-| API 规范 | `docs/modules/api-specification.md`, `api-conventions.md` | AI/Agent | SDD 审计 |
-| 数据库 Schema | `docs/modules/database-schema.md` | AI/Agent | SDD 审计 |
-| 前端规范 | `docs/modules/frontend-spec.md` | AI/Agent | 一致性 |
-| 开发工作流 | `docs/modules/dev-workflow.md` | AI/Agent | 一致性 |
-| 实施计划 | `docs/plans/*.md` | AI/Agent | 阶段审计 |
-| OpenCode 配置 | `.opencode/opencode.json` | AI/Agent | 一致性 |
-| Agent 指南 | `.opencode/agent-guide.md` | AI/Agent | 一致性 |
-| 模型层级 | `.opencode/agent-model-tiers.md` | AI/Agent | 一致性 |
-| Agent 配置 | `.opencode/oh-my-openagent.jsonc` | AI/Agent | 一致性 |
+| 文档          | 路径                                                                             | 受众            | 审计维度     |
+| ------------- | -------------------------------------------------------------------------------- | --------------- | ------------ |
+| 项目知识库    | `AGENTS.md`                                                                      | AI/Agent        | 一致性、缺口 |
+| 项目状态      | `.agents/memorys/status.md`                                                      | AI/Agent        | 决策、缺口   |
+| 编码约定      | `.agents/memorys/conventions.md`                                                 | AI/Agent        | 决策、一致性 |
+| 架构决策      | `.agents/memorys/decisions.md`                                                   | AI/Agent        | 决策验证     |
+| 踩坑记录      | `.agents/memorys/pitfalls.md`                                                    | AI/Agent        | 踩坑验证     |
+| 编码规则      | `.agents/rules/**/*.md`                                                          | AI/Agent        | 一致性       |
+| 技能定义      | `.agents/skills/*/SKILL.md`                                                      | AI/Agent        | 一致性       |
+| 架构文档      | `docs/architecture.md`                                                           | AI/Agent + 人类 | 一致性、缺口 |
+| Phase 划分    | `docs/phase-planning.md`                                                         | AI/Agent + 人类 | 一致性、阶段 |
+| 插件架构分析  | `docs/plugin-architecture-analysis.md`                                           | AI/Agent        | 参考验证     |
+| 竞品调研      | `docs/competitive-landscape.md`                                                  | AI/Agent + 人类 | 参考验证     |
+| 竞品画像      | `docs/reference/*.md`                                                            | AI/Agent + 人类 | 参考验证     |
+| SDD 文档      | `docs/modules/*-sdd.md`                                                          | AI/Agent        | SDD 审计     |
+| TDD 文档      | `docs/modules/*-tdd.md`                                                          | AI/Agent        | TDD 审计     |
+| 测试策略      | `docs/modules/test-seed-strategy.md`, `redis-mock-guide.md`, `e2e-test-flows.md` | AI/Agent        | TDD 审计     |
+| API 规范      | `docs/modules/api-specification.md`, `api-conventions.md`                        | AI/Agent        | SDD 审计     |
+| 数据库 Schema | `docs/modules/database-schema.md`                                                | AI/Agent        | SDD 审计     |
+| 前端规范      | `docs/modules/frontend-spec.md`                                                  | AI/Agent        | 一致性       |
+| 开发工作流    | `docs/modules/dev-workflow.md`                                                   | AI/Agent        | 一致性       |
+| 实施计划      | `docs/plans/*.md`                                                                | AI/Agent        | 阶段审计     |
+| OpenCode 配置 | `.opencode/opencode.json`                                                        | AI/Agent        | 一致性       |
+| Agent 指南    | `.opencode/agent-guide.md`                                                       | AI/Agent        | 一致性       |
+| 模型层级      | `.opencode/agent-model-tiers.md`                                                 | AI/Agent        | 一致性       |
+| Agent 配置    | `.opencode/oh-my-openagent.jsonc`                                                | AI/Agent        | 一致性       |
 
 ### 审计建议频率
+
 - 每次新决策后：`/doc-audit decisions`
 - Phase 阶段转换前：`/doc-audit full`
 - 每周开发期间：`/doc-audit full`

@@ -75,11 +75,7 @@ export class UserManager {
   async findByEmail(email: string): Promise<User | null> {
     logger.debug(`Finding user by email: ${email}`);
 
-    const result = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    const result = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
 
     const user = result[0];
     return user ? this.mapToUser(user) : null;
@@ -100,7 +96,7 @@ export class UserManager {
 
     if (params.search) {
       conditions.push(
-        sql`(${users.email} ILIKE ${'%' + params.search + '%'} OR ${users.name} ILIKE ${'%' + params.search + '%'})`
+        sql`(${users.email} ILIKE ${'%' + params.search + '%'} OR ${users.name} ILIKE ${'%' + params.search + '%'})`,
       );
     }
 
@@ -111,10 +107,7 @@ export class UserManager {
     const where = and(...conditions);
 
     // Get total count
-    const [totalResult] = await this.db
-      .select({ count: count() })
-      .from(users)
-      .where(where);
+    const [totalResult] = await this.db.select({ count: count() }).from(users).where(where);
 
     const total = totalResult?.count ?? 0;
 
@@ -168,9 +161,7 @@ export class UserManager {
   async delete(id: string, tenantId: string): Promise<void> {
     logger.info(`Deleting user: ${id} in tenant: ${tenantId}`);
 
-    await this.db
-      .delete(users)
-      .where(and(eq(users.id, id), eq(users.tenantId, tenantId)));
+    await this.db.delete(users).where(and(eq(users.id, id), eq(users.tenantId, tenantId)));
   }
 
   /**
@@ -198,11 +189,7 @@ export class UserManager {
   async verifyPassword(email: string, password: string): Promise<User> {
     logger.debug(`Verifying password for email: ${email}`);
 
-    const result = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    const result = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
 
     const user = result[0];
 

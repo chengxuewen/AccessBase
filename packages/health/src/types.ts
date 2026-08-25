@@ -94,5 +94,9 @@ export interface HealthCheckLifecycle {
   onBeforeCheck?: (name: string) => Promise<void>;
   onAfterCheck?: (result: HealthCheckResult) => Promise<void>;
   onCheckError?: (name: string, error: Error) => Promise<void>;
-  onStatusChange?: (name: string, oldStatus: HealthStatus, newStatus: HealthStatus) => Promise<void>;
+  onStatusChange?: (
+    name: string,
+    oldStatus: HealthStatus,
+    newStatus: HealthStatus,
+  ) => Promise<void>;
 }

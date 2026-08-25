@@ -9,7 +9,7 @@ compatibility: Designed for Claude Code, GitHub Copilot, and similar agents.
 disable-model-invocation: false
 metadata:
   author: openspec
-  version: "1.0"
+  version: '1.0'
   category: workflow
   project: AccessBase
 ---
@@ -29,6 +29,7 @@ Archive a completed AccessBase change proposal. Record what was done, update pro
 ### 1. Select the change
 
 If a name is provided, use it. Otherwise:
+
 - Infer from conversation context
 - If ambiguous, list `.sisyphus/plans/` directories and ask the user to select
 
@@ -37,11 +38,13 @@ If a name is provided, use it. Otherwise:
 ### 2. Verify completion status
 
 Check that all tasks are complete:
+
 - Read `.sisyphus/plans/<change-name>/tasks.md`
 - Confirm all tasks are marked `[x]`
 - If incomplete tasks exist: display warning, ask user if they want to proceed
 
 Also check that `openspec-verify` was run:
+
 - If not, suggest running verification first
 - User can override and archive anyway
 
@@ -133,16 +136,17 @@ Or keep it for reference - the user decides.
 
 ### Memory files to update
 
-| File | Purpose | Update When |
-|------|---------|-------------|
-| `.agents/memorys/status.md` | Project status, recent changes | Always |
-| `.agents/memorys/decisions.md` | Architecture decisions (D1-D24, G1-G5) | Design decision made |
-| `.agents/memorys/pitfalls.md` | Technical pitfalls | New issue encountered |
-| `.agents/memorys/conventions.md` | Coding conventions | Convention established |
+| File                             | Purpose                                | Update When            |
+| -------------------------------- | -------------------------------------- | ---------------------- |
+| `.agents/memorys/status.md`      | Project status, recent changes         | Always                 |
+| `.agents/memorys/decisions.md`   | Architecture decisions (D1-D24, G1-G5) | Design decision made   |
+| `.agents/memorys/pitfalls.md`    | Technical pitfalls                     | New issue encountered  |
+| `.agents/memorys/conventions.md` | Coding conventions                     | Convention established |
 
 ### When to record a decision (decisions.md)
 
 Any of these during the change:
+
 - New plugin architecture pattern established
 - Database schema change (new table, new column, index strategy)
 - API design decision (new endpoint, response format change)
@@ -153,6 +157,7 @@ Any of these during the change:
 ### When to record a pitfall (pitfalls.md)
 
 Any of these during the change:
+
 - Build error that required non-obvious fix
 - TypeScript type system issue (generic inference, conditional types)
 - Drizzle ORM migration issue

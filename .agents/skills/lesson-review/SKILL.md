@@ -21,12 +21,12 @@ think-before-act  →  [行动]  →  lesson-memory  →  doc-audit
                     lesson-review ← 批量补漏
 ```
 
-| | `lesson-memory` 规则 (C9) | `lesson-review` 技能 |
-|---|---|---|
-| 时机 | 即时（每次错误后，自动触发） | 批量（会话结束/用户触发） |
-| 方式 | 反射 | 交互式回顾 |
-| 粒度 | 单条教训 | 全会话扫描 |
-| 互补 | 第一层防线（不遗漏） | 第二层防线（不误判 + 归类） |
+|      | `lesson-memory` 规则 (C9)    | `lesson-review` 技能        |
+| ---- | ---------------------------- | --------------------------- |
+| 时机 | 即时（每次错误后，自动触发） | 批量（会话结束/用户触发）   |
+| 方式 | 反射                         | 交互式回顾                  |
+| 粒度 | 单条教训                     | 全会话扫描                  |
+| 互补 | 第一层防线（不遗漏）         | 第二层防线（不误判 + 归类） |
 
 - `think-before-act`（咨询）：行动前检查已有教训，避免重蹈
 - `lesson-memory`（C9 规则）：每次错误后**即时自动**写入，无需用户要求
@@ -40,7 +40,7 @@ think-before-act  →  [行动]  →  lesson-memory  →  doc-audit
 回顾本次会话中哪些时刻触发了规则但可能遗漏了：
 
 - 编译/构建失败
-- >1 次失败尝试才定位根因
+- > 1 次失败尝试才定位根因
 - 用户纠正做法/偏好
 - 意外发现（"原来如此"、"没想到"）
 - 耗时 >30min 的问题
@@ -75,14 +75,14 @@ think-before-act  →  [行动]  →  lesson-memory  →  doc-audit
 
 ## 存储目标
 
-| 教训类型 | 写入文件 | 格式 |
-|---------|---------|------|
-| 技术陷阱 | `.agents/memorys/pitfalls.md` | PIT-{n} 五段式 |
-| 开发约束 | `.agents/memorys/conventions.md` | 约束 + 检查命令 |
-| 架构决策 | `.agents/memorys/decisions.md` | D{n} 标题 |
-| 可执行检查 | `.agents/rules/common/edit-safety.md` | 规则 + 命令 |
-| 测试要求 | `.agents/rules/common/testing.md` | 测试类型 + 标准 |
-| 项目状态 | `.agents/memorys/status.md` | 模块状态表 |
+| 教训类型   | 写入文件                              | 格式            |
+| ---------- | ------------------------------------- | --------------- |
+| 技术陷阱   | `.agents/memorys/pitfalls.md`         | PIT-{n} 五段式  |
+| 开发约束   | `.agents/memorys/conventions.md`      | 约束 + 检查命令 |
+| 架构决策   | `.agents/memorys/decisions.md`        | D{n} 标题       |
+| 可执行检查 | `.agents/rules/common/edit-safety.md` | 规则 + 命令     |
+| 测试要求   | `.agents/rules/common/testing.md`     | 测试类型 + 标准 |
+| 项目状态   | `.agents/memorys/status.md`           | 模块状态表      |
 
 ## 输出格式
 
@@ -90,14 +90,17 @@ think-before-act  →  [行动]  →  lesson-memory  →  doc-audit
 ## 会话经验总结 — YYYY-MM-DD
 
 ### 已记录 (N 条)
+
 1. [标题] → pitfalls.md
 2. [标题] → conventions.md
-...
+   ...
 
 ### 未记录（无需记录）
+
 - [原因：一次性问题 / 已有记录 / 环境特定]
 
 ### 建议升级
+
 - [某条教训建议添加 CI 门禁，理由：重复 3+ 次/耗费 >1h]
 ```
 
@@ -109,6 +112,7 @@ think-before-act  →  [行动]  →  lesson-memory  →  doc-audit
 
 ```markdown
 ## PIT-{n}: 标题 (日期)
+
 - **症状**: [现象描述]
 - **根因**: [根因分析]
 - **解法**: [正确做法]

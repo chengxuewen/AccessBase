@@ -1,6 +1,6 @@
 ---
 name: think-before-act
-description: "元约束：先查再动手，列方案让用户审批，不蛮干。Use BEFORE any non-trivial action (debug/test/implement/refactor/fix/config/upgrade). Especially when facing silent failures, runtime errors not caught by compiler, or behavior that contradicts documentation."
+description: '元约束：先查再动手，列方案让用户审批，不蛮干。Use BEFORE any non-trivial action (debug/test/implement/refactor/fix/config/upgrade). Especially when facing silent failures, runtime errors not caught by compiler, or behavior that contradicts documentation.'
 ---
 
 # think-before-act — 先调研→列方案→用户审批→(团队审核)→执行
@@ -25,10 +25,10 @@ description: "元约束：先查再动手，列方案让用户审批，不蛮干
 
 ## 分级
 
-| 档位 | 判据 | 流程 |
-|------|------|------|
-| **平凡** | 不改接口/构建/依赖，可逆，单文件，无副作用 | 直接做 + 一行说明 |
-| **标准** | 改接口/构建/依赖/多文件/不可逆/框架级问题 | Phase 1→2→3 |
+| 档位     | 判据                                              | 流程              |
+| -------- | ------------------------------------------------- | ----------------- |
+| **平凡** | 不改接口/构建/依赖，可逆，单文件，无副作用        | 直接做 + 一行说明 |
+| **标准** | 改接口/构建/依赖/多文件/不可逆/框架级问题         | Phase 1→2→3       |
 | **紧急** | 用户明确声明"紧急/先修后报"（生产宕机、数据丢失） | 先做 + 事后补报告 |
 
 ---
@@ -75,6 +75,7 @@ description: "元约束：先查再动手，列方案让用户审批，不蛮干
 ### 审批
 
 列方案 → 等待用户确认。
+
 - 沉默 / 超时 / "继续" ≠ 批准
 - 必须用户显式肯定响应
 - 部分批准（"做 A 不做 B"）→ 只执行被批准的部分
@@ -112,45 +113,45 @@ description: "元约束：先查再动手，列方案让用户审批，不蛮干
 
 ## 测试层级速查
 
-| 层级 | 捕获什么 | 工具 |
-|------|----------|------|
-| 单元 | 逻辑错误 | `pixi run npx vitest run` |
-| 集成 | 接口不匹配 | `pixi run npx vitest run` (AAA 模式) |
-| E2E | 用户路径断裂 | `pixi run npx playwright test` |
-| TypeScript | 类型错误 | `pixi run npx tsc --noEmit` |
+| 层级       | 捕获什么     | 工具                                 |
+| ---------- | ------------ | ------------------------------------ |
+| 单元       | 逻辑错误     | `pixi run npx vitest run`            |
+| 集成       | 接口不匹配   | `pixi run npx vitest run` (AAA 模式) |
+| E2E        | 用户路径断裂 | `pixi run npx playwright test`       |
+| TypeScript | 类型错误     | `pixi run npx tsc --noEmit`          |
 
 ---
 
 ## 禁止清单（做 X 前先验证 Y）
 
-| 想做 | 先验证 |
-|------|--------|
-| 改配置/改构建 | 查了官方推荐配置方式 |
-| 失败后再试一次 | 有新的诊断信息（不是换参数碰运气） |
-| 编辑生成文件/编译产物 | 确认修改不会在下次构建时被覆盖 |
-| 删除不理解的东西 | 确认它不是被其他模块依赖的 |
-| 直接编辑文件 | 用户已审批方案 |
-| 在项目环境改依赖/pnpm | 本地验证通过后再改 |
+| 想做                  | 先验证                             |
+| --------------------- | ---------------------------------- |
+| 改配置/改构建         | 查了官方推荐配置方式               |
+| 失败后再试一次        | 有新的诊断信息（不是换参数碰运气） |
+| 编辑生成文件/编译产物 | 确认修改不会在下次构建时被覆盖     |
+| 删除不理解的东西      | 确认它不是被其他模块依赖的         |
+| 直接编辑文件          | 用户已审批方案                     |
+| 在项目环境改依赖/pnpm | 本地验证通过后再改                 |
 
 ---
 
 ## 与现有技能的关系
 
-| 技能 | 关系 |
-|------|------|
-| `lesson-memory` | think-before-act 查过去教训；lesson-memory 记新教训 |
-| `systematic-debugging` | think-before-act 管"修之前先查"；debugging 管"怎么修" |
-| `verification-before-completion` | think-before-act 管"动手前"；verification 管"完成后" |
-| `ecosystem-scan` | 查社区生态有无现成方案 |
-| `conventions.md §编辑约束` | 编辑后立即 tsc — think-before-act 的"执行后验证" |
+| 技能                             | 关系                                                  |
+| -------------------------------- | ----------------------------------------------------- |
+| `lesson-memory`                  | think-before-act 查过去教训；lesson-memory 记新教训   |
+| `systematic-debugging`           | think-before-act 管"修之前先查"；debugging 管"怎么修" |
+| `verification-before-completion` | think-before-act 管"动手前"；verification 管"完成后"  |
+| `ecosystem-scan`                 | 查社区生态有无现成方案                                |
+| `conventions.md §编辑约束`       | 编辑后立即 tsc — think-before-act 的"执行后验证"      |
 
 ---
 
 ## Karpathy 四原则映射
 
-| Karpathy 原则 | 本技能对应 |
-|--------------|-----------|
-| **Think Before Coding** | Phase 1: 调研 + 5 层知识源 |
-| **Simplicity First** | 核心铁律 + 分级（平凡/标准） |
-| **Surgical Changes** | Phase 2: 列方案 + 禁止清单 |
-| **Goal-Driven Execution** | Phase 3: 执行 + 决策门 |
+| Karpathy 原则             | 本技能对应                   |
+| ------------------------- | ---------------------------- |
+| **Think Before Coding**   | Phase 1: 调研 + 5 层知识源   |
+| **Simplicity First**      | 核心铁律 + 分级（平凡/标准） |
+| **Surgical Changes**      | Phase 2: 列方案 + 禁止清单   |
+| **Goal-Driven Execution** | Phase 3: 执行 + 决策门       |

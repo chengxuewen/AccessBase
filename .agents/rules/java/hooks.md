@@ -1,10 +1,11 @@
 ---
 paths:
-  - "**/*.java"
-  - "**/pom.xml"
-  - "**/build.gradle"
-  - "**/build.gradle.kts"
+  - '**/*.java'
+  - '**/pom.xml'
+  - '**/build.gradle'
+  - '**/build.gradle.kts'
 ---
+
 # Java Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Java-specific content.

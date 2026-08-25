@@ -8,13 +8,14 @@ description: >-
 license: MIT
 metadata:
   author: AccessBase
-  version: "1.0"
+  version: '1.0'
   project: AccessBase
 ---
 
 Create AccessBase project-specific AI skills from project artifacts.
 
 **Input**: One of three input sources:
+
 - `docs/modules/<module>-sdd.md` (SDD spec with interface definitions) -> spec execution skill
 - `packages/<package>/src/*.ts` (TypeScript interface/type definitions) -> API contract testing skill
 - `packages/<package>/manifest.yaml` (plugin manifest schema) -> manifest validation skill
@@ -56,7 +57,7 @@ Also accepts a natural-language description: "generate a testing skill for the R
    license: MIT
    metadata:
      author: AccessBase
-     version: "1.0"
+     version: '1.0'
      generatedFrom: <source file path>
      category: <workflow | testing | verification>
    ---
@@ -91,6 +92,7 @@ Also accepts a natural-language description: "generate a testing skill for the R
 **Output**
 
 After generating:
+
 - Skill name and path
 - Source used (file + type)
 - Count of interfaces / functions / manifest fields covered
@@ -130,6 +132,7 @@ User: "Create a manifest verification skill for plugins/plugin-core"
 ```
 
 **Guardrails**
+
 - NEVER generate a skill without first reading the source file
 - NEVER contradict existing SDD/TDD docs in docs/modules/
 - YAML frontmatter must include: `name`, `description`, `metadata.author`, `metadata.version`

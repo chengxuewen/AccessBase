@@ -1,4 +1,11 @@
-import type { HealthCheckService, HealthChecker, HealthReport, HealthCheckResult, SystemInfo, HealthStatus } from './types.js';
+import type {
+  HealthCheckService,
+  HealthChecker,
+  HealthReport,
+  HealthCheckResult,
+  SystemInfo,
+  HealthStatus,
+} from './types.js';
 import { createLogger } from '@accessbase/logging';
 import os from 'node:os';
 
@@ -28,9 +35,7 @@ export class HealthCheckServiceImpl implements HealthCheckService {
 
   async checkAll(): Promise<HealthReport> {
     const enabledCheckers = [...this.checkers.values()].filter((c) => c.enabled);
-    const results = await Promise.all(
-      enabledCheckers.map((c) => this.runChecker(c)),
-    );
+    const results = await Promise.all(enabledCheckers.map((c) => this.runChecker(c)));
 
     const overallStatus = this.calculateOverallStatus(results);
 
@@ -93,10 +98,7 @@ export class HealthCheckServiceImpl implements HealthCheckService {
   private async runChecker(checker: HealthChecker): Promise<HealthCheckResult> {
     const start = Date.now();
     try {
-      const result = await Promise.race([
-        checker.check(),
-        this.timeout(checker.timeout),
-      ]);
+      const result = await Promise.race([checker.check(), this.timeout(checker.timeout)]);
       return result;
     } catch (error) {
       return {

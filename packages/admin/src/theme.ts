@@ -48,20 +48,37 @@ const LIGHT_TOKENS: DesignTokens = {
     warning: '#faad14',
     error: '#ff4d4f',
     info: '#1677ff',
-    text: { primary: 'rgba(0,0,0,0.88)', secondary: 'rgba(0,0,0,0.45)', disabled: 'rgba(0,0,0,0.25)' },
+    text: {
+      primary: 'rgba(0,0,0,0.88)',
+      secondary: 'rgba(0,0,0,0.45)',
+      disabled: 'rgba(0,0,0,0.25)',
+    },
     background: { default: '#f5f5f5', paper: '#ffffff', elevated: '#ffffff' },
     border: { default: '#d9d9d9', strong: '#8c8c8c' },
   },
   typography: {
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     fontSize: { xs: '12px', sm: '13px', md: '14px', lg: '16px', xl: '20px' },
     fontWeight: { light: 300, regular: 400, medium: 500, bold: 600 },
     lineHeight: { tight: 1.25, normal: 1.5, relaxed: 1.75 },
   },
   spacing: { xs: '4px', sm: '8px', md: '16px', lg: '24px', xl: '32px' },
   borderRadius: { none: '0', sm: '2px', md: '6px', lg: '8px', full: '9999px' },
-  shadows: { none: 'none', sm: '0 1px 2px rgba(0,0,0,0.03)', md: '0 6px 16px rgba(0,0,0,0.08)', lg: '0 12px 40px rgba(0,0,0,0.12)' },
-  transitions: { duration: { fast: '0.1s', normal: '0.2s', slow: '0.3s' }, easing: { easeIn: 'cubic-bezier(0.55,0.055,0.675,0.19)', easeOut: 'cubic-bezier(0.215,0.61,0.355,1)', easeInOut: 'cubic-bezier(0.645,0.045,0.355,1)' } },
+  shadows: {
+    none: 'none',
+    sm: '0 1px 2px rgba(0,0,0,0.03)',
+    md: '0 6px 16px rgba(0,0,0,0.08)',
+    lg: '0 12px 40px rgba(0,0,0,0.12)',
+  },
+  transitions: {
+    duration: { fast: '0.1s', normal: '0.2s', slow: '0.3s' },
+    easing: {
+      easeIn: 'cubic-bezier(0.55,0.055,0.675,0.19)',
+      easeOut: 'cubic-bezier(0.215,0.61,0.355,1)',
+      easeInOut: 'cubic-bezier(0.645,0.045,0.355,1)',
+    },
+  },
 };
 
 const DARK_TOKENS: DesignTokens = {
@@ -72,14 +89,23 @@ const DARK_TOKENS: DesignTokens = {
     warning: '#d89614',
     error: '#dc4446',
     info: '#1668dc',
-    text: { primary: 'rgba(255,255,255,0.88)', secondary: 'rgba(255,255,255,0.45)', disabled: 'rgba(255,255,255,0.25)' },
+    text: {
+      primary: 'rgba(255,255,255,0.88)',
+      secondary: 'rgba(255,255,255,0.45)',
+      disabled: 'rgba(255,255,255,0.25)',
+    },
     background: { default: '#141414', paper: '#1f1f1f', elevated: '#262626' },
     border: { default: '#424242', strong: '#666666' },
   },
   typography: LIGHT_TOKENS.typography,
   spacing: LIGHT_TOKENS.spacing,
   borderRadius: LIGHT_TOKENS.borderRadius,
-  shadows: { none: 'none', sm: '0 1px 2px rgba(0,0,0,0.2)', md: '0 6px 16px rgba(0,0,0,0.3)', lg: '0 12px 40px rgba(0,0,0,0.4)' },
+  shadows: {
+    none: 'none',
+    sm: '0 1px 2px rgba(0,0,0,0.2)',
+    md: '0 6px 16px rgba(0,0,0,0.3)',
+    lg: '0 12px 40px rgba(0,0,0,0.4)',
+  },
   transitions: LIGHT_TOKENS.transitions,
 };
 
@@ -208,7 +234,7 @@ export class ThemeManager {
    */
   private deepMerge(target: unknown, source: unknown): unknown {
     if (!this.isPlainObject(target) || !isPlainObject(source)) return source;
-    const result: Record<string, unknown> = { ...target as Record<string, unknown> };
+    const result: Record<string, unknown> = { ...(target as Record<string, unknown>) };
     for (const key of Object.keys(source as Record<string, unknown>)) {
       const srcVal = (source as Record<string, unknown>)[key];
       const tgtVal = result[key];

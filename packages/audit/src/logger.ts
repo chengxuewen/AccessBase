@@ -15,7 +15,7 @@ export class AuditLogger {
   constructor(config: AuditConfig) {
     this.config = config;
     this.logger = logger;
-    
+
     if (config.async.enabled) {
       this.startFlushTimer();
     }
@@ -46,7 +46,7 @@ export class AuditLogger {
 
     if (this.config.async.enabled) {
       this.buffer.push(sanitizedEntry);
-      
+
       if (this.buffer.length >= this.config.async.bufferSize) {
         await this.flushBuffer();
       }
@@ -63,15 +63,15 @@ export class AuditLogger {
       return;
     }
 
-    const filteredEntries = entries.filter(entry => this.shouldAudit(entry.action));
-    
+    const filteredEntries = entries.filter((entry) => this.shouldAudit(entry.action));
+
     if (filteredEntries.length === 0) {
       return;
     }
 
     if (this.config.async.enabled) {
       this.buffer.push(...filteredEntries);
-      
+
       if (this.buffer.length >= this.config.async.bufferSize) {
         await this.flushBuffer();
       }
@@ -107,7 +107,10 @@ export class AuditLogger {
         await this.writeToStorage(auditLog);
       }
     } catch (error) {
-      this.logger.error({ err: error, entries: entriesToFlush.length }, 'Failed to flush audit buffer');
+      this.logger.error(
+        { err: error, entries: entriesToFlush.length },
+        'Failed to flush audit buffer',
+      );
       // Re-add entries to buffer for retry
       this.buffer.unshift(...entriesToFlush);
     }
@@ -159,7 +162,7 @@ export class AuditLogger {
     }
 
     const sanitizedRequestBody = this.redactFields(entry.requestBody);
-    const sanitizedResponseBody = entry.responseBody 
+    const sanitizedResponseBody = entry.responseBody
       ? this.redactFields(entry.responseBody)
       : undefined;
 
@@ -175,7 +178,7 @@ export class AuditLogger {
    */
   private redactFields(obj: Record<string, unknown>): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    
+
     for (const [key, value] of Object.entries(obj)) {
       if (this.config.sanitize.fields.includes(key.toLowerCase())) {
         result[key] = this.config.sanitize.replacement;
@@ -201,17 +204,20 @@ export class AuditLogger {
    */
   protected async writeToStorage(entry: AuditLog): Promise<void> {
     // Default implementation - log to console
-    this.logger.info({
-      audit: true,
-      id: entry.id,
-      action: entry.action,
-      resourceType: entry.resourceType,
-      resourceId: entry.resourceId,
-      userId: entry.userId,
-      tenantId: entry.tenantId,
-      success: entry.success,
-      hash: entry.hash,
-    }, 'Audit log entry');
+    this.logger.info(
+      {
+        audit: true,
+        id: entry.id,
+        action: entry.action,
+        resourceType: entry.resourceType,
+        resourceId: entry.resourceId,
+        userId: entry.userId,
+        tenantId: entry.tenantId,
+        success: entry.success,
+        hash: entry.hash,
+      },
+      'Audit log entry',
+    );
 
     // In a real implementation, this would write to database
     // await db.insert(auditLogs).values(entry);
@@ -234,7 +240,7 @@ export class AuditLogger {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
     }
-    
+
     await this.flushBuffer();
   }
 }

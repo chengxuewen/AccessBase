@@ -5,20 +5,20 @@
 
 ## Tool Selection
 
-| Change Size | Tool | Reason |
-|-------------|------|--------|
-| Rewrite entire function/file | `write` | Guarantees brace balance, no stale lines |
-| ≤20 line single-location edit | `edit` | Minimal diff, safe for small changes |
-| Complex multi-file refactor | Delegate to subagent | Isolated context, verify independently |
+| Change Size                   | Tool                 | Reason                                   |
+| ----------------------------- | -------------------- | ---------------------------------------- |
+| Rewrite entire function/file  | `write`              | Guarantees brace balance, no stale lines |
+| ≤20 line single-location edit | `edit`               | Minimal diff, safe for small changes     |
+| Complex multi-file refactor   | Delegate to subagent | Isolated context, verify independently   |
 
 ## Forbidden Patterns
 
-| Anti-Pattern | Why |
-|--------------|-----|
-| `sed` for code modification | Quote escaping errors, regex silent failures |
-| Multiple sequential `edit` calls without re-reading | Line numbers drift, stale hash IDs |
-| Deleting a line by replacing with empty `lines: []` and assuming brace count is still correct | May leave unbalanced braces |
-| Appending `}` to "fix" an unclosed delimiter without counting braces first | Masks root cause, may create double-close |
+| Anti-Pattern                                                                                  | Why                                          |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `sed` for code modification                                                                   | Quote escaping errors, regex silent failures |
+| Multiple sequential `edit` calls without re-reading                                           | Line numbers drift, stale hash IDs           |
+| Deleting a line by replacing with empty `lines: []` and assuming brace count is still correct | May leave unbalanced braces                  |
+| Appending `}` to "fix" an unclosed delimiter without counting braces first                    | Masks root cause, may create double-close    |
 
 ## Verify Immediately
 
@@ -29,6 +29,7 @@ TypeScript: pixi run npx tsc --noEmit    (3-5s)
 ```
 
 If verification fails, STOP. Do NOT apply another edit on top. Instead:
+
 1. `git diff` to see what changed
 2. If the change is wrong, `git checkout -- <file>` to revert
 3. Re-apply the fix correctly
@@ -36,6 +37,7 @@ If verification fails, STOP. Do NOT apply another edit on top. Instead:
 ## Brace Safety Checklist
 
 Before marking any multi-line edit complete, verify:
+
 - [ ] Every `{` has a matching `}` at the same indent level
 - [ ] Every `(` has a matching `)`
 - [ ] Every `[` has a matching `]`
@@ -45,6 +47,7 @@ Before marking any multi-line edit complete, verify:
 ## When to Delegate
 
 Delegate to a `deep` category subagent when:
+
 - The change touches 3+ files
 - The change requires understanding cross-module dependencies
 - You've failed the same edit 2+ times
@@ -54,6 +57,7 @@ The subagent gets a clean context, reads the files fresh, and applies all change
 ## Architectural Decision Gate (NON-NEGOTIABLE)
 
 Before implementing ANY architectural change (protocol, data flow, API contract):
+
 - **ALWAYS ask the user first** — present explicit options and wait for confirmation
 - **NEVER fall back to an alternative architecture** without user approval
 - **NEVER silently switch** from the agreed architecture even if it seems "easier"
@@ -64,6 +68,7 @@ If the agreed approach fails, report the failure and ask: "方案 X 失败，原
 ## Test Execution Constraint (NON-NEGOTIABLE)
 
 After claiming tests are written or features are working:
+
 - **ALWAYS run the tests** against the live system. Writing test files without executing them is a violation.
 - **ALWAYS report actual test output** — pass/fail counts, error messages. Never claim "tests pass" without evidence.
 - **E2E tests MUST run against the actual running service**, not mocked endpoints.
@@ -89,6 +94,7 @@ After claiming tests are written or features are working:
 **触发条件**: 任何修改了 `packages/admin-ui/src/` 或 `plugins/*/src/pages/` 的变更
 
 **必须验证**:
+
 1. `pixi run npx tsc --noEmit -p packages/admin-ui/tsconfig.json` — 0 新错误
 2. 前端 dev server 能启动并响应 HTTP 200
 3. Playwright 打开页面 → 浏览器控制台 0 应用 error（过滤 findDOMNode/chrome-extension/moz-extension/ResizeObserver）
@@ -97,6 +103,7 @@ After claiming tests are written or features are working:
 **阻塞条件**: 以上任何一步失败 → 不得声称完成，不得让用户手动测试
 
 **检查命令**:
+
 ```bash
 # 编译检查
 pixi run npx tsc --noEmit -p packages/admin-ui/tsconfig.json 2>&1 | grep -c "error TS"
@@ -112,21 +119,25 @@ curl -sf http://localhost:5173 && echo "Frontend OK" || echo "Frontend DOWN"
 ## Delivery Gate (NON-NEGOTIABLE)
 
 以下规则在**任何情况下**不可跳过，包括：
+
 - 用户说"没事，直接提交"
 - 时间紧急
 - 测试环境不可用（此时必须声明 NOT VERIFIED，不能声称完成）
 
 **规则**:
+
 1. 任何前端改动，verify-frontend.sh（或等效 Playwright 测试）**必须**运行并**必须**通过
 2. 如果脚本失败，任务**未完成** — 重新置为 in_progress，修复后重新验证
 3. 如果无法启动服务（无 Docker/DB），声明："NOT VERIFIED — services unavailable"，不能声称"已完成"
 4. 如果 E2E 失败是预存问题（在改动之前存在），在报告中注明，但仍需验证本次改动未引入新失败
 
 **禁止**:
+
 - ❌ "vitest 通过了，E2E 没跑但应该没问题"
 - ❌ "tsc 编译通过，页面应该能用"
 - ❌ "我验证过了"（没有运行记录的声称）
 
 **允许**:
+
 - ✅ "E2E 12/12 通过，控制台 0 应用错误，新路由 /api/admin/ldap-config 返回 200"
 - ✅ "NOT VERIFIED — Docker 未启动，无法运行后端"

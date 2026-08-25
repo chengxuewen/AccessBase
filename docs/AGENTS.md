@@ -26,17 +26,17 @@ docs/
 
 ## WHERE TO LOOK
 
-| Task | File | Key Content |
-|------|------|-------------|
-| Start here | `overview.md` | System overview, requirements, architecture |
-| Tech choices | `tech-stack.md` | Fastify, Drizzle, React, AntD decisions |
-| Package design | `core-packages.md` | 8 L0 packages (@accessbase/*) |
-| Auth flow | `auth-provider.md` | OAuth, WebAuthn, LDAP, MFA |
-| DB schema | `database.md` | Core tables, indexes, migrations |
-| API contracts | `api.md` | RESTful conventions, endpoints |
-| UI components | `ui.md` | Layout, navigation, pages, forms |
-| Security | `security.md` | OWASP, encryption, CSRF, XSS |
-| Deployment | `cicd.md` | Docker, K8s, CI/CD pipeline |
+| Task           | File               | Key Content                                 |
+| -------------- | ------------------ | ------------------------------------------- |
+| Start here     | `overview.md`      | System overview, requirements, architecture |
+| Tech choices   | `tech-stack.md`    | Fastify, Drizzle, React, AntD decisions     |
+| Package design | `core-packages.md` | 8 L0 packages (@accessbase/*)               |
+| Auth flow      | `auth-provider.md` | OAuth, WebAuthn, LDAP, MFA                  |
+| DB schema      | `database.md`      | Core tables, indexes, migrations            |
+| API contracts  | `api.md`           | RESTful conventions, endpoints              |
+| UI components  | `ui.md`            | Layout, navigation, pages, forms            |
+| Security       | `security.md`      | OWASP, encryption, CSRF, XSS                |
+| Deployment     | `cicd.md`          | Docker, K8s, CI/CD pipeline                 |
 
 ## CONVENTIONS
 

@@ -1,7 +1,8 @@
 ---
 paths:
-  - "**/*.java"
+  - '**/*.java'
 ---
+
 # Java Testing
 
 > This file extends [common/testing.md](../common/testing.md) with Java-specific content.
@@ -116,6 +117,7 @@ For Spring Boot integration tests, see skill: `springboot-tdd`.
 ## Test Naming
 
 Use descriptive names with `@DisplayName`:
+
 - `methodName_scenario_expectedBehavior()` for method names
 - `@DisplayName("human-readable description")` for reports
 

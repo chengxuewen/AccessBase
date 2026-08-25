@@ -39,7 +39,7 @@ export const users = pgTable(
     emailIdx: index('idx_users_email').on(table.email),
     tenantIdx: index('idx_users_tenant').on(table.tenantId),
     statusIdx: index('idx_users_status').on(table.status),
-  })
+  }),
 );
 
 /**
@@ -61,7 +61,7 @@ export const roles = pgTable(
     tenantIdx: index('idx_roles_tenant').on(table.tenantId),
     parentIdx: index('idx_roles_parent').on(table.parentId),
     uniqueNameTenant: unique('unique_role_name_tenant').on(table.name, table.tenantId),
-  })
+  }),
 );
 
 /**
@@ -80,9 +80,9 @@ export const permissions = pgTable(
   (table) => ({
     uniqueResourceAction: unique('unique_permission_resource_action').on(
       table.resource,
-      table.action
+      table.action,
     ),
-  })
+  }),
 );
 
 /**
@@ -100,7 +100,7 @@ export const rolePermissions = pgTable(
   },
   (table) => ({
     compositePk: primaryKey({ columns: [table.roleId, table.permissionId] }),
-  })
+  }),
 );
 
 /**
@@ -119,7 +119,7 @@ export const userRoles = pgTable(
   },
   (table) => ({
     compositePk: primaryKey({ columns: [table.userId, table.roleId, table.tenantId] }),
-  })
+  }),
 );
 
 /**
@@ -140,7 +140,7 @@ export const sessions = pgTable(
     userIdIdx: index('idx_sessions_user').on(table.userId),
     tokenIdx: index('idx_sessions_token').on(table.token),
     expiresIdx: index('idx_sessions_expires').on(table.expiresAt),
-  })
+  }),
 );
 
 /**

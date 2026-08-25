@@ -51,16 +51,16 @@ IF 会话状态:
 
 当多个技能同时适用时，按此顺序推荐（最多 2 个）：
 
-| 优先级 | 技能 | 理由 |
-|:---:|------|------|
-| 1 | `/think-before-act` | 预防 > 修复，元约束优先 |
-| 2 | `/test-driven-development` | 测试先行 > 事后补测试 |
-| 3 | `/systematic-debugging` | 有 bug 先诊断，不要瞎试 |
-| 4 | `/security-review` | 安全问题不能拖 |
-| 5 | `/design-system` | UI 一致性 |
-| 6 | `/doc-audit` | 文档同步 |
-| 7 | `/requesting-code-review` | 完成后审查 |
-| 8 | `/ecosystem-scan` | 体系健康 |
+| 优先级 | 技能                       | 理由                    |
+| :----: | -------------------------- | ----------------------- |
+|   1    | `/think-before-act`        | 预防 > 修复，元约束优先 |
+|   2    | `/test-driven-development` | 测试先行 > 事后补测试   |
+|   3    | `/systematic-debugging`    | 有 bug 先诊断，不要瞎试 |
+|   4    | `/security-review`         | 安全问题不能拖          |
+|   5    | `/design-system`           | UI 一致性               |
+|   6    | `/doc-audit`               | 文档同步                |
+|   7    | `/requesting-code-review`  | 完成后审查              |
+|   8    | `/ecosystem-scan`          | 体系健康                |
 
 ## 防骚扰规则
 

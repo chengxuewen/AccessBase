@@ -9,12 +9,12 @@
 
 ### 18.1 并发场景分析
 
-| 场景 | 类型 | 挑战 | 解决方案 |
-|------|------|------|---------|
-| **并发读取** | 读-读 | 缓存一致性 | 缓存失效策略 |
-| **并发写入** | 写-写 | 数据竞争 | 锁机制 |
-| **读写混合** | 读-写 | 脏读、不可重复读 | 事务隔离级别 |
-| **分布式并发** | 多节点 | 网络延迟、分区 | 分布式锁 |
+| 场景           | 类型   | 挑战             | 解决方案     |
+| -------------- | ------ | ---------------- | ------------ |
+| **并发读取**   | 读-读  | 缓存一致性       | 缓存失效策略 |
+| **并发写入**   | 写-写  | 数据竞争         | 锁机制       |
+| **读写混合**   | 读-写  | 脏读、不可重复读 | 事务隔离级别 |
+| **分布式并发** | 多节点 | 网络延迟、分区   | 分布式锁     |
 
 ### 18.2 锁机制设计
 
@@ -25,19 +25,22 @@
 ```typescript
 // 乐观锁实现
 interface OptimisticLock {
-  version: number
-  update(id: string, data: UpdateData, expectedVersion: number): Promise<boolean>
+  version: number;
+  update(id: string, data: UpdateData, expectedVersion: number): Promise<boolean>;
 }
 
 // 数据库实现
 class DatabaseOptimisticLock implements OptimisticLock {
   async update(id: string, data: UpdateData, expectedVersion: number): Promise<boolean> {
-    const result = await this.db.query(`
+    const result = await this.db.query(
+      `
       UPDATE users
       SET name = $1, email = $2, version = version + 1
       WHERE id = $3 AND version = $4
-    `, [data.name, data.email, id, expectedVersion])
-    return result.rowCount > 0
+    `,
+      [data.name, data.email, id, expectedVersion],
+    );
+    return result.rowCount > 0;
   }
 }
 ```
@@ -51,22 +54,16 @@ class DatabaseOptimisticLock implements OptimisticLock {
 ```typescript
 // 悲观锁实现
 interface PessimisticLock {
-  acquire(key: string, timeout?: number): Promise<boolean>
-  release(key: string): Promise<void>
-  isLocked(key: string): Promise<boolean>
+  acquire(key: string, timeout?: number): Promise<boolean>;
+  release(key: string): Promise<void>;
+  isLocked(key: string): Promise<boolean>;
 }
 
 // Redis 实现
 class RedisPessimisticLock implements PessimisticLock {
   async acquire(key: string, timeout: number = 30): Promise<boolean> {
-    const result = await this.redis.set(
-      `lock:${key}`,
-      process.pid.toString(),
-      'EX',
-      timeout,
-      'NX'
-    )
-    return result === 'OK'
+    const result = await this.redis.set(`lock:${key}`, process.pid.toString(), 'EX', timeout, 'NX');
+    return result === 'OK';
   }
 }
 ```
@@ -80,30 +77,24 @@ class RedisPessimisticLock implements PessimisticLock {
 ```typescript
 // 分布式锁接口
 interface DistributedLock {
-  acquire(key: string, options?: LockOptions): Promise<LockHandle>
-  release(handle: LockHandle): Promise<void>
-  renew(handle: LockHandle): Promise<boolean>
+  acquire(key: string, options?: LockOptions): Promise<LockHandle>;
+  release(handle: LockHandle): Promise<void>;
+  renew(handle: LockHandle): Promise<boolean>;
 }
 
 // Redlock 实现
 class RedlockDistributedLock implements DistributedLock {
   async acquire(key: string, options?: LockOptions): Promise<LockHandle> {
-    const timeout = options?.timeout || 30
-    const value = `${process.pid}:${Date.now()}:${Math.random()}`
-    
-    const result = await this.redis.set(
-      `lock:${key}`,
-      value,
-      'EX',
-      timeout,
-      'NX'
-    )
-    
+    const timeout = options?.timeout || 30;
+    const value = `${process.pid}:${Date.now()}:${Math.random()}`;
+
+    const result = await this.redis.set(`lock:${key}`, value, 'EX', timeout, 'NX');
+
     if (result === 'OK') {
-      return { key, value, acquiredAt: Date.now(), expiresAt: Date.now() + timeout * 1000 }
+      return { key, value, acquiredAt: Date.now(), expiresAt: Date.now() + timeout * 1000 };
     }
-    
-    throw new Error('Failed to acquire lock')
+
+    throw new Error('Failed to acquire lock');
   }
 }
 ```
@@ -117,24 +108,24 @@ class RedlockDistributedLock implements DistributedLock {
 ```typescript
 // 事务接口
 interface Transaction {
-  begin(): Promise<void>
-  commit(): Promise<void>
-  rollback(): Promise<void>
-  execute<T>(operation: () => Promise<T>): Promise<T>
+  begin(): Promise<void>;
+  commit(): Promise<void>;
+  rollback(): Promise<void>;
+  execute<T>(operation: () => Promise<T>): Promise<T>;
 }
 
 // PostgreSQL 事务实现
 class PostgreSQLTransaction implements Transaction {
   async execute<T>(operation: () => Promise<T>): Promise<T> {
-    await this.db.query('BEGIN')
-    
+    await this.db.query('BEGIN');
+
     try {
-      const result = await operation()
-      await this.db.query('COMMIT')
-      return result
+      const result = await operation();
+      await this.db.query('COMMIT');
+      return result;
     } catch (error) {
-      await this.db.query('ROLLBACK')
-      throw error
+      await this.db.query('ROLLBACK');
+      throw error;
     }
   }
 }
@@ -142,12 +133,12 @@ class PostgreSQLTransaction implements Transaction {
 
 #### 18.3.2 隔离级别
 
-| 隔离级别 | 脏读 | 不可重复读 | 幻读 | 性能 |
-|---------|------|-----------|------|------|
-| **READ UNCOMMITTED** | ✅ | ✅ | ✅ | 最高 |
-| **READ COMMITTED** | ❌ | ✅ | ✅ | 高 |
-| **REPEATABLE READ** | ❌ | ❌ | ✅ | 中 |
-| **SERIALIZABLE** | ❌ | ❌ | ❌ | 低 |
+| 隔离级别             | 脏读 | 不可重复读 | 幻读 | 性能 |
+| -------------------- | ---- | ---------- | ---- | ---- |
+| **READ UNCOMMITTED** | ✅   | ✅         | ✅   | 最高 |
+| **READ COMMITTED**   | ❌   | ✅         | ✅   | 高   |
+| **REPEATABLE READ**  | ❌   | ❌         | ✅   | 中   |
+| **SERIALIZABLE**     | ❌   | ❌         | ❌   | 低   |
 
 **推荐**：`REPEATABLE READ`（平衡一致性与性能）
 
@@ -156,11 +147,11 @@ class PostgreSQLTransaction implements Transaction {
 ```typescript
 // 连接池配置
 interface PoolConfig {
-  min: number           // 最小连接数
-  max: number           // 最大连接数
-  idleTimeout: number   // 空闲超时（毫秒）
-  connectionTimeout: number  // 连接超时（毫秒）
-  maxLifetime: number   // 最大生命周期（毫秒）
+  min: number; // 最小连接数
+  max: number; // 最大连接数
+  idleTimeout: number; // 空闲超时（毫秒）
+  connectionTimeout: number; // 连接超时（毫秒）
+  maxLifetime: number; // 最大生命周期（毫秒）
 }
 
 // PostgreSQL 连接池
@@ -169,8 +160,8 @@ const poolConfig: PoolConfig = {
   max: 20,
   idleTimeout: 30000,
   connectionTimeout: 5000,
-  maxLifetime: 1800000
-}
+  maxLifetime: 1800000,
+};
 ```
 
 ### 18.5 异步处理
@@ -180,55 +171,70 @@ const poolConfig: PoolConfig = {
 ```typescript
 // 异步任务接口
 interface AsyncTask {
-  id: string
-  type: string
-  payload: any
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  createdAt: Date
-  completedAt?: Date
-  error?: string
+  id: string;
+  type: string;
+  payload: any;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  createdAt: Date;
+  completedAt?: Date;
+  error?: string;
 }
 
 // 异步队列
 class AsyncTaskQueue {
   async enqueue(task: Omit<AsyncTask, 'id' | 'status' | 'createdAt'>): Promise<string> {
-    const id = generateId()
-    
+    const id = generateId();
+
     // 保存到数据库
-    await this.db.query(`
+    await this.db.query(
+      `
       INSERT INTO async_tasks (id, type, payload, status, created_at)
       VALUES ($1, $2, $3, 'pending', NOW())
-    `, [id, task.type, JSON.stringify(task.payload)])
-    
+    `,
+      [id, task.type, JSON.stringify(task.payload)],
+    );
+
     // 发送到消息队列
-    await this.mq.publish('async_tasks', { id, ...task })
-    
-    return id
+    await this.mq.publish('async_tasks', { id, ...task });
+
+    return id;
   }
-  
+
   async process(taskId: string, handler: (payload: any) => Promise<void>): Promise<void> {
-    await this.db.query(`
+    await this.db.query(
+      `
       UPDATE async_tasks SET status = 'processing' WHERE id = $1
-    `, [taskId])
-    
+    `,
+      [taskId],
+    );
+
     try {
-      const task = await this.db.query(`
+      const task = await this.db.query(
+        `
         SELECT * FROM async_tasks WHERE id = $1
-      `, [taskId])
-      
-      await handler(JSON.parse(task.payload))
-      
-      await this.db.query(`
+      `,
+        [taskId],
+      );
+
+      await handler(JSON.parse(task.payload));
+
+      await this.db.query(
+        `
         UPDATE async_tasks
         SET status = 'completed', completed_at = NOW()
         WHERE id = $1
-      `, [taskId])
+      `,
+        [taskId],
+      );
     } catch (error) {
-      await this.db.query(`
+      await this.db.query(
+        `
         UPDATE async_tasks
         SET status = 'failed', error = $2
         WHERE id = $1
-      `, [taskId, error.message])
+      `,
+        [taskId, error.message],
+      );
     }
   }
 }
@@ -244,19 +250,19 @@ class RaceConditionProtection {
   async preventDuplicate<T>(
     key: string,
     operation: () => Promise<T>,
-    ttl: number = 60
+    ttl: number = 60,
   ): Promise<T> {
-    const lockKey = `race:${key}`
-    const acquired = await this.lock.acquire(lockKey, { timeout: ttl })
-    
+    const lockKey = `race:${key}`;
+    const acquired = await this.lock.acquire(lockKey, { timeout: ttl });
+
     if (!acquired) {
-      throw new Error('Duplicate operation detected')
+      throw new Error('Duplicate operation detected');
     }
-    
+
     try {
-      return await operation()
+      return await operation();
     } finally {
-      await this.lock.release({ key: lockKey, value: '', acquiredAt: 0, expiresAt: 0 })
+      await this.lock.release({ key: lockKey, value: '', acquiredAt: 0, expiresAt: 0 });
     }
   }
 }
@@ -269,15 +275,15 @@ class RaceConditionProtection {
 class DeadlockProtection {
   // 按固定顺序获取锁
   async acquireLocksInOrder(keys: string[]): Promise<LockHandle[]> {
-    const sortedKeys = [...keys].sort()
-    const handles: LockHandle[] = []
-    
+    const sortedKeys = [...keys].sort();
+    const handles: LockHandle[] = [];
+
     for (const key of sortedKeys) {
-      const handle = await this.lock.acquire(key)
-      handles.push(handle)
+      const handle = await this.lock.acquire(key);
+      handles.push(handle);
     }
-    
-    return handles
+
+    return handles;
   }
 }
 ```
@@ -298,7 +304,7 @@ concurrency:
       min: 5
       max: 20
       idle_timeout: 30000
-  
+
   # 锁机制
   lock:
     optimistic:
@@ -314,12 +320,12 @@ concurrency:
       timeout: 30
       retry_count: 3
       retry_delay: 100
-  
+
   # 事务
   transaction:
     isolation_level: REPEATABLE_READ
     timeout: 30000
-  
+
   # 异步任务
   async_tasks:
     enabled: true

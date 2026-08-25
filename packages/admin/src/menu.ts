@@ -141,17 +141,13 @@ export class MenuManager {
   private sortItems(items: MenuItem[]): MenuItem[] {
     return [...items]
       .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity))
-      .map((item) =>
-        item.children ? { ...item, children: this.sortItems(item.children) } : item,
-      );
+      .map((item) => (item.children ? { ...item, children: this.sortItems(item.children) } : item));
   }
 
   private removeByKey(items: MenuItem[], keys: Set<string>): MenuItem[] {
     return items
       .filter((i) => !keys.has(i.key))
-      .map((i) =>
-        i.children ? { ...i, children: this.removeByKey(i.children, keys) } : i,
-      );
+      .map((i) => (i.children ? { ...i, children: this.removeByKey(i.children, keys) } : i));
   }
 
   private updateByKey(items: MenuItem[], key: string, patch: Partial<MenuItem>): MenuItem[] {

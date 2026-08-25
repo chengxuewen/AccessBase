@@ -1,25 +1,25 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import client from '../api/client'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import client from '../api/client';
 
 interface User {
-  id: string
-  email: string
-  name: string
-  roles: string[]
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
 }
 
 interface AuthState {
-  user: User | null
-  token: string | null
-  refreshToken: string | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  error: string | null
-  login: (email: string, password: string) => Promise<void>
-  logout: () => void
-  setTokens: (token: string, refreshToken: string) => void
-  fetchUser: () => Promise<void>
+  user: User | null;
+  token: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+  setTokens: (token: string, refreshToken: string) => void;
+  fetchUser: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -33,24 +33,24 @@ export const useAuthStore = create<AuthState>()(
       error: null,
 
       login: async (email: string, password: string) => {
-        set({ isLoading: true, error: null })
+        set({ isLoading: true, error: null });
         try {
           const { data } = await client.post('/auth/login', {
             email,
             password,
-          })
-          const { accessToken, refreshToken, user } = data
+          });
+          const { accessToken, refreshToken, user } = data;
           set({
             user,
             token: accessToken,
             refreshToken,
             isAuthenticated: true,
             isLoading: false,
-          })
+          });
         } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : 'Login failed'
-          set({ error: message, isLoading: false })
-          throw error
+          const message = error instanceof Error ? error.message : 'Login failed';
+          set({ error: message, isLoading: false });
+          throw error;
         }
       },
 
@@ -61,21 +61,21 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: null,
           isAuthenticated: false,
           error: null,
-        })
+        });
       },
 
       setTokens: (token: string, refreshToken: string) => {
-        set({ token, refreshToken, isAuthenticated: true })
+        set({ token, refreshToken, isAuthenticated: true });
       },
 
       fetchUser: async () => {
-        const { token } = get()
-        if (!token) return
+        const { token } = get();
+        if (!token) return;
         try {
-          const { data } = await client.get('/auth/me')
-          set({ user: data, isAuthenticated: true })
+          const { data } = await client.get('/auth/me');
+          set({ user: data, isAuthenticated: true });
         } catch {
-          get().logout()
+          get().logout();
         }
       },
     }),
@@ -86,6 +86,6 @@ export const useAuthStore = create<AuthState>()(
         refreshToken: state.refreshToken,
         user: state.user,
       }),
-    }
-  )
-)
+    },
+  ),
+);

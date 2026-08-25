@@ -89,7 +89,11 @@ export class PermissionManager {
   /**
    * Batch check permissions
    */
-  async hasPermissions(userId: string, permissions: string[], tenantId: string): Promise<Map<string, boolean>> {
+  async hasPermissions(
+    userId: string,
+    permissions: string[],
+    tenantId: string,
+  ): Promise<Map<string, boolean>> {
     logger.debug(`Checking permissions for user ${userId} in tenant: ${tenantId}`);
     // Implementation will:
     // 1. Get user's effective permissions once

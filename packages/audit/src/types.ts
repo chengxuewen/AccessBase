@@ -1,13 +1,7 @@
 /**
  * Audit action types
  */
-export type AuditAction = 
-  | 'CREATE'
-  | 'UPDATE'
-  | 'DELETE'
-  | 'LOGIN'
-  | 'LOGOUT'
-  | 'LOGIN_FAILED';
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'LOGIN_FAILED';
 
 /**
  * Audit log entry (without hash fields)
@@ -94,7 +88,7 @@ export interface IntegrityResult {
 export interface AuditConfig {
   enabled: boolean;
   level: 'all' | 'write' | 'auth' | 'config';
-  
+
   storage: {
     tableName: string;
     archive: {
@@ -104,25 +98,25 @@ export interface AuditConfig {
     };
     indexes: string[];
   };
-  
+
   async: {
     enabled: boolean;
     bufferSize: number;
     flushInterval: number;
   };
-  
+
   sanitize: {
     enabled: boolean;
     fields: string[];
     replacement: string;
   };
-  
+
   integrity: {
     enabled: boolean;
     verifyInterval: number;
     alertOnFailure: boolean;
   };
-  
+
   export: {
     maxRows: number;
     formats: ('csv' | 'excel')[];

@@ -1,25 +1,25 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { Form, Input, Button, Card, message } from 'antd'
-import { MailOutlined, LockOutlined } from '@ant-design/icons'
-import { useAuthStore } from '../stores/auth'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Form, Input, Button, Card, message } from 'antd';
+import { MailOutlined, LockOutlined } from '@ant-design/icons';
+import { useAuthStore } from '../stores/auth';
 
 export default function Login() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  const { login, isLoading } = useAuthStore()
-  const [form] = Form.useForm()
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { login, isLoading } = useAuthStore();
+  const [form] = Form.useForm();
 
   const handleSubmit = async (values: { email: string; password: string }) => {
     try {
-      await login(values.email, values.password)
-      message.success(t('login.success'))
-      navigate('/')
+      await login(values.email, values.password);
+      message.success(t('login.success'));
+      navigate('/');
     } catch {
-      message.error(t('login.error'))
+      message.error(t('login.error'));
     }
-  }
+  };
 
   return (
     <div
@@ -63,18 +63,12 @@ export default function Login() {
           </Form.Item>
 
           <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isLoading}
-              block
-              size="large"
-            >
+            <Button type="primary" htmlType="submit" loading={isLoading} block size="large">
               {t('login.submit')}
             </Button>
           </Form.Item>
         </Form>
       </Card>
     </div>
-  )
+  );
 }

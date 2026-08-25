@@ -23,22 +23,22 @@ Ant Design Pro 是蚂蚁金服开源的企业级中后台前端/设计解决方�
 
 **GitHub**: [ant-design/ant-design-pro](https://github.com/ant-design/ant-design-pro)  
 **Stars**: 36,000+  
-**许可**: MIT  
+**许可**: MIT
 
 ### 1.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React 19 | 并发渲染、Server Components |
-| **UI 组件库** | Ant Design 6 | 企业级设计系统，CSS 变量模式 |
-| **脚手架** | Umi Max 4 / @umijs/max | 企业级 React 应用框架 |
-| **构建工具** | utoopack (Turbopack + Rust) | 生产构建提速约 42% |
-| **状态管理** | useModel + React Query | 轻量全局状态 + 服务端状态 |
-| **样式方案** | Tailwind CSS v4 + antd-style + CSS Modules | 三种方案共存 |
-| **类型系统** | TypeScript 6.x | 应用级 JavaScript |
-| **代码检查** | Biome | 替代 ESLint + Prettier，速度提升 10 倍 |
-| **国际化** | 内置 i18n 方案 | 支持 8 种语言 |
-| **测试** | Vitest (单元) + Playwright (E2E) | 完整的测试方案 |
+| 类别          | 技术                                       | 说明                                   |
+| ------------- | ------------------------------------------ | -------------------------------------- |
+| **框架**      | React 19                                   | 并发渲染、Server Components            |
+| **UI 组件库** | Ant Design 6                               | 企业级设计系统，CSS 变量模式           |
+| **脚手架**    | Umi Max 4 / @umijs/max                     | 企业级 React 应用框架                  |
+| **构建工具**  | utoopack (Turbopack + Rust)                | 生产构建提速约 42%                     |
+| **状态管理**  | useModel + React Query                     | 轻量全局状态 + 服务端状态              |
+| **样式方案**  | Tailwind CSS v4 + antd-style + CSS Modules | 三种方案共存                           |
+| **类型系统**  | TypeScript 6.x                             | 应用级 JavaScript                      |
+| **代码检查**  | Biome                                      | 替代 ESLint + Prettier，速度提升 10 倍 |
+| **国际化**    | 内置 i18n 方案                             | 支持 8 种语言                          |
+| **测试**      | Vitest (单元) + Playwright (E2E)           | 完整的测试方案                         |
 
 ### 1.3 核心特性
 
@@ -91,16 +91,16 @@ Refine 是一个开源的 React 元框架，专为 CRUD 密集型 Web 应用设�
 
 ### 2.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React 18/19 | 支持最新 React 特性 |
-| **UI 组件库** | 任意 UI 库 | 无头架构，支持 Ant Design、Material UI、Mantine、Chakra UI 等 |
-| **路由** | 任意路由库 | 支持 Next.js、Remix、React Router 等 |
-| **数据获取** | TanStack Query v5 | 缓存、去重、乐观更新、无限滚动 |
-| **状态管理** | React Query | 服务端状态管理 |
-| **后端适配** | 15+ 数据提供者 | REST、GraphQL、Supabase、Strapi、Hasura、Appwrite 等 |
-| **类型系统** | TypeScript | 完整类型支持 |
-| **实时功能** | 内置支持 | 实时/直播应用开箱即用 |
+| 类别          | 技术              | 说明                                                          |
+| ------------- | ----------------- | ------------------------------------------------------------- |
+| **框架**      | React 18/19       | 支持最新 React 特性                                           |
+| **UI 组件库** | 任意 UI 库        | 无头架构，支持 Ant Design、Material UI、Mantine、Chakra UI 等 |
+| **路由**      | 任意路由库        | 支持 Next.js、Remix、React Router 等                          |
+| **数据获取**  | TanStack Query v5 | 缓存、去重、乐观更新、无限滚动                                |
+| **状态管理**  | React Query       | 服务端状态管理                                                |
+| **后端适配**  | 15+ 数据提供者    | REST、GraphQL、Supabase、Strapi、Hasura、Appwrite 等          |
+| **类型系统**  | TypeScript        | 完整类型支持                                                  |
+| **实时功能**  | 内置支持          | 实时/直播应用开箱即用                                         |
 
 ### 2.3 核心特性
 
@@ -153,15 +153,15 @@ React Admin 是 Marmelab 公司开发的开源前端框架，用于在 REST/Grap
 
 ### 3.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React 18/19 | 支持最新 React 特性 |
-| **UI 组件库** | Material UI (MUI) | 默认实现，支持无头使用 |
-| **路由** | React Router v6/v7 | 客户端路由 |
-| **数据获取** | TanStack Query (React Query) | 缓存、同步、后台更新 |
-| **表单** | React Hook Form | 高性能表单处理 |
-| **类型系统** | TypeScript | 可选类型支持 |
-| **后端适配** | 45+ 数据提供者 | REST、GraphQL、Supabase 等 |
+| 类别          | 技术                         | 说明                       |
+| ------------- | ---------------------------- | -------------------------- |
+| **框架**      | React 18/19                  | 支持最新 React 特性        |
+| **UI 组件库** | Material UI (MUI)            | 默认实现，支持无头使用     |
+| **路由**      | React Router v6/v7           | 客户端路由                 |
+| **数据获取**  | TanStack Query (React Query) | 缓存、同步、后台更新       |
+| **表单**      | React Hook Form              | 高性能表单处理             |
+| **类型系统**  | TypeScript                   | 可选类型支持               |
+| **后端适配**  | 45+ 数据提供者               | REST、GraphQL、Supabase 等 |
 
 ### 3.3 核心特性
 
@@ -218,18 +218,18 @@ Vue Vben Admin 是一个基于 Vue 3、Vite、TypeScript 的现代企业级管�
 
 ### 4.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | Vue 3 | Composition API、响应式系统 |
-| **UI 组件库** | Shadcn UI + Tailwind CSS | 核心 UI，支持多 UI 库切换 |
-| **构建工具** | Vite | 快速冷启动、瞬间热更新 |
-| **状态管理** | Pinia | Vue 3 官方状态管理 |
-| **路由** | Vue Router | Vue 官方路由 |
-| **Monorepo** | pnpm + Turborepo | 企业级工程管理 |
-| **Mock 服务** | Nitro | 高性能本地 Mock 数据 |
-| **代码规范** | Oxfmt + Oxlint + ESLint + Stylelint | 多工具代码质量保障 |
-| **国际化** | 内置 i18n | 多语言支持 |
-| **权限控制** | 动态路由 + 按钮级权限 | 细粒度权限管理 |
+| 类别          | 技术                                | 说明                        |
+| ------------- | ----------------------------------- | --------------------------- |
+| **框架**      | Vue 3                               | Composition API、响应式系统 |
+| **UI 组件库** | Shadcn UI + Tailwind CSS            | 核心 UI，支持多 UI 库切换   |
+| **构建工具**  | Vite                                | 快速冷启动、瞬间热更新      |
+| **状态管理**  | Pinia                               | Vue 3 官方状态管理          |
+| **路由**      | Vue Router                          | Vue 官方路由                |
+| **Monorepo**  | pnpm + Turborepo                    | 企业级工程管理              |
+| **Mock 服务** | Nitro                               | 高性能本地 Mock 数据        |
+| **代码规范**  | Oxfmt + Oxlint + ESLint + Stylelint | 多工具代码质量保障          |
+| **国际化**    | 内置 i18n                           | 多语言支持                  |
+| **权限控制**  | 动态路由 + 按钮级权限               | 细粒度权限管理              |
 
 ### 4.3 核心特性
 
@@ -273,49 +273,49 @@ Vue Vben Admin 是一个基于 Vue 3、Vite、TypeScript 的现代企业级管�
 
 ### 5.1 技术栈对比
 
-| 维度 | Ant Design Pro | Refine | React Admin | Vue Vben Admin |
-|------|---------------|--------|-------------|----------------|
-| **前端框架** | React 19 | React 18/19 | React 18/19 | Vue 3 |
-| **UI 组件库** | Ant Design 6 | 任意（无头） | Material UI | Shadcn UI + 多库 |
-| **构建工具** | utoopack (Turbopack) | Vite/Next.js | Webpack/Vite | Vite |
-| **状态管理** | useModel + React Query | React Query | React Query | Pinia |
-| **后端适配** | REST/GraphQL | 15+ 提供者 | 45+ 提供者 | REST/GraphQL |
-| **SSR 支持** | Umi SSR | Next.js/Remix | 客户端 SPA | 客户端 SPA |
-| **Monorepo** | 否 | 否 | 否 | pnpm + Turborepo |
+| 维度          | Ant Design Pro         | Refine        | React Admin  | Vue Vben Admin   |
+| ------------- | ---------------------- | ------------- | ------------ | ---------------- |
+| **前端框架**  | React 19               | React 18/19   | React 18/19  | Vue 3            |
+| **UI 组件库** | Ant Design 6           | 任意（无头）  | Material UI  | Shadcn UI + 多库 |
+| **构建工具**  | utoopack (Turbopack)   | Vite/Next.js  | Webpack/Vite | Vite             |
+| **状态管理**  | useModel + React Query | React Query   | React Query  | Pinia            |
+| **后端适配**  | REST/GraphQL           | 15+ 提供者    | 45+ 提供者   | REST/GraphQL     |
+| **SSR 支持**  | Umi SSR                | Next.js/Remix | 客户端 SPA   | 客户端 SPA       |
+| **Monorepo**  | 否                     | 否            | 否           | pnpm + Turborepo |
 
 ### 5.2 功能特性对比
 
-| 功能 | Ant Design Pro | Refine | React Admin | Vue Vben Admin |
-|------|---------------|--------|-------------|----------------|
-| **开箱即用** | ✅ 20+ 模板 | ⚠️ 需配置 | ✅ 快速启动 | ✅ 模板丰富 |
-| **CRUD 生成** | ✅ ProComponents | ✅ Inferencer | ✅ Guessers | ✅ 组件库 |
-| **权限管理** | ✅ 路由级 | ✅ 路由+组件级 | ⚠️ 基础/企业版 | ✅ 路由+按钮级 |
-| **国际化** | ✅ 内置 | ✅ 内置 | ✅ 内置 | ✅ 内置 |
-| **主题定制** | ✅ 多预设 | ✅ 自定义 | ✅ MUI 主题 | ✅ 多主题 |
-| **实时功能** | ❌ | ✅ 内置 | ⚠️ 企业版 | ❌ |
-| **审计日志** | ❌ | ✅ 内置 | ⚠️ 企业版 | ❌ |
-| **AI 集成** | ✅ Ant Design X | ✅ AI Agent | ⚠️ 企业版 | ❌ |
+| 功能          | Ant Design Pro   | Refine         | React Admin    | Vue Vben Admin |
+| ------------- | ---------------- | -------------- | -------------- | -------------- |
+| **开箱即用**  | ✅ 20+ 模板      | ⚠️ 需配置      | ✅ 快速启动    | ✅ 模板丰富    |
+| **CRUD 生成** | ✅ ProComponents | ✅ Inferencer  | ✅ Guessers    | ✅ 组件库      |
+| **权限管理**  | ✅ 路由级        | ✅ 路由+组件级 | ⚠️ 基础/企业版 | ✅ 路由+按钮级 |
+| **国际化**    | ✅ 内置          | ✅ 内置        | ✅ 内置        | ✅ 内置        |
+| **主题定制**  | ✅ 多预设        | ✅ 自定义      | ✅ MUI 主题    | ✅ 多主题      |
+| **实时功能**  | ❌               | ✅ 内置        | ⚠️ 企业版      | ❌             |
+| **审计日志**  | ❌               | ✅ 内置        | ⚠️ 企业版      | ❌             |
+| **AI 集成**   | ✅ Ant Design X  | ✅ AI Agent    | ⚠️ 企业版      | ❌             |
 
 ### 5.3 商业模式对比
 
-| 维度 | Ant Design Pro | Refine | React Admin | Vue Vben Admin |
-|------|---------------|--------|-------------|----------------|
-| **开源许可** | MIT | MIT | MIT | MIT |
-| **核心功能** | 全部免费 | 全部免费 | 基础免费 | 全部免费 |
-| **企业功能** | 无 | 付费 AI Agent | 付费（RBAC/审计/实时） | 无 |
-| **商业支持** | 蚂蚁金服 | Refine 公司 | Marmelab 公司 | 社区 |
-| **定价** | 免费 | $0.99-$20/月 | 145-590 欧元/月 | 免费 |
+| 维度         | Ant Design Pro | Refine        | React Admin            | Vue Vben Admin |
+| ------------ | -------------- | ------------- | ---------------------- | -------------- |
+| **开源许可** | MIT            | MIT           | MIT                    | MIT            |
+| **核心功能** | 全部免费       | 全部免费      | 基础免费               | 全部免费       |
+| **企业功能** | 无             | 付费 AI Agent | 付费（RBAC/审计/实时） | 无             |
+| **商业支持** | 蚂蚁金服       | Refine 公司   | Marmelab 公司          | 社区           |
+| **定价**     | 免费           | $0.99-$20/月  | 145-590 欧元/月        | 免费           |
 
 ### 5.4 社区与生态对比
 
-| 维度 | Ant Design Pro | Refine | React Admin | Vue Vben Admin |
-|------|---------------|--------|-------------|----------------|
-| **GitHub Stars** | 36K+ | 35K+ | 27K+ | 33K+ |
-| **主要社区** | 中文 | 英文 | 英文 | 中文 |
-| **文档质量** | 优秀 | 优秀 | 优秀 | 良好 |
-| **维护频率** | 高 | 中 | 高 | 中 |
-| **企业采用** | 蚂蚁系企业 | YC 创业公司 | 30,000+ 企业 | 国内企业 |
-| **技术栈锁定** | 高 | 低 | 中 | 高 |
+| 维度             | Ant Design Pro | Refine      | React Admin  | Vue Vben Admin |
+| ---------------- | -------------- | ----------- | ------------ | -------------- |
+| **GitHub Stars** | 36K+           | 35K+        | 27K+         | 33K+           |
+| **主要社区**     | 中文           | 英文        | 英文         | 中文           |
+| **文档质量**     | 优秀           | 优秀        | 优秀         | 良好           |
+| **维护频率**     | 高             | 中          | 高           | 中             |
+| **企业采用**     | 蚂蚁系企业     | YC 创业公司 | 30,000+ 企业 | 国内企业       |
+| **技术栈锁定**   | 高             | 低          | 中           | 高             |
 
 ---
 
@@ -336,6 +336,7 @@ AccessBase 是一个企业级 IAM（身份与访问管理）系统，需要：
 #### 方案一：基于 Refine（推荐）
 
 **理由**：
+
 - **无头架构**：最大灵活性，可深度定制 UI，适合 IAM 系统的特殊需求
 - **企业特性**：内置认证、RBAC、审计日志等企业级功能
 - **后端无关**：可灵活对接 AccessBase 的 Fastify 后端
@@ -343,6 +344,7 @@ AccessBase 是一个企业级 IAM（身份与访问管理）系统，需要：
 - **社区活跃**：35K+ Stars，YC 背书，持续更新
 
 **实施建议**：
+
 1. 使用 Refine 核心 + Ant Design UI 组合
 2. 自定义数据提供者对接 AccessBase API
 3. 利用 Refine 的认证授权框架，扩展 IAM 权限模型
@@ -351,12 +353,14 @@ AccessBase 是一个企业级 IAM（身份与访问管理）系统，需要：
 #### 方案二：基于 Ant Design Pro
 
 **理由**：
+
 - **生态完整**：Ant Design + Umi + ProComponents 形成完整解决方案
 - **中文友好**：完善的中文文档和社区支持
 - **企业验证**：蚂蚁金服大规模使用，经过高并发场景验证
 - **开箱即用**：预置丰富的企业级模板
 
 **实施建议**：
+
 1. 使用 Ant Design Pro v6 作为基础模板
 2. 基于 ProComponents 构建 IAM 管理界面
 3. 自定义权限模型适配 RBAC 需求
@@ -365,11 +369,13 @@ AccessBase 是一个企业级 IAM（身份与访问管理）系统，需要：
 #### 方案三：自研方案（参考 React Admin）
 
 **理由**：
+
 - **完全控制**：对技术栈和架构有完全控制权
 - **渐进式**：可逐步实现所需功能
 - **无锁定**：避免框架锁定风险
 
 **实施建议**：
+
 1. 参考 React Admin 的数据提供者模式设计 API 层
 2. 使用 Ant Design 作为 UI 组件库
 3. 自研权限管理、审计日志等企业特性
@@ -380,6 +386,7 @@ AccessBase 是一个企业级 IAM（身份与访问管理）系统，需要：
 #### Vue Vben Admin
 
 **原因**：
+
 - **技术栈不匹配**：基于 Vue 3，与 AccessBase 的 React 技术栈不一致
 - **迁移成本高**：需要重写所有 React 组件
 - **生态隔离**：无法复用 React 生态的现有资源
@@ -434,20 +441,20 @@ AccessBase 是一个企业级 IAM（身份与访问管理）系统，需要：
 
 ### B. 术语表
 
-| 术语 | 说明 |
-|------|------|
-| **无头架构 (Headless)** | 业务逻辑与 UI 解耦，可自由选择 UI 实现 |
-| **数据提供者 (Data Provider)** | 抽象的 API 通信层，适配不同后端服务 |
-| **RBAC** | 基于角色的访问控制 |
-| **SSR** | 服务端渲染 |
-| **RSC** | React Server Components |
-| **Monorepo** | 单一仓库管理多个相关项目 |
-| **Design Token** | 设计系统中的可配置变量 |
+| 术语                           | 说明                                   |
+| ------------------------------ | -------------------------------------- |
+| **无头架构 (Headless)**        | 业务逻辑与 UI 解耦，可自由选择 UI 实现 |
+| **数据提供者 (Data Provider)** | 抽象的 API 通信层，适配不同后端服务    |
+| **RBAC**                       | 基于角色的访问控制                     |
+| **SSR**                        | 服务端渲染                             |
+| **RSC**                        | React Server Components                |
+| **Monorepo**                   | 单一仓库管理多个相关项目               |
+| **Design Token**               | 设计系统中的可配置变量                 |
 
 ### C. 更新记录
 
-| 日期 | 版本 | 更新内容 |
-|------|------|----------|
+| 日期       | 版本 | 更新内容                        |
+| ---------- | ---- | ------------------------------- |
 | 2026-08-21 | v1.0 | 初始调研文档，覆盖 4 个主流框架 |
 
 ---

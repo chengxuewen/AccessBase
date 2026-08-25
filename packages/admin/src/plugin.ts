@@ -19,24 +19,48 @@ const DEFAULT_CONFIG: AdminConfig = {
     toast: { duration: 3, maxCount: 3 },
     table: { defaultPageSize: 20, pageSizeOptions: [10, 20, 50, 100], defaultSortOrder: 'desc' },
   },
-  theme: { defaultMode: 'light', allowToggle: true, persistPreference: true, storageKey: 'accessbase:theme' },
+  theme: {
+    defaultMode: 'light',
+    allowToggle: true,
+    persistPreference: true,
+    storageKey: 'accessbase:theme',
+  },
   layout: {
     type: 'classic',
     sidebar: { collapsible: true, defaultCollapsed: false, width: 256, collapsedWidth: 80 },
-    header: { fixed: true, height: 64, showBreadcrumbs: true, showSearch: true, showNotification: true, showThemeToggle: true },
+    header: {
+      fixed: true,
+      height: 64,
+      showBreadcrumbs: true,
+      showSearch: true,
+      showNotification: true,
+      showThemeToggle: true,
+    },
     footer: { show: false },
   },
   navigation: {
     menu: { mode: 'inline', theme: 'light', multipleLevels: true, accordion: true },
     breadcrumbs: { enabled: true, separator: '/', showHome: true },
-    tabs: { enabled: true, closable: true, maxTabs: 10, persistState: true, storageKey: 'accessbase:tabs' },
+    tabs: {
+      enabled: true,
+      closable: true,
+      maxTabs: 10,
+      persistState: true,
+      storageKey: 'accessbase:tabs',
+    },
   },
   responsive: {
     enabled: true,
     breakpoints: { xs: 480, sm: 576, md: 768, lg: 992, xl: 1200, xxl: 1600 },
     mobileSidebar: { mode: 'overlay' },
   },
-  api: { baseURL: '/api', timeout: 30000, refreshEndpoint: '/auth/refresh', tokenStorageKey: 'accessbase:token', deduplicateRequests: true },
+  api: {
+    baseURL: '/api',
+    timeout: 30000,
+    refreshEndpoint: '/auth/refresh',
+    tokenStorageKey: 'accessbase:token',
+    deduplicateRequests: true,
+  },
   dev: { debug: false, showComponentBoundaries: false, strictMode: true },
 };
 
@@ -94,19 +118,14 @@ const adminPlugin: FastifyPluginAsync<AdminPluginOptions> = async (fastify, opts
    * GET /admin/api/menu — Return filtered menu for the current user.
    * Expects `request.user.permissions` to be populated by upstream auth hook.
    */
-  fastify.get(
-    `${normalizedBase}/api/menu`,
-    async (request, reply) => {
-      const q = request.query as { permissions?: string };
-      const user = (request as unknown as { user?: { permissions?: string[] } }).user;
-      const perms = q.permissions
-        ? q.permissions.split(',')
-        : user?.permissions;
-      if (perms) menuManager.setPermissions(perms);
+  fastify.get(`${normalizedBase}/api/menu`, async (request, reply) => {
+    const q = request.query as { permissions?: string };
+    const user = (request as unknown as { user?: { permissions?: string[] } }).user;
+    const perms = q.permissions ? q.permissions.split(',') : user?.permissions;
+    if (perms) menuManager.setPermissions(perms);
 
-      return reply.send({ success: true, data: menuManager.getFilteredItems() });
-    },
-  );
+    return reply.send({ success: true, data: menuManager.getFilteredItems() });
+  });
 
   /**
    * GET /admin/api/theme — Return current theme config + brand tokens.
@@ -135,7 +154,9 @@ const adminPlugin: FastifyPluginAsync<AdminPluginOptions> = async (fastify, opts
     if (request.url.startsWith(normalizedBase) && existsSync(join(staticDir, 'index.html'))) {
       return reply.type('text/html').sendFile('index.html', staticDir);
     }
-    return reply.code(404).send({ success: false, error: { code: 'ADMIN_004', message: 'Not found' } });
+    return reply
+      .code(404)
+      .send({ success: false, error: { code: 'ADMIN_004', message: 'Not found' } });
   });
 
   // ── Decorate fastify ────────────────────────────────────────────────────
@@ -145,7 +166,6 @@ const adminPlugin: FastifyPluginAsync<AdminPluginOptions> = async (fastify, opts
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
 
 function mergeConfig(base: AdminConfig, override: Partial<AdminConfig>): AdminConfig {
   return {

@@ -1,9 +1,10 @@
 ---
 paths:
-  - "**/*.go"
-  - "**/go.mod"
-  - "**/go.sum"
+  - '**/*.go'
+  - '**/go.mod'
+  - '**/go.sum'
 ---
+
 # Go Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Go specific content.

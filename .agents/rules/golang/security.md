@@ -1,9 +1,10 @@
 ---
 paths:
-  - "**/*.go"
-  - "**/go.mod"
-  - "**/go.sum"
+  - '**/*.go'
+  - '**/go.mod'
+  - '**/go.sum'
 ---
+
 # Go Security
 
 > This file extends [common/security.md](../common/security.md) with Go specific content.

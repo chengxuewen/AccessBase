@@ -1,15 +1,11 @@
 /**
  * @accessbase/audit - Audit logging for AccessBase
- * 
+ *
  * Records all security-sensitive operations with integrity verification.
  */
 
 export { AuditLogger } from './logger.js';
-export { 
-  createAuditMiddleware, 
-  auditAuthEvent, 
-  auditConfigChange 
-} from './middleware.js';
+export { createAuditMiddleware, auditAuthEvent, auditConfigChange } from './middleware.js';
 
 export type {
   AuditAction,

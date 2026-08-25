@@ -1,4 +1,12 @@
-import type { MigrationManager, MigrationStatus, MigrationPhase, ValidationResult, MigrationConfig, MigrationLifecycle, MigrationFile } from './types.js';
+import type {
+  MigrationManager,
+  MigrationStatus,
+  MigrationPhase,
+  ValidationResult,
+  MigrationConfig,
+  MigrationLifecycle,
+  MigrationFile,
+} from './types.js';
 import { createLogger } from '@accessbase/logging';
 import { Pool } from 'pg';
 
@@ -73,7 +81,7 @@ export class MigrationManagerImpl implements MigrationManager {
       version: m.version,
       name: m.name,
       phase: m.phase,
-      status: executed.has(m.version) ? 'completed' : 'pending' as const,
+      status: executed.has(m.version) ? 'completed' : ('pending' as const),
       executedAt: executed.get(m.version)?.executedAt,
       duration: executed.get(m.version)?.duration,
     }));
@@ -118,7 +126,10 @@ export class MigrationManagerImpl implements MigrationManager {
       const prev = parseInt(sorted[i - 1]!, 10);
       const curr = parseInt(sorted[i]!, 10);
       if (curr - prev > 1) {
-        warnings.push({ file: `version ${sorted[i]}`, message: `Gap in versions: ${sorted[i - 1]} -> ${sorted[i]}` });
+        warnings.push({
+          file: `version ${sorted[i]}`,
+          message: `Gap in versions: ${sorted[i - 1]} -> ${sorted[i]}`,
+        });
       }
     }
 
@@ -130,7 +141,9 @@ export class MigrationManagerImpl implements MigrationManager {
    */
   private async executeMigration(migration: MigrationFile): Promise<void> {
     const start = Date.now();
-    this.logger.info(`Executing migration: ${migration.version}_${migration.name} [${migration.phase}]`);
+    this.logger.info(
+      `Executing migration: ${migration.version}_${migration.name} [${migration.phase}]`,
+    );
 
     await this.lifecycle?.onBeforeMigrate?.(migration.version);
 
@@ -138,7 +151,9 @@ export class MigrationManagerImpl implements MigrationManager {
     try {
       await client.query('BEGIN');
       await migration.up({
-        execute: async (sql) => { await client.query(sql); },
+        execute: async (sql) => {
+          await client.query(sql);
+        },
         query: async <T>(sql: string) => {
           const result = await client.query(sql);
           return result.rows as T[];
@@ -147,7 +162,7 @@ export class MigrationManagerImpl implements MigrationManager {
       await client.query(
         `INSERT INTO ${this.config.migrations.tableName} (version, name, phase, executed_at, duration)
          VALUES ($1, $2, $3, NOW(), $4)`,
-        [migration.version, migration.name, migration.phase, Date.now() - start]
+        [migration.version, migration.name, migration.phase, Date.now() - start],
       );
       await client.query('COMMIT');
 
@@ -176,16 +191,17 @@ export class MigrationManagerImpl implements MigrationManager {
     try {
       await client.query('BEGIN');
       await migration.down({
-        execute: async (sql) => { await client.query(sql); },
+        execute: async (sql) => {
+          await client.query(sql);
+        },
         query: async <T>(sql: string) => {
           const result = await client.query(sql);
           return result.rows as T[];
         },
       });
-      await client.query(
-        `DELETE FROM ${this.config.migrations.tableName} WHERE version = $1`,
-        [migration.version]
-      );
+      await client.query(`DELETE FROM ${this.config.migrations.tableName} WHERE version = $1`, [
+        migration.version,
+      ]);
       await client.query('COMMIT');
 
       this.logger.info(`Migration ${migration.version} rolled back`);
@@ -257,10 +273,12 @@ export class MigrationManagerImpl implements MigrationManager {
   /**
    * Get executed migration versions
    */
-  private async getExecutedMigrations(): Promise<Map<string, { executedAt: Date; duration: number }>> {
+  private async getExecutedMigrations(): Promise<
+    Map<string, { executedAt: Date; duration: number }>
+  > {
     try {
       const result = await this.pool.query(
-        `SELECT version, executed_at, duration FROM ${this.config.migrations.tableName} ORDER BY version`
+        `SELECT version, executed_at, duration FROM ${this.config.migrations.tableName} ORDER BY version`,
       );
       const map = new Map<string, { executedAt: Date; duration: number }>();
       for (const row of result.rows) {
@@ -280,7 +298,7 @@ export class MigrationManagerImpl implements MigrationManager {
    */
   private async getExecutedVersions(): Promise<string[]> {
     const result = await this.pool.query(
-      `SELECT version FROM ${this.config.migrations.tableName} ORDER BY version`
+      `SELECT version FROM ${this.config.migrations.tableName} ORDER BY version`,
     );
     return result.rows.map((r) => r.version as string);
   }
@@ -290,7 +308,7 @@ export class MigrationManagerImpl implements MigrationManager {
    */
   private async getLastExecuted(): Promise<MigrationFile | null> {
     const result = await this.pool.query(
-      `SELECT version FROM ${this.config.migrations.tableName} ORDER BY version DESC LIMIT 1`
+      `SELECT version FROM ${this.config.migrations.tableName} ORDER BY version DESC LIMIT 1`,
     );
     if (result.rows.length === 0) return null;
     return this.loadMigration(result.rows[0]!.version as string);

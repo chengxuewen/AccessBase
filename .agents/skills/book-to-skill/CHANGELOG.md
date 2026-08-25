@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Documentation
+
 - Clarified the two install paths so they are not confused: **`git clone` into a
   skills folder** registers the `/book-to-skill` agent skill (Claude Code / Copilot
   CLI / Amp), while **`pip install book-to-skill`** installs only the standalone
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   screen instead of being buried mid-page.
 
 ### Security
+
 - **DOCX XXE / Billion Laughs hardening** — the DOCX extractor now scans the
   archive and rejects any XML part that declares a DTD or entities before
   parsing, blocking XML external-entity and entity-expansion attacks (#53, #54).
@@ -30,11 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covers the `pip` ecosystem.
 
 ### Changed
+
 - **The `pdf` extra now installs `pypdf` instead of the deprecated `PyPDF2`**
   (`pip install book-to-skill[pdf]`). `pypdf` is the maintained successor;
   `PyPDF2` is end-of-life and no longer receives security fixes (#54).
 
 ### Fixed
+
 - Text files (`.txt`, `.md`, `.rst`, `.adoc`, `.html`, `.rtf`) saved as UTF-16 or
   UTF-32 (e.g. Windows Notepad "Unicode" or PowerShell output) are now decoded by
   their byte-order mark instead of being read as `cp1252`/`latin-1` mojibake.
@@ -55,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] — 2026-06-17
 
 ### Added
+
 - **Installable Python package.** The extractor is now a proper `book_to_skill`
   package with a `pyproject.toml` (hatchling build backend), a `book-to-skill`
   console script, and `python -m book_to_skill`. Optional extractors are exposed
@@ -77,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   German, Italian, and Dutch (#44).
 
 ### Fixed
+
 - **Full-width Arabic digits in CJK chapter headings** — `第１章` (U+FF10–FF19),
   common in Japanese typesetting, is now detected like `第1章` (#46).
 - **Parser errors are no longer swallowed silently.** Unexpected exceptions in
@@ -90,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`str | None`), so the package imports and runs cleanly on Python 3.9 (#34).
 
 ### Security
+
 - **CI security scanning** — CodeQL (Python, security-and-quality + weekly
   schedule), Bandit (gates on HIGH severity; reports MEDIUM+ informationally),
   and Zizmor (GitHub Actions workflow audit, informational), plus a Dependabot
@@ -97,12 +104,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Bandit B314 (`xml.etree.ElementTree.fromstring` in the DOCX parser).
 
 ### Changed
+
 - CI test matrix now includes Python 3.9 so the import path above is guarded and
   cannot silently re-break.
 
 ## [1.1.0] — 2026-06-12
 
 ### Added
+
 - **GitHub Copilot CLI as a first-class target** — the same `SKILL.md` now
   discovers, installs, and runs across GitHub Copilot CLI, Amp, and Claude Code
   via the open Agent Skills standard. Skill Locations cover 8 discovery paths and
@@ -113,12 +122,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   run (best-effort, never fails the run).
 
 ### Changed
+
 - `SKILL.md` frontmatter trimmed toward the open-standard minimum and the
   description now names all three hosts so each agent's auto-loader picks it up (#30).
 - README headline + "Agent Skills" badge; install/usage sections cover all three
   hosts. `docs/ARCHITECTURE.md` shows per-host destination paths (#30).
 
 ### Notes
+
 - `allowed-tools` was dropped from the frontmatter for host-neutrality; the skill
   is conformant on all three hosts (validated with all three lenses). If Claude
   users hit permission-prompt friction, the Bash grant from #18 will be restored
@@ -130,6 +141,7 @@ First formally tagged release. The converter is stable, multi-format, and
 validated on real books.
 
 ### Added
+
 - **Multi-format extraction** — PDF, EPUB, DOCX, HTML, Markdown, reStructuredText,
   AsciiDoc, RTF, and MOBI/AZW/AZW3 (via Calibre), through a modular `extractor`
   package with per-format parsers and graceful stdlib fallbacks.
@@ -148,6 +160,7 @@ validated on real books.
   smoke test, and SKILL.md Claude-conformance validation (#15, #18).
 
 ### Changed
+
 - **README positioning** — copyright & fair-use section, "Beyond books" use cases,
   context-dump / RAG / 1M-window FAQ, and a measured Discovery Loop Tax + real
   per-conversion cost table across four books (#19, #27).
@@ -155,6 +168,7 @@ validated on real books.
   directories also supported (#13, #14).
 
 ### Fixed
+
 - **Chapter detection** — scans the full text (was capped at 50k chars) and counts
   distinct explicit `Chapter N` / `Capítulo N` headings, rejecting numbered list
   items, inline cross-references, and years; adds Portuguese support (#26).
@@ -165,8 +179,9 @@ validated on real books.
   the whole run; explicit input order is preserved (#7).
 
 ### Known limitations
+
 - Chapter auto-detection needs explicit `Chapter N` / `Capítulo N` or Roman-numeral
-  headings. Books that head chapter bodies with bare titles (e.g. *Moby-Dick*, where
+  headings. Books that head chapter bodies with bare titles (e.g. _Moby-Dick_, where
   numerals appear only in the table of contents) or use section titles (e.g. Pro Git)
   do not auto-segment.
 - Technical PDFs extracted in text mode may lose heading structure; use technical

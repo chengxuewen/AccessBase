@@ -1,11 +1,12 @@
 ---
 paths:
-  - "**/*.php"
-  - "**/composer.json"
-  - "**/phpstan.neon"
-  - "**/phpstan.neon.dist"
-  - "**/psalm.xml"
+  - '**/*.php'
+  - '**/composer.json'
+  - '**/phpstan.neon'
+  - '**/phpstan.neon.dist'
+  - '**/psalm.xml'
 ---
+
 # PHP Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with PHP specific content.

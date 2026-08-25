@@ -160,18 +160,15 @@ CREATE INDEX idx_oauth_accounts_provider ON oauth_accounts(provider, provider_ac
 
 ```typescript
 // Drizzle ORM 租户隔离
-import { sql } from 'drizzle-orm'
+import { sql } from 'drizzle-orm';
 
 // 所有查询自动附加租户过滤
 function withTenantFilter(tenantId: string) {
-  return sql`${table.tenant_id} = ${tenantId}`
+  return sql`${table.tenant_id} = ${tenantId}`;
 }
 
 // 使用示例
-const users = await db
-  .select()
-  .from(usersTable)
-  .where(withTenantFilter(request.tenantId))
+const users = await db.select().from(usersTable).where(withTenantFilter(request.tenantId));
 ```
 
 ---
@@ -182,11 +179,11 @@ const users = await db
 
 #### 保留周期
 
-| 日志类型 | 保留周期 | 说明 |
-|----------|----------|------|
-| 审计日志（audit_logs） | 1 年 | 满足等保三级、ISO 27001 等合规要求 |
-| 登录历史（login_history） | 90 天 | 账户安全审计，异常登录追踪 |
-| 会话数据（sessions） | 过期后 7 天 | 过期后保留用于异常分析，超期自动清理 |
+| 日志类型                  | 保留周期    | 说明                                 |
+| ------------------------- | ----------- | ------------------------------------ |
+| 审计日志（audit_logs）    | 1 年        | 满足等保三级、ISO 27001 等合规要求   |
+| 登录历史（login_history） | 90 天       | 账户安全审计，异常登录追踪           |
+| 会话数据（sessions）      | 过期后 7 天 | 过期后保留用于异常分析，超期自动清理 |
 
 #### 自动化清理机制
 
@@ -232,10 +229,10 @@ CREATE INDEX idx_archive_table ON archive_index(table_name, archive_month);
 
 #### Cron 调度配置
 
-| 任务 | Cron 表达式 | 执行时间 |
-|------|------------|----------|
+| 任务         | Cron 表达式 | 执行时间           |
+| ------------ | ----------- | ------------------ |
 | 审计日志清理 | `0 3 1 * *` | 每月 1 日凌晨 3:00 |
-| 登录历史清理 | `0 3 * * 0` | 每周日凌晨 3:00 |
-| 会话数据清理 | `0 2 * * *` | 每日凌晨 2:00 |
+| 登录历史清理 | `0 3 * * 0` | 每周日凌晨 3:00    |
+| 会话数据清理 | `0 2 * * *` | 每日凌晨 2:00      |
 
 > **注意事项**：清理任务应在业务低峰期执行，建议使用批量删除（每批 1000 条）避免长时间锁表影响在线业务。

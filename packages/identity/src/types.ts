@@ -64,9 +64,9 @@ export type UserStatus = 'active' | 'suspended' | 'pending';
 export interface CreateUserInput {
   email: string;
   name: string;
-  password?: string;          // OAuth users may not have password
+  password?: string; // OAuth users may not have password
   avatarUrl?: string;
-  roles?: string[];           // Role ID list
+  roles?: string[]; // Role ID list
   metadata?: Record<string, unknown>;
 }
 
@@ -81,7 +81,7 @@ export interface UserQueryParams {
   pageSize?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
-  search?: string;            // Search by email/name
+  search?: string; // Search by email/name
   status?: UserStatus;
   roleId?: string;
 }
@@ -92,14 +92,14 @@ export interface UserQueryParams {
 export interface CreateRoleInput {
   name: string;
   description?: string;
-  parentId?: string;          // Parent role ID (RBAC1 inheritance)
-  permissionIds?: string[];   // Initial permission list
+  parentId?: string; // Parent role ID (RBAC1 inheritance)
+  permissionIds?: string[]; // Initial permission list
 }
 
 export interface UpdateRoleInput {
   name?: string;
   description?: string;
-  permissionIds?: string[];   // Full replacement of permission list
+  permissionIds?: string[]; // Full replacement of permission list
 }
 
 export interface RoleQueryParams {
@@ -114,8 +114,8 @@ export interface RoleQueryParams {
  */
 export interface CreatePermissionInput {
   name: string;
-  resource: string;           // Resource identifier, e.g., 'users', 'roles', 'config'
-  action: string;             // Action identifier, e.g., 'read', 'write', 'delete', 'manage'
+  resource: string; // Resource identifier, e.g., 'users', 'roles', 'config'
+  action: string; // Action identifier, e.g., 'read', 'write', 'delete', 'manage'
   description?: string;
 }
 
@@ -136,18 +136,18 @@ export interface PermissionQueryParams {
  * Session Management Types (SDD 2.5)
  */
 export interface SessionTokens {
-  accessToken: string;        // RS256 signed, 15 min expiry
-  refreshToken: string;       // 7 day expiry, configurable
-  expiresIn: number;          // Access token expiry seconds
+  accessToken: string; // RS256 signed, 15 min expiry
+  refreshToken: string; // 7 day expiry, configurable
+  expiresIn: number; // Access token expiry seconds
 }
 
 export interface TokenPayload {
-  sub: string;                // User ID
+  sub: string; // User ID
   email: string;
   tenantId: string;
   roles: string[];
   permissions: string[];
-  tokenVersion: number;       // For RBAC invalidation check
+  tokenVersion: number; // For RBAC invalidation check
   iat: number;
   exp: number;
 }
@@ -168,7 +168,12 @@ export interface DeviceInfo {
 
 export interface SessionValidation {
   valid: boolean;
-  reason?: 'session_not_found' | 'idle_timeout' | 'absolute_timeout' | 'sso_session_expired' | 'sso_idle_timeout';
+  reason?:
+    | 'session_not_found'
+    | 'idle_timeout'
+    | 'absolute_timeout'
+    | 'sso_session_expired'
+    | 'sso_idle_timeout';
 }
 
 export interface SSOSession {
@@ -177,8 +182,8 @@ export interface SSOSession {
   identityProviderId: string;
   createdAt: Date;
   lastActivityAt: Date;
-  idleTimeout: number;        // Default 1800s (30 min)
-  absoluteTimeout: number;    // Default 28800s (8 hours)
+  idleTimeout: number; // Default 1800s (30 min)
+  absoluteTimeout: number; // Default 28800s (8 hours)
   expiresAt: Date;
   status: 'active' | 'expired' | 'revoked';
 }
@@ -186,13 +191,13 @@ export interface SSOSession {
 export interface LocalSession {
   id: string;
   userId: string;
-  ssoSessionId: string;       // Bound SSO session
+  ssoSessionId: string; // Bound SSO session
   tenantId: string;
   createdAt: Date;
   lastActivityAt: Date;
   idleTimeout: number;
   absoluteTimeout: number;
-  expiresAt: Date;            // ≤ SSO session expiry time
+  expiresAt: Date; // ≤ SSO session expiry time
   status: 'active' | 'expired' | 'revoked';
 }
 
@@ -200,9 +205,9 @@ export interface LocalSession {
  * MFA Types (SDD 2.6)
  */
 export interface MfaSetupResult {
-  secret: string;             // TOTP secret (Base32)
-  qrCodeUrl: string;          // otpauth:// URI
-  recoveryCodes: string[];    // One-time recovery codes (8 chars, 10 total)
+  secret: string; // TOTP secret (Base32)
+  qrCodeUrl: string; // otpauth:// URI
+  recoveryCodes: string[]; // One-time recovery codes (8 chars, 10 total)
 }
 
 export interface MfaVerifyResult {
@@ -217,7 +222,7 @@ export interface TrustedDevice {
   deviceFingerprint: string;
   deviceName: string;
   trustGrantedAt: Date;
-  trustExpiresAt: Date;       // Default 30 days
+  trustExpiresAt: Date; // Default 30 days
   lastUsedAt: Date;
   ipAddress: string;
   userAgent: string;
@@ -350,10 +355,13 @@ export interface SsoConfig {
     absoluteTimeout: number;
     maxSessionsPerUser: number;
     singleLogoutEnabled: boolean;
-    tenantOverrides?: Record<string, {
-      idleTimeout?: number;
-      absoluteTimeout?: number;
-    }>;
+    tenantOverrides?: Record<
+      string,
+      {
+        idleTimeout?: number;
+        absoluteTimeout?: number;
+      }
+    >;
   };
 }
 

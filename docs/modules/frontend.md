@@ -78,19 +78,19 @@ const routes: RouteConfig[] = [
 // 路由守卫
 function RouteGuard({ guard, permissions, children }: RouteGuardProps) {
   const { user, isAuthenticated } = useAuth()
-  
+
   if (guard === 'auth' && !isAuthenticated) {
     return <Navigate to="/login" />
   }
-  
+
   if (guard === 'guest' && isAuthenticated) {
     return <Navigate to="/" />
   }
-  
+
   if (permissions && !hasPermission(user, permissions)) {
     return <Navigate to="/403" />
   }
-  
+
   return children
 }
 
@@ -108,7 +108,7 @@ function useForm<T extends FieldValues>(options: UseFormOptions<T>) {
     resolver: zodResolver(options.schema),
     defaultValues: options.defaultValues
   })
-  
+
   const onSubmit = async (data: T) => {
     try {
       await options.onSubmit(data)
@@ -126,7 +126,7 @@ function useForm<T extends FieldValues>(options: UseFormOptions<T>) {
       }
     }
   }
-  
+
   return { ...form, onSubmit: form.handleSubmit(onSubmit) }
 }
 
@@ -137,7 +137,7 @@ function CreateUserForm() {
     onSubmit: async (data) => await api.post('/users', data),
     successMessage: '用户创建成功'
   })
-  
+
   return (
     <Form form={form}>
       <Form.Item label="邮箱" name="email">
@@ -163,15 +163,15 @@ function CreateUserForm() {
 // Error Boundary
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { hasError: false }
-  
+
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, error }
   }
-  
+
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     logger.error({ error: error.message, componentStack: errorInfo.componentStack })
   }
-  
+
   render() {
     if (this.state.hasError) {
       return <ErrorFallback error={this.state.error} onReset={() => this.setState({ hasError: false })} />
@@ -183,7 +183,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 // 全局错误处理
 function GlobalErrorHandler() {
   const { notification } = App.useApp()
-  
+
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       notification.error({
@@ -191,11 +191,11 @@ function GlobalErrorHandler() {
         description: '发生未知错误，请刷新页面重试'
       })
     }
-    
+
     window.addEventListener('error', handleError)
     return () => window.removeEventListener('error', handleError)
   }, [])
-  
+
   return null
 }
 ```
@@ -221,7 +221,7 @@ function TableSkeleton({ rows = 5, columns = 4 }: TableSkeletonProps) {
 // 加载状态 Hook
 function useLoading() {
   const [loading, setLoading] = useState(false)
-  
+
   const withLoading = useCallback(async <T,>(fn: () => Promise<T>): Promise<T> => {
     setLoading(true)
     try {
@@ -230,7 +230,7 @@ function useLoading() {
       setLoading(false)
     }
   }, [])
-  
+
   return { loading, withLoading }
 }
 

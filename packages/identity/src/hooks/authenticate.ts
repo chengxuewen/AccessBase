@@ -20,7 +20,7 @@ const PUBLIC_ROUTES = [
  * Check if route is public
  */
 function isPublicRoute(url: string): boolean {
-  return PUBLIC_ROUTES.some(route => url.startsWith(route));
+  return PUBLIC_ROUTES.some((route) => url.startsWith(route));
 }
 
 /**
@@ -36,7 +36,10 @@ function extractBearerToken(authHeader: string | undefined): string | null {
 /**
  * Authentication hook - runs on every request
  */
-export async function authenticateHook(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function authenticateHook(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
   // Skip public routes
   if (isPublicRoute(request.url)) {
     return;

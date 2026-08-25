@@ -1,8 +1,9 @@
 ---
 paths:
-  - "**/*.swift"
-  - "**/Package.swift"
+  - '**/*.swift'
+  - '**/Package.swift'
 ---
+
 # Swift Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Swift specific content.

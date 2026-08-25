@@ -1,7 +1,8 @@
 ---
 paths:
-  - "**/*.rs"
+  - '**/*.rs'
 ---
+
 # Rust Security
 
 > This file extends [common/security.md](../common/security.md) with Rust-specific content.

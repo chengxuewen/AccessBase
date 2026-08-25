@@ -124,7 +124,7 @@ export class RoleManager {
 
     if (params.search) {
       conditions.push(
-        sql`(${roles.name} ILIKE ${'%' + params.search + '%'} OR ${roles.description} ILIKE ${'%' + params.search + '%'})`
+        sql`(${roles.name} ILIKE ${'%' + params.search + '%'} OR ${roles.description} ILIKE ${'%' + params.search + '%'})`,
       );
     }
 
@@ -135,10 +135,7 @@ export class RoleManager {
     const where = and(...conditions);
 
     // Get total count
-    const [totalResult] = await this.db
-      .select({ count: count() })
-      .from(roles)
-      .where(where);
+    const [totalResult] = await this.db.select({ count: count() }).from(roles).where(where);
 
     const total = totalResult?.count ?? 0;
 
@@ -156,7 +153,7 @@ export class RoleManager {
       results.map(async (role) => {
         const perms = await this.getRolePermissions(role.id);
         return this.mapToRole(role, perms);
-      })
+      }),
     );
 
     return {
@@ -253,9 +250,7 @@ export class RoleManager {
     }
 
     // Delete role (cascade will handle role_permissions)
-    await this.db
-      .delete(roles)
-      .where(and(eq(roles.id, id), eq(roles.tenantId, tenantId)));
+    await this.db.delete(roles).where(and(eq(roles.id, id), eq(roles.tenantId, tenantId)));
   }
 
   /**
@@ -373,8 +368,8 @@ export class RoleManager {
         and(
           eq(userRoles.userId, userId),
           eq(userRoles.roleId, roleId),
-          eq(userRoles.tenantId, tenantId)
-        )
+          eq(userRoles.tenantId, tenantId),
+        ),
       );
   }
 
@@ -454,7 +449,7 @@ export class RoleManager {
         permissionIds.map((permissionId) => ({
           roleId,
           permissionId,
-        }))
+        })),
       );
     }
   }

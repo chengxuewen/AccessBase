@@ -9,7 +9,7 @@ compatibility: Designed for Claude Code, GitHub Copilot, and similar agents.
 disable-model-invocation: false
 metadata:
   author: openspec
-  version: "1.0"
+  version: '1.0'
   category: workflow
   project: AccessBase
 ---
@@ -29,6 +29,7 @@ Implement tasks from an AccessBase change proposal. Work through design-specifie
 ### 1. Select the change
 
 If a name is provided, use it. Otherwise:
+
 - Infer from conversation context if the user mentioned a change
 - Auto-select if only one active proposal exists
 - If ambiguous, list `.sisyphus/plans/` directories and ask the user to select
@@ -48,6 +49,7 @@ Also read relevant AccessBase source files and SDD docs referenced in the design
 ### 3. Show current progress
 
 Display:
+
 - Change name and description
 - Progress: "N/M tasks complete"
 - Remaining tasks overview
@@ -55,6 +57,7 @@ Display:
 ### 4. Implement tasks (loop until done or blocked)
 
 For each pending task:
+
 - **Show** which task is being worked on
 - **Read** any source files that need modification
 - **Edit** files following the design and SDD specifications
@@ -71,6 +74,7 @@ For each pending task:
 - **Continue** to next task
 
 **Pause if:**
+
 - Task is unclear - ask for clarification
 - Implementation reveals a design issue - suggest updating design.md
 - Build error or blocker encountered - report and wait for guidance

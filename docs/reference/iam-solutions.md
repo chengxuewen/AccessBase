@@ -31,34 +31,34 @@
 
 ### 1.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **后端语言** | Java |
-| **Web 框架** | Quarkus（从 WildFly 迁移） |
-| **数据库** | PostgreSQL, MySQL, MariaDB, Oracle, MSSQL |
-| **缓存** | Infinispan（内置分布式缓存） |
-| **协议实现** | OpenID Connect, OAuth 2.0, SAML 2.0 |
-| **前端** | React（管理控制台） |
-| **部署** | Docker, Kubernetes, OpenShift |
+| 层级         | 技术                                      |
+| ------------ | ----------------------------------------- |
+| **后端语言** | Java                                      |
+| **Web 框架** | Quarkus（从 WildFly 迁移）                |
+| **数据库**   | PostgreSQL, MySQL, MariaDB, Oracle, MSSQL |
+| **缓存**     | Infinispan（内置分布式缓存）              |
+| **协议实现** | OpenID Connect, OAuth 2.0, SAML 2.0       |
+| **前端**     | React（管理控制台）                       |
+| **部署**     | Docker, Kubernetes, OpenShift             |
 
 ### 1.3 认证特性
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **OAuth 2.0 / OIDC** | ✅ 完整支持 | 支持所有授权流程：Authorization Code, Implicit, Client Credentials, Device Authorization, CIBA |
-| **SAML 2.0** | ✅ 完整支持 | 企业级 SSO 集成 |
-| **LDAP / AD** | ✅ 内置支持 | 用户联邦，支持多个 LDAP 服务器 |
-| **WebAuthn / Passkeys** | ✅ 原生支持 | FIDO2 认证，支持无密码登录 |
-| **TOTP / MFA** | ✅ 原生支持 | Google Authenticator, FreeOTP, 恢复码 |
-| **社交登录** | ✅ 原生支持 | Google, GitHub, Facebook, Twitter 等 |
-| **身份代理** | ✅ 原生支持 | 可连接其他 OIDC/SAML IdP |
-| **用户自助注册** | ✅ 可配置 | 自定义注册流程，reCAPTCHA 支持 |
-| **密码策略** | ✅ 可配置 | 自定义密码策略（长度、复杂度、历史） |
-| **细粒度授权** | ✅ 内置 | 基于策略的授权服务（RBAC, ABAC） |
-| **Kerberos** | ✅ 桥接支持 | SSSD 集成，FreeIPA/IdM 支持 |
-| **X.509 证书** | ✅ 支持 | 客户端证书认证 |
-| **会话管理** | ✅ 完整 | 管理员和用户都可查看/管理会话 |
-| **审计日志** | ✅ 支持 | 事件监听和日志记录 |
+| 特性                    | 支持情况    | 说明                                                                                           |
+| ----------------------- | ----------- | ---------------------------------------------------------------------------------------------- |
+| **OAuth 2.0 / OIDC**    | ✅ 完整支持 | 支持所有授权流程：Authorization Code, Implicit, Client Credentials, Device Authorization, CIBA |
+| **SAML 2.0**            | ✅ 完整支持 | 企业级 SSO 集成                                                                                |
+| **LDAP / AD**           | ✅ 内置支持 | 用户联邦，支持多个 LDAP 服务器                                                                 |
+| **WebAuthn / Passkeys** | ✅ 原生支持 | FIDO2 认证，支持无密码登录                                                                     |
+| **TOTP / MFA**          | ✅ 原生支持 | Google Authenticator, FreeOTP, 恢复码                                                          |
+| **社交登录**            | ✅ 原生支持 | Google, GitHub, Facebook, Twitter 等                                                           |
+| **身份代理**            | ✅ 原生支持 | 可连接其他 OIDC/SAML IdP                                                                       |
+| **用户自助注册**        | ✅ 可配置   | 自定义注册流程，reCAPTCHA 支持                                                                 |
+| **密码策略**            | ✅ 可配置   | 自定义密码策略（长度、复杂度、历史）                                                           |
+| **细粒度授权**          | ✅ 内置     | 基于策略的授权服务（RBAC, ABAC）                                                               |
+| **Kerberos**            | ✅ 桥接支持 | SSSD 集成，FreeIPA/IdM 支持                                                                    |
+| **X.509 证书**          | ✅ 支持     | 客户端证书认证                                                                                 |
+| **会话管理**            | ✅ 完整     | 管理员和用户都可查看/管理会话                                                                  |
+| **审计日志**            | ✅ 支持     | 事件监听和日志记录                                                                             |
 
 ### 1.4 优点
 
@@ -108,36 +108,36 @@
 
 ### 2.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **后端语言** | Go |
-| **Web 框架** | Beego |
-| **前端框架** | React |
-| **数据库** | MySQL, PostgreSQL, SQLite, 等 |
-| **缓存** | Redis（可选） |
+| 层级         | 技术                                   |
+| ------------ | -------------------------------------- |
+| **后端语言** | Go                                     |
+| **Web 框架** | Beego                                  |
+| **前端框架** | React                                  |
+| **数据库**   | MySQL, PostgreSQL, SQLite, 等          |
+| **缓存**     | Redis（可选）                          |
 | **协议实现** | OAuth 2.0, OIDC, SAML, CAS, LDAP, SCIM |
-| **授权引擎** | Casbin（ACL, RBAC, ABAC） |
-| **部署** | Docker, Kubernetes |
+| **授权引擎** | Casbin（ACL, RBAC, ABAC）              |
+| **部署**     | Docker, Kubernetes                     |
 
 ### 2.3 认证特性
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **OAuth 2.0 / OIDC** | ✅ 完整支持 | OAuth 2.x 和 OpenID Connect |
-| **SAML 2.0** | ✅ 支持 | 企业 SSO 集成 |
-| **CAS** | ✅ 支持 | 中央认证服务 |
-| **LDAP** | ✅ 支持 | 目录服务集成 |
-| **SCIM 2.0** | ✅ 支持 | 用户自动配置 |
-| **WebAuthn / Passkeys** | ✅ 支持 | 无密码认证 |
-| **TOTP / MFA** | ✅ 支持 | 多因素认证 |
-| **Face ID** | ✅ 支持 | 生物识别认证 |
-| **社交登录** | ✅ 50+ 提供商 | Google, GitHub, Azure AD, WeChat, DingTalk 等 |
-| **RBAC** | ✅ 基于 Casbin | 角色访问控制 |
-| **多租户** | ✅ 组织支持 | 组织级 SSO、域名验证、自定义品牌 |
-| **审计日志** | ✅ 完整 | 可导出到 SIEM |
-| **Webhooks** | ✅ 支持 | 事件驱动集成 |
-| **MCP Gateway** | ✅ 2025 新增 | AI Agent 管理，Model Context Protocol |
-| **A2A Protocol** | ✅ 支持 | Agent-to-Agent 通信 |
+| 特性                    | 支持情况       | 说明                                          |
+| ----------------------- | -------------- | --------------------------------------------- |
+| **OAuth 2.0 / OIDC**    | ✅ 完整支持    | OAuth 2.x 和 OpenID Connect                   |
+| **SAML 2.0**            | ✅ 支持        | 企业 SSO 集成                                 |
+| **CAS**                 | ✅ 支持        | 中央认证服务                                  |
+| **LDAP**                | ✅ 支持        | 目录服务集成                                  |
+| **SCIM 2.0**            | ✅ 支持        | 用户自动配置                                  |
+| **WebAuthn / Passkeys** | ✅ 支持        | 无密码认证                                    |
+| **TOTP / MFA**          | ✅ 支持        | 多因素认证                                    |
+| **Face ID**             | ✅ 支持        | 生物识别认证                                  |
+| **社交登录**            | ✅ 50+ 提供商  | Google, GitHub, Azure AD, WeChat, DingTalk 等 |
+| **RBAC**                | ✅ 基于 Casbin | 角色访问控制                                  |
+| **多租户**              | ✅ 组织支持    | 组织级 SSO、域名验证、自定义品牌              |
+| **审计日志**            | ✅ 完整        | 可导出到 SIEM                                 |
+| **Webhooks**            | ✅ 支持        | 事件驱动集成                                  |
+| **MCP Gateway**         | ✅ 2025 新增   | AI Agent 管理，Model Context Protocol         |
+| **A2A Protocol**        | ✅ 支持        | Agent-to-Agent 通信                           |
 
 ### 2.4 优点
 
@@ -185,31 +185,31 @@
 
 ### 3.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **后端语言** | Go (85.6%) |
-| **前端** | TypeScript (12.1%) |
-| **配置存储** | SQLite, MySQL, PostgreSQL |
-| **会话存储** | Redis（推荐用于高可用） |
-| **协议实现** | OpenID Connect 1.0, OAuth 2.0 |
-| **部署** | Docker, Kubernetes (Helm), 静态二进制 |
+| 层级           | 技术                                           |
+| -------------- | ---------------------------------------------- |
+| **后端语言**   | Go (85.6%)                                     |
+| **前端**       | TypeScript (12.1%)                             |
+| **配置存储**   | SQLite, MySQL, PostgreSQL                      |
+| **会话存储**   | Redis（推荐用于高可用）                        |
+| **协议实现**   | OpenID Connect 1.0, OAuth 2.0                  |
+| **部署**       | Docker, Kubernetes (Helm), 静态二进制          |
 | **支持的代理** | nginx, Traefik, Caddy, HAProxy, Skipper, Envoy |
 
 ### 3.3 认证特性
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **OpenID Connect 1.0** | ✅ OpenID Certified™ | Basic OP / Implicit OP / Hybrid OP / Form Post OP / Config OP |
-| **OAuth 2.0** | ✅ 支持 | 完整的 OAuth 2.0 实现 |
-| **SAML** | ❌ 不支持 | 不支持 SAML（通过反向代理模式替代） |
-| **LDAP** | ✅ 支持 | 用户目录集成 |
-| **WebAuthn / Passkeys** | ✅ 支持 | FIDO2 安全密钥，无密码登录 |
-| **TOTP** | ✅ 支持 | 基于时间的一次性密码 |
-| **Duo Push** | ✅ 支持 | 移动推送通知 2FA |
-| **密码策略** | ✅ 内置 | 密码复杂度策略 |
-| **访问控制** | ✅ 细粒度 | 基于子域、用户、组、URI、方法、网络的规则 |
-| **失败锁定** | ✅ 内置 | 多次失败后锁定账户（Regulation） |
-| **用户自助** | ✅ 支持 | 密码重置、2FA 设备管理 |
+| 特性                    | 支持情况             | 说明                                                          |
+| ----------------------- | -------------------- | ------------------------------------------------------------- |
+| **OpenID Connect 1.0**  | ✅ OpenID Certified™ | Basic OP / Implicit OP / Hybrid OP / Form Post OP / Config OP |
+| **OAuth 2.0**           | ✅ 支持              | 完整的 OAuth 2.0 实现                                         |
+| **SAML**                | ❌ 不支持            | 不支持 SAML（通过反向代理模式替代）                           |
+| **LDAP**                | ✅ 支持              | 用户目录集成                                                  |
+| **WebAuthn / Passkeys** | ✅ 支持              | FIDO2 安全密钥，无密码登录                                    |
+| **TOTP**                | ✅ 支持              | 基于时间的一次性密码                                          |
+| **Duo Push**            | ✅ 支持              | 移动推送通知 2FA                                              |
+| **密码策略**            | ✅ 内置              | 密码复杂度策略                                                |
+| **访问控制**            | ✅ 细粒度            | 基于子域、用户、组、URI、方法、网络的规则                     |
+| **失败锁定**            | ✅ 内置              | 多次失败后锁定账户（Regulation）                              |
+| **用户自助**            | ✅ 支持              | 密码重置、2FA 设备管理                                        |
 
 ### 3.4 优点
 
@@ -258,33 +258,33 @@
 
 ### 4.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **后端语言** | TypeScript / Node.js |
-| **核心库** | node-oidc-provider（认证 OIDC 实现） |
-| **前端框架** | React |
-| **数据库** | PostgreSQL |
-| **包管理** | pnpm monorepo |
-| **协议实现** | OAuth 2.1, OIDC, SAML |
-| **部署** | Docker Compose, Node.js |
+| 层级         | 技术                                 |
+| ------------ | ------------------------------------ |
+| **后端语言** | TypeScript / Node.js                 |
+| **核心库**   | node-oidc-provider（认证 OIDC 实现） |
+| **前端框架** | React                                |
+| **数据库**   | PostgreSQL                           |
+| **包管理**   | pnpm monorepo                        |
+| **协议实现** | OAuth 2.1, OIDC, SAML                |
+| **部署**     | Docker Compose, Node.js              |
 
 ### 4.3 认证特性
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **OAuth 2.1** | ✅ 原生支持 | 最新 OAuth 2.1 规范 |
-| **OpenID Connect** | ✅ 完整支持 | 基于 node-oidc-provider |
-| **SAML 2.0** | ✅ 支持 | SP-initiated 流程，IdP-initiated 规划中 |
-| **MFA** | ✅ 支持 | Passkeys, TOTP, 备份码 |
-| **Passkeys** | ✅ 支持 | WebAuthn 无密码登录 |
-| **社交登录** | ✅ 支持 | Google, Facebook, Azure AD, Okta 等 |
-| **企业 SSO** | ✅ 支持 | Okta, Entra, SAML IdP |
-| **多租户** | ✅ 组织支持 | 组织级 RBAC、成员邀请、JIT 配置 |
-| **M2M 认证** | ✅ 支持 | Client Credentials 流程 |
-| **设备授权** | ✅ 支持 | OAuth 2.0 Device Authorization Grant |
-| **PAT** | ✅ 支持 | Personal Access Token |
-| **账户接管** | ✅ 支持 | 用户模拟功能 |
-| **MCP Server** | ✅ 支持 | AI 工具集成 |
+| 特性               | 支持情况    | 说明                                    |
+| ------------------ | ----------- | --------------------------------------- |
+| **OAuth 2.1**      | ✅ 原生支持 | 最新 OAuth 2.1 规范                     |
+| **OpenID Connect** | ✅ 完整支持 | 基于 node-oidc-provider                 |
+| **SAML 2.0**       | ✅ 支持     | SP-initiated 流程，IdP-initiated 规划中 |
+| **MFA**            | ✅ 支持     | Passkeys, TOTP, 备份码                  |
+| **Passkeys**       | ✅ 支持     | WebAuthn 无密码登录                     |
+| **社交登录**       | ✅ 支持     | Google, Facebook, Azure AD, Okta 等     |
+| **企业 SSO**       | ✅ 支持     | Okta, Entra, SAML IdP                   |
+| **多租户**         | ✅ 组织支持 | 组织级 RBAC、成员邀请、JIT 配置         |
+| **M2M 认证**       | ✅ 支持     | Client Credentials 流程                 |
+| **设备授权**       | ✅ 支持     | OAuth 2.0 Device Authorization Grant    |
+| **PAT**            | ✅ 支持     | Personal Access Token                   |
+| **账户接管**       | ✅ 支持     | 用户模拟功能                            |
+| **MCP Server**     | ✅ 支持     | AI 工具集成                             |
 
 ### 4.4 优点
 
@@ -333,41 +333,41 @@
 
 ### 5.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **后端语言** | Go |
-| **前端参考** | React (Next.js) |
-| **数据库** | PostgreSQL, MySQL, SQLite |
+| 层级         | 技术                                        |
+| ------------ | ------------------------------------------- |
+| **后端语言** | Go                                          |
+| **前端参考** | React (Next.js)                             |
+| **数据库**   | PostgreSQL, MySQL, SQLite                   |
 | **协议实现** | OAuth 2.0, OIDC, SAML (via Polis), WebAuthn |
-| **部署** | Docker, Kubernetes (Helm Charts) |
-| **架构模式** | 微服务/模块化 |
+| **部署**     | Docker, Kubernetes (Helm Charts)            |
+| **架构模式** | 微服务/模块化                               |
 
 ### 5.3 核心组件
 
-| 组件 | 职责 | 说明 |
-|------|------|------|
-| **Ory Kratos** | 身份管理与认证 | 用户注册、登录、MFA、账户恢复、会话管理 |
-| **Ory Hydra** | OAuth 2.0 / OIDC 服务器 | Token 发放、授权、SSO |
-| **Ory Keto** | 细粒度授权 | 基于 Google Zanzibar 的关系型授权 |
-| **Ory Polis** | 企业 SSO 桥接 | SAML → OIDC 桥接，SCIM 目录同步 |
-| **Ory Oathkeeper** | 访问代理 | 请求级访问控制、Zero Trust 实施 |
+| 组件               | 职责                    | 说明                                    |
+| ------------------ | ----------------------- | --------------------------------------- |
+| **Ory Kratos**     | 身份管理与认证          | 用户注册、登录、MFA、账户恢复、会话管理 |
+| **Ory Hydra**      | OAuth 2.0 / OIDC 服务器 | Token 发放、授权、SSO                   |
+| **Ory Keto**       | 细粒度授权              | 基于 Google Zanzibar 的关系型授权       |
+| **Ory Polis**      | 企业 SSO 桥接           | SAML → OIDC 桥接，SCIM 目录同步         |
+| **Ory Oathkeeper** | 访问代理                | 请求级访问控制、Zero Trust 实施         |
 
 ### 5.4 认证特性（Ory Kratos）
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **OAuth 2.0 / OIDC** | ✅ 通过 Hydra | 授权和 Token 发放 |
-| **WebAuthn / Passkeys** | ✅ 原生支持 | FIDO2 无密码登录 |
-| **TOTP / MFA** | ✅ 原生支持 | 多因素认证 |
-| **社交登录** | ✅ 支持 | 任意 OIDC 提供商 |
-| **SAML** | ✅ 通过 Polis | SAML-OIDC 桥接 |
-| **Magic Link** | ✅ 支持 | 无密码邮件链接 |
-| **SMS** | ✅ 支持 | 短信认证 |
-| **会话管理** | ✅ 原生支持 | Cookie 和 JWT 会话 |
-| **账户恢复** | ✅ 完整 | 密码重置、安全码 |
-| **身份验证** | ✅ 支持 | 邮箱、手机、地址验证 |
-| **细粒度授权** | ✅ 通过 Keto | Google Zanzibar 模型 |
-| **Zero Trust** | ✅ 通过 Oathkeeper | 请求级访问控制 |
+| 特性                    | 支持情况           | 说明                 |
+| ----------------------- | ------------------ | -------------------- |
+| **OAuth 2.0 / OIDC**    | ✅ 通过 Hydra      | 授权和 Token 发放    |
+| **WebAuthn / Passkeys** | ✅ 原生支持        | FIDO2 无密码登录     |
+| **TOTP / MFA**          | ✅ 原生支持        | 多因素认证           |
+| **社交登录**            | ✅ 支持            | 任意 OIDC 提供商     |
+| **SAML**                | ✅ 通过 Polis      | SAML-OIDC 桥接       |
+| **Magic Link**          | ✅ 支持            | 无密码邮件链接       |
+| **SMS**                 | ✅ 支持            | 短信认证             |
+| **会话管理**            | ✅ 原生支持        | Cookie 和 JWT 会话   |
+| **账户恢复**            | ✅ 完整            | 密码重置、安全码     |
+| **身份验证**            | ✅ 支持            | 邮箱、手机、地址验证 |
+| **细粒度授权**          | ✅ 通过 Keto       | Google Zanzibar 模型 |
+| **Zero Trust**          | ✅ 通过 Oathkeeper | 请求级访问控制       |
 
 ### 5.5 优点
 
@@ -408,40 +408,40 @@
 
 ### 6.1 技术栈对比
 
-| 方案 | 后端语言 | 前端 | 数据库 | 部署复杂度 |
-|------|----------|------|--------|------------|
-| **Keycloak** | Java (Quarkus) | React | PostgreSQL/MySQL | 高 |
-| **Casdoor** | Go (Beego) | React | MySQL/PostgreSQL | 中 |
-| **Authelia** | Go | TypeScript | SQLite/PostgreSQL | 低 |
-| **Logto** | TypeScript (Node.js) | React | PostgreSQL | 中 |
-| **Ory** | Go | 自建 | PostgreSQL/MySQL | 高（多组件） |
+| 方案         | 后端语言             | 前端       | 数据库            | 部署复杂度   |
+| ------------ | -------------------- | ---------- | ----------------- | ------------ |
+| **Keycloak** | Java (Quarkus)       | React      | PostgreSQL/MySQL  | 高           |
+| **Casdoor**  | Go (Beego)           | React      | MySQL/PostgreSQL  | 中           |
+| **Authelia** | Go                   | TypeScript | SQLite/PostgreSQL | 低           |
+| **Logto**    | TypeScript (Node.js) | React      | PostgreSQL        | 中           |
+| **Ory**      | Go                   | 自建       | PostgreSQL/MySQL  | 高（多组件） |
 
 ### 6.2 功能对比
 
-| 功能 | Keycloak | Casdoor | Authelia | Logto | Ory |
-|------|----------|---------|----------|-------|-----|
-| **OAuth 2.0** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **OIDC** | ✅ | ✅ | ✅ Certified™ | ✅ | ✅ |
-| **SAML 2.0** | ✅ | ✅ | ❌ | ✅ | ✅ (Polis) |
-| **LDAP** | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **WebAuthn** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **MFA** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **社交登录** | ✅ | ✅ 50+ | ❌ | ✅ | ✅ |
-| **RBAC** | ✅ | ✅ (Casbin) | ❌ | ✅ | ✅ (Keto) |
-| **多租户** | ✅ (Realm) | ✅ | ❌ | ✅ | ✅ (OEL) |
-| **用户管理 UI** | ✅ | ✅ | 简单 | ✅ | ❌ |
-| **AI/MCP 支持** | ❌ | ✅ | ❌ | ✅ | ❌ |
-| **Zero Trust** | ❌ | ❌ | ❌ | ❌ | ✅ |
+| 功能            | Keycloak   | Casdoor     | Authelia      | Logto | Ory        |
+| --------------- | ---------- | ----------- | ------------- | ----- | ---------- |
+| **OAuth 2.0**   | ✅         | ✅          | ✅            | ✅    | ✅         |
+| **OIDC**        | ✅         | ✅          | ✅ Certified™ | ✅    | ✅         |
+| **SAML 2.0**    | ✅         | ✅          | ❌            | ✅    | ✅ (Polis) |
+| **LDAP**        | ✅         | ✅          | ✅            | ❌    | ❌         |
+| **WebAuthn**    | ✅         | ✅          | ✅            | ✅    | ✅         |
+| **MFA**         | ✅         | ✅          | ✅            | ✅    | ✅         |
+| **社交登录**    | ✅         | ✅ 50+      | ❌            | ✅    | ✅         |
+| **RBAC**        | ✅         | ✅ (Casbin) | ❌            | ✅    | ✅ (Keto)  |
+| **多租户**      | ✅ (Realm) | ✅          | ❌            | ✅    | ✅ (OEL)   |
+| **用户管理 UI** | ✅         | ✅          | 简单          | ✅    | ❌         |
+| **AI/MCP 支持** | ❌         | ✅          | ❌            | ✅    | ❌         |
+| **Zero Trust**  | ❌         | ❌          | ❌            | ❌    | ✅         |
 
 ### 6.3 定位对比
 
-| 方案 | 最佳场景 | 不适合场景 |
-|------|----------|------------|
-| **Keycloak** | 企业级全功能 IAM | 轻量级应用、资源受限环境 |
-| **Casdoor** | 快速集成、UI-first、AI Agent | 极高并发、需要深度定制 |
-| **Authelia** | 反向代理认证、K8s 环境 | 需要 SAML、社交登录 |
-| **Logto** | SaaS/AI 应用、TypeScript 团队 | 需要 LDAP、极低资源 |
-| **Ory** | 微服务、云原生、Zero Trust | 快速启动、不想自建 UI |
+| 方案         | 最佳场景                      | 不适合场景               |
+| ------------ | ----------------------------- | ------------------------ |
+| **Keycloak** | 企业级全功能 IAM              | 轻量级应用、资源受限环境 |
+| **Casdoor**  | 快速集成、UI-first、AI Agent  | 极高并发、需要深度定制   |
+| **Authelia** | 反向代理认证、K8s 环境        | 需要 SAML、社交登录      |
+| **Logto**    | SaaS/AI 应用、TypeScript 团队 | 需要 LDAP、极低资源      |
+| **Ory**      | 微服务、云原生、Zero Trust    | 快速启动、不想自建 UI    |
 
 ---
 
@@ -451,38 +451,38 @@
 
 ### 7.1 架构设计
 
-| 来源 | 借鉴点 | AccessBase 适用性 |
-|------|--------|-------------------|
-| **Logto** | API 分层（Management / Experience / Account） | ⭐⭐⭐ 直接参考 |
-| **Ory** | 模块化服务设计 | ⭐⭐⭐ 可参考拆分策略 |
-| **Keycloak** | Realm 多租户机制 | ⭐⭐⭐ 多租户核心参考 |
-| **Casdoor** | UI-first 管理界面 | ⭐⭐ 管理控制台设计 |
+| 来源         | 借鉴点                                        | AccessBase 适用性     |
+| ------------ | --------------------------------------------- | --------------------- |
+| **Logto**    | API 分层（Management / Experience / Account） | ⭐⭐⭐ 直接参考       |
+| **Ory**      | 模块化服务设计                                | ⭐⭐⭐ 可参考拆分策略 |
+| **Keycloak** | Realm 多租户机制                              | ⭐⭐⭐ 多租户核心参考 |
+| **Casdoor**  | UI-first 管理界面                             | ⭐⭐ 管理控制台设计   |
 
 ### 7.2 认证流程
 
-| 来源 | 借鉴点 | AccessBase 适用性 |
-|------|--------|-------------------|
-| **Keycloak** | Authentication Flows 可定制 | ⭐⭐⭐ 认证流程引擎 |
-| **Ory Kratos** | Self-service 流程设计 | ⭐⭐⭐ 用户自助服务 |
-| **Authelia** | 失败尝试锁定（Regulation） | ⭐⭐ 安全防护 |
-| **Logto** | 登录体验 UI 设计 | ⭐⭐ 前端参考 |
+| 来源           | 借鉴点                      | AccessBase 适用性   |
+| -------------- | --------------------------- | ------------------- |
+| **Keycloak**   | Authentication Flows 可定制 | ⭐⭐⭐ 认证流程引擎 |
+| **Ory Kratos** | Self-service 流程设计       | ⭐⭐⭐ 用户自助服务 |
+| **Authelia**   | 失败尝试锁定（Regulation）  | ⭐⭐ 安全防护       |
+| **Logto**      | 登录体验 UI 设计            | ⭐⭐ 前端参考       |
 
 ### 7.3 授权模型
 
-| 来源 | 借鉴点 | AccessBase 适用性 |
-|------|--------|-------------------|
-| **Ory Keto** | Zanzibar 关系型授权 | ⭐⭐⭐ 细粒度授权 |
-| **Casdoor** | Casbin 集成（RBAC/ABAC） | ⭐⭐⭐ 策略引擎 |
-| **Keycloak** | 细粒度授权服务 | ⭐⭐ 策略评估 |
+| 来源         | 借鉴点                   | AccessBase 适用性 |
+| ------------ | ------------------------ | ----------------- |
+| **Ory Keto** | Zanzibar 关系型授权      | ⭐⭐⭐ 细粒度授权 |
+| **Casdoor**  | Casbin 集成（RBAC/ABAC） | ⭐⭐⭐ 策略引擎   |
+| **Keycloak** | 细粒度授权服务           | ⭐⭐ 策略评估     |
 
 ### 7.4 技术实现
 
-| 来源 | 借鉴点 | AccessBase 适用性 |
-|------|--------|-------------------|
-| **Logto** | TypeScript + pnpm monorepo | ⭐⭐⭐ 直接参考代码结构 |
-| **Ory** | Headless API + 身份模式 | ⭐⭐⭐ API 设计 |
-| **Authelia** | Go 轻量级部署 | ⭐⭐ 部署策略 |
-| **Casdoor** | Webhook 事件驱动 | ⭐⭐ 集成机制 |
+| 来源         | 借鉴点                     | AccessBase 适用性       |
+| ------------ | -------------------------- | ----------------------- |
+| **Logto**    | TypeScript + pnpm monorepo | ⭐⭐⭐ 直接参考代码结构 |
+| **Ory**      | Headless API + 身份模式    | ⭐⭐⭐ API 设计         |
+| **Authelia** | Go 轻量级部署              | ⭐⭐ 部署策略           |
+| **Casdoor**  | Webhook 事件驱动           | ⭐⭐ 集成机制           |
 
 ### 7.5 优先参考顺序
 
@@ -496,4 +496,4 @@
 
 ---
 
-*本文档基于 2026-08-21 的网络搜索和 GitHub 信息整理，各方案的版本和特性可能随时间更新。*
+_本文档基于 2026-08-21 的网络搜索和 GitHub 信息整理，各方案的版本和特性可能随时间更新。_

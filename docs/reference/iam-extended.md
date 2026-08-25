@@ -34,36 +34,36 @@
 
 ### 1.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **后端语言** | Python (Django) + Go (Outposts) + Rust (核心二进制) |
-| **Web 框架** | Django (API/Admin) + Axum (Rust 高性能组件) |
-| **前端** | TypeScript (Lit Web Components) |
-| **数据库** | PostgreSQL |
-| **ORM** | Django ORM + GORM (Go) + sqlx (Rust) |
-| **协议实现** | SAML 2.0, OAuth 2.0, OIDC, LDAP, RADIUS |
-| **部署** | Docker Compose, Kubernetes (Helm), AWS CloudFormation, DigitalOcean |
-| **缓存/队列** | Redis（可选） |
+| 层级          | 技术                                                                |
+| ------------- | ------------------------------------------------------------------- |
+| **后端语言**  | Python (Django) + Go (Outposts) + Rust (核心二进制)                 |
+| **Web 框架**  | Django (API/Admin) + Axum (Rust 高性能组件)                         |
+| **前端**      | TypeScript (Lit Web Components)                                     |
+| **数据库**    | PostgreSQL                                                          |
+| **ORM**       | Django ORM + GORM (Go) + sqlx (Rust)                                |
+| **协议实现**  | SAML 2.0, OAuth 2.0, OIDC, LDAP, RADIUS                             |
+| **部署**      | Docker Compose, Kubernetes (Helm), AWS CloudFormation, DigitalOcean |
+| **缓存/队列** | Redis（可选）                                                       |
 
 ### 1.3 认证特性
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **OAuth 2.0 / OIDC** | ✅ 完整支持 | 标准 OAuth 2.0 + OpenID Connect |
-| **SAML 2.0** | ✅ 完整支持 | SP 和 IdP 角色 |
-| **LDAP** | ✅ 内置 Outpost | Go 实现的 LDAP Outpost |
-| **RADIUS** | ✅ 内置 Outpost | 网络设备认证 |
-| **RAC (远程访问)** | ✅ 支持 | RDP/SSH/VNC 通过 guacd |
-| **WebAuthn / Passkeys** | ✅ 支持 | FIDO2 无密码认证 |
-| **TOTP / MFA** | ✅ 支持 | 多因素认证 |
-| **社交登录** | ✅ 支持 | 多种 OAuth/OIDC 提供商 |
-| **身份代理 (IdP Federation)** | ✅ 原生支持 | 可连接外部 IdP |
-| **用户联邦** | ✅ 支持 | LDAP/AD 同步 |
-| **Flow 引擎** | ✅ 可视化编辑 | 拖拽式认证流程设计 |
-| **策略引擎** | ✅ 支持 | 表达式策略、用户/组策略 |
-| **事件系统** | ✅ 支持 | 事件触发器、通知 |
-| **审计日志** | ✅ 企业版 | 详细审计日志 |
-| **Webhook** | ✅ 支持 | 事件通知集成 |
+| 特性                          | 支持情况        | 说明                            |
+| ----------------------------- | --------------- | ------------------------------- |
+| **OAuth 2.0 / OIDC**          | ✅ 完整支持     | 标准 OAuth 2.0 + OpenID Connect |
+| **SAML 2.0**                  | ✅ 完整支持     | SP 和 IdP 角色                  |
+| **LDAP**                      | ✅ 内置 Outpost | Go 实现的 LDAP Outpost          |
+| **RADIUS**                    | ✅ 内置 Outpost | 网络设备认证                    |
+| **RAC (远程访问)**            | ✅ 支持         | RDP/SSH/VNC 通过 guacd          |
+| **WebAuthn / Passkeys**       | ✅ 支持         | FIDO2 无密码认证                |
+| **TOTP / MFA**                | ✅ 支持         | 多因素认证                      |
+| **社交登录**                  | ✅ 支持         | 多种 OAuth/OIDC 提供商          |
+| **身份代理 (IdP Federation)** | ✅ 原生支持     | 可连接外部 IdP                  |
+| **用户联邦**                  | ✅ 支持         | LDAP/AD 同步                    |
+| **Flow 引擎**                 | ✅ 可视化编辑   | 拖拽式认证流程设计              |
+| **策略引擎**                  | ✅ 支持         | 表达式策略、用户/组策略         |
+| **事件系统**                  | ✅ 支持         | 事件触发器、通知                |
+| **审计日志**                  | ✅ 企业版       | 详细审计日志                    |
+| **Webhook**                   | ✅ 支持         | 事件通知集成                    |
 
 ### 1.4 多租户支持
 
@@ -119,33 +119,33 @@
 
 ### 2.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **Core 语言** | Java（内嵌 Tomcat） |
-| **后端 SDK** | Node.js, Python, Go |
-| **前端 SDK** | React, React Native, Vanilla JS, Angular, Vue |
-| **数据库** | PostgreSQL, MySQL |
-| **协议实现** | 自有 Session 管理 + OAuth 2.0（发展中） |
-| **部署** | Docker, 自托管二进制 |
-| **架构模式** | SDK-Core 分层，Recipe 模块化 |
+| 层级          | 技术                                          |
+| ------------- | --------------------------------------------- |
+| **Core 语言** | Java（内嵌 Tomcat）                           |
+| **后端 SDK**  | Node.js, Python, Go                           |
+| **前端 SDK**  | React, React Native, Vanilla JS, Angular, Vue |
+| **数据库**    | PostgreSQL, MySQL                             |
+| **协议实现**  | 自有 Session 管理 + OAuth 2.0（发展中）       |
+| **部署**      | Docker, 自托管二进制                          |
+| **架构模式**  | SDK-Core 分层，Recipe 模块化                  |
 
 ### 2.3 认证特性
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **邮箱密码登录** | ✅ 原生支持 | 标准邮箱密码注册登录 |
-| **手机号密码** | ✅ 支持 | 手机号作为用户名 |
-| **无密码登录** | ✅ 支持 | Magic Link + OTP（邮箱/短信） |
-| **社交登录** | ✅ 支持 | Google, GitHub, Apple, Facebook 等 |
-| **MFA** | ✅ 支持 | TOTP, 备用码 |
-| **Session 管理** | ✅ 核心特性 | 基于 JWT + HttpOnly Cookie 的安全会话 |
-| **用户角色** | ✅ 支持 | 基础 RBAC |
-| **多租户/组织** | ✅ 企业版 | 组织支持、Enterprise SSO |
-| **OAuth 2.0 / OIDC** | 🟡 发展中 | 作为 OIDC Provider 功能正在开发 |
-| **SAML** | ❌ 不支持 | 无 SAML 支持 |
-| **LDAP** | ❌ 不支持 | 无 LDAP 集成 |
-| **WebAuthn** | ❌ 不支持 | 暂无 Passkeys 支持 |
-| **微服务认证** | ✅ 支持 | 服务间认证 |
+| 特性                 | 支持情况    | 说明                                  |
+| -------------------- | ----------- | ------------------------------------- |
+| **邮箱密码登录**     | ✅ 原生支持 | 标准邮箱密码注册登录                  |
+| **手机号密码**       | ✅ 支持     | 手机号作为用户名                      |
+| **无密码登录**       | ✅ 支持     | Magic Link + OTP（邮箱/短信）         |
+| **社交登录**         | ✅ 支持     | Google, GitHub, Apple, Facebook 等    |
+| **MFA**              | ✅ 支持     | TOTP, 备用码                          |
+| **Session 管理**     | ✅ 核心特性 | 基于 JWT + HttpOnly Cookie 的安全会话 |
+| **用户角色**         | ✅ 支持     | 基础 RBAC                             |
+| **多租户/组织**      | ✅ 企业版   | 组织支持、Enterprise SSO              |
+| **OAuth 2.0 / OIDC** | 🟡 发展中   | 作为 OIDC Provider 功能正在开发       |
+| **SAML**             | ❌ 不支持   | 无 SAML 支持                          |
+| **LDAP**             | ❌ 不支持   | 无 LDAP 集成                          |
+| **WebAuthn**         | ❌ 不支持   | 暂无 Passkeys 支持                    |
+| **微服务认证**       | ✅ 支持     | 服务间认证                            |
 
 ### 2.4 多租户支持
 
@@ -202,36 +202,36 @@
 
 ### 3.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **后端语言** | Go |
-| **架构模式** | Event Sourcing + CQRS |
-| **数据库** | PostgreSQL (≥ 14)（v3 仅支持 PostgreSQL） |
-| **API 协议** | ConnectRPC, gRPC, gRPC-web, REST |
-| **前端** | Angular (管理控制台) |
-| **部署** | Docker, Kubernetes (Helm), Serverless (Cloud Run) |
-| **缓存** | 无外部缓存依赖（Event Sourcing 内置状态） |
+| 层级         | 技术                                              |
+| ------------ | ------------------------------------------------- |
+| **后端语言** | Go                                                |
+| **架构模式** | Event Sourcing + CQRS                             |
+| **数据库**   | PostgreSQL (≥ 14)（v3 仅支持 PostgreSQL）         |
+| **API 协议** | ConnectRPC, gRPC, gRPC-web, REST                  |
+| **前端**     | Angular (管理控制台)                              |
+| **部署**     | Docker, Kubernetes (Helm), Serverless (Cloud Run) |
+| **缓存**     | 无外部缓存依赖（Event Sourcing 内置状态）         |
 
 ### 3.3 认证特性
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **OAuth 2.0 / OIDC** | ✅ 完整支持 | 标准 OAuth 2.0 + OpenID Connect |
-| **SAML 2.0** | ✅ 支持 | SAML SP/IdP |
-| **SCIM 2.0** | ✅ 支持 | 用户自动配置 |
-| **WebAuthn / Passkeys** | ✅ 支持 | FIDO2 无密码认证 |
-| **TOTP / MFA** | ✅ 支持 | TOTP, U2F, Passkeys |
-| **社交登录** | ✅ 支持 | 预构建 IdP 模板 |
-| **身份代理** | ✅ 原生支持 | Identity Brokering |
-| **用户自助** | ✅ 完整 | B2B 自助入职、自助管理 |
-| **Actions / Webhooks** | ✅ 支持 | 事件驱动扩展，无需部署代码 |
-| **审计追踪** | ✅ 核心特性 | Event Sourcing 天然提供完整审计流 |
-| **组织管理** | ✅ 原生支持 | 严格多租户层次：Instance → Organization → Project |
-| **域名发现** | ✅ 支持 | 基于域名自动路由到组织 |
-| **委托角色管理** | ✅ 支持 | 可将角色管理委托给第三方 |
-| **M2M 认证** | ✅ 支持 | 机器对机器认证 |
-| **Zero-downtime 更新** | ✅ 支持 | 无停机版本升级 |
-| **LDAP** | ❌ 不支持 | 无 LDAP 集成 |
+| 特性                    | 支持情况    | 说明                                              |
+| ----------------------- | ----------- | ------------------------------------------------- |
+| **OAuth 2.0 / OIDC**    | ✅ 完整支持 | 标准 OAuth 2.0 + OpenID Connect                   |
+| **SAML 2.0**            | ✅ 支持     | SAML SP/IdP                                       |
+| **SCIM 2.0**            | ✅ 支持     | 用户自动配置                                      |
+| **WebAuthn / Passkeys** | ✅ 支持     | FIDO2 无密码认证                                  |
+| **TOTP / MFA**          | ✅ 支持     | TOTP, U2F, Passkeys                               |
+| **社交登录**            | ✅ 支持     | 预构建 IdP 模板                                   |
+| **身份代理**            | ✅ 原生支持 | Identity Brokering                                |
+| **用户自助**            | ✅ 完整     | B2B 自助入职、自助管理                            |
+| **Actions / Webhooks**  | ✅ 支持     | 事件驱动扩展，无需部署代码                        |
+| **审计追踪**            | ✅ 核心特性 | Event Sourcing 天然提供完整审计流                 |
+| **组织管理**            | ✅ 原生支持 | 严格多租户层次：Instance → Organization → Project |
+| **域名发现**            | ✅ 支持     | 基于域名自动路由到组织                            |
+| **委托角色管理**        | ✅ 支持     | 可将角色管理委托给第三方                          |
+| **M2M 认证**            | ✅ 支持     | 机器对机器认证                                    |
+| **Zero-downtime 更新**  | ✅ 支持     | 无停机版本升级                                    |
+| **LDAP**                | ❌ 不支持   | 无 LDAP 集成                                      |
 
 ### 3.4 多租户支持
 
@@ -292,34 +292,34 @@
 
 ### 4.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **后端语言** | Java |
-| **搜索引擎** | Elasticsearch（用户搜索） |
-| **数据库** | PostgreSQL, MySQL |
-| **前端** | FreeMarker 模板 + React (Admin UI) |
-| **协议实现** | OAuth 2.0, OIDC, SAML 2.0 |
-| **部署** | Docker, Kubernetes, ZIP, DEB, RPM, FusionAuth Cloud |
-| **扩展机制** | Lambda（JavaScript）, Webhook, Kafka |
+| 层级         | 技术                                                |
+| ------------ | --------------------------------------------------- |
+| **后端语言** | Java                                                |
+| **搜索引擎** | Elasticsearch（用户搜索）                           |
+| **数据库**   | PostgreSQL, MySQL                                   |
+| **前端**     | FreeMarker 模板 + React (Admin UI)                  |
+| **协议实现** | OAuth 2.0, OIDC, SAML 2.0                           |
+| **部署**     | Docker, Kubernetes, ZIP, DEB, RPM, FusionAuth Cloud |
+| **扩展机制** | Lambda（JavaScript）, Webhook, Kafka                |
 
 ### 4.3 认证特性
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **OAuth 2.0 / OIDC** | ✅ 完整支持 | 所有标准授权流程 |
-| **SAML 2.0** | ✅ 完整支持 | SP 和 IdP 角色 |
-| **WebAuthn / Passkeys** | ✅ 支持 | 企业版完整支持 |
-| **TOTP / MFA** | ✅ 支持 | TOTP, SMS, Email, 语音, 智能策略 |
-| **社交登录** | ✅ 无限量 | 无限身份提供商连接 |
-| **LDAP** | ✅ 通过 Connector | 企业版连接器 |
-| **SCIM Server** | ✅ 企业版 | 用户自动配置 |
-| **Lambda 扩展** | ✅ 核心特性 | JavaScript Lambda 自定义逻辑 |
-| **用户搜索** | ✅ 强大 | Elasticsearch 驱动的全文搜索 |
-| **Webhook** | ✅ 支持 | 事件通知集成 |
-| **Kafka 集成** | ✅ 企业版 | 事件流集成 |
-| **Terraform** | ✅ 支持 | 基础设施即代码 |
-| **自服务门户** | ✅ 内置 | 用户自助管理界面 |
-| **细粒度授权** | ✅ 企业版 | 精细化权限控制 |
+| 特性                    | 支持情况          | 说明                             |
+| ----------------------- | ----------------- | -------------------------------- |
+| **OAuth 2.0 / OIDC**    | ✅ 完整支持       | 所有标准授权流程                 |
+| **SAML 2.0**            | ✅ 完整支持       | SP 和 IdP 角色                   |
+| **WebAuthn / Passkeys** | ✅ 支持           | 企业版完整支持                   |
+| **TOTP / MFA**          | ✅ 支持           | TOTP, SMS, Email, 语音, 智能策略 |
+| **社交登录**            | ✅ 无限量         | 无限身份提供商连接               |
+| **LDAP**                | ✅ 通过 Connector | 企业版连接器                     |
+| **SCIM Server**         | ✅ 企业版         | 用户自动配置                     |
+| **Lambda 扩展**         | ✅ 核心特性       | JavaScript Lambda 自定义逻辑     |
+| **用户搜索**            | ✅ 强大           | Elasticsearch 驱动的全文搜索     |
+| **Webhook**             | ✅ 支持           | 事件通知集成                     |
+| **Kafka 集成**          | ✅ 企业版         | 事件流集成                       |
+| **Terraform**           | ✅ 支持           | 基础设施即代码                   |
+| **自服务门户**          | ✅ 内置           | 用户自助管理界面                 |
+| **细粒度授权**          | ✅ 企业版         | 精细化权限控制                   |
 
 ### 4.4 多租户支持
 
@@ -379,39 +379,39 @@
 
 ### 5.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **云基础设施** | AWS（多区域、多可用区） |
-| **数据存储** | MongoDB, PostgreSQL, Redis, Elasticsearch |
-| **消息队列** | Kinesis, RabbitMQ, SNS, SQS |
-| **CDN** | CloudFront |
-| **编排** | SaltStack, TerraForm, Ansible |
-| **扩展平台** | Extend（Serverless Functions） |
-| **协议实现** | OAuth 2.0, OIDC, SAML 2.0, WS-Federation, LDAP |
-| **部署** | 纯 SaaS（无自托管选项） |
+| 层级           | 技术                                           |
+| -------------- | ---------------------------------------------- |
+| **云基础设施** | AWS（多区域、多可用区）                        |
+| **数据存储**   | MongoDB, PostgreSQL, Redis, Elasticsearch      |
+| **消息队列**   | Kinesis, RabbitMQ, SNS, SQS                    |
+| **CDN**        | CloudFront                                     |
+| **编排**       | SaltStack, TerraForm, Ansible                  |
+| **扩展平台**   | Extend（Serverless Functions）                 |
+| **协议实现**   | OAuth 2.0, OIDC, SAML 2.0, WS-Federation, LDAP |
+| **部署**       | 纯 SaaS（无自托管选项）                        |
 
 ### 5.3 认证特性
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **OAuth 2.0 / OIDC** | ✅ 完整支持 | 所有标准授权流程 + PKCE |
-| **SAML 2.0** | ✅ 完整支持 | 企业级 SSO 集成 |
-| **WS-Federation** | ✅ 支持 | 企业集成 |
-| **LDAP / AD** | ✅ 通过 Connector | 企业目录集成 |
-| **WebAuthn / Passkeys** | ✅ 支持 | FIDO2 无密码认证 |
-| **MFA** | ✅ 完整支持 | SMS, Email, TOTP, Push, 智能 MFA |
-| **社交登录** | ✅ 无限量 | 全球主流社交登录提供商 |
-| **企业 SSO** | ✅ 完整 | Azure AD, Okta, Google Workspace, PingFederate 等 |
-| **Universal Login** | ✅ 核心特性 | 自定义品牌登录页面 |
-| **Actions (扩展)** | ✅ 核心特性 | Serverless 代码扩展 |
-| **Forms (无代码)** | ✅ 支持 | 可视化表单编辑器 |
-| **Organizations** | ✅ B2B 功能 | 多组织管理 |
-| **Bot Detection** | ✅ 内置 | AI 驱动的恶意行为检测 |
-| **Breached Password** | ✅ 内置 | 泄露密码检测 |
-| **Security Center** | ✅ 支持 | 安全威胁监控与洞察 |
-| **攻击防护** | ✅ AI 驱动 | 凭据填充、暴力破解防护 |
-| **高度合规身份** | ✅ 企业版 | SCA, FAPI, GDPR, HIPAA, PSD2 |
-| **客户管理密钥** | ✅ 企业版 | CMK 加密 |
+| 特性                    | 支持情况          | 说明                                              |
+| ----------------------- | ----------------- | ------------------------------------------------- |
+| **OAuth 2.0 / OIDC**    | ✅ 完整支持       | 所有标准授权流程 + PKCE                           |
+| **SAML 2.0**            | ✅ 完整支持       | 企业级 SSO 集成                                   |
+| **WS-Federation**       | ✅ 支持           | 企业集成                                          |
+| **LDAP / AD**           | ✅ 通过 Connector | 企业目录集成                                      |
+| **WebAuthn / Passkeys** | ✅ 支持           | FIDO2 无密码认证                                  |
+| **MFA**                 | ✅ 完整支持       | SMS, Email, TOTP, Push, 智能 MFA                  |
+| **社交登录**            | ✅ 无限量         | 全球主流社交登录提供商                            |
+| **企业 SSO**            | ✅ 完整           | Azure AD, Okta, Google Workspace, PingFederate 等 |
+| **Universal Login**     | ✅ 核心特性       | 自定义品牌登录页面                                |
+| **Actions (扩展)**      | ✅ 核心特性       | Serverless 代码扩展                               |
+| **Forms (无代码)**      | ✅ 支持           | 可视化表单编辑器                                  |
+| **Organizations**       | ✅ B2B 功能       | 多组织管理                                        |
+| **Bot Detection**       | ✅ 内置           | AI 驱动的恶意行为检测                             |
+| **Breached Password**   | ✅ 内置           | 泄露密码检测                                      |
+| **Security Center**     | ✅ 支持           | 安全威胁监控与洞察                                |
+| **攻击防护**            | ✅ AI 驱动        | 凭据填充、暴力破解防护                            |
+| **高度合规身份**        | ✅ 企业版         | SCA, FAPI, GDPR, HIPAA, PSD2                      |
+| **客户管理密钥**        | ✅ 企业版         | CMK 加密                                          |
 
 ### 5.4 多租户支持
 
@@ -471,36 +471,36 @@
 
 ### 6.2 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| **云基础设施** | Google Cloud Run |
-| **数据存储** | Google Cloud SQL |
-| **前端 SDK** | React, Next.js, Remix, Gatsby, Expo, React Native |
-| **后端 SDK** | Node.js, Go, Python, Ruby |
-| **CDN/安全** | Cloudflare |
-| **消息服务** | SendGrid (邮件), Twilio (短信), Svix (Webhooks) |
-| **协议实现** | OAuth 2.0, OIDC, SAML, 自有 Session 管理 |
-| **部署** | 纯 SaaS（无自托管选项） |
+| 层级           | 技术                                              |
+| -------------- | ------------------------------------------------- |
+| **云基础设施** | Google Cloud Run                                  |
+| **数据存储**   | Google Cloud SQL                                  |
+| **前端 SDK**   | React, Next.js, Remix, Gatsby, Expo, React Native |
+| **后端 SDK**   | Node.js, Go, Python, Ruby                         |
+| **CDN/安全**   | Cloudflare                                        |
+| **消息服务**   | SendGrid (邮件), Twilio (短信), Svix (Webhooks)   |
+| **协议实现**   | OAuth 2.0, OIDC, SAML, 自有 Session 管理          |
+| **部署**       | 纯 SaaS（无自托管选项）                           |
 
 ### 6.3 认证特性
 
-| 特性 | 支持情况 | 说明 |
-|------|----------|------|
-| **邮箱密码** | ✅ 支持 | NIST 合规密码策略 |
-| **社交 SSO** | ✅ 支持 | Google, GitHub, Apple 等，自动账户关联 |
-| **企业 SSO** | ✅ 支持 | SAML & OIDC |
-| **无密码登录** | ✅ 支持 | Magic Link + SMS/Email OTP |
-| **MFA** | ✅ 支持 | SMS, TOTP, 安全密钥 |
-| **Passkeys** | ✅ 支持 | WebAuthn |
-| **Bot Detection** | ✅ 内置 | 自动检测和阻止暴力破解 |
-| **泄露密码检测** | ✅ 内置 | HaveIBeenPwned 集成 |
-| **Session 管理** | ✅ 核心特性 | 混合认证模型（60 秒短期 Token + 自动刷新） |
-| **组织管理** | ✅ 支持 | 多租户 SaaS 组织、自定义角色、邀请 |
-| **用户管理** | ✅ 完整 | 用户自助管理、管理员模拟 |
-| **订阅计费** | ✅ 内置 | 订阅管理、计划管理、内容门控 |
-| **API Keys** | ✅ 支持 | 管理 API 密钥 |
-| **Webhooks** | ✅ 支持 | Svix 驱动的事件通知 |
-| **MCP Server** | ✅ 支持 | AI Agent 认证 |
+| 特性              | 支持情况    | 说明                                       |
+| ----------------- | ----------- | ------------------------------------------ |
+| **邮箱密码**      | ✅ 支持     | NIST 合规密码策略                          |
+| **社交 SSO**      | ✅ 支持     | Google, GitHub, Apple 等，自动账户关联     |
+| **企业 SSO**      | ✅ 支持     | SAML & OIDC                                |
+| **无密码登录**    | ✅ 支持     | Magic Link + SMS/Email OTP                 |
+| **MFA**           | ✅ 支持     | SMS, TOTP, 安全密钥                        |
+| **Passkeys**      | ✅ 支持     | WebAuthn                                   |
+| **Bot Detection** | ✅ 内置     | 自动检测和阻止暴力破解                     |
+| **泄露密码检测**  | ✅ 内置     | HaveIBeenPwned 集成                        |
+| **Session 管理**  | ✅ 核心特性 | 混合认证模型（60 秒短期 Token + 自动刷新） |
+| **组织管理**      | ✅ 支持     | 多租户 SaaS 组织、自定义角色、邀请         |
+| **用户管理**      | ✅ 完整     | 用户自助管理、管理员模拟                   |
+| **订阅计费**      | ✅ 内置     | 订阅管理、计划管理、内容门控               |
+| **API Keys**      | ✅ 支持     | 管理 API 密钥                              |
+| **Webhooks**      | ✅ 支持     | Svix 驱动的事件通知                        |
+| **MCP Server**    | ✅ 支持     | AI Agent 认证                              |
 
 ### 6.4 多租户支持
 
@@ -550,53 +550,53 @@
 
 ### 7.1 技术栈对比
 
-| 方案 | 后端语言 | 前端 | 数据库 | 部署复杂度 | 自托管 |
-|------|----------|------|--------|------------|--------|
-| **Keycloak** | Java (Quarkus) | React | PostgreSQL/MySQL | 高 | ✅ |
-| **Casdoor** | Go (Beego) | React | MySQL/PostgreSQL | 中 | ✅ |
-| **Authelia** | Go | TypeScript | SQLite/PostgreSQL | 低 | ✅ |
-| **Logto** | TypeScript (Node.js) | React | PostgreSQL | 中 | ✅ |
-| **Ory** | Go | 自建 | PostgreSQL/MySQL | 高 | ✅ |
-| **Authentik** | Python+Go+Rust | TypeScript | PostgreSQL | 中高 | ✅ |
-| **SuperTokens** | Java (SDK: Node/Python/Go) | React SDK | PostgreSQL/MySQL | 中 | ✅ |
-| **Zitadel** | Go | Angular | PostgreSQL | 中 | ✅ |
-| **FusionAuth** | Java | FreeMarker+React | PostgreSQL/MySQL | 中 | ✅ |
-| **Auth0** | - (SaaS) | Universal Login | MongoDB/PG/Redis | 低 | ❌ |
-| **Clerk** | - (SaaS) | React 组件 | Cloud SQL | 低 | ❌ |
+| 方案            | 后端语言                   | 前端             | 数据库            | 部署复杂度 | 自托管 |
+| --------------- | -------------------------- | ---------------- | ----------------- | ---------- | ------ |
+| **Keycloak**    | Java (Quarkus)             | React            | PostgreSQL/MySQL  | 高         | ✅     |
+| **Casdoor**     | Go (Beego)                 | React            | MySQL/PostgreSQL  | 中         | ✅     |
+| **Authelia**    | Go                         | TypeScript       | SQLite/PostgreSQL | 低         | ✅     |
+| **Logto**       | TypeScript (Node.js)       | React            | PostgreSQL        | 中         | ✅     |
+| **Ory**         | Go                         | 自建             | PostgreSQL/MySQL  | 高         | ✅     |
+| **Authentik**   | Python+Go+Rust             | TypeScript       | PostgreSQL        | 中高       | ✅     |
+| **SuperTokens** | Java (SDK: Node/Python/Go) | React SDK        | PostgreSQL/MySQL  | 中         | ✅     |
+| **Zitadel**     | Go                         | Angular          | PostgreSQL        | 中         | ✅     |
+| **FusionAuth**  | Java                       | FreeMarker+React | PostgreSQL/MySQL  | 中         | ✅     |
+| **Auth0**       | - (SaaS)                   | Universal Login  | MongoDB/PG/Redis  | 低         | ❌     |
+| **Clerk**       | - (SaaS)                   | React 组件       | Cloud SQL         | 低         | ❌     |
 
 ### 7.2 功能对比
 
-| 功能 | Keycloak | Casdoor | Authelia | Logto | Ory | Authentik | SuperTokens | Zitadel | FusionAuth | Auth0 | Clerk |
-|------|----------|---------|----------|-------|-----|-----------|-------------|---------|------------|-------|-------|
-| **OAuth 2.0** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | ✅ |
-| **OIDC** | ✅ | ✅ | ✅ Cert™ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | ✅ |
-| **SAML 2.0** | ✅ | ✅ | ❌ | ✅ | ✅ Polis | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **LDAP** | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ Outpost | ❌ | ❌ | ✅ 企业版 | ✅ Connector | ❌ |
-| **WebAuthn** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ 企业版 | ✅ | ✅ |
-| **MFA** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **社交登录** | ✅ | ✅ 50+ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ 无限 | ✅ 无限 | ✅ |
-| **RBAC** | ✅ | ✅ Casbin | ❌ | ✅ | ✅ Keto | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **多租户** | ✅ Realm | ✅ | ❌ | ✅ | ✅ OEL | ✅ 企业版 | ✅ 企业版 | ✅ 原生 | ✅ | ✅ | ✅ |
-| **管理 UI** | ✅ | ✅ | 简单 | ✅ | ❌ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **审计日志** | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ 企业版 | ❌ | ✅ ES | ✅ | ✅ | ✅ |
-| **AI/MCP** | ❌ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| **Zero Trust** | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| 功能           | Keycloak | Casdoor   | Authelia | Logto | Ory      | Authentik  | SuperTokens | Zitadel | FusionAuth | Auth0        | Clerk |
+| -------------- | -------- | --------- | -------- | ----- | -------- | ---------- | ----------- | ------- | ---------- | ------------ | ----- |
+| **OAuth 2.0**  | ✅       | ✅        | ✅       | ✅    | ✅       | ✅         | 🟡          | ✅      | ✅         | ✅           | ✅    |
+| **OIDC**       | ✅       | ✅        | ✅ Cert™ | ✅    | ✅       | ✅         | 🟡          | ✅      | ✅         | ✅           | ✅    |
+| **SAML 2.0**   | ✅       | ✅        | ❌       | ✅    | ✅ Polis | ✅         | ❌          | ✅      | ✅         | ✅           | ✅    |
+| **LDAP**       | ✅       | ✅        | ✅       | ❌    | ❌       | ✅ Outpost | ❌          | ❌      | ✅ 企业版  | ✅ Connector | ❌    |
+| **WebAuthn**   | ✅       | ✅        | ✅       | ✅    | ✅       | ✅         | ❌          | ✅      | ✅ 企业版  | ✅           | ✅    |
+| **MFA**        | ✅       | ✅        | ✅       | ✅    | ✅       | ✅         | ✅          | ✅      | ✅         | ✅           | ✅    |
+| **社交登录**   | ✅       | ✅ 50+    | ❌       | ✅    | ✅       | ✅         | ✅          | ✅      | ✅ 无限    | ✅ 无限      | ✅    |
+| **RBAC**       | ✅       | ✅ Casbin | ❌       | ✅    | ✅ Keto  | ✅         | ✅          | ✅      | ✅         | ✅           | ✅    |
+| **多租户**     | ✅ Realm | ✅        | ❌       | ✅    | ✅ OEL   | ✅ 企业版  | ✅ 企业版   | ✅ 原生 | ✅         | ✅           | ✅    |
+| **管理 UI**    | ✅       | ✅        | 简单     | ✅    | ❌       | ✅         | ❌          | ✅      | ✅         | ✅           | ✅    |
+| **审计日志**   | ✅       | ✅        | ❌       | ❌    | ❌       | ✅ 企业版  | ❌          | ✅ ES   | ✅         | ✅           | ✅    |
+| **AI/MCP**     | ❌       | ✅        | ❌       | ✅    | ❌       | ❌         | ❌          | ❌      | ❌         | ✅           | ✅    |
+| **Zero Trust** | ❌       | ❌        | ❌       | ❌    | ✅       | ❌         | ❌          | ❌      | ❌         | ❌           | ❌    |
 
 ### 7.3 定位对比
 
-| 方案 | 最佳场景 | 不适合场景 |
-|------|----------|------------|
-| **Keycloak** | 企业级全功能 IAM | 轻量级应用、资源受限 |
-| **Casdoor** | 快速集成、UI-first、AI Agent | 极高并发、深度定制 |
-| **Authelia** | 反向代理认证、K8s | 需要 SAML、社交登录 |
-| **Logto** | SaaS/AI、TypeScript 团队 | 需要 LDAP、极低资源 |
-| **Ory** | 微服务、云原生、Zero Trust | 快速启动、不想自建 UI |
-| **Authentik** | 多协议集成、LDAP/RADIUS | 需要完全开源多租户 |
-| **SuperTokens** | 嵌入式认证、Session 管理 | 需要 SAML、LDAP、完整 IdP |
-| **Zitadel** | B2B 多租户、审计追踪 | 需要 LDAP、快速原型 |
-| **FusionAuth** | 功能完整、灵活部署 | 完全开源需求 |
-| **Auth0** | 企业级 CIAM、全球部署 | 自托管、成本敏感 |
-| **Clerk** | React/Next.js 前端优先 | 纯后端、自托管需求 |
+| 方案            | 最佳场景                     | 不适合场景                |
+| --------------- | ---------------------------- | ------------------------- |
+| **Keycloak**    | 企业级全功能 IAM             | 轻量级应用、资源受限      |
+| **Casdoor**     | 快速集成、UI-first、AI Agent | 极高并发、深度定制        |
+| **Authelia**    | 反向代理认证、K8s            | 需要 SAML、社交登录       |
+| **Logto**       | SaaS/AI、TypeScript 团队     | 需要 LDAP、极低资源       |
+| **Ory**         | 微服务、云原生、Zero Trust   | 快速启动、不想自建 UI     |
+| **Authentik**   | 多协议集成、LDAP/RADIUS      | 需要完全开源多租户        |
+| **SuperTokens** | 嵌入式认证、Session 管理     | 需要 SAML、LDAP、完整 IdP |
+| **Zitadel**     | B2B 多租户、审计追踪         | 需要 LDAP、快速原型       |
+| **FusionAuth**  | 功能完整、灵活部署           | 完全开源需求              |
+| **Auth0**       | 企业级 CIAM、全球部署        | 自托管、成本敏感          |
+| **Clerk**       | React/Next.js 前端优先       | 纯后端、自托管需求        |
 
 ---
 
@@ -606,51 +606,51 @@
 
 ### 8.1 架构设计
 
-| 来源 | 借鉴点 | AccessBase 适用性 |
-|------|--------|-------------------|
-| **Zitadel** | Event Sourcing 审计模型 | ⭐⭐⭐ 完整审计追踪 |
-| **Zitadel** | API-first (gRPC + REST) | ⭐⭐⭐ API 设计 |
-| **Authentik** | Outpost 协议适配器架构 | ⭐⭐ 协议扩展性 |
-| **SuperTokens** | SDK-Core 三层分离 | ⭐⭐ 性能优化 |
-| **Clerk** | 混合认证模型（短期 Token + 刷新） | ⭐⭐⭐ 安全设计 |
+| 来源            | 借鉴点                            | AccessBase 适用性   |
+| --------------- | --------------------------------- | ------------------- |
+| **Zitadel**     | Event Sourcing 审计模型           | ⭐⭐⭐ 完整审计追踪 |
+| **Zitadel**     | API-first (gRPC + REST)           | ⭐⭐⭐ API 设计     |
+| **Authentik**   | Outpost 协议适配器架构            | ⭐⭐ 协议扩展性     |
+| **SuperTokens** | SDK-Core 三层分离                 | ⭐⭐ 性能优化       |
+| **Clerk**       | 混合认证模型（短期 Token + 刷新） | ⭐⭐⭐ 安全设计     |
 
 ### 8.2 多租户设计
 
-| 来源 | 借鉴点 | AccessBase 适用性 |
-|------|--------|-------------------|
-| **Zitadel** | Instance → Organization → Project 层次 | ⭐⭐⭐ 多租户核心参考 |
-| **Authentik** | PostgreSQL Schema 隔离 | ⭐⭐ 数据隔离方案 |
-| **SuperTokens** | 三级层次：CUD → App → Tenant | ⭐⭐ 灵活层次设计 |
-| **Clerk** | Organization + 自定义角色 + 邀请 | ⭐⭐ B2B 组织管理 |
+| 来源            | 借鉴点                                 | AccessBase 适用性     |
+| --------------- | -------------------------------------- | --------------------- |
+| **Zitadel**     | Instance → Organization → Project 层次 | ⭐⭐⭐ 多租户核心参考 |
+| **Authentik**   | PostgreSQL Schema 隔离                 | ⭐⭐ 数据隔离方案     |
+| **SuperTokens** | 三级层次：CUD → App → Tenant           | ⭐⭐ 灵活层次设计     |
+| **Clerk**       | Organization + 自定义角色 + 邀请       | ⭐⭐ B2B 组织管理     |
 
 ### 8.3 认证与安全
 
-| 来源 | 借鉴点 | AccessBase 适用性 |
-|------|--------|-------------------|
-| **Auth0** | Security Center 安全威胁监控 | ⭐⭐⭐ 安全运营 |
-| **Auth0** | Attack Protection（Bot/泄露密码检测） | ⭐⭐⭐ 安全防护 |
-| **Authentik** | Flow 可视化认证流程编辑器 | ⭐⭐ 认证流程引擎 |
-| **FusionAuth** | Lambda 扩展机制 | ⭐⭐ 自定义逻辑 |
-| **SuperTokens** | Recipe 模块化认证方式 | ⭐⭐ 认证模块化 |
+| 来源            | 借鉴点                                | AccessBase 适用性 |
+| --------------- | ------------------------------------- | ----------------- |
+| **Auth0**       | Security Center 安全威胁监控          | ⭐⭐⭐ 安全运营   |
+| **Auth0**       | Attack Protection（Bot/泄露密码检测） | ⭐⭐⭐ 安全防护   |
+| **Authentik**   | Flow 可视化认证流程编辑器             | ⭐⭐ 认证流程引擎 |
+| **FusionAuth**  | Lambda 扩展机制                       | ⭐⭐ 自定义逻辑   |
+| **SuperTokens** | Recipe 模块化认证方式                 | ⭐⭐ 认证模块化   |
 
 ### 8.4 扩展性与 DevOps
 
-| 来源 | 借鉴点 | AccessBase 适用性 |
-|------|--------|-------------------|
-| **Auth0** | Actions (Serverless 扩展) | ⭐⭐⭐ 认证流程扩展 |
-| **Auth0** | Forms (无代码流程编辑) | ⭐⭐ 低代码扩展 |
-| **Zitadel** | Actions / Webhooks 事件驱动扩展 | ⭐⭐⭐ 事件驱动 |
-| **FusionAuth** | Kickstart 配置（IaC 友好） | ⭐⭐ DevOps 集成 |
-| **FusionAuth** | Terraform 集成 | ⭐⭐ 基础设施即代码 |
+| 来源           | 借鉴点                          | AccessBase 适用性   |
+| -------------- | ------------------------------- | ------------------- |
+| **Auth0**      | Actions (Serverless 扩展)       | ⭐⭐⭐ 认证流程扩展 |
+| **Auth0**      | Forms (无代码流程编辑)          | ⭐⭐ 低代码扩展     |
+| **Zitadel**    | Actions / Webhooks 事件驱动扩展 | ⭐⭐⭐ 事件驱动     |
+| **FusionAuth** | Kickstart 配置（IaC 友好）      | ⭐⭐ DevOps 集成    |
+| **FusionAuth** | Terraform 集成                  | ⭐⭐ 基础设施即代码 |
 
 ### 8.5 UI 与开发者体验
 
-| 来源 | 借鉴点 | AccessBase 适用性 |
-|------|--------|-------------------|
-| **Clerk** | 嵌入式 UI 组件（SignIn/SignUp/UserProfile） | ⭐⭐⭐ 前端组件设计 |
-| **Clerk** | Organization 组件（切换器/邀请/管理） | ⭐⭐⭐ 组织管理 UI |
-| **Auth0** | Universal Login 自定义品牌 | ⭐⭐ 登录页面设计 |
-| **SuperTokens** | Recipe 组合式认证方式 | ⭐⭐ 模块化设计 |
+| 来源            | 借鉴点                                      | AccessBase 适用性   |
+| --------------- | ------------------------------------------- | ------------------- |
+| **Clerk**       | 嵌入式 UI 组件（SignIn/SignUp/UserProfile） | ⭐⭐⭐ 前端组件设计 |
+| **Clerk**       | Organization 组件（切换器/邀请/管理）       | ⭐⭐⭐ 组织管理 UI  |
+| **Auth0**       | Universal Login 自定义品牌                  | ⭐⭐ 登录页面设计   |
+| **SuperTokens** | Recipe 组合式认证方式                       | ⭐⭐ 模块化设计     |
 
 ### 8.6 优先参考顺序（新增方案）
 
@@ -669,40 +669,44 @@
 
 ### 9.1 综合评分
 
-| 方案 | 功能完整度 | 多租户 | 开发者体验 | 部署灵活性 | 安全性 | 社区活跃度 | 与 AccessBase 匹配度 |
-|------|-----------|--------|-----------|-----------|--------|-----------|---------------------|
-| **Keycloak** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Casdoor** | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Authelia** | ⭐⭐⭐ | ⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
-| **Logto** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Ory** | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Authentik** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
-| **SuperTokens** | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
-| **Zitadel** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **FusionAuth** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ |
-| **Auth0** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐（商业参考） |
-| **Clerk** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐（商业参考） |
+| 方案            | 功能完整度 | 多租户     | 开发者体验 | 部署灵活性 | 安全性     | 社区活跃度 | 与 AccessBase 匹配度 |
+| --------------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | -------------------- |
+| **Keycloak**    | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐   | ⭐⭐⭐     | ⭐⭐⭐     | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐ | ⭐⭐⭐               |
+| **Casdoor**     | ⭐⭐⭐⭐   | ⭐⭐⭐     | ⭐⭐⭐⭐   | ⭐⭐⭐⭐   | ⭐⭐⭐     | ⭐⭐⭐⭐   | ⭐⭐⭐               |
+| **Authelia**    | ⭐⭐⭐     | ⭐         | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐   | ⭐⭐⭐⭐   | ⭐⭐                 |
+| **Logto**       | ⭐⭐⭐⭐   | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐   | ⭐⭐⭐⭐   | ⭐⭐⭐     | ⭐⭐⭐⭐⭐           |
+| **Ory**         | ⭐⭐⭐⭐   | ⭐⭐⭐     | ⭐⭐⭐     | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐ | ⭐⭐⭐     | ⭐⭐⭐⭐             |
+| **Authentik**   | ⭐⭐⭐⭐⭐ | ⭐⭐⭐     | ⭐⭐⭐     | ⭐⭐⭐⭐   | ⭐⭐⭐⭐   | ⭐⭐⭐     | ⭐⭐⭐               |
+| **SuperTokens** | ⭐⭐⭐     | ⭐⭐⭐     | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐   | ⭐⭐⭐⭐   | ⭐⭐⭐     | ⭐⭐⭐               |
+| **Zitadel**     | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐   | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐ | ⭐⭐⭐     | ⭐⭐⭐⭐             |
+| **FusionAuth**  | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐   | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐   | ⭐⭐       | ⭐⭐⭐               |
+| **Auth0**       | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐ | ⭐         | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐（商业参考）     |
+| **Clerk**       | ⭐⭐⭐⭐   | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐ | ⭐         | ⭐⭐⭐⭐   | ⭐⭐⭐     | ⭐⭐（商业参考）     |
 
 ### 9.2 推荐组合策略
 
 对于 AccessBase，建议按以下层次参考：
 
 **核心参考（技术栈最匹配）**:
+
 - **Logto** → TypeScript + pnpm monorepo、API 分层、多租户
 - **Zitadel** → Event Sourcing 审计、原生多租户、API-first
 
 **功能参考（功能最全面）**:
+
 - **Keycloak** → 用户联邦、Realm 多租户、认证流程
 - **Authentik** → Flow 引擎、Outpost 架构、多协议支持
 
 **理念参考（设计最先进）**:
+
 - **Ory** → 模块化、Headless API、Zanzibar 授权
 - **SuperTokens** → SDK 架构、Recipe 模块化
 
 **商业参考（行业最佳实践）**:
+
 - **Auth0** → Security Center、Attack Protection、Actions
 - **Clerk** → 嵌入式组件、混合认证模型、Platform 模式
 
 ---
 
-*本文档基于 2026-08-21 的网络搜索和官方文档整理，各方案的版本和特性可能随时间更新。*
+_本文档基于 2026-08-21 的网络搜索和官方文档整理，各方案的版本和特性可能随时间更新。_

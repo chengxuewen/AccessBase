@@ -1,8 +1,9 @@
 ---
 paths:
-  - "**/*.kt"
-  - "**/*.kts"
+  - '**/*.kt'
+  - '**/*.kts'
 ---
+
 # Kotlin Security
 
 > This file extends [common/security.md](../common/security.md) with Kotlin and Android/KMP-specific content.

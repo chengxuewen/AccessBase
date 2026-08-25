@@ -18,11 +18,11 @@
 
 ### 1.2 技术选型
 
-| 技术 | 选择 | 理由 |
-|------|------|------|
-| 类型系统 | TypeScript | 类型安全、IDE 支持 |
-| 验证 | Zod | 运行时验证、类型推断 |
-| 序列化 | JSON | 标准格式、广泛支持 |
+| 技术     | 选择       | 理由                 |
+| -------- | ---------- | -------------------- |
+| 类型系统 | TypeScript | 类型安全、IDE 支持   |
+| 验证     | Zod        | 运行时验证、类型推断 |
+| 序列化   | JSON       | 标准格式、广泛支持   |
 
 ---
 
@@ -36,13 +36,13 @@
  */
 export interface SuccessResponse<T> {
   /** 成功标识 */
-  success: true
+  success: true;
   /** 响应数据 */
-  data: T
+  data: T;
   /** 分页信息 */
-  meta?: PaginationMeta
+  meta?: PaginationMeta;
   /** 请求 ID */
-  requestId?: string
+  requestId?: string;
 }
 
 /**
@@ -50,22 +50,22 @@ export interface SuccessResponse<T> {
  */
 export interface ErrorResponse {
   /** 错误标识 */
-  success: false
+  success: false;
   /** 错误信息 */
   error: {
     /** 错误码 */
-    code: string
+    code: string;
     /** 用户友好消息 */
-    message: string
+    message: string;
     /** 详细信息（仅开发环境） */
-    details?: unknown
+    details?: unknown;
     /** 时间戳 */
-    timestamp: string
+    timestamp: string;
     /** 请求 ID */
-    requestId: string
+    requestId: string;
     /** 请求路径 */
-    path: string
-  }
+    path: string;
+  };
 }
 
 /**
@@ -73,19 +73,19 @@ export interface ErrorResponse {
  */
 export interface PaginationMeta {
   /** 当前页码 */
-  page: number
+  page: number;
   /** 每页数量 */
-  pageSize: number
+  pageSize: number;
   /** 总记录数 */
-  total: number
+  total: number;
   /** 总页数 */
-  totalPages: number
+  totalPages: number;
 }
 
 /**
  * API 响应类型
  */
-export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse
+export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
 ```
 
 ### 2.2 错误码类型
@@ -201,7 +201,7 @@ export const ErrorCodeMap: Record<ErrorCode, { message: string; statusCode: numb
   [ErrorCode.AUTH_009]: { message: '会话不存在', statusCode: 401 },
   [ErrorCode.AUTH_010]: { message: '会话已过期', statusCode: 401 },
   // ... 其他错误码映射
-}
+};
 ```
 
 ### 2.3 数据模型类型
@@ -212,27 +212,27 @@ export const ErrorCodeMap: Record<ErrorCode, { message: string; statusCode: numb
  */
 export interface User {
   /** 用户 ID */
-  id: string
+  id: string;
   /** 邮箱 */
-  email: string
+  email: string;
   /** 姓名 */
-  name: string
+  name: string;
   /** 头像 URL */
-  avatarUrl?: string
+  avatarUrl?: string;
   /** 邮箱是否已验证 */
-  emailVerified: boolean
+  emailVerified: boolean;
   /** MFA 是否启用 */
-  mfaEnabled: boolean
+  mfaEnabled: boolean;
   /** 状态 */
-  status: 'active' | 'inactive' | 'locked' | 'disabled'
+  status: 'active' | 'inactive' | 'locked' | 'disabled';
   /** 租户 ID */
-  tenantId: string
+  tenantId: string;
   /** 创建时间 */
-  createdAt: Date
+  createdAt: Date;
   /** 更新时间 */
-  updatedAt: Date
+  updatedAt: Date;
   /** 版本号 */
-  version: number
+  version: number;
 }
 
 /**
@@ -240,21 +240,21 @@ export interface User {
  */
 export interface Role {
   /** 角色 ID */
-  id: string
+  id: string;
   /** 角色名称 */
-  name: string
+  name: string;
   /** 描述 */
-  description?: string
+  description?: string;
   /** 租户 ID */
-  tenantId: string
+  tenantId: string;
   /** 父角色 ID（用于角色继承） */
-  parentId?: string
+  parentId?: string;
   /** 是否为系统角色 */
-  isSystem: boolean
+  isSystem: boolean;
   /** 创建时间 */
-  createdAt: Date
+  createdAt: Date;
   /** 更新时间 */
-  updatedAt: Date
+  updatedAt: Date;
 }
 
 /**
@@ -262,15 +262,15 @@ export interface Role {
  */
 export interface Permission {
   /** 权限 ID */
-  id: string
+  id: string;
   /** 权限名称 */
-  name: string
+  name: string;
   /** 资源 */
-  resource: string
+  resource: string;
   /** 操作 */
-  action: string
+  action: string;
   /** 描述 */
-  description?: string
+  description?: string;
 }
 
 /**
@@ -278,19 +278,19 @@ export interface Permission {
  */
 export interface Tenant {
   /** 租户 ID */
-  id: string
+  id: string;
   /** 租户名称 */
-  name: string
+  name: string;
   /** 租户标识 */
-  slug: string
+  slug: string;
   /** 状态 */
-  status: 'active' | 'inactive' | 'suspended'
+  status: 'active' | 'inactive' | 'suspended';
   /** 设置 */
-  settings: Record<string, unknown>
+  settings: Record<string, unknown>;
   /** 创建时间 */
-  createdAt: Date
+  createdAt: Date;
   /** 更新时间 */
-  updatedAt: Date
+  updatedAt: Date;
 }
 
 /**
@@ -298,29 +298,29 @@ export interface Tenant {
  */
 export interface AuditLog {
   /** 日志 ID */
-  id: string
+  id: string;
   /** 用户 ID */
-  userId?: string
+  userId?: string;
   /** 操作 */
-  action: string
+  action: string;
   /** 资源类型 */
-  resourceType: string
+  resourceType: string;
   /** 资源 ID */
-  resourceId?: string
+  resourceId?: string;
   /** 请求体 */
-  requestBody?: Record<string, unknown>
+  requestBody?: Record<string, unknown>;
   /** 响应状态码 */
-  responseStatus?: number
+  responseStatus?: number;
   /** IP 地址 */
-  ipAddress?: string
+  ipAddress?: string;
   /** 用户代理 */
-  userAgent?: string
+  userAgent?: string;
   /** 租户 ID */
-  tenantId?: string
+  tenantId?: string;
   /** 请求 ID */
-  requestId?: string
+  requestId?: string;
   /** 创建时间 */
-  createdAt: Date
+  createdAt: Date;
 }
 
 /**
@@ -328,21 +328,21 @@ export interface AuditLog {
  */
 export interface Session {
   /** 会话 ID */
-  id: string
+  id: string;
   /** 用户 ID */
-  userId: string
+  userId: string;
   /** 刷新令牌哈希 */
-  refreshTokenHash: string
+  refreshTokenHash: string;
   /** 设备信息 */
-  deviceInfo?: Record<string, unknown>
+  deviceInfo?: Record<string, unknown>;
   /** IP 地址 */
-  ipAddress?: string
+  ipAddress?: string;
   /** 过期时间 */
-  expiresAt: Date
+  expiresAt: Date;
   /** 撤销时间 */
-  revokedAt?: Date
+  revokedAt?: Date;
   /** 创建时间 */
-  createdAt: Date
+  createdAt: Date;
 }
 ```
 
@@ -358,15 +358,15 @@ export interface Session {
  */
 export interface ValidationLifecycle {
   /** 验证开始前 */
-  onBeforeValidate?: (data: unknown, schema: ZodSchema) => Promise<void>
+  onBeforeValidate?: (data: unknown, schema: ZodSchema) => Promise<void>;
   /** 验证完成后 */
-  onAfterValidate?: (result: ValidationResult) => Promise<void>
+  onAfterValidate?: (result: ValidationResult) => Promise<void>;
   /** 验证失败时 */
-  onValidationFailed?: (errors: ZodError) => Promise<void>
+  onValidationFailed?: (errors: ZodError) => Promise<void>;
   /** 类型转换前 */
-  onBeforeTransform?: (data: unknown) => Promise<unknown>
+  onBeforeTransform?: (data: unknown) => Promise<unknown>;
   /** 类型转换后 */
-  onAfterTransform?: (data: unknown) => Promise<unknown>
+  onAfterTransform?: (data: unknown) => Promise<unknown>;
 }
 ```
 
@@ -398,16 +398,16 @@ export interface ValidationLifecycle {
 
 ### 4.1 外部依赖
 
-| 依赖 | 版本 | 用途 |
-|------|------|------|
-| zod | ^3.22.0 | 运行时验证、类型推断 |
-| typescript | ^5.3.0 | 类型系统 |
+| 依赖       | 版本    | 用途                 |
+| ---------- | ------- | -------------------- |
+| zod        | ^3.22.0 | 运行时验证、类型推断 |
+| typescript | ^5.3.0  | 类型系统             |
 
 ### 4.2 内部依赖
 
-| 包 | 用途 |
-|------|------|
-| 无 | 此包为最底层包，无内部依赖 |
+| 包  | 用途                       |
+| --- | -------------------------- |
+| 无  | 此包为最底层包，无内部依赖 |
 
 ### 4.3 依赖图
 
@@ -423,19 +423,19 @@ export interface ValidationLifecycle {
 
 ### 5.1 错误码分类
 
-| 错误码范围 | 模块 | 说明 |
-|------------|------|------|
-| AUTH_001 ~ AUTH_099 | 认证 | 认证相关错误 |
-| AUTH_100 ~ AUTH_199 | 授权 | 授权相关错误 |
-| USER_001 ~ USER_099 | 用户 | 用户相关错误 |
-| ROLE_001 ~ ROLE_099 | 角色 | 角色相关错误 |
-| AUDIT_001 ~ AUDIT_099 | 审计 | 审计相关错误 |
-| SYS_001 ~ SYS_099 | 系统 | 系统相关错误 |
-| LIC_001 ~ LIC_099 | 许可证 | 许可证相关错误 |
-| VALIDATION_001 ~ VALIDATION_099 | 验证 | 验证相关错误 |
-| MIG_001 ~ MIG_099 | 迁移 | 迁移相关错误 |
-| I18N_001 ~ I18N_099 | i18n | i18n 相关错误 |
-| HC_001 ~ HC_099 | 健康检查 | 健康检查相关错误 |
+| 错误码范围                      | 模块     | 说明             |
+| ------------------------------- | -------- | ---------------- |
+| AUTH_001 ~ AUTH_099             | 认证     | 认证相关错误     |
+| AUTH_100 ~ AUTH_199             | 授权     | 授权相关错误     |
+| USER_001 ~ USER_099             | 用户     | 用户相关错误     |
+| ROLE_001 ~ ROLE_099             | 角色     | 角色相关错误     |
+| AUDIT_001 ~ AUDIT_099           | 审计     | 审计相关错误     |
+| SYS_001 ~ SYS_099               | 系统     | 系统相关错误     |
+| LIC_001 ~ LIC_099               | 许可证   | 许可证相关错误   |
+| VALIDATION_001 ~ VALIDATION_099 | 验证     | 验证相关错误     |
+| MIG_001 ~ MIG_099               | 迁移     | 迁移相关错误     |
+| I18N_001 ~ I18N_099             | i18n     | i18n 相关错误    |
+| HC_001 ~ HC_099                 | 健康检查 | 健康检查相关错误 |
 
 ### 5.2 错误处理工具
 
@@ -447,9 +447,9 @@ export function createErrorResponse(
   code: ErrorCode,
   requestId: string,
   path: string,
-  details?: unknown
+  details?: unknown,
 ): ErrorResponse {
-  const errorInfo = ErrorCodeMap[code]
+  const errorInfo = ErrorCodeMap[code];
   return {
     success: false,
     error: {
@@ -458,23 +458,20 @@ export function createErrorResponse(
       details,
       timestamp: new Date().toISOString(),
       requestId,
-      path
-    }
-  }
+      path,
+    },
+  };
 }
 
 /**
  * 创建成功响应
  */
-export function createSuccessResponse<T>(
-  data: T,
-  meta?: PaginationMeta
-): SuccessResponse<T> {
+export function createSuccessResponse<T>(data: T, meta?: PaginationMeta): SuccessResponse<T> {
   return {
     success: true,
     data,
-    meta
-  }
+    meta,
+  };
 }
 
 /**
@@ -482,13 +479,13 @@ export function createSuccessResponse<T>(
  */
 export function validateRequest<T>(
   data: unknown,
-  schema: ZodSchema<T>
+  schema: ZodSchema<T>,
 ): { success: true; data: T } | { success: false; error: ZodError } {
-  const result = schema.safeParse(data)
+  const result = schema.safeParse(data);
   if (result.success) {
-    return { success: true, data: result.data }
+    return { success: true, data: result.data };
   }
-  return { success: false, error: result.error }
+  return { success: false, error: result.error };
 }
 ```
 
@@ -498,12 +495,12 @@ export function validateRequest<T>(
 
 ### 6.1 环境变量
 
-| 变量名 | 必需 | 默认值 | 说明 |
-|--------|------|--------|------|
-| NODE_ENV | 否 | development | 运行环境 |
-| API_VERSION | 否 | v1 | API 版本 |
-| ERROR_DETAILS_ENABLED | 否 | false | 是否返回错误详情 |
-| VALIDATION_STRIP_UNKNOWN | 否 | true | 是否剥离未知字段 |
+| 变量名                   | 必需 | 默认值      | 说明             |
+| ------------------------ | ---- | ----------- | ---------------- |
+| NODE_ENV                 | 否   | development | 运行环境         |
+| API_VERSION              | 否   | v1          | API 版本         |
+| ERROR_DETAILS_ENABLED    | 否   | false       | 是否返回错误详情 |
+| VALIDATION_STRIP_UNKNOWN | 否   | true        | 是否剥离未知字段 |
 
 ### 6.2 配置文件
 
@@ -511,32 +508,32 @@ export function validateRequest<T>(
 // shared-types.config.ts
 export interface SharedTypesConfig {
   /** 运行环境 */
-  environment: 'development' | 'production' | 'test'
+  environment: 'development' | 'production' | 'test';
   /** API 配置 */
   api: {
     /** API 版本 */
-    version: string
+    version: string;
     /** 响应格式 */
-    responseFormat: 'standard' | 'minimal'
-  }
+    responseFormat: 'standard' | 'minimal';
+  };
   /** 错误配置 */
   error: {
     /** 是否返回错误详情 */
-    detailsEnabled: boolean
+    detailsEnabled: boolean;
     /** 是否记录错误堆栈 */
-    stackEnabled: boolean
+    stackEnabled: boolean;
     /** 错误码映射 */
-    codeMap: Record<string, { message: string; statusCode: number }>
-  }
+    codeMap: Record<string, { message: string; statusCode: number }>;
+  };
   /** 验证配置 */
   validation: {
     /** 是否剥离未知字段 */
-    stripUnknown: boolean
+    stripUnknown: boolean;
     /** 是否中止早期验证 */
-    abortEarly: boolean
+    abortEarly: boolean;
     /** 自定义错误消息 */
-    customMessages: Record<string, string>
-  }
+    customMessages: Record<string, string>;
+  };
 }
 ```
 
@@ -578,19 +575,19 @@ export interface SharedTypesConfig {
 
 ```typescript
 // index.ts
-export * from './types/api'
-export * from './types/models'
-export * from './types/errors'
-export * from './utils/validation'
-export * from './utils/response'
-export * from './constants/error-codes'
+export * from './types/api';
+export * from './types/models';
+export * from './types/errors';
+export * from './utils/validation';
+export * from './utils/response';
+export * from './constants/error-codes';
 ```
 
 ### B. Zod Schema 示例
 
 ```typescript
 // schemas/user.ts
-import { z } from 'zod'
+import { z } from 'zod';
 
 export const UserSchema = z.object({
   id: z.string().uuid(),
@@ -603,23 +600,23 @@ export const UserSchema = z.object({
   tenantId: z.string().uuid(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  version: z.number().int().positive()
-})
+  version: z.number().int().positive(),
+});
 
-export type User = z.infer<typeof UserSchema>
+export type User = z.infer<typeof UserSchema>;
 
 export const CreateUserSchema = UserSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-  version: true
-})
+  version: true,
+});
 
-export type CreateUser = z.infer<typeof CreateUserSchema>
+export type CreateUser = z.infer<typeof CreateUserSchema>;
 
-export const UpdateUserSchema = CreateUserSchema.partial()
+export const UpdateUserSchema = CreateUserSchema.partial();
 
-export type UpdateUser = z.infer<typeof UpdateUserSchema>
+export type UpdateUser = z.infer<typeof UpdateUserSchema>;
 ```
 
 ### C. API 响应示例
@@ -638,9 +635,9 @@ const successResponse: SuccessResponse<User> = {
     tenantId: '123e4567-e89b-12d3-a456-426614174001',
     createdAt: new Date(),
     updatedAt: new Date(),
-    version: 1
-  }
-}
+    version: 1,
+  },
+};
 
 // 分页响应示例
 const paginatedResponse: SuccessResponse<User[]> = {
@@ -650,9 +647,9 @@ const paginatedResponse: SuccessResponse<User[]> = {
     page: 1,
     pageSize: 10,
     total: 100,
-    totalPages: 10
-  }
-}
+    totalPages: 10,
+  },
+};
 
 // 错误响应示例
 const errorResponse: ErrorResponse = {
@@ -662,36 +659,36 @@ const errorResponse: ErrorResponse = {
     message: '无效凭证',
     timestamp: '2026-08-21T10:30:00Z',
     requestId: 'req-123e4567-e89b-12d3-a456-426614174000',
-    path: '/api/v1/auth/login'
-  }
-}
+    path: '/api/v1/auth/login',
+  },
+};
 ```
 
 ### D. 工具函数示例
 
 ```typescript
 // utils/validation.ts
-import { z } from 'zod'
+import { z } from 'zod';
 
 /**
  * 验证请求体
  */
 export function validateBody<T>(body: unknown, schema: z.ZodSchema<T>): T {
-  return schema.parse(body)
+  return schema.parse(body);
 }
 
 /**
  * 验证查询参数
  */
 export function validateQuery<T>(query: unknown, schema: z.ZodSchema<T>): T {
-  return schema.parse(query)
+  return schema.parse(query);
 }
 
 /**
  * 验证路径参数
  */
 export function validateParams<T>(params: unknown, schema: z.ZodSchema<T>): T {
-  return schema.parse(params)
+  return schema.parse(params);
 }
 
 /**
@@ -699,17 +696,17 @@ export function validateParams<T>(params: unknown, schema: z.ZodSchema<T>): T {
  */
 export function safeValidate<T>(
   data: unknown,
-  schema: z.ZodSchema<T>
+  schema: z.ZodSchema<T>,
 ): { success: true; data: T } | { success: false; error: z.ZodError } {
-  const result = schema.safeParse(data)
+  const result = schema.safeParse(data);
   if (result.success) {
-    return { success: true, data: result.data }
+    return { success: true, data: result.data };
   }
-  return { success: false, error: result.error }
+  return { success: false, error: result.error };
 }
 
 // utils/response.ts
-import { SuccessResponse, ErrorResponse, PaginationMeta } from '../types/api'
+import { SuccessResponse, ErrorResponse, PaginationMeta } from '../types/api';
 
 /**
  * 创建成功响应
@@ -718,8 +715,8 @@ export function success<T>(data: T, meta?: PaginationMeta): SuccessResponse<T> {
   return {
     success: true,
     data,
-    meta
-  }
+    meta,
+  };
 }
 
 /**
@@ -730,7 +727,7 @@ export function error(
   message: string,
   requestId: string,
   path: string,
-  details?: unknown
+  details?: unknown,
 ): ErrorResponse {
   return {
     success: false,
@@ -740,8 +737,8 @@ export function error(
       details,
       timestamp: new Date().toISOString(),
       requestId,
-      path
-    }
-  }
+      path,
+    },
+  };
 }
 ```

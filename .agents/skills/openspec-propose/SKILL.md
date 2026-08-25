@@ -9,7 +9,7 @@ compatibility: Designed for Claude Code, GitHub Copilot, and similar agents.
 disable-model-invocation: false
 metadata:
   author: openspec
-  version: "1.0"
+  version: '1.0'
   category: workflow
   project: MSRCS
 ---
@@ -55,6 +55,7 @@ Create the following artifacts in the proposal directory:
 #### a. `proposal.md` — What & Why
 
 Describe:
+
 - **Problem**: What's the current limitation or bug? Reference existing code.
 - **Goal**: What should be achieved?
 - **Scope**: Which MSRCS packages are affected?
@@ -65,6 +66,7 @@ Describe:
 #### b. `design.md` — How
 
 Describe the solution architecture:
+
 - **Approach**: High-level design decisions
 - **C++/Qt/ROS2 specifics**:
   - New classes/functions needed
@@ -88,6 +90,7 @@ Break the work into atomic tasks:
 ```
 
 Each task should be:
+
 - Small enough to implement in one session
 - Independently testable (build, lint, or unit test)
 - Ordered by dependency (do task 1 before task 2)
@@ -108,6 +111,7 @@ Show the user what was created:
 ```
 
 Confirm with the user:
+
 - Does the proposal capture their intent?
 - Any adjustments needed to scope or design?
 
@@ -116,17 +120,18 @@ Confirm with the user:
 ## MSRCS-Specific Guidelines
 
 ### Package references
+
 When a change affects specific MSRCS packages, always reference the actual source path:
 
-| Package | Path | Type |
-|---------|------|------|
-| HMI Window | `src/ms_rcs_hmi/ms_rcs_hmi_window/` | C++ Qt5/ROS2 |
-| HMI WebView | `src/ms_rcs_hmi/ms_rcs_hmi_webview/` | C++ Qt5 WebEngine |
-| Dashboard | `src/ms_rcs_hmi/ms_rcs_hmi_dashboard/` | C++ Qt5 |
-| HMI Common | `src/ms_rcs_hmi/ms_rcs_hmi_common/` | C++ rosidl messages |
-| Control Client | `src/ms_rcs_control/ms_rcs_control_client/` | Python ROS2 |
-| Config Server | `src/ms_rcs_config/` | C++ + Python + React |
-| Media | `src/ms_rcs_media/` | C++ (capture/receiver) |
+| Package        | Path                                        | Type                   |
+| -------------- | ------------------------------------------- | ---------------------- |
+| HMI Window     | `src/ms_rcs_hmi/ms_rcs_hmi_window/`         | C++ Qt5/ROS2           |
+| HMI WebView    | `src/ms_rcs_hmi/ms_rcs_hmi_webview/`        | C++ Qt5 WebEngine      |
+| Dashboard      | `src/ms_rcs_hmi/ms_rcs_hmi_dashboard/`      | C++ Qt5                |
+| HMI Common     | `src/ms_rcs_hmi/ms_rcs_hmi_common/`         | C++ rosidl messages    |
+| Control Client | `src/ms_rcs_control/ms_rcs_control_client/` | Python ROS2            |
+| Config Server  | `src/ms_rcs_config/`                        | C++ + Python + React   |
+| Media          | `src/ms_rcs_media/`                         | C++ (capture/receiver) |
 
 ### Build commands to reference
 

@@ -32,14 +32,15 @@
 
 M3 使用**语义化设计令牌**系统，将设计决策抽象为可复用的变量：
 
-| 令牌类别 | 示例 | 用途 |
-|----------|------|------|
+| 令牌类别     | 示例                                                      | 用途           |
+| ------------ | --------------------------------------------------------- | -------------- |
 | **颜色令牌** | `colorPrimary`, `colorOnPrimary`, `colorPrimaryContainer` | 语义化颜色角色 |
-| **排版令牌** | `displayLarge`, `headlineMedium`, `bodySmall` | 字体样式层级 |
-| **形状令牌** | `shapeCornerSmall`, `shapeCornerLarge` | 圆角半径 |
-| **间距令牌** | `spacingSmall`, `spacingMedium` | 间距系统 |
+| **排版令牌** | `displayLarge`, `headlineMedium`, `bodySmall`             | 字体样式层级   |
+| **形状令牌** | `shapeCornerSmall`, `shapeCornerLarge`                    | 圆角半径       |
+| **间距令牌** | `spacingSmall`, `spacingMedium`                           | 间距系统       |
 
 **令牌结构特点**：
+
 - **三层结构**：种子令牌 → 映射令牌 → 别名令牌
 - **语义化命名**：基于使用场景而非具体值
 - **跨平台一致**：同一套令牌适用于 Android、iOS、Web
@@ -54,6 +55,7 @@ M3 提供**Material Theme Builder**工具进行主题定制：
 4. **动态色彩**：支持从用户壁纸提取色彩（Android 12+）
 
 **定制能力**：
+
 - 颜色系统：支持亮色/暗色模式
 - 排版系统：基于 Roboto 字体，支持自定义
 - 形状系统：从方形到圆形的形状比例
@@ -79,6 +81,7 @@ val DarkColorScheme = darkColorScheme(
 ```
 
 **暗色模式特点**：
+
 - **自动适配**：基于色彩角色自动映射
 - **对比度保障**：确保文字可读性
 - **深度感知**：使用色调叠加替代阴影
@@ -86,12 +89,14 @@ val DarkColorScheme = darkColorScheme(
 ### 1.5 品牌定制方案
 
 **品牌整合流程**：
+
 1. 提取品牌核心色彩
 2. 生成 M3 色板
 3. 应用到组件系统
 4. 测试无障碍性
 
 **品牌表达方式**：
+
 - 主色用于高强调元素（按钮、FAB）
 - 辅助色用于次要操作
 - 第三色用于表达性元素
@@ -114,12 +119,14 @@ val DarkColorScheme = darkColorScheme(
 ### 1.8 对 AccessBase 的参考
 
 **可借鉴点**：
+
 1. **语义化令牌系统**：使用场景命名而非具体值
 2. **三层令牌结构**：种子 → 映射 → 别名的层级关系
 3. **色彩算法**：基于算法生成和谐色彩
 4. **工具链支持**：提供可视化主题定制工具
 
 **注意事项**：
+
 - AccessBase 使用 Ant Design，需适配 M3 的设计理念
 - 动态色彩功能在 Web 端实现复杂度较高
 - 需要平衡定制性与一致性
@@ -142,38 +149,41 @@ val DarkColorScheme = darkColorScheme(
 Ant Design 5.0 采用**三层令牌架构**：
 
 #### 2.2.1 种子令牌（Seed Token）
+
 设计意图的源头，影响整个主题：
 
 ```typescript
 const seedToken = {
-  colorPrimary: '#1677ff',  // 品牌色
-  borderRadius: 6,          // 基础圆角
-  fontSize: 14,             // 基础字号
+  colorPrimary: '#1677ff', // 品牌色
+  borderRadius: 6, // 基础圆角
+  fontSize: 14, // 基础字号
   // ...
-}
+};
 ```
 
 #### 2.2.2 映射令牌（Map Token）
+
 从种子令牌派生，形成梯度变量：
 
 ```typescript
 const mapToken = {
-  colorPrimaryBg: '#e6f4ff',      // 主色背景
+  colorPrimaryBg: '#e6f4ff', // 主色背景
   colorPrimaryBgHover: '#bae0ff', // 主色背景悬停
-  colorPrimaryBorder: '#91caff',  // 主色边框
+  colorPrimaryBorder: '#91caff', // 主色边框
   // ...
-}
+};
 ```
 
 #### 2.2.3 别名令牌（Alias Token）
+
 用于批量控制组件样式：
 
 ```typescript
 const aliasToken = {
-  colorLink: token.colorPrimary,  // 链接颜色
-  colorBgContainer: '#ffffff',    // 容器背景
+  colorLink: token.colorPrimary, // 链接颜色
+  colorBgContainer: '#ffffff', // 容器背景
   // ...
-}
+};
 ```
 
 ### 2.3 主题定制机制
@@ -187,7 +197,7 @@ const App = () => (
   <ConfigProvider
     theme={{
       token: {
-        colorPrimary: '#00b96b',  // 自定义品牌色
+        colorPrimary: '#00b96b', // 自定义品牌色
         borderRadius: 8,
       },
       algorithm: theme.defaultAlgorithm, // 或 theme.darkAlgorithm
@@ -199,6 +209,7 @@ const App = () => (
 ```
 
 **定制方式**：
+
 1. **修改种子令牌**：快速改变整体风格
 2. **算法切换**：亮色、暗色、紧凑模式
 3. **组件级定制**：单独覆盖组件令牌
@@ -219,12 +230,13 @@ const darkTheme = {
 
 // 动态切换
 const [isDark, setIsDark] = useState(false);
-const currentTheme = isDark 
+const currentTheme = isDark
   ? { algorithm: theme.darkAlgorithm }
   : { algorithm: theme.defaultAlgorithm };
 ```
 
 **暗色模式特点**：
+
 - **算法生成**：基于算法自动计算暗色值
 - **一致性保障**：确保对比度和可读性
 - **动态切换**：支持运行时切换
@@ -232,12 +244,14 @@ const currentTheme = isDark
 ### 2.5 品牌定制方案
 
 **品牌定制流程**：
+
 1. **选择品牌色**：确定主色、辅助色
 2. **配置种子令牌**：设置基础设计参数
 3. **应用算法**：选择合适的主题算法
 4. **组件覆盖**：按需覆盖组件级令牌
 
 **品牌表达能力**：
+
 - 颜色系统：支持自定义色板
 - 排版系统：可调整字体、字号
 - 形状系统：可定制圆角半径
@@ -261,19 +275,22 @@ const currentTheme = isDark
 ### 2.8 对 AccessBase 的参考
 
 **直接参考价值**：
+
 1. **AccessBase 已采用 Ant Design 5**：直接使用其令牌系统
 2. **品牌定制实践**：参考其品牌色配置方式
 3. **暗色模式实现**：使用 `theme.darkAlgorithm`
 4. **组件级定制**：覆盖特定组件的令牌
 
 **具体应用**：
+
 ```typescript
 // AccessBase 主题配置示例
 const accessBaseTheme = {
   token: {
-    colorPrimary: '#1677ff',  // 品牌蓝
+    colorPrimary: '#1677ff', // 品牌蓝
     borderRadius: 6,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Text", "PingFang SC", "Noto Sans SC", Roboto, sans-serif',
+    fontFamily:
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Text", "PingFang SC", "Noto Sans SC", Roboto, sans-serif',
   },
   algorithm: theme.defaultAlgorithm,
 };
@@ -307,6 +324,7 @@ Tailwind CSS 4.0 引入**主题变量**系统：
 ```
 
 **令牌特点**：
+
 - **CSS 变量原生**：基于原生 CSS 变量
 - **命名空间**：按功能分组（颜色、字体、间距等）
 - **自动生成工具类**：变量自动映射到工具类
@@ -330,6 +348,7 @@ Tailwind 提供**@theme 指令**进行主题定制：
 ```
 
 **定制方式**：
+
 1. **覆盖变量**：修改现有主题变量
 2. **扩展变量**：添加新的主题变量
 3. **禁用默认**：完全自定义主题
@@ -352,6 +371,7 @@ Tailwind 暗色模式通过**dark 变体**实现：
 ```
 
 **暗色模式配置**：
+
 ```css
 /* 使用 class 策略 */
 @custom-variant dark (&:is(.dark *));
@@ -363,12 +383,14 @@ Tailwind 暗色模式通过**dark 变体**实现：
 ### 3.5 品牌定制方案
 
 **品牌定制流程**：
+
 1. **定义主题变量**：设置品牌色、字体等
 2. **生成工具类**：自动映射到 CSS 工具类
 3. **应用样式**：在 HTML 中使用工具类
 4. **暗色适配**：配置暗色模式变量
 
 **品牌表达能力**：
+
 - 颜色系统：自定义色板
 - 排版系统：自定义字体栈
 - 间距系统：自定义间距比例
@@ -392,12 +414,14 @@ Tailwind 暗色模式通过**dark 变体**实现：
 ### 3.8 对 AccessBase 的参考
 
 **参考价值**：
+
 1. **CSS 变量模式**：Ant Design 5.12+ 支持 CSS 变量
 2. **主题共享机制**：通过 CSS 文件共享主题
 3. **暗色模式策略**：class 或 data 属性切换
 4. **工具类理念**：可借鉴其原子化思想
 
 **注意事项**：
+
 - AccessBase 使用 Ant Design，不使用 Tailwind
 - 可参考其 CSS 变量组织方式
 - 可借鉴其主题共享机制
@@ -419,6 +443,7 @@ Tailwind 暗色模式通过**dark 变体**实现：
 Apple HIG 使用**系统颜色和语义颜色**：
 
 #### 4.2.1 系统颜色
+
 ```swift
 // SwiftUI 系统颜色
 Color.red
@@ -428,6 +453,7 @@ Color.green
 ```
 
 #### 4.2.2 语义颜色
+
 ```swift
 // 语义颜色
 Color.label          // 主要文字
@@ -437,6 +463,7 @@ Color.separator      // 分隔线
 ```
 
 **令牌特点**：
+
 - **语义化**：基于使用场景命名
 - **自适应**：自动适配亮色/暗色模式
 - **平台原生**：深度集成 Apple 平台
@@ -469,6 +496,7 @@ Apple HIG 主题定制通过**Color Set**实现：
 ```
 
 **定制方式**：
+
 1. **Accent Color**：应用强调色
 2. **Color Set**：定义自适应颜色
 3. **Dynamic Color**：动态系统颜色
@@ -492,6 +520,7 @@ let adaptiveColor = UIColor { traitCollection in
 ```
 
 **暗色模式特点**：
+
 - **系统级支持**：深度集成操作系统
 - **自动适配**：系统颜色自动切换
 - **深度感知**：使用背景色层级表示深度
@@ -499,12 +528,14 @@ let adaptiveColor = UIColor { traitCollection in
 ### 4.5 品牌定制方案
 
 **品牌定制方式**：
+
 1. **强调色**：设置应用强调色
 2. **自定义颜色**：定义 Color Set
 3. **SF Symbols**：使用系统图标或自定义图标
 4. **字体**：使用系统字体或自定义字体
 
 **品牌表达限制**：
+
 - 强调色有限制（按钮、选择高亮等）
 - 需要遵循无障碍指南
 - 需要适配亮色/暗色模式
@@ -527,12 +558,14 @@ let adaptiveColor = UIColor { traitCollection in
 ### 4.8 对 AccessBase 的参考
 
 **参考价值**：
+
 1. **语义颜色系统**：基于使用场景的颜色命名
 2. **自适应颜色**：自动适配亮色/暗色模式
 3. **无障碍设计**：对比度、可读性考虑
 4. **深度感知**：使用颜色层级表示界面深度
 
 **注意事项**：
+
 - AccessBase 是 Web 应用，非 Apple 平台原生
 - 可借鉴其语义化设计理念
 - 可参考其无障碍设计原则
@@ -555,18 +588,19 @@ let adaptiveColor = UIColor { traitCollection in
 Fluent 使用**双层令牌系统**：
 
 #### 5.2.1 全局令牌（Global Tokens）
+
 原始值，跨主题不变：
 
 ```typescript
 const globalTokens = {
   // 颜色
-  grey: { 10: '#fafafa', 20: '#f5f5f5', /* ... */ },
-  brand: { 10: '#061b3b', 20: '#0c2a56', /* ... */ },
-  
+  grey: { 10: '#fafafa', 20: '#f5f5f5' /* ... */ },
+  brand: { 10: '#061b3b', 20: '#0c2a56' /* ... */ },
+
   // 间距
   spacingHorizontalXS: '2px',
   spacingHorizontalS: '4px',
-  
+
   // 字体
   fontSizeBase100: '10px',
   fontSizeBase200: '12px',
@@ -574,14 +608,15 @@ const globalTokens = {
 ```
 
 #### 5.2.2 别名令牌（Alias Tokens）
+
 语义化映射，跨主题变化：
 
 ```typescript
 const aliasTokens = {
-  colorNeutralForeground1: globalTokens.grey[14],  // 亮色模式
-  colorNeutralForeground1: globalTokens.white,      // 暗色模式
-  colorBrandBackground: globalTokens.brand[80],     // 亮色模式
-  colorBrandBackground: globalTokens.brand[70],     // 暗色模式
+  colorNeutralForeground1: globalTokens.grey[14], // 亮色模式
+  colorNeutralForeground1: globalTokens.white, // 暗色模式
+  colorBrandBackground: globalTokens.brand[80], // 亮色模式
+  colorBrandBackground: globalTokens.brand[70], // 暗色模式
 };
 ```
 
@@ -601,10 +636,11 @@ const App = () => (
 // 暗色模式
 <FluentProvider theme={webDarkTheme}>
   <MyApp />
-</FluentProvider>
+</FluentProvider>;
 ```
 
 **定制方式**：
+
 1. **主题切换**：亮色、暗色、高对比度
 2. **品牌定制**：覆盖品牌色
 3. **组件定制**：覆盖组件令牌
@@ -626,10 +662,11 @@ const themes = {
 const [themeName, setThemeName] = useState('light');
 <FluentProvider theme={themes[themeName]}>
   <MyApp />
-</FluentProvider>
+</FluentProvider>;
 ```
 
 **暗色模式特点**：
+
 - **算法生成**：基于算法自动计算暗色值
 - **高对比度支持**：支持无障碍高对比度模式
 - **自适应颜色**：根据背景自动调整
@@ -637,12 +674,14 @@ const [themeName, setThemeName] = useState('light');
 ### 5.5 品牌定制方案
 
 **品牌定制方式**：
+
 1. **品牌色覆盖**：覆盖品牌色令牌
 2. **主题创建**：创建自定义主题
 3. **组件定制**：覆盖组件级令牌
 4. **CSS 变量**：直接修改 CSS 变量
 
 **品牌表达能力**：
+
 - 颜色系统：自定义品牌色板
 - 排版系统：可调整字体栈
 - 间距系统：可调整间距比例
@@ -666,12 +705,14 @@ const [themeName, setThemeName] = useState('light');
 ### 5.8 对 AccessBase 的参考
 
 **参考价值**：
+
 1. **双层令牌系统**：全局令牌 + 别名令牌
 2. **主题切换机制**：多主题支持
 3. **无障碍设计**：高对比度模式支持
 4. **CSS 变量模式**：运行时主题切换
 
 **注意事项**：
+
 - AccessBase 使用 Ant Design，非 Fluent
 - 可借鉴其令牌组织方式
 - 可参考其无障碍设计实践
@@ -694,27 +735,29 @@ const [themeName, setThemeName] = useState('light');
 Carbon 使用**分层令牌系统**：
 
 #### 6.2.1 颜色令牌
+
 ```scss
 // 核心令牌
-$background: #ffffff;      // 白色主题
-$background: #262626;      // Gray 90 主题
-$background: #161616;      // Gray 100 主题
+$background: #ffffff; // 白色主题
+$background: #262626; // Gray 90 主题
+$background: #161616; // Gray 100 主题
 
 // 语义令牌
-$text-primary: #161616;    // 主要文字
-$text-secondary: #525252;  // 次要文字
-$border-strong: #8d8d8d;   // 边框
+$text-primary: #161616; // 主要文字
+$text-secondary: #525252; // 次要文字
+$border-strong: #8d8d8d; // 边框
 ```
 
 #### 6.2.2 层级令牌
+
 ```scss
 // 层级令牌（显式）
-$layer-01: #f4f4f4;  // 第一层
-$layer-02: #e0e0e0;  // 第二层
-$layer-03: #c6c6c6;  // 第三层
+$layer-01: #f4f4f4; // 第一层
+$layer-02: #e0e0e0; // 第二层
+$layer-03: #c6c6c6; // 第三层
 
 // 上下文令牌（隐式）
-$layer: var(--layer-01);  // 根据上下文自动变化
+$layer: var(--layer-01); // 根据上下文自动变化
 ```
 
 ### 6.3 主题定制机制
@@ -731,7 +774,9 @@ Carbon 提供**Sass 模块**进行主题定制：
 
 // 使用 Gray 100 主题
 @use '@carbon/themes/scss/themes' as *;
-@use '@carbon/themes' with ($theme: $g100);
+@use '@carbon/themes' with (
+  $theme: $g100
+);
 
 // 自定义主题
 @use '@carbon/themes' with (
@@ -743,6 +788,7 @@ Carbon 提供**Sass 模块**进行主题定制：
 ```
 
 **定制方式**：
+
 1. **主题选择**：White、Gray 10、Gray 90、Gray 100
 2. **令牌覆盖**：覆盖特定令牌值
 3. **自定义令牌**：添加新的令牌
@@ -775,6 +821,7 @@ Carbon 暗色模式通过**主题切换**实现：
 ```
 
 **暗色模式特点**：
+
 - **层级模型**：使用颜色层级表示深度
 - **上下文令牌**：根据组件位置自动变化
 - **内联主题**：支持页面内混合主题
@@ -782,12 +829,14 @@ Carbon 暗色模式通过**主题切换**实现：
 ### 6.5 品牌定制方案
 
 **品牌定制方式**：
+
 1. **主题覆盖**：覆盖默认令牌值
 2. **自定义令牌**：添加品牌专属令牌
 3. **内联主题**：页面内混合主题
 4. **组件定制**：覆盖组件级令牌
 
 **品牌表达能力**：
+
 - 颜色系统：自定义色板
 - 排版系统：可调整字体栈
 - 间距系统：可调整间距比例
@@ -811,12 +860,14 @@ Carbon 暗色模式通过**主题切换**实现：
 ### 6.8 对 AccessBase 的参考
 
 **参考价值**：
+
 1. **层级模型**：颜色层级系统设计
 2. **上下文令牌**：根据位置自动变化的令牌
 3. **内联主题**：页面内混合主题
 4. **无障碍设计**：严格的对比度要求
 
 **注意事项**：
+
 - AccessBase 使用 Ant Design，非 Carbon
 - 可借鉴其层级模型设计
 - 可参考其无障碍设计实践
@@ -827,58 +878,58 @@ Carbon 暗色模式通过**主题切换**实现：
 
 ### 7.1 设计令牌系统对比
 
-| 设计系统 | 令牌结构 | 命名方式 | 主题切换 | 跨平台 |
-|----------|----------|----------|----------|--------|
-| **Material Design 3** | 三层结构（种子→映射→别名） | 语义化 | 算法生成 | Android/Web/Flutter |
-| **Ant Design** | 三层结构（种子→映射→别名） | 语义化 | 算法切换 | Web |
-| **Tailwind CSS** | CSS 变量 | 命名空间 | 变体切换 | Web |
-| **Apple HIG** | 系统颜色 + 语义颜色 | 语义化 | 自适应 | Apple 平台 |
-| **Microsoft Fluent** | 双层结构（全局→别名） | 语义化 | 主题切换 | Web/Windows/移动端 |
-| **Carbon** | 分层令牌 + 上下文令牌 | 语义化 | 主题切换 | Web |
+| 设计系统              | 令牌结构                   | 命名方式 | 主题切换 | 跨平台              |
+| --------------------- | -------------------------- | -------- | -------- | ------------------- |
+| **Material Design 3** | 三层结构（种子→映射→别名） | 语义化   | 算法生成 | Android/Web/Flutter |
+| **Ant Design**        | 三层结构（种子→映射→别名） | 语义化   | 算法切换 | Web                 |
+| **Tailwind CSS**      | CSS 变量                   | 命名空间 | 变体切换 | Web                 |
+| **Apple HIG**         | 系统颜色 + 语义颜色        | 语义化   | 自适应   | Apple 平台          |
+| **Microsoft Fluent**  | 双层结构（全局→别名）      | 语义化   | 主题切换 | Web/Windows/移动端  |
+| **Carbon**            | 分层令牌 + 上下文令牌      | 语义化   | 主题切换 | Web                 |
 
 ### 7.2 主题定制机制对比
 
-| 设计系统 | 定制方式 | 动态切换 | 品牌定制 | 工具支持 |
-|----------|----------|----------|----------|----------|
-| **Material Design 3** | Theme Builder | ✅ | 强 | Figma 插件 |
-| **Ant Design** | ConfigProvider | ✅ | 强 | 主题编辑器 |
-| **Tailwind CSS** | @theme 指令 | ✅ | 中 | CLI 工具 |
-| **Apple HIG** | Color Set | ✅ | 弱 | Xcode |
-| **Microsoft Fluent** | FluentProvider | ✅ | 强 | 主题编辑器 |
-| **Carbon** | Sass 模块 | ✅ | 中 | 设计工具 |
+| 设计系统              | 定制方式       | 动态切换 | 品牌定制 | 工具支持   |
+| --------------------- | -------------- | -------- | -------- | ---------- |
+| **Material Design 3** | Theme Builder  | ✅       | 强       | Figma 插件 |
+| **Ant Design**        | ConfigProvider | ✅       | 强       | 主题编辑器 |
+| **Tailwind CSS**      | @theme 指令    | ✅       | 中       | CLI 工具   |
+| **Apple HIG**         | Color Set      | ✅       | 弱       | Xcode      |
+| **Microsoft Fluent**  | FluentProvider | ✅       | 强       | 主题编辑器 |
+| **Carbon**            | Sass 模块      | ✅       | 中       | 设计工具   |
 
 ### 7.3 暗色模式实现对比
 
-| 设计系统 | 实现方式 | 切换策略 | 对比度保障 | 高对比度支持 |
-|----------|----------|----------|------------|--------------|
-| **Material Design 3** | 色彩角色映射 | 系统/手动 | ✅ | ✅ |
-| **Ant Design** | 算法切换 | 手动 | ✅ | ❌ |
-| **Tailwind CSS** | dark 变体 | 系统/手动 | 需手动 | ❌ |
-| **Apple HIG** | 自适应颜色 | 系统 | ✅ | ✅ |
-| **Microsoft Fluent** | 主题切换 | 系统/手动 | ✅ | ✅ |
-| **Carbon** | 主题切换 | 系统/手动 | ✅ | ✅ |
+| 设计系统              | 实现方式     | 切换策略  | 对比度保障 | 高对比度支持 |
+| --------------------- | ------------ | --------- | ---------- | ------------ |
+| **Material Design 3** | 色彩角色映射 | 系统/手动 | ✅         | ✅           |
+| **Ant Design**        | 算法切换     | 手动      | ✅         | ❌           |
+| **Tailwind CSS**      | dark 变体    | 系统/手动 | 需手动     | ❌           |
+| **Apple HIG**         | 自适应颜色   | 系统      | ✅         | ✅           |
+| **Microsoft Fluent**  | 主题切换     | 系统/手动 | ✅         | ✅           |
+| **Carbon**            | 主题切换     | 系统/手动 | ✅         | ✅           |
 
 ### 7.4 品牌定制能力对比
 
-| 设计系统 | 颜色定制 | 排版定制 | 形状定制 | 间距定制 | 组件定制 |
-|----------|----------|----------|----------|----------|----------|
-| **Material Design 3** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Ant Design** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Tailwind CSS** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Apple HIG** | ⚠️ | ⚠️ | ⚠️ | ❌ | ⚠️ |
-| **Microsoft Fluent** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Carbon** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 设计系统              | 颜色定制 | 排版定制 | 形状定制 | 间距定制 | 组件定制 |
+| --------------------- | -------- | -------- | -------- | -------- | -------- |
+| **Material Design 3** | ✅       | ✅       | ✅       | ✅       | ✅       |
+| **Ant Design**        | ✅       | ✅       | ✅       | ✅       | ✅       |
+| **Tailwind CSS**      | ✅       | ✅       | ✅       | ✅       | ✅       |
+| **Apple HIG**         | ⚠️       | ⚠️       | ⚠️       | ❌       | ⚠️       |
+| **Microsoft Fluent**  | ✅       | ✅       | ✅       | ✅       | ✅       |
+| **Carbon**            | ✅       | ✅       | ✅       | ✅       | ✅       |
 
 ### 7.5 优缺点总结
 
-| 设计系统 | 核心优势 | 主要劣势 | 适用场景 |
-|----------|----------|----------|----------|
-| **Material Design 3** | 跨平台一致性、动态色彩 | 学习曲线陡峭、平台依赖 | Android/Web 跨平台应用 |
-| **Ant Design** | 企业级成熟、主题系统强大 | 包体积大、设计语言固定 | 企业级中后台系统 |
-| **Tailwind CSS** | 开发效率高、性能优秀 | HTML 膨胀、学习曲线 | 快速原型、定制化项目 |
-| **Apple HIG** | 平台一致性、无障碍优秀 | 平台限制、定制有限 | Apple 平台原生应用 |
-| **Microsoft Fluent** | 企业级成熟、无障碍优秀 | 学习曲线陡峭、微软风格 | 微软生态系统应用 |
-| **Carbon** | 企业级成熟、层级模型优秀 | Sass 依赖、IBM 风格 | IBM 企业级应用 |
+| 设计系统              | 核心优势                 | 主要劣势               | 适用场景               |
+| --------------------- | ------------------------ | ---------------------- | ---------------------- |
+| **Material Design 3** | 跨平台一致性、动态色彩   | 学习曲线陡峭、平台依赖 | Android/Web 跨平台应用 |
+| **Ant Design**        | 企业级成熟、主题系统强大 | 包体积大、设计语言固定 | 企业级中后台系统       |
+| **Tailwind CSS**      | 开发效率高、性能优秀     | HTML 膨胀、学习曲线    | 快速原型、定制化项目   |
+| **Apple HIG**         | 平台一致性、无障碍优秀   | 平台限制、定制有限     | Apple 平台原生应用     |
+| **Microsoft Fluent**  | 企业级成熟、无障碍优秀   | 学习曲线陡峭、微软风格 | 微软生态系统应用       |
+| **Carbon**            | 企业级成熟、层级模型优秀 | Sass 依赖、IBM 风格    | IBM 企业级应用         |
 
 ---
 
@@ -887,16 +938,19 @@ Carbon 暗色模式通过**主题切换**实现：
 ### 8.1 设计令牌系统
 
 **借鉴 Material Design 3 和 Ant Design**：
+
 1. **三层令牌结构**：种子 → 映射 → 别名的层级关系
 2. **语义化命名**：基于使用场景而非具体值
 3. **算法生成**：基于算法自动计算衍生值
 
 **AccessBase 现状**：
+
 - 已采用 Ant Design 5 的令牌系统
 - 使用 `themeTokens` 和 `componentTokens`
 - 支持算法切换（亮色/暗色）
 
 **优化建议**：
+
 1. **完善令牌文档**：记录所有可用令牌
 2. **建立令牌规范**：统一命名和使用规范
 3. **提供可视化工具**：主题预览和编辑工具
@@ -904,16 +958,19 @@ Carbon 暗色模式通过**主题切换**实现：
 ### 8.2 主题定制机制
 
 **借鉴 Ant Design 和 Microsoft Fluent**：
+
 1. **ConfigProvider 模式**：通过 Provider 配置主题
 2. **算法切换**：支持多种主题算法
 3. **组件级定制**：支持组件级令牌覆盖
 
 **AccessBase 现状**：
+
 - 使用 `ConfigProvider` 配置主题
 - 支持亮色/暗色算法切换
 - 有 `theme/tokens.ts` 作为唯一权威
 
 **优化建议**：
+
 1. **支持更多算法**：紧凑模式等
 2. **组件级定制文档**：记录组件级定制方式
 3. **主题切换优化**：支持运行时主题切换
@@ -921,16 +978,19 @@ Carbon 暗色模式通过**主题切换**实现：
 ### 8.3 暗色模式实现
 
 **借鉴 Material Design 3 和 Apple HIG**：
+
 1. **色彩角色映射**：基于角色自动映射暗色值
 2. **对比度保障**：确保文字可读性
 3. **深度感知**：使用颜色层级表示深度
 
 **AccessBase 现状**：
+
 - 使用 `theme.darkAlgorithm` 实现暗色模式
 - 支持 localStorage 持久化
 - 通过 Header 切换按钮触发
 
 **优化建议**：
+
 1. **系统偏好检测**：支持 `prefers-color-scheme`
 2. **对比度验证**：自动化对比度检查
 3. **深度层级优化**：使用颜色层级表示界面深度
@@ -938,16 +998,19 @@ Carbon 暗色模式通过**主题切换**实现：
 ### 8.4 品牌定制方案
 
 **借鉴 Material Design 3 和 Carbon**：
+
 1. **品牌色提取**：从品牌标识提取主色
 2. **色板生成**：基于算法生成完整色板
 3. **无障碍验证**：确保品牌色可访问
 
 **AccessBase 现状**：
+
 - 品牌色：`#1677ff`（antd 默认蓝）
 - 圆角：`6px`
 - 字体栈：跨平台字体栈
 
 **优化建议**：
+
 1. **品牌色定制**：支持自定义品牌色
 2. **品牌资源管理**：统一管理品牌资源
 3. **品牌一致性检查**：自动化品牌一致性检查
@@ -955,16 +1018,19 @@ Carbon 暗色模式通过**主题切换**实现：
 ### 8.5 无障碍设计
 
 **借鉴 Apple HIG 和 Microsoft Fluent**：
+
 1. **对比度要求**：满足 WCAG 标准
 2. **高对比度支持**：支持高对比度模式
 3. **键盘导航**：完整的键盘导航支持
 
 **AccessBase 现状**：
+
 - 使用 antd 默认无障碍支持
 - 颜色对比度基本满足要求
 - 键盘导航基本支持
 
 **优化建议**：
+
 1. **对比度自动化检查**：集成到 CI/CD
 2. **高对比度主题**：支持高对比度模式
 3. **无障碍测试**：自动化无障碍测试
@@ -972,16 +1038,19 @@ Carbon 暗色模式通过**主题切换**实现：
 ### 8.6 工具链建设
 
 **借鉴 Material Design 3 和 Ant Design**：
+
 1. **主题编辑器**：可视化主题定制工具
 2. **设计令牌文档**：完整的令牌文档
 3. **主题预览**：实时主题预览功能
 
 **AccessBase 现状**：
+
 - 有 `theme/tokens.ts` 作为令牌源
 - 使用 antd 主题编辑器
 - 缺少专用工具链
 
 **优化建议**：
+
 1. **开发主题编辑器**：定制化主题编辑工具
 2. **完善令牌文档**：记录所有可用令牌和用法
 3. **主题预览功能**：支持实时主题预览
@@ -989,16 +1058,19 @@ Carbon 暗色模式通过**主题切换**实现：
 ### 8.7 实施建议
 
 **短期（1-2 周）**：
+
 1. 完善现有令牌文档
 2. 添加系统偏好检测支持
 3. 优化暗色模式切换体验
 
 **中期（1-2 月）**：
+
 1. 开发主题编辑器工具
 2. 支持更多主题算法
 3. 建立品牌定制规范
 
 **长期（3-6 月）**：
+
 1. 支持动态色彩功能
 2. 建立完整设计系统
 3. 开发设计令牌管理平台

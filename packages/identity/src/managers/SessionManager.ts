@@ -106,7 +106,11 @@ export class SessionManager {
   /**
    * Create local session (bound to SSO session)
    */
-  async createLocalSession(userId: string, ssoSessionId: string, tenantId: string): Promise<LocalSession> {
+  async createLocalSession(
+    userId: string,
+    ssoSessionId: string,
+    tenantId: string,
+  ): Promise<LocalSession> {
     logger.info(`Creating local session for user: ${userId} in tenant: ${tenantId}`);
     // Implementation will:
     // 1. Get SSO session

@@ -19,7 +19,7 @@ const PUBLIC_ROUTES = [
  * Check if route is public
  */
 function isPublicRoute(url: string): boolean {
-  return PUBLIC_ROUTES.some(route => url.startsWith(route));
+  return PUBLIC_ROUTES.some((route) => url.startsWith(route));
 }
 
 /**
@@ -96,7 +96,7 @@ export async function authorizeHook(request: FastifyRequest, reply: FastifyReply
     const hasPermission = await permissionManager.hasPermission(
       user.sub,
       requiredPermission,
-      user.tenantId
+      user.tenantId,
     );
 
     if (!hasPermission) {

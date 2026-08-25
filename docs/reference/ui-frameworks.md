@@ -32,14 +32,14 @@ Arco Design 是字节跳动开源的企业级设计系统，提供完整的 Reac
 
 ### 1.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React 16.x+ | 支持 React 16 及以上版本 |
-| **UI 组件库** | @arco-design/web-react | 60+ 企业级组件 |
-| **设计系统** | Arco Design | 字节跳动内部设计语言 |
-| **样式方案** | Less | 基于 Less 的主题定制 |
-| **类型系统** | TypeScript | 所有组件 TypeScript 编写 |
-| **设计工具** | Figma / Sketch | 提供完整设计资源 |
+| 类别          | 技术                   | 说明                     |
+| ------------- | ---------------------- | ------------------------ |
+| **框架**      | React 16.x+            | 支持 React 16 及以上版本 |
+| **UI 组件库** | @arco-design/web-react | 60+ 企业级组件           |
+| **设计系统**  | Arco Design            | 字节跳动内部设计语言     |
+| **样式方案**  | Less                   | 基于 Less 的主题定制     |
+| **类型系统**  | TypeScript             | 所有组件 TypeScript 编写 |
+| **设计工具**  | Figma / Sketch         | 提供完整设计资源         |
 
 ### 1.3 核心特性
 
@@ -54,6 +54,7 @@ Arco Design 是字节跳动开源的企业级设计系统，提供完整的 Reac
 ### 1.4 设计理念
 
 Arco Design 遵循"简约、清晰、高效"的设计原则，强调：
+
 - **一致性**：统一的设计语言确保跨产品体验一致
 - **可定制**：通过 Design Token 实现深度主题定制
 - **高效性**：组件设计注重开发效率和用户体验
@@ -95,14 +96,14 @@ Semi Design 是字节跳动抖音前端团队开源的设计系统，提供 80+ 
 
 ### 2.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React 16.x+ | 支持 React 16 及以上版本 |
-| **UI 组件库** | @douyinfe/semi-ui | 80+ 高质量组件 |
-| **设计系统** | Semi Design | 抖音前端团队设计语言 |
-| **样式方案** | CSS-in-JS + Design Token | 运行时样式注入 |
-| **类型系统** | TypeScript | 完整类型支持 |
-| **设计工具** | Figma | 提供 Figma 设计资源 |
+| 类别          | 技术                     | 说明                     |
+| ------------- | ------------------------ | ------------------------ |
+| **框架**      | React 16.x+              | 支持 React 16 及以上版本 |
+| **UI 组件库** | @douyinfe/semi-ui        | 80+ 高质量组件           |
+| **设计系统**  | Semi Design              | 抖音前端团队设计语言     |
+| **样式方案**  | CSS-in-JS + Design Token | 运行时样式注入           |
+| **类型系统**  | TypeScript               | 完整类型支持             |
+| **设计工具**  | Figma                    | 提供 Figma 设计资源      |
 
 ### 2.3 核心特性
 
@@ -118,6 +119,7 @@ Semi Design 是字节跳动抖音前端团队开源的设计系统，提供 80+ 
 ### 2.4 设计理念
 
 Semi Design 强调"设计即代码"的理念：
+
 - **设计与开发一体化**：Design to Code 实现设计稿到代码的自动转换
 - **AI 就绪**：内置 AI 组件，支持 AI 应用开发
 - **可访问性优先**：遵循无障碍设计标准
@@ -159,14 +161,14 @@ TDesign 是腾讯开源的企业级设计体系，提供多框架（React、Vue 
 
 ### 3.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React 16.x+ | 桌面端应用 |
-| **UI 组件库** | tdesign-react | 腾讯设计体系组件 |
-| **设计系统** | TDesign | 腾讯企业级设计语言 |
-| **样式方案** | CSS + Design Token | 支持主题定制 |
-| **类型系统** | TypeScript | 完整类型支持 |
-| **设计工具** | CoDesign | 腾讯一站式设计协作平台 |
+| 类别          | 技术               | 说明                   |
+| ------------- | ------------------ | ---------------------- |
+| **框架**      | React 16.x+        | 桌面端应用             |
+| **UI 组件库** | tdesign-react      | 腾讯设计体系组件       |
+| **设计系统**  | TDesign            | 腾讯企业级设计语言     |
+| **样式方案**  | CSS + Design Token | 支持主题定制           |
+| **类型系统**  | TypeScript         | 完整类型支持           |
+| **设计工具**  | CoDesign           | 腾讯一站式设计协作平台 |
 
 ### 3.3 核心特性
 
@@ -180,6 +182,7 @@ TDesign 是腾讯开源的企业级设计体系，提供多框架（React、Vue 
 ### 3.4 设计理念
 
 TDesign 遵循"统一、高效、可复用"的设计原则：
+
 - **跨平台统一**：一套设计语言适配多端
 - **高效开发**：组件设计注重开发效率
 - **可复用性**：组件可在不同项目间复用
@@ -221,14 +224,14 @@ Mantine 是一个功能丰富的 React 组件库和 Hooks 库，提供 100+ 组�
 
 ### 4.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React 18/19 | 支持最新 React 特性 |
-| **UI 组件库** | @mantine/core | 100+ 高质量组件 |
-| **样式方案** | CSS Modules + PostCSS | 零运行时样式方案 |
-| **类型系统** | TypeScript | 完整类型支持 |
-| **构建工具** | Vite / Next.js | 官方模板支持 |
-| **扩展包** | @mantine/form, @mantine/dates 等 | 丰富的扩展包 |
+| 类别          | 技术                             | 说明                |
+| ------------- | -------------------------------- | ------------------- |
+| **框架**      | React 18/19                      | 支持最新 React 特性 |
+| **UI 组件库** | @mantine/core                    | 100+ 高质量组件     |
+| **样式方案**  | CSS Modules + PostCSS            | 零运行时样式方案    |
+| **类型系统**  | TypeScript                       | 完整类型支持        |
+| **构建工具**  | Vite / Next.js                   | 官方模板支持        |
+| **扩展包**    | @mantine/form, @mantine/dates 等 | 丰富的扩展包        |
 
 ### 4.3 核心特性
 
@@ -246,6 +249,7 @@ Mantine 是一个功能丰富的 React 组件库和 Hooks 库，提供 100+ 组�
 ### 4.4 设计理念
 
 Mantine 遵循"开发者友好"的设计原则：
+
 - **零配置**：提供合理的默认配置，开箱即用
 - **可组合**：组件设计注重可组合性
 - **类型安全**：完整的 TypeScript 支持
@@ -290,14 +294,14 @@ Shadcn/ui 是一个创新的 UI 组件分发平台，不是传统的组件库。
 
 ### 5.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React 18+ | 支持 React 18 及以上版本 |
-| **基础组件** | Radix UI | 无头、可访问的原语组件 |
-| **样式方案** | Tailwind CSS | 实用优先的 CSS 框架 |
-| **类型系统** | TypeScript | 完整类型支持 |
-| **分发方式** | CLI + 代码复制 | 非 NPM 包，直接复制代码 |
-| **设计系统** | 可定制 | 通过 CSS 变量定制主题 |
+| 类别         | 技术           | 说明                     |
+| ------------ | -------------- | ------------------------ |
+| **框架**     | React 18+      | 支持 React 18 及以上版本 |
+| **基础组件** | Radix UI       | 无头、可访问的原语组件   |
+| **样式方案** | Tailwind CSS   | 实用优先的 CSS 框架      |
+| **类型系统** | TypeScript     | 完整类型支持             |
+| **分发方式** | CLI + 代码复制 | 非 NPM 包，直接复制代码  |
+| **设计系统** | 可定制         | 通过 CSS 变量定制主题    |
 
 ### 5.3 核心特性
 
@@ -312,6 +316,7 @@ Shadcn/ui 是一个创新的 UI 组件分发平台，不是传统的组件库。
 ### 5.4 设计理念
 
 Shadcn/ui 遵循"你如何构建你的组件库"的理念：
+
 - **开放代码**：组件代码完全开放，可直接修改
 - **非黑盒**：你拥有组件的完整控制权
 - **AI 友好**：开放代码便于 AI 工具理解和改进
@@ -355,13 +360,13 @@ Radix UI 是一个低级 UI 组件库，专注于可访问性、定制性和开�
 
 ### 6.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React 18+ | 支持 React 18 及以上版本 |
-| **组件类型** | 无头原语 | 无样式的、可访问的 UI 原语 |
-| **样式方案** | 任意方案 | 支持任何 CSS 方案 |
-| **类型系统** | TypeScript | 完整类型支持 |
-| **可访问性** | WAI-ARIA | 遵循 WAI-ARIA 设计模式 |
+| 类别         | 技术       | 说明                       |
+| ------------ | ---------- | -------------------------- |
+| **框架**     | React 18+  | 支持 React 18 及以上版本   |
+| **组件类型** | 无头原语   | 无样式的、可访问的 UI 原语 |
+| **样式方案** | 任意方案   | 支持任何 CSS 方案          |
+| **类型系统** | TypeScript | 完整类型支持               |
+| **可访问性** | WAI-ARIA   | 遵循 WAI-ARIA 设计模式     |
 
 ### 6.3 核心特性
 
@@ -376,6 +381,7 @@ Radix UI 是一个低级 UI 组件库，专注于可访问性、定制性和开�
 ### 6.4 设计理念
 
 Radix UI 遵循"无样式、可访问、可组合"的设计原则：
+
 - **无样式优先**：组件不带样式，完全控制外观
 - **可访问性**：遵循 WAI-ARIA 标准
 - **可组合**：组件设计注重可组合性
@@ -419,13 +425,13 @@ Headless UI 是 Tailwind Labs 官方出品的完全无样式、完全可访问�
 
 ### 7.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React / Vue | 支持 React 和 Vue |
-| **组件类型** | 无头组件 | 完全无样式的可访问组件 |
+| 类别         | 技术         | 说明                   |
+| ------------ | ------------ | ---------------------- |
+| **框架**     | React / Vue  | 支持 React 和 Vue      |
+| **组件类型** | 无头组件     | 完全无样式的可访问组件 |
 | **样式方案** | Tailwind CSS | 专为 Tailwind CSS 设计 |
-| **类型系统** | TypeScript | 完整类型支持 |
-| **可访问性** | WAI-ARIA | 遵循 WAI-ARIA 标准 |
+| **类型系统** | TypeScript   | 完整类型支持           |
+| **可访问性** | WAI-ARIA     | 遵循 WAI-ARIA 标准     |
 
 ### 7.3 核心特性
 
@@ -439,6 +445,7 @@ Headless UI 是 Tailwind Labs 官方出品的完全无样式、完全可访问�
 ### 7.4 设计理念
 
 Headless UI 遵循"无样式、可访问、Tailwind 友好"的设计原则：
+
 - **Tailwind 优先**：专为 Tailwind CSS 设计
 - **可访问性**：内置可访问性
 - **无样式**：完全控制外观
@@ -479,14 +486,14 @@ Park UI 是一个创新的 UI 组件框架，基于 Ark UI 和 Panda CSS 构建�
 
 ### 8.2 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| **框架** | React / Solid.js | 支持多框架 |
-| **基础组件** | Ark UI | 无头、可访问的组件库 |
-| **样式方案** | Panda CSS | 零运行时 CSS-in-JS |
-| **类型系统** | TypeScript | 完整类型支持 |
-| **分发方式** | CLI + 代码复制 | 开放代码模式 |
-| **设计系统** | 可定制 | 通过 Recipe 定制主题 |
+| 类别         | 技术             | 说明                 |
+| ------------ | ---------------- | -------------------- |
+| **框架**     | React / Solid.js | 支持多框架           |
+| **基础组件** | Ark UI           | 无头、可访问的组件库 |
+| **样式方案** | Panda CSS        | 零运行时 CSS-in-JS   |
+| **类型系统** | TypeScript       | 完整类型支持         |
+| **分发方式** | CLI + 代码复制   | 开放代码模式         |
+| **设计系统** | 可定制           | 通过 Recipe 定制主题 |
 
 ### 8.3 核心特性
 
@@ -501,6 +508,7 @@ Park UI 是一个创新的 UI 组件框架，基于 Ark UI 和 Panda CSS 构建�
 ### 8.4 设计理念
 
 Park UI 遵循"开放代码、可组合、多框架"的设计原则：
+
 - **开放代码**：组件源码直接分发，完全控制
 - **可组合**：基于 Ark UI 的可组合架构
 - **多框架**：一套组件适配多框架
@@ -536,42 +544,42 @@ Park UI 遵循"开放代码、可组合、多框架"的设计原则：
 
 ### 9.1 技术栈对比
 
-| 框架 | React | Vue | 其他框架 | 样式方案 | 分发方式 |
-|------|-------|-----|----------|----------|----------|
-| **Arco Design** | ✅ | ✅ | ❌ | Less | NPM 包 |
-| **Semi Design** | ✅ | ❌ | ❌ | CSS-in-JS | NPM 包 |
-| **TDesign** | ✅ | ✅ | 小程序 | CSS + Token | NPM 包 |
-| **Mantine** | ✅ | ❌ | ❌ | CSS Modules | NPM 包 |
-| **Shadcn/ui** | ✅ | ❌ | ❌ | Tailwind CSS | 代码复制 |
-| **Radix UI** | ✅ | ❌ | ❌ | 任意方案 | NPM 包 |
-| **Headless UI** | ✅ | ✅ | ❌ | Tailwind CSS | NPM 包 |
-| **Park UI** | ✅ | ❌ | Solid.js | Panda CSS | 代码复制 |
+| 框架            | React | Vue | 其他框架 | 样式方案     | 分发方式 |
+| --------------- | ----- | --- | -------- | ------------ | -------- |
+| **Arco Design** | ✅    | ✅  | ❌       | Less         | NPM 包   |
+| **Semi Design** | ✅    | ❌  | ❌       | CSS-in-JS    | NPM 包   |
+| **TDesign**     | ✅    | ✅  | 小程序   | CSS + Token  | NPM 包   |
+| **Mantine**     | ✅    | ❌  | ❌       | CSS Modules  | NPM 包   |
+| **Shadcn/ui**   | ✅    | ❌  | ❌       | Tailwind CSS | 代码复制 |
+| **Radix UI**    | ✅    | ❌  | ❌       | 任意方案     | NPM 包   |
+| **Headless UI** | ✅    | ✅  | ❌       | Tailwind CSS | NPM 包   |
+| **Park UI**     | ✅    | ❌  | Solid.js | Panda CSS    | 代码复制 |
 
 ### 9.2 特性对比
 
-| 框架 | 组件数 | Hooks | 暗色模式 | 国际化 | 无障碍 | AI 集成 |
-|------|--------|-------|----------|--------|--------|---------|
-| **Arco Design** | 60+ | ❌ | ✅ | ✅ | ✅ | ❌ |
-| **Semi Design** | 80+ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **TDesign** | 60+ | ❌ | ✅ | ✅ | ✅ | ❌ |
-| **Mantine** | 100+ | 50+ | ✅ | ✅ | ✅ | ❌ |
-| **Shadcn/ui** | 60+ | ❌ | ✅ | ❌ | ✅ | ✅ |
-| **Radix UI** | 20+ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| **Headless UI** | 15+ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| **Park UI** | 30+ | ❌ | ✅ | ❌ | ✅ | ✅ |
+| 框架            | 组件数 | Hooks | 暗色模式 | 国际化 | 无障碍 | AI 集成 |
+| --------------- | ------ | ----- | -------- | ------ | ------ | ------- |
+| **Arco Design** | 60+    | ❌    | ✅       | ✅     | ✅     | ❌      |
+| **Semi Design** | 80+    | ❌    | ✅       | ✅     | ✅     | ✅      |
+| **TDesign**     | 60+    | ❌    | ✅       | ✅     | ✅     | ❌      |
+| **Mantine**     | 100+   | 50+   | ✅       | ✅     | ✅     | ❌      |
+| **Shadcn/ui**   | 60+    | ❌    | ✅       | ❌     | ✅     | ✅      |
+| **Radix UI**    | 20+    | ❌    | ❌       | ❌     | ✅     | ❌      |
+| **Headless UI** | 15+    | ❌    | ❌       | ❌     | ✅     | ❌      |
+| **Park UI**     | 30+    | ❌    | ✅       | ❌     | ✅     | ✅      |
 
 ### 9.3 企业级特性对比
 
-| 框架 | 管理后台模板 | 主题定制 | 设计资源 | 社区规模 | 企业验证 |
-|------|--------------|----------|----------|----------|----------|
-| **Arco Design** | ✅ Arco Pro | ✅ Design Lab | ✅ Figma/Sketch | 中 | 字节跳动 |
-| **Semi Design** | ❌ | ✅ | ✅ Figma | 中 | 字节跳动 |
-| **TDesign** | ✅ Starter | ✅ | ✅ CoDesign | 小 | 腾讯 |
-| **Mantine** | ❌ | ✅ | 社区提供 | 大 | 社区 |
-| **Shadcn/ui** | ❌ | ✅ CSS 变量 | 社区提供 | 极大 | 社区 |
-| **Radix UI** | ❌ | ❌ | ❌ | 中 | 社区 |
-| **Headless UI** | ❌ | ❌ | ❌ | 大 | Tailwind Labs |
-| **Park UI** | ❌ | ✅ Recipe | ✅ Figma | 小 | 社区 |
+| 框架            | 管理后台模板 | 主题定制      | 设计资源        | 社区规模 | 企业验证      |
+| --------------- | ------------ | ------------- | --------------- | -------- | ------------- |
+| **Arco Design** | ✅ Arco Pro  | ✅ Design Lab | ✅ Figma/Sketch | 中       | 字节跳动      |
+| **Semi Design** | ❌           | ✅            | ✅ Figma        | 中       | 字节跳动      |
+| **TDesign**     | ✅ Starter   | ✅            | ✅ CoDesign     | 小       | 腾讯          |
+| **Mantine**     | ❌           | ✅            | 社区提供        | 大       | 社区          |
+| **Shadcn/ui**   | ❌           | ✅ CSS 变量   | 社区提供        | 极大     | 社区          |
+| **Radix UI**    | ❌           | ❌            | ❌              | 中       | 社区          |
+| **Headless UI** | ❌           | ❌            | ❌              | 大       | Tailwind Labs |
+| **Park UI**     | ❌           | ✅ Recipe     | ✅ Figma        | 小       | 社区          |
 
 ---
 
@@ -594,6 +602,7 @@ AccessBase 作为企业级 IAM 系统，UI 层需要满足：
 #### 方案一：Mantine + Radix UI（推荐）
 
 **理由**：
+
 - Mantine 提供 100+ 组件和 50+ Hooks，覆盖企业级场景
 - CSS Modules 零运行时开销，性能优秀
 - 完整的 TypeScript 支持
@@ -606,6 +615,7 @@ AccessBase 作为企业级 IAM 系统，UI 层需要满足：
 #### 方案二：Shadcn/ui + Radix UI
 
 **理由**：
+
 - Shadcn/ui 采用开放代码模式，完全控制组件实现
 - 基于 Radix UI，可访问性有保障
 - 与 Tailwind CSS 深度集成
@@ -617,6 +627,7 @@ AccessBase 作为企业级 IAM 系统，UI 层需要满足：
 #### 方案三：Semi Design（AI 场景优先）
 
 **理由**：
+
 - 内置 AI 组件（AIChatInput、AIChatDialogue 等）
 - Design to Code 功能提升效率
 - 80+ 组件覆盖常见场景
@@ -642,13 +653,13 @@ AccessBase 作为企业级 IAM 系统，UI 层需要满足：
 
 ## 附录：框架官网
 
-| 框架 | 官网 | GitHub |
-|------|------|--------|
-| Arco Design | https://arco.design | https://github.com/arco-design/arco-design |
-| Semi Design | https://semi.design | https://github.com/DouyinFE/semi-design |
-| TDesign | https://tdesign.tencent.com | https://github.com/Tencent/tdesign-react |
-| Mantine | https://mantine.dev | https://github.com/mantinedev/mantine |
-| Shadcn/ui | https://ui.shadcn.com | https://github.com/shadcn-ui/ui |
-| Radix UI | https://www.radix-ui.com | https://github.com/radix-ui/primitives |
-| Headless UI | https://headlessui.com | https://github.com/tailwindlabs/headlessui |
-| Park UI | https://park-ui.com | https://github.com/cschroeter/park-ui |
+| 框架        | 官网                        | GitHub                                     |
+| ----------- | --------------------------- | ------------------------------------------ |
+| Arco Design | https://arco.design         | https://github.com/arco-design/arco-design |
+| Semi Design | https://semi.design         | https://github.com/DouyinFE/semi-design    |
+| TDesign     | https://tdesign.tencent.com | https://github.com/Tencent/tdesign-react   |
+| Mantine     | https://mantine.dev         | https://github.com/mantinedev/mantine      |
+| Shadcn/ui   | https://ui.shadcn.com       | https://github.com/shadcn-ui/ui            |
+| Radix UI    | https://www.radix-ui.com    | https://github.com/radix-ui/primitives     |
+| Headless UI | https://headlessui.com      | https://github.com/tailwindlabs/headlessui |
+| Park UI     | https://park-ui.com         | https://github.com/cschroeter/park-ui      |

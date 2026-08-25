@@ -2,12 +2,7 @@
  * AuthManager - Manages authentication providers (SDD 2.1)
  */
 import { logger } from '@accessbase/logging';
-import type {
-  AuthProvider,
-  AuthResult,
-  ProviderPublicConfig,
-  AuthProviderType,
-} from '../types.js';
+import type { AuthProvider, AuthResult, ProviderPublicConfig, AuthProviderType } from '../types.js';
 
 export class AuthManager {
   private providers = new Map<string, AuthProvider>();
@@ -27,7 +22,7 @@ export class AuthManager {
    * Get all enabled providers
    */
   getEnabledProviders(): AuthProvider[] {
-    return Array.from(this.providers.values()).filter(p => p.enabled);
+    return Array.from(this.providers.values()).filter((p) => p.enabled);
   }
 
   /**
@@ -89,7 +84,7 @@ export class AuthManager {
    * Get public provider configs (desensitized) for frontend
    */
   getPublicProviderConfigs(): ProviderPublicConfig[] {
-    return this.getEnabledProviders().map(provider => ({
+    return this.getEnabledProviders().map((provider) => ({
       name: provider.name,
       type: provider.type as AuthProviderType,
       enabled: provider.enabled,

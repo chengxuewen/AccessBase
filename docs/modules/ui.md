@@ -10,6 +10,7 @@
 ### 14.1 设计原则
 
 **企业级风格 + Ant Design 设计系统**：
+
 - 专业、稳重、企业后台标准
 - 完整的设计系统，覆盖颜色、字体、间距、组件
 - 可配置的主题机制，支持品牌定制
@@ -21,90 +22,90 @@
 interface DesignTokens {
   // 颜色
   colors: {
-    primary: string      // 主色
-    secondary: string    // 次色
-    success: string      // 成功色
-    warning: string      // 警告色
-    error: string        // 错误色
-    info: string         // 信息色
+    primary: string; // 主色
+    secondary: string; // 次色
+    success: string; // 成功色
+    warning: string; // 警告色
+    error: string; // 错误色
+    info: string; // 信息色
     text: {
-      primary: string    // 主文本
-      secondary: string  // 次文本
-      disabled: string   // 禁用文本
-    }
+      primary: string; // 主文本
+      secondary: string; // 次文本
+      disabled: string; // 禁用文本
+    };
     background: {
-      default: string    // 默认背景
-      paper: string      // 纸张背景
-      elevated: string   // 提升背景
-    }
+      default: string; // 默认背景
+      paper: string; // 纸张背景
+      elevated: string; // 提升背景
+    };
     border: {
-      default: string    // 默认边框
-      strong: string     // 强边框
-    }
-  }
-  
+      default: string; // 默认边框
+      strong: string; // 强边框
+    };
+  };
+
   // 字体
   typography: {
-    fontFamily: string   // 字体族
+    fontFamily: string; // 字体族
     fontSize: {
-      xs: string         // 超小
-      sm: string         // 小
-      md: string         // 中
-      lg: string         // 大
-      xl: string         // 超大
-    }
+      xs: string; // 超小
+      sm: string; // 小
+      md: string; // 中
+      lg: string; // 大
+      xl: string; // 超大
+    };
     fontWeight: {
-      light: number      // 细体
-      regular: number    // 常规
-      medium: number     // 中等
-      bold: number       // 粗体
-    }
+      light: number; // 细体
+      regular: number; // 常规
+      medium: number; // 中等
+      bold: number; // 粗体
+    };
     lineHeight: {
-      tight: number      // 紧凑
-      normal: number     // 常规
-      relaxed: number    // 宽松
-    }
-  }
-  
+      tight: number; // 紧凑
+      normal: number; // 常规
+      relaxed: number; // 宽松
+    };
+  };
+
   // 间距
   spacing: {
-    xs: string           // 超小间距
-    sm: string           // 小间距
-    md: string           // 中间距
-    lg: string           // 大间距
-    xl: string           // 超大间距
-  }
-  
+    xs: string; // 超小间距
+    sm: string; // 小间距
+    md: string; // 中间距
+    lg: string; // 大间距
+    xl: string; // 超大间距
+  };
+
   // 圆角
   borderRadius: {
-    none: string         // 无圆角
-    sm: string           // 小圆角
-    md: string           // 中圆角
-    lg: string           // 大圆角
-    full: string         // 全圆角
-  }
-  
+    none: string; // 无圆角
+    sm: string; // 小圆角
+    md: string; // 中圆角
+    lg: string; // 大圆角
+    full: string; // 全圆角
+  };
+
   // 阴影
   shadows: {
-    none: string         // 无阴影
-    sm: string           // 小阴影
-    md: string           // 中阴影
-    lg: string           // 大阴影
-  }
-  
+    none: string; // 无阴影
+    sm: string; // 小阴影
+    md: string; // 中阴影
+    lg: string; // 大阴影
+  };
+
   // 动画
   transitions: {
     duration: {
-      fast: string       // 快速
-      normal: string     // 常规
-      slow: string       // 慢速
-    }
+      fast: string; // 快速
+      normal: string; // 常规
+      slow: string; // 慢速
+    };
     easing: {
-      easeIn: string     // 缓入
-      easeOut: string    // 缓出
-      easeInOut: string  // 缓入缓出
-    }
-  }
+      easeIn: string; // 缓入
+      easeOut: string; // 缓出
+      easeInOut: string; // 缓入缓出
+    };
+  };
 }
 ```
 
@@ -116,54 +117,54 @@ interface DesignTokens {
 // 主题配置
 interface ThemeConfig {
   // 主题模式
-  mode: 'light' | 'dark'
-  
+  mode: 'light' | 'dark';
+
   // 品牌令牌（L1/L2 注入）
-  brand?: BrandTokens
-  
+  brand?: BrandTokens;
+
   // 自定义令牌
-  custom?: Partial<DesignTokens>
+  custom?: Partial<DesignTokens>;
 }
 
 // 主题上下文
 const ThemeContext = React.createContext<ThemeConfig>({
-  mode: 'light'
-})
+  mode: 'light',
+});
 
 // 主题 Hook
 function useTheme() {
-  const context = React.useContext(ThemeContext)
-  return context
+  const context = React.useContext(ThemeContext);
+  return context;
 }
 
 // 主题切换 Hook
 function useThemeToggle() {
   const [theme, setTheme] = React.useState<ThemeConfig>(() => {
     // 从 localStorage 读取用户偏好
-    const saved = localStorage.getItem('theme')
-    if (saved) return JSON.parse(saved)
-    
+    const saved = localStorage.getItem('theme');
+    if (saved) return JSON.parse(saved);
+
     // 检测系统偏好
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return { mode: 'dark' }
+      return { mode: 'dark' };
     }
-    
-    return { mode: 'light' }
-  })
-  
+
+    return { mode: 'light' };
+  });
+
   // 持久化到 localStorage
   React.useEffect(() => {
-    localStorage.setItem('theme', JSON.stringify(theme))
-  }, [theme])
-  
+    localStorage.setItem('theme', JSON.stringify(theme));
+  }, [theme]);
+
   const toggleTheme = React.useCallback(() => {
-    setTheme(prev => ({
+    setTheme((prev) => ({
       ...prev,
-      mode: prev.mode === 'light' ? 'dark' : 'light'
-    }))
-  }, [])
-  
-  return { theme, toggleTheme }
+      mode: prev.mode === 'light' ? 'dark' : 'light',
+    }));
+  }, []);
+
+  return { theme, toggleTheme };
 }
 ```
 
@@ -175,15 +176,15 @@ interface BrandTokens {
   // 品牌色
   primaryColor: string
   secondaryColor: string
-  
+
   // Logo
   logo: string | React.ReactNode
   logoCollapsed: string | React.ReactNode
-  
+
   // 品牌语
   brandName: string
   brandTagline?: string
-  
+
   // 字体
   fontFamily?: string
 }
@@ -191,12 +192,12 @@ interface BrandTokens {
 // 主题提供者
 function ThemeProvider({ children, brand }: ThemeProviderProps) {
   const { theme } = useThemeToggle()
-  
+
   // 合并品牌令牌
   const mergedTheme = React.useMemo(() => {
     return mergeTheme(defaultTheme, theme, brand)
   }, [theme, brand])
-  
+
   return (
     <ThemeContext.Provider value={mergedTheme}>
       <AntdConfigProvider theme={mergedTheme}>
@@ -241,7 +242,7 @@ function MainLayout({ children }: MainLayoutProps) {
   const { brand } = useBrand()
   const { menuItems } = useMenu()
   const { breadcrumbs } = useBreadcrumbs()
-  
+
   return (
     <Layout className="main-layout">
       {/* 顶部导航栏 */}
@@ -265,7 +266,7 @@ function MainLayout({ children }: MainLayoutProps) {
           <UserAvatar />
         </div>
       </Header>
-      
+
       <Layout>
         {/* 侧边栏 */}
         <Sider
@@ -280,7 +281,7 @@ function MainLayout({ children }: MainLayoutProps) {
             onClick={handleMenuClick}
           />
         </Sider>
-        
+
         {/* 内容区 */}
         <Content className="content">
           {/* 标签页导航 */}
@@ -289,7 +290,7 @@ function MainLayout({ children }: MainLayoutProps) {
             activeKey={activeTab}
             onChange={handleTabChange}
           />
-          
+
           {/* 页面内容 */}
           <div className="page-content">
             {children}
@@ -371,24 +372,24 @@ const menuItems: MenuItem[] = [
 ```typescript
 // 面包屑 Hook
 function useBreadcrumbs() {
-  const location = useLocation()
-  const { menuItems } = useMenu()
-  
+  const location = useLocation();
+  const { menuItems } = useMenu();
+
   const breadcrumbs = React.useMemo(() => {
-    const pathSegments = location.pathname.split('/').filter(Boolean)
-    
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+
     return pathSegments.map((segment, index) => {
-      const path = '/' + pathSegments.slice(0, index + 1).join('/')
-      const menuItem = findMenuItemByPath(menuItems, path)
-      
+      const path = '/' + pathSegments.slice(0, index + 1).join('/');
+      const menuItem = findMenuItemByPath(menuItems, path);
+
       return {
         title: menuItem?.label || segment,
-        path: path
-      }
-    })
-  }, [location.pathname, menuItems])
-  
-  return { breadcrumbs }
+        path: path,
+      };
+    });
+  }, [location.pathname, menuItems]);
+
+  return { breadcrumbs };
 }
 ```
 
@@ -397,38 +398,41 @@ function useBreadcrumbs() {
 ```typescript
 // 标签页 Hook
 function useTabs() {
-  const [tabs, setTabs] = React.useState<TabItem[]>([])
-  const [activeTab, setActiveTab] = React.useState<string>('')
-  
+  const [tabs, setTabs] = React.useState<TabItem[]>([]);
+  const [activeTab, setActiveTab] = React.useState<string>('');
+
   // 添加标签页
   const addTab = React.useCallback((tab: TabItem) => {
-    setTabs(prev => {
-      const exists = prev.find(t => t.key === tab.key)
-      if (exists) return prev
-      return [...prev, tab]
-    })
-    setActiveTab(tab.key)
-  }, [])
-  
+    setTabs((prev) => {
+      const exists = prev.find((t) => t.key === tab.key);
+      if (exists) return prev;
+      return [...prev, tab];
+    });
+    setActiveTab(tab.key);
+  }, []);
+
   // 关闭标签页
-  const closeTab = React.useCallback((key: string) => {
-    setTabs(prev => {
-      const index = prev.findIndex(t => t.key === key)
-      if (index === -1) return prev
-      
-      const newTabs = prev.filter(t => t.key !== key)
-      
-      // 如果关闭的是当前标签，切换到相邻标签
-      if (activeTab === key && newTabs.length > 0) {
-        const newIndex = Math.min(index, newTabs.length - 1)
-        setActiveTab(newTabs[newIndex].key)
-      }
-      
-      return newTabs
-    })
-  }, [activeTab])
-  
-  return { tabs, activeTab, addTab, closeTab, setActiveTab }
+  const closeTab = React.useCallback(
+    (key: string) => {
+      setTabs((prev) => {
+        const index = prev.findIndex((t) => t.key === key);
+        if (index === -1) return prev;
+
+        const newTabs = prev.filter((t) => t.key !== key);
+
+        // 如果关闭的是当前标签，切换到相邻标签
+        if (activeTab === key && newTabs.length > 0) {
+          const newIndex = Math.min(index, newTabs.length - 1);
+          setActiveTab(newTabs[newIndex].key);
+        }
+
+        return newTabs;
+      });
+    },
+    [activeTab],
+  );
+
+  return { tabs, activeTab, addTab, closeTab, setActiveTab };
 }
 ```
 
@@ -442,7 +446,7 @@ function LoginPage() {
   const { providers } = useAuth()
   const { theme } = useTheme()
   const { brand } = useBrand()
-  
+
   return (
     <div className="login-page">
       <div className="login-container">
@@ -454,17 +458,17 @@ function LoginPage() {
             <p className="brand-tagline">{brand.brandTagline}</p>
           )}
         </div>
-        
+
         {/* 登录表单 */}
         <div className="login-form">
           {/* 密码登录 */}
           {providers.password?.enabled && (
             <PasswordLoginForm onSubmit={handlePasswordLogin} />
           )}
-          
+
           {/* 分隔线 */}
           <Divider>或</Divider>
-          
+
           {/* OAuth 登录按钮 */}
           <div className="oauth-buttons">
             {providers.github?.enabled && (
@@ -476,7 +480,7 @@ function LoginPage() {
                 GitHub 登录
               </OAuthButton>
             )}
-            
+
             {providers.wechat?.enabled && (
               <OAuthButton
                 provider="wechat"
@@ -487,7 +491,7 @@ function LoginPage() {
               </OAuthButton>
             )}
           </div>
-          
+
           {/* 通行密钥登录 */}
           {providers.webauthn?.enabled && (
             <WebAuthnButton onClick={handleWebAuthnLogin}>
@@ -495,7 +499,7 @@ function LoginPage() {
             </WebAuthnButton>
           )}
         </div>
-        
+
         {/* 注册链接 */}
         <div className="login-footer">
           <span>还没有账号？</span>
@@ -514,7 +518,7 @@ function LoginPage() {
 function DashboardPage() {
   const { user } = useAuth()
   const { stats } = useDashboardStats()
-  
+
   return (
     <div className="dashboard-page">
       {/* 欢迎信息 */}
@@ -522,7 +526,7 @@ function DashboardPage() {
         <h1>欢迎回来，{user.name}</h1>
         <p>今天是 {formatDate(new Date())}</p>
       </div>
-      
+
       {/* 统计卡片 */}
       <div className="stats-cards">
         <StatisticCard
@@ -550,7 +554,7 @@ function DashboardPage() {
           status={stats.systemHealthy ? 'success' : 'error'}
         />
       </div>
-      
+
       {/* 快捷操作 */}
       <div className="quick-actions">
         <h2>快捷操作</h2>
@@ -572,7 +576,7 @@ function DashboardPage() {
           />
         </div>
       </div>
-      
+
       {/* 最近活动 */}
       <div className="recent-activity">
         <h2>最近活动</h2>
@@ -661,7 +665,7 @@ function DataTable<T extends { id: string }>({
   // 添加操作列
   const mergedColumns = React.useMemo(() => {
     if (!actions || actions.length === 0) return columns
-    
+
     return [
       ...columns,
       {
@@ -685,7 +689,7 @@ function DataTable<T extends { id: string }>({
       }
     ]
   }, [columns, actions])
-  
+
   return (
     <Table
       columns={mergedColumns}
@@ -711,7 +715,7 @@ $breakpoints: (
   'md': 768px,
   'lg': 992px,
   'xl': 1200px,
-  'xxl': 1600px
+  'xxl': 1600px,
 );
 
 // 响应式工具
@@ -728,7 +732,7 @@ $breakpoints: (
     .sider {
       display: none;
     }
-    
+
     // 显示移动端菜单按钮
     .mobile-menu-button {
       display: block;
@@ -743,7 +747,7 @@ $breakpoints: (
     .ant-table {
       display: block;
     }
-    
+
     .ant-table-row {
       display: flex;
       flex-direction: column;
@@ -762,13 +766,13 @@ $breakpoints: (
 ui:
   # 设计系统
   design_system: antd
-  
+
   # 主题
   theme:
     default_mode: light
     allow_toggle: true
     persist_preference: true
-    
+
     # 品牌令牌
     brand:
       primary_color: '#1890ff'
@@ -777,10 +781,10 @@ ui:
       logo_collapsed: '/logo-collapsed.svg'
       brand_name: AccessBase
       brand_tagline: 访问控制底座
-  
+
   # 布局
   layout:
-    type: classic  # classic | modern | fullscreen
+    type: classic # classic | modern | fullscreen
     sidebar:
       collapsible: true
       default_collapsed: false
@@ -789,7 +793,7 @@ ui:
     header:
       fixed: true
       height: 64
-    
+
   # 导航
   navigation:
     menu:
@@ -803,7 +807,7 @@ ui:
       enabled: true
       closable: true
       max_tabs: 10
-  
+
   # 响应式
   responsive:
     enabled: true
@@ -931,18 +935,18 @@ interface ProtectedRouteProps {
 function ProtectedRoute({ children, permission, fallback }: ProtectedRouteProps) {
   const { user, isAuthenticated } = useAuth()
   const location = useLocation()
-  
+
   // 未登录 → 跳转登录页
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
-  
+
   // 有权限要求 → 检查权限
   if (permission && !user.permissions.includes(permission)) {
     if (fallback) return <>{fallback}</>
     return <Navigate to="/403" replace />
   }
-  
+
   return <>{children}</>
 }
 
@@ -957,7 +961,7 @@ function renderRoutes(routes: RouteConfig[]): React.ReactNode {
         </Suspense>
       </ProtectedRoute>
     )
-    
+
     return (
       <Route key={route.path} path={route.path} element={element}>
         {route.children && renderRoutes(route.children)}
@@ -972,38 +976,38 @@ function renderRoutes(routes: RouteConfig[]): React.ReactNode {
 ```typescript
 // 从路由配置自动生成面包屑
 function useBreadcrumbs(): BreadcrumbItem[] {
-  const location = useLocation()
-  const { t } = useTranslation()
-  
+  const location = useLocation();
+  const { t } = useTranslation();
+
   return React.useMemo(() => {
-    const pathSegments = location.pathname.split('/').filter(Boolean)
-    const breadcrumbs: BreadcrumbItem[] = []
-    
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+    const breadcrumbs: BreadcrumbItem[] = [];
+
     // 始终包含首页
-    breadcrumbs.push({ title: t('route.home'), path: '/dashboard' })
-    
+    breadcrumbs.push({ title: t('route.home'), path: '/dashboard' });
+
     // 逐级匹配路由
-    let currentRoutes = routes
-    let currentPath = ''
-    
+    let currentRoutes = routes;
+    let currentPath = '';
+
     for (const segment of pathSegments) {
-      currentPath += `/${segment}`
-      const matched = currentRoutes.find(r => {
-        const routePath = r.path.startsWith('/') ? r.path : `${currentPath}/${r.path}`
-        return routePath === currentPath || r.path === segment
-      })
-      
+      currentPath += `/${segment}`;
+      const matched = currentRoutes.find((r) => {
+        const routePath = r.path.startsWith('/') ? r.path : `${currentPath}/${r.path}`;
+        return routePath === currentPath || r.path === segment;
+      });
+
       if (matched && matched.meta.breadcrumb !== false) {
         breadcrumbs.push({
           title: t(matched.meta.title),
-          path: currentPath
-        })
-        currentRoutes = matched.children || []
+          path: currentPath,
+        });
+        currentRoutes = matched.children || [];
       }
     }
-    
-    return breadcrumbs
-  }, [location.pathname, t])
+
+    return breadcrumbs;
+  }, [location.pathname, t]);
 }
 ```
 
@@ -1042,29 +1046,34 @@ function NotFoundPage() {
 #### 14.11.1 表单验证策略
 
 ```typescript
-import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 // 用户创建表单 Schema
 const createUserSchema = z.object({
-  username: z.string()
+  username: z
+    .string()
     .min(3, '用户名至少 3 个字符')
     .max(50, '用户名最多 50 个字符')
     .regex(/^[a-zA-Z0-9_-]+$/, '用户名只能包含字母、数字、下划线和连字符'),
   email: z.string().email('请输入有效的邮箱地址'),
   displayName: z.string().min(1, '显示名称不能为空').max(100),
-  password: z.string()
+  password: z
+    .string()
     .min(8, '密码至少 8 个字符')
     .regex(/[A-Z]/, '密码需包含至少一个大写字母')
     .regex(/[a-z]/, '密码需包含至少一个小写字母')
     .regex(/[0-9]/, '密码需包含至少一个数字'),
   roleIds: z.array(z.string()).min(1, '请至少选择一个角色'),
   department: z.string().optional(),
-  phone: z.string().regex(/^1[3-9]\d{9}$/, '请输入有效的手机号').optional()
-})
+  phone: z
+    .string()
+    .regex(/^1[3-9]\d{9}$/, '请输入有效的手机号')
+    .optional(),
+});
 
-type CreateUserFormData = z.infer<typeof createUserSchema>
+type CreateUserFormData = z.infer<typeof createUserSchema>;
 
 // 表单 Hook
 function useUserForm(defaultValues?: Partial<CreateUserFormData>) {
@@ -1078,9 +1087,9 @@ function useUserForm(defaultValues?: Partial<CreateUserFormData>) {
       roleIds: [],
       department: '',
       phone: '',
-      ...defaultValues
-    }
-  })
+      ...defaultValues,
+    },
+  });
 }
 ```
 
@@ -1095,7 +1104,7 @@ function StandardForm({ title, children, onSubmit, loading }: StandardFormProps)
       <div className="form-header">
         <h2>{title}</h2>
       </div>
-      
+
       {/* 表单卡片 */}
       <Card className="form-card">
         <Form
@@ -1105,7 +1114,7 @@ function StandardForm({ title, children, onSubmit, loading }: StandardFormProps)
           validateTrigger={['onChange', 'onBlur']}
         >
           {children}
-          
+
           {/* 固定底部操作栏 */}
           <div className="form-actions">
             <Button onClick={() => navigate(-1)}>取消</Button>
@@ -1150,7 +1159,7 @@ interface BatchAction<T> {
 
 function BatchActions<T>({ selectedRows, actions, onClearSelection }: BatchActionsProps<T>) {
   const [loading, setLoading] = useState<string | null>(null)
-  
+
   const handleAction = async (action: BatchAction<T>) => {
     // 危险操作需二次确认
     if (action.requiresConfirm) {
@@ -1163,7 +1172,7 @@ function BatchActions<T>({ selectedRows, actions, onClearSelection }: BatchActio
       })
       if (!confirmed) return
     }
-    
+
     setLoading(action.key)
     try {
       await action.onClick(selectedRows)
@@ -1175,7 +1184,7 @@ function BatchActions<T>({ selectedRows, actions, onClearSelection }: BatchActio
       setLoading(null)
     }
   }
-  
+
   return (
     <div className="batch-actions-bar">
       <span>已选择 {selectedRows.length} 项</span>
@@ -1214,7 +1223,7 @@ interface ConfirmOptions {
 
 async function showConfirm(options: ConfirmOptions): Promise<void> {
   const { title, content, level, requireTyping, onConfirm } = options
-  
+
   if (requireTyping) {
     // 高危操作：要求输入确认文本
     const modal = Modal.confirm({
@@ -1306,62 +1315,62 @@ class GlobalErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
 ```typescript
 // API 错误码映射
 const ERROR_MESSAGES: Record<string, { message: string; action?: string }> = {
-  'ERR_001': { message: '输入有误，请检查后重试', action: 'highlight' },
-  'ERR_002': { message: '登录已过期，请重新登录', action: 'redirect_login' },
-  'ERR_003': { message: '没有权限执行此操作' },
-  'ERR_004': { message: '资源不存在', action: 'redirect_list' },
-  'ERR_005': { message: '数据已被他人修改，请刷新后重试', action: 'refresh' },
-  'ERR_006': { message: '操作太频繁，请稍后再试', action: 'cooldown' },
-  'ERR_007': { message: '服务器错误，请联系管理员', action: 'retry' },
-  'ERR_008': { message: '密码错误' },
-  'ERR_009': { message: '邮箱格式不正确', action: 'highlight' },
-  'ERR_010': { message: '密码强度不足', action: 'highlight' },
-  'ERR_011': { message: '该邮箱已被注册', action: 'redirect_login' },
-  'ERR_012': { message: '网络错误，请检查网络连接', action: 'retry' },
-  'ERR_013': { message: '认证配置未找到' }
-}
+  ERR_001: { message: '输入有误，请检查后重试', action: 'highlight' },
+  ERR_002: { message: '登录已过期，请重新登录', action: 'redirect_login' },
+  ERR_003: { message: '没有权限执行此操作' },
+  ERR_004: { message: '资源不存在', action: 'redirect_list' },
+  ERR_005: { message: '数据已被他人修改，请刷新后重试', action: 'refresh' },
+  ERR_006: { message: '操作太频繁，请稍后再试', action: 'cooldown' },
+  ERR_007: { message: '服务器错误，请联系管理员', action: 'retry' },
+  ERR_008: { message: '密码错误' },
+  ERR_009: { message: '邮箱格式不正确', action: 'highlight' },
+  ERR_010: { message: '密码强度不足', action: 'highlight' },
+  ERR_011: { message: '该邮箱已被注册', action: 'redirect_login' },
+  ERR_012: { message: '网络错误，请检查网络连接', action: 'retry' },
+  ERR_013: { message: '认证配置未找到' },
+};
 
 // API 响应拦截器
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorResponse>) => {
-    const status = error.response?.status
-    const errorData = error.response?.data?.error
-    
+    const status = error.response?.status;
+    const errorData = error.response?.data?.error;
+
     // 401 → 跳转登录
     if (status === 401) {
-      authStore.getState().logout()
-      window.location.href = '/login'
-      return Promise.reject(error)
+      authStore.getState().logout();
+      window.location.href = '/login';
+      return Promise.reject(error);
     }
-    
+
     // 429 → 限流提示（带倒计时）
     if (status === 429) {
-      const retryAfter = error.response?.headers['retry-after']
-      message.error(`操作太频繁，请 ${retryAfter || 60} 秒后重试`)
-      return Promise.reject(error)
+      const retryAfter = error.response?.headers['retry-after'];
+      message.error(`操作太频繁，请 ${retryAfter || 60} 秒后重试`);
+      return Promise.reject(error);
     }
-    
+
     // 统一错误提示
     if (errorData?.code) {
-      const errorInfo = ERROR_MESSAGES[errorData.code]
+      const errorInfo = ERROR_MESSAGES[errorData.code];
       if (errorInfo) {
-        message.error(errorInfo.message)
+        message.error(errorInfo.message);
       } else {
-        message.error(errorData.message || '操作失败')
+        message.error(errorData.message || '操作失败');
       }
-      
+
       // 字段级错误 → 返回给表单处理
       if (errorData.details) {
-        return Promise.reject({ ...error, fieldErrors: errorData.details })
+        return Promise.reject({ ...error, fieldErrors: errorData.details });
       }
     } else {
-      message.error('网络错误，请稍后重试')
+      message.error('网络错误，请稍后重试');
     }
-    
-    return Promise.reject(error)
-  }
-)
+
+    return Promise.reject(error);
+  },
+);
 ```
 
 #### 14.12.3 Toast 消息规范
@@ -1402,7 +1411,7 @@ function PageSkeleton() {
     <div className="page-skeleton">
       {/* 标题骨架 */}
       <Skeleton.Input active size="large" style={{ width: 200, marginBottom: 24 }} />
-      
+
       {/* 统计卡片骨架 */}
       <Row gutter={16}>
         {Array.from({ length: 4 }).map((_, i) => (
@@ -1413,7 +1422,7 @@ function PageSkeleton() {
           </Col>
         ))}
       </Row>
-      
+
       {/* 表格骨架 */}
       <Card style={{ marginTop: 24 }}>
         <Skeleton active paragraph={{ rows: 8 }} />
@@ -1428,7 +1437,7 @@ function TableSkeleton({ rows = 5 }: { rows?: number }) {
     <div className="table-skeleton">
       {/* 搜索栏骨架 */}
       <Skeleton.Input active style={{ width: 300, marginBottom: 16 }} />
-      
+
       {/* 表格骨架 */}
       <Card>
         {Array.from({ length: rows }).map((_, i) => (
@@ -1477,23 +1486,23 @@ function PageLoading() {
 #### 14.14.1 Store 分片设计
 
 ```typescript
-import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
-import { immer } from 'zustand/middleware/immer'
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { immer } from 'zustand/middleware/immer';
 
 // 认证状态 Store
 interface AuthState {
-  user: User | null
-  token: string | null
-  refreshToken: string | null
-  permissions: string[]
-  isAuthenticated: boolean
-  
+  user: User | null;
+  token: string | null;
+  refreshToken: string | null;
+  permissions: string[];
+  isAuthenticated: boolean;
+
   // Actions
-  login: (credentials: LoginCredentials) => Promise<void>
-  logout: () => void
-  refreshAuth: () => Promise<void>
-  updateUser: (user: Partial<User>) => void
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
+  refreshAuth: () => Promise<void>;
+  updateUser: (user: Partial<User>) => void;
 }
 
 const useAuthStore = create<AuthState>()(
@@ -1503,71 +1512,71 @@ const useAuthStore = create<AuthState>()(
     refreshToken: null,
     permissions: [],
     isAuthenticated: false,
-    
+
     login: async (credentials) => {
-      const response = await api.post('/auth/login', credentials)
-      const { user, token, refreshToken, permissions } = response.data
-      set(state => {
-        state.user = user
-        state.token = token
-        state.refreshToken = refreshToken
-        state.permissions = permissions
-        state.isAuthenticated = true
-      })
+      const response = await api.post('/auth/login', credentials);
+      const { user, token, refreshToken, permissions } = response.data;
+      set((state) => {
+        state.user = user;
+        state.token = token;
+        state.refreshToken = refreshToken;
+        state.permissions = permissions;
+        state.isAuthenticated = true;
+      });
     },
-    
+
     logout: () => {
-      set(state => {
-        state.user = null
-        state.token = null
-        state.refreshToken = null
-        state.permissions = []
-        state.isAuthenticated = false
-      })
-      window.location.href = '/login'
+      set((state) => {
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+        state.permissions = [];
+        state.isAuthenticated = false;
+      });
+      window.location.href = '/login';
     },
-    
+
     refreshAuth: async () => {
-      const refreshToken = get().refreshToken
-      if (!refreshToken) return get().logout()
-      
+      const refreshToken = get().refreshToken;
+      if (!refreshToken) return get().logout();
+
       try {
-        const response = await api.post('/auth/refresh', { refreshToken })
-        const { token, refreshToken: newRefreshToken } = response.data
-        set(state => {
-          state.token = token
-          state.refreshToken = newRefreshToken
-        })
+        const response = await api.post('/auth/refresh', { refreshToken });
+        const { token, refreshToken: newRefreshToken } = response.data;
+        set((state) => {
+          state.token = token;
+          state.refreshToken = newRefreshToken;
+        });
       } catch {
-        get().logout()
+        get().logout();
       }
     },
-    
+
     updateUser: (updates) => {
-      set(state => {
+      set((state) => {
         if (state.user) {
-          Object.assign(state.user, updates)
+          Object.assign(state.user, updates);
         }
-      })
-    }
-  }))
-)
+      });
+    },
+  })),
+);
 
 // UI 状态 Store（持久化）
 interface UIState {
-  theme: 'light' | 'dark'
-  locale: string
-  sidebarCollapsed: boolean
-  tabs: TabItem[]
-  activeTab: string
-  
+  theme: 'light' | 'dark';
+  locale: string;
+  sidebarCollapsed: boolean;
+  tabs: TabItem[];
+  activeTab: string;
+
   // Actions
-  setTheme: (theme: 'light' | 'dark') => void
-  setLocale: (locale: string) => void
-  toggleSidebar: () => void
-  addTab: (tab: TabItem) => void
-  closeTab: (key: string) => void
-  setActiveTab: (key: string) => void
+  setTheme: (theme: 'light' | 'dark') => void;
+  setLocale: (locale: string) => void;
+  toggleSidebar: () => void;
+  addTab: (tab: TabItem) => void;
+  closeTab: (key: string) => void;
+  setActiveTab: (key: string) => void;
 }
 
 const useUIStore = create<UIState>()(
@@ -1578,24 +1587,29 @@ const useUIStore = create<UIState>()(
       sidebarCollapsed: false,
       tabs: [],
       activeTab: '',
-      
+
       setTheme: (theme) => set({ theme }),
       setLocale: (locale) => set({ locale }),
-      toggleSidebar: () => set(state => { state.sidebarCollapsed = !state.sidebarCollapsed }),
-      addTab: (tab) => set(state => {
-        if (!state.tabs.find(t => t.key === tab.key)) {
-          state.tabs.push(tab)
-        }
-        state.activeTab = tab.key
-      }),
-      closeTab: (key) => set(state => {
-        const index = state.tabs.findIndex(t => t.key === key)
-        state.tabs = state.tabs.filter(t => t.key !== key)
-        if (state.activeTab === key && state.tabs.length > 0) {
-          state.activeTab = state.tabs[Math.min(index, state.tabs.length - 1)].key
-        }
-      }),
-      setActiveTab: (key) => set({ activeTab: key })
+      toggleSidebar: () =>
+        set((state) => {
+          state.sidebarCollapsed = !state.sidebarCollapsed;
+        }),
+      addTab: (tab) =>
+        set((state) => {
+          if (!state.tabs.find((t) => t.key === tab.key)) {
+            state.tabs.push(tab);
+          }
+          state.activeTab = tab.key;
+        }),
+      closeTab: (key) =>
+        set((state) => {
+          const index = state.tabs.findIndex((t) => t.key === key);
+          state.tabs = state.tabs.filter((t) => t.key !== key);
+          if (state.activeTab === key && state.tabs.length > 0) {
+            state.activeTab = state.tabs[Math.min(index, state.tabs.length - 1)].key;
+          }
+        }),
+      setActiveTab: (key) => set({ activeTab: key }),
     })),
     {
       name: 'ui-store',
@@ -1605,22 +1619,22 @@ const useUIStore = create<UIState>()(
         locale: state.locale,
         sidebarCollapsed: state.sidebarCollapsed,
         tabs: state.tabs,
-        activeTab: state.activeTab
-      })
-    }
-  )
-)
+        activeTab: state.activeTab,
+      }),
+    },
+  ),
+);
 
 // 数据状态 Store（不持久化，按需加载）
 interface DataState {
-  users: User[]
-  roles: Role[]
-  loading: Record<string, boolean>
-  error: Record<string, string | null>
-  
+  users: User[];
+  roles: Role[];
+  loading: Record<string, boolean>;
+  error: Record<string, string | null>;
+
   // Actions
-  fetchUsers: (params?: ListQueryParams) => Promise<void>
-  fetchRoles: () => Promise<void>
+  fetchUsers: (params?: ListQueryParams) => Promise<void>;
+  fetchRoles: () => Promise<void>;
 }
 ```
 
@@ -1631,13 +1645,13 @@ interface DataState {
 const PERSIST_CONFIG = {
   // 持久化到 localStorage（跨会话保留）
   localStorage: ['theme', 'locale', 'sidebarCollapsed', 'tabs', 'activeTab'],
-  
+
   // 持久化到 sessionStorage（会话内保留）
   sessionStorage: ['searchHistory', 'formDraft'],
-  
+
   // 不持久化（每次重新获取）
-  memory: ['users', 'roles', 'permissions', 'loading', 'error']
-}
+  memory: ['users', 'roles', 'permissions', 'loading', 'error'],
+};
 ```
 
 ### 14.15 API 层前端抽象
@@ -1645,121 +1659,121 @@ const PERSIST_CONFIG = {
 #### 14.15.1 API 客户端设计
 
 ```typescript
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
 // API 客户端配置
 const apiClient: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json'
-  }
-})
+    'Content-Type': 'application/json',
+  },
+});
 
 // 请求拦截器：附加 Token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token
+    const token = useAuthStore.getState().token;
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`;
     }
     // 添加请求 ID（用于追踪）
-    config.headers['X-Request-ID'] = crypto.randomUUID()
-    return config
+    config.headers['X-Request-ID'] = crypto.randomUUID();
+    return config;
   },
-  (error) => Promise.reject(error)
-)
+  (error) => Promise.reject(error),
+);
 
 // Token 刷新队列
-let isRefreshing = false
+let isRefreshing = false;
 let failedQueue: Array<{
-  resolve: (token: string) => void
-  reject: (error: Error) => void
-}> = []
+  resolve: (token: string) => void;
+  reject: (error: Error) => void;
+}> = [];
 
 // 响应拦截器：Token 自动刷新
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config
-    
+    const originalRequest = error.config;
+
     // 401 且非刷新请求 → 尝试刷新 Token
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         // 排队等待刷新完成
         return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject })
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return apiClient(originalRequest)
-        })
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return apiClient(originalRequest);
+        });
       }
-      
-      originalRequest._retry = true
-      isRefreshing = true
-      
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
       try {
-        await useAuthStore.getState().refreshAuth()
-        const newToken = useAuthStore.getState().token
-        
+        await useAuthStore.getState().refreshAuth();
+        const newToken = useAuthStore.getState().token;
+
         // 重试队列中的请求
-        failedQueue.forEach(({ resolve }) => resolve(newToken!))
-        failedQueue = []
-        
+        failedQueue.forEach(({ resolve }) => resolve(newToken!));
+        failedQueue = [];
+
         // 重试原始请求
-        originalRequest.headers.Authorization = `Bearer ${newToken}`
-        return apiClient(originalRequest)
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return apiClient(originalRequest);
       } catch (refreshError) {
         // 刷新失败 → 登出
-        failedQueue.forEach(({ reject }) => reject(refreshError as Error))
-        failedQueue = []
-        useAuthStore.getState().logout()
-        return Promise.reject(refreshError)
+        failedQueue.forEach(({ reject }) => reject(refreshError as Error));
+        failedQueue = [];
+        useAuthStore.getState().logout();
+        return Promise.reject(refreshError);
       } finally {
-        isRefreshing = false
+        isRefreshing = false;
       }
     }
-    
-    return Promise.reject(error)
-  }
-)
+
+    return Promise.reject(error);
+  },
+);
 
 // 防重复提交
-const pendingRequests = new Map<string, AbortController>()
+const pendingRequests = new Map<string, AbortController>();
 
 function getRequestId(config: AxiosRequestConfig): string {
-  return `${config.method}-${config.url}-${JSON.stringify(config.params || {})}-${JSON.stringify(config.data || {})}`
+  return `${config.method}-${config.url}-${JSON.stringify(config.params || {})}-${JSON.stringify(config.data || {})}`;
 }
 
 apiClient.interceptors.request.use((config) => {
-  const requestId = getRequestId(config)
-  
+  const requestId = getRequestId(config);
+
   // 取消重复请求
   if (pendingRequests.has(requestId)) {
-    pendingRequests.get(requestId)!.abort()
+    pendingRequests.get(requestId)!.abort();
   }
-  
-  const controller = new AbortController()
-  config.signal = controller.signal
-  pendingRequests.set(requestId, controller)
-  
-  return config
-})
+
+  const controller = new AbortController();
+  config.signal = controller.signal;
+  pendingRequests.set(requestId, controller);
+
+  return config;
+});
 
 apiClient.interceptors.response.use(
   (response) => {
-    const requestId = getRequestId(response.config)
-    pendingRequests.delete(requestId)
-    return response
+    const requestId = getRequestId(response.config);
+    pendingRequests.delete(requestId);
+    return response;
   },
   (error) => {
     if (error.config) {
-      const requestId = getRequestId(error.config)
-      pendingRequests.delete(requestId)
+      const requestId = getRequestId(error.config);
+      pendingRequests.delete(requestId);
     }
-    return Promise.reject(error)
-  }
-)
+    return Promise.reject(error);
+  },
+);
 ```
 
 #### 14.15.2 API 请求封装
@@ -1767,67 +1781,67 @@ apiClient.interceptors.response.use(
 ```typescript
 // 统一 API 响应类型
 interface ApiResponse<T> {
-  success: boolean
-  data: T
-  message?: string
+  success: boolean;
+  data: T;
+  message?: string;
 }
 
 interface PaginatedResponse<T> {
-  success: boolean
-  data: T[]
+  success: boolean;
+  data: T[];
   pagination: {
-    page: number
-    pageSize: number
-    total: number
-    totalPages: number
-  }
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 interface ApiErrorResponse {
-  success: false
+  success: false;
   error: {
-    code: string
-    message: string
-    details?: Record<string, string>
-  }
+    code: string;
+    message: string;
+    details?: Record<string, string>;
+  };
 }
 
 // API 请求封装
 const api = {
   async get<T>(url: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
-    const response = await apiClient.get<ApiResponse<T>>(url, { params })
-    return response.data
+    const response = await apiClient.get<ApiResponse<T>>(url, { params });
+    return response.data;
   },
-  
+
   async post<T>(url: string, data?: unknown): Promise<ApiResponse<T>> {
-    const response = await apiClient.post<ApiResponse<T>>(url, data)
-    return response.data
+    const response = await apiClient.post<ApiResponse<T>>(url, data);
+    return response.data;
   },
-  
+
   async put<T>(url: string, data?: unknown): Promise<ApiResponse<T>> {
-    const response = await apiClient.put<ApiResponse<T>>(url, data)
-    return response.data
+    const response = await apiClient.put<ApiResponse<T>>(url, data);
+    return response.data;
   },
-  
+
   async delete<T>(url: string): Promise<ApiResponse<T>> {
-    const response = await apiClient.delete<ApiResponse<T>>(url)
-    return response.data
+    const response = await apiClient.delete<ApiResponse<T>>(url);
+    return response.data;
   },
-  
+
   async list<T>(url: string, params?: ListQueryParams): Promise<PaginatedResponse<T>> {
-    const response = await apiClient.get<PaginatedResponse<T>>(url, { params })
-    return response.data
-  }
-}
+    const response = await apiClient.get<PaginatedResponse<T>>(url, { params });
+    return response.data;
+  },
+};
 
 // 列表查询参数（标准化）
 interface ListQueryParams {
-  page?: number          // 页码，从 1 开始，默认 1
-  pageSize?: number      // 每页条数，默认 20，最大 100
-  sortBy?: string        // 排序字段名
-  sortOrder?: 'asc' | 'desc'  // 排序方向
-  search?: string        // 全局搜索关键词
-  filters?: Record<string, unknown>  // 字段级筛选
+  page?: number; // 页码，从 1 开始，默认 1
+  pageSize?: number; // 每页条数，默认 20，最大 100
+  sortBy?: string; // 排序字段名
+  sortOrder?: 'asc' | 'desc'; // 排序方向
+  search?: string; // 全局搜索关键词
+  filters?: Record<string, unknown>; // 字段级筛选
 }
 ```
 
@@ -1926,13 +1940,13 @@ function useKeyboardShortcuts(shortcuts: Record<string, () => void>) {
         e.altKey ? 'alt' : '',
         e.key.toLowerCase()
       ].filter(Boolean).join('+')
-      
+
       if (shortcuts[key]) {
         e.preventDefault()
         shortcuts[key]()
       }
     }
-    
+
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [shortcuts])
@@ -1941,20 +1955,20 @@ function useKeyboardShortcuts(shortcuts: Record<string, () => void>) {
 // 焦点管理
 function FocusTrap({ children }: { children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null)
-  
+
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
-    
+
     const focusableElements = container.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     )
     const firstElement = focusableElements[0] as HTMLElement
     const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
-    
+
     const handleTabKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return
-      
+
       if (e.shiftKey) {
         if (document.activeElement === firstElement) {
           e.preventDefault()
@@ -1967,13 +1981,13 @@ function FocusTrap({ children }: { children: React.ReactNode }) {
         }
       }
     }
-    
+
     container.addEventListener('keydown', handleTabKey)
     firstElement?.focus()
-    
+
     return () => container.removeEventListener('keydown', handleTabKey)
   }, [])
-  
+
   return <div ref={containerRef}>{children}</div>
 }
 ```
@@ -1987,15 +2001,15 @@ function FocusTrap({ children }: { children: React.ReactNode }) {
 // - UI 组件对比度 ≥ 3:1
 
 // 亮色主题对比度检查
-$text-primary: #262626;      // 对比度 15.3:1 (vs #ffffff)
-$text-secondary: #595959;    // 对比度 7.1:1 (vs #ffffff)
-$text-disabled: #bfbfbf;     // 对比度 2.1:1 (vs #ffffff) — 需注意
-$link-color: #1890ff;        // 对比度 4.5:1 (vs #ffffff)
+$text-primary: #262626; // 对比度 15.3:1 (vs #ffffff)
+$text-secondary: #595959; // 对比度 7.1:1 (vs #ffffff)
+$text-disabled: #bfbfbf; // 对比度 2.1:1 (vs #ffffff) — 需注意
+$link-color: #1890ff; // 对比度 4.5:1 (vs #ffffff)
 
 // 暗色主题对比度检查
-$dark-text-primary: #ffffff;  // 对比度 15.3:1 (vs #141414)
+$dark-text-primary: #ffffff; // 对比度 15.3:1 (vs #141414)
 $dark-text-secondary: #a6a6a6; // 对比度 7.4:1 (vs #141414)
-$dark-link-color: #40a9ff;    // 对比度 5.2:1 (vs #141414)
+$dark-link-color: #40a9ff; // 对比度 5.2:1 (vs #141414)
 
 // 状态颜色对比度
 // success: #52c41a → 3.5:1 (仅用于图标/装饰，不用于纯文本)
@@ -2012,12 +2026,12 @@ function GlobalSearch() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
-  
+
   // 快捷键打开
   useKeyboardShortcuts({
     'mod+k': () => setOpen(true)
   })
-  
+
   // 搜索结果类型
   interface SearchResult {
     id: string
@@ -2027,14 +2041,14 @@ function GlobalSearch() {
     path: string
     icon: React.ReactNode
   }
-  
+
   // 防抖搜索
   useEffect(() => {
     if (!query.trim()) {
       setResults([])
       return
     }
-    
+
     const timer = setTimeout(async () => {
       setLoading(true)
       try {
@@ -2044,10 +2058,10 @@ function GlobalSearch() {
         setLoading(false)
       }
     }, 300)
-    
+
     return () => clearTimeout(timer)
   }, [query])
-  
+
   return (
     <Modal
       open={open}
@@ -2064,7 +2078,7 @@ function GlobalSearch() {
         autoFocus
         size="large"
       />
-      
+
       {results.length > 0 && (
         <div className="search-results">
           {results.map(result => (
@@ -2086,7 +2100,7 @@ function GlobalSearch() {
           ))}
         </div>
       )}
-      
+
       {query && !loading && results.length === 0 && (
         <div className="search-empty">未找到相关结果</div>
       )}
@@ -2115,7 +2129,7 @@ function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
-  
+
   // 加载通知
   useEffect(() => {
     loadNotifications()
@@ -2123,13 +2137,13 @@ function NotificationCenter() {
     const timer = setInterval(loadNotifications, 30000)
     return () => clearInterval(timer)
   }, [])
-  
+
   const loadNotifications = async () => {
     const response = await api.get('/notifications')
     setNotifications(response.data)
     setUnreadCount(response.data.filter(n => !n.read).length)
   }
-  
+
   const markAsRead = async (id: string) => {
     await api.put(`/notifications/${id}/read`)
     setNotifications(prev =>
@@ -2137,13 +2151,13 @@ function NotificationCenter() {
     )
     setUnreadCount(prev => Math.max(0, prev - 1))
   }
-  
+
   const markAllAsRead = async () => {
     await api.put('/notifications/read-all')
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     setUnreadCount(0)
   }
-  
+
   return (
     <Popover
       content={
@@ -2200,7 +2214,7 @@ function NotificationCenter() {
 // 用户头像下拉菜单
 function UserDropdown() {
   const { user, logout } = useAuth()
-  
+
   const items: MenuProps['items'] = [
     {
       key: 'profile',
@@ -2235,7 +2249,7 @@ function UserDropdown() {
       }
     }
   ]
-  
+
   return (
     <Dropdown menu={{ items }} placement="bottomRight">
       <div className="user-dropdown-trigger">
@@ -2266,9 +2280,9 @@ function EmptyState({ type, title, description, action, image }: EmptyStateProps
     'first-use': { title: '欢迎使用', description: '开始创建您的第一个资源', image: <WelcomeImage /> },
     'error': { title: '加载失败', description: '请稍后重试', image: <ErrorImage /> }
   }
-  
+
   const config = defaults[type]
-  
+
   return (
     <div className="empty-state">
       {image || config.image}
@@ -2303,7 +2317,7 @@ interface ExportButtonProps {
 
 function ExportButton({ endpoint, filename, format, params, columns }: ExportButtonProps) {
   const [loading, setLoading] = useState(false)
-  
+
   const handleExport = async () => {
     setLoading(true)
     try {
@@ -2311,7 +2325,7 @@ function ExportButton({ endpoint, filename, format, params, columns }: ExportBut
         params: { ...params, format, columns: columns?.join(',') },
         responseType: 'blob'
       })
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
@@ -2326,7 +2340,7 @@ function ExportButton({ endpoint, filename, format, params, columns }: ExportBut
       setLoading(false)
     }
   }
-  
+
   return (
     <Button
       icon={<DownloadOutlined />}
@@ -2356,14 +2370,14 @@ interface ImportResult {
 function ImportButton({ endpoint, template, accept, onSuccess }: ImportButtonProps) {
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
-  
+
   const handleImport = async (file: File) => {
     setLoading(true)
     setProgress(0)
-    
+
     const formData = new FormData()
     formData.append('file', file)
-    
+
     try {
       const response = await apiClient.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -2372,9 +2386,9 @@ function ImportButton({ endpoint, template, accept, onSuccess }: ImportButtonPro
           setProgress(percent)
         }
       })
-      
+
       const result = response.data as ImportResult
-      
+
       if (result.failed > 0) {
         Modal.warning({
           title: '导入完成（部分失败）',
@@ -2394,7 +2408,7 @@ function ImportButton({ endpoint, template, accept, onSuccess }: ImportButtonPro
       } else {
         message.success(`导入成功，共 ${result.success} 条`)
       }
-      
+
       onSuccess?.(result)
     } catch {
       message.error('导入失败')
@@ -2403,7 +2417,7 @@ function ImportButton({ endpoint, template, accept, onSuccess }: ImportButtonPro
       setProgress(0)
     }
   }
-  
+
   return (
     <Space>
       <Button type="link" href={template} target="_blank">
@@ -2426,6 +2440,7 @@ function ImportButton({ endpoint, template, accept, onSuccess }: ImportButtonPro
   )
 }
 ```
+
 ---
 
 ## 37. 前端补充 P2
@@ -2436,7 +2451,7 @@ function ImportButton({ endpoint, template, accept, onSuccess }: ImportButtonPro
 // 数据导出 Hook
 function useDataExport<T>(options: ExportOptions) {
   const [exporting, setExporting] = useState(false)
-  
+
   const exportData = useCallback(async (data: T[], format: 'csv' | 'excel' | 'json') => {
     setExporting(true)
     try {
@@ -2446,7 +2461,7 @@ function useDataExport<T>(options: ExportOptions) {
       setExporting(false)
     }
   }, [options])
-  
+
   return { exportData, exporting }
 }
 
@@ -2454,21 +2469,21 @@ function useDataExport<T>(options: ExportOptions) {
 function DataImport<T>({ onImport, schema }: DataImportProps<T>) {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<T[]>([])
-  
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    
+
     setFile(file)
-    
+
     // 解析文件
     const data = await parseFile(file)
-    
+
     // 验证数据
     const validated = schema.array().parse(data)
     setPreview(validated)
   }
-  
+
   return (
     <div>
       <Upload onChange={handleFileChange} />
@@ -2510,7 +2525,7 @@ function UserList({ users }: UserListProps) {
       />
     )
   }
-  
+
   return <Table dataSource={users} />
 }
 ```
@@ -2521,7 +2536,7 @@ function UserList({ users }: UserListProps) {
 // 确认对话框 Hook
 function useConfirm() {
   const [modal, contextHolder] = Modal.useModal()
-  
+
   const confirm = useCallback(async (options: ConfirmOptions) => {
     return new Promise<boolean>((resolve) => {
       modal.confirm({
@@ -2535,14 +2550,14 @@ function useConfirm() {
       })
     })
   }, [modal])
-  
+
   return { confirm, contextHolder }
 }
 
 // 使用示例
 function UserActions({ user }: UserActionsProps) {
   const { confirm } = useConfirm()
-  
+
   const handleDelete = async () => {
     const confirmed = await confirm({
       title: '确认删除用户',
@@ -2550,12 +2565,12 @@ function UserActions({ user }: UserActionsProps) {
       danger: true,
       okText: '删除'
     })
-    
+
     if (confirmed) {
       await deleteUser(user.id)
     }
   }
-  
+
   return <Button danger onClick={handleDelete}>删除</Button>
 }
 ```
@@ -2567,13 +2582,13 @@ function UserActions({ user }: UserActionsProps) {
 function useBreadcrumbs() {
   const { t } = useTranslation('common')
   const location = useLocation()
-  
+
   const breadcrumbs = useMemo(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean)
-    
+
     return pathSegments.map((segment, index) => {
       const path = '/' + pathSegments.slice(0, index + 1).join('/')
-      
+
       return {
         title: t(`breadcrumbs.${segment}`, segment),  // 支持 i18n，回退到原始值
         path
@@ -2581,7 +2596,7 @@ function useBreadcrumbs() {
       }
     })
   }, [location.pathname, t])
-  
+
   return breadcrumbs
 }
 ```
@@ -2592,22 +2607,22 @@ function useBreadcrumbs() {
 // 标签页状态持久化
 function usePersistedTabs() {
   const [tabs, setTabs] = useState<Tab[]>(() => {
-    const saved = localStorage.getItem('accessbase:tabs')
-    return saved ? JSON.parse(saved) : []
-  })
-  
+    const saved = localStorage.getItem('accessbase:tabs');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [activeTab, setActiveTab] = useState<string>(() => {
-    const saved = localStorage.getItem('accessbase:activeTab')
-    return saved || '/'
-  })
-  
+    const saved = localStorage.getItem('accessbase:activeTab');
+    return saved || '/';
+  });
+
   // 持久化到 localStorage
   useEffect(() => {
-    localStorage.setItem('accessbase:tabs', JSON.stringify(tabs))
-    localStorage.setItem('accessbase:activeTab', activeTab)
-  }, [tabs, activeTab])
-  
-  return { tabs, setTabs, activeTab, setActiveTab }
+    localStorage.setItem('accessbase:tabs', JSON.stringify(tabs));
+    localStorage.setItem('accessbase:activeTab', activeTab);
+  }, [tabs, activeTab]);
+
+  return { tabs, setTabs, activeTab, setActiveTab };
 }
 ```
 
@@ -2621,12 +2636,12 @@ function usePersistedTabs() {
     position: fixed;
     z-index: 1000;
     transform: translateX(-100%);
-    
+
     &.open {
       transform: translateX(0);
     }
   }
-  
+
   // 遮罩层
   .sidebar-overlay {
     display: block;
@@ -2638,13 +2653,13 @@ function usePersistedTabs() {
     background: rgba(0, 0, 0, 0.5);
     z-index: 999;
   }
-  
+
   // 表格转卡片
   .ant-table {
     .ant-table-thead {
       display: none;
     }
-    
+
     .ant-table-row {
       display: flex;
       flex-direction: column;
@@ -2652,12 +2667,12 @@ function usePersistedTabs() {
       margin-bottom: 8px;
       border: 1px solid #f0f0f0;
       border-radius: 8px;
-      
+
       td {
         display: flex;
         justify-content: space-between;
         padding: 4px 0;
-        
+
         &::before {
           content: attr(data-label);
           font-weight: 500;
@@ -2666,12 +2681,12 @@ function usePersistedTabs() {
       }
     }
   }
-  
+
   // 表单
   .ant-form {
     .ant-form-item {
       flex-direction: column;
-      
+
       .ant-form-item-label {
         text-align: left;
         padding-bottom: 4px;

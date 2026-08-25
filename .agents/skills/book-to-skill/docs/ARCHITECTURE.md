@@ -58,15 +58,15 @@ document into clean text + metadata; the agent turns that into a structured skil
 
 ## Key components
 
-| Path | Responsibility |
-|------|----------------|
-| `scripts/extract.py` | thin entrypoint wrapper |
-| `scripts/extractor/utils.py` | CLI parsing, multi-source resolution, chapter/ToC detection, runner |
-| `scripts/extractor/parsers/` | one module per format |
-| `scripts/extractor/dependencies.py` | optional-dependency probing + `--check` |
-| `tools/discovery_tax.py` | measures token cost vs context-dump / discovery loop |
-| `tools/validate_skill.py` | checks a generated SKILL.md against host rules (`--lens claude|copilot|amp`) |
-| `SKILL.md` | the generator spec (Steps 0–10 + fold-in workflow) |
+| Path                                | Responsibility                                                      |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| `scripts/extract.py`                | thin entrypoint wrapper                                             |
+| `scripts/extractor/utils.py`        | CLI parsing, multi-source resolution, chapter/ToC detection, runner |
+| `scripts/extractor/parsers/`        | one module per format                                               |
+| `scripts/extractor/dependencies.py` | optional-dependency probing + `--check`                             |
+| `tools/discovery_tax.py`            | measures token cost vs context-dump / discovery loop                |
+| `tools/validate_skill.py`           | checks a generated SKILL.md against host rules (`--lens claude      | copilot | amp`) |
+| `SKILL.md`                          | the generator spec (Steps 0–10 + fold-in workflow)                  |
 
 ## Extending
 

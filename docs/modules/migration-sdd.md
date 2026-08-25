@@ -17,11 +17,11 @@
 
 ### 1.2 技术选型
 
-| 技术 | 选择 | 理由 |
-|------|------|------|
-| ORM | Drizzle ORM | TypeScript 原生、轻量级、SQL-like 语法 |
-| 数据库 | PostgreSQL 16 | 企业级、JSONB 支持、扩展丰富 |
-| CLI | Commander.js | 成熟的 Node.js CLI 框架 |
+| 技术   | 选择          | 理由                                   |
+| ------ | ------------- | -------------------------------------- |
+| ORM    | Drizzle ORM   | TypeScript 原生、轻量级、SQL-like 语法 |
+| 数据库 | PostgreSQL 16 | 企业级、JSONB 支持、扩展丰富           |
+| CLI    | Commander.js  | 成熟的 Node.js CLI 框架                |
 
 ---
 
@@ -33,22 +33,22 @@
 /**
  * 迁移阶段枚举
  */
-export type MigrationPhase = 'preload' | 'postsync' | 'postload'
+export type MigrationPhase = 'preload' | 'postsync' | 'postload';
 
 /**
  * 迁移文件接口
  */
 export interface MigrationFile {
   /** 迁移版本号（如 001、002） */
-  version: string
+  version: string;
   /** 迁移名称 */
-  name: string
+  name: string;
   /** 迁移阶段 */
-  phase: MigrationPhase
+  phase: MigrationPhase;
   /** 执行迁移 */
-  up(db: Database): Promise<void>
+  up(db: Database): Promise<void>;
   /** 回滚迁移 */
-  down(db: Database): Promise<void>
+  down(db: Database): Promise<void>;
 }
 
 /**
@@ -56,11 +56,11 @@ export interface MigrationFile {
  */
 export interface Database {
   /** 执行 SQL 语句 */
-  execute(sql: string): Promise<void>
+  execute(sql: string): Promise<void>;
   /** 查询数据 */
-  query<T>(sql: string): Promise<T[]>
+  query<T>(sql: string): Promise<T[]>;
   /** 获取表信息 */
-  getTableInfo(tableName: string): Promise<TableInfo>
+  getTableInfo(tableName: string): Promise<TableInfo>;
 }
 ```
 
@@ -72,19 +72,19 @@ export interface Database {
  */
 export interface MigrationStatus {
   /** 迁移版本 */
-  version: string
+  version: string;
   /** 迁移名称 */
-  name: string
+  name: string;
   /** 迁移阶段 */
-  phase: MigrationPhase
+  phase: MigrationPhase;
   /** 执行状态 */
-  status: 'pending' | 'running' | 'completed' | 'failed'
+  status: 'pending' | 'running' | 'completed' | 'failed';
   /** 执行时间 */
-  executedAt?: Date
+  executedAt?: Date;
   /** 执行耗时（毫秒） */
-  duration?: number
+  duration?: number;
   /** 错误信息 */
-  error?: string
+  error?: string;
 }
 
 /**
@@ -92,17 +92,17 @@ export interface MigrationStatus {
  */
 export interface MigrationManager {
   /** 执行所有待执行的迁移 */
-  up(): Promise<void>
+  up(): Promise<void>;
   /** 回滚最近一次迁移 */
-  down(): Promise<void>
+  down(): Promise<void>;
   /** 回滚到指定版本 */
-  downTo(version: string): Promise<void>
+  downTo(version: string): Promise<void>;
   /** 获取迁移状态 */
-  status(): Promise<MigrationStatus[]>
+  status(): Promise<MigrationStatus[]>;
   /** 生成迁移文件 */
-  generate(name: string): Promise<string>
+  generate(name: string): Promise<string>;
   /** 验证迁移文件 */
-  validate(): Promise<ValidationResult>
+  validate(): Promise<ValidationResult>;
 }
 
 /**
@@ -110,11 +110,11 @@ export interface MigrationManager {
  */
 export interface ValidationResult {
   /** 是否有效 */
-  valid: boolean
+  valid: boolean;
   /** 错误列表 */
-  errors: ValidationError[]
+  errors: ValidationError[];
   /** 警告列表 */
-  warnings: ValidationWarning[]
+  warnings: ValidationWarning[];
 }
 ```
 
@@ -149,19 +149,19 @@ npx accessbase-migrate validate
  */
 export interface MigrationLifecycle {
   /** 迁移开始前 */
-  onBeforeMigrate?: (version: string) => Promise<void>
+  onBeforeMigrate?: (version: string) => Promise<void>;
   /** 迁移完成后 */
-  onAfterMigrate?: (version: string, duration: number) => Promise<void>
+  onAfterMigrate?: (version: string, duration: number) => Promise<void>;
   /** 迁移失败时 */
-  onMigrateError?: (version: string, error: Error) => Promise<void>
+  onMigrateError?: (version: string, error: Error) => Promise<void>;
   /** 回滚开始前 */
-  onBeforeRollback?: (version: string) => Promise<void>
+  onBeforeRollback?: (version: string) => Promise<void>;
   /** 回滚完成后 */
-  onAfterRollback?: (version: string) => Promise<void>
+  onAfterRollback?: (version: string) => Promise<void>;
   /** 备份开始前 */
-  onBeforeBackup?: () => Promise<void>
+  onBeforeBackup?: () => Promise<void>;
   /** 备份完成后 */
-  onAfterBackup?: (backupPath: string) => Promise<void>
+  onAfterBackup?: (backupPath: string) => Promise<void>;
 }
 ```
 
@@ -191,20 +191,20 @@ export interface MigrationLifecycle {
 
 ### 4.1 外部依赖
 
-| 依赖 | 版本 | 用途 |
-|------|------|------|
-| drizzle-orm | ^0.29.0 | ORM 核心 |
+| 依赖        | 版本    | 用途                  |
+| ----------- | ------- | --------------------- |
+| drizzle-orm | ^0.29.0 | ORM 核心              |
 | drizzle-kit | ^0.20.0 | Schema 管理和迁移生成 |
-| commander | ^11.0.0 | CLI 框架 |
-| pg | ^8.11.0 | PostgreSQL 驱动 |
-| dotenv | ^16.3.0 | 环境变量加载 |
+| commander   | ^11.0.0 | CLI 框架              |
+| pg          | ^8.11.0 | PostgreSQL 驱动       |
+| dotenv      | ^16.3.0 | 环境变量加载          |
 
 ### 4.2 内部依赖
 
-| 包 | 用途 |
-|------|------|
+| 包                       | 用途         |
+| ------------------------ | ------------ |
 | @accessbase/shared-types | 共享类型定义 |
-| @accessbase/logging | 日志记录 |
+| @accessbase/logging      | 日志记录     |
 
 ### 4.3 依赖图
 
@@ -225,31 +225,31 @@ export interface MigrationLifecycle {
 
 ### 5.1 迁移错误码
 
-| 错误码 | 说明 | HTTP 状态码 |
-|--------|------|------------|
-| MIG_001 | 迁移文件不存在 | 404 |
-| MIG_002 | 迁移文件格式错误 | 400 |
-| MIG_003 | 迁移执行失败 | 500 |
-| MIG_004 | 回滚失败 | 500 |
-| MIG_005 | 迁移锁获取失败 | 409 |
-| MIG_006 | 数据库连接失败 | 503 |
-| MIG_007 | 备份失败 | 500 |
-| MIG_008 | 验证失败 | 400 |
-| MIG_009 | 版本冲突 | 409 |
-| MIG_010 | 超时 | 408 |
+| 错误码  | 说明             | HTTP 状态码 |
+| ------- | ---------------- | ----------- |
+| MIG_001 | 迁移文件不存在   | 404         |
+| MIG_002 | 迁移文件格式错误 | 400         |
+| MIG_003 | 迁移执行失败     | 500         |
+| MIG_004 | 回滚失败         | 500         |
+| MIG_005 | 迁移锁获取失败   | 409         |
+| MIG_006 | 数据库连接失败   | 503         |
+| MIG_007 | 备份失败         | 500         |
+| MIG_008 | 验证失败         | 400         |
+| MIG_009 | 版本冲突         | 409         |
+| MIG_010 | 超时             | 408         |
 
 ### 5.2 错误响应格式
 
 ```typescript
 interface MigrationError {
-  code: string
-  message: string
+  code: string;
+  message: string;
   details?: {
-    version?: string
-    phase?: MigrationPhase
-    sql?: string
-    stack?: string
-  }
+    version?: string;
+    phase?: MigrationPhase;
+    sql?: string;
+    stack?: string;
+  };
 }
 ```
 
@@ -259,15 +259,15 @@ interface MigrationError {
 
 ### 6.1 环境变量
 
-| 变量名 | 必需 | 默认值 | 说明 |
-|--------|------|--------|------|
-| DATABASE_URL | 是 | - | PostgreSQL 连接字符串 |
-| MIGRATIONS_DIR | 否 | ./migrations | 迁移文件目录 |
-| MIGRATIONS_TABLE | 否 | _migrations | 迁移状态表名 |
-| MIGRATION_LOCK_TIMEOUT | 否 | 30000 | 迁移锁超时（毫秒） |
-| MIGRATION_BACKUP_ENABLED | 否 | true | 是否启用迁移前备份 |
-| MIGRATION_BACKUP_DIR | 否 | ./backups | 备份文件目录 |
-| MIGRATION_LOG_LEVEL | 否 | info | 日志级别 |
+| 变量名                   | 必需 | 默认值       | 说明                  |
+| ------------------------ | ---- | ------------ | --------------------- |
+| DATABASE_URL             | 是   | -            | PostgreSQL 连接字符串 |
+| MIGRATIONS_DIR           | 否   | ./migrations | 迁移文件目录          |
+| MIGRATIONS_TABLE         | 否   | _migrations  | 迁移状态表名          |
+| MIGRATION_LOCK_TIMEOUT   | 否   | 30000        | 迁移锁超时（毫秒）    |
+| MIGRATION_BACKUP_ENABLED | 否   | true         | 是否启用迁移前备份    |
+| MIGRATION_BACKUP_DIR     | 否   | ./backups    | 备份文件目录          |
+| MIGRATION_LOG_LEVEL      | 否   | info         | 日志级别              |
 
 ### 6.2 配置文件
 
@@ -276,27 +276,27 @@ interface MigrationError {
 export interface MigrationConfig {
   /** 数据库连接 */
   database: {
-    url: string
-    ssl?: boolean
-    maxConnections?: number
-  }
+    url: string;
+    ssl?: boolean;
+    maxConnections?: number;
+  };
   /** 迁移文件配置 */
   migrations: {
-    directory: string
-    tableName: string
-    lockTimeout: number
-  }
+    directory: string;
+    tableName: string;
+    lockTimeout: number;
+  };
   /** 备份配置 */
   backup: {
-    enabled: boolean
-    directory: string
-    retentionDays: number
-  }
+    enabled: boolean;
+    directory: string;
+    retentionDays: number;
+  };
   /** 日志配置 */
   logging: {
-    level: 'debug' | 'info' | 'warn' | 'error'
-    file?: string
-  }
+    level: 'debug' | 'info' | 'warn' | 'error';
+    file?: string;
+  };
 }
 ```
 
@@ -304,7 +304,7 @@ export interface MigrationConfig {
 
 ```typescript
 // drizzle.config.ts
-import type { Config } from 'drizzle-kit'
+import type { Config } from 'drizzle-kit';
 
 export default {
   schema: './src/schema/**/*.ts',
@@ -315,7 +315,7 @@ export default {
   },
   verbose: true,
   strict: true,
-} satisfies Config
+} satisfies Config;
 ```
 
 ---
@@ -326,9 +326,9 @@ export default {
 
 ```typescript
 // migrations/001_create_users.ts
-import { MigrationPhase, Database } from '@accessbase/migration'
+import { MigrationPhase, Database } from '@accessbase/migration';
 
-export const phase: MigrationPhase = 'postsync'
+export const phase: MigrationPhase = 'postsync';
 
 export async function up(db: Database): Promise<void> {
   await db.execute(`
@@ -339,11 +339,11 @@ export async function up(db: Database): Promise<void> {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
-  `)
+  `);
 }
 
 export async function down(db: Database): Promise<void> {
-  await db.execute('DROP TABLE IF EXISTS users')
+  await db.execute('DROP TABLE IF EXISTS users');
 }
 ```
 

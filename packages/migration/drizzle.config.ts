@@ -5,6 +5,8 @@ export default defineConfig({
   out: './drizzle',
   driver: 'pg',
   dbCredentials: {
-    connectionString: process.env['DATABASE_URL'] || 'postgresql://accessbase:accessbase_dev@localhost:5432/accessbase',
+    connectionString:
+      process.env['DATABASE_URL'] ||
+      'postgresql://accessbase:accessbase_dev@localhost:5432/accessbase',
   },
 });

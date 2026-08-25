@@ -15,7 +15,9 @@
       "import": "./dist/cli.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "bin": {
     "accessbase-migrate": "./dist/cli.js"
   },

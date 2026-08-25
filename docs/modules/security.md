@@ -9,15 +9,15 @@
 
 ### 19.1 安全威胁分析
 
-| 威胁类型 | 攻击方式 | 影响 | 防御措施 |
-|---------|---------|------|---------|
-| **XSS** | 注入恶意脚本 | 窃取 Cookie、会话劫持 | 输入验证、输出编码、CSP |
-| **CSRF** | 伪造请求 | 执行未授权操作 | CSRF Token、SameSite Cookie |
-| **SQL 注入** | 注入 SQL 代码 | 数据泄露、数据篡改 | 参数化查询、ORM |
-| **DDoS** | 流量攻击 | 服务不可用 | 限流、CDN、WAF |
-| **暴力破解** | 密码猜测 | 账户被攻破 | 限流、账户锁定、验证码 |
-| **中间人攻击** | 窃听通信 | 数据泄露 | HTTPS、证书固定 |
-| **会话劫持** | 窃取会话 ID | 冒充用户 | HttpOnly Cookie、会话管理 |
+| 威胁类型       | 攻击方式      | 影响                  | 防御措施                    |
+| -------------- | ------------- | --------------------- | --------------------------- |
+| **XSS**        | 注入恶意脚本  | 窃取 Cookie、会话劫持 | 输入验证、输出编码、CSP     |
+| **CSRF**       | 伪造请求      | 执行未授权操作        | CSRF Token、SameSite Cookie |
+| **SQL 注入**   | 注入 SQL 代码 | 数据泄露、数据篡改    | 参数化查询、ORM             |
+| **DDoS**       | 流量攻击      | 服务不可用            | 限流、CDN、WAF              |
+| **暴力破解**   | 密码猜测      | 账户被攻破            | 限流、账户锁定、验证码      |
+| **中间人攻击** | 窃听通信      | 数据泄露              | HTTPS、证书固定             |
+| **会话劫持**   | 窃取会话 ID   | 冒充用户              | HttpOnly Cookie、会话管理   |
 
 ### 19.2 传输安全
 
@@ -28,20 +28,20 @@ const httpsOptions = {
   key: fs.readFileSync('server.key'),
   cert: fs.readFileSync('server.crt'),
   ca: fs.readFileSync('ca.crt'),
-  
+
   // TLS 版本
   minVersion: 'TLSv1.2',
   maxVersion: 'TLSv1.3',
-  
+
   // 加密套件
   ciphers: [
     'TLS_AES_256_GCM_SHA384',
     'TLS_CHACHA20_POLY1305_SHA256',
     'TLS_AES_128_GCM_SHA256',
     'ECDHE-RSA-AES256-GCM-SHA384',
-    'ECDHE-RSA-AES128-GCM-SHA256'
-  ].join(':')
-}
+    'ECDHE-RSA-AES128-GCM-SHA256',
+  ].join(':'),
+};
 ```
 
 #### 19.2.2 HSTS 配置
@@ -49,11 +49,11 @@ const httpsOptions = {
 ```typescript
 fastify.register(helmet, {
   hsts: {
-    maxAge: 31536000,  // 1 年
+    maxAge: 31536000, // 1 年
     includeSubDomains: true,
-    preload: true
-  }
-})
+    preload: true,
+  },
+});
 ```
 
 ### 19.3 防 XSS 攻击
@@ -61,39 +61,43 @@ fastify.register(helmet, {
 #### 19.3.1 输入验证
 
 ```typescript
-import { z } from 'zod'
+import { z } from 'zod';
 
 const userInputSchema = z.object({
-  name: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_\-\s]+$/),
+  name: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-zA-Z0-9_\-\s]+$/),
   email: z.string().email(),
-  content: z.string().max(1000).refine(
-    (val) => !/<script|javascript:|on\w+=/i.test(val),
-    { message: 'Invalid content' }
-  )
-})
+  content: z
+    .string()
+    .max(1000)
+    .refine((val) => !/<script|javascript:|on\w+=/i.test(val), { message: 'Invalid content' }),
+});
 ```
 
 #### 19.3.2 输出编码
 
 ```typescript
-import { escape } from 'html-escaper'
+import { escape } from 'html-escaper';
 
 function encodeOutput(data: any): any {
   if (typeof data === 'string') {
-    return escape(data)
+    return escape(data);
   }
-  
+
   if (Array.isArray(data)) {
-    return data.map(encodeOutput)
+    return data.map(encodeOutput);
   }
-  
+
   if (typeof data === 'object' && data !== null) {
     return Object.fromEntries(
-      Object.entries(data).map(([key, value]) => [key, encodeOutput(value)])
-    )
+      Object.entries(data).map(([key, value]) => [key, encodeOutput(value)]),
+    );
   }
-  
-  return data
+
+  return data;
 }
 ```
 
@@ -105,19 +109,19 @@ fastify.register(helmet, {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.example.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'https://api.example.com'],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
       frameAncestors: ["'none'"],
-      upgradeInsecureRequests: []
-    }
-  }
-})
+      upgradeInsecureRequests: [],
+    },
+  },
+});
 ```
 
 ### 19.4 防 CSRF 攻击
@@ -125,22 +129,22 @@ fastify.register(helmet, {
 #### 19.4.1 CSRF Token
 
 ```typescript
-import crypto from 'crypto'
+import crypto from 'crypto';
 
 function generateCsrfToken(): string {
-  return crypto.randomBytes(32).toString('hex')
+  return crypto.randomBytes(32).toString('hex');
 }
 
 fastify.addHook('preHandler', async (request, reply) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
-    const token = request.headers['x-csrf-token'] || request.body?._csrf
-    const sessionToken = request.session?.csrfToken
-    
+    const token = request.headers['x-csrf-token'] || request.body?._csrf;
+    const sessionToken = request.session?.csrfToken;
+
     if (!token || !sessionToken || token !== sessionToken) {
-      return reply.status(403).send({ error: 'Invalid CSRF token' })
+      return reply.status(403).send({ error: 'Invalid CSRF token' });
     }
   }
-})
+});
 ```
 
 #### 19.4.2 SameSite Cookie
@@ -152,9 +156,9 @@ fastify.register(cookie, {
     httpOnly: true,
     secure: true,
     sameSite: 'strict',
-    maxAge: 60 * 60 * 24 * 7  // 7 天
-  }
-})
+    maxAge: 60 * 60 * 24 * 7, // 7 天
+  },
+});
 ```
 
 ### 19.5 防 SQL 注入
@@ -163,12 +167,10 @@ fastify.register(cookie, {
 
 ```typescript
 // Drizzle ORM 参数化查询
-import { sql } from 'drizzle-orm'
+import { sql } from 'drizzle-orm';
 
 // 正确：参数化查询
-const users = await db.select().from(usersTable).where(
-  eq(usersTable.email, email)
-)
+const users = await db.select().from(usersTable).where(eq(usersTable.email, email));
 
 // 错误：字符串拼接（SQL 注入风险）
 // const users = await db.query(`SELECT * FROM users WHERE email = '${email}'`)
@@ -180,48 +182,48 @@ const users = await db.select().from(usersTable).where(
 
 ```typescript
 fastify.register(rateLimit, {
-  max: 100,  // 最大请求数
-  timeWindow: '1 minute',  // 时间窗口
-  
+  max: 100, // 最大请求数
+  timeWindow: '1 minute', // 时间窗口
+
   keyGenerator: (request) => {
-    return request.ip
+    return request.ip;
   },
-  
+
   errorResponseBuilder: (request, context) => {
     return {
       code: 429,
       error: 'Too Many Requests',
       message: `Rate limit exceeded, retry in ${context.after}`,
-      retryAfter: context.after
-    }
-  }
-})
+      retryAfter: context.after,
+    };
+  },
+});
 ```
 
 #### 19.6.2 IP 黑名单
 
 ```typescript
 class IPBlacklist {
-  private blacklist: Set<string> = new Set()
-  
+  private blacklist: Set<string> = new Set();
+
   async add(ip: string, duration: number = 3600): Promise<void> {
-    this.blacklist.add(ip)
-    
+    this.blacklist.add(ip);
+
     setTimeout(() => {
-      this.blacklist.delete(ip)
-    }, duration * 1000)
+      this.blacklist.delete(ip);
+    }, duration * 1000);
   }
-  
+
   async has(ip: string): Promise<boolean> {
-    return this.blacklist.has(ip)
+    return this.blacklist.has(ip);
   }
 }
 
 fastify.addHook('preHandler', async (request, reply) => {
   if (await ipBlacklist.has(request.ip)) {
-    return reply.status(403).send({ error: 'IP blocked' })
+    return reply.status(403).send({ error: 'IP blocked' });
   }
-})
+});
 ```
 
 ### 19.7 防暴力破解
@@ -230,34 +232,34 @@ fastify.addHook('preHandler', async (request, reply) => {
 
 ```typescript
 class AccountLockout {
-  private attempts: Map<string, { count: number; lastAttempt: Date }> = new Map()
-  
+  private attempts: Map<string, { count: number; lastAttempt: Date }> = new Map();
+
   async check(email: string): Promise<boolean> {
-    const record = this.attempts.get(email)
-    
-    if (!record) return true
-    
+    const record = this.attempts.get(email);
+
+    if (!record) return true;
+
     if (record.count >= 5) {
-      const lockoutTime = 15 * 60 * 1000  // 15 分钟
+      const lockoutTime = 15 * 60 * 1000; // 15 分钟
       if (Date.now() - record.lastAttempt.getTime() < lockoutTime) {
-        return false  // 已锁定
+        return false; // 已锁定
       }
-      
-      this.attempts.delete(email)
-      return true
+
+      this.attempts.delete(email);
+      return true;
     }
-    
-    return true
+
+    return true;
   }
-  
+
   async recordAttempt(email: string): Promise<void> {
-    const record = this.attempts.get(email)
-    
+    const record = this.attempts.get(email);
+
     if (record) {
-      record.count++
-      record.lastAttempt = new Date()
+      record.count++;
+      record.lastAttempt = new Date();
     } else {
-      this.attempts.set(email, { count: 1, lastAttempt: new Date() })
+      this.attempts.set(email, { count: 1, lastAttempt: new Date() });
     }
   }
 }
@@ -268,41 +270,41 @@ class AccountLockout {
 #### 19.8.1 AES-256-GCM 加密
 
 ```typescript
-import crypto from 'crypto'
+import crypto from 'crypto';
 
 class Encryption {
-  private algorithm = 'aes-256-gcm'
-  private key: Buffer
-  
+  private algorithm = 'aes-256-gcm';
+  private key: Buffer;
+
   constructor(secret: string) {
-    this.key = crypto.scryptSync(secret, 'salt', 32)
+    this.key = crypto.scryptSync(secret, 'salt', 32);
   }
-  
+
   encrypt(text: string): string {
-    const iv = crypto.randomBytes(16)
-    const cipher = crypto.createCipheriv(this.algorithm, this.key, iv)
-    
-    let encrypted = cipher.update(text, 'utf8', 'hex')
-    encrypted += cipher.final('hex')
-    
-    const authTag = cipher.getAuthTag()
-    
-    return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(this.algorithm, this.key, iv);
+
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+
+    const authTag = cipher.getAuthTag();
+
+    return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
   }
-  
+
   decrypt(encryptedText: string): string {
-    const [ivHex, authTagHex, encrypted] = encryptedText.split(':')
-    
-    const iv = Buffer.from(ivHex, 'hex')
-    const authTag = Buffer.from(authTagHex, 'hex')
-    
-    const decipher = crypto.createDecipheriv(this.algorithm, this.key, iv)
-    decipher.setAuthTag(authTag)
-    
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8')
-    decrypted += decipher.final('utf8')
-    
-    return decrypted
+    const [ivHex, authTagHex, encrypted] = encryptedText.split(':');
+
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+
+    const decipher = crypto.createDecipheriv(this.algorithm, this.key, iv);
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
   }
 }
 ```
@@ -310,17 +312,17 @@ class Encryption {
 #### 19.8.2 密码哈希
 
 ```typescript
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcrypt';
 
 class PasswordHasher {
-  private saltRounds = 12
-  
+  private saltRounds = 12;
+
   async hash(password: string): Promise<string> {
-    return bcrypt.hash(password, this.saltRounds)
+    return bcrypt.hash(password, this.saltRounds);
   }
-  
+
   async verify(password: string, hash: string): Promise<boolean> {
-    return bcrypt.compare(password, hash)
+    return bcrypt.compare(password, hash);
   }
 }
 ```
@@ -331,44 +333,44 @@ class PasswordHasher {
 fastify.register(helmet, {
   // XSS 防护
   xssFilter: true,
-  
+
   // MIME 类型嗅探
   noSniff: true,
-  
+
   // 点击劫持防护
   frameguard: { action: 'deny' },
-  
+
   // HSTS
   hsts: {
     maxAge: 31536000,
     includeSubDomains: true,
-    preload: true
+    preload: true,
   },
-  
+
   // CSP
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"]
-    }
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+    },
   },
-  
+
   // 引用策略
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  
+
   // 权限策略
   permissionsPolicy: {
     features: {
       geolocation: ["'none'"],
       camera: ["'none'"],
       microphone: ["'none'"],
-      payment: ["'none'"]
-    }
-  }
-})
+      payment: ["'none'"],
+    },
+  },
+});
 ```
 
 ### 19.10 配置示例
@@ -382,14 +384,14 @@ security:
     port: 443
     min_version: TLSv1.2
     max_version: TLSv1.3
-  
+
   # HSTS
   hsts:
     enabled: true
     max_age: 31536000
     include_subdomains: true
     preload: true
-  
+
   # CSP
   csp:
     enabled: true
@@ -397,8 +399,8 @@ security:
       default_src: ["'self'"]
       script_src: ["'self'"]
       style_src: ["'self'", "'unsafe-inline'"]
-      img_src: ["'self'", "data:", "https:"]
-  
+      img_src: ["'self'", 'data:', 'https:']
+
   # CSRF
   csrf:
     enabled: true
@@ -407,20 +409,20 @@ security:
       http_only: true
       secure: true
       same_site: strict
-  
+
   # XSS
   xss:
     enabled: true
     input_validation: true
     output_encoding: true
     xss_filter: true
-  
+
   # SQL 注入
   sql_injection:
     enabled: true
     parameterized_queries: true
     orm: drizzle
-  
+
   # DDoS 防护
   ddos:
     enabled: true
@@ -430,7 +432,7 @@ security:
     ip_blacklist:
       enabled: true
       duration: 3600
-  
+
   # 暴力破解防护
   brute_force:
     enabled: true
@@ -439,13 +441,13 @@ security:
     captcha:
       enabled: true
       threshold: 3
-  
+
   # 数据加密
   encryption:
     enabled: true
     algorithm: aes-256-gcm
     key: ${ENCRYPTION_SECRET}
-  
+
   # 密码策略
   password:
     min_length: 8
@@ -471,23 +473,23 @@ fastify.register(helmet, {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", (req, res) => `'nonce-${res.locals.nonce}'`],
       styleSrc: ["'self'", (req, res) => `'nonce-${res.locals.nonce}'`],
-      imgSrc: ["'self'", "data:", "https:"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       connectSrc: ["'self'"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
       frameAncestors: ["'none'"],
-      upgradeInsecureRequests: []
-    }
-  }
-})
+      upgradeInsecureRequests: [],
+    },
+  },
+});
 
 // nonce 生成中间件
 fastify.addHook('onRequest', async (request, reply) => {
-  reply.locals.nonce = crypto.randomBytes(16).toString('base64')
-})
+  reply.locals.nonce = crypto.randomBytes(16).toString('base64');
+});
 ```
 
 ### 25.2 OAuth State + PKCE
@@ -495,113 +497,116 @@ fastify.addHook('onRequest', async (request, reply) => {
 ```typescript
 // OAuth state 参数（防 CSRF）
 function generateOAuthState(): string {
-  const state = crypto.randomBytes(32).toString('hex')
+  const state = crypto.randomBytes(32).toString('hex');
   // 存储到 session
-  return state
+  return state;
 }
 
 function verifyOAuthState(receivedState: string, sessionState: string): boolean {
-  return crypto.timingSafeEqual(
-    Buffer.from(receivedState),
-    Buffer.from(sessionState)
-  )
+  return crypto.timingSafeEqual(Buffer.from(receivedState), Buffer.from(sessionState));
 }
 
 // PKCE（防授权码拦截）
 function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
-  const codeVerifier = crypto.randomBytes(32).toString('base64url')
-  const codeChallenge = crypto
-    .createHash('sha256')
-    .update(codeVerifier)
-    .digest('base64url')
-  return { codeVerifier, codeChallenge }
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+  return { codeVerifier, codeChallenge };
 }
 
 // OAuth 授权 URL
-const authUrl = `${provider.authorizationUrl}?` + new URLSearchParams({
-  client_id: config.clientId,
-  redirect_uri: config.callbackUrl,
-  response_type: 'code',
-  scope: config.scopes.join(' '),
-  state: generateOAuthState(),
-  code_challenge: pkce.codeChallenge,
-  code_challenge_method: 'S256'
-})
+const authUrl =
+  `${provider.authorizationUrl}?` +
+  new URLSearchParams({
+    client_id: config.clientId,
+    redirect_uri: config.callbackUrl,
+    response_type: 'code',
+    scope: config.scopes.join(' '),
+    state: generateOAuthState(),
+    code_challenge: pkce.codeChallenge,
+    code_challenge_method: 'S256',
+  });
 ```
 
 ### 25.3 MFA 框架（TOTP）
 
 ```typescript
-import { authenticator } from 'otplib'
+import { authenticator } from 'otplib';
 
 // MFA 管理器
 class MFAManager {
   // 生成 MFA 密钥
   generateSecret(userId: string): { secret: string; otpauth: string } {
-    const secret = authenticator.generateSecret()
-    const otpauth = authenticator.keyuri(userId, 'AccessBase', secret)
-    return { secret, otpauth }
+    const secret = authenticator.generateSecret();
+    const otpauth = authenticator.keyuri(userId, 'AccessBase', secret);
+    return { secret, otpauth };
   }
-  
+
   // 验证 TOTP 令牌
   verify(secret: string, token: string): boolean {
-    return authenticator.verify({ token, secret })
+    return authenticator.verify({ token, secret });
   }
-  
+
   // 生成恢复码
   generateRecoveryCodes(count: number = 8): string[] {
-    return Array.from({ length: count }, () => 
-      crypto.randomBytes(4).toString('hex').toUpperCase()
-    )
+    return Array.from({ length: count }, () => crypto.randomBytes(4).toString('hex').toUpperCase());
   }
-  
+
   // 验证恢复码
   async verifyRecoveryCode(userId: string, code: string): Promise<boolean> {
-    const codes = await this.getRecoveryCodes(userId)
-    const matched = codes.find(c => !c.used && c.codeHash === hashRecoveryCode(code))
-    
+    const codes = await this.getRecoveryCodes(userId);
+    const matched = codes.find((c) => !c.used && c.codeHash === hashRecoveryCode(code));
+
     if (matched) {
-      await this.markRecoveryCodeUsed(matched.id)
-      return true
+      await this.markRecoveryCodeUsed(matched.id);
+      return true;
     }
-    return false
+    return false;
   }
 }
 
 // MFA API
-fastify.post('/api/v1/auth/mfa/enable', {
-  preHandler: [authenticate]
-}, async (request, reply) => {
-  const { secret, otpauth } = mfaManager.generateSecret(request.user.id)
-  const recoveryCodes = mfaManager.generateRecoveryCodes()
-  
-  // 暂存密钥（待验证后正式启用）
-  await redis.set(`mfa:pending:${request.user.id}`, secret, 'EX', 300)
-  
-  return reply.send({
-    secret,
-    qrCode: otpauth,
-    recoveryCodes
-  })
-})
+fastify.post(
+  '/api/v1/auth/mfa/enable',
+  {
+    preHandler: [authenticate],
+  },
+  async (request, reply) => {
+    const { secret, otpauth } = mfaManager.generateSecret(request.user.id);
+    const recoveryCodes = mfaManager.generateRecoveryCodes();
 
-fastify.post('/api/v1/auth/mfa/verify', {
-  preHandler: [authenticate]
-}, async (request, reply) => {
-  const { token } = request.body
-  const secret = await redis.get(`mfa:pending:${request.user.id}`)
-  
-  if (!secret || !mfaManager.verify(secret, token)) {
-    return reply.status(400).send({ error: 'MFA_001', message: '无效的 MFA 令牌' })
-  }
-  
-  // 正式启用 MFA
-  await db.update(usersTable)
-    .set({ mfaEnabled: true, mfaSecret: encrypt(secret) })
-    .where(eq(usersTable.id, request.user.id))
-  
-  return reply.send({ success: true })
-})
+    // 暂存密钥（待验证后正式启用）
+    await redis.set(`mfa:pending:${request.user.id}`, secret, 'EX', 300);
+
+    return reply.send({
+      secret,
+      qrCode: otpauth,
+      recoveryCodes,
+    });
+  },
+);
+
+fastify.post(
+  '/api/v1/auth/mfa/verify',
+  {
+    preHandler: [authenticate],
+  },
+  async (request, reply) => {
+    const { token } = request.body;
+    const secret = await redis.get(`mfa:pending:${request.user.id}`);
+
+    if (!secret || !mfaManager.verify(secret, token)) {
+      return reply.status(400).send({ error: 'MFA_001', message: '无效的 MFA 令牌' });
+    }
+
+    // 正式启用 MFA
+    await db
+      .update(usersTable)
+      .set({ mfaEnabled: true, mfaSecret: encrypt(secret) })
+      .where(eq(usersTable.id, request.user.id));
+
+    return reply.send({ success: true });
+  },
+);
 ```
 
 ### 25.4 Refresh Token 持久化
@@ -610,75 +615,73 @@ fastify.post('/api/v1/auth/mfa/verify', {
 // Refresh Token 存储到数据库（而非仅 Redis）
 class SessionManager {
   async createSession(userId: string, deviceInfo: DeviceInfo): Promise<SessionTokens> {
-    const accessToken = this.generateAccessToken(userId)
-    const refreshToken = this.generateRefreshToken(userId)
-    
+    const accessToken = this.generateAccessToken(userId);
+    const refreshToken = this.generateRefreshToken(userId);
+
     // 持久化到数据库
     await db.insert(sessionsTable).values({
       userId,
       refreshTokenHash: await bcrypt.hash(refreshToken, 10),
       deviceInfo,
       ipAddress: deviceInfo.ip,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)  // 7 天
-    })
-    
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 天
+    });
+
     // 同时缓存到 Redis（快速验证）
-    await redis.set(`session:${refreshToken}`, userId, 'EX', 7 * 24 * 60 * 60)
-    
-    return { accessToken, refreshToken }
+    await redis.set(`session:${refreshToken}`, userId, 'EX', 7 * 24 * 60 * 60);
+
+    return { accessToken, refreshToken };
   }
-  
+
   async refreshSession(refreshToken: string): Promise<SessionTokens> {
     // 先查 Redis
-    const userId = await redis.get(`session:${refreshToken}`)
-    
+    const userId = await redis.get(`session:${refreshToken}`);
+
     if (!userId) {
       // Redis 未命中，查数据库
-      const session = await db.select()
+      const session = await db
+        .select()
         .from(sessionsTable)
-        .where(and(
-          eq(sessionsTable.revokedAt, null),
-          gt(sessionsTable.expiresAt, new Date())
-        ))
-        .limit(1)
-      
-      if (!session || !await bcrypt.compare(refreshToken, session.refreshTokenHash)) {
-        throw new AppError('AUTH_002', 'Refresh token 无效或已过期')
+        .where(and(eq(sessionsTable.revokedAt, null), gt(sessionsTable.expiresAt, new Date())))
+        .limit(1);
+
+      if (!session || !(await bcrypt.compare(refreshToken, session.refreshTokenHash))) {
+        throw new AppError('AUTH_002', 'Refresh token 无效或已过期');
       }
     }
-    
+
     // 生成新 token（轮转）
-    const newTokens = await this.createSession(userId, deviceInfo)
-    
+    const newTokens = await this.createSession(userId, deviceInfo);
+
     // 撤销旧 token
-    await this.revokeSession(refreshToken)
-    
-    return newTokens
+    await this.revokeSession(refreshToken);
+
+    return newTokens;
   }
-  
+
   async revokeSession(refreshToken: string): Promise<void> {
-    await redis.del(`session:${refreshToken}`)
-    await db.update(sessionsTable)
+    await redis.del(`session:${refreshToken}`);
+    await db
+      .update(sessionsTable)
       .set({ revokedAt: new Date() })
-      .where(eq(sessionsTable.refreshTokenHash, await bcrypt.hash(refreshToken, 10)))
+      .where(eq(sessionsTable.refreshTokenHash, await bcrypt.hash(refreshToken, 10)));
   }
-  
+
   // 撤销用户所有会话（密码重置时调用）
   async revokeAllSessions(userId: string): Promise<void> {
-    const sessions = await db.select()
+    const sessions = await db
+      .select()
       .from(sessionsTable)
-      .where(and(
-        eq(sessionsTable.userId, userId),
-        eq(sessionsTable.revokedAt, null)
-      ))
-    
+      .where(and(eq(sessionsTable.userId, userId), eq(sessionsTable.revokedAt, null)));
+
     for (const session of sessions) {
-      await redis.del(`session:${session.id}`)
+      await redis.del(`session:${session.id}`);
     }
-    
-    await db.update(sessionsTable)
+
+    await db
+      .update(sessionsTable)
       .set({ revokedAt: new Date() })
-      .where(eq(sessionsTable.userId, userId))
+      .where(eq(sessionsTable.userId, userId));
   }
 }
 ```
@@ -687,9 +690,9 @@ class SessionManager {
 
 ```typescript
 // 明确指定 RS256（非对称加密）
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 
-const JWT_ALGORITHM = 'RS256'  // 明确指定，防止算法混淆攻击
+const JWT_ALGORITHM = 'RS256'; // 明确指定，防止算法混淆攻击
 
 // 签发令牌
 function signAccessToken(payload: TokenPayload): string {
@@ -697,17 +700,17 @@ function signAccessToken(payload: TokenPayload): string {
     algorithm: JWT_ALGORITHM,
     expiresIn: '15m',
     issuer: 'accessbase',
-    audience: 'api'
-  })
+    audience: 'api',
+  });
 }
 
 // 验证令牌
 function verifyAccessToken(token: string): TokenPayload {
   return jwt.verify(token, PUBLIC_KEY, {
-    algorithms: [JWT_ALGORITHM],  // 明确指定允许的算法
+    algorithms: [JWT_ALGORITHM], // 明确指定允许的算法
     issuer: 'accessbase',
-    audience: 'api'
-  }) as TokenPayload
+    audience: 'api',
+  }) as TokenPayload;
 }
 ```
 
@@ -721,50 +724,62 @@ function verifyAccessToken(token: string): TokenPayload {
 // 账户锁定持久化到 Redis（而非内存）
 class PersistentAccountLockout {
   constructor(private redis: Redis) {}
-  
-  async check(email: string): Promise<{ allowed: boolean; remainingAttempts: number; lockoutEndsAt?: Date }> {
-    const key = `lockout:${email}`
-    const data = await this.redis.get(key)
-    
+
+  async check(
+    email: string,
+  ): Promise<{ allowed: boolean; remainingAttempts: number; lockoutEndsAt?: Date }> {
+    const key = `lockout:${email}`;
+    const data = await this.redis.get(key);
+
     if (!data) {
-      return { allowed: true, remainingAttempts: 5 }
+      return { allowed: true, remainingAttempts: 5 };
     }
-    
-    const { count, lastAttempt } = JSON.parse(data)
-    
+
+    const { count, lastAttempt } = JSON.parse(data);
+
     if (count >= 5) {
-      const lockoutEndsAt = new Date(lastAttempt + 15 * 60 * 1000)
+      const lockoutEndsAt = new Date(lastAttempt + 15 * 60 * 1000);
       if (new Date() < lockoutEndsAt) {
-        return { allowed: false, remainingAttempts: 0, lockoutEndsAt }
+        return { allowed: false, remainingAttempts: 0, lockoutEndsAt };
       }
       // 锁定已过期，重置
-      await this.redis.del(key)
-      return { allowed: true, remainingAttempts: 5 }
+      await this.redis.del(key);
+      return { allowed: true, remainingAttempts: 5 };
     }
-    
-    return { allowed: true, remainingAttempts: 5 - count }
+
+    return { allowed: true, remainingAttempts: 5 - count };
   }
-  
+
   async recordAttempt(email: string): Promise<void> {
-    const key = `lockout:${email}`
-    const data = await this.redis.get(key)
-    
+    const key = `lockout:${email}`;
+    const data = await this.redis.get(key);
+
     if (data) {
-      const { count } = JSON.parse(data)
-      await this.redis.set(key, JSON.stringify({
-        count: count + 1,
-        lastAttempt: Date.now()
-      }), 'EX', 900)  // 15 分钟过期
+      const { count } = JSON.parse(data);
+      await this.redis.set(
+        key,
+        JSON.stringify({
+          count: count + 1,
+          lastAttempt: Date.now(),
+        }),
+        'EX',
+        900,
+      ); // 15 分钟过期
     } else {
-      await this.redis.set(key, JSON.stringify({
-        count: 1,
-        lastAttempt: Date.now()
-      }), 'EX', 900)
+      await this.redis.set(
+        key,
+        JSON.stringify({
+          count: 1,
+          lastAttempt: Date.now(),
+        }),
+        'EX',
+        900,
+      );
     }
   }
-  
+
   async reset(email: string): Promise<void> {
-    await this.redis.del(`lockout:${email}`)
+    await this.redis.del(`lockout:${email}`);
   }
 }
 ```
@@ -775,21 +790,26 @@ class PersistentAccountLockout {
 // IP 黑名单持久化到 Redis
 class PersistentIPBlacklist {
   constructor(private redis: Redis) {}
-  
+
   async add(ip: string, duration: number = 3600, reason: string = ''): Promise<void> {
-    await this.redis.set(`blacklist:${ip}`, JSON.stringify({
-      reason,
-      addedAt: Date.now()
-    }), 'EX', duration)
+    await this.redis.set(
+      `blacklist:${ip}`,
+      JSON.stringify({
+        reason,
+        addedAt: Date.now(),
+      }),
+      'EX',
+      duration,
+    );
   }
-  
+
   async has(ip: string): Promise<boolean> {
-    const result = await this.redis.exists(`blacklist:${ip}`)
-    return result === 1
+    const result = await this.redis.exists(`blacklist:${ip}`);
+    return result === 1;
   }
-  
+
   async remove(ip: string): Promise<void> {
-    await this.redis.del(`blacklist:${ip}`)
+    await this.redis.del(`blacklist:${ip}`);
   }
 }
 ```
@@ -799,19 +819,19 @@ class PersistentIPBlacklist {
 ```typescript
 // 登录端点专用限速（更严格）
 fastify.register(rateLimit, {
-  max: 10,  // 每分钟最多 10 次登录尝试
+  max: 10, // 每分钟最多 10 次登录尝试
   timeWindow: '1 minute',
   keyGenerator: (request) => request.ip,
   skipOnError: false,
-  skipSuccessfulRequests: false
-})
+  skipSuccessfulRequests: false,
+});
 
 // 密码重置端点限速
 fastify.register(rateLimit, {
-  max: 5,  // 每小时最多 5 次密码重置
+  max: 5, // 每小时最多 5 次密码重置
   timeWindow: '1 hour',
-  keyGenerator: (request) => request.body?.email || request.ip
-})
+  keyGenerator: (request) => request.body?.email || request.ip,
+});
 ```
 
 ### 29.4 账户枚举防护
@@ -819,24 +839,24 @@ fastify.register(rateLimit, {
 ```typescript
 // 统一错误消息，防止账户枚举
 fastify.post('/api/v1/auth/login', async (request, reply) => {
-  const { email, password } = request.body
-  
-  const user = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1)
-  
-  if (!user || !await bcrypt.compare(password, user.passwordHash)) {
+  const { email, password } = request.body;
+
+  const user = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     // 统一错误消息，不区分用户不存在和密码错误
     return reply.status(401).send({
       success: false,
       error: {
         code: 'AUTH_001',
-        message: '邮箱或密码错误',  // 不说 '用户不存在'
+        message: '邮箱或密码错误', // 不说 '用户不存在'
         timestamp: new Date().toISOString(),
         requestId: request.id,
-        path: request.url
-      }
-    })
+        path: request.url,
+      },
+    });
   }
-})
+});
 ```
 
 ### 29.5 Redis 认证与加密
@@ -846,7 +866,7 @@ fastify.post('/api/v1/auth/login', async (request, reply) => {
 redis:
   host: ${REDIS_HOST:localhost}
   port: ${REDIS_PORT:6379}
-  password: ${REDIS_PASSWORD}  # 必须设置密码
+  password: ${REDIS_PASSWORD} # 必须设置密码
   tls:
     enabled: ${REDIS_TLS_ENABLED:false}
     cert: ${REDIS_TLS_CERT}
@@ -905,26 +925,26 @@ const logger = pino({
       'res.body.data.refresh_token',
       // 用户信息
       'user.mfa_secret',
-      'user.password_hash'
+      'user.password_hash',
     ],
-    censor: '[REDACTED]'
-  }
-})
+    censor: '[REDACTED]',
+  },
+});
 
 // 自定义脱敏函数
 function sanitizeForLog(data: any): any {
-  if (!data) return data
-  
-  const sensitiveFields = ['password', 'token', 'secret', 'api_key', 'credit_card']
-  const sanitized = { ...data }
-  
+  if (!data) return data;
+
+  const sensitiveFields = ['password', 'token', 'secret', 'api_key', 'credit_card'];
+  const sanitized = { ...data };
+
   for (const field of sensitiveFields) {
     if (sanitized[field]) {
-      sanitized[field] = '[REDACTED]'
+      sanitized[field] = '[REDACTED]';
     }
   }
-  
-  return sanitized
+
+  return sanitized;
 }
 ```
 
@@ -937,29 +957,29 @@ class KeyRotationManager {
   private config = {
     jwtKeyRotationDays: 90,
     encryptionKeyRotationDays: 90,
-    oauthSecretRotationDays: 180
-  }
-  
+    oauthSecretRotationDays: 180,
+  };
+
   // 检查是否需要轮转
   async checkRotationNeeded(keyName: string): Promise<boolean> {
-    const key = await this.getKey(keyName)
-    const daysSinceRotation = (Date.now() - key.lastRotatedAt) / (1000 * 60 * 60 * 24)
-    return daysSinceRotation >= this.config[`${keyName}RotationDays`]
+    const key = await this.getKey(keyName);
+    const daysSinceRotation = (Date.now() - key.lastRotatedAt) / (1000 * 60 * 60 * 24);
+    return daysSinceRotation >= this.config[`${keyName}RotationDays`];
   }
-  
+
   // 轮转 JWT 密钥
   async rotateJwtKey(): Promise<void> {
     const newKeyPair = crypto.generateKeyPairSync('rsa', {
       modulusLength: 2048,
       publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-    })
-    
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+
     // 保存新密钥
-    await this.saveKey('jwt', newKeyPair)
-    
+    await this.saveKey('jwt', newKeyPair);
+
     // 通知服务重启
-    await this.notifyServiceRestart()
+    await this.notifyServiceRestart();
   }
 }
 ```
@@ -973,20 +993,20 @@ fastify.register(cors, {
     const allowedOrigins = [
       'https://example.com',
       'https://admin.example.com',
-      'http://localhost:5173'  // 开发环境
-    ]
-    
+      'http://localhost:5173', // 开发环境
+    ];
+
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true)
+      callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'))
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
-  maxAge: 86400  // 24 小时
-})
+  maxAge: 86400, // 24 小时
+});
 ```
 
 ### 36.4 WebAuthn 挑战时效
@@ -994,31 +1014,31 @@ fastify.register(cors, {
 ```typescript
 // WebAuthn 挑战管理
 class WebAuthnChallengeManager {
-  private challengeTTL = 60 * 1000  // 1 分钟
-  
+  private challengeTTL = 60 * 1000; // 1 分钟
+
   async createChallenge(userId: string): Promise<string> {
-    const challenge = crypto.randomBytes(32)
-    
+    const challenge = crypto.randomBytes(32);
+
     // 存储到 Redis（1 分钟过期）
-    await this.redis.set(`webauthn:challenge:${userId}`, challenge.toString('hex'), 'EX', 60)
-    
-    return challenge.toString('base64url')
+    await this.redis.set(`webauthn:challenge:${userId}`, challenge.toString('hex'), 'EX', 60);
+
+    return challenge.toString('base64url');
   }
-  
+
   async verifyChallenge(userId: string, challenge: string): Promise<boolean> {
-    const storedChallenge = await this.redis.get(`webauthn:challenge:${userId}`)
-    
+    const storedChallenge = await this.redis.get(`webauthn:challenge:${userId}`);
+
     if (!storedChallenge) {
-      return false  // 挑战已过期
+      return false; // 挑战已过期
     }
-    
+
     // 验证后立即删除（防止重放）
-    await this.redis.del(`webauthn:challenge:${userId}`)
-    
+    await this.redis.del(`webauthn:challenge:${userId}`);
+
     return crypto.timingSafeEqual(
       Buffer.from(storedChallenge, 'hex'),
-      Buffer.from(challenge, 'base64url')
-    )
+      Buffer.from(challenge, 'base64url'),
+    );
   }
 }
 ```
@@ -1031,11 +1051,11 @@ license:
   validation:
     offline:
       enabled: true
-      grace_period: 3  # 缩短为 3 天（原 7 天）
+      grace_period: 3 # 缩短为 3 天（原 7 天）
       # 首次验证必须在线
       require_first_online: true
       # 宽限期内定期尝试在线验证
-      retry_interval: 3600  # 1 小时
+      retry_interval: 3600 # 1 小时
 ```
 
 ---
@@ -1047,20 +1067,20 @@ license:
 fastify.register(cors, {
   origin: (origin, callback) => {
     // 生产环境必须使用白名单，不允许通配符
-    const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || []
-    
+    const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [];
+
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true)
+      callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'))
+      callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true,  // 允许携带 Cookie
+  credentials: true, // 允许携带 Cookie
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Request-ID'],
   exposedHeaders: ['X-Request-ID', 'X-RateLimit-Remaining'],
-  maxAge: 86400  // 24 小时预检缓存
-})
+  maxAge: 86400, // 24 小时预检缓存
+});
 ```
 
 **设计要点**：
@@ -1075,48 +1095,50 @@ fastify.register(cors, {
 ### 19.12 密码策略
 
 ```typescript
-import { z } from 'zod'
+import { z } from 'zod';
 
 // 密码复杂度校验
-const passwordSchema = z.string()
+const passwordSchema = z
+  .string()
   .min(12, '密码长度至少 12 位')
   .max(128, '密码长度不超过 128 位')
   .regex(/[A-Z]/, '必须包含大写字母')
   .regex(/[a-z]/, '必须包含小写字母')
   .regex(/[0-9]/, '必须包含数字')
-  .regex(/[^A-Za-z0-9]/, '必须包含特殊字符')
+  .regex(/[^A-Za-z0-9]/, '必须包含特殊字符');
 
 // 密码历史校验（禁止重用最近 5 次密码）
 async function checkPasswordHistory(userId: string, newPasswordHash: string): Promise<boolean> {
-  const history = await db.select()
+  const history = await db
+    .select()
     .from(passwordHistoryTable)
     .where(eq(passwordHistoryTable.userId, userId))
     .orderBy(desc(passwordHistoryTable.createdAt))
-    .limit(5)
-  
-  return history.some(record => record.passwordHash === newPasswordHash)
+    .limit(5);
+
+  return history.some((record) => record.passwordHash === newPasswordHash);
 }
 
 // 账户锁定策略
 const LOCKOUT_CONFIG = {
-  maxAttempts: 5,          // 最大失败尝试次数
+  maxAttempts: 5, // 最大失败尝试次数
   lockoutDuration: 15 * 60, // 锁定时长 15 分钟（秒）
-  windowDuration: 15 * 60   // 统计窗口 15 分钟（秒）
-}
+  windowDuration: 15 * 60, // 统计窗口 15 分钟（秒）
+};
 ```
 
 **策略矩阵**：
 
-| 项目 | 要求 |
-|------|------|
-| 最小长度 | 12 字符 |
-| 大写字母 | 至少 1 个 |
-| 小写字母 | 至少 1 个 |
-| 数字 | 至少 1 个 |
-| 特殊字符 | 至少 1 个 |
-| 密码历史 | 禁止重用最近 5 次 |
+| 项目         | 要求               |
+| ------------ | ------------------ |
+| 最小长度     | 12 字符            |
+| 大写字母     | 至少 1 个          |
+| 小写字母     | 至少 1 个          |
+| 数字         | 至少 1 个          |
+| 特殊字符     | 至少 1 个          |
+| 密码历史     | 禁止重用最近 5 次  |
 | 最大失败尝试 | 5 次 / 15 分钟窗口 |
-| 锁定时长 | 15 分钟 |
+| 锁定时长     | 15 分钟            |
 
 ---
 
@@ -1125,18 +1147,21 @@ const LOCKOUT_CONFIG = {
 ```typescript
 // 统一错误响应（生产环境隐藏堆栈）
 fastify.setErrorHandler((error, request, reply) => {
-  const isProduction = process.env.NODE_ENV === 'production'
-  
+  const isProduction = process.env.NODE_ENV === 'production';
+
   // 详细信息仅写入服务端日志
-  request.log.error({
-    err: error,
-    requestId: request.id,
-    url: request.url,
-    method: request.method
-  }, 'Request error')
-  
+  request.log.error(
+    {
+      err: error,
+      requestId: request.id,
+      url: request.url,
+      method: request.method,
+    },
+    'Request error',
+  );
+
   // 返回给客户端的响应（生产环境仅返回错误码）
-  const statusCode = error.statusCode || 500
+  const statusCode = error.statusCode || 500;
   const responseBody: Record<string, unknown> = {
     success: false,
     error: {
@@ -1144,17 +1169,17 @@ fastify.setErrorHandler((error, request, reply) => {
       message: isProduction ? '服务器内部错误' : error.message,
       timestamp: new Date().toISOString(),
       requestId: request.id,
-      path: request.url
-    }
-  }
-  
+      path: request.url,
+    },
+  };
+
   // 仅开发环境返回堆栈
   if (!isProduction) {
-    responseBody.error.stack = error.stack
+    responseBody.error.stack = error.stack;
   }
-  
-  reply.status(statusCode).send(responseBody)
-})
+
+  reply.status(statusCode).send(responseBody);
+});
 ```
 
 **原则**：
@@ -1172,63 +1197,63 @@ fastify.setErrorHandler((error, request, reply) => {
 // 在现有 helmet 配置中补充以下安全头
 fastify.register(helmet, {
   // ... 已有配置 ...
-  
+
   // 权限策略（限制浏览器功能）
   permissionsPolicy: {
     features: {
-      geolocation: ["'none'"],       // 禁用地理位置
-      camera: ["'none'"],            // 禁用摄像头
-      microphone: ["'none'"],        // 禁用麦克风
-      payment: ["'none'"],           // 禁用支付 API
-      usb: ["'none'"],               // 禁用 USB
-      magnetometer: ["'none'"]       // 禁用磁力计
-    }
+      geolocation: ["'none'"], // 禁用地理位置
+      camera: ["'none'"], // 禁用摄像头
+      microphone: ["'none'"], // 禁用麦克风
+      payment: ["'none'"], // 禁用支付 API
+      usb: ["'none'"], // 禁用 USB
+      magnetometer: ["'none'"], // 禁用磁力计
+    },
   },
-  
+
   // IE 专用：禁止直接下载执行
   xDownloadOptions: 'noopen',
-  
+
   // 跨域策略：禁止 Flash/PDF 跨域访问
-  permittedCrossDomainPolicies: { permittedPolicies: 'none' }
-})
+  permittedCrossDomainPolicies: { permittedPolicies: 'none' },
+});
 ```
 
-| 安全头 | 值 | 作用 |
-|--------|-----|------|
-| `Permissions-Policy` | `geolocation/camera/microphone/payment=none` | 禁用浏览器敏感 API |
-| `X-Download-Options` | `noopen` | 阻止 IE 直接执行下载文件 |
-| `X-Permitted-Cross-Domain-Policies` | `none` | 禁止 Flash/PDF 跨域策略文件 |
+| 安全头                              | 值                                           | 作用                        |
+| ----------------------------------- | -------------------------------------------- | --------------------------- |
+| `Permissions-Policy`                | `geolocation/camera/microphone/payment=none` | 禁用浏览器敏感 API          |
+| `X-Download-Options`                | `noopen`                                     | 阻止 IE 直接执行下载文件    |
+| `X-Permitted-Cross-Domain-Policies` | `none`                                       | 禁止 Flash/PDF 跨域策略文件 |
 
 ---
 
 ### 19.15 LDAP 注入防护
 
 ```typescript
-import { escape } from 'ldap-escape'
+import { escape } from 'ldap-escape';
 
 // DN 构造时必须转义特殊字符
 function buildUserDN(username: string, baseDN: string): string {
   // LDAP DN 特殊字符：, + " \ < > ;
-  const sanitized = escape.dn(username)
-  return `uid=${sanitized},${baseDN}`
+  const sanitized = escape.dn(username);
+  return `uid=${sanitized},${baseDN}`;
 }
 
 // LDAP 搜索过滤器转义
 function buildSearchFilter(username: string): string {
   // LDAP 过滤器特殊字符：* ( ) \ NUL
-  const sanitized = escape.filter(username)
-  return `(uid=${sanitized})`
+  const sanitized = escape.filter(username);
+  return `(uid=${sanitized})`;
 }
 
 // 输入校验（在转义之前先做白名单校验）
-const ldapInputSchema = z.string()
+const ldapInputSchema = z
+  .string()
   .min(1, '输入不能为空')
   .max(256, '输入过长')
   .regex(/^[a-zA-Z0-9._@\-]+$/, '包含非法字符')
-  .refine(
-    (val) => !val.includes('*') && !val.includes('(') && !val.includes(')',),
-    { message: '包含 LDAP 特殊字符' }
-  )
+  .refine((val) => !val.includes('*') && !val.includes('(') && !val.includes(')'), {
+    message: '包含 LDAP 特殊字符',
+  });
 ```
 
 **防护层次**：
@@ -1242,52 +1267,39 @@ const ldapInputSchema = z.string()
 ### 19.16 OAuth 会话固定防护
 
 ```typescript
-import crypto from 'crypto'
+import crypto from 'crypto';
 
 // State 参数验证（防 CSRF + 会话固定）
 function generateOAuthState(sessionId: string): string {
-  const state = crypto.randomBytes(32).toString('hex')
-  const nonce = crypto.randomBytes(16).toString('hex')
-  
+  const state = crypto.randomBytes(32).toString('hex');
+  const nonce = crypto.randomBytes(16).toString('hex');
+
   // state 绑定到当前会话，防止会话固定攻击
-  return `${state}:${sessionId}:${nonce}`
+  return `${state}:${sessionId}:${nonce}`;
 }
 
-function verifyOAuthState(
-  receivedState: string,
-  sessionState: string,
-  sessionId: string
-): boolean {
-  const [state, boundSessionId, _nonce] = receivedState.split(':')
-  
+function verifyOAuthState(receivedState: string, sessionState: string, sessionId: string): boolean {
+  const [state, boundSessionId, _nonce] = receivedState.split(':');
+
   // 验证 state 与 session 绑定关系
   if (boundSessionId !== sessionId) {
-    return false
+    return false;
   }
-  
+
   // 使用 timingSafeEqual 防止时序攻击
-  return crypto.timingSafeEqual(
-    Buffer.from(receivedState),
-    Buffer.from(sessionState)
-  )
+  return crypto.timingSafeEqual(Buffer.from(receivedState), Buffer.from(sessionState));
 }
 
 // PKCE 支持（防授权码拦截）
 function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
-  const codeVerifier = crypto.randomBytes(32).toString('base64url')
-  const codeChallenge = crypto
-    .createHash('sha256')
-    .update(codeVerifier)
-    .digest('base64url')
-  return { codeVerifier, codeChallenge }
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+  return { codeVerifier, codeChallenge };
 }
 
 // Nonce 验证（防 ID Token 重放）
 function verifyNonce(receivedNonce: string, sessionNonce: string): boolean {
-  return crypto.timingSafeEqual(
-    Buffer.from(receivedNonce),
-    Buffer.from(sessionNonce)
-  )
+  return crypto.timingSafeEqual(Buffer.from(receivedNonce), Buffer.from(sessionNonce));
 }
 ```
 
@@ -1303,57 +1315,57 @@ function verifyNonce(receivedNonce: string, sessionNonce: string): boolean {
 ### 19.17 审计日志完整性保护
 
 ```typescript
-import crypto from 'crypto'
+import crypto from 'crypto';
 
 // 审计日志哈希链
 class AuditLogIntegrity {
-  private previousHash: string = 'GENESIS'
-  
+  private previousHash: string = 'GENESIS';
+
   // 计算日志条目哈希（含前一条哈希，形成链）
   computeHash(entry: AuditLogEntry): string {
     const payload = JSON.stringify({
       ...entry,
       previousHash: this.previousHash,
-      timestamp: entry.timestamp.toISOString()
-    })
-    
-    const hash = crypto.createHash('sha256').update(payload).digest('hex')
-    this.previousHash = hash
-    return hash
+      timestamp: entry.timestamp.toISOString(),
+    });
+
+    const hash = crypto.createHash('sha256').update(payload).digest('hex');
+    this.previousHash = hash;
+    return hash;
   }
-  
+
   // 验证哈希链完整性
   async verifyChain(logs: AuditLogEntry[]): Promise<boolean> {
-    let expectedHash = 'GENESIS'
-    
+    let expectedHash = 'GENESIS';
+
     for (const log of logs) {
       const payload = JSON.stringify({
         ...log,
         previousHash: expectedHash,
-        timestamp: log.timestamp.toISOString()
-      })
-      const computed = crypto.createHash('sha256').update(payload).digest('hex')
-      
+        timestamp: log.timestamp.toISOString(),
+      });
+      const computed = crypto.createHash('sha256').update(payload).digest('hex');
+
       if (computed !== log.hash) {
-        return false  // 链断裂，日志被篡改
+        return false; // 链断裂，日志被篡改
       }
-      expectedHash = computed
+      expectedHash = computed;
     }
-    
-    return true
+
+    return true;
   }
 }
 
 // 审计日志写入（仅追加，不可修改/删除）
 async function writeAuditLog(entry: Omit<AuditLogEntry, 'hash'>): Promise<void> {
-  const hash = auditIntegrity.computeHash(entry as AuditLogEntry)
-  
+  const hash = auditIntegrity.computeHash(entry as AuditLogEntry);
+
   // 写入专用审计数据库（与业务数据库分离）
   await auditDb.insert(auditLogsTable).values({
     ...entry,
     hash,
-    createdAt: new Date()
-  })
+    createdAt: new Date(),
+  });
 }
 ```
 
@@ -1375,64 +1387,63 @@ class RefreshTokenRotation {
   async rotate(
     oldRefreshToken: string,
     userId: string,
-    deviceInfo: DeviceInfo
+    deviceInfo: DeviceInfo,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    
     // 1. 验证旧 token
-    const session = await this.validateToken(oldRefreshToken)
-    
+    const session = await this.validateToken(oldRefreshToken);
+
     // 2. 重用检测：如果旧 token 已被使用过，撤销该用户所有会话
     if (session.usedAt) {
-      await this.revokeAllUserSessions(userId)
-      throw new AppError('AUTH_003', '检测到 Refresh Token 重用，已撤销所有会话')
+      await this.revokeAllUserSessions(userId);
+      throw new AppError('AUTH_003', '检测到 Refresh Token 重用，已撤销所有会话');
     }
-    
+
     // 3. 标记旧 token 已使用
-    await this.markTokenUsed(oldRefreshToken)
-    
+    await this.markTokenUsed(oldRefreshToken);
+
     // 4. 生成新 token 对
-    const newAccessToken = this.generateAccessToken(userId)
-    const newRefreshToken = this.generateRefreshToken(userId)
-    
+    const newAccessToken = this.generateAccessToken(userId);
+    const newRefreshToken = this.generateRefreshToken(userId);
+
     // 5. 持久化新 session（滑动窗口）
     await this.createSession({
       userId,
       refreshTokenHash: await bcrypt.hash(newRefreshToken, 12),
       deviceInfo,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 固定 30 天上限
-      createdAt: new Date()
-    })
-    
+      createdAt: new Date(),
+    });
+
     // 6. 撤销旧 session
-    await this.revokeSession(oldRefreshToken)
-    
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken }
+    await this.revokeSession(oldRefreshToken);
+
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
-  
+
   // 重用检测（核心安全机制）
   async detectReuse(oldRefreshToken: string): Promise<boolean> {
-    const session = await this.findSessionByToken(oldRefreshToken)
-    return session?.usedAt !== null  // 已使用过的 token 被再次提交 = 重用
+    const session = await this.findSessionByToken(oldRefreshToken);
+    return session?.usedAt !== null; // 已使用过的 token 被再次提交 = 重用
   }
 }
 
 // 过期策略配置
 const TOKEN_CONFIG = {
-  accessTokenTTL: '15m',        // Access Token 有效期 15 分钟
-  refreshTokenTTL: '30d',       // Refresh Token 最长有效期 30 天（固定上限）
-  slidingWindow: true,          // 启用滑动窗口：每次刷新延长有效期
-  maxSlidingTTL: '90d',         // 滑动窗口最大延长至 90 天
-  rotationOnEveryUse: true      // 每次使用都轮换
-}
+  accessTokenTTL: '15m', // Access Token 有效期 15 分钟
+  refreshTokenTTL: '30d', // Refresh Token 最长有效期 30 天（固定上限）
+  slidingWindow: true, // 启用滑动窗口：每次刷新延长有效期
+  maxSlidingTTL: '90d', // 滑动窗口最大延长至 90 天
+  rotationOnEveryUse: true, // 每次使用都轮换
+};
 ```
 
 **轮换策略对比**：
 
-| 策略 | 说明 | 适用场景 |
-|------|------|---------|
-| **固定过期** | Token 到期即失效，不因使用而延长 | 高安全要求（金融、政务） |
-| **滑动窗口** | 每次刷新延长有效期，但不超过最大上限 | 持续活跃的 Web 应用 |
-| **混合模式** | 固定上限 + 滑动窗口（当前方案） | 平衡安全与用户体验 |
+| 策略         | 说明                                 | 适用场景                 |
+| ------------ | ------------------------------------ | ------------------------ |
+| **固定过期** | Token 到期即失效，不因使用而延长     | 高安全要求（金融、政务） |
+| **滑动窗口** | 每次刷新延长有效期，但不超过最大上限 | 持续活跃的 Web 应用      |
+| **混合模式** | 固定上限 + 滑动窗口（当前方案）      | 平衡安全与用户体验       |
 
 **重用检测流程**：
 

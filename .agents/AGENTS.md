@@ -30,15 +30,15 @@ Project-specific AI agent configuration: skills, coding rules, and project memor
 
 ## WHERE TO LOOK
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Design decision lookup | `memorys/decisions.md` | D1-D80, searchable by number |
-| Project status | `memorys/status.md` | Phase, blockers, recent work |
-| Coding rules for TS | `rules/typescript/` | Extends common/ rules |
-| Security rules | `rules/common/security.md` | Mandatory pre-commit checks |
-| Test requirements | `rules/common/testing.md` | 80% coverage, E2E triggers |
-| Edit safety | `rules/common/edit-safety.md` | Brace safety, verification |
-| Skill creation | `skills/skill-creator/` | Generate from SDD/interfaces |
+| Task                   | Location                      | Notes                        |
+| ---------------------- | ----------------------------- | ---------------------------- |
+| Design decision lookup | `memorys/decisions.md`        | D1-D80, searchable by number |
+| Project status         | `memorys/status.md`           | Phase, blockers, recent work |
+| Coding rules for TS    | `rules/typescript/`           | Extends common/ rules        |
+| Security rules         | `rules/common/security.md`    | Mandatory pre-commit checks  |
+| Test requirements      | `rules/common/testing.md`     | 80% coverage, E2E triggers   |
+| Edit safety            | `rules/common/edit-safety.md` | Brace safety, verification   |
+| Skill creation         | `skills/skill-creator/`       | Generate from SDD/interfaces |
 
 ## CONVENTIONS
 

@@ -25,14 +25,14 @@ function mapMethodToAction(method: string): AuditAction {
 function extractResourceType(url: string): string {
   // Extract resource type from URL pattern like /api/users/:id
   const parts = url.split('/').filter(Boolean);
-  
+
   // Skip 'api' prefix if present
   const startIndex = parts[0] === 'api' ? 1 : 0;
-  
+
   if (parts.length > startIndex) {
     return parts[startIndex] || 'unknown';
   }
-  
+
   return 'unknown';
 }
 
@@ -50,7 +50,7 @@ function extractResourceId(request: FastifyRequest): string {
 export function createAuditMiddleware(auditLogger: AuditLogger) {
   return async function auditMiddleware(
     request: FastifyRequest,
-    reply: FastifyReply
+    reply: FastifyReply,
   ): Promise<void> {
     // Only audit write operations
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
@@ -78,7 +78,7 @@ export function createAuditMiddleware(auditLogger: AuditLogger) {
     // Continue with request processing
     reply.raw.on('finish', async () => {
       const duration = Date.now() - startTime;
-      
+
       const user = (request as any).user;
       const tenantId = (request as any).tenantId;
 
@@ -90,15 +90,14 @@ export function createAuditMiddleware(auditLogger: AuditLogger) {
         action: mapMethodToAction(request.method),
         resourceType: extractResourceType(request.url),
         resourceId: extractResourceId(request),
-        requestBody: request.body as Record<string, unknown> || {},
+        requestBody: (request.body as Record<string, unknown>) || {},
         responseBody,
         timestamp: new Date(),
         tenantId: tenantId || 'system',
         requestId: request.id,
         success: reply.statusCode < 400,
-        errorMessage: reply.statusCode >= 400 
-          ? (responseBody as any)?.message || 'Request failed'
-          : undefined,
+        errorMessage:
+          reply.statusCode >= 400 ? (responseBody as any)?.message || 'Request failed' : undefined,
       };
 
       try {
@@ -118,7 +117,7 @@ export function auditAuthEvent(
   auditLogger: AuditLogger,
   request: FastifyRequest,
   event: 'LOGIN' | 'LOGOUT' | 'LOGIN_FAILED',
-  user?: { id: string; username: string; tenantId: string }
+  user?: { id: string; username: string; tenantId: string },
 ): void {
   const entry: AuditLogEntry = {
     userId: user?.id || 'anonymous',
@@ -148,7 +147,7 @@ export function auditConfigChange(
   request: FastifyRequest,
   configKey: string,
   oldValue: unknown,
-  newValue: unknown
+  newValue: unknown,
 ): void {
   const user = (request as any).user;
   const tenantId = (request as any).tenantId;

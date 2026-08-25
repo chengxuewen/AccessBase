@@ -24,13 +24,13 @@ description: "Reduce complexity in TypeScript code. Chesterton's Fence analysis,
 
 ### 查原因工具
 
-| 来源 | 命令 |
-|------|------|
-| git blame | `git blame -L <line>,<line> <file>` |
+| 来源        | 命令                                  |
+| ----------- | ------------------------------------- |
+| git blame   | `git blame -L <line>,<line> <file>`   |
 | commit 信息 | `git log --all -S "<code>" --oneline` |
-| issues/PRs | `gh search issues "<keyword>"` |
-| ADR 决策 | `.agents/memorys/decisions.md` |
-| 社区参考 | `grep_app_searchGitHub` |
+| issues/PRs  | `gh search issues "<keyword>"`        |
+| ADR 决策    | `.agents/memorys/decisions.md`        |
+| 社区参考    | `grep_app_searchGitHub`               |
 
 ### 栅栏注释
 
@@ -41,18 +41,18 @@ description: "Reduce complexity in TypeScript code. Chesterton's Fence analysis,
 // 缩窄问题，无法在不引入 $dynamic()（本版本不支持）的情况下解决。
 // 尝试过类型断言 → exactOptionalPropertyTypes 冲突。
 // 等 Drizzle 1.0 或 $dynamic 支持后移除。
-const dbQuery = db.select().from(table) as never
+const dbQuery = db.select().from(table) as never;
 ```
 
 ## Rule of 500
 
-| 检查项 | 命令 | 阈值 | 行动 |
-|--------|------|------|------|
-| 文件行数 | `wc -l <file>` | >500 | 拆分为多个模块 |
-| 函数行数 | `grep -n '^  function' <file>` | >50 | 提取辅助函数 |
-| 参数个数 | 手动检查 | >5 | 合并为对象参数 |
-| 嵌套深度 | 缩进层数 | >4 | 提前 return |
-| export 数 | `grep -c 'export' <file>` | >20 | 细粒度模块 |
+| 检查项    | 命令                           | 阈值 | 行动           |
+| --------- | ------------------------------ | ---- | -------------- |
+| 文件行数  | `wc -l <file>`                 | >500 | 拆分为多个模块 |
+| 函数行数  | `grep -n '^  function' <file>` | >50  | 提取辅助函数   |
+| 参数个数  | 手动检查                       | >5   | 合并为对象参数 |
+| 嵌套深度  | 缩进层数                       | >4   | 提前 return    |
+| export 数 | `grep -c 'export' <file>`      | >20  | 细粒度模块     |
 
 ### 执行
 
@@ -81,10 +81,13 @@ function processData(data: Device, key: 'name'): string { ... }
 
 ```typescript
 // BEFORE: as never 滥用
-const result = await db.insert(table).values(data as never).returning()
+const result = await db
+  .insert(table)
+  .values(data as never)
+  .returning();
 
 // AFTER: 类型安全
-const result = await db.insert(table).values(data).returning()
+const result = await db.insert(table).values(data).returning();
 ```
 
 ### 过度包装
@@ -92,11 +95,11 @@ const result = await db.insert(table).values(data).returning()
 ```typescript
 // BEFORE: 无意义的包装函数
 function getUserById(id: string) {
-  return db.query.users.findFirst({ where: eq(users.id, id) })
+  return db.query.users.findFirst({ where: eq(users.id, id) });
 }
 
 // AFTER: 直接调用（如果只用一次）
-const user = await db.query.users.findFirst({ where: eq(users.id, id) })
+const user = await db.query.users.findFirst({ where: eq(users.id, id) });
 ```
 
 ### 重复代码消除
@@ -119,11 +122,11 @@ const authContext = (req: FastifyRequest) => ({
 
 ## 与 ponytail 的关系
 
-| ponytail | code-simplification |
-|----------|---------------------|
-| 全局审计 → 排序 | 单文件/模块深入 |
-| "这个能删吗？" | "这个为什么存在？" |
-| 删除决策 | 拆分+重构决策 |
+| ponytail        | code-simplification |
+| --------------- | ------------------- |
+| 全局审计 → 排序 | 单文件/模块深入     |
+| "这个能删吗？"  | "这个为什么存在？"  |
+| 删除决策        | 拆分+重构决策       |
 
 **工作流**: `/ponytail-audit` → 排序 → `/code-simplification` 逐个处理
 
@@ -148,14 +151,14 @@ git diff --stat | grep '\+.*export' || echo "无新增"
 
 ## 反模式检测
 
-| 反模式 | 检测命令 | 修复 |
-|--------|---------|------|
-| `as any` | `grep -rn 'as any' packages/ --include='*.ts'` | 替换为类型守卫 |
-| `@ts-ignore` | `grep -rn '@ts-ignore' packages/ --include='*.ts'` | 修复类型问题 |
-| `console.log` | `grep -rn 'console\.log' packages/ --include='*.ts'` | 替换为 logger |
-| 重复代码块 | `git diff --cached` 检查新增行 | 提取为共享函数 |
-| 过度 `clone()` | `grep -rn '\.\.\.' packages/ --include='*.ts'` | 分析是否真的需要展开 |
-| `as never` | `grep -rn 'as never' packages/ --include='*.ts'` | 理解类型问题并修复 |
+| 反模式         | 检测命令                                             | 修复                 |
+| -------------- | ---------------------------------------------------- | -------------------- |
+| `as any`       | `grep -rn 'as any' packages/ --include='*.ts'`       | 替换为类型守卫       |
+| `@ts-ignore`   | `grep -rn '@ts-ignore' packages/ --include='*.ts'`   | 修复类型问题         |
+| `console.log`  | `grep -rn 'console\.log' packages/ --include='*.ts'` | 替换为 logger        |
+| 重复代码块     | `git diff --cached` 检查新增行                       | 提取为共享函数       |
+| 过度 `clone()` | `grep -rn '\.\.\.' packages/ --include='*.ts'`       | 分析是否真的需要展开 |
+| `as never`     | `grep -rn 'as never' packages/ --include='*.ts'`     | 理解类型问题并修复   |
 
 ## 输出格式
 
@@ -166,16 +169,20 @@ git diff --stat | grep '\+.*export' || echo "无新增"
 检测前: 1140 行 → 检测后: 800 行 (-30%)
 
 ### 移除
+
 - [行 45-78] 未使用变量 `LegacyAdapter` → 删除
 - [行 203-206] 死代码 `if (false) { ... }`
 
 ### 拆分
+
 - [app.ts] → `routes/auth.ts`, `routes/users.ts`, `routes/plugins.ts`
 
 ### 保留 (Chesterton's Fence)
+
 - [行 300] `as never` cast — Drizzle 0.45 限制，见注释
 
 ### 验证
+
 ✅ pnpm tsc --noEmit
 ✅ pnpm test
 ```

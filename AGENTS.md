@@ -26,20 +26,20 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 
 ## WHERE TO LOOK
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Architecture overview | `docs/modules/overview.md` | §1-§7 概述/需求/定义/架构 |
-| Tech stack decisions | `docs/modules/tech-stack.md` | §9 Fastify+Drizzle+React+AntD |
-| Core package design | `docs/modules/core-packages.md` | §10 8 L0 packages |
-| Security design | `docs/modules/security.md` | §19+§25+§29+§36 merged |
-| UI design | `docs/modules/ui.md` | §14+§37 merged (2678 lines) |
-| Database schema | `docs/modules/database.md` | §22 core tables |
-| API spec | `docs/modules/api.md` | §23 RESTful conventions |
-| Design decisions | `.agents/memorys/decisions.md` | D1-D80 with rationale |
-| Project status | `.agents/memorys/status.md` | Current phase, blockers |
-| Coding rules | `.agents/rules/` | Per-language rules |
-| Skills | `.agents/skills/` | openspec, graphify, test-harness, etc. |
-| Reference impl | `.refinfo/new-api/` | Go/React reference (AGENTS.md has conventions) |
+| Task                  | Location                        | Notes                                          |
+| --------------------- | ------------------------------- | ---------------------------------------------- |
+| Architecture overview | `docs/modules/overview.md`      | §1-§7 概述/需求/定义/架构                      |
+| Tech stack decisions  | `docs/modules/tech-stack.md`    | §9 Fastify+Drizzle+React+AntD                  |
+| Core package design   | `docs/modules/core-packages.md` | §10 8 L0 packages                              |
+| Security design       | `docs/modules/security.md`      | §19+§25+§29+§36 merged                         |
+| UI design             | `docs/modules/ui.md`            | §14+§37 merged (2678 lines)                    |
+| Database schema       | `docs/modules/database.md`      | §22 core tables                                |
+| API spec              | `docs/modules/api.md`           | §23 RESTful conventions                        |
+| Design decisions      | `.agents/memorys/decisions.md`  | D1-D80 with rationale                          |
+| Project status        | `.agents/memorys/status.md`     | Current phase, blockers                        |
+| Coding rules          | `.agents/rules/`                | Per-language rules                             |
+| Skills                | `.agents/skills/`               | openspec, graphify, test-harness, etc.         |
+| Reference impl        | `.refinfo/new-api/`             | Go/React reference (AGENTS.md has conventions) |
 
 ## CONVENTIONS
 

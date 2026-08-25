@@ -13,6 +13,7 @@
 - `pixi.toml` 变更后 → 运行 `pixi lock` 并提交 `pixi.lock`；未重新生成锁文件会导致 install 不可用（见 pitfalls 跨平台锁文件陷阱）
 
 **提交前 checklist:**
+
 - [ ] package.json / pixi.toml 变更已提交
 - [ ] 对应 lockfile 变更已提交（依赖有变动时）
 - [ ] `git status` 工作区干净（除有意忽略项）

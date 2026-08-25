@@ -71,8 +71,8 @@ export const defaultIdentityConfig: IdentityConfig = {
       lockoutDuration: 900,
     },
     jwt: {
-      accessTokenTTL: 900,      // 15 minutes
-      refreshTokenTTL: 604800,  // 7 days
+      accessTokenTTL: 900, // 15 minutes
+      refreshTokenTTL: 604800, // 7 days
       tokenRotation: true,
       privateKeyPath: process.env['JWT_PRIVATE_KEY_PATH'] || '',
       publicKeyPath: process.env['JWT_PUBLIC_KEY_PATH'] || '',

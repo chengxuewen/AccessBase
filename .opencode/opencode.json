@@ -72,15 +72,30 @@
   },
   "lsp": {
     "typescript-language-server": {
-      "command": [".opencode/run-node.sh", ".opencode/init-lsp-wrap.mjs", "typescript-language-server", "--stdio"],
+      "command": [
+        ".opencode/run-node.sh",
+        ".opencode/init-lsp-wrap.mjs",
+        "typescript-language-server",
+        "--stdio"
+      ],
       "extensions": ["ts", "tsx", "js", "jsx"]
     },
     "pyright": {
-      "command": [".opencode/run-node.sh", ".opencode/init-lsp-wrap.mjs", "pyright-langserver", "--stdio"],
+      "command": [
+        ".opencode/run-node.sh",
+        ".opencode/init-lsp-wrap.mjs",
+        "pyright-langserver",
+        "--stdio"
+      ],
       "extensions": ["py"]
     },
     "bash-language-server": {
-      "command": [".opencode/run-node.sh", ".opencode/init-lsp-wrap.mjs", "bash-language-server", "start"],
+      "command": [
+        ".opencode/run-node.sh",
+        ".opencode/init-lsp-wrap.mjs",
+        "bash-language-server",
+        "start"
+      ],
       "extensions": ["sh", "bash"]
     },
     "rust-analyzer": {
@@ -88,11 +103,21 @@
       "extensions": ["rs"]
     },
     "html-language-server": {
-      "command": [".opencode/run-node.sh", ".opencode/init-lsp-wrap.mjs", "vscode-html-language-server", "--stdio"],
+      "command": [
+        ".opencode/run-node.sh",
+        ".opencode/init-lsp-wrap.mjs",
+        "vscode-html-language-server",
+        "--stdio"
+      ],
       "extensions": ["html", "htm"]
     },
     "remark-language-server": {
-      "command": [".opencode/run-node.sh", ".opencode/init-lsp-wrap.mjs", "remark-language-server", "--stdio"],
+      "command": [
+        ".opencode/run-node.sh",
+        ".opencode/init-lsp-wrap.mjs",
+        "remark-language-server",
+        "--stdio"
+      ],
       "extensions": ["md", "markdown"]
     },
     "gopls": {

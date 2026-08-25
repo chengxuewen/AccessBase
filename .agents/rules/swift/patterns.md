@@ -1,8 +1,9 @@
 ---
 paths:
-  - "**/*.swift"
-  - "**/Package.swift"
+  - '**/*.swift'
+  - '**/Package.swift'
 ---
+
 # Swift Patterns
 
 > This file extends [common/patterns.md](../common/patterns.md) with Swift specific content.

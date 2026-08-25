@@ -106,7 +106,11 @@ export class MfaManager {
   /**
    * Trust current device
    */
-  async trustDevice(userId: string, deviceFingerprint: string, metadata: DeviceMetadata): Promise<TrustedDevice> {
+  async trustDevice(
+    userId: string,
+    deviceFingerprint: string,
+    metadata: DeviceMetadata,
+  ): Promise<TrustedDevice> {
     logger.info(`Trusting device for user: ${userId}`);
     // Implementation will:
     // 1. Check trusted device count limit

@@ -1,9 +1,10 @@
 ---
 paths:
-  - "**/*.dart"
-  - "**/pubspec.yaml"
-  - "**/analysis_options.yaml"
+  - '**/*.dart'
+  - '**/pubspec.yaml'
+  - '**/analysis_options.yaml'
 ---
+
 # Dart/Flutter Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Dart and Flutter-specific content.
@@ -24,9 +25,7 @@ Configure in `~/.claude/settings.json`:
     "PostToolUse": [
       {
         "matcher": { "tool_name": "Edit", "file_paths": ["**/*.dart"] },
-        "hooks": [
-          { "type": "command", "command": "dart format $CLAUDE_FILE_PATHS" }
-        ]
+        "hooks": [{ "type": "command", "command": "dart format $CLAUDE_FILE_PATHS" }]
       }
     ]
   }

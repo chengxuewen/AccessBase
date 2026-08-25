@@ -26,8 +26,8 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 ```
 
 ### 31.2 Alertmanager 配置
@@ -71,15 +71,15 @@ receivers:
 
 ### 31.3 SLO/SLA 定义
 
-| 指标 | SLO | SLA | 说明 |
-|------|-----|-----|------|
-| **可用性** | 99.9% | 99.5% | 每月最多 43 分钟停机 |
-| **响应时间 P50** | ≤ 100ms | ≤ 200ms | API 响应时间 |
-| **响应时间 P99** | ≤ 500ms | ≤ 1000ms | API 响应时间 |
-| **错误率** | ≤ 0.1% | ≤ 1% | 5xx 错误比例 |
-| **数据持久性** | 99.999999% | 99.999999% | 数据不丢失 |
-| **RPO** | ≤ 1 小时 | ≤ 4 小时 | 恢复点目标 |
-| **RTO** | ≤ 30 分钟 | ≤ 2 小时 | 恢复时间目标 |
+| 指标             | SLO        | SLA        | 说明                 |
+| ---------------- | ---------- | ---------- | -------------------- |
+| **可用性**       | 99.9%      | 99.5%      | 每月最多 43 分钟停机 |
+| **响应时间 P50** | ≤ 100ms    | ≤ 200ms    | API 响应时间         |
+| **响应时间 P99** | ≤ 500ms    | ≤ 1000ms   | API 响应时间         |
+| **错误率**       | ≤ 0.1%     | ≤ 1%       | 5xx 错误比例         |
+| **数据持久性**   | 99.999999% | 99.999999% | 数据不丢失           |
+| **RPO**          | ≤ 1 小时   | ≤ 4 小时   | 恢复点目标           |
+| **RTO**          | ≤ 30 分钟  | ≤ 2 小时   | 恢复时间目标         |
 
 ### 31.4 Runbook / 应急响应
 
@@ -95,7 +95,7 @@ runbooks:
       - '检查 Redis 连接：kubectl exec -it redis -- redis-cli ping'
       - '检查最近部署：kubectl rollout history deployment/accessbase'
       - '如有必要，回滚：kubectl rollout undo deployment/accessbase'
-    
+
   - name: 'high-memory-usage'
     alert: 'HighMemoryUsage'
     severity: warning
@@ -103,7 +103,7 @@ runbooks:
       - '检查内存使用：kubectl top pods'
       - '检查内存泄漏：node --inspect app.js'
       - '重启 Pod：kubectl delete pod <pod-name>'
-    
+
   - name: 'database-connection-pool-exhausted'
     alert: 'DatabasePoolExhausted'
     severity: critical
@@ -213,27 +213,27 @@ logging:
   retention:
     # 应用日志
     application:
-      hot: 7      # 热存储 7 天
-      warm: 30    # 温存储 30 天
-      cold: 90    # 冷存储 90 天
-    
+      hot: 7 # 热存储 7 天
+      warm: 30 # 温存储 30 天
+      cold: 90 # 冷存储 90 天
+
     # 审计日志
     audit:
-      hot: 30     # 热存储 30 天
-      warm: 90    # 温存储 90 天
-      cold: 365   # 冷存储 1 年
-    
+      hot: 30 # 热存储 30 天
+      warm: 90 # 温存储 90 天
+      cold: 365 # 冷存储 1 年
+
     # 访问日志
     access:
-      hot: 7      # 热存储 7 天
-      warm: 30    # 温存储 30 天
-      cold: 90    # 冷存储 90 天
-  
+      hot: 7 # 热存储 7 天
+      warm: 30 # 温存储 30 天
+      cold: 90 # 冷存储 90 天
+
   # 日志轮转
   rotation:
-    max_size: 100m    # 单文件最大 100MB
-    max_files: 10     # 最多保留 10 个文件
-    compress: true    # 压缩旧日志
+    max_size: 100m # 单文件最大 100MB
+    max_files: 10 # 最多保留 10 个文件
+    compress: true # 压缩旧日志
 ```
 
 ### 38.3 多环境配置管理
@@ -299,7 +299,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       # Trivy 扫描
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -308,7 +308,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
-      
+
       # Snyk 扫描
       - name: Run Snyk security scan
         uses: snyk/actions/docker@master
@@ -317,7 +317,7 @@ jobs:
         with:
           image: 'accessbase/app:latest'
           args: '--severity-threshold=high'
-      
+
       # 上传结果
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v2
@@ -331,32 +331,38 @@ jobs:
 // 审计日志保留管理器
 class AuditLogRetentionManager {
   private config = {
-    retentionDays: 365,  // 保留 1 年
-    archiveDays: 730,   // 归档 2 年
-    deleteDays: 2555    // 删除 7 年（合规要求）
-  }
-  
+    retentionDays: 365, // 保留 1 年
+    archiveDays: 730, // 归档 2 年
+    deleteDays: 2555, // 删除 7 年（合规要求）
+  };
+
   // 定期清理任务
   async cleanup(): Promise<void> {
-    const now = new Date()
-    
+    const now = new Date();
+
     // 归档超过 1 年的日志
-    await this.archiveLogs(now - this.config.retentionDays * 24 * 60 * 60 * 1000)
-    
+    await this.archiveLogs(now - this.config.retentionDays * 24 * 60 * 60 * 1000);
+
     // 删除超过 7 年的日志
-    await this.deleteLogs(now - this.config.deleteDays * 24 * 60 * 60 * 1000)
+    await this.deleteLogs(now - this.config.deleteDays * 24 * 60 * 60 * 1000);
   }
-  
+
   // 归档日志
   private async archiveLogs(before: Date): Promise<void> {
-    await db.query(`
+    await db.query(
+      `
       INSERT INTO audit_logs_archive
       SELECT * FROM audit_logs WHERE created_at < $1
-    `, [before])
-    
-    await db.query(`
+    `,
+      [before],
+    );
+
+    await db.query(
+      `
       DELETE FROM audit_logs WHERE created_at < $1
-    `, [before])
+    `,
+      [before],
+    );
   }
 }
 ```

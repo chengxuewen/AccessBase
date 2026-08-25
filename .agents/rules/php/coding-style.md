@@ -1,8 +1,9 @@
 ---
 paths:
-  - "**/*.php"
-  - "**/composer.json"
+  - '**/*.php'
+  - '**/composer.json'
 ---
+
 # PHP Coding Style
 
 > This file extends [common/coding-style.md](../common/coding-style.md) with PHP specific content.

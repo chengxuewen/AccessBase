@@ -87,14 +87,16 @@ program
     const config = getConfig();
     const runner = await createMigrationRunner(config);
     const status = await runner.status();
-    console.table(status.map((s) => ({
-      Version: s.version,
-      Name: s.name,
-      Phase: s.phase,
-      Status: s.status,
-      'Executed At': s.executedAt?.toISOString() ?? '-',
-      'Duration (ms)': s.duration ?? '-',
-    })));
+    console.table(
+      status.map((s) => ({
+        Version: s.version,
+        Name: s.name,
+        Phase: s.phase,
+        Status: s.status,
+        'Executed At': s.executedAt?.toISOString() ?? '-',
+        'Duration (ms)': s.duration ?? '-',
+      })),
+    );
     process.exit(0);
   });
 

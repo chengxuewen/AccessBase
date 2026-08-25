@@ -1,11 +1,12 @@
 ---
 paths:
-  - "**/*.pl"
-  - "**/*.pm"
-  - "**/*.t"
-  - "**/*.psgi"
-  - "**/*.cgi"
+  - '**/*.pl'
+  - '**/*.pm'
+  - '**/*.t'
+  - '**/*.psgi'
+  - '**/*.cgi'
 ---
+
 # Perl Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with Perl-specific content.

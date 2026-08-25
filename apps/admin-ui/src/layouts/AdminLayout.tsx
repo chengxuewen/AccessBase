@@ -1,14 +1,14 @@
-import { useState } from 'react'
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { ProLayout } from '@ant-design/pro-components'
+import { useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { ProLayout } from '@ant-design/pro-components';
 import {
   DashboardOutlined,
   UserOutlined,
   LogoutOutlined,
   SettingOutlined,
-} from '@ant-design/icons'
-import { useAuthStore } from '../stores/auth'
+} from '@ant-design/icons';
+import { useAuthStore } from '../stores/auth';
 
 const menuRoutes = {
   path: '/',
@@ -24,24 +24,24 @@ const menuRoutes = {
       icon: <UserOutlined />,
     },
   ],
-}
+};
 
 export default function AdminLayout() {
-  const { t, i18n } = useTranslation()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { user, logout } = useAuthStore()
-  const [collapsed, setCollapsed] = useState(false)
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuthStore();
+  const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
+    logout();
+    navigate('/login');
+  };
 
   const toggleLanguage = () => {
-    const next = i18n.language === 'en' ? 'zh' : 'en'
-    i18n.changeLanguage(next)
-  }
+    const next = i18n.language === 'en' ? 'zh' : 'en';
+    i18n.changeLanguage(next);
+  };
 
   return (
     <ProLayout
@@ -66,15 +66,15 @@ export default function AdminLayout() {
         <LogoutOutlined key="logout" onClick={handleLogout} />,
       ]}
       menuFooterRender={(props) => {
-        if (props?.collapsed) return undefined
+        if (props?.collapsed) return undefined;
         return (
           <div style={{ textAlign: 'center', paddingBlockEnd: 12 }}>
             <div style={{ fontSize: 12, color: '#999' }}>AccessBase v0.1.0</div>
           </div>
-        )
+        );
       }}
     >
       <Outlet />
     </ProLayout>
-  )
+  );
 }

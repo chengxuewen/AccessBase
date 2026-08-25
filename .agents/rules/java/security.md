@@ -1,7 +1,8 @@
 ---
 paths:
-  - "**/*.java"
+  - '**/*.java'
 ---
+
 # Java Security
 
 > This file extends [common/security.md](../common/security.md) with Java-specific content.

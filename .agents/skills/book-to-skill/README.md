@@ -54,6 +54,7 @@
 You buy a great technical book. You read it once. Three months later you can't remember chapter 7 existed.
 
 The usual workarounds don't help:
+
 - 📄 "Let me just search the PDF" → you get a list of pages, not answers
 - 🧠 "I'll ask the agent about this book" → it either hallucinates or says it doesn't have the content
 - 📝 "I'll take notes as I read" → you end up with a 200-line doc you never open again
@@ -70,13 +71,13 @@ Works with any host that supports the open [Agent Skills](https://github.com/age
 
 Running `/book-to-skill your-book.pdf` (or a folder, glob, or list of files) creates a full skill in your agent's skills directory (`~/.copilot/skills/<slug>/` for Copilot CLI, `~/.agents/skills/<slug>/` for Amp or cross-agent, `~/.claude/skills/<slug>/` for Claude Code):
 
-| File | Purpose | Size |
-|------|---------|------|
-| `SKILL.md` | Core mental models + chapter index | ~4,000 tokens |
-| `chapters/ch01-*.md` … | One file per chapter, loaded on-demand | ~1,000 tokens each |
-| `glossary.md` | Every key term, alphabetically sorted with chapter refs | ~1,500 tokens |
-| `patterns.md` | All techniques, algorithms, and design patterns | ~2,000 tokens |
-| `cheatsheet.md` | Decision tables and quick-reference rules | ~1,000 tokens |
+| File                   | Purpose                                                 | Size               |
+| ---------------------- | ------------------------------------------------------- | ------------------ |
+| `SKILL.md`             | Core mental models + chapter index                      | ~4,000 tokens      |
+| `chapters/ch01-*.md` … | One file per chapter, loaded on-demand                  | ~1,000 tokens each |
+| `glossary.md`          | Every key term, alphabetically sorted with chapter refs | ~1,500 tokens      |
+| `patterns.md`          | All techniques, algorithms, and design patterns         | ~2,000 tokens      |
+| `cheatsheet.md`        | Decision tables and quick-reference rules               | ~1,000 tokens      |
 
 **Chapter files are loaded on-demand** — they don't count against the skill budget until you ask about that topic.
 
@@ -140,31 +141,31 @@ The extractor tries tools in order per format and uses the first available. If n
 
 **PDF — choose by book type:**
 
-| Book type | Tool | Install | Speed |
-|-----------|------|---------|-------|
-| Text-heavy (prose, few tables) | `pdftotext` (poppler) | `sudo apt install poppler-utils` | ⚡ instant |
-| Text-heavy fallback | `pypdf` | `pip3 install pypdf` | ⚡ instant |
-| Text-heavy fallback | `pdfminer.six` | `pip3 install pdfminer.six` | ⚡ instant |
-| **Technical (code, tables, formulas)** | **`docling`** | `pip3 install docling` | ~1.5s/page |
+| Book type                              | Tool                  | Install                          | Speed      |
+| -------------------------------------- | --------------------- | -------------------------------- | ---------- |
+| Text-heavy (prose, few tables)         | `pdftotext` (poppler) | `sudo apt install poppler-utils` | ⚡ instant |
+| Text-heavy fallback                    | `pypdf`               | `pip3 install pypdf`             | ⚡ instant |
+| Text-heavy fallback                    | `pdfminer.six`        | `pip3 install pdfminer.six`      | ⚡ instant |
+| **Technical (code, tables, formulas)** | **`docling`**         | `pip3 install docling`           | ~1.5s/page |
 
 > Before extraction begins, the skill asks you whether the book is **technical** or **text-heavy** and picks the right tool automatically. Docling preserves markdown tables and code blocks; pdftotext is faster for prose-only books.
 
 **EPUB:**
 
-| Tool | Install | Quality |
-|------|---------|---------|
-| `ebooklib` + `beautifulsoup4` | `pip3 install ebooklib beautifulsoup4` | ⭐⭐⭐ Best |
-| stdlib `zipfile` | built-in — no install needed | ⭐⭐ Always available |
+| Tool                          | Install                                | Quality               |
+| ----------------------------- | -------------------------------------- | --------------------- |
+| `ebooklib` + `beautifulsoup4` | `pip3 install ebooklib beautifulsoup4` | ⭐⭐⭐ Best           |
+| stdlib `zipfile`              | built-in — no install needed           | ⭐⭐ Always available |
 
 **Other formats:**
 
-| Format | Tool | Install |
-|--------|------|---------|
-| DOCX | `python-docx` (fallback: stdlib ZIP/XML) | `pip3 install python-docx` |
-| HTML | `beautifulsoup4` (fallback: stdlib `html.parser`) | `pip3 install beautifulsoup4` |
-| RTF | `striprtf` (fallback: regex) | `pip3 install striprtf` |
-| MOBI / AZW / AZW3 | Calibre `ebook-convert` (external app, not pip) | https://calibre-ebook.com/download |
-| TXT / Markdown / reStructuredText / AsciiDoc | built-in | — |
+| Format                                       | Tool                                              | Install                            |
+| -------------------------------------------- | ------------------------------------------------- | ---------------------------------- |
+| DOCX                                         | `python-docx` (fallback: stdlib ZIP/XML)          | `pip3 install python-docx`         |
+| HTML                                         | `beautifulsoup4` (fallback: stdlib `html.parser`) | `pip3 install beautifulsoup4`      |
+| RTF                                          | `striprtf` (fallback: regex)                      | `pip3 install striprtf`            |
+| MOBI / AZW / AZW3                            | Calibre `ebook-convert` (external app, not pip)   | https://calibre-ebook.com/download |
+| TXT / Markdown / reStructuredText / AsciiDoc | built-in                                          | —                                  |
 
 ---
 
@@ -208,23 +209,23 @@ scripts/extract.py <paths…> --mode <technical|text>
 
 **Extraction benchmark** (103-page technical book, CPU only):
 
-| Method | Time | Tokens | Tables | Code blocks |
-|--------|------|--------|--------|-------------|
-| pdftotext | 0.1s | 27K | 0 | 0 |
-| Docling | 164s | 27K (+1.2%) | 48 | 36 |
+| Method    | Time | Tokens      | Tables | Code blocks |
+| --------- | ---- | ----------- | ------ | ----------- |
+| pdftotext | 0.1s | 27K         | 0      | 0           |
+| Docling   | 164s | 27K (+1.2%) | 48     | 36          |
 
 **Real conversions** (measured: pages, extracted tokens, chapters auto-detected,
 estimated one-pass cost on Claude Sonnet 4.5 at \$3/\$15 per MTok):
 
-| Book | Format | Pages | Tokens | Chapters | ~Cost |
-|------|--------|------:|-------:|---------:|------:|
-| Think Python 2 | PDF | 244 | 119K | 19 | \$0.88 |
-| Working Backwards | PDF | 371 | 175K | 10 | \$0.96 |
-| Pro Git | PDF | 501 | 229K | — † | \$1.23 |
-| Moby-Dick | EPUB | — | 301K | — † | \$1.42 |
+| Book              | Format | Pages | Tokens | Chapters |  ~Cost |
+| ----------------- | ------ | ----: | -----: | -------: | -----: |
+| Think Python 2    | PDF    |   244 |   119K |       19 | \$0.88 |
+| Working Backwards | PDF    |   371 |   175K |       10 | \$0.96 |
+| Pro Git           | PDF    |   501 |   229K |      — † | \$1.23 |
+| Moby-Dick         | EPUB   |     — |   301K |      — † | \$1.42 |
 
 † Chapter auto-detection needs explicit `Chapter N` / `Capítulo N` headings. Pro Git
-uses section titles and Moby-Dick uses chapter *titles* / roman numerals, so neither
+uses section titles and Moby-Dick uses chapter _titles_ / roman numerals, so neither
 auto-segments — extraction and conversion still work, but you point at sections
 manually. A full skill costs roughly **\$1 per book**; far less than re-reading the
 PDF every session.
@@ -244,7 +245,7 @@ PDF every session.
 
 ## 🧾 The Discovery Loop Tax
 
-A PDF-reading agent doesn't just read — it *navigates*. Ask it one question and it
+A PDF-reading agent doesn't just read — it _navigates_. Ask it one question and it
 fetches the table of contents, notices a term it can't define, pulls more pages,
 backtracks. Every one of those hops lands in the conversation history and gets
 **re-processed on every subsequent turn**. To stay inside its budget, a sub-agent
@@ -260,14 +261,14 @@ for verification.
 on three real books — tokens entering context to answer a single targeted question
 (book-to-skill = resident core + one compiled chapter ≈ 5,000 tokens):
 
-| Book (size) | Context-dump | Discovery loop | book-to-skill | vs dump / loop |
-|-------------|-------------:|---------------:|--------------:|:--------------:|
-| Think Python 2 (119K, small chapters) | 119,264 | 12,152 | ~5,000 | 24× / **2.4×** |
-| Working Backwards (175K, medium chapters) | 175,253 | 33,444 | ~5,000 | 35× / 6.7× |
-| AI Engineering (256K, large chapters) | 256,287 | 77,866 | ~5,000 | 51× / **15.6×** |
+| Book (size)                               | Context-dump | Discovery loop | book-to-skill | vs dump / loop  |
+| ----------------------------------------- | -----------: | -------------: | ------------: | :-------------: |
+| Think Python 2 (119K, small chapters)     |      119,264 |         12,152 |        ~5,000 | 24× / **2.4×**  |
+| Working Backwards (175K, medium chapters) |      175,253 |         33,444 |        ~5,000 |   35× / 6.7×    |
+| AI Engineering (256K, large chapters)     |      256,287 |         77,866 |        ~5,000 | 51× / **15.6×** |
 
 The advantage **scales with chapter size**: against a context-dump it's consistently
-24–51× (and that cost recurs *every turn*); against a one-time discovery loop it
+24–51× (and that cost recurs _every turn_); against a one-time discovery loop it
 ranges from a modest 2.4× on a book of small chapters to 15.6× on one of large
 chapters. Reproduce on your own book:
 
@@ -275,7 +276,7 @@ chapters. Reproduce on your own book:
 python3 tools/discovery_tax.py --full-text /tmp/book_skill_work/full_text.txt --target-chapter 5
 ```
 
-> **Honest caveats:** (1) the discovery figures are a one-time cost and a *model*
+> **Honest caveats:** (1) the discovery figures are a one-time cost and a _model_
 > using the book's real ToC/chapter sizes — a well-tuned agent lands nearer the best
 > case; the context-dump cost, by contrast, recurs on **every** turn. (2) The tool
 > needs explicit `Chapter N` / `Capítulo N` headings to segment a book; titles-only
@@ -291,7 +292,7 @@ python3 tools/discovery_tax.py --full-text /tmp/book_skill_work/full_text.txt --
 
 You can — but every conversation will burn that token budget upfront. A 400-page book is ~200K tokens. With a skill, only the chapters relevant to your question load — typically a SKILL.md core (~4K) plus the one chapter you asked about (~1K). The rest stays on disk until you need it.
 
-The economics are amortization, not size. Pasting the book pays the full token bill **on every turn of every session, forever**. book-to-skill pays the extraction cost **once** and every future conversation loads only the slice it needs. The bigger your context window, the more this matters — a large window makes the dump *possible*, not *cheap*.
+The economics are amortization, not size. Pasting the book pays the full token bill **on every turn of every session, forever**. book-to-skill pays the extraction cost **once** and every future conversation loads only the slice it needs. The bigger your context window, the more this matters — a large window makes the dump _possible_, not _cheap_.
 
 More importantly: raw text injection is retrieval. A skill is reasoning. When you load a chapter file, Claude isn't searching for keyword matches — it's working with pre-extracted named frameworks, principles, and mental models structured for application, not for reading.
 
@@ -299,7 +300,7 @@ More importantly: raw text injection is retrieval. A skill is reasoning. When yo
 
 **"Claude has a 1M-token context window now — can't I just keep the whole book loaded?"**
 
-A bigger window changes what *fits*, not what's *smart*. Three reasons it isn't a substitute:
+A bigger window changes what _fits_, not what's _smart_. Three reasons it isn't a substitute:
 
 - **You pay per token, per call.** A 1M window doesn't make those tokens free — it makes a large, recurring bill possible. The skill loads kilobytes, not megabytes.
 - **Recall degrades with fill.** Models lose precision retrieving a specific fact buried in a near-full context ("lost in the middle"). A 1K curated chapter beats 200K of raw prose for answering one question.
@@ -315,8 +316,8 @@ RAG works at query time: chunk the book → embed everything → find similar ve
 
 book-to-skill works at compile time: one deep analysis run extracts the author's actual frameworks, names them, describes when to use each, captures the anti-patterns. The output is structure the author spent years building — not a similarity search over their sentences.
 
-RAG answers: *"here are chunks close to your query."*  
-A skill answers: *"here are the 12 frameworks this author built, ready to reason with."*
+RAG answers: _"here are chunks close to your query."_  
+A skill answers: _"here are the 12 frameworks this author built, ready to reason with."_
 
 Pick by shape of the job:
 
@@ -348,6 +349,7 @@ book-to-skill is built for a different job: you want to go deep on a specific to
 ## 📥 Install
 
 > **Two ways to use it, do not confuse them:**
+>
 > - **As an agent skill** (the `/book-to-skill` command in Claude Code, Copilot CLI, or Amp) → **`git clone` into your skills folder** (below). This is what gives you the slash command and the full convert-a-book flow.
 > - **As a standalone CLI** (just the text extractor) → `pip install book-to-skill`, then `book-to-skill --help`. This does **not** register the agent skill; it only installs the extraction engine. See [the CLI section](#standalone-cli-pip).
 

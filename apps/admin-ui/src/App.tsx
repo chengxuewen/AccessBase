@@ -1,13 +1,13 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from './stores/auth'
-import AdminLayout from './layouts/AdminLayout'
-import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-import Users from './pages/Users'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthStore } from './stores/auth';
+import AdminLayout from './layouts/AdminLayout';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Users from './pages/Users';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore()
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+  const { isAuthenticated } = useAuthStore();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 export default function App() {
@@ -28,5 +28,5 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }

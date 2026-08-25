@@ -127,9 +127,7 @@ describe('HealthCheckServiceImpl', () => {
         type: 'liveness',
         enabled: true,
         timeout: 100, // 100ms timeout
-        check: vi.fn().mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 200))
-        ),
+        check: vi.fn().mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 200))),
       };
 
       service.register(checker);

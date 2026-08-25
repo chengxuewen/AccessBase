@@ -23,16 +23,16 @@
 
 ## 1. 平台概览对比
 
-| 平台 | 定位 | GitHub Stars | 语言 | 数据库 | 许可证 | 首次发布 |
-|------|------|-------------|------|--------|--------|---------|
-| **Budibase** | 内部工具构建 | 28.2k | Node.js/Svelte | CouchDB | GPL v3 + BSL | 2020 |
-| **Appsmith** | 内部工具构建 | 40.7k | Java(后端)/React(前端) | MongoDB | Apache 2.0 + 商业 | 2019 |
-| **ToolJet** | 内部工具构建 | 40.6k | TypeScript(NestJS/React) | PostgreSQL | AGPL-3.0 + 商业 | 2021 |
-| **Directus** | Headless CMS / 数据平台 | 37.5k | TypeScript(Node/Vue) | 多种 SQL | MSCL 1.0 | 2020 |
-| **Strapi** | Headless CMS | 73.0k | TypeScript(Koa/React) | 多种 SQL | MIT + 商业 | 2015 |
-| **Supabase** | BaaS (Firebase 替代) | 108.2k | 多语言(Go/Elixir/Haskell/TS) | PostgreSQL | Apache 2.0 | 2020 |
-| **PocketBase** | 嵌入式 BaaS | 60.7k | Go | SQLite | MIT | 2022 |
-| **n8n** | 工作流自动化 | 201.4k | TypeScript(Node/Vue) | SQLite/PostgreSQL | Sustainable Use License | 2019 |
+| 平台           | 定位                    | GitHub Stars | 语言                         | 数据库            | 许可证                  | 首次发布 |
+| -------------- | ----------------------- | ------------ | ---------------------------- | ----------------- | ----------------------- | -------- |
+| **Budibase**   | 内部工具构建            | 28.2k        | Node.js/Svelte               | CouchDB           | GPL v3 + BSL            | 2020     |
+| **Appsmith**   | 内部工具构建            | 40.7k        | Java(后端)/React(前端)       | MongoDB           | Apache 2.0 + 商业       | 2019     |
+| **ToolJet**    | 内部工具构建            | 40.6k        | TypeScript(NestJS/React)     | PostgreSQL        | AGPL-3.0 + 商业         | 2021     |
+| **Directus**   | Headless CMS / 数据平台 | 37.5k        | TypeScript(Node/Vue)         | 多种 SQL          | MSCL 1.0                | 2020     |
+| **Strapi**     | Headless CMS            | 73.0k        | TypeScript(Koa/React)        | 多种 SQL          | MIT + 商业              | 2015     |
+| **Supabase**   | BaaS (Firebase 替代)    | 108.2k       | 多语言(Go/Elixir/Haskell/TS) | PostgreSQL        | Apache 2.0              | 2020     |
+| **PocketBase** | 嵌入式 BaaS             | 60.7k        | Go                           | SQLite            | MIT                     | 2022     |
+| **n8n**        | 工作流自动化            | 201.4k       | TypeScript(Node/Vue)         | SQLite/PostgreSQL | Sustainable Use License | 2019     |
 
 ---
 
@@ -50,21 +50,21 @@ Budibase 是一个开源低代码平台，用于构建内部工具、AI Agent �
 
 ### 2.2 技术栈
 
-| 层 | 技术 |
-|----|------|
-| 后端运行时 | Node.js >=22 |
-| Web 框架 | **Koa.js 3.x** |
-| 查询构建器 | **Knex.js 2.4** |
-| 内部数据库 | **CouchDB** (PouchDB + nano) |
-| 任务队列 | **Bull 4.10** (Redis) |
-| 认证 | JWT, bcrypt, Passport, Azure MSAL |
-| AI 集成 | Vercel AI SDK, OpenAI SDK |
-| 沙箱执行 | `isolated-vm` |
-| 实时通信 | Socket.IO 4.8 + Redis adapter |
-| 前端框架 | **Svelte 5** (Runes) |
-| 构建工具 | Vite 7.3, Routify |
-| Monorepo | Lerna + Yarn + Nx |
-| 部署 | Docker / Helm / DigitalOcean |
+| 层         | 技术                              |
+| ---------- | --------------------------------- |
+| 后端运行时 | Node.js >=22                      |
+| Web 框架   | **Koa.js 3.x**                    |
+| 查询构建器 | **Knex.js 2.4**                   |
+| 内部数据库 | **CouchDB** (PouchDB + nano)      |
+| 任务队列   | **Bull 4.10** (Redis)             |
+| 认证       | JWT, bcrypt, Passport, Azure MSAL |
+| AI 集成    | Vercel AI SDK, OpenAI SDK         |
+| 沙箱执行   | `isolated-vm`                     |
+| 实时通信   | Socket.IO 4.8 + Redis adapter     |
+| 前端框架   | **Svelte 5** (Runes)              |
+| 构建工具   | Vite 7.3, Routify                 |
+| Monorepo   | Lerna + Yarn + Nx                 |
+| 部署       | Docker / Helm / DigitalOcean      |
 
 ### 2.3 核心功能
 
@@ -98,21 +98,21 @@ Budibase 是一个开源低代码平台，用于构建内部工具、AI Agent �
 1. CouchDB 依赖 — 小众，运维复杂度高于 PostgreSQL
 2. Koa.js (非主流) — 生态小于 Express/Fastify
 3. Svelte (非 React) — 人才池和社区组件少于 React
-3. BSL 许可证 — 企业功能锁定在商业许可下
-4. 无 WebAuthn/Passkey 支持
-5. 社区版无审计日志
-6. Lerna + Yarn (老旧 monorepo 工具)
+4. BSL 许可证 — 企业功能锁定在商业许可下
+5. 无 WebAuthn/Passkey 支持
+6. 社区版无审计日志
+7. Lerna + Yarn (老旧 monorepo 工具)
 
 ### 2.7 可借鉴点
 
-| 模式 | AccessBase 应用 |
-|------|----------------|
+| 模式                     | AccessBase 应用                         |
+| ------------------------ | --------------------------------------- |
 | `shared-core` 跨栈共享包 | 验证 schema、常量、类型定义的前后端共享 |
-| 多数据源抽象层 | LDAP/AD/外部数据库的用户同步连接器 |
-| Worker/Server 分离 | 认证 worker vs API server 分离部署 |
-| Bull 队列 | 异步审计、通知、Webhook 处理 |
-| OpenAPI-first 设计 | API 契约管理 |
-| `isolated-vm` 沙箱 | 自定义策略评估脚本 |
+| 多数据源抽象层           | LDAP/AD/外部数据库的用户同步连接器      |
+| Worker/Server 分离       | 认证 worker vs API server 分离部署      |
+| Bull 队列                | 异步审计、通知、Webhook 处理            |
+| OpenAPI-first 设计       | API 契约管理                            |
+| `isolated-vm` 沙箱       | 自定义策略评估脚本                      |
 
 ---
 
@@ -129,6 +129,7 @@ Appsmith 是一个开源低代码平台，用于快速构建内部工具 (admin 
 - **客户**: AWS, ByteDance, Dropbox, GSK
 
 **版本体系**:
+
 - Community Edition: 免费自托管
 - Free (Cloud): 最多 5 用户
 - Business: $15/user/month
@@ -136,19 +137,19 @@ Appsmith 是一个开源低代码平台，用于快速构建内部工具 (admin 
 
 ### 3.2 技术栈
 
-| 层 | 技术 |
-|----|------|
-| 后端 | **Java 25+ / Spring Boot 3.5+** |
-| JS 沙箱 | Node.js 24+ |
-| 主数据库 | **MongoDB 7** |
-| 缓存 | Redis |
-| 嵌入式 DB | PostgreSQL (内置) |
-| 前端框架 | **React 18** |
-| 状态管理 | Redux + Redux-Saga |
-| 代码编辑器 | Monaco Editor |
-| UI 系统 | 自研 ADS (Appsmith Design System) |
-| 反向代理 | Caddy (内置 TLS) |
-| 部署 | Docker (单容器 6 进程) / K8s |
+| 层         | 技术                              |
+| ---------- | --------------------------------- |
+| 后端       | **Java 25+ / Spring Boot 3.5+**   |
+| JS 沙箱    | Node.js 24+                       |
+| 主数据库   | **MongoDB 7**                     |
+| 缓存       | Redis                             |
+| 嵌入式 DB  | PostgreSQL (内置)                 |
+| 前端框架   | **React 18**                      |
+| 状态管理   | Redux + Redux-Saga                |
+| 代码编辑器 | Monaco Editor                     |
+| UI 系统    | 自研 ADS (Appsmith Design System) |
+| 反向代理   | Caddy (内置 TLS)                  |
+| 部署       | Docker (单容器 6 进程) / K8s      |
 
 ### 3.3 核心功能
 
@@ -188,13 +189,13 @@ Appsmith 是一个开源低代码平台，用于快速构建内部工具 (admin 
 
 ### 3.7 可借鉴点
 
-| 模式 | AccessBase 应用 |
-|------|----------------|
-| GAC 权限模型 (Resource → Permission → Role) | RBAC1 设计参考，per-resource 权限粒度 |
-| 审计日志事件架构 | 30+ 事件类型分类 (workspace/app/page/datasource/user/instance) |
-| Datasource Plugin 架构 | Auth provider 插件模式 (LDAP/OAuth/WebAuthn) |
-| Environment Management | 多环境配置管理 (dev/staging/prod) |
-| Custom Widget 沙箱 | 插件 UI 隔离执行 + postMessage 通信 |
+| 模式                                        | AccessBase 应用                                                |
+| ------------------------------------------- | -------------------------------------------------------------- |
+| GAC 权限模型 (Resource → Permission → Role) | RBAC1 设计参考，per-resource 权限粒度                          |
+| 审计日志事件架构                            | 30+ 事件类型分类 (workspace/app/page/datasource/user/instance) |
+| Datasource Plugin 架构                      | Auth provider 插件模式 (LDAP/OAuth/WebAuthn)                   |
+| Environment Management                      | 多环境配置管理 (dev/staging/prod)                              |
+| Custom Widget 沙箱                          | 插件 UI 隔离执行 + postMessage 通信                            |
 
 ---
 
@@ -210,25 +211,25 @@ ToolJet 是开源企业级内部工具构建平台，用于快速构建 dashboar
 
 ### 4.2 技术栈
 
-| 层 | 技术 |
-|----|------|
-| 后端框架 | **NestJS 11** (Express) |
-| ORM | **TypeORM 0.3** |
-| 主数据库 | **PostgreSQL** |
-| 内置 DB | PostgREST (PG → REST API) |
-| 任务队列 | **BullMQ** (Redis) |
-| 工作流引擎 | **Temporal.io** |
-| 权限库 | **@casl/ability** |
-| 日志 | **Pino** |
-| 可观测性 | **OpenTelemetry** + Prometheus + Sentry |
-| 前端框架 | **React 18** |
-| 状态管理 | **Zustand** |
-| UI 库 | **Radix UI** + **Tailwind CSS** |
-| 协作 | **Yjs (CRDT)** — 多人实时编辑 |
-| 代码编辑器 | CodeMirror 6 |
-| 流程图 | ReactFlow |
-| 构建 | Webpack 5 |
-| 部署 | Docker / K8s / AWS / GCP / Azure |
+| 层         | 技术                                    |
+| ---------- | --------------------------------------- |
+| 后端框架   | **NestJS 11** (Express)                 |
+| ORM        | **TypeORM 0.3**                         |
+| 主数据库   | **PostgreSQL**                          |
+| 内置 DB    | PostgREST (PG → REST API)               |
+| 任务队列   | **BullMQ** (Redis)                      |
+| 工作流引擎 | **Temporal.io**                         |
+| 权限库     | **@casl/ability**                       |
+| 日志       | **Pino**                                |
+| 可观测性   | **OpenTelemetry** + Prometheus + Sentry |
+| 前端框架   | **React 18**                            |
+| 状态管理   | **Zustand**                             |
+| UI 库      | **Radix UI** + **Tailwind CSS**         |
+| 协作       | **Yjs (CRDT)** — 多人实时编辑           |
+| 代码编辑器 | CodeMirror 6                            |
+| 流程图     | ReactFlow                               |
+| 构建       | Webpack 5                               |
+| 部署       | Docker / K8s / AWS / GCP / Azure        |
 
 ### 4.3 核心功能
 
@@ -269,14 +270,14 @@ ToolJet 是开源企业级内部工具构建平台，用于快速构建 dashboar
 
 ### 4.7 可借鉴点
 
-| 模式 | AccessBase 应用 |
-|------|----------------|
-| `@casl/ability` 权限矩阵 | 权限引擎参考：resource × action 矩阵 |
-| Lockbox 密钥管理 | Master Key 加密 + 密钥轮换 |
-| Workspace 多租户 | 租户隔离 + Super Admin 跨 Workspace 管理 |
-| Personal Access Token | API 认证与 session token 分离 |
-| Marketplace 插件架构 | 独立 npm 包 + CLI + 热重载 |
-| Temporal.io 工作流 | 持久化工作流引擎 |
+| 模式                     | AccessBase 应用                          |
+| ------------------------ | ---------------------------------------- |
+| `@casl/ability` 权限矩阵 | 权限引擎参考：resource × action 矩阵     |
+| Lockbox 密钥管理         | Master Key 加密 + 密钥轮换               |
+| Workspace 多租户         | 租户隔离 + Super Admin 跨 Workspace 管理 |
+| Personal Access Token    | API 认证与 session token 分离            |
+| Marketplace 插件架构     | 独立 npm 包 + CLI + 热重载               |
+| Temporal.io 工作流       | 持久化工作流引擎                         |
 
 ---
 
@@ -293,29 +294,29 @@ Directus 是开源数据平台 / Headless CMS，将任何 SQL 数据库包装为
 
 ### 5.2 技术栈
 
-| 层 | 技术 |
-|----|------|
-| 后端运行时 | Node.js >=22 |
-| Web 框架 | **Express** |
-| 查询构建器 | **Knex.js** |
-| API | REST + **GraphQL** (graphql-compose) |
-| 实时 | **WebSocket** (ws + graphql-ws) |
-| 认证 | JWT, OIDC, SAML, LDAP, TOTP 2FA |
-| 验证 | Zod, Joi |
-| 日志 | **Pino** |
-| 密码哈希 | **Argon2** |
-| 图像处理 | Sharp |
-| AI 集成 | Vercel AI SDK (Anthropic/OpenAI/Google) |
-| MCP | 原生 MCP Server |
-| 前端框架 | **Vue 3** + Pinia |
-| UI 组件 | Reka UI (headless) |
-| 富文本 | TipTap |
-| 地图 | MapLibre GL |
-| 图表 | ApexCharts |
-| 3D | Three.js / TresJS |
-| 构建 | **Vite** |
-| 测试 | **Vitest** |
-| Monorepo | **pnpm workspaces** |
+| 层         | 技术                                    |
+| ---------- | --------------------------------------- |
+| 后端运行时 | Node.js >=22                            |
+| Web 框架   | **Express**                             |
+| 查询构建器 | **Knex.js**                             |
+| API        | REST + **GraphQL** (graphql-compose)    |
+| 实时       | **WebSocket** (ws + graphql-ws)         |
+| 认证       | JWT, OIDC, SAML, LDAP, TOTP 2FA         |
+| 验证       | Zod, Joi                                |
+| 日志       | **Pino**                                |
+| 密码哈希   | **Argon2**                              |
+| 图像处理   | Sharp                                   |
+| AI 集成    | Vercel AI SDK (Anthropic/OpenAI/Google) |
+| MCP        | 原生 MCP Server                         |
+| 前端框架   | **Vue 3** + Pinia                       |
+| UI 组件    | Reka UI (headless)                      |
+| 富文本     | TipTap                                  |
+| 地图       | MapLibre GL                             |
+| 图表       | ApexCharts                              |
+| 3D         | Three.js / TresJS                       |
+| 构建       | **Vite**                                |
+| 测试       | **Vitest**                              |
+| Monorepo   | **pnpm workspaces**                     |
 
 ### 5.3 核心功能
 
@@ -331,21 +332,23 @@ Directus 是开源数据平台 / Headless CMS，将任何 SQL 数据库包装为
 ### 5.4 插件/扩展机制
 
 **前端扩展 (Vue 3)**:
-| 类型 | 用途 |
-|------|------|
+
+| 类型       | 用途           |
+| ---------- | -------------- |
 | Interfaces | 自定义表单输入 |
-| Displays | 自定义值展示 |
-| Layouts | 自定义列表视图 |
-| Panels | 仪表盘面板 |
-| Modules | 顶级导航模块 |
-| Themes | 主题定制 |
+| Displays   | 自定义值展示   |
+| Layouts    | 自定义列表视图 |
+| Panels     | 仪表盘面板     |
+| Modules    | 顶级导航模块   |
+| Themes     | 主题定制       |
 
 **后端扩展 (Node.js)**:
-| 类型 | 用途 |
-|------|------|
-| Hooks | 事件钩子 (DB 操作/调度/生命周期) |
-| Endpoints | 自定义 API 路由 |
-| Operations | Flows 自定义步骤 |
+
+| 类型       | 用途                             |
+| ---------- | -------------------------------- |
+| Hooks      | 事件钩子 (DB 操作/调度/生命周期) |
+| Endpoints  | 自定义 API 路由                  |
+| Operations | Flows 自定义步骤                 |
 
 - **Directus Marketplace**: 发布和安装扩展
 - **Bundling**: 多个扩展打包
@@ -372,16 +375,16 @@ Directus 是开源数据平台 / Headless CMS，将任何 SQL 数据库包装为
 
 ### 5.7 可借鉴点
 
-| 模式 | AccessBase 应用 |
-|------|----------------|
-| Policy-based RBAC (可组合策略) | 权限 = Policies → Roles → Users，可组合、可叠加 |
-| 字段级 + 行级权限 | 不同角色可见不同用户属性 (HR 看薪资，经理看团队) |
-| `$CURRENT_USER` 变量插值 | 动态过滤规则中的租户隔离 |
-| IP 白名单 per policy | 网络级访问限制 |
-| Token 类型多样性 | Standard JWT + Session Cookie + Static Token + External JWT |
-| Environment Sync | Schema 变更在环境间传播 |
-| MCP Server 原生集成 | AI Agent 受相同 RBAC 管控 |
-| `$accountability` 上下文传播 | 所有操作携带身份上下文用于审计 |
+| 模式                           | AccessBase 应用                                             |
+| ------------------------------ | ----------------------------------------------------------- |
+| Policy-based RBAC (可组合策略) | 权限 = Policies → Roles → Users，可组合、可叠加             |
+| 字段级 + 行级权限              | 不同角色可见不同用户属性 (HR 看薪资，经理看团队)            |
+| `$CURRENT_USER` 变量插值       | 动态过滤规则中的租户隔离                                    |
+| IP 白名单 per policy           | 网络级访问限制                                              |
+| Token 类型多样性               | Standard JWT + Session Cookie + Static Token + External JWT |
+| Environment Sync               | Schema 变更在环境间传播                                     |
+| MCP Server 原生集成            | AI Agent 受相同 RBAC 管控                                   |
+| `$accountability` 上下文传播   | 所有操作携带身份上下文用于审计                              |
 
 ---
 
@@ -399,18 +402,18 @@ Strapi 是领先的开源 Headless CMS，允许开发者通过 UI 或代码定�
 
 ### 6.2 技术栈
 
-| 层 | 技术 |
-|----|------|
-| 运行时 | Node.js >=20 |
-| 语言 | TypeScript 5.9 |
-| Web 框架 | **Koa.js** |
-| 查询构建器 | **Knex.js** |
-| 数据库 | PostgreSQL (>=14), MySQL (>=8), MariaDB (>=10.3), SQLite 3 |
-| 前端 (Admin) | **React 18** + `@strapi/design-system` |
-| Monorepo | **Nx 20.8** + Rollup + SWC |
-| 包管理 | **Yarn 4.12** (Berry) |
-| 测试 | Vitest (单元) + Jest (API) + Playwright (E2E) |
-| 部署 | Docker / Strapi Cloud |
+| 层           | 技术                                                       |
+| ------------ | ---------------------------------------------------------- |
+| 运行时       | Node.js >=20                                               |
+| 语言         | TypeScript 5.9                                             |
+| Web 框架     | **Koa.js**                                                 |
+| 查询构建器   | **Knex.js**                                                |
+| 数据库       | PostgreSQL (>=14), MySQL (>=8), MariaDB (>=10.3), SQLite 3 |
+| 前端 (Admin) | **React 18** + `@strapi/design-system`                     |
+| Monorepo     | **Nx 20.8** + Rollup + SWC                                 |
+| 包管理       | **Yarn 4.12** (Berry)                                      |
+| 测试         | Vitest (单元) + Jest (API) + Playwright (E2E)              |
+| 部署         | Docker / Strapi Cloud                                      |
 
 ### 6.3 核心功能
 
@@ -457,15 +460,15 @@ Strapi 是领先的开源 Headless CMS，允许开发者通过 UI 或代码定�
 
 ### 6.7 可借鉴点
 
-| 模式 | AccessBase 应用 |
-|------|----------------|
+| 模式                                                               | AccessBase 应用                                               |
+| ------------------------------------------------------------------ | ------------------------------------------------------------- |
 | RBAC 权限模型 (per-resource + per-action + per-field + 自定义条件) | 权限 = resource + action + conditions，自定义条件是 ABAC 基础 |
-| 双权限系统 (Admin RBAC vs 端用户权限) | Admin 控制台访问控制 vs API 资源访问控制 |
-| 文档生命周期 (Draft → Review → Published) | 策略/配置变更审批流 |
-| 中间件链 (Gateway → Middleware → Policy → Controller → Service) | 分层 auth/authz |
-| API Token 全生命周期 | API 密钥管理 |
-| Review Workflows | 权限/角色变更审批 |
-| Plugin Marketplace 模式 | Auth Provider Marketplace |
+| 双权限系统 (Admin RBAC vs 端用户权限)                              | Admin 控制台访问控制 vs API 资源访问控制                      |
+| 文档生命周期 (Draft → Review → Published)                          | 策略/配置变更审批流                                           |
+| 中间件链 (Gateway → Middleware → Policy → Controller → Service)    | 分层 auth/authz                                               |
+| API Token 全生命周期                                               | API 密钥管理                                                  |
+| Review Workflows                                                   | 权限/角色变更审批                                             |
+| Plugin Marketplace 模式                                            | Auth Provider Marketplace                                     |
 
 ---
 
@@ -485,19 +488,19 @@ Supabase 定位为"Postgres 开发平台"，用企业级开源工具构建 Fireb
 
 Supabase 是**多个独立服务的组合**，不是单一二进制：
 
-| 组件 | 技术 | 说明 |
-|------|------|------|
-| 数据库 | **PostgreSQL 15+** | 专用实例，每项目一个 |
-| 自动 API | **PostgREST** (Haskell) | DB schema → RESTful API |
-| GraphQL | **pg_graphql** (PG 扩展) | DB 层 GraphQL |
-| 认证 | **GoTrue** (Go) | JWT-based auth |
-| 实时 | **Realtime** (Elixir) | WebSocket，PG replication |
-| 存储 | **Storage API** (Node.js) | S3-compatible |
-| Edge Functions | **Deno Runtime** | 全球分布边缘计算 |
-| DB 管理 | **postgres-meta** (Node.js) | PG 管理 API |
-| 代理 | **Envoy** | 反向代理/网关 |
-| Dashboard | **Next.js + React** | 管理面板 |
-| 客户端 SDK | supabase-js, Flutter, Swift, Python, Kotlin, C# | 多语言 |
+| 组件           | 技术                                            | 说明                      |
+| -------------- | ----------------------------------------------- | ------------------------- |
+| 数据库         | **PostgreSQL 15+**                              | 专用实例，每项目一个      |
+| 自动 API       | **PostgREST** (Haskell)                         | DB schema → RESTful API   |
+| GraphQL        | **pg_graphql** (PG 扩展)                        | DB 层 GraphQL             |
+| 认证           | **GoTrue** (Go)                                 | JWT-based auth            |
+| 实时           | **Realtime** (Elixir)                           | WebSocket，PG replication |
+| 存储           | **Storage API** (Node.js)                       | S3-compatible             |
+| Edge Functions | **Deno Runtime**                                | 全球分布边缘计算          |
+| DB 管理        | **postgres-meta** (Node.js)                     | PG 管理 API               |
+| 代理           | **Envoy**                                       | 反向代理/网关             |
+| Dashboard      | **Next.js + React**                             | 管理面板                  |
+| 客户端 SDK     | supabase-js, Flutter, Swift, Python, Kotlin, C# | 多语言                    |
 
 ### 7.3 核心功能
 
@@ -517,6 +520,7 @@ Supabase 是**多个独立服务的组合**，不是单一二进制：
 AI (pgvector), 地理 (PostGIS), 测试 (pgTAP), 定时 (pg_cron), GraphQL (pg_graphql), 安全 (pgcrypto)
 
 **Auth Hooks (6 种)**:
+
 - Before User Created, Custom Access Token, Send SMS/Email
 - MFA Verification, Password Verification
 - 实现方式: Postgres Function (SQL) 或 HTTP Endpoint (Edge Function)
@@ -545,16 +549,16 @@ AI (pgvector), 地理 (PostGIS), 测试 (pgTAP), 定时 (pg_cron), GraphQL (pg_g
 
 ### 7.7 可借鉴点
 
-| 模式 | AccessBase 应用 |
-|------|----------------|
-| **Auth Hooks 生命周期** | 认证流程关键点提供 hook 扩展 |
-| **RLS + Security Definer 函数** | 数据库层权限控制 + 特权函数绕过行级检查 |
-| **AAL 分级 + RLS 强制** | `auth.jwt()->>'aal' = 'aal2'` 强制 MFA |
-| **JWT Claims 设计** | `app_metadata` vs `user_metadata` 分离 + `amr` 数组 |
-| **三角色基线** | `anon`/`authenticated`/`service_role` 模式 |
-| **Auth 独立服务** | GoTrue 独立部署 + JWT + 专用 PG 角色 |
-| **Auth 专用 Schema** | auth 数据在 `auth` schema，与业务数据分离 |
-| **pgTAP 测试** | 数据库级策略测试 |
+| 模式                            | AccessBase 应用                                     |
+| ------------------------------- | --------------------------------------------------- |
+| **Auth Hooks 生命周期**         | 认证流程关键点提供 hook 扩展                        |
+| **RLS + Security Definer 函数** | 数据库层权限控制 + 特权函数绕过行级检查             |
+| **AAL 分级 + RLS 强制**         | `auth.jwt()->>'aal' = 'aal2'` 强制 MFA              |
+| **JWT Claims 设计**             | `app_metadata` vs `user_metadata` 分离 + `amr` 数组 |
+| **三角色基线**                  | `anon`/`authenticated`/`service_role` 模式          |
+| **Auth 独立服务**               | GoTrue 独立部署 + JWT + 专用 PG 角色                |
+| **Auth 专用 Schema**            | auth 数据在 `auth` schema，与业务数据分离           |
+| **pgTAP 测试**                  | 数据库级策略测试                                    |
 
 ---
 
@@ -571,19 +575,19 @@ PocketBase 是 Go 语言后端平台，核心理念：**单个可执行文件**�
 
 ### 8.2 技术栈
 
-| 层 | 技术 |
-|----|------|
-| 语言 | **Go** (1.23+) |
-| 数据库 | **SQLite** (WAL 模式)，pure Go 驱动 |
-| HTTP | 标准库自定义路由 |
-| 实时 | **SSE** (Server-Sent Events) |
-| 认证 | **JWT (HS256)**，完全无状态 |
-| 管理面板 | 内嵌 React SPA |
-| 文件存储 | 本地 + S3 兼容 |
-| JS 扩展 | **goja** (ES5 JavaScript VM)，预热 15 runtime 池 |
-| SDK | JavaScript (Browser/Node/React Native), Dart |
-| 构建产物 | **单个静态可执行文件** (~12MB) |
-| TLS | 内置 Let's Encrypt 自动证书 |
+| 层       | 技术                                             |
+| -------- | ------------------------------------------------ |
+| 语言     | **Go** (1.23+)                                   |
+| 数据库   | **SQLite** (WAL 模式)，pure Go 驱动              |
+| HTTP     | 标准库自定义路由                                 |
+| 实时     | **SSE** (Server-Sent Events)                     |
+| 认证     | **JWT (HS256)**，完全无状态                      |
+| 管理面板 | 内嵌 React SPA                                   |
+| 文件存储 | 本地 + S3 兼容                                   |
+| JS 扩展  | **goja** (ES5 JavaScript VM)，预热 15 runtime 池 |
+| SDK      | JavaScript (Browser/Node/React Native), Dart     |
+| 构建产物 | **单个静态可执行文件** (~12MB)                   |
+| TLS      | 内置 Let's Encrypt 自动证书                      |
 
 ### 8.3 核心功能
 
@@ -601,6 +605,7 @@ PocketBase 是 Go 语言后端平台，核心理念：**单个可执行文件**�
 ### 8.4 插件/扩展机制
 
 **Go 扩展 (推荐)**:
+
 - 事件钩子系统覆盖完整生命周期
 - App 生命周期: `OnBootstrap`, `OnServe`, `OnTerminate`
 - Record 钩子: Before → Execute → After 三层
@@ -608,6 +613,7 @@ PocketBase 是 Go 语言后端平台，核心理念：**单个可执行文件**�
 - 自定义路由, 控制台命令, 定时任务
 
 **JavaScript 扩展**:
+
 - `pb_hooks/` 目录下 `*.pb.js` 文件
 - goja ES5 引擎 (非 Node.js)
 - 热重载 (UNIX)
@@ -638,16 +644,16 @@ PocketBase 是 Go 语言后端平台，核心理念：**单个可执行文件**�
 
 ### 8.7 可借鉴点
 
-| 模式 | AccessBase 应用 |
-|------|----------------|
-| 声明式 API Rules | 管理员在 UI 上配置权限，变量表达式 (`@request.auth.id`) |
-| 三层事件钩子 (Before → Execute → After) | L0 包的 hooks 模式 |
-| Schema = API = Permission 三位一体 | 一体化配置体验 |
-| 无状态 JWT 认证 | Token 不入库，authRefresh 验证 |
-| 批量操作事务 | 批量导入/同步 |
-| 设置加密 (AES) | 应用级加密 + 环境变量密钥 |
-| 用户冒充 (Impersonate) | 调试/支持功能 |
-| OTP + MFA 渐进式流程 | MFA 实现参考 |
+| 模式                                    | AccessBase 应用                                         |
+| --------------------------------------- | ------------------------------------------------------- |
+| 声明式 API Rules                        | 管理员在 UI 上配置权限，变量表达式 (`@request.auth.id`) |
+| 三层事件钩子 (Before → Execute → After) | L0 包的 hooks 模式                                      |
+| Schema = API = Permission 三位一体      | 一体化配置体验                                          |
+| 无状态 JWT 认证                         | Token 不入库，authRefresh 验证                          |
+| 批量操作事务                            | 批量导入/同步                                           |
+| 设置加密 (AES)                          | 应用级加密 + 环境变量密钥                               |
+| 用户冒充 (Impersonate)                  | 调试/支持功能                                           |
+| OTP + MFA 渐进式流程                    | MFA 实现参考                                            |
 
 ---
 
@@ -666,21 +672,21 @@ n8n 是 fair-code 许可的工作流自动化和 AI Agent 平台，提供可视�
 
 ### 9.2 技术栈
 
-| 层 | 技术 |
-|----|------|
-| Monorepo | **pnpm workspace + Turborepo** |
-| 运行时 | Node.js >=24 |
-| 包管理 | pnpm >=10.22 |
-| 语言 | TypeScript 6.0.2 |
-| 前端 | **Vue.js** + `@n8n/design-system` |
-| 数据库 (默认) | SQLite |
-| 数据库 (生产) | **PostgreSQL** (TypeORM) |
-| 任务队列 | **Bull** (Redis) |
-| 表达式引擎 | **V8 isolates** (isolated-vm) |
-| AI 框架 | **LangChain** (`@n8n/n8n-nodes-langchain`) |
-| 测试 | **Vitest + Playwright** |
-| 构建 | Turborepo, esbuild |
-| 可观测性 | **OpenTelemetry**, Prometheus, Grafana |
+| 层            | 技术                                       |
+| ------------- | ------------------------------------------ |
+| Monorepo      | **pnpm workspace + Turborepo**             |
+| 运行时        | Node.js >=24                               |
+| 包管理        | pnpm >=10.22                               |
+| 语言          | TypeScript 6.0.2                           |
+| 前端          | **Vue.js** + `@n8n/design-system`          |
+| 数据库 (默认) | SQLite                                     |
+| 数据库 (生产) | **PostgreSQL** (TypeORM)                   |
+| 任务队列      | **Bull** (Redis)                           |
+| 表达式引擎    | **V8 isolates** (isolated-vm)              |
+| AI 框架       | **LangChain** (`@n8n/n8n-nodes-langchain`) |
+| 测试          | **Vitest + Playwright**                    |
+| 构建          | Turborepo, esbuild                         |
+| 可观测性      | **OpenTelemetry**, Prometheus, Grafana     |
 
 ### 9.3 核心功能
 
@@ -697,6 +703,7 @@ n8n 是 fair-code 许可的工作流自动化和 AI Agent 平台，提供可视�
 ### 9.4 插件/扩展机制
 
 **Community Nodes (npm 包)**:
+
 - 命名规范: `n8n-nodes-*` 或 `@scope/n8n-nodes-*`
 - CLI 脚手架: `@n8n/node-cli`
 - GitHub 模板: `n8n-nodes-starter`
@@ -706,6 +713,7 @@ n8n 是 fair-code 许可的工作流自动化和 AI Agent 平台，提供可视�
 - 要求: npm provenance, 无运行时依赖
 
 **其他扩展点**:
+
 - Public REST API
 - External Hooks
 - External Secrets (Vault, AWS SM)
@@ -720,10 +728,10 @@ n8n 是 fair-code 许可的工作流自动化和 AI Agent 平台，提供可视�
 3. 可自托管 — 社区版 ~90% 功能
 4. AI 原生 — 深度 LangChain 集成 + AI 助手自然语言构建工作流
 5. MCP 原生支持 — 与 Claude、Cursor 等 AI 工具无缝集成
-5. 201k Stars — 最大社区
-6. 执行定价 — 按工作流执行计费
-7. 企业就绪 — Queue Mode, RBAC, SSO, 审计, Git, Environments
-8. pnpm + Vitest + Playwright — 现代工具链
+6. 201k Stars — 最大社区
+7. 执行定价 — 按工作流执行计费
+8. 企业就绪 — Queue Mode, RBAC, SSO, 审计, Git, Environments
+9. pnpm + Vitest + Playwright — 现代工具链
 
 ### 9.6 缺点
 
@@ -736,21 +744,21 @@ n8n 是 fair-code 许可的工作流自动化和 AI Agent 平台，提供可视�
 
 ### 9.7 可借鉴点
 
-| 模式 | AccessBase 应用 |
-|------|----------------|
-| **节点式工作流执行** | IAM 自动化: 用户创建 → 分配角色 → 发邮件 → 创建工单 |
-| **触发器系统** | Webhook/Schedule/Event 触发器映射到 IAM 事件 |
-| **加密 Credential 管理** | 加密存储 + 跨项目共享 + 外部密钥集成 |
-| **执行历史审计** | 完整输入/输出/时间/状态记录 |
-| **Project-based RBAC** | 团队隔离 (Project → Workflows/Credentials/Variables) |
-| **V8 isolates 沙箱** | 策略表达式安全评估 |
-| **npm-based 插件架构** | L0/L1/L2 包架构 + 标准 Credential 接口 |
-| **Queue Mode** | Bull/Redis 异步处理 |
-| **n8n Packages (.n8np)** | 策略模板打包/部署/共享 |
-| **OEM Embedding** | iframe SSO + Token 交换 |
-| **AI 助手自然语言构建** | 管理员用自然语言描述需求，自动生成 IAM 配置 |
-| **MCP 服务器集成** | AI Agent 通过 MCP 协议访问 IAM 资源，统一权限控制 |
-| **OpenTelemetry 追踪** | 工作流执行全链路可观测性 |
+| 模式                     | AccessBase 应用                                      |
+| ------------------------ | ---------------------------------------------------- |
+| **节点式工作流执行**     | IAM 自动化: 用户创建 → 分配角色 → 发邮件 → 创建工单  |
+| **触发器系统**           | Webhook/Schedule/Event 触发器映射到 IAM 事件         |
+| **加密 Credential 管理** | 加密存储 + 跨项目共享 + 外部密钥集成                 |
+| **执行历史审计**         | 完整输入/输出/时间/状态记录                          |
+| **Project-based RBAC**   | 团队隔离 (Project → Workflows/Credentials/Variables) |
+| **V8 isolates 沙箱**     | 策略表达式安全评估                                   |
+| **npm-based 插件架构**   | L0/L1/L2 包架构 + 标准 Credential 接口               |
+| **Queue Mode**           | Bull/Redis 异步处理                                  |
+| **n8n Packages (.n8np)** | 策略模板打包/部署/共享                               |
+| **OEM Embedding**        | iframe SSO + Token 交换                              |
+| **AI 助手自然语言构建**  | 管理员用自然语言描述需求，自动生成 IAM 配置          |
+| **MCP 服务器集成**       | AI Agent 通过 MCP 协议访问 IAM 资源，统一权限控制    |
+| **OpenTelemetry 追踪**   | 工作流执行全链路可观测性                             |
 
 ---
 
@@ -758,29 +766,29 @@ n8n 是 fair-code 许可的工作流自动化和 AI Agent 平台，提供可视�
 
 ### 10.1 技术栈对比
 
-| 维度 | AccessBase 设计 | Budibase | Appsmith | ToolJet | Directus | Strapi | Supabase | PocketBase | n8n |
-|------|----------------|----------|----------|---------|----------|--------|----------|------------|-----|
-| **后端框架** | **Fastify** | Koa | Spring Boot | NestJS | Express | Koa | 多服务 | 标准库 | Node.js |
-| **ORM** | **Drizzle** | Knex | - | TypeORM | Knex | Knex | PostgREST | - | TypeORM |
-| **数据库** | **PostgreSQL 16** | CouchDB | MongoDB | PostgreSQL | 多种 SQL | 多种 SQL | PostgreSQL | SQLite | SQLite/PG |
-| **前端框架** | **React** | Svelte | React | React | Vue | React | React | React | Vue |
-| **UI 库** | **Ant Design** | 自研 bbui | 自研 ADS | Radix+Tailwind | Reka UI | 自研 Design System | Next.js | 内嵌 | 自研 design-system |
-| **Monorepo** | **pnpm** | Lerna+Yarn | Yarn | pnpm(推测) | pnpm | Yarn+Nx | 独立 repos | 单包 | pnpm+Turborepo |
-| **测试** | **Vitest+Playwright** | - | Jest+Cypress | Jest+Cypress | Vitest | Vitest+Playwright | - | - | Vitest+Playwright |
-| **日志** | **Pino** | - | - | Pino | Pino | - | - | - | - |
-| **可观测性** | OpenTelemetry | - | - | OTel+Prometheus+Sentry | OTel | - | - | - | OTel+Prometheus |
+| 维度         | AccessBase 设计       | Budibase   | Appsmith     | ToolJet                | Directus | Strapi             | Supabase   | PocketBase | n8n                |
+| ------------ | --------------------- | ---------- | ------------ | ---------------------- | -------- | ------------------ | ---------- | ---------- | ------------------ |
+| **后端框架** | **Fastify**           | Koa        | Spring Boot  | NestJS                 | Express  | Koa                | 多服务     | 标准库     | Node.js            |
+| **ORM**      | **Drizzle**           | Knex       | -            | TypeORM                | Knex     | Knex               | PostgREST  | -          | TypeORM            |
+| **数据库**   | **PostgreSQL 16**     | CouchDB    | MongoDB      | PostgreSQL             | 多种 SQL | 多种 SQL           | PostgreSQL | SQLite     | SQLite/PG          |
+| **前端框架** | **React**             | Svelte     | React        | React                  | Vue      | React              | React      | React      | Vue                |
+| **UI 库**    | **Ant Design**        | 自研 bbui  | 自研 ADS     | Radix+Tailwind         | Reka UI  | 自研 Design System | Next.js    | 内嵌       | 自研 design-system |
+| **Monorepo** | **pnpm**              | Lerna+Yarn | Yarn         | pnpm(推测)             | pnpm     | Yarn+Nx            | 独立 repos | 单包       | pnpm+Turborepo     |
+| **测试**     | **Vitest+Playwright** | -          | Jest+Cypress | Jest+Cypress           | Vitest   | Vitest+Playwright  | -          | -          | Vitest+Playwright  |
+| **日志**     | **Pino**              | -          | -            | Pino                   | Pino     | -                  | -          | -          | -                  |
+| **可观测性** | OpenTelemetry         | -          | -            | OTel+Prometheus+Sentry | OTel     | -                  | -          | -          | OTel+Prometheus    |
 
 ### 10.2 RBAC 能力对比
 
-| 维度 | AccessBase 设计 | Budibase | Appsmith | ToolJet | Directus | Strapi | Supabase | PocketBase | n8n |
-|------|----------------|----------|----------|---------|----------|--------|----------|------------|-----|
-| **角色继承** | **RBAC1** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **租户隔离** | ✅ | Pro 版 | ❌ | Workspace | ❌ | ❌ | 手写 RLS | ❌ | Projects |
-| **字段级权限** | 规划中 | ❌ | ❌ | ❌ | ✅ | ✅ | RLS | ❌ | ❌ |
-| **行级权限** | 规划中 | ❌ | ❌ | ❌ | ✅ | ✅ | RLS | Rules | ❌ |
-| **自定义条件** | 规划中 | ❌ | ❌ | ❌ | IP 白名单 | ✅ | Auth Hooks | 表达式 | ❌ |
-| **SSO** | JWT+OAuth+WebAuthn+LDAP | SAML/OIDC | OAuth/SAML/OIDC | SAML/OIDC/LDAP/SCIM | OIDC/SAML/LDAP | Enterprise | 19+ OAuth/SAML | OAuth2 | SAML/LDAP |
-| **审计日志** | ✅ 核心功能 | Pro 版 | Business+ | Enterprise | ✅ Activity Log | Enterprise | ❌ (需 pg_audit) | ❌ | Enterprise |
+| 维度           | AccessBase 设计         | Budibase  | Appsmith        | ToolJet             | Directus        | Strapi     | Supabase         | PocketBase | n8n        |
+| -------------- | ----------------------- | --------- | --------------- | ------------------- | --------------- | ---------- | ---------------- | ---------- | ---------- |
+| **角色继承**   | **RBAC1**               | ❌        | ❌              | ❌                  | ❌              | ❌         | ❌               | ❌         | ❌         |
+| **租户隔离**   | ✅                      | Pro 版    | ❌              | Workspace           | ❌              | ❌         | 手写 RLS         | ❌         | Projects   |
+| **字段级权限** | 规划中                  | ❌        | ❌              | ❌                  | ✅              | ✅         | RLS              | ❌         | ❌         |
+| **行级权限**   | 规划中                  | ❌        | ❌              | ❌                  | ✅              | ✅         | RLS              | Rules      | ❌         |
+| **自定义条件** | 规划中                  | ❌        | ❌              | ❌                  | IP 白名单       | ✅         | Auth Hooks       | 表达式     | ❌         |
+| **SSO**        | JWT+OAuth+WebAuthn+LDAP | SAML/OIDC | OAuth/SAML/OIDC | SAML/OIDC/LDAP/SCIM | OIDC/SAML/LDAP  | Enterprise | 19+ OAuth/SAML   | OAuth2     | SAML/LDAP  |
+| **审计日志**   | ✅ 核心功能             | Pro 版    | Business+       | Enterprise          | ✅ Activity Log | Enterprise | ❌ (需 pg_audit) | ❌         | Enterprise |
 
 **关键发现**: AccessBase 的 RBAC1 角色继承设计在所有 8 个平台中**独一无二**。这是一个重要的差异化优势。
 
@@ -788,83 +796,83 @@ n8n 是 fair-code 许可的工作流自动化和 AI Agent 平台，提供可视�
 
 #### A. 认证/授权架构
 
-| 来源 | 模式 | AccessBase 应用 |
-|------|------|----------------|
-| **Supabase** | Auth Hooks 生命周期 (6 种钩子) | 认证流程扩展点 |
-| **Supabase** | AAL 分级 + 数据库层 MFA 强制 | 分级安全策略 |
-| **Supabase** | JWT Claims (`app_metadata`/`user_metadata`/`amr`) | Token 设计 |
-| **Supabase** | Auth 独立服务 + 专用 Schema | 认证服务架构 |
-| **Directus** | Policy-based 可组合 RBAC | 权限 = Policies → Roles → Users |
-| **Directus** | 字段级 + 行级权限 + IP 白名单 | 细粒度访问控制 |
-| **ToolJet** | `@casl/ability` 权限矩阵 | 权限引擎实现参考 |
-| **ToolJet** | Lockbox 密钥管理 | 加密存储 + 密钥轮换 |
-| **PocketBase** | 声明式 API Rules + 变量表达式 | UI 权限配置 |
+| 来源           | 模式                                              | AccessBase 应用                 |
+| -------------- | ------------------------------------------------- | ------------------------------- |
+| **Supabase**   | Auth Hooks 生命周期 (6 种钩子)                    | 认证流程扩展点                  |
+| **Supabase**   | AAL 分级 + 数据库层 MFA 强制                      | 分级安全策略                    |
+| **Supabase**   | JWT Claims (`app_metadata`/`user_metadata`/`amr`) | Token 设计                      |
+| **Supabase**   | Auth 独立服务 + 专用 Schema                       | 认证服务架构                    |
+| **Directus**   | Policy-based 可组合 RBAC                          | 权限 = Policies → Roles → Users |
+| **Directus**   | 字段级 + 行级权限 + IP 白名单                     | 细粒度访问控制                  |
+| **ToolJet**    | `@casl/ability` 权限矩阵                          | 权限引擎实现参考                |
+| **ToolJet**    | Lockbox 密钥管理                                  | 加密存储 + 密钥轮换             |
+| **PocketBase** | 声明式 API Rules + 变量表达式                     | UI 权限配置                     |
 
 #### B. 可扩展性/插件
 
-| 来源 | 模式 | AccessBase 应用 |
-|------|------|----------------|
-| **ToolJet** | Marketplace 插件 (npm 包 + CLI + 热重载) | Auth Provider Marketplace |
-| **Directus** | 6 种前端 + 3 种后端扩展类型 | 插件分类体系 |
-| **n8n** | npm-based Community Nodes + Credential 系统 | 标准化插件接口 |
-| **PocketBase** | 三层事件钩子 (Before → Execute → After) | L0 包 hooks 模式 |
-| **Budibase** | `isolated-vm` 沙箱 | 自定义策略脚本执行 |
+| 来源           | 模式                                        | AccessBase 应用           |
+| -------------- | ------------------------------------------- | ------------------------- |
+| **ToolJet**    | Marketplace 插件 (npm 包 + CLI + 热重载)    | Auth Provider Marketplace |
+| **Directus**   | 6 种前端 + 3 种后端扩展类型                 | 插件分类体系              |
+| **n8n**        | npm-based Community Nodes + Credential 系统 | 标准化插件接口            |
+| **PocketBase** | 三层事件钩子 (Before → Execute → After)     | L0 包 hooks 模式          |
+| **Budibase**   | `isolated-vm` 沙箱                          | 自定义策略脚本执行        |
 
 #### C. 运维/部署
 
-| 来源 | 模式 | AccessBase 应用 |
-|------|------|----------------|
-| **n8n** | Bull/Redis Queue Mode | 异步处理和扩展 |
-| **n8n** | pnpm + Turborepo monorepo | 已选择 pnpm |
-| **Directus** | pnpm + Vite + Vitest | 已选择相同工具链 |
-| **Budibase** | Worker/Server 分离 | 认证 worker vs API server |
-| **Supabase** | pgTAP 数据库级策略测试 | 数据库权限测试 |
-| **ToolJet** | OpenTelemetry + Prometheus + Sentry | 全链路可观测性 |
+| 来源         | 模式                                | AccessBase 应用           |
+| ------------ | ----------------------------------- | ------------------------- |
+| **n8n**      | Bull/Redis Queue Mode               | 异步处理和扩展            |
+| **n8n**      | pnpm + Turborepo monorepo           | 已选择 pnpm               |
+| **Directus** | pnpm + Vite + Vitest                | 已选择相同工具链          |
+| **Budibase** | Worker/Server 分离                  | 认证 worker vs API server |
+| **Supabase** | pgTAP 数据库级策略测试              | 数据库权限测试            |
+| **ToolJet**  | OpenTelemetry + Prometheus + Sentry | 全链路可观测性            |
 
 #### D. 工作流/自动化
 
-| 来源 | 模式 | AccessBase 应用 |
-|------|------|----------------|
-| **n8n** | 节点式工作流引擎 | IAM 自动化 (provisioning, 审批, 响应) |
-| **n8n** | 执行历史 + 审计 | 完整操作追踪 |
-| **Directus** | Flows 事件驱动自动化 | 审计钩子、通知、Webhook |
-| **Strapi** | Review Workflows | 权限/角色变更审批 |
+| 来源         | 模式                 | AccessBase 应用                       |
+| ------------ | -------------------- | ------------------------------------- |
+| **n8n**      | 节点式工作流引擎     | IAM 自动化 (provisioning, 审批, 响应) |
+| **n8n**      | 执行历史 + 审计      | 完整操作追踪                          |
+| **Directus** | Flows 事件驱动自动化 | 审计钩子、通知、Webhook               |
+| **Strapi**   | Review Workflows     | 权限/角色变更审批                     |
 
 ### 10.4 AccessBase 应避免的反模式
 
-| 平台反模式 | 说明 | AccessBase 正确做法 |
-|-----------|------|-------------------|
-| CouchDB 做主存储 (Budibase) | 小众，运维复杂 | **PostgreSQL 16** (已决定) |
-| MongoDB 做主存储 (Appsmith) | 关系型数据不是最佳选择 | **PostgreSQL 16** |
-| Koa.js (Budibase/Strapi) | 生态小 | **Fastify** (已决定) |
-| Express (Directus) | 性能较低 | **Fastify** |
-| Knex.js (Directus/Strapi) | 无类型安全 | **Drizzle ORM** |
-| TypeORM (ToolJet/n8n) | DX 不如 Drizzle | **Drizzle ORM** |
-| Vue (Directus/n8n) | 人才池小 | **React** (已决定) |
-| Svelte (Budibase) | 人才池更小 | **React** |
-| 单容器多进程 (Appsmith) | 8GB RAM，复杂 | 独立服务部署 |
-| SSO 作为付费功能 | 作为 IAM 平台这是核心能力 | **SSO 是核心功能** |
-| 审计日志作为付费功能 | 安全基础需求 | **审计日志是核心功能** |
-| 扁平 RBAC 无继承 | 8 个平台均无继承 | **RBAC1 角色继承** (差异化优势) |
-| SQLite 唯一 (PocketBase) | 不支持水平扩展 | **PostgreSQL** |
-| HS256 JWT (PocketBase) | 安全性较低 | **RS256** (已决定) |
+| 平台反模式                  | 说明                      | AccessBase 正确做法             |
+| --------------------------- | ------------------------- | ------------------------------- |
+| CouchDB 做主存储 (Budibase) | 小众，运维复杂            | **PostgreSQL 16** (已决定)      |
+| MongoDB 做主存储 (Appsmith) | 关系型数据不是最佳选择    | **PostgreSQL 16**               |
+| Koa.js (Budibase/Strapi)    | 生态小                    | **Fastify** (已决定)            |
+| Express (Directus)          | 性能较低                  | **Fastify**                     |
+| Knex.js (Directus/Strapi)   | 无类型安全                | **Drizzle ORM**                 |
+| TypeORM (ToolJet/n8n)       | DX 不如 Drizzle           | **Drizzle ORM**                 |
+| Vue (Directus/n8n)          | 人才池小                  | **React** (已决定)              |
+| Svelte (Budibase)           | 人才池更小                | **React**                       |
+| 单容器多进程 (Appsmith)     | 8GB RAM，复杂             | 独立服务部署                    |
+| SSO 作为付费功能            | 作为 IAM 平台这是核心能力 | **SSO 是核心功能**              |
+| 审计日志作为付费功能        | 安全基础需求              | **审计日志是核心功能**          |
+| 扁平 RBAC 无继承            | 8 个平台均无继承          | **RBAC1 角色继承** (差异化优势) |
+| SQLite 唯一 (PocketBase)    | 不支持水平扩展            | **PostgreSQL**                  |
+| HS256 JWT (PocketBase)      | 安全性较低                | **RS256** (已决定)              |
 
 ### 10.5 建议优先研究的源码
 
 基于调研结果，建议优先深入研究以下源码实现：
 
-| 优先级 | 目标 | 源码位置 | 原因 |
-|--------|------|---------|------|
-| P0 | Supabase Auth Hooks | `supabase/auth` (GoTrue) | 6 种认证钩子实现 |
-| P0 | Supabase RLS + AAL | Supabase 文档 + pgTAP | 数据库层权限控制 |
-| P0 | ToolJet CASL 集成 | `ToolJet/server` | @casl/ability 在 NestJS 中的集成模式 |
-| P1 | Directus Policy RBAC | `directus/api` | 可组合策略 + 字段/行级权限 |
-| P1 | ToolJet Lockbox | `ToolJet/server` | 密钥加密 + 轮换机制 |
-| P1 | n8n Community Nodes | `n8n/packages/nodes-base` | 标准化插件接口设计 |
-| P2 | Strapi Plugin SDK | `strapi/packages/core` | 双 API (Admin + Server) 扩展架构 |
-| P2 | n8n Workflow Engine | `n8n/packages/workflow` | 节点式执行引擎 |
-| P3 | Directus Flows | `directus/api` | 事件驱动自动化引擎 |
+| 优先级 | 目标                 | 源码位置                  | 原因                                 |
+| ------ | -------------------- | ------------------------- | ------------------------------------ |
+| P0     | Supabase Auth Hooks  | `supabase/auth` (GoTrue)  | 6 种认证钩子实现                     |
+| P0     | Supabase RLS + AAL   | Supabase 文档 + pgTAP     | 数据库层权限控制                     |
+| P0     | ToolJet CASL 集成    | `ToolJet/server`          | @casl/ability 在 NestJS 中的集成模式 |
+| P1     | Directus Policy RBAC | `directus/api`            | 可组合策略 + 字段/行级权限           |
+| P1     | ToolJet Lockbox      | `ToolJet/server`          | 密钥加密 + 轮换机制                  |
+| P1     | n8n Community Nodes  | `n8n/packages/nodes-base` | 标准化插件接口设计                   |
+| P2     | Strapi Plugin SDK    | `strapi/packages/core`    | 双 API (Admin + Server) 扩展架构     |
+| P2     | n8n Workflow Engine  | `n8n/packages/workflow`   | 节点式执行引擎                       |
+| P3     | Directus Flows       | `directus/api`            | 事件驱动自动化引擎                   |
 
 ---
 
-*本报告为 AccessBase 设计阶段参考材料。各平台数据基于 2026-08-21 调研，GitHub 数据和版本信息可能随时间变化。*
+_本报告为 AccessBase 设计阶段参考材料。各平台数据基于 2026-08-21 调研，GitHub 数据和版本信息可能随时间变化。_

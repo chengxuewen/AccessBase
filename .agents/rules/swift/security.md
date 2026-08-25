@@ -1,8 +1,9 @@
 ---
 paths:
-  - "**/*.swift"
-  - "**/Package.swift"
+  - '**/*.swift'
+  - '**/Package.swift'
 ---
+
 # Swift Security
 
 > This file extends [common/security.md](../common/security.md) with Swift specific content.

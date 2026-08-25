@@ -38,7 +38,9 @@ export class LdapProvider implements AuthProvider {
   /**
    * Search for user in LDAP
    */
-  async searchUser(username: string): Promise<{ dn: string; attributes: Record<string, unknown> } | null> {
+  async searchUser(
+    username: string,
+  ): Promise<{ dn: string; attributes: Record<string, unknown> } | null> {
     logger.debug(`Searching LDAP for user: ${username}`);
     // Implementation will search LDAP with configured filter
     throw new Error('Not implemented');

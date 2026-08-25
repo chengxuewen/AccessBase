@@ -10,10 +10,12 @@
 **AccessBase** 是面向"任何需要后台管理与安全治理的平台"的可复用基石层，提供**认证、授权、审计、日志、迁移、主题机制、国际化、基础 CRUD** 八项能力。
 
 对标关系：
+
 - **品类定位**：类似 NocoBase 的命名模式（特性 + Base 后缀），但作为**中立技术品牌**（如 TanStack/Radix），不绑定任何产品品牌
 - **复用方**：MediaServo（视频服务平台）、MES（制造执行系统）、企业应用平台（全功能版）等
 
 一句话定义：
+
 > AccessBase = 访问控制底座——为任何平台提供"谁能进来（认证）、能干什么（授权）、干了什么（审计）"的基础，附带后台框架、日志、迁移、国际化等横切能力。
 
 ---
@@ -28,24 +30,24 @@
 
 ### 2.2 业务需求
 
-| 编号 | 需求 | 说明 |
-|------|------|------|
-| R1 | 任何平台可复用 | 视频、MES、企业应用平台均可独立依赖 L0 |
-| R2 | 零平台概念 | L0 不依赖 Schema 引擎、插件体系等 L1 特性 |
-| R3 | 可独立发布 | 独立 npm scope `@accessbase/*`，独立版本管理 |
-| R4 | 命名中立 | 复用方使用无品牌负担（不叫"XX 平台的后台"） |
-| R5 | 安全治理完整 | 认证 + 授权 + 审计三件套，作为 L0 灵魂 |
-| R6 | 主题可注入 | 主题机制进 L0，品牌内容由上层注入 |
+| 编号 | 需求           | 说明                                         |
+| ---- | -------------- | -------------------------------------------- |
+| R1   | 任何平台可复用 | 视频、MES、企业应用平台均可独立依赖 L0       |
+| R2   | 零平台概念     | L0 不依赖 Schema 引擎、插件体系等 L1 特性    |
+| R3   | 可独立发布     | 独立 npm scope `@accessbase/*`，独立版本管理 |
+| R4   | 命名中立       | 复用方使用无品牌负担（不叫"XX 平台的后台"）  |
+| R5   | 安全治理完整   | 认证 + 授权 + 审计三件套，作为 L0 灵魂       |
+| R6   | 主题可注入     | 主题机制进 L0，品牌内容由上层注入            |
 
 ### 2.3 非功能需求
 
-| 编号 | 需求 | 验收标准 |
-|------|------|---------|
-| N1 | 依赖最小化 | 仅框架级依赖（Fastify/antd/react），零业务依赖 |
-| N2 | 零 AUDE 残留 | `grep -ri audebase` 在 L0 包内 0 命中（除文档历史引用） |
-| N3 | 品牌中立 | 无内置品牌色/Logo/产品名，默认中性设计令牌 |
-| N4 | 命名零占用 | npm scope / GitHub org 无产品级占用（2026-08-20 核查通过） |
-| N5 | 独立可测 | 每包独立测试，不依赖 L1/L2 运行环境 |
+| 编号 | 需求         | 验收标准                                                   |
+| ---- | ------------ | ---------------------------------------------------------- |
+| N1   | 依赖最小化   | 仅框架级依赖（Fastify/antd/react），零业务依赖             |
+| N2   | 零 AUDE 残留 | `grep -ri audebase` 在 L0 包内 0 命中（除文档历史引用）    |
+| N3   | 品牌中立     | 无内置品牌色/Logo/产品名，默认中性设计令牌                 |
+| N4   | 命名零占用   | npm scope / GitHub org 无产品级占用（2026-08-20 核查通过） |
+| N5   | 独立可测     | 每包独立测试，不依赖 L1/L2 运行环境                        |
 
 ---
 
@@ -53,13 +55,13 @@
 
 ### 3.1 外部参考
 
-| 参考对象 | 借鉴点 |
-|---------|--------|
-| NocoBase | 命名模式（特性 + Base）、双命名空间 i18n、插件命名空间隔离 |
-| Budibase / Supabase | `-Base` 后缀的品类识别 |
-| TanStack / Radix | 中立技术品牌模式——任何业务产品可复用其组件库 |
-| Odoo | 模块化 + 迁移按版本排序 |
-| SmartAdmin / Soybean / PureAdmin | admin 后台 UX 参考（L0 admin 的打磨方向） |
+| 参考对象                         | 借鉴点                                                     |
+| -------------------------------- | ---------------------------------------------------------- |
+| NocoBase                         | 命名模式（特性 + Base）、双命名空间 i18n、插件命名空间隔离 |
+| Budibase / Supabase              | `-Base` 后缀的品类识别                                     |
+| TanStack / Radix                 | 中立技术品牌模式——任何业务产品可复用其组件库               |
+| Odoo                             | 模块化 + 迁移按版本排序                                    |
+| SmartAdmin / Soybean / PureAdmin | admin 后台 UX 参考（L0 admin 的打磨方向）                  |
 
 ### 3.2 项目内参考
 
@@ -87,15 +89,16 @@ L0 基石层       AccessBase（本文档）—— 任何平台必需的基础�
 
 ### 4.2 命名定义
 
-| 项 | 定义 | 说明 |
-|----|------|------|
-| 项目名 | **AccessBase** | 访问控制底座——认证+授权+审计为灵魂 |
-| npm scope | `@accessbase/*` | 2026-08-20 核查：npm scope 404、GitHub org 404、user 404、npm 0 包 |
-| 中文名 | 访问底座 / 基石套件 | 中文语境称呼 |
-| 包名 | identity / admin / audit / logging / i18n / migration | 见 §5 功能定义 |
-| 命名原则 | 前缀 = 特性描述词，后缀 = -Base | 对标 NocoBase（No-Code + Base） |
+| 项        | 定义                                                  | 说明                                                               |
+| --------- | ----------------------------------------------------- | ------------------------------------------------------------------ |
+| 项目名    | **AccessBase**                                        | 访问控制底座——认证+授权+审计为灵魂                                 |
+| npm scope | `@accessbase/*`                                       | 2026-08-20 核查：npm scope 404、GitHub org 404、user 404、npm 0 包 |
+| 中文名    | 访问底座 / 基石套件                                   | 中文语境称呼                                                       |
+| 包名      | identity / admin / audit / logging / i18n / migration | 见 §5 功能定义                                                     |
+| 命名原则  | 前缀 = 特性描述词，后缀 = -Base                       | 对标 NocoBase（No-Code + Base）                                    |
 
 **命名决策历史**（2026-08-20，供追溯）：
+
 - 否决：Keel（teamkeel 竞品）、Keelson（6+ 活跃开发/AI 项目）、Rivet（★6000+ 云平台）、Kelson（语义不满意）、SecureBase（"安全"有攻防歧义）、SaxBase（前缀为意象词非特性词）、AuthBase（语义过窄 + npm 5 包）
 - 采纳：AccessBase（特性描述准确、零占用、无歧义）
 
@@ -103,39 +106,40 @@ L0 基石层       AccessBase（本文档）—— 任何平台必需的基础�
 
 **进入 L0**（任何平台必需）：
 
-| 能力 | 来源 | 理由 |
-|------|------|------|
-| 认证 + 授权 | `packages/auth` + `packages/rbac` | 任何平台必需 |
-| 后台框架 | `packages/admin-ui`（layout/theme/登录/管理页） | 任何平台必需 |
-| 审计 | `packages/audit` | 安全合规横切基础 |
-| 日志 | `packages/logging-infra` | 任何平台必需 |
-| 迁移 | `packages/migration` | 任何数据库平台必需 |
-| 国际化 | `packages/i18n` | 任何平台必需 |
-| 基础 CRUD | `packages/admin-ui`（ProTable 封装） | 任何平台管理数据必需 |
+| 能力        | 来源                                            | 理由                 |
+| ----------- | ----------------------------------------------- | -------------------- |
+| 认证 + 授权 | `packages/auth` + `packages/rbac`               | 任何平台必需         |
+| 后台框架    | `packages/admin-ui`（layout/theme/登录/管理页） | 任何平台必需         |
+| 审计        | `packages/audit`                                | 安全合规横切基础     |
+| 日志        | `packages/logging-infra`                        | 任何平台必需         |
+| 迁移        | `packages/migration`                            | 任何数据库平台必需   |
+| 国际化      | `packages/i18n`                                 | 任何平台必需         |
+| 基础 CRUD   | `packages/admin-ui`（ProTable 封装）            | 任何平台管理数据必需 |
 
 **不进入 L0**（L1 平台特性 / 上层品牌）：
 
-| 能力 | 归属 | 理由 |
-|------|------|------|
-| Schema 驱动动态建模（schema-engine + schema-ui） | L1 | 平台特性，MediaServo 不需要 |
-| 插件热插拔体系 | L1 | 平台特性 |
-| 品牌色/Logo/品牌字体 | L1+ 注入 | L0 保持中性，BrandTokens 接口注入 |
-| 业务页面（MES 等） | L2 | 业务归应用层 |
+| 能力                                             | 归属     | 理由                              |
+| ------------------------------------------------ | -------- | --------------------------------- |
+| Schema 驱动动态建模（schema-engine + schema-ui） | L1       | 平台特性，MediaServo 不需要       |
+| 插件热插拔体系                                   | L1       | 平台特性                          |
+| 品牌色/Logo/品牌字体                             | L1+ 注入 | L0 保持中性，BrandTokens 接口注入 |
+| 业务页面（MES 等）                               | L2       | 业务归应用层                      |
 
 **主题分层**（机制进 L0，品牌留上层）：
+
 - L0：ThemeProvider/ThemeContext、亮暗切换、持久化、默认中性令牌、BrandTokens 注入接口
 - L1：注入平台品牌令牌（品牌色/字体/Logo）
 - L2：继承或覆盖
 
 ### 4.4 术语表
 
-| 术语 | 含义 |
-|------|------|
-| L0 基石层 | 可被任何平台复用的基础能力集合（AccessBase） |
-| L1 平台层 | 插件热插拔 + Schema 驱动的企业应用平台 |
-| L2 应用层 | 具体业务产品（MES / MediaServo / AUDEDeck） |
-| BrandTokens | L0 admin 暴露的品牌令牌注入接口 |
-| 访问控制 | 认证（Authentication）+ 授权（Authorization）+ 审计（Audit） |
+| 术语        | 含义                                                         |
+| ----------- | ------------------------------------------------------------ |
+| L0 基石层   | 可被任何平台复用的基础能力集合（AccessBase）                 |
+| L1 平台层   | 插件热插拔 + Schema 驱动的企业应用平台                       |
+| L2 应用层   | 具体业务产品（MES / MediaServo / AUDEDeck）                  |
+| BrandTokens | L0 admin 暴露的品牌令牌注入接口                              |
+| 访问控制    | 认证（Authentication）+ 授权（Authorization）+ 审计（Audit） |
 
 ---
 
@@ -199,21 +203,22 @@ L0 基石层       AccessBase（本文档）—— 任何平台必需的基础�
 
 ## 7. 迁移映射
 
-| 现有包 | 去向 | 操作 |
-|--------|------|------|
-| `packages/auth` + `packages/rbac` | `@accessbase/identity` | 合并迁移（IAM 一体：认证+授权+身份模型） |
-| `packages/rbac` 用户/角色管理页 | `@accessbase/identity` | admin-ui 管理页迁入 identity 或保留 admin，实施时定 |
-| `packages/audit` | `@accessbase/audit` | 迁移 |
-| `packages/logging-infra` | `@accessbase/logging` | 迁移 |
-| `packages/i18n` | `@accessbase/i18n` | 迁移 |
-| `packages/migration` | `@accessbase/migration` | 迁移 |
-| `packages/admin-ui` | `@accessbase/admin` | layout/theme/登录/CRUD 框架/管理页迁入；业务页面迁出 |
-| `packages/core` | L1 | 平台层保留（后端引擎 + 组合装配） |
-| `packages/schema-engine` | L1 | 平台层保留 |
-| `packages/plugin-framework` / `manifest-engine` 等 | L1 | 平台层保留 |
-| `packages/health-check` / `rate-limit` / `cli` / `shared-types` | L0 基石层 | 迁移为 `@accessbase/health-check`、`@accessbase/rate-limit`、`@accessbase/cli`、`@accessbase/shared-types` |
+| 现有包                                                          | 去向                    | 操作                                                                                                       |
+| --------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `packages/auth` + `packages/rbac`                               | `@accessbase/identity`  | 合并迁移（IAM 一体：认证+授权+身份模型）                                                                   |
+| `packages/rbac` 用户/角色管理页                                 | `@accessbase/identity`  | admin-ui 管理页迁入 identity 或保留 admin，实施时定                                                        |
+| `packages/audit`                                                | `@accessbase/audit`     | 迁移                                                                                                       |
+| `packages/logging-infra`                                        | `@accessbase/logging`   | 迁移                                                                                                       |
+| `packages/i18n`                                                 | `@accessbase/i18n`      | 迁移                                                                                                       |
+| `packages/migration`                                            | `@accessbase/migration` | 迁移                                                                                                       |
+| `packages/admin-ui`                                             | `@accessbase/admin`     | layout/theme/登录/CRUD 框架/管理页迁入；业务页面迁出                                                       |
+| `packages/core`                                                 | L1                      | 平台层保留（后端引擎 + 组合装配）                                                                          |
+| `packages/schema-engine`                                        | L1                      | 平台层保留                                                                                                 |
+| `packages/plugin-framework` / `manifest-engine` 等              | L1                      | 平台层保留                                                                                                 |
+| `packages/health-check` / `rate-limit` / `cli` / `shared-types` | L0 基石层               | 迁移为 `@accessbase/health-check`、`@accessbase/rate-limit`、`@accessbase/cli`、`@accessbase/shared-types` |
 
 **迁移顺序建议**：
+
 1. 抽出 `@accessbase/identity`（auth + rbac 合并，依赖最少）
 2. 抽出 `@accessbase/logging` / `@accessbase/i18n` / `@accessbase/migration`（无依赖，可并行）
 3. 抽出 `@accessbase/audit`

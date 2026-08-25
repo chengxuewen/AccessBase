@@ -1,14 +1,9 @@
-import { useTranslation } from 'react-i18next'
-import { Card, Col, Row, Statistic } from 'antd'
-import {
-  UserOutlined,
-  TeamOutlined,
-  SafetyOutlined,
-  AuditOutlined,
-} from '@ant-design/icons'
+import { useTranslation } from 'react-i18next';
+import { Card, Col, Row, Statistic } from 'antd';
+import { UserOutlined, TeamOutlined, SafetyOutlined, AuditOutlined } from '@ant-design/icons';
 
 export default function Dashboard() {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   const stats = [
     {
@@ -31,7 +26,7 @@ export default function Dashboard() {
       value: 8432,
       icon: <AuditOutlined style={{ fontSize: 24, color: '#f5222d' }} />,
     },
-  ]
+  ];
 
   return (
     <div>
@@ -40,15 +35,11 @@ export default function Dashboard() {
         {stats.map((stat) => (
           <Col xs={24} sm={12} lg={6} key={stat.title}>
             <Card>
-              <Statistic
-                title={stat.title}
-                value={stat.value}
-                prefix={stat.icon}
-              />
+              <Statistic title={stat.title} value={stat.value} prefix={stat.icon} />
             </Card>
           </Col>
         ))}
       </Row>
     </div>
-  )
+  );
 }

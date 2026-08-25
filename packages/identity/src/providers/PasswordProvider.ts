@@ -114,14 +114,14 @@ export class PasswordProvider implements AuthProvider {
 
     // Check blocked domains
     if (this.config.blockedDomains.length > 0) {
-      if (this.config.blockedDomains.some(d => d.toLowerCase() === domain)) {
+      if (this.config.blockedDomains.some((d) => d.toLowerCase() === domain)) {
         return false;
       }
     }
 
     // Check allowed domains (if specified)
     if (this.config.allowedDomains.length > 0) {
-      return this.config.allowedDomains.some(d => d.toLowerCase() === domain);
+      return this.config.allowedDomains.some((d) => d.toLowerCase() === domain);
     }
 
     return true;

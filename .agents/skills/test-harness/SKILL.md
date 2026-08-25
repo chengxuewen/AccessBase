@@ -1,6 +1,6 @@
 ---
 name: test-harness
-description: "AccessBase TypeScript 全栈自动化测试工具架。从 SDD 文档生成 TDD 测试计划与测试代码骨架、AAA 模式强制执行、SDD-测试一致性验证、覆盖率缺口分析。交互式菜单驱动。支持 Vitest + Playwright + React Testing Library，Phase 感知（跳过未就绪模块）。"
+description: 'AccessBase TypeScript 全栈自动化测试工具架。从 SDD 文档生成 TDD 测试计划与测试代码骨架、AAA 模式强制执行、SDD-测试一致性验证、覆盖率缺口分析。交互式菜单驱动。支持 Vitest + Playwright + React Testing Library，Phase 感知（跳过未就绪模块）。'
 ---
 
 # 测试工具架 (Test Harness)
@@ -14,6 +14,7 @@ description: "AccessBase TypeScript 全栈自动化测试工具架。从 SDD 文
 ## 入口：命令结构
 
 ### `/test-harness`（无参数）
+
 显示场景菜单：
 
 ```
@@ -58,6 +59,7 @@ description: "AccessBase TypeScript 全栈自动化测试工具架。从 SDD 文
 #### Step 1: 识别 SDD 源
 
 自动扫描 `docs/modules/` 目录：
+
 ```
 docs/modules/
 ├── rbac-sdd.md              -> RBAC 权限引擎
@@ -78,28 +80,29 @@ docs/modules/
 
 AccessBase SDD 标准结构（见 `.agents/memorys/conventions.md`）：
 
-| 节 | 标题 | 测试生成用途 |
-|----|------|-------------|
-| §1 | 概要 | 模块定位、职责边界 -> 生成 describe 块标题 |
-| §2 | 接口定义 | TypeScript 类型签名 -> **生成测试函数签名 + 断言** |
-| §3 | 生命周期 | 启动/关闭/加载/卸载顺序 -> 生命周期测试 |
-| §4 | 依赖关系 | 依赖模块列表 -> mock 设置 |
-| §5 | 错误码与错误处理 | 错误码枚举 -> **错误路径测试** |
-| §6 | 安全考虑 | 权限检查点、数据过滤 -> 安全测试 |
-| §7 | Mock 约束 | Phase 1 mock 接口约束 -> **mock 设置** |
-| §8 | 变更记录 | 版本历史（不参与测试生成） |
+| 节  | 标题             | 测试生成用途                                       |
+| --- | ---------------- | -------------------------------------------------- |
+| §1  | 概要             | 模块定位、职责边界 -> 生成 describe 块标题         |
+| §2  | 接口定义         | TypeScript 类型签名 -> **生成测试函数签名 + 断言** |
+| §3  | 生命周期         | 启动/关闭/加载/卸载顺序 -> 生命周期测试            |
+| §4  | 依赖关系         | 依赖模块列表 -> mock 设置                          |
+| §5  | 错误码与错误处理 | 错误码枚举 -> **错误路径测试**                     |
+| §6  | 安全考虑         | 权限检查点、数据过滤 -> 安全测试                   |
+| §7  | Mock 约束        | Phase 1 mock 接口约束 -> **mock 设置**             |
+| §8  | 变更记录         | 版本历史（不参与测试生成）                         |
 
 #### Step 3: Phase 感知过滤
 
 读取 `docs/phase-planning.md`，判定当前 Phase：
 
-| Phase | 可用模块 |
-|-------|---------|
+| Phase    | 可用模块                                                                                                                                 |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Phase 1a | shared-types, plugin-framework, plugin-core, manifest-engine, migration-engine, rbac, audit, i18n, health-check, logging-infra, admin-ui |
-| Phase 1b | plugin-communication, event-bus, cron (BullMQ), api-versioning |
-| Phase 2 | schema-engine, websocket, notification |
+| Phase 1b | plugin-communication, event-bus, cron (BullMQ), api-versioning                                                                           |
+| Phase 2  | schema-engine, websocket, notification                                                                                                   |
 
 自动过滤模块：
+
 - 当前 Phase 未就绪的模块 -> 标记 ⏭️ 跳过，生成注释说明
 - 当前 Phase 的模块 -> 完整生成 TDD 文档
 
@@ -135,22 +138,22 @@ AccessBase SDD 标准结构（见 `.agents/memorys/conventions.md`）：
 对每个测试用例，生成 TypeScript 测试函数：
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { sql } from 'drizzle-orm'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { sql } from 'drizzle-orm';
 
 describe('RBAC Permission Check', () => {
   it('should allow admin user to access all resources', async () => {
     // Arrange
-    const user = await seedAdminUser(testApp)
-    const resource = 'admin.users'
+    const user = await seedAdminUser(testApp);
+    const resource = 'admin.users';
 
     // Act
-    const result = await rbac.can(user.id, resource, 'read')
+    const result = await rbac.can(user.id, resource, 'read');
 
     // Assert
-    expect(result).toBe(true)
-  })
-})
+    expect(result).toBe(true);
+  });
+});
 ```
 
 #### Step 3: 写入并验证
@@ -217,7 +220,7 @@ RBAC.checkRecordRule | test_rbac_record_rule_partial        | ⚠️ 不完整
 
 ```typescript
 // packages/*/src/__tests__/seeds/{entity}.ts
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'crypto';
 
 export function seedAdminUser(overrides: Partial<User> = {}): User {
   return {
@@ -228,7 +231,7 @@ export function seedAdminUser(overrides: Partial<User> = {}): User {
     is_active: true,
     token_version: 0,
     ...overrides,
-  }
+  };
 }
 ```
 
@@ -238,7 +241,7 @@ export function seedAdminUser(overrides: Partial<User> = {}): User {
 
 ```typescript
 // packages/*/src/__tests__/helpers/mockPluginHost.ts
-import { vi } from 'vitest'
+import { vi } from 'vitest';
 
 // 1. async Promise - 所有 mock 方法返回 Promise
 // 2. JSON 序列化/反序列化 - mock 验证序列化往返
@@ -246,24 +249,24 @@ import { vi } from 'vitest'
 // 4. 1-5ms 延迟注入 - 模拟通信延迟
 // 5. AUDE_STRICT_PLUGIN_HOST=1 强制 JSON 序列化往返断言
 
-const STRICT = process.env.AUDE_STRICT_PLUGIN_HOST === '1'
-const MOCK_DELAY_MS = 2 // 1-5ms 范围
+const STRICT = process.env.AUDE_STRICT_PLUGIN_HOST === '1';
+const MOCK_DELAY_MS = 2; // 1-5ms 范围
 
 export function createMockPluginHost() {
   const call = vi.fn(async (method: string, ...args: unknown[]) => {
     // 4. 延迟注入
-    await new Promise((r) => setTimeout(r, MOCK_DELAY_MS))
+    await new Promise((r) => setTimeout(r, MOCK_DELAY_MS));
 
     // 2 + 5. JSON 序列化往返
-    const serialized = JSON.parse(JSON.stringify(args))
+    const serialized = JSON.parse(JSON.stringify(args));
 
     if (STRICT) {
       // 5. 严格模式断言序列化往返无损
-      expect(serialized).toEqual(args)
+      expect(serialized).toEqual(args);
     }
 
-    return mockResponses[method]?.(serialized) ?? undefined
-  })
+    return mockResponses[method]?.(serialized) ?? undefined;
+  });
 
   // 3. 30s 超时
   const withTimeout = vi.fn(async (...args: unknown[]) => {
@@ -272,10 +275,10 @@ export function createMockPluginHost() {
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('PluginHost timeout (30s)')), 30_000),
       ),
-    ])
-  })
+    ]);
+  });
 
-  return { call: withTimeout }
+  return { call: withTimeout };
 }
 ```
 
@@ -301,31 +304,31 @@ export function createMockPluginHost() {
 
 ```typescript
 // packages/admin-ui/__e2e__/auth.e2e.ts
-import { test } from '@playwright/test'
-import { seedE2EData } from '../test-helpers/seed-e2e'
+import { test } from '@playwright/test';
+import { seedE2EData } from '../test-helpers/seed-e2e';
 
 export const preSeed = {
-  admin: true,  // seedAdminUser(): admin / Admin@123
-} as const
+  admin: true, // seedAdminUser(): admin / Admin@123
+} as const;
 
 test.describe('Auth Flow', () => {
   test.beforeEach(async () => {
-    await seedE2EData(preSeed)
-  })
+    await seedE2EData(preSeed);
+  });
 
   test('normal login returns 200', async ({ page }) => {
     // Arrange
-    await page.goto('/login')
+    await page.goto('/login');
 
     // Act
-    await page.fill('[name="username"]', 'admin')
-    await page.fill('[name="password"]', 'Admin@123')
-    await page.click('button[type="submit"]')
+    await page.fill('[name="username"]', 'admin');
+    await page.fill('[name="password"]', 'Admin@123');
+    await page.click('button[type="submit"]');
 
     // Assert
-    await page.waitForURL('/admin')
-  })
-})
+    await page.waitForURL('/admin');
+  });
+});
 ```
 
 ---
@@ -340,26 +343,26 @@ test.describe('Auth Flow', () => {
 
 ```typescript
 // packages/*/src/__tests__/contracts/{module}.contract.test.ts
-import { describe, it } from 'vitest'
-import { z } from 'zod'
-import { validateContract } from '../helpers/validateContract'
-import { withTestApp } from '../helpers/withTestApp'
-import { seedAdminUser } from '../seeds/admin'
-import { userResponseSchema, errorResponseSchema } from '@audebase/shared-types/schemas'
+import { describe, it } from 'vitest';
+import { z } from 'zod';
+import { validateContract } from '../helpers/validateContract';
+import { withTestApp } from '../helpers/withTestApp';
+import { seedAdminUser } from '../seeds/admin';
+import { userResponseSchema, errorResponseSchema } from '@audebase/shared-types/schemas';
 
 describe('GET /api/v1/users', () => {
   it('returns paginated user list', async () => {
     // Arrange
     await withTestApp(async (app) => {
-      await seedAdminUser(app)
+      await seedAdminUser(app);
 
       // Act + Assert
       await validateContract('GET', '/api/v1/users', {
         response: userResponseSchema,
         status: 200,
-      })
-    })
-  })
+      });
+    });
+  });
 
   it('returns AUTH_REQUIRED without token', async () => {
     // Arrange
@@ -368,10 +371,10 @@ describe('GET /api/v1/users', () => {
       await validateContract('GET', '/api/v1/users', {
         response: errorResponseSchema,
         status: 401,
-      })
-    })
-  })
-})
+      });
+    });
+  });
+});
 ```
 
 契约测试验证 API 端点的响应形状与 Zod schema 匹配，存放于 `packages/*/src/__tests__/contracts/`。
@@ -404,10 +407,10 @@ i18n                | 90%      | 85%      | 6/6
 
 #### 覆盖率目标
 
-| Phase | 全局 lines | 核心路径 | 闸门 |
-|-------|-----------|---------|------|
-| Phase 1a | 60% | 80% | CI 警告 |
-| Phase 1b+ | 80% | 80% | CI 强制失败 |
+| Phase     | 全局 lines | 核心路径 | 闸门        |
+| --------- | ---------- | -------- | ----------- |
+| Phase 1a  | 60%        | 80%      | CI 警告     |
+| Phase 1b+ | 80%        | 80%      | CI 强制失败 |
 
 ---
 
@@ -428,8 +431,9 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @playwright/
 #### 生成配置文件
 
 **vitest.config.ts**:
+
 ```typescript
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -445,12 +449,13 @@ export default defineConfig({
       },
     },
   },
-})
+});
 ```
 
 **vitest.workspace.ts** (workspace 分层):
+
 ```typescript
-import { defineWorkspace } from 'vitest/config'
+import { defineWorkspace } from 'vitest/config';
 
 export default defineWorkspace([
   {
@@ -468,10 +473,11 @@ export default defineWorkspace([
       environment: 'node',
     },
   },
-])
+]);
 ```
 
 **test-utils.tsx** (前端组件测试):
+
 ```typescript
 import { render, type RenderOptions } from '@testing-library/react'
 import { type ReactElement } from 'react'
@@ -508,28 +514,29 @@ export function renderWithProviders(
 ```
 
 **createTestApp.ts** (后端集成测试 helper):
+
 ```typescript
-import Redis from 'ioredis-mock'
-import { type FastifyInstance } from 'fastify'
-import { type Queue } from 'bullmq'
-import { sql } from 'drizzle-orm'
+import Redis from 'ioredis-mock';
+import { type FastifyInstance } from 'fastify';
+import { type Queue } from 'bullmq';
+import { sql } from 'drizzle-orm';
 
 interface TestAppOptions {
-  withRedis?: boolean
-  withBullMQ?: boolean
-  queues?: string[]
+  withRedis?: boolean;
+  withBullMQ?: boolean;
+  queues?: string[];
   seeds?: {
-    admin?: boolean
-    tenant?: string
-  }
+    admin?: boolean;
+    tenant?: string;
+  };
 }
 
 interface TestApp {
-  app: FastifyInstance
-  db: DrizzleDB
-  redis: { client: Redis; publisher: Redis; subscriber: Redis } | null
-  queues: Record<string, Queue> | null
-  withTransaction: <T>(fn: (tx: DrizzleDB) => Promise<T>) => Promise<T>
+  app: FastifyInstance;
+  db: DrizzleDB;
+  redis: { client: Redis; publisher: Redis; subscriber: Redis } | null;
+  queues: Record<string, Queue> | null;
+  withTransaction: <T>(fn: (tx: DrizzleDB) => Promise<T>) => Promise<T>;
 }
 
 export async function createTestApp(options: TestAppOptions = {}): Promise<TestApp> {
@@ -541,25 +548,24 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
 }
 
 // 事务回滚 helper
-export async function withTestApp(
-  fn: (app: TestApp) => Promise<void>,
-): Promise<void> {
-  const app = await createTestApp()
+export async function withTestApp(fn: (app: TestApp) => Promise<void>): Promise<void> {
+  const app = await createTestApp();
   await app.db.transaction(async (tx) => {
     try {
-      await fn(app.withTransaction(tx))
-      await tx.rollback()
+      await fn(app.withTransaction(tx));
+      await tx.rollback();
     } catch (error: unknown) {
-      await tx.rollback()
-      throw error
+      await tx.rollback();
+      throw error;
     }
-  })
+  });
 }
 ```
 
 **playwright.config.ts** (E2E 测试):
+
 ```typescript
-import { defineConfig } from '@playwright/test'
+import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './packages/admin-ui/__e2e__',
@@ -575,7 +581,7 @@ export default defineConfig({
     port: 3000,
     reuseExistingServer: !process.env.CI,
   },
-})
+});
 ```
 
 ---
@@ -587,6 +593,7 @@ export default defineConfig({
 ```
 
 依次执行:
+
 1. `init` - 确保测试基础设施就绪
 2. `gen-tdd` - 从 SDD 生成 TDD 文档
 3. `gen-tests` - 从 TDD 文档生成测试代码骨架
@@ -605,26 +612,35 @@ export default defineConfig({
 ```typescript
 // packages/*/src/__tests__/seeds/admin.ts
 export async function seedAdminUser(testApp: TestApp) {
-  const admin = await testApp.db.insert(users).values({
-    username: 'admin',
-    password_hash: await hash('Admin@123'),
-    token_version: 0,
-    is_active: true,
-  }).returning().get()
-  return admin
+  const admin = await testApp.db
+    .insert(users)
+    .values({
+      username: 'admin',
+      password_hash: await hash('Admin@123'),
+      token_version: 0,
+      is_active: true,
+    })
+    .returning()
+    .get();
+  return admin;
 }
 
 // packages/*/src/__tests__/seeds/tenant.ts
 export async function seedTestTenant(testApp: TestApp, slug = 'test-corp') {
-  return testApp.db.insert(tenants).values({
-    slug,
-    name: 'Test Corporation',
-    status: 'active',
-  }).returning().get()
+  return testApp.db
+    .insert(tenants)
+    .values({
+      slug,
+      name: 'Test Corporation',
+      status: 'active',
+    })
+    .returning()
+    .get();
 }
 ```
 
 **约定**:
+
 - 命名: `seed{Noun}()`
 - 幂等性: 先检查记录是否存在，避免重复
 - 隔离: `createTestApp()` 提供独立 DB 事务 (BEGIN/ROLLBACK)
@@ -637,12 +653,12 @@ export async function seedTestTenant(testApp: TestApp, slug = 'test-corp') {
 ```typescript
 // 每个集成测试: BEGIN -> seed -> test -> ROLLBACK
 beforeEach(async () => {
-  await db.execute(sql`BEGIN`)
-})
+  await db.execute(sql`BEGIN`);
+});
 
 afterEach(async () => {
-  await db.execute(sql`ROLLBACK`)
-})
+  await db.execute(sql`ROLLBACK`);
+});
 ```
 
 或使用 `withTestApp` helper：
@@ -650,12 +666,12 @@ afterEach(async () => {
 ```typescript
 await withTestApp(async (app) => {
   // Arrange
-  await seedAdminUser(app)
+  await seedAdminUser(app);
   // Act
-  const result = await app.app.inject({ method: 'GET', url: '/api/v1/users' })
+  const result = await app.app.inject({ method: 'GET', url: '/api/v1/users' });
   // Assert
-  expect(result.statusCode).toBe(200)
-})
+  expect(result.statusCode).toBe(200);
+});
 // 事务自动回滚
 ```
 
@@ -674,19 +690,19 @@ Phase 1a inline mock 必须满足 5 项约束（见 SDD §7 + `docs/plugin-archi
 使用 `ioredis-mock` 透明替换 `ioredis`（见 `docs/modules/redis-mock-guide.md`）：
 
 ```typescript
-import Redis from 'ioredis-mock'
+import Redis from 'ioredis-mock';
 
 // 透明替换 - API 完全兼容
-const redis = new Redis()
-await redis.set('key', 'value')
-const val = await redis.get('key') // 'value'
+const redis = new Redis();
+await redis.set('key', 'value');
+const val = await redis.get('key'); // 'value'
 
 // Pub/Sub mock 原生支持
-await redis.subscribe('events')
+await redis.subscribe('events');
 redis.on('message', (channel, message) => {
   // channel === 'events'
-})
-await redis.publish('events', JSON.stringify({ type: 'test' }))
+});
+await redis.publish('events', JSON.stringify({ type: 'test' }));
 ```
 
 ### BullMQ Mock
@@ -694,13 +710,15 @@ await redis.publish('events', JSON.stringify({ type: 'test' }))
 BullMQ 内置 testMode，完全脱离 Redis：
 
 ```typescript
-import { Queue } from 'bullmq'
+import { Queue } from 'bullmq';
 
-beforeEach(() => { Queue.testMode = true })
+beforeEach(() => {
+  Queue.testMode = true;
+});
 afterEach(async () => {
-  await Queue.testMode.clear()
-  Queue.testMode = false
-})
+  await Queue.testMode.clear();
+  Queue.testMode = false;
+});
 ```
 
 ### 前端组件测试
@@ -731,64 +749,64 @@ it('renders user email', () => {
 
 ```typescript
 // packages/*/src/__tests__/contracts/{module}.contract.test.ts
-import { validateContract } from '../helpers/validateContract'
-import { withTestApp } from '../helpers/withTestApp'
-import { userResponseSchema, errorResponseSchema } from '@audebase/shared-types/schemas'
+import { validateContract } from '../helpers/validateContract';
+import { withTestApp } from '../helpers/withTestApp';
+import { userResponseSchema, errorResponseSchema } from '@audebase/shared-types/schemas';
 
 describe('GET /api/v1/users', () => {
   it('returns paginated user list', async () => {
     await withTestApp(async (app) => {
-      await seedAdminUser(app)
+      await seedAdminUser(app);
       await validateContract('GET', '/api/v1/users', {
         response: userResponseSchema,
         status: 200,
-      })
-    })
-  })
+      });
+    });
+  });
 
   it('returns error without auth', async () => {
     await withTestApp(async () => {
       await validateContract('GET', '/api/v1/users', {
         response: errorResponseSchema,
         status: 401,
-      })
-    })
-  })
-})
+      });
+    });
+  });
+});
 ```
 
 ### E2E 测试 (Playwright)
 
 5 核心流程（见 `docs/modules/e2e-test-flows.md`），使用 preSeed 声明模式：
 
-| 流程 | 文件 | preSeed |
-|------|------|---------|
-| 认证 | auth.e2e.ts | `{ admin: true }` |
-| 插件管理 | plugins.e2e.ts | `{ admin: true, plugins: 'zero' }` |
-| 用户管理 | users.e2e.ts | `{ admin: true, tenant: 'e2e-tenant', users: [...] }` |
-| 角色管理 | roles.e2e.ts | `{ admin: true, roles: ['admin', 'member'] }` |
-| 健康检查 | health.e2e.ts | `{}` (无需种子) |
+| 流程     | 文件           | preSeed                                               |
+| -------- | -------------- | ----------------------------------------------------- |
+| 认证     | auth.e2e.ts    | `{ admin: true }`                                     |
+| 插件管理 | plugins.e2e.ts | `{ admin: true, plugins: 'zero' }`                    |
+| 用户管理 | users.e2e.ts   | `{ admin: true, tenant: 'e2e-tenant', users: [...] }` |
+| 角色管理 | roles.e2e.ts   | `{ admin: true, roles: ['admin', 'member'] }`         |
+| 健康检查 | health.e2e.ts  | `{}` (无需种子)                                       |
 
 ### 集成测试边界
 
 每个模块边界至少 2 个集成测试用例（见 `docs/modules/test-seed-strategy.md` §6）：
 
-| 边界 | 最小用例数 |
-|------|:----------:|
-| DB -> ORM | 2+ |
-| DB -> Migration | 2+ |
-| API -> DB | 3+ (GET + POST + 错误路径) |
-| Auth -> JWT | 3+ (签发 + 验证 + 过期) |
-| Config -> env | 2+ |
-| RateLimit -> IP | 2+ |
+| 边界            |         最小用例数         |
+| --------------- | :------------------------: |
+| DB -> ORM       |             2+             |
+| DB -> Migration |             2+             |
+| API -> DB       | 3+ (GET + POST + 错误路径) |
+| Auth -> JWT     |  3+ (签发 + 验证 + 过期)   |
+| Config -> env   |             2+             |
+| RateLimit -> IP |             2+             |
 
 ### 环境要求
 
-| 组件 | 要求 |
-|------|------|
-| 数据库 | **真实 PostgreSQL**（不允许 SQLite mock）。通过 `pg_tmp` 或 Docker 创建临时数据库 |
-| Redis | **允许 mock**。使用 `ioredis-mock` 替代真实 Redis |
-| 文件系统 | 使用 `os.tmpdir()` 临时目录，测试结束自动清理 |
+| 组件     | 要求                                                                              |
+| -------- | --------------------------------------------------------------------------------- |
+| 数据库   | **真实 PostgreSQL**（不允许 SQLite mock）。通过 `pg_tmp` 或 Docker 创建临时数据库 |
+| Redis    | **允许 mock**。使用 `ioredis-mock` 替代真实 Redis                                 |
+| 文件系统 | 使用 `os.tmpdir()` 临时目录，测试结束自动清理                                     |
 
 ---
 
@@ -855,12 +873,12 @@ packages/admin-ui/
 
 自动读取 `docs/phase-planning.md` 确认当前 Phase。
 
-| 检查点 | 行为 |
-|--------|------|
+| 检查点               | 行为                                 |
+| -------------------- | ------------------------------------ |
 | 模块所需依赖尚未定义 | 生成 stub 或跳过，标注 "⏭️ Phase 1b" |
-| Phase 1a 模块 | 完整填充 + 断言 |
-| Phase 1b 模块 | AAA 骨架（依赖未就绪时） |
-| Phase 2 模块 | stub 占位 |
+| Phase 1a 模块        | 完整填充 + 断言                      |
+| Phase 1b 模块        | AAA 骨架（依赖未就绪时）             |
+| Phase 2 模块         | stub 占位                            |
 
 Phase 变化时，重新运行 `gen-tests` -> 之前跳过的测试自动填充。
 

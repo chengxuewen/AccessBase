@@ -7,10 +7,10 @@
 
 AUDEBase 通过两条独立路径接入大模型:
 
-| 供应商 | 接入方式 | 特点 |
-|--------|----------|------|
-| **DeepSeek 官方** | 直连 API (`api.deepseek.com`) | 延迟低，稳定性高，模型版本官方可控 |
-| **New API 网关** | 别名代理 (`192.168.100.47:3000`) | 多供应商聚合，自动降级，模型动态切换 |
+| 供应商            | 接入方式                         | 特点                                 |
+| ----------------- | -------------------------------- | ------------------------------------ |
+| **DeepSeek 官方** | 直连 API (`api.deepseek.com`)    | 延迟低，稳定性高，模型版本官方可控   |
+| **New API 网关**  | 别名代理 (`192.168.100.47:3000`) | 多供应商聚合，自动降级，模型动态切换 |
 
 New API 网关内部聚合 DeepSeek / Qwen / Kimi / Doubao / GLM / MiniMax 等供应商，
 实现单 provider 多模型降级。网关侧修改别名映射即可全局切换模型，项目配置零修改。
@@ -21,13 +21,13 @@ DeepSeek 官方直连作为 New API 网关不可用时的独立降级路径，�
 
 ### 双供应商对照表
 
-| 层级 | 别名 | 用途 | DeepSeek 官方 | New API 网关 | New API Fallback 1 | New API Fallback 2 |
-|------|------|------|---------------|-------------|-------------------|-------------------|
-| premium-max | 极致推理 | 最复杂任务 | `deepseek-reasoner` | `deepseek-v4-pro-max` | `kimi-k2.6` | `minimax-m3` |
-| premium | 主力 | 编排/构建/规划 | `deepseek-chat` | `deepseek-v4-pro` | `qwen3.7-max` | `glm-5.1` |
-| fast | 快速 | 执行/搜索/审查 | `deepseek-coder` | `deepseek-v4-flash` | `qwen3.6-flash` | `doubao-seed-2.0-lite` |
-| vision | 视觉 | 多模态分析 | `deepseek-vl2` | `doubao-seed-2.0-pro` | `qwen3.6-plus` | — |
-| lite | 轻量 | 极简/琐碎任务 | `deepseek-chat` | `qwen3-32b` | `qwen3-8b` | — |
+| 层级        | 别名     | 用途           | DeepSeek 官方       | New API 网关          | New API Fallback 1 | New API Fallback 2     |
+| ----------- | -------- | -------------- | ------------------- | --------------------- | ------------------ | ---------------------- |
+| premium-max | 极致推理 | 最复杂任务     | `deepseek-reasoner` | `deepseek-v4-pro-max` | `kimi-k2.6`        | `minimax-m3`           |
+| premium     | 主力     | 编排/构建/规划 | `deepseek-chat`     | `deepseek-v4-pro`     | `qwen3.7-max`      | `glm-5.1`              |
+| fast        | 快速     | 执行/搜索/审查 | `deepseek-coder`    | `deepseek-v4-flash`   | `qwen3.6-flash`    | `doubao-seed-2.0-lite` |
+| vision      | 视觉     | 多模态分析     | `deepseek-vl2`      | `doubao-seed-2.0-pro` | `qwen3.6-plus`     | —                      |
+| lite        | 轻量     | 极简/琐碎任务  | `deepseek-chat`     | `qwen3-32b`           | `qwen3-8b`         | —                      |
 
 ### New API 别名映射说明
 
@@ -109,49 +109,49 @@ lite-1            → qwen3-8b                   # Fallback
 
 ### Agents
 
-| Agent | 层级 | 说明 |
-|-------|------|------|
-| oracle | premium-max | 架构咨询、技术决策 |
-| sisyphus | premium | 主协调 Agent |
-| hephaestus | premium | 构建管理 |
-| prometheus | premium | 计划生成 |
-| atlas | premium | 实施执行 |
-| librarian | fast | 库/文档搜索 |
-| explore | fast | 代码探索 |
-| metis | fast | 度量和数据分析 |
-| momus | fast | 审查和批评 |
-| sisyphus-junior | fast | 简单执行 |
-| multimodal-looker | vision | 视觉分析 |
+| Agent             | 层级        | 说明               |
+| ----------------- | ----------- | ------------------ |
+| oracle            | premium-max | 架构咨询、技术决策 |
+| sisyphus          | premium     | 主协调 Agent       |
+| hephaestus        | premium     | 构建管理           |
+| prometheus        | premium     | 计划生成           |
+| atlas             | premium     | 实施执行           |
+| librarian         | fast        | 库/文档搜索        |
+| explore           | fast        | 代码探索           |
+| metis             | fast        | 度量和数据分析     |
+| momus             | fast        | 审查和批评         |
+| sisyphus-junior   | fast        | 简单执行           |
+| multimodal-looker | vision      | 视觉分析           |
 
 ### Categories (task() 分发)
 
-| 分类 | 层级 | 说明 |
-|------|------|------|
-| visual-engineering | premium | 可视化工程 |
-| ultrabrain | premium-max | 超深度思考任务 |
-| deep | premium | 深度分析 |
-| unspecified-high | premium | 高复杂度未分类 |
-| artistry | fast | 创作/文档书写 |
-| quick | fast | 简单任务 |
-| unspecified-low | fast | 低复杂度未分类 |
-| writing | fast | 文档写作 |
+| 分类               | 层级        | 说明           |
+| ------------------ | ----------- | -------------- |
+| visual-engineering | premium     | 可视化工程     |
+| ultrabrain         | premium-max | 超深度思考任务 |
+| deep               | premium     | 深度分析       |
+| unspecified-high   | premium     | 高复杂度未分类 |
+| artistry           | fast        | 创作/文档书写  |
+| quick              | fast        | 简单任务       |
+| unspecified-low    | fast        | 低复杂度未分类 |
+| writing            | fast        | 文档写作       |
 
 ## 选择指南
 
 ### 什么时候用什么层级
 
-| 任务类型 | 推荐层级 | 备选 |
-|----------|----------|------|
-| 架构设计 / 系统评审 | premium-max | premium |
-| Agent 编排 / 规划 | premium | fast（简单步骤） |
-| 代码编写 / 重构 | premium | fast（小改动） |
-| 文件搜索 / grep | fast | — |
-| Bug 调试 | premium | premium-max（难复现 bug） |
-| UI 截屏分析 | vision | premium（无视觉需求） |
-| 日志摘要 / 格式化 | lite | fast |
-| 代码审查 | premium | fast（简单格式审查） |
-| 安全审计 | premium-max | premium |
-| 简单问答 | lite | fast |
+| 任务类型            | 推荐层级    | 备选                      |
+| ------------------- | ----------- | ------------------------- |
+| 架构设计 / 系统评审 | premium-max | premium                   |
+| Agent 编排 / 规划   | premium     | fast（简单步骤）          |
+| 代码编写 / 重构     | premium     | fast（小改动）            |
+| 文件搜索 / grep     | fast        | —                         |
+| Bug 调试            | premium     | premium-max（难复现 bug） |
+| UI 截屏分析         | vision      | premium（无视觉需求）     |
+| 日志摘要 / 格式化   | lite        | fast                      |
+| 代码审查            | premium     | fast（简单格式审查）      |
+| 安全审计            | premium-max | premium                   |
+| 简单问答            | lite        | fast                      |
 
 ### 快速判断
 
@@ -184,6 +184,7 @@ New API 网关 → 自动降级 → DeepSeek 官方直连
 ```
 
 OpenCode 的 `runtime_fallback` 机制自动处理上述逻辑:
+
 1. 先尝试 New API 网关别名（如 `new-api/premium`）
 2. 失败时尝试 New API Fallback 模型（`new-api/premium-1`, `new-api/premium-2`）
 3. 全部失败后，可手工切换配置到 DeepSeek 官方模型 ID
@@ -208,12 +209,12 @@ OpenCode 的 `runtime_fallback` 机制自动处理上述逻辑:
 
 `runtime_fallback` 全局配置处理网络级错误:
 
-| 配置项 | 值 | 说明 |
-|--------|-----|------|
-| retry_on_errors | 402, 429, 500, 502, 503, 504 | 触发 fallback 的 HTTP 状态码 |
-| max_fallback_attempts | 2 | 最多尝试 2 次降级 |
-| cooldown_seconds | 60 | 失败后冷却 60 秒 |
-| timeout_seconds | 60 | 单次请求超时 |
+| 配置项                | 值                           | 说明                         |
+| --------------------- | ---------------------------- | ---------------------------- |
+| retry_on_errors       | 402, 429, 500, 502, 503, 504 | 触发 fallback 的 HTTP 状态码 |
+| max_fallback_attempts | 2                            | 最多尝试 2 次降级            |
+| cooldown_seconds      | 60                           | 失败后冷却 60 秒             |
+| timeout_seconds       | 60                           | 单次请求超时                 |
 
 ### Fallback 数据流
 

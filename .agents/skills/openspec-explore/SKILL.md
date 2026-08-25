@@ -9,7 +9,7 @@ compatibility: Designed for Claude Code, GitHub Copilot, and similar agents.
 disable-model-invocation: false
 metadata:
   author: openspec
-  version: "1.0"
+  version: '1.0'
   category: workflow
   project: MSRCS
 ---
@@ -38,12 +38,14 @@ Enter explore mode. Think deeply. Visualize freely. Follow the conversation wher
 ## What You Might Do
 
 **Explore the problem space**
+
 - Ask clarifying questions that emerge from what they said
 - Challenge assumptions about C++/Qt/ROS2 architecture
 - Reframe the problem in MSRCS context
 - Find analogies from similar remote control station systems
 
 **Investigate the MSRCS codebase**
+
 - Map existing architecture relevant to the discussion
   - `src/ms_rcs_hmi/` — HMI modules (window, webview, dashboard)
   - `src/ms_rcs_control/` — Control client
@@ -55,12 +57,14 @@ Enter explore mode. Think deeply. Visualize freely. Follow the conversation wher
 - Surface hidden complexity (thread safety, DDS QoS, X11 embedding)
 
 **Compare options**
+
 - Brainstorm multiple C++ approaches
 - Build comparison tables (e.g., QWidget vs QGraphicsView vs QML)
 - Sketch tradeoffs for Qt/ROS2 integration
 - Recommend a path (if asked)
 
 **Visualize**
+
 ```
 ┌─────────────────────────────────────────┐
 │     Use ASCII diagrams liberally        │
@@ -82,6 +86,7 @@ Enter explore mode. Think deeply. Visualize freely. Follow the conversation wher
 ```
 
 **Surface risks and unknowns**
+
 - Identify what could go wrong with Qt/ROS2 integration
 - Find gaps in understanding of the existing code
 - Suggest spikes or investigations (e.g., "test WebRTC with pixi OpenSSL")
@@ -98,6 +103,7 @@ cat version.txt     # Current version
 ```
 
 This tells you:
+
 - What packages are present
 - The current version
 - What the user might be working on
@@ -114,6 +120,7 @@ If the user mentions an existing change or work-in-progress:
 ### When no change exists
 
 Think freely. When insights crystallize, you might offer:
+
 - "This feels solid enough to start a proposal. Want me to create one?"
 - Or keep exploring — no pressure to formalize
 
@@ -123,15 +130,15 @@ Think freely. When insights crystallize, you might offer:
 
 When exploring, keep these MSRCS specifics in mind:
 
-| Concern | Details |
-|---------|---------|
-| Build system | pixi env → make.sh / colcon |
-| C++ standard | C++17, RAII, smart pointers |
-| Qt version | Qt5.15 (conda-forge) |
-| ROS2 version | Jazzy (ROS 2 Jazzy Jalisco) |
-| Process mgmt | PM2 + ms_rcs.sh |
-| Config | C++ config_server + Python FastAPI + React |
-| HMI | Multi-process with QWindow::fromWinId embedding |
+| Concern      | Details                                         |
+| ------------ | ----------------------------------------------- |
+| Build system | pixi env → make.sh / colcon                     |
+| C++ standard | C++17, RAII, smart pointers                     |
+| Qt version   | Qt5.15 (conda-forge)                            |
+| ROS2 version | Jazzy (ROS 2 Jazzy Jalisco)                     |
+| Process mgmt | PM2 + ms_rcs.sh                                 |
+| Config       | C++ config_server + Python FastAPI + React      |
+| HMI          | Multi-process with QWindow::fromWinId embedding |
 
 ---
 
@@ -149,6 +156,7 @@ When exploring, keep these MSRCS specifics in mind:
 ## Handling Different Entry Points
 
 **User brings a vague idea:**
+
 ```
 User: I'm thinking about adding a video feed panel
 
@@ -170,6 +178,7 @@ You: Video feed could go in several places. Let me think about this...
 ```
 
 **User brings a specific problem:**
+
 ```
 User: The HMI embedding is broken
 
@@ -190,6 +199,7 @@ You: [reads test_graphics_host.cpp and related files]
 ```
 
 **User wants to compare options:**
+
 ```
 User: Should we use QML or QWidget for the dashboard?
 
@@ -211,12 +221,14 @@ You: Let's look at what MSRCS already does...
 ## Ending Discovery
 
 There's no required ending. Discovery might:
+
 - **Flow into a proposal**: "Ready to start? I can create a change proposal."
 - **Result in artifact updates**: "Updated design notes with these decisions"
 - **Just provide clarity**: User has what they need, moves on
 - **Continue later**: "We can pick this up anytime"
 
 When it feels like things are crystallizing, you might summarize:
+
 ```
 ## What We Figured Out
 

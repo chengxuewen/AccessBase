@@ -55,9 +55,7 @@ describe('AuthManager', () => {
       authManager.register(provider);
 
       expect(authManager.getProvider('password')).toBe(provider);
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('password'),
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('password'));
     });
 
     it('should warn when overwriting an existing provider', () => {
@@ -67,9 +65,7 @@ describe('AuthManager', () => {
       authManager.register(provider1);
       authManager.register(provider2);
 
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('already registered'),
-      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('already registered'));
       expect(authManager.getProvider('password')).toBe(provider2);
     });
 
@@ -94,7 +90,7 @@ describe('AuthManager', () => {
       const enabled = authManager.getEnabledProviders();
 
       expect(enabled).toHaveLength(2);
-      expect(enabled.map(p => p.name)).toEqual(['a', 'c']);
+      expect(enabled.map((p) => p.name)).toEqual(['a', 'c']);
     });
 
     it('should return empty array when no providers are registered', () => {
@@ -126,7 +122,10 @@ describe('AuthManager', () => {
       });
       authManager.register(provider);
 
-      const result = await authManager.authenticate('password', { email: 'test@example.com', password: 'pass' });
+      const result = await authManager.authenticate('password', {
+        email: 'test@example.com',
+        password: 'pass',
+      });
 
       expect(result.success).toBe(true);
       expect(result.user).toBe(user);
@@ -139,9 +138,7 @@ describe('AuthManager', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('AUTH_PROVIDER_NOT_FOUND');
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('nonexistent'),
-      );
+      expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('nonexistent'));
     });
 
     it('should return AUTH_PROVIDER_DISABLED for disabled provider', async () => {
@@ -152,9 +149,7 @@ describe('AuthManager', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('AUTH_PROVIDER_DISABLED');
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('disabled'),
-      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('disabled'));
     });
 
     it('should return failure result when provider authentication fails', async () => {
@@ -169,9 +164,7 @@ describe('AuthManager', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('INVALID_CREDENTIALS');
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('failed'),
-      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('failed'));
     });
 
     it('should return AUTH_ERROR when provider throws an exception', async () => {
@@ -189,9 +182,13 @@ describe('AuthManager', () => {
 
   describe('getPublicProviderConfigs', () => {
     it('should return desensitized configs for enabled providers', () => {
-      authManager.register(createMockProvider({ name: 'password', type: 'password', enabled: true }));
+      authManager.register(
+        createMockProvider({ name: 'password', type: 'password', enabled: true }),
+      );
       authManager.register(createMockProvider({ name: 'github', type: 'oauth', enabled: true }));
-      authManager.register(createMockProvider({ name: 'disabled', type: 'webauthn', enabled: false }));
+      authManager.register(
+        createMockProvider({ name: 'disabled', type: 'webauthn', enabled: false }),
+      );
 
       const configs = authManager.getPublicProviderConfigs();
 

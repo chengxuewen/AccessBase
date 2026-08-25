@@ -52,7 +52,9 @@ export class OAuthProvider implements AuthProvider {
   /**
    * Exchange code for tokens
    */
-  async exchangeCodeForTokens(code: string): Promise<{ accessToken: string; refreshToken?: string }> {
+  async exchangeCodeForTokens(
+    code: string,
+  ): Promise<{ accessToken: string; refreshToken?: string }> {
     logger.debug(`Exchanging code for tokens with provider: ${this.name}`);
     // Implementation will make HTTP request to token endpoint
     throw new Error('Not implemented');
@@ -61,7 +63,9 @@ export class OAuthProvider implements AuthProvider {
   /**
    * Get user info from provider
    */
-  async getUserInfo(accessToken: string): Promise<{ id: string; email: string; name: string; avatar?: string }> {
+  async getUserInfo(
+    accessToken: string,
+  ): Promise<{ id: string; email: string; name: string; avatar?: string }> {
     logger.debug(`Getting user info from provider: ${this.name}`);
     // Implementation will make HTTP request to userinfo endpoint
     throw new Error('Not implemented');

@@ -9,7 +9,7 @@ compatibility: Designed for Claude Code, GitHub Copilot, and similar agents.
 disable-model-invocation: false
 metadata:
   author: openspec
-  version: "1.0"
+  version: '1.0'
   category: workflow
   project: AccessBase
 ---
@@ -31,6 +31,7 @@ Verify that an AccessBase change proposal was implemented correctly. This is the
 If a name is provided, use it. Otherwise infer from context or list `.sisyphus/plans/` directories.
 
 Read the proposal artifacts:
+
 - `.sisyphus/plans/<change-name>/proposal.md` - original goals and success criteria
 - `.sisyphus/plans/<change-name>/design.md` - design decisions to verify
 - `.sisyphus/plans/<change-name>/tasks.md` - task completion status
@@ -40,6 +41,7 @@ Read the proposal artifacts:
 Check the tasks file: all tasks should be marked `[x]` (complete).
 
 If incomplete tasks exist:
+
 - Display warning listing incomplete tasks
 - Ask the user if they want to proceed anyway or complete remaining tasks
 
@@ -78,13 +80,13 @@ All tests MUST pass. Verify coverage meets 80% minimum threshold.
 
 Compare the implementation against `design.md`:
 
-| Criterion | Check |
-|-----------|-------|
-| Architecture matches design | All new classes/functions exist as specified |
-| Interfaces match SDD spec | SDD-defined APIs match implementation signatures |
-| API endpoints correct | Fastify routes match api-specification.md |
-| Database schema correct | Drizzle schema matches database-schema.md DDL |
-| No scope creep | No unrelated modifications |
+| Criterion                   | Check                                            |
+| --------------------------- | ------------------------------------------------ |
+| Architecture matches design | All new classes/functions exist as specified     |
+| Interfaces match SDD spec   | SDD-defined APIs match implementation signatures |
+| API endpoints correct       | Fastify routes match api-specification.md        |
+| Database schema correct     | Drizzle schema matches database-schema.md DDL    |
+| No scope creep              | No unrelated modifications                       |
 
 ### 7. Regression check
 
@@ -125,6 +127,7 @@ Action needed before archive.
 ## Additional Checks
 
 ### For TypeScript changes
+
 - `lsp_diagnostics` on all `.ts`/`.tsx` files
 - Build succeeds with `pnpm build`
 - No new TypeScript compiler warnings added
@@ -133,12 +136,14 @@ Action needed before archive.
 - Error handling uses `UserError`/`SystemError` with `ErrorCode` enum
 
 ### For Database changes
+
 - Drizzle schema matches `docs/modules/database-schema.md`
 - Migrations follow D1.7 three-phase pattern (preload/postsync/postload)
 - `tenant_id` column present where required by D4
 - Indexes follow D9.1 (tenant_id as first column)
 
 ### For Frontend changes
+
 - Ant Design 5 components used (no other UI libraries)
 - `useTranslation(pluginPkgName)` for i18n
 - ErrorBoundary wrapping plugin routes (D20)
@@ -146,6 +151,7 @@ Action needed before archive.
 - ProLayout menu registration via `this.app.router.add()` (D16)
 
 ### For Plugin changes
+
 - manifest.yaml follows D1.5 spec
 - Plugin lifecycle hooks match D1.4 (7 hooks)
 - No direct DB access (D12 Core data API proxy)
