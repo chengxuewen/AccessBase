@@ -274,11 +274,11 @@ export async function setupRoutes(app: FastifyInstance) {
         tags: ['setup'],
         body: {
           type: 'object',
-          required: ['siteName', 'siteUrl', 'adminEmail'],
+          required: ['siteName'],
           properties: {
             siteName: { type: 'string', minLength: 1 },
-            siteUrl: { type: 'string', format: 'uri' },
-            adminEmail: { type: 'string', format: 'email' },
+            siteUrl: { type: 'string' },
+            adminEmail: { type: 'string' },
             smtpHost: { type: 'string' },
             smtpPort: { type: 'number' },
             smtpUser: { type: 'string' },

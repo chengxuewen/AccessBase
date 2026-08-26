@@ -68,7 +68,7 @@ export default function SetupWizard() {
           current={current}
           items={steps.map((s, i) => ({
             ...s,
-            ariaLabel: `Step ${i + 1}: ${s.title}`,
+            'aria-label': `Step ${i + 1}: ${s.title}`,
           }))}
           direction={md ? 'horizontal' : 'vertical'}
           style={{ marginBottom: 24 }}
