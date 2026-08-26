@@ -73,7 +73,6 @@ export const useSetupStore = create<SetupState>()(
     {
       name: 'accessbase-setup-store',
       partialize: (state) => ({
-        currentStep: state.currentStep,
         formData: state.formData,
       }),
     },
