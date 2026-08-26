@@ -13,7 +13,7 @@ AccessBase CLI
 Usage: ./accessbase.sh <command> [options]
 
 Development:
-  dev              Local dev (auto-start DB + Redis + backend + frontend)
+  dev              Native dev (Pixi-managed PG + Redis + backend + frontend)
   dev:compose      Compose mode dev (DB + Redis in separate containers)
   dev:container   Docker all-in-one dev (single container)
   dev:native       Native dev (Pixi-managed PG + Redis + backend + frontend)
@@ -28,9 +28,9 @@ Development:
   logs:compose     Show compose logs
 
 Production:
-  start            Production start (Compose mode)
+  start            Start native infra only (PG + Redis)
   start:container Production start (all-in-one mode)
-  stop            Stop all services
+  stop             Stop all native services
   stop:container  Stop container services
   status:container Show container status
   logs:container  Show container logs
@@ -54,8 +54,8 @@ Docker:
 
 Other:
   clean            Clean build artifacts
-  reset            Reset database and restart (for testing initialization)
-  logs             Show service logs
+  reset            Reset native data and reinitialize
+  status           Show native service status
   status           Show project status
 EOF
 }
@@ -582,7 +582,7 @@ cmd_reset() {
 # Main
 case "${1:-}" in
     # Development
-    dev)            log_warn "'dev' is deprecated, use 'dev:compose' or 'dev:native'"; cmd_dev_compose ;;
+    dev)            cmd_dev_native ;;
     dev:compose)    cmd_dev_compose ;;
     dev:container)  cmd_dev_container ;;
     # Native commands
@@ -600,7 +600,7 @@ case "${1:-}" in
 
 
     # Production
-    start)          log_warn "'start' is deprecated, use 'start:prod'"; cmd_start ;;
+    start)          cmd_start_native ;;
     start:container) cmd_start_container ;;
     stop:container)  cmd_stop_container ;;
     status:container) cmd_status_container ;;
@@ -608,7 +608,7 @@ case "${1:-}" in
     # Deprecated aliases
     dev:docker)      log_warn "dev:docker is deprecated, use dev:container"; cmd_dev_container ;;
     start:docker)    log_warn "start:docker is deprecated, use start:container"; cmd_start_container ;;
-    stop)           log_warn "'stop' is deprecated, use 'stop:compose' or 'stop:native'"; cmd_stop ;;
+    stop)           cmd_stop_native ;;
 
     # Build & Test
     build)          cmd_build ;;
@@ -629,9 +629,9 @@ case "${1:-}" in
 
     # Other
     clean)          cmd_clean ;;
-    reset)          log_warn "'reset' is deprecated, use 'reset:native' or 'reset:compose'"; cmd_reset ;;
+    reset)          cmd_reset_native ;;
     logs)           log_warn "'logs' is deprecated, use 'logs:compose'"; cmd_logs_compose ;;
-    status)         log_warn "'status' is deprecated, use 'status:native' or 'status:compose'"; cmd_status ;;
+    status)         cmd_status_native ;;
     -h|--help|"")   usage ;;
     *)              log_error "Unknown command: $1"; usage; exit 1 ;;
 esac
