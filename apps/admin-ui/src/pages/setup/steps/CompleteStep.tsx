@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button, Result, Space, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -24,27 +24,28 @@ export default function CompleteStep({ stepTitleRef }: StepProps) {
   const { formData, reset, isLoading, setLoading, setError } = useSetupStore();
   const { setTokens, fetchUser } = useAuthStore();
 
+  const completedRef = useRef(false);
+
   useEffect(() => {
-    let cancelled = false;
+    if (completedRef.current) return; // Prevent double execution in StrictMode
+    completedRef.current = true;
+
     const finalize = async () => {
       setLoading(true);
       try {
         const result = await completeSetup();
-        if (cancelled) return;
         setTokens(result.accessToken, result.refreshToken);
         await fetchUser();
         reset();
         navigate('/', { replace: true });
       } catch (err: unknown) {
-        if (cancelled) return;
         const error = err as { message?: string };
         setError(error.message || t('setup.errors.setupFailed'));
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     };
     finalize();
-    return () => { cancelled = true; };
   }, []);
 
   const handleEnterDashboard = () => {
