@@ -7,10 +7,10 @@ services:
       - "5101:5101"
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://accessbase:accessbase@localhost:5432/accessbase
-      REDIS_URL: redis://localhost:6379
-      JWT_SECRET: ${JWT_SECRET}
-      LOG_LEVEL: info
+      DATABASE_URL: ${DATABASE_URL:-postgresql://accessbase:accessbase@localhost:5432/accessbase}
+      REDIS_URL: ${REDIS_URL:-redis://localhost:6379}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     deploy:
       resources:
         limits:
@@ -24,6 +24,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 60s
     restart: unless-stopped
     volumes:
       - accessbase-data:/var/lib/postgresql/data
