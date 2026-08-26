@@ -21,6 +21,11 @@ Development:
   stop:native      Stop all native services
   reset:native     Reset native data and reinitialize
   status:native    Show native service status
+  start:compose    Start compose infrastructure only
+  start:prod       Production start (Compose mode)
+  stop:compose     Stop compose services
+  status:compose   Show compose status
+  logs:compose     Show compose logs
 
 Production:
   start            Production start (Compose mode)
@@ -225,6 +230,42 @@ cmd_dev_compose() {
     log_info "  Backend:  http://localhost:5101"
     log_info "  Database: localhost:5432"
     log_info "  Redis:    localhost:6379"
+}
+
+cmd_start_compose() {
+    if ! has_docker; then
+        log_error "Docker not available"
+        exit 1
+    fi
+
+    local DC=$(get_docker_compose_cmd)
+    log_info "Starting compose infrastructure..."
+    $DC -f docker-compose.yml up -d
+    log_ok "Compose services started"
+}
+
+cmd_stop_compose() {
+    local DC=$(get_docker_compose_cmd)
+    log_info "Stopping compose services..."
+    $DC -f docker-compose.dev.yml down 2>/dev/null || true
+    $DC -f docker-compose.yml down 2>/dev/null || true
+    log_ok "Compose services stopped"
+}
+
+cmd_status_compose() {
+    local DC=$(get_docker_compose_cmd)
+    echo "=== Compose Status ==="
+    echo ""
+    echo "--- Base services ---"
+    $DC -f docker-compose.yml ps 2>/dev/null || echo "Not running"
+    echo ""
+    echo "--- Dev services ---"
+    $DC -f docker-compose.dev.yml ps 2>/dev/null || echo "Not running"
+}
+
+cmd_logs_compose() {
+    local DC=$(get_docker_compose_cmd)
+    $DC -f docker-compose.dev.yml logs -f
 }
 
 cmd_dev_container() {
@@ -550,6 +591,12 @@ case "${1:-}" in
     stop:native)    cmd_stop_native ;;
     reset:native)   cmd_reset_native ;;
     status:native)  cmd_status_native ;;
+    # Compose commands
+    start:compose)  cmd_start_compose ;;
+    start:prod)     cmd_start ;;
+    stop:compose)   cmd_stop_compose ;;
+    status:compose) cmd_status_compose ;;
+    logs:compose)   cmd_logs_compose ;;
 
 
     # Production
