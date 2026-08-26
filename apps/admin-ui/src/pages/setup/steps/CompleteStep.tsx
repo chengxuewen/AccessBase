@@ -25,23 +25,26 @@ export default function CompleteStep({ stepTitleRef }: StepProps) {
   const { setTokens, fetchUser } = useAuthStore();
 
   useEffect(() => {
+    let cancelled = false;
     const finalize = async () => {
       setLoading(true);
       try {
         const result = await completeSetup();
+        if (cancelled) return;
         setTokens(result.accessToken, result.refreshToken);
         await fetchUser();
         reset();
-        // Navigate away immediately — reset() clears currentStep which would re-render wizard at step 0
         navigate('/', { replace: true });
       } catch (err: unknown) {
+        if (cancelled) return;
         const error = err as { message?: string };
         setError(error.message || t('setup.errors.setupFailed'));
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     finalize();
+    return () => { cancelled = true; };
   }, []);
 
   const handleEnterDashboard = () => {

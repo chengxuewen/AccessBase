@@ -429,7 +429,9 @@ export async function setupRoutes(app: FastifyInstance) {
 
       // Generate JWT tokens for admin login
       const userManager = new UserManager();
-      const adminUser = await userManager.findByEmail('admin@accessbase.local');
+      const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
+      const { data: users } = await userManager.findAll({ page: 1, pageSize: 1 }, DEFAULT_TENANT);
+      const adminUser = users[0];
 
       if (!adminUser) {
         return reply.status(400).send({
