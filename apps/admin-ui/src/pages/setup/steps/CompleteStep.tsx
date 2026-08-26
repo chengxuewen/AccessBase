@@ -32,6 +32,8 @@ export default function CompleteStep({ stepTitleRef }: StepProps) {
         setTokens(result.accessToken, result.refreshToken);
         await fetchUser();
         reset();
+        // Navigate away immediately — reset() clears currentStep which would re-render wizard at step 0
+        navigate('/', { replace: true });
       } catch (err: unknown) {
         const error = err as { message?: string };
         setError(error.message || t('setup.errors.setupFailed'));

@@ -45,12 +45,7 @@ export default function ConfigStep({ next, prev, stepTitleRef }: StepProps) {
   };
 
   const handleSkip = async () => {
-    const values = form.getFieldsValue();
-    if (!values.siteName) {
-      form.validateFields(['siteName']);
-      return;
-    }
-    handleSubmit({ siteName: values.siteName });
+    next();
   };
 
   return (

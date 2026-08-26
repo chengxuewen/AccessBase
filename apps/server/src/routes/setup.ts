@@ -200,14 +200,31 @@ export async function setupRoutes(app: FastifyInstance) {
           });
         }
 
-        // Create admin role
-        const adminRole = await roleManager.create(
-          {
-            name: 'admin',
-            description: 'System administrator with full access',
-          },
-          DEFAULT_TENANT,
-        );
+        // Create admin role (find or create — may already exist from initializeAdmin)
+        let adminRole;
+        try {
+          adminRole = await roleManager.create(
+            {
+              name: 'admin',
+              description: 'System administrator with full access',
+            },
+            DEFAULT_TENANT,
+          );
+        } catch (roleErr: unknown) {
+          if (roleErr instanceof Error && roleErr.message === 'Role already exists in this tenant') {
+            // Find existing role by querying rolePermissions join
+            // RoleManager doesn't expose findByName, so we create a temporary one with admin ID
+            const DEFAULT_ADMIN_ROLE_ID = '00000000-0000-0000-0000-000000000002';
+            const found = await roleManager.findById(DEFAULT_ADMIN_ROLE_ID, DEFAULT_TENANT);
+            if (found) {
+              adminRole = found;
+            } else {
+              throw roleErr;
+            }
+          } else {
+            throw roleErr;
+          }
+        }
 
         // Create admin user
         const adminUser = await userManager.create(

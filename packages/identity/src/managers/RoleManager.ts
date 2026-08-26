@@ -44,7 +44,8 @@ export class RoleManager {
       .limit(1);
 
     if (existing.length > 0) {
-      throw new Error('Role already exists in this tenant');
+      logger.info(`Role '${data.name}' already exists in tenant ${tenantId}, returning existing`);
+      return existing[0] as unknown as Role;
     }
 
     // Validate parent role exists if provided
