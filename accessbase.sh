@@ -582,7 +582,7 @@ cmd_reset() {
 # Main
 case "${1:-}" in
     # Development
-    dev)            cmd_dev ;;
+    dev)            log_warn "'dev' is deprecated, use 'dev:compose' or 'dev:native'"; cmd_dev_compose ;;
     dev:compose)    cmd_dev_compose ;;
     dev:container)  cmd_dev_container ;;
     # Native commands
@@ -600,7 +600,7 @@ case "${1:-}" in
 
 
     # Production
-    start)          cmd_start ;;
+    start)          log_warn "'start' is deprecated, use 'start:prod'"; cmd_start ;;
     start:container) cmd_start_container ;;
     stop:container)  cmd_stop_container ;;
     status:container) cmd_status_container ;;
@@ -608,7 +608,7 @@ case "${1:-}" in
     # Deprecated aliases
     dev:docker)      log_warn "dev:docker is deprecated, use dev:container"; cmd_dev_container ;;
     start:docker)    log_warn "start:docker is deprecated, use start:container"; cmd_start_container ;;
-    stop)           cmd_stop ;;
+    stop)           log_warn "'stop' is deprecated, use 'stop:compose' or 'stop:native'"; cmd_stop ;;
 
     # Build & Test
     build)          cmd_build ;;
@@ -629,9 +629,9 @@ case "${1:-}" in
 
     # Other
     clean)          cmd_clean ;;
-    reset)          cmd_reset ;;
-    logs)           cmd_logs ;;
-    status)         cmd_status ;;
+    reset)          log_warn "'reset' is deprecated, use 'reset:native' or 'reset:compose'"; cmd_reset ;;
+    logs)           log_warn "'logs' is deprecated, use 'logs:compose'"; cmd_logs_compose ;;
+    status)         log_warn "'status' is deprecated, use 'status:native' or 'status:compose'"; cmd_status ;;
     -h|--help|"")   usage ;;
     *)              log_error "Unknown command: $1"; usage; exit 1 ;;
 esac
