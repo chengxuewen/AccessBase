@@ -15,7 +15,7 @@ Usage: ./accessbase.sh <command> [options]
 Development:
   dev              Local dev (auto-start DB + Redis + backend + frontend)
   dev:compose      Compose mode dev (DB + Redis in separate containers)
-  dev:docker       Docker all-in-one dev (single container)
+  dev:container   Docker all-in-one dev (single container)
   dev:native       Native dev (Pixi-managed PG + Redis + backend + frontend)
   start:native     Start native infra only (PG + Redis)
   stop:native      Stop all native services
@@ -24,8 +24,11 @@ Development:
 
 Production:
   start            Production start (Compose mode)
-  start:docker     Production start (all-in-one mode)
-  stop             Stop all services
+  start:container Production start (all-in-one mode)
+  stop            Stop all services
+  stop:container  Stop container services
+  status:container Show container status
+  logs:container  Show container logs
 
 Build & Test:
   build            Build all packages
@@ -224,7 +227,7 @@ cmd_dev_compose() {
     log_info "  Redis:    localhost:6379"
 }
 
-cmd_dev_docker() {
+cmd_dev_container() {
     if ! has_docker; then
         log_error "Docker not available"
         exit 1
@@ -279,7 +282,7 @@ cmd_start() {
     log_ok "AccessBase running at http://localhost:5101"
 }
 
-cmd_start_docker() {
+cmd_start_container() {
     if ! has_docker; then
         log_error "Docker not available"
         exit 1
@@ -298,6 +301,35 @@ cmd_start_docker() {
         accessbase:latest
 
     log_ok "AccessBase running at http://localhost:5101"
+}
+
+cmd_stop_container() {
+    local D=$(get_docker_cmd)
+    log_info "Stopping container services..."
+    $D stop accessbase-dev 2>/dev/null || true
+    $D rm -f accessbase-dev 2>/dev/null || true
+    $D stop accessbase 2>/dev/null || true
+    $D rm -f accessbase 2>/dev/null || true
+    log_ok "Container services stopped"
+}
+
+cmd_status_container() {
+    local D=$(get_docker_cmd)
+    echo "=== Container Status ==="
+    echo ""
+    $D ps -a --filter name=accessbase --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    echo ""
+    if curl -sf http://localhost:5101/health/live >/dev/null 2>&1; then
+        echo "Health: OK"
+    else
+        echo "Health: UNREACHABLE"
+    fi
+}
+
+cmd_logs_container() {
+    local D=$(get_docker_cmd)
+    local container="${1:-accessbase-dev}"
+    $D logs -f "$container"
 }
 
 cmd_stop() {
@@ -511,7 +543,7 @@ case "${1:-}" in
     # Development
     dev)            cmd_dev ;;
     dev:compose)    cmd_dev_compose ;;
-    dev:docker)     cmd_dev_docker ;;
+    dev:container)  cmd_dev_container ;;
     # Native commands
     dev:native)     cmd_dev_native ;;
     start:native)   cmd_start_native ;;
@@ -522,7 +554,13 @@ case "${1:-}" in
 
     # Production
     start)          cmd_start ;;
-    start:docker)   cmd_start_docker ;;
+    start:container) cmd_start_container ;;
+    stop:container)  cmd_stop_container ;;
+    status:container) cmd_status_container ;;
+    logs:container)  cmd_logs_container ;;
+    # Deprecated aliases
+    dev:docker)      log_warn "dev:docker is deprecated, use dev:container"; cmd_dev_container ;;
+    start:docker)    log_warn "start:docker is deprecated, use start:container"; cmd_start_container ;;
     stop)           cmd_stop ;;
 
     # Build & Test
