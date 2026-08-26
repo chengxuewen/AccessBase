@@ -16,6 +16,11 @@ Development:
   dev              Local dev (auto-start DB + Redis + backend + frontend)
   dev:compose      Compose mode dev (DB + Redis in separate containers)
   dev:docker       Docker all-in-one dev (single container)
+  dev:native       Native dev (Pixi-managed PG + Redis + backend + frontend)
+  start:native     Start native infra only (PG + Redis)
+  stop:native      Stop all native services
+  reset:native     Reset native data and reinitialize
+  status:native    Show native service status
 
 Production:
   start            Production start (Compose mode)
@@ -89,6 +94,117 @@ cmd_dev() {
     pnpm --filter @accessbase/admin-ui dev -- --host 0.0.0.0 &
     wait
 }
+
+# ===== Native Commands (Pixi-managed) =====
+
+cmd_dev_native() {
+    ensure_pixi
+    ensure_node
+    ensure_pnpm
+
+    # Detect port conflicts
+    source "${SCRIPT_DIR}/scripts/native/_ports.sh"
+    detect_required_ports
+
+    # Initialize + start infra
+    log_info "Starting native infrastructure..."
+    bash "${SCRIPT_DIR}/scripts/native/pg-init.sh"
+    bash "${SCRIPT_DIR}/scripts/native/pg-start.sh"
+    bash "${SCRIPT_DIR}/scripts/native/redis-start.sh"
+
+    # Auto-configure URLs
+    configure_native_urls
+
+    # Push database schema
+    log_info "Pushing database schema..."
+    pnpm db:push || log_warn "Schema push failed (DB may not be ready)"
+
+    # Cleanup on exit — guard variable prevents double execution (EXIT fires on INT/TERM too)
+    _native_cleaned=0
+    cleanup_native() {
+        [ "$_native_cleaned" -eq 1 ] && return
+        _native_cleaned=1
+        log_info "Stopping native services..."
+        bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
+        bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
+        log_ok "Native services stopped"
+    }
+    trap cleanup_native EXIT
+
+    # Start dev servers in parallel, track PIDs for proper wait
+    log_info "Starting dev servers..."
+    log_ok "AccessBase running:"
+    log_info "  Frontend:   http://localhost:${UI_PORT:-5173}"
+    log_info "  Backend:    http://localhost:${SERVER_PORT:-5101}"
+    log_info "  PostgreSQL: localhost:${PG_PORT:-5432}"
+    log_info "  Redis:      localhost:${REDIS_PORT:-6379}"
+
+    pnpm --filter @accessbase/server dev &
+    local server_pid=$!
+    pnpm --filter @accessbase/admin-ui dev -- --host 0.0.0.0 &
+    local ui_pid=$!
+    wait $server_pid $ui_pid
+}
+
+cmd_start_native() {
+    ensure_pixi
+
+    source "${SCRIPT_DIR}/scripts/native/_ports.sh"
+    detect_required_ports
+
+    bash "${SCRIPT_DIR}/scripts/native/pg-init.sh"
+    bash "${SCRIPT_DIR}/scripts/native/pg-start.sh"
+    bash "${SCRIPT_DIR}/scripts/native/redis-start.sh"
+
+    configure_native_urls
+
+    log_ok "Native services started"
+    log_info "  PostgreSQL: localhost:${PG_PORT:-5432}"
+    log_info "  Redis:      localhost:${REDIS_PORT:-6379}"
+    log_info ""
+    log_info "Set these in your environment:"
+    log_info "  export DATABASE_URL=\"postgresql://accessbase:accessbase_dev@localhost:${PG_PORT:-5432}/accessbase\""
+    log_info "  export REDIS_URL=\"redis://localhost:${REDIS_PORT:-6379}\""
+}
+
+cmd_stop_native() {
+    bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
+    bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
+    log_ok "Native services stopped"
+}
+
+cmd_reset_native() {
+    log_warn "This will DELETE all native data and reinitialize"
+    cmd_stop_native
+    log_info "Deleting data..."
+    rm -rf "${PROJECT_ROOT}/.pixi/data/pg" "${PROJECT_ROOT}/.pixi/data/redis"
+    log_info "Reinitializing..."
+    bash "${SCRIPT_DIR}/scripts/native/pg-init.sh"
+    log_ok "Reset complete"
+}
+
+cmd_status_native() {
+    echo "=== Native Services Status ==="
+    echo ""
+
+    if pg_isready -h localhost -p "${PG_PORT:-5432}" -q 2>/dev/null; then
+        echo "PostgreSQL: RUNNING (port ${PG_PORT:-5432})"
+    else
+        echo "PostgreSQL: STOPPED"
+    fi
+
+    if redis-cli -p "${REDIS_PORT:-6379}" ping 2>/dev/null | grep -q PONG; then
+        echo "Redis:      RUNNING (port ${REDIS_PORT:-6379})"
+    else
+        echo "Redis:      STOPPED"
+    fi
+
+    echo ""
+    echo "Data dirs:"
+    echo "  PG:    .pixi/data/pg $([ -d .pixi/data/pg ] && echo '(exists)' || echo '(missing)')"
+    echo "  Redis: .pixi/data/redis $([ -d .pixi/data/redis ] && echo '(exists)' || echo '(missing)')"
+}
+
 
 cmd_dev_compose() {
     if ! has_docker; then
@@ -396,6 +512,13 @@ case "${1:-}" in
     dev)            cmd_dev ;;
     dev:compose)    cmd_dev_compose ;;
     dev:docker)     cmd_dev_docker ;;
+    # Native commands
+    dev:native)     cmd_dev_native ;;
+    start:native)   cmd_start_native ;;
+    stop:native)    cmd_stop_native ;;
+    reset:native)   cmd_reset_native ;;
+    status:native)  cmd_status_native ;;
+
 
     # Production
     start)          cmd_start ;;
