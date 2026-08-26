@@ -30,6 +30,12 @@ export default function SetupWizard() {
   const next = () => setCurrentStep(current + 1);
   const prev = () => setCurrentStep(current - 1);
 
+  // Always start at step 0 when entering setup wizard
+  // (stale localStorage may have a higher currentStep from a previous session)
+  useEffect(() => {
+    setCurrentStep(0);
+  }, []);
+
   useEffect(() => {
     stepTitleRef.current?.focus();
   }, [current]);
