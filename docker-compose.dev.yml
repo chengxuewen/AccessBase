@@ -64,6 +64,12 @@ services:
       redis:
         condition: service_healthy
     command: pnpm --filter @accessbase/server dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5101/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
 
   admin-ui:
     build:
@@ -86,8 +92,15 @@ services:
       - /app/packages/audit/node_modules
       - /app/packages/admin/node_modules
       - /app/apps/server/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
     depends_on:
-      - server
+      server:
+        condition: service_healthy
     command: pnpm --filter @accessbase/admin-ui dev -- --host 0.0.0.0
 
 volumes:
