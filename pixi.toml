@@ -1,0 +1,24 @@
+[workspace]
+name = "accessbase"
+version = "0.1.0"
+description = "Enterprise access control foundation (IAM)"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64"]
+
+[dependencies]
+nodejs = ">=20.0.0"
+pnpm = ">=9.0.0"
+
+[feature.native.dependencies]
+postgresql = ">=16.0.0,<17"
+redis-server = ">=7.0.0,<8"
+
+[feature.native.tasks]
+dev = { cmd = "bash accessbase.sh dev:native", description = "Full native dev (PG + Redis + Server + UI)" }
+start = { cmd = "bash accessbase.sh start:native", description = "Start native infra only (PG + Redis)" }
+stop = { cmd = "bash accessbase.sh stop:native", description = "Stop all native services" }
+reset = { cmd = "bash accessbase.sh reset:native", description = "Reset native data and reinitialize" }
+status = { cmd = "bash accessbase.sh status:native", description = "Show native service status" }
+
+[environments]
+native = ["native"]
