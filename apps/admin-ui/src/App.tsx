@@ -39,14 +39,8 @@ function GlobalGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     checkSetupStatus()
-      .then((status) => {
-        console.log('Setup status:', status);
-        setNeedsSetup(status.needsSetup);
-      })
-      .catch((err) => {
-        console.error('Setup check failed:', err);
-        setNeedsSetup(false);
-      });
+      .then((status) => setNeedsSetup(status.needsSetup))
+      .catch(() => setNeedsSetup(false));
   }, []);
 
   if (needsSetup === null) {

@@ -34,7 +34,15 @@ export async function checkSetupStatus(): Promise<{ needsSetup: boolean }> {
 /** Run system environment checks */
 export async function runSystemChecks(): Promise<CheckItem[]> {
   const { data } = await client.get('/v1/setup/checks');
-  return data;
+  // Backend returns { success, data: { checks: [{ name, status: 'pass'|'fail', message }] } }
+  // Frontend expects CheckItem[] with status: 'success'|'error'
+  const raw = data.data?.checks ?? [];
+  return raw.map((c: { name: string; status: string; message?: string }) => ({
+    name: c.name,
+    label: c.name,
+    status: c.status === 'pass' ? 'success' : 'error',
+    message: c.message,
+  })) as CheckItem[];
 }
 
 /** Create the first admin account */
