@@ -15,6 +15,16 @@ redis_stop() {
 
     log_info "Stopping Redis..."
     redis-cli -p "$REDIS_PORT" shutdown nosave
+
+    # Wait for port to be fully released (up to 5s)
+    for i in {1..10}; do
+        if ! redis-cli -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
+            log_ok "Redis stopped"
+            return 0
+        fi
+        sleep 0.5
+    done
+
     log_ok "Redis stopped"
 }
 

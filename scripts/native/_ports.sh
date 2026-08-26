@@ -2,8 +2,8 @@
 # _ports.sh — Port conflict detection utilities for native mode
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-source "${SCRIPT_DIR}/../_common.sh"
+_PORTS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "${_PORTS_SCRIPT_DIR}/../_common.sh"
 
 # Check if a port is in use (cross-platform: Linux + macOS)
 # Args: $1=port, $2=service_name

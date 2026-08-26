@@ -127,19 +127,26 @@ cmd_dev_native() {
     log_info "Pushing database schema..."
     pnpm db:push || log_warn "Schema push failed (DB may not be ready)"
 
-    # Cleanup on exit — guard variable prevents double execution (EXIT fires on INT/TERM too)
+    # Cleanup on exit — kill dev servers + stop infra
     _native_cleaned=0
     cleanup_native() {
         [ "$_native_cleaned" -eq 1 ] && return
         _native_cleaned=1
         log_info "Stopping native services..."
+        # Kill dev server processes by port
+        local server_port="${SERVER_PORT:-5101}"
+        local ui_port="${UI_PORT:-5173}"
+        if command -v lsof &>/dev/null; then
+            lsof -ti :"$server_port" 2>/dev/null | xargs -r kill 2>/dev/null || true
+            lsof -ti :"$ui_port" 2>/dev/null | xargs -r kill 2>/dev/null || true
+        fi
         bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
         bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
         log_ok "Native services stopped"
     }
     trap cleanup_native EXIT
 
-    # Start dev servers in parallel, track PIDs for proper wait
+    # Start dev servers in parallel, track PIDs
     log_info "Starting dev servers..."
     log_ok "AccessBase running:"
     log_info "  Frontend:   http://localhost:${UI_PORT:-5173}"
@@ -176,6 +183,16 @@ cmd_start_native() {
 }
 
 cmd_stop_native() {
+    # Ensure pixi native env binaries are on PATH (pg_isready, pg_ctl, redis-cli)
+    export PATH="${PROJECT_ROOT}/.pixi/envs/native/bin:$PATH"
+
+    # Kill dev server processes on 5101/5173
+    local server_port="${SERVER_PORT:-5101}"
+    local ui_port="${UI_PORT:-5173}"
+    if command -v lsof &>/dev/null; then
+        lsof -ti :"$server_port" 2>/dev/null | xargs -r kill 2>/dev/null || true
+        lsof -ti :"$ui_port" 2>/dev/null | xargs -r kill 2>/dev/null || true
+    fi
     bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
     bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
     log_ok "Native services stopped"
@@ -192,6 +209,9 @@ cmd_reset_native() {
 }
 
 cmd_status_native() {
+    # Ensure pixi native env binaries are on PATH
+    export PATH="${PROJECT_ROOT}/.pixi/envs/native/bin:$PATH"
+
     echo "=== Native Services Status ==="
     echo ""
 

@@ -62,13 +62,14 @@ create_initial_db() {
         sleep 1
     done
 
-    psql -h localhost -p "$PG_PORT" -U postgres -tc "SELECT 1 FROM pg_roles WHERE rolname='$PG_USER'" | grep -q 1 \
-        || createuser -h localhost -p "$PG_PORT" -U postgres "$PG_USER"
+    # Connect to 'postgres' db (exists by default) for setup
+    psql -h localhost -p "$PG_PORT" -d postgres -U "$PG_USER" -tc "SELECT 1 FROM pg_roles WHERE rolname='$PG_USER'" | grep -q 1 \
+        || createuser -h localhost -p "$PG_PORT" -d postgres -U "$PG_USER" "$PG_USER"
 
-    psql -h localhost -p "$PG_PORT" -U postgres -c "ALTER USER $PG_USER PASSWORD 'accessbase_dev';"
+    psql -h localhost -p "$PG_PORT" -d postgres -U "$PG_USER" -tc "SELECT 1 FROM pg_database WHERE datname='$PG_DB'" | grep -q 1 \
+        || createdb -h localhost -p "$PG_PORT" -U "$PG_USER" -O "$PG_USER" "$PG_DB"
 
-    psql -h localhost -p "$PG_PORT" -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='$PG_DB'" | grep -q 1 \
-        || createdb -h localhost -p "$PG_PORT" -U postgres -O "$PG_USER" "$PG_DB"
+    psql -h localhost -p "$PG_PORT" -d postgres -U "$PG_USER" -c "ALTER USER $PG_USER PASSWORD 'accessbase_dev';"
 
     pg_ctl -D "$PG_DATA" stop
 
@@ -77,7 +78,14 @@ create_initial_db() {
 
 main() {
     pg_init
+    # Only create user/db if PG was just initialized (first time)
+    # On subsequent runs, user/db already exist
+    if [ -f "$PG_DATA/init_done" ]; then
+        log_ok "User and database already created"
+        return 0
+    fi
     create_initial_db
+    touch "$PG_DATA/init_done"
 }
 
 main "$@"
