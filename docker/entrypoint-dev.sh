@@ -1,58 +1,54 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
+# Graceful shutdown
+cleanup() {
+    echo "[entrypoint] Shutting down..."
+    pg_ctl -D "$PGDATA" stop -m fast 2>/dev/null || true
+    redis-cli shutdown nosave 2>/dev/null || true
+    exit 0
+}
+trap cleanup SIGTERM SIGINT
+
 # Start PostgreSQL
-echo "Starting PostgreSQL..."
-/usr/lib/postgresql/16/bin/pg_ctl -D "$PGDATA" start -w
+echo "[entrypoint] Starting PostgreSQL..."
+pg_ctl -D "$PGDATA" -l /var/lib/postgresql/data/logfile -w start
+
+# Wait for PG
+for i in {1..30}; do
+    if pg_isready -h localhost -p 5432 -q 2>/dev/null; then
+        echo "[entrypoint] PostgreSQL ready"
+        break
+    fi
+    sleep 1
+done
 
 # Create database if not exists
 psql -U "$PGUSER" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$PGDATABASE'" | grep -q 1 || \
     psql -U "$PGUSER" -d postgres -c "CREATE DATABASE $PGDATABASE"
 
 # Start Redis
-echo "Starting Redis..."
-redis-server --daemonize yes --port 6379 --dir /var/lib/redis --appendonly yes
+echo "[entrypoint] Starting Redis..."
+redis-server --daemonize yes --port 6379 --bind 127.0.0.1 --appendonly yes
 
-# Wait for services in parallel
-echo "Waiting for services..."
-wait_for_pg() {
-    for _ in $(seq 1 30); do
-        /usr/lib/postgresql/16/bin/pg_isready -U "$PGUSER" -d "$PGDATABASE" -q && return 0
-        sleep 1
-    done
-    echo "PostgreSQL not ready after 30s" >&2
-    return 1
-}
-
-wait_for_redis() {
-    for _ in $(seq 1 30); do
-        redis-cli ping >/dev/null 2>&1 && return 0
-        sleep 1
-    done
-    echo "Redis not ready after 30s" >&2
-    return 1
-}
-
-wait_for_pg &
-wait_for_redis &
-wait
-
-echo "Services ready."
+# Wait for Redis
+for i in {1..10}; do
+    if redis-cli ping 2>/dev/null | grep -q PONG; then
+        echo "[entrypoint] Redis ready"
+        break
+    fi
+    sleep 0.5
+done
 
 # Set environment
 export DATABASE_URL="postgresql://${PGUSER}:${PGPASSWORD}@localhost:5432/${PGDATABASE}"
 export REDIS_URL="redis://localhost:6379"
 
 # Push schema
-echo "Pushing database schema..."
+echo "[entrypoint] Pushing database schema..."
 cd /app
-pnpm db:push 2>/dev/null || echo "Schema push skipped"
+pnpm db:push 2>/dev/null || echo "[entrypoint] Schema push skipped"
 
-# Start all services
-echo "Starting server..."
-pnpm --filter @accessbase/server dev &
-
-echo "Starting admin-ui..."
-pnpm --filter @accessbase/admin-ui dev -- --host 0.0.0.0 &
-
-wait
+# Start application
+echo "[entrypoint] Starting application..."
+exec "$@"
