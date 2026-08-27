@@ -49,12 +49,8 @@ done
 # Copy root config files
 cp package.json pnpm-lock.yaml pnpm-workspace.yaml "$OUT_DIR/"
 
-# Step 5: Install production dependencies in out/
-log_info "Installing production dependencies..."
-cd "$OUT_DIR"
-# Remove workspace: protocol references — replace with real versions
-# pnpm deploy is the correct approach for monorepo deployment
-pnpm install --prod --frozen-lockfile 2>/dev/null || pnpm install --prod
+# Symlink node_modules from monorepo root (avoids workspace protocol resolution issues)
+ln -sf "$PROJECT_ROOT/node_modules" "$OUT_DIR/node_modules"
 
 log_ok "Build complete: $OUT_DIR"
 log_info "  Server:  $OUT_DIR/server/index.js"
