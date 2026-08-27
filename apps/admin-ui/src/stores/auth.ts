@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
-          const { data } = await client.post('/auth/login', {
+          const { data } = await client.post('/v1/auth/login', {
             email,
             password,
           });
@@ -72,7 +72,7 @@ export const useAuthStore = create<AuthState>()(
         const { token } = get();
         if (!token) return;
         try {
-          const { data } = await client.get('/auth/me');
+          const { data } = await client.get('/v1/auth/me');
           set({ user: data, isAuthenticated: true });
         } catch {
           get().logout();
