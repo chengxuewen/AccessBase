@@ -215,12 +215,15 @@ cmd_stop_native() {
 
 cmd_reset_native() {
     log_warn "This will DELETE all native data and reinitialize"
-    cmd_stop_native
+    # Only stop PG/Redis (not dev servers — they should survive the reset)
+    export PATH="${PROJECT_ROOT}/.pixi/envs/native/bin:$PATH"
+    bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
+    bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
     log_info "Deleting data..."
     rm -rf "${PROJECT_ROOT}/.pixi/data/pg" "${PROJECT_ROOT}/.pixi/data/redis"
     log_info "Reinitializing..."
     bash "${SCRIPT_DIR}/scripts/native/pg-init.sh"
-    log_ok "Reset complete"
+    log_ok "Reset complete. Dev servers may need a page refresh."
 }
 
 cmd_status_native() {
