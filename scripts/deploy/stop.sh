@@ -6,6 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 source "${SCRIPT_DIR}/../_common.sh"
 
+# Ensure pixi native env binaries are on PATH
+export PATH="${PROJECT_ROOT}/.pixi/envs/native/bin:$HOME/.pixi/bin:$PATH"
+
 DATA_DIR="${PROJECT_ROOT}/data"
 PIDFILE="${DATA_DIR}/.pids"
 PG_DATA="${DATA_DIR}/pg"

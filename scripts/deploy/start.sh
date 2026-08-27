@@ -6,6 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 source "${SCRIPT_DIR}/../_common.sh"
 
+# Ensure pixi native env binaries are on PATH (pg_ctl, initdb, redis-server, etc.)
+export PATH="${PROJECT_ROOT}/.pixi/envs/native/bin:$HOME/.pixi/bin:$PATH"
+
 # Load .env if exists
 if [ -f "${PROJECT_ROOT}/.env" ]; then
   set -a; source "${PROJECT_ROOT}/.env"; set +a
