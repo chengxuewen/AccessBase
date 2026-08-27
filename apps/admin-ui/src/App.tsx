@@ -10,8 +10,9 @@ import Users from './pages/Users';
 import SetupWizard from './pages/setup';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  const { token, isAuthenticated } = useAuthStore();
+  // Check token directly — isAuthenticated may not be rehydrated yet
+  return (token || isAuthenticated) ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 function SetupGuard({ children }: { children: React.ReactNode }) {
