@@ -39,7 +39,7 @@ export const useAuthStore = create<AuthState>()(
             email,
             password,
           });
-          const { accessToken, refreshToken, user } = data;
+          const { accessToken, refreshToken, user } = data.data;
           set({
             user,
             token: accessToken,
