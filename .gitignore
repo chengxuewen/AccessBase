@@ -91,3 +91,9 @@ coverage/
 # Playwright
 test-results/
 playwright-report/
+
+# Deploy build output
+out/
+
+# Deploy data directory
+data/
