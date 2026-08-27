@@ -94,7 +94,6 @@ export async function buildApp() {
   // await app.register(auditPlugin)
   // await app.register(healthCheckPlugin)
   // await app.register(i18nPlugin)
-
   // --- Static file serving (deploy mode) ---
   if (existsSync(resolve(config.staticDir))) {
     await app.register(fastifyStatic, {
@@ -102,10 +101,11 @@ export async function buildApp() {
       prefix: '/',
       index: ['index.html'],
       decorateReply: true,
+      wildcard: false,
     });
 
-    // SPA fallback: serve index.html for non-API routes
-    app.setNotFoundHandler((request, reply) => {
+    // SPA fallback: for any non-file, non-API route, serve index.html
+    app.setNotFoundHandler(async (request, reply) => {
       if (
         request.url.startsWith('/api/') ||
         request.url.startsWith('/health') ||
@@ -116,7 +116,7 @@ export async function buildApp() {
           error: { code: 'NOT_FOUND', message: 'Resource not found' },
         });
       }
-      return reply.sendFile('index.html');
+      return reply.type('text/html').sendFile('index.html');
     });
   }
 

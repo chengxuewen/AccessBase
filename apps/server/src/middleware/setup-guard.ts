@@ -10,8 +10,16 @@ import { logger } from '@accessbase/logging';
 // This is a simplified approach - production should use database
 let setupComplete = false;
 
-// Allowed paths that are always accessible
-const ALLOWED_PATHS = ['/api/v1/setup/status', '/api/v1/setup/checks', '/health', '/docs'];
+const ALLOWED_PATHS = [
+  '/api/v1/setup/status',
+  '/api/v1/setup/checks',
+  '/health',
+  '/docs',
+  '/',           // Frontend entry point
+  '/index.html',  // Direct index access
+  '/assets/',     // Vite hashed assets (JS/CSS/images)
+  '/favicon',     // Favicon
+];
 
 // Setup write paths that should be blocked after setup is complete
 const SETUP_WRITE_PATHS = ['/api/v1/setup/admin', '/api/v1/setup/config', '/api/v1/setup/complete'];
