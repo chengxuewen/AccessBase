@@ -33,7 +33,7 @@ export async function buildApp() {
   // --- Plugins ---
 
   await app.register(cors, {
-    origin: config.nodeEnv === 'development' ? true : config.host,
+    origin: true,
     credentials: true,
   });
 
@@ -100,6 +100,8 @@ export async function buildApp() {
     await app.register(fastifyStatic, {
       root: resolve(config.staticDir),
       prefix: '/',
+      index: ['index.html'],
+      decorateReply: true,
     });
 
     // SPA fallback: serve index.html for non-API routes
