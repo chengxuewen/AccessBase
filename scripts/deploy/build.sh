@@ -49,7 +49,10 @@ done
 # Copy root config files
 cp package.json pnpm-lock.yaml pnpm-workspace.yaml "$OUT_DIR/"
 
-# No separate install needed — start.sh sets NODE_PATH to resolve from monorepo
+# Symlink server's node_modules so ESM can resolve pnpm ghost deps (fastify, etc.)
+ln -sf "${PROJECT_ROOT}/apps/server/node_modules" "$OUT_DIR/server/node_modules"
+# Symlink packages' node_modules for migration etc.
+ln -sf "${PROJECT_ROOT}/packages/migration/node_modules" "$OUT_DIR/packages/migration/node_modules"
 log_ok "Build complete: $OUT_DIR"
 log_info "  Server:  $OUT_DIR/server/index.js"
 log_info "  UI:      $OUT_DIR/admin-ui/index.html"

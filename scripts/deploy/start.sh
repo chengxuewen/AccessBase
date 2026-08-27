@@ -123,9 +123,6 @@ export REDIS_URL="${REDIS_URL:-redis://localhost:${REDIS_PORT}"}
 export STATIC_DIR="${STATIC_DIR:-${OUT_DIR}/admin-ui}"
 export NODE_ENV="${NODE_ENV:-production}"
 
-# Set NODE_PATH so out/server can resolve monorepo packages
-export NODE_PATH="${PROJECT_ROOT}/apps/server/node_modules:${PROJECT_ROOT}/apps/admin-ui/node_modules:${PROJECT_ROOT}/node_modules"
-
 # Run migrations
 log_info "Running migrations..."
 node "${OUT_DIR}/packages/migration/dist/cli.js" up 2>/dev/null || log_warn "Migration skipped"
@@ -133,7 +130,11 @@ node "${OUT_DIR}/packages/migration/dist/cli.js" up 2>/dev/null || log_warn "Mig
 # Start server
 log_info "Starting server on port $SERVER_PORT..."
 node "${OUT_DIR}/server/index.js" &
-SERVER_PID=$!
+SERVER_PID=${!:-}
+if [ -z "$SERVER_PID" ]; then
+  log_error "Server failed to start"
+  exit 1
+fi
 echo "$SERVER_PID" > "$PIDFILE"
 
 # Wait for server ready
