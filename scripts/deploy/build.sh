@@ -49,9 +49,7 @@ done
 # Copy root config files
 cp package.json pnpm-lock.yaml pnpm-workspace.yaml "$OUT_DIR/"
 
-# Symlink node_modules from monorepo root (avoids workspace protocol resolution issues)
-ln -sf "$PROJECT_ROOT/node_modules" "$OUT_DIR/node_modules"
-
+# No separate install needed — start.sh sets NODE_PATH to resolve from monorepo
 log_ok "Build complete: $OUT_DIR"
 log_info "  Server:  $OUT_DIR/server/index.js"
 log_info "  UI:      $OUT_DIR/admin-ui/index.html"

@@ -119,9 +119,12 @@ fi
 
 # Set URLs
 export DATABASE_URL="${DATABASE_URL:-postgresql://accessbase:accessbase_dev@localhost:${PG_PORT}/accessbase}"
-export REDIS_URL="${REDIS_URL:-redis://localhost:${REDIS_PORT}}"
+export REDIS_URL="${REDIS_URL:-redis://localhost:${REDIS_PORT}"}
 export STATIC_DIR="${STATIC_DIR:-${OUT_DIR}/admin-ui}"
 export NODE_ENV="${NODE_ENV:-production}"
+
+# Set NODE_PATH so out/server can resolve monorepo packages
+export NODE_PATH="${PROJECT_ROOT}/apps/server/node_modules:${PROJECT_ROOT}/apps/admin-ui/node_modules:${PROJECT_ROOT}/node_modules"
 
 # Run migrations
 log_info "Running migrations..."
