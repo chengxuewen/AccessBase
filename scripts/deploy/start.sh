@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# start.sh — Start AccessBase in deploy mode
+# start.sh — Start AccessBase in deploy mode (PG + Redis + Server)
 set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -21,17 +21,14 @@ REDIS_PORT="${REDIS_PORT:-6379}"
 SERVER_PORT="${PORT:-5101}"
 
 # === Pre-flight checks ===
-
-# Check out/ exists
 if [ ! -d "$OUT_DIR/server" ]; then
   log_error "out/server/ not found. Run 'bash accessbase.sh build:deploy' first."
   exit 1
 fi
 
-# Validate production requirements
 if [ "${NODE_ENV:-}" = "production" ]; then
   if [ -z "${JWT_SECRET:-}" ] || [ "$JWT_SECRET" = "dev-secret-do-not-use-in-production" ]; then
-    log_error "JWT_SECRET must be set to a secure value in production"
+    log_error "JWT_SECRET must be set in production"
     exit 1
   fi
   if [ -z "${ADMIN_PASSWORD:-}" ]; then
@@ -40,17 +37,7 @@ if [ "${NODE_ENV:-}" = "production" ]; then
   fi
 fi
 
-# Port conflict detection
-if command -v lsof &>/dev/null; then
-  for port in $PG_PORT $REDIS_PORT $SERVER_PORT; do
-    if lsof -ti :"$port" >/dev/null 2>&1; then
-      log_error "Port $port already in use. Stop other services first."
-      exit 1
-    fi
-  done
-fi
-
-# === Initialize data directories ===
+# === Initialize ===
 mkdir -p "$PG_DATA" "$REDIS_DATA"
 
 # Initialize PostgreSQL if needed
@@ -84,50 +71,45 @@ maxmemory 256mb
 maxmemory-policy allkeys-lru
 EOF
 
-# === Start services ===
-
-# Graceful shutdown
+# === Graceful shutdown ===
 cleanup() {
   log_info "Shutting down..."
-  [ -f "$PIDFILE" ] && while IFS= read -r pid; do kill -15 "$pid" 2>/dev/null || true; done < "$PIDFILE"
-  rm -f "$PIDFILE"
+  if [ -f "$PIDFILE" ]; then
+    while IFS= read -r pid; do
+      kill -15 "$pid" 2>/dev/null || true
+    done < "$PIDFILE"
+    rm -f "$PIDFILE"
+  fi
   pg_ctl -D "$PG_DATA" stop -m fast 2>/dev/null || true
   redis-cli -p "$REDIS_PORT" shutdown nosave 2>/dev/null || true
   log_ok "All services stopped"
 }
 trap cleanup EXIT INT TERM
 
-# Start PostgreSQL
+# === Start PostgreSQL ===
 if ! pg_isready -h localhost -p "$PG_PORT" -q 2>/dev/null; then
   log_info "Starting PostgreSQL on port $PG_PORT..."
   pg_ctl -D "$PG_DATA" -l "$PG_DATA/logfile" -w start
-  for i in $(seq 1 30); do
-    pg_isready -h localhost -p "$PG_PORT" -q 2>/dev/null && break
-    sleep 1
-  done
 fi
 
-# Start Redis
+# === Start Redis ===
 if ! redis-cli -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; then
   log_info "Starting Redis on port $REDIS_PORT..."
   redis-server "$REDIS_DATA/redis.conf" --daemonize yes
-  for i in $(seq 1 10); do
-    redis-cli -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG && break
-    sleep 0.5
-  done
+  sleep 1
 fi
 
-# Set URLs
+# === Set environment ===
 export DATABASE_URL="${DATABASE_URL:-postgresql://accessbase:accessbase_dev@localhost:${PG_PORT}/accessbase}"
-export REDIS_URL="${REDIS_URL:-redis://localhost:${REDIS_PORT}"}
+export REDIS_URL="${REDIS_URL:-redis://localhost:${REDIS_PORT}}"
 export STATIC_DIR="${STATIC_DIR:-${OUT_DIR}/admin-ui}"
 export NODE_ENV="${NODE_ENV:-production}"
 
-# Run migrations
+# === Run migrations ===
 log_info "Running migrations..."
 node "${OUT_DIR}/packages/migration/dist/cli.js" up 2>/dev/null || log_warn "Migration skipped"
 
-# Start server
+# === Start server ===
 log_info "Starting server on port $SERVER_PORT..."
 node "${OUT_DIR}/server/index.js" &
 SERVER_PID=$!
@@ -141,7 +123,7 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-# Auto-create admin if env vars set and no admin exists
+# === Auto-create admin ===
 if [ -n "${ADMIN_EMAIL:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
   SETUP_STATUS=$(curl -sf --noproxy localhost "http://localhost:${SERVER_PORT}/api/v1/setup/status" 2>/dev/null || echo '{}')
   if echo "$SETUP_STATUS" | grep -q '"adminExists":false'; then
@@ -149,7 +131,6 @@ if [ -n "${ADMIN_EMAIL:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
     curl -sf --noproxy localhost -X POST "http://localhost:${SERVER_PORT}/api/v1/setup/admin" \
       -H 'Content-Type: application/json' \
       -d "{\"name\":\"Administrator\",\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\"}" || log_warn "Admin creation failed"
-    # Mark setup complete
     curl -sf --noproxy localhost -X POST "http://localhost:${SERVER_PORT}/api/v1/setup/complete" || true
     log_ok "Admin user created: ${ADMIN_EMAIL}"
   fi
