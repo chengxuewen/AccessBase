@@ -220,7 +220,7 @@ cmd_stop_native() {
     # Ensure pixi native env binaries are on PATH (pg_isready, pg_ctl, redis-cli)
     export PATH="${PROJECT_ROOT}/.pixi/envs/native/bin:$PATH"
 
-    # Kill dev server processes tracked by PID file (safe: won't kill unrelated processes)
+    # Kill dev server processes tracked by PID file
     local pidfile="${PROJECT_ROOT}/.pixi/data/.dev-pids"
     if [ -f "$pidfile" ]; then
         while IFS= read -r pid; do
@@ -230,6 +230,20 @@ cmd_stop_native() {
         done < "$pidfile"
         rm -f "$pidfile"
     fi
+
+    # Fallback: kill orphaned node processes on dev ports (5101/5173)
+    # Only kill processes whose command contains 'node' — safe for VS Code
+    for port in ${SERVER_PORT:-5101} ${UI_PORT:-5173}; do
+        local pid
+        pid=$(lsof -ti :"$port" 2>/dev/null | head -1)
+        if [ -n "$pid" ]; then
+            local cmd
+            cmd=$(ps -p "$pid" -o comm= 2>/dev/null || echo "")
+            if echo "$cmd" | grep -q "node"; then
+                kill -15 "$pid" 2>/dev/null || true
+            fi
+        fi
+    done
 
     bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
     bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
