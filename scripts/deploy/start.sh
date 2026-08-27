@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # start.sh — Start AccessBase in deploy mode
-set -euo pipefail
+set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
@@ -130,13 +130,7 @@ node "${OUT_DIR}/packages/migration/dist/cli.js" up 2>/dev/null || log_warn "Mig
 # Start server
 log_info "Starting server on port $SERVER_PORT..."
 node "${OUT_DIR}/server/index.js" &
-set +u  # $! may be unset if node fails immediately
 SERVER_PID=$!
-set -u
-if [ -z "${SERVER_PID:-}" ]; then
-  log_error "Server failed to start. Check logs above."
-  exit 1
-fi
 echo "$SERVER_PID" > "$PIDFILE"
 
 # Wait for server ready
