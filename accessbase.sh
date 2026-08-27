@@ -135,6 +135,21 @@ cmd_dev_native() {
     log_info "Pushing database schema..."
     pnpm db:push || log_warn "Schema push failed (DB may not be ready)"
 
+    # Auto-create admin if env vars set and no admin exists (skip setup wizard)
+    local server_port="${SERVER_PORT:-5101}"
+    if [ -n "${ADMIN_EMAIL:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
+      # Wait briefly for DB to be ready
+      sleep 2
+      local setup_status
+      setup_status=$(curl -sf --noproxy localhost "http://localhost:${server_port}/api/v1/setup/status" 2>/dev/null || echo '{}')
+      if echo "$setup_status" | grep -q '"adminExists":false'; then
+        log_info "Auto-creating admin user: ${ADMIN_EMAIL}"
+        curl -sf --noproxy localhost -X POST "http://localhost:${server_port}/api/v1/setup/admin" \
+          -H 'Content-Type: application/json' \
+          -d "{\"name\":\"Administrator\",\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\"}" > /dev/null 2>&1 || log_warn "Admin auto-create failed (server may not be ready yet)"
+      fi
+    fi
+
     # PID file for safe process tracking (no lsof — avoids killing unrelated processes)
     local pidfile="${PROJECT_ROOT}/.pixi/data/.dev-pids"
 
