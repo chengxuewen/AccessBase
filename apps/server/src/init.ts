@@ -7,7 +7,6 @@ import { UserManager, RoleManager } from '@accessbase/identity';
 import { logger } from '@accessbase/logging';
 import { config } from './config.js';
 
-const ADMIN_EMAIL = 'admin@accessbase.local';
 const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
 
 /**
@@ -28,8 +27,11 @@ export async function initializeAdmin(app: FastifyInstance): Promise<void> {
   const roleManager = new RoleManager();
 
   try {
+    // Use configured email or default
+    const adminEmail = config.adminEmail || 'admin@accessbase.local';
+
     // Check if admin user exists
-    const existingAdmin = await userManager.findByEmail(ADMIN_EMAIL);
+    const existingAdmin = await userManager.findByEmail(adminEmail);
     if (existingAdmin) {
       logger.info('Admin user already exists, skipping initialization');
       return;
@@ -61,7 +63,7 @@ export async function initializeAdmin(app: FastifyInstance): Promise<void> {
     // Create admin user
     const adminUser = await userManager.create(
       {
-        email: ADMIN_EMAIL,
+        email: adminEmail,
         name: 'Administrator',
         password,
         roles: [adminRole.id],
@@ -72,15 +74,15 @@ export async function initializeAdmin(app: FastifyInstance): Promise<void> {
     // Log credentials
     if (isGenerated) {
       logger.warn(
-        { email: ADMIN_EMAIL, password },
+        { email: adminEmail, password },
         `Generated admin password: ${password} - CHANGE IMMEDIATELY`,
       );
     } else {
-      logger.warn({ email: ADMIN_EMAIL }, 'Admin user created with configured password');
+      logger.warn({ email: adminEmail }, 'Admin user created with configured password');
     }
 
     logger.info(
-      { userId: adminUser.id, email: ADMIN_EMAIL },
+      { userId: adminUser.id, email: adminEmail },
       'Admin user initialized successfully',
     );
   } catch (error) {
