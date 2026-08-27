@@ -57,6 +57,14 @@ Other:
   reset            Reset native data and reinitialize
   status           Show native service status
   status           Show project status
+
+Deploy:
+  build:deploy     Build all packages to out/ directory
+  start:deploy     Start deploy mode (PG + Redis + Server from out/)
+  stop:deploy      Stop all deploy services
+  reset:deploy     Reset deploy data (with confirmation)
+  status:deploy    Show deploy service status
+  logs:deploy      Show deploy service logs
 EOF
 }
 
@@ -553,6 +561,65 @@ cmd_docker_down() {
     log_ok "Services stopped"
 }
 
+# ===== Deploy Commands =====
+
+cmd_build_deploy() {
+    ensure_node
+    ensure_pnpm
+    bash "${SCRIPT_DIR}/scripts/deploy/build.sh"
+}
+
+cmd_start_deploy() {
+    ensure_node
+    bash "${SCRIPT_DIR}/scripts/deploy/start.sh"
+}
+
+cmd_stop_deploy() {
+    bash "${SCRIPT_DIR}/scripts/deploy/stop.sh"
+}
+
+cmd_reset_deploy() {
+    bash "${SCRIPT_DIR}/scripts/deploy/reset.sh"
+}
+
+cmd_status_deploy() {
+    local pg_port="${PG_PORT:-5432}"
+    local redis_port="${REDIS_PORT:-6379}"
+    local server_port="${PORT:-5101}"
+    echo "=== Deploy Mode Status ==="
+    echo ""
+    if pg_isready -h localhost -p "$pg_port" -q 2>/dev/null; then
+        echo "PostgreSQL: RUNNING (port $pg_port)"
+    else
+        echo "PostgreSQL: STOPPED"
+    fi
+    if redis-cli -p "$redis_port" ping 2>/dev/null | grep -q PONG; then
+        echo "Redis:      RUNNING (port $redis_port)"
+    else
+        echo "Redis:      STOPPED"
+    fi
+    if curl -sf --noproxy localhost "http://localhost:${server_port}/health/live" >/dev/null 2>&1; then
+        echo "Server:     RUNNING (port $server_port)"
+    else
+        echo "Server:     STOPPED"
+    fi
+    echo ""
+    echo "Dirs:"
+    echo "  data: $( [ -d data ] && echo 'exists' || echo 'missing' )"
+    echo "  out:  $( [ -d out ] && echo 'exists' || echo 'missing' )"
+}
+
+cmd_logs_deploy() {
+    local DATA_DIR="${PROJECT_ROOT}/data"
+    echo "=== Deploy Logs ==="
+    echo "--- Server (last 20 lines) ---"
+    [ -f "$DATA_DIR/.pids" ] && ps -p $(head -1 "$DATA_DIR/.pids") >/dev/null 2>&1 && echo "Server running (PID $(head -1 "$DATA_DIR/.pids"))" || echo "Server not running"
+    echo "--- PostgreSQL ---"
+    tail -20 "$DATA_DIR/pg/logfile" 2>/dev/null || echo "No PG log"
+    echo "--- Redis ---"
+    tail -20 "$DATA_DIR/redis/redis.log" 2>/dev/null || echo "No Redis log"
+}
+
 # ===== Other Commands =====
 
 cmd_clean() {
@@ -635,6 +702,15 @@ case "${1:-}" in
     stop:compose)   cmd_stop_compose ;;
     status:compose) cmd_status_compose ;;
     logs:compose)   cmd_logs_compose ;;
+
+    # Deploy commands
+    build:deploy)   cmd_build_deploy ;;
+    start:deploy)   cmd_start_deploy ;;
+    stop:deploy)    cmd_stop_deploy ;;
+    reset:deploy)   cmd_reset_deploy ;;
+    status:deploy)  cmd_status_deploy ;;
+    logs:deploy)    cmd_logs_deploy ;;
+
 
 
     # Production
