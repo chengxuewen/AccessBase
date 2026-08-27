@@ -22,24 +22,25 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@accessbase/identity": "workspace:*",
     "@accessbase/audit": "workspace:*",
     "@accessbase/health": "workspace:*",
     "@accessbase/i18n": "workspace:*",
+    "@accessbase/identity": "workspace:*",
     "@accessbase/logging": "workspace:*",
-    "fastify": "^4.25.0",
     "@fastify/cors": "^9.0.0",
+    "@fastify/jwt": "^8.0.0",
+    "@fastify/static": "^7.0.4",
     "@fastify/swagger": "^8.0.0",
     "@fastify/swagger-ui": "^4.0.0",
-    "@fastify/jwt": "^8.0.0",
-    "pino-pretty": "^11.0.0",
     "drizzle-orm": "^0.29.0",
-    "pg": "^8.11.0"
+    "fastify": "^4.25.0",
+    "pg": "^8.11.0",
+    "pino-pretty": "^11.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
     "@types/node": "^20.0.0",
     "@types/pg": "^8.11.0",
-    "tsx": "^4.7.0"
+    "tsx": "^4.7.0",
+    "typescript": "^5.7.0"
   }
 }

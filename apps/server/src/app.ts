@@ -10,6 +10,9 @@ import { roleRoutes } from './routes/roles.js';
 import { healthRoutes } from './routes/health.js';
 import { setupRoutes } from './routes/setup.js';
 import { setupGuard } from './middleware/setup-guard.js';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import fastifyStatic from '@fastify/static';
 
 export async function buildApp() {
   const app = Fastify({
@@ -30,7 +33,7 @@ export async function buildApp() {
   // --- Plugins ---
 
   await app.register(cors, {
-    origin: config.nodeEnv === 'development' ? true : false,
+    origin: config.nodeEnv === 'development' ? true : config.host,
     credentials: true,
   });
 
@@ -91,6 +94,29 @@ export async function buildApp() {
   // await app.register(auditPlugin)
   // await app.register(healthCheckPlugin)
   // await app.register(i18nPlugin)
+
+  // --- Static file serving (deploy mode) ---
+  if (existsSync(resolve(config.staticDir))) {
+    await app.register(fastifyStatic, {
+      root: resolve(config.staticDir),
+      prefix: '/',
+    });
+
+    // SPA fallback: serve index.html for non-API routes
+    app.setNotFoundHandler((request, reply) => {
+      if (
+        request.url.startsWith('/api/') ||
+        request.url.startsWith('/health') ||
+        request.url.startsWith('/docs')
+      ) {
+        return reply.status(404).send({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Resource not found' },
+        });
+      }
+      return reply.sendFile('index.html');
+    });
+  }
 
   return app;
 }

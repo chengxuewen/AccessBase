@@ -7,6 +7,8 @@ export interface AppConfig {
   nodeEnv: 'development' | 'production' | 'test';
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   adminPassword: string;
+  staticDir: string;
+  adminEmail: string;
 }
 
 function env(key: string, fallback?: string): string {
@@ -28,4 +30,6 @@ export const config: AppConfig = {
     ? 'info'
     : 'debug') as AppConfig['logLevel'],
   adminPassword: process.env['ADMIN_PASSWORD'] || '',
+  staticDir: env('STATIC_DIR', 'out/admin-ui'),
+  adminEmail: process.env['ADMIN_EMAIL'] || '',
 };
