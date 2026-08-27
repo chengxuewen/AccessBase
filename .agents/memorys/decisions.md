@@ -2230,3 +2230,54 @@ const brandTokens = {
 - 命令覆盖：dev/build/test/docker/db
 
 **参考**: MediaServo mediaservo.sh + bootstrap.sh
+
+---
+
+## D101: 四种构建模式架构 (2026-08-27)
+
+**背景**: AccessBase 需要支持不同场景的开发/部署方式。
+
+**决策**: 支持四种独立构建模式：
+
+| 模式 | 依赖 | 场景 |
+|------|------|------|
+| Native (pixi) | pixi + conda-forge | 开发、CI、无 Docker |
+| Single Container | Docker | 快速体验 |
+| Compose | Docker Compose | 团队开发、生产 |
+| Deploy | Node.js only | 构建到 out/，单端口部署 |
+
+**命令规范**: `<操作>:<模式>`，无后缀默认 native。
+
+**数据目录**: Native=`.pixi/data/`，Deploy=`data/`，Docker=volumes。
+
+---
+
+## D102: Deploy 模式单端口服务 (2026-08-27)
+
+**决策**: Deploy 模式通过 `@fastify/static` 在同一端口 (5101) 服务 API + 前端静态资源。
+
+**关键约束**:
+- `@fastify/static` v6（Fastify v4 兼容）
+- `setupGuard` 的 `ALLOWED_PATHS` 必须包含 `/`, `/assets/` 等静态路径
+- `out/server/node_modules` 需 symlink 到 `apps/server/node_modules`（pnpm 幽灵依赖）
+
+---
+
+## D103: Admin 自动创建策略 (2026-08-27)
+
+**决策**: `initializeAdmin()` 在 server 启动时自动创建 admin，并标记 `setupState.isInitialized=true`。
+
+**规则**:
+- 设置 `ADMIN_EMAIL` + `ADMIN_PASSWORD` → 使用指定凭据
+- 未设置 → 使用默认邮箱 + 随机密码
+- 只要 admin 创建成功或已存在 → 标记 setup 完成 → 不显示 wizard
+
+---
+
+## D104: E2E 测试不覆盖跨 session 状态 (2026-08-27)
+
+**教训**: Playwright 每个 test() 创建新浏览器上下文（fresh localStorage），无法测试「完成 setup → reset 后端 → 同一浏览器刷新」场景。
+
+**解法**: 用 `page.evaluate(() => localStorage.setItem(...))` 注入残留状态，配合 mock API 验证。
+
+**新增测试**: `setup-real-reset.spec.ts` — 注入 `currentStep:3` 到 localStorage，mock status 返回 `isInitialized: false`，验证回到 WelcomeStep。

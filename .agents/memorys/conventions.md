@@ -112,3 +112,24 @@ logger.error('Operation failed', error); // ❌
 | 接口      | PascalCase  | `UserProfile`              |
 | 常量      | UPPER_SNAKE | `MAX_RETRY_COUNT`          |
 | 变量/函数 | camelCase   | `getUserById`              |
+
+## 构建模式约定
+
+| 模式 | 命令前缀 | 数据目录 | 启动方式 |
+|------|----------|----------|----------|
+| Native | `dev:native` | `.pixi/data/` | Pixi 管理 PG/Redis |
+| Container | `dev:container` | Docker volumes | Dockerfile.dev |
+| Compose | `dev:compose` | Docker volumes | docker-compose.dev.yml |
+| Deploy | `build:deploy` + `start:deploy` | `data/` | node out/server/index.js |
+
+### API 路径规范
+
+- 所有 API 路径必须包含 `/v1/` 版本前缀
+- 前端 `client.baseURL = '/api'`，所以请求路径为 `/v1/auth/login`（不是 `/auth/login`）
+- 验证: `grep -r "/auth/\|/setup/\|/users/" apps/admin-ui/src/ | grep -v '/v1/'` 应无结果
+
+### Zustand persist 约束
+
+- 不要持久化 UI 状态（`currentStep`、`isLoading` 等）
+- 只持久化业务数据（`formData`、`token`、`refreshToken`）
+- 组件 mount 时不要依赖 persist 恢复的 UI 状态

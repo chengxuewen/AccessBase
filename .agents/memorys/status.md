@@ -1,7 +1,7 @@
 # AccessBase 项目状态
 
-**更新日期**: 2026-08-21
-**当前阶段**: Phase 4 完成（基础实施完成，可交付）
+**更新日期**: 2026-08-27
+**当前阶段**: Phase 5 完成（三种构建模式 + deploy 模式 + setup E2E + auth 接通）
 
 ## 模块状态
 
@@ -13,9 +13,11 @@
 | L0 包实施    | ✅ 8 个   | 全部实施完成                       |
 | Fastify 服务 | ✅        | REST API + 中间件链                |
 | Admin UI     | ✅        | React + Ant Design Pro             |
-| 测试         | ✅ 138 个 | 单元测试 + 集成测试                |
-| Docker       | ✅        | 多阶段构建 + 3 种运行模式          |
+| 测试         | ✅ 138+7 个 | 单元测试 + 集成测试 + setup E2E |
+| Docker       | ✅        | 多阶段构建 + 3 种运行模式 + deploy 模式 |
 | CI/CD        | ✅        | GitHub Actions                     |
+| 构建模式     | ✅ 4 种   | native / container / compose / deploy |
+| Auth         | ✅        | login / me / logout / refresh 接通 |
 
 ## 代码结构
 
@@ -71,9 +73,9 @@ docs/
 
 ## 近期工作
 
-- 2026-08-21: Phase 0 基础设施搭建（pnpm monorepo + Docker + 测试框架）
-- 2026-08-21: Phase 1 实施 8 个 L0 包
-- 2026-08-21: Phase 2 Fastify 服务集成
-- 2026-08-21: Phase 3 测试（138 个用例）
-- 2026-08-21: Phase 4 Admin UI 前端
-- 2026-08-21: Docker 多阶段构建 + CLI 脚本 + CI/CD
+- 2026-08-21: Phase 0-4 基础设施 + L0 包 + Fastify + 测试 + UI + Docker
+- 2026-08-26: Setup wizard E2E 测试（7 个测试用例，覆盖 7 个 bug）
+- 2026-08-26: 三种构建模式（native/container/compose）+ CLI 命令
+- 2026-08-27: Deploy 模式（build/start/stop/reset/status/logs）
+- 2026-08-27: Auth 端点接通（login/me/logout/refresh）
+- 2026-08-27: Admin 自动创建 + setup 状态管理
