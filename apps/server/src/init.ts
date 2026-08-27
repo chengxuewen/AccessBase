@@ -85,6 +85,17 @@ export async function initializeAdmin(app: FastifyInstance): Promise<void> {
       { userId: adminUser.id, email: adminEmail },
       'Admin user initialized successfully',
     );
+
+    // If admin was configured via env vars, mark setup as complete
+    // so setup wizard doesn't appear and admin can login directly
+    if (config.adminEmail && config.adminPassword) {
+      const { setAdminExists, setIsInitialized } = await import('./routes/setup.js');
+      const { setSetupComplete } = await import('./middleware/setup-guard.js');
+      setAdminExists(true);
+      setIsInitialized(true);
+      setSetupComplete(true);
+      logger.info('Setup marked complete (admin configured via env vars)');
+    }
   } catch (error) {
     logger.error({ err: error }, 'Failed to initialize admin user');
     throw error;

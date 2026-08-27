@@ -13,6 +13,14 @@ let setupState = {
   configComplete: false,
 };
 
+export function setAdminExists(value: boolean): void {
+  setupState.adminExists = value;
+}
+
+export function setIsInitialized(value: boolean): void {
+  setupState.isInitialized = value;
+}
+
 // Track if setup is in progress to prevent concurrent admin creation
 let setupInProgress = false;
 
