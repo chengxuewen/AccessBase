@@ -130,9 +130,11 @@ node "${OUT_DIR}/packages/migration/dist/cli.js" up 2>/dev/null || log_warn "Mig
 # Start server
 log_info "Starting server on port $SERVER_PORT..."
 node "${OUT_DIR}/server/index.js" &
-SERVER_PID=${!:-}
-if [ -z "$SERVER_PID" ]; then
-  log_error "Server failed to start"
+set +u  # $! may be unset if node fails immediately
+SERVER_PID=$!
+set -u
+if [ -z "${SERVER_PID:-}" ]; then
+  log_error "Server failed to start. Check logs above."
   exit 1
 fi
 echo "$SERVER_PID" > "$PIDFILE"
