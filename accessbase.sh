@@ -127,18 +127,23 @@ cmd_dev_native() {
     log_info "Pushing database schema..."
     pnpm db:push || log_warn "Schema push failed (DB may not be ready)"
 
-    # Cleanup on exit — kill dev servers + stop infra
+    # PID file for safe process tracking (no lsof — avoids killing unrelated processes)
+    local pidfile="${PROJECT_ROOT}/.pixi/data/.dev-pids"
+
+    # Cleanup on exit — kill tracked PIDs + stop infra
     _native_cleaned=0
     cleanup_native() {
         [ "$_native_cleaned" -eq 1 ] && return
         _native_cleaned=1
         log_info "Stopping native services..."
-        # Kill dev server processes by port
-        local server_port="${SERVER_PORT:-5101}"
-        local ui_port="${UI_PORT:-5173}"
-        if command -v lsof &>/dev/null; then
-            lsof -ti :"$server_port" 2>/dev/null | xargs -r kill 2>/dev/null || true
-            lsof -ti :"$ui_port" 2>/dev/null | xargs -r kill 2>/dev/null || true
+        # Kill tracked dev server PIDs
+        if [ -f "$pidfile" ]; then
+            while IFS= read -r pid; do
+                if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                    kill -15 "$pid" 2>/dev/null || true
+                fi
+            done < "$pidfile"
+            rm -f "$pidfile"
         fi
         bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
         bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
@@ -158,6 +163,12 @@ cmd_dev_native() {
     local server_pid=$!
     pnpm --filter @accessbase/admin-ui dev -- --host 0.0.0.0 &
     local ui_pid=$!
+
+    # Write PIDs to file for cross-session stop
+    mkdir -p "$(dirname "$pidfile")"
+    echo "$server_pid" > "$pidfile"
+    echo "$ui_pid" >> "$pidfile"
+
     wait $server_pid $ui_pid
 }
 
@@ -186,13 +197,17 @@ cmd_stop_native() {
     # Ensure pixi native env binaries are on PATH (pg_isready, pg_ctl, redis-cli)
     export PATH="${PROJECT_ROOT}/.pixi/envs/native/bin:$PATH"
 
-    # Kill dev server processes on 5101/5173
-    local server_port="${SERVER_PORT:-5101}"
-    local ui_port="${UI_PORT:-5173}"
-    if command -v lsof &>/dev/null; then
-        lsof -ti :"$server_port" 2>/dev/null | xargs -r kill 2>/dev/null || true
-        lsof -ti :"$ui_port" 2>/dev/null | xargs -r kill 2>/dev/null || true
+    # Kill dev server processes tracked by PID file (safe: won't kill unrelated processes)
+    local pidfile="${PROJECT_ROOT}/.pixi/data/.dev-pids"
+    if [ -f "$pidfile" ]; then
+        while IFS= read -r pid; do
+            if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                kill -15 "$pid" 2>/dev/null || true
+            fi
+        done < "$pidfile"
+        rm -f "$pidfile"
     fi
+
     bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
     bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
     log_ok "Native services stopped"
