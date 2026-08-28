@@ -34,37 +34,37 @@
     "local-codegraph": {
       "type": "local",
       "enabled": true,
-      "command": [".opencode/run-node.sh", ".opencode/init-mcp-codegraph.mjs"]
+      "command": ["pixi", "run", "node", ".opencode/init-mcp-codegraph.mjs"]
     },
     "local-playwright": {
       "type": "local",
       "enabled": true,
-      "command": [".opencode/run-node.sh", ".opencode/init-mcp-playwright.mjs"]
+      "command": ["pixi", "run", "node", ".opencode/init-mcp-playwright.mjs"]
     },
     "local-postgres": {
       "type": "local",
       "enabled": false,
-      "command": [".opencode/run-node.sh", ".opencode/init-mcp-postgres.mjs"]
+      "command": ["pixi", "run", "node", ".opencode/init-mcp-postgres.mjs"]
     },
     "local-antd": {
       "type": "local",
       "enabled": true,
-      "command": [".opencode/run-node.sh", ".opencode/init-mcp-antd.mjs"]
+      "command": ["pixi", "run", "node", ".opencode/init-mcp-antd.mjs"]
     },
     "local-drizzle": {
       "type": "local",
       "enabled": true,
-      "command": [".opencode/run-node.sh", ".opencode/init-mcp-drizzle.mjs"]
+      "command": ["pixi", "run", "node", ".opencode/init-mcp-drizzle.mjs"]
     },
     "local-openspace": {
       "type": "local",
       "enabled": true,
-      "command": [".opencode/run-node.sh", ".opencode/init-mcp-openspace.mjs"]
+      "command": ["pixi", "run", "node", ".opencode/init-mcp-openspace.mjs"]
     },
     "local-github": {
       "type": "local",
       "enabled": true,
-      "command": ["npx", "-y", "@modelcontextprotocol/server-github"],
+      "command": ["pixi", "run", "npx", "-y", "@modelcontextprotocol/server-github"],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
       }
@@ -73,7 +73,9 @@
   "lsp": {
     "typescript-language-server": {
       "command": [
-        ".opencode/run-node.sh",
+        "pixi",
+        "run",
+        "node",
         ".opencode/init-lsp-wrap.mjs",
         "typescript-language-server",
         "--stdio"
@@ -82,7 +84,9 @@
     },
     "pyright": {
       "command": [
-        ".opencode/run-node.sh",
+        "pixi",
+        "run",
+        "node",
         ".opencode/init-lsp-wrap.mjs",
         "pyright-langserver",
         "--stdio"
@@ -91,7 +95,9 @@
     },
     "bash-language-server": {
       "command": [
-        ".opencode/run-node.sh",
+        "pixi",
+        "run",
+        "node",
         ".opencode/init-lsp-wrap.mjs",
         "bash-language-server",
         "start"
@@ -99,12 +105,14 @@
       "extensions": ["sh", "bash"]
     },
     "rust-analyzer": {
-      "command": [".opencode/run-node.sh", ".opencode/init-lsp-wrap.mjs", "rust-analyzer"],
+      "command": ["pixi", "run", "node", ".opencode/init-lsp-wrap.mjs", "rust-analyzer"],
       "extensions": ["rs"]
     },
     "html-language-server": {
       "command": [
-        ".opencode/run-node.sh",
+        "pixi",
+        "run",
+        "node",
         ".opencode/init-lsp-wrap.mjs",
         "vscode-html-language-server",
         "--stdio"
@@ -113,7 +121,9 @@
     },
     "remark-language-server": {
       "command": [
-        ".opencode/run-node.sh",
+        "pixi",
+        "run",
+        "node",
         ".opencode/init-lsp-wrap.mjs",
         "remark-language-server",
         "--stdio"
@@ -121,11 +131,11 @@
       "extensions": ["md", "markdown"]
     },
     "gopls": {
-      "command": [".opencode/run-node.sh", ".opencode/init-lsp-wrap.mjs", "gopls"],
+      "command": ["pixi", "run", "node", ".opencode/init-lsp-wrap.mjs", "gopls"],
       "extensions": ["go"]
     },
     "clangd": {
-      "command": [".opencode/run-node.sh", ".opencode/init-lsp-wrap.mjs", "clangd", "--background"],
+      "command": ["pixi", "run", "node", ".opencode/init-lsp-wrap.mjs", "clangd", "--background"],
       "extensions": ["c", "cpp", "cc", "cxx", "h", "hpp"]
     }
   }
