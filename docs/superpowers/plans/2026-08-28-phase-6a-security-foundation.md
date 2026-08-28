@@ -409,6 +409,8 @@ git commit -m "feat(server): wire roles routes to RoleManager, add role CRUD tes
 
 ## Task 2: Security Middleware Chain (Rate Limit, Helmet, CORS Whitelist, Error Envelope)
 
+> **AUDIT FIX (2026-08-28):** security.md 19.13 / D52 require error envelope fields `timestamp`, `requestId`, `path`. Task 2 MUST add `app.setErrorHandler` that enriches error replies with these fields; the 404 envelope test below asserts them. Rate-limit integration test (real, unmocked): fire 11 login requests in one test file section where @fastify/rate-limit is NOT mocked, assert 429 on the 11th; also assert helmet header `x-frame-options` present and CORS rejects `Origin: http://evil.com` when CORS_ORIGINS is set.
+
 **Files:**
 - Modify: `apps/server/src/app.ts` (register rate-limit, helmet, update CORS)
 - Modify: `apps/server/src/config.ts` (add `corsOrigins` field)
@@ -825,8 +827,8 @@ export const sessions = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     // Phase 6a Task 4: refresh token rotation
-    refreshTokenHash: text('refresh_token_hash'),
-    deviceInfo: text('device_info'),
+    refreshTokenHash: varchar('refresh_token_hash', { length: 255 }),
+    deviceInfo: jsonb('device_info'),
     ipAddress: varchar('ip_address', { length: 45 }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     usedAt: timestamp('used_at', { withTimezone: true }),
@@ -1180,7 +1182,7 @@ export const auditLogs = pgTable(
   {
     id: varchar('id', { length: 100 }).primaryKey(),
     tenantId: varchar('tenant_id', { length: 100 }).notNull(),
-    actorId: varchar('actor_id', { length: 100 }).notNull(),
+    actorId: varchar('user_id', { length: 100 }).notNull(),
     actorName: varchar('actor_name', { length: 100 }).notNull(),
     action: varchar('action', { length: 50 }).notNull(),
     resourceType: varchar('resource_type', { length: 100 }).notNull(),
@@ -1192,7 +1194,7 @@ export const auditLogs = pgTable(
   },
   (table) => ({
     createdAtIdx: index('idx_audit_logs_created_at').on(table.createdAt),
-    actorIdIdx: index('idx_audit_logs_actor_id').on(table.actorId),
+    actorIdIdx: index('idx_audit_logs_user_id').on(table.actorId),
   }),
 );
 

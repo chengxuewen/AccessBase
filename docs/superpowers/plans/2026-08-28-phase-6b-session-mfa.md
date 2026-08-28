@@ -688,6 +688,8 @@ Login flow change: if `user.totp_enabled`, response is `{ mfaRequired: true, flo
 
 ## Task 4: Password Management
 
+> **AUDIT FIX (2026-08-28):** security.md 19.12 mandates min 12 chars + uppercase+lowercase+digit+special. change-password/reset-password MUST validate new passwords with Zod schema: `z.string().min(12).regex(/[A-Z]/).regex(/[a-z]/).regex(/\d/).regex(/[^A-Za-z0-9]/)`. Existing PasswordProvider.validatePassword stays for login-time checks.
+
 **Files:**
 - Modify: `packages/identity/src/db/schema.ts` (add `password_history` table)
 - Modify: `apps/server/src/routes/auth.ts` (add change-password, forgot-password, reset-password)

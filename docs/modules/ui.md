@@ -111,6 +111,7 @@ interface DesignTokens {
 
 ### 14.3 主题机制
 
+> **Phase 7+ (deferred).** Dark theme not implemented in Phase 6 — light mode only.
 #### 14.3.1 亮暗主题
 
 ```typescript
@@ -361,6 +362,7 @@ const menuItems: MenuItem[] = [
     children: [
       { key: 'settings-general', label: '通用设置', path: '/settings/general' },
       { key: 'settings-security', label: '安全设置', path: '/settings/security' },
+> **L1-deferred (Phase 7+):** Integrations tab. OAuth account linking lives in Profile page (6d Task 2).
       { key: 'settings-integrations', label: '集成配置', path: '/settings/integrations' }
     ]
   }
@@ -393,6 +395,7 @@ function useBreadcrumbs() {
 }
 ```
 
+> **Phase 7+ (deferred).** Tab navigation not implemented in Phase 6.
 #### 14.5.3 标签页导航
 
 ```typescript
@@ -442,6 +445,7 @@ function useTabs() {
 
 ```typescript
 // 登录页组件
+> **Phase 6 modification:** After 6b, login response may be `{ mfaRequired: true, flowToken }` (TOTP users) instead of tokens; after 6d, adds OAuth exchange-code handling + passkey button. This spec is the pre-6b baseline.
 function LoginPage() {
   const { providers } = useAuth()
   const { theme } = useTheme()
@@ -484,6 +488,7 @@ function LoginPage() {
             {providers.wechat?.enabled && (
               <OAuthButton
                 provider="wechat"
+> **Phase 6 scope:** WeChat OAuth deferred. Phase 6 implements GitHub + Google via arctic.
                 icon={<WeChatIcon />}
                 onClick={handleWeChatLogin}
               >
@@ -503,6 +508,7 @@ function LoginPage() {
         {/* 注册链接 */}
         <div className="login-footer">
           <span>还没有账号？</span>
+> **Deferred:** /register route not implemented (backend POST /register is a 501 stub). Hide this link until register endpoint ships.
           <Link to="/register">立即注册</Link>
         </div>
       </div>
@@ -705,6 +711,7 @@ function DataTable<T extends { id: string }>({
 }
 ```
 
+> **Phase 7+ (deferred).** Responsive/mobile layout not implemented in Phase 6.
 ### 14.8 响应式设计
 
 ```scss
@@ -880,6 +887,7 @@ const routes: RouteConfig[] = [
   },
   {
     path: '/roles',
+> **Phase 6 simplification:** Roles uses modal-based create/edit in a single flat component; nested routes reserved for future full-page forms.
     component: lazy(() => import('./pages/RolesLayout')),
     meta: { title: 'route.roles', icon: <RoleIcon />, permission: 'roles:read' },
     children: [
@@ -900,6 +908,7 @@ const routes: RouteConfig[] = [
     meta: { title: 'route.settings', icon: <SettingsIcon />, permission: 'settings:read' },
     children: [
       { path: 'general', component: lazy(() => import('./pages/GeneralSettingsPage')), meta: { title: 'route.settings.general' } },
+> **Phase 6 scope (6d Task 4):** SecuritySettings hosts three blocks: active sessions list + revoke, Passkey management, 2FA/TOTP enrollment (QR + verify + recovery codes via /mfa/* from 6b).
       { path: 'security', component: lazy(() => import('./pages/SecuritySettingsPage')), meta: { title: 'route.settings.security' } },
       { path: 'integrations', component: lazy(() => import('./pages/IntegrationSettingsPage')), meta: { title: 'route.settings.integrations' } }
     ]
@@ -1140,6 +1149,7 @@ function StandardForm({ title, children, onSubmit, loading }: StandardFormProps)
 
 ```typescript
 // 批量操作工具栏
+> **Phase 7+ (deferred).** Batch operations not implemented in Phase 6.
 interface BatchActionsProps<T> {
   selectedRows: T[]
   actions: BatchAction<T>[]
@@ -1333,6 +1343,7 @@ const ERROR_MESSAGES: Record<string, { message: string; action?: string }> = {
 // API 响应拦截器
 api.interceptors.response.use(
   (response) => response,
+> **6b modification:** Actual error envelope uses `error: { code, message, timestamp?, requestId?, path? }` — not top-level `message`.
   (error: AxiosError<ApiErrorResponse>) => {
     const status = error.response?.status;
     const errorData = error.response?.data?.error;
@@ -2017,6 +2028,7 @@ $dark-link-color: #40a9ff; // 对比度 5.2:1 (vs #141414)
 // error: #ff4d4f → 4.0:1 (可用于文本)
 ```
 
+> **Phase 7+ (deferred).** Global search not implemented in Phase 6.
 ### 14.17 全局搜索
 
 ```typescript
@@ -2109,6 +2121,7 @@ function GlobalSearch() {
 }
 ```
 
+> **Phase 7+ (deferred).** Notification center not implemented in Phase 6.
 ### 14.18 通知中心
 
 ```typescript
@@ -2208,6 +2221,7 @@ function NotificationCenter() {
 }
 ```
 
+> **Gap note:** ui.md has no Profile page spec. 6c Task 4 builds /profile (name edit, change password, revoke sessions); 6d Task 2 adds OAuth linked-accounts card.
 ### 14.19 用户个人中心
 
 ```typescript
@@ -2226,7 +2240,7 @@ function UserDropdown() {
       key: 'settings',
       icon: <SettingOutlined />,
       label: '偏好设置',
-      onClick: () => navigate('/settings/preferences')
+      onClick: () => navigate('/settings')
     },
     {
       key: 'password',
@@ -2307,6 +2321,7 @@ function EmptyState({ type, title, description, action, image }: EmptyStateProps
 
 ```typescript
 // 导出组件
+> **Phase 7+ (deferred).** Full export/import not implemented in Phase 6. Phase 6 provides client-side CSV only (Audit page).
 interface ExportButtonProps {
   endpoint: string           // 导出 API 地址
   filename: string           // 导出文件名

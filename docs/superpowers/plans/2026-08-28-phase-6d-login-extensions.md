@@ -63,6 +63,9 @@ class SessionManager {
 
 ## Task 1 — OAuth Social Login Backend
 
+> **AUDIT FIX (2026-08-28):** D85 mandates OAuth 2.1 PKCE for all flows. GitHub OAuth Apps do not support PKCE (only GitHub App device flow does). Record decision **D109: GitHub via classic OAuth App without PKCE — exemption rationale + state-cookie CSRF protection retained; Google uses arctic PKCE**. Use arctic's state validation for GitHub and document the exemption in decisions.md during Task 5 closeout.
+> **D22 note:** remaining providers (Discord/Telegram/LinuxDO/WeChat/OIDC) are L1 scope; keep arctic provider abstraction clean for OIDC addition.
+
 > **Summary:** arctic integration + oauth_accounts table + authorize/callback/exchange/unbind endpoints + unit tests
 > **Estimated:** ~3 days | **Tests:** 8 new vitest specs
 
@@ -167,6 +170,7 @@ export const oauthAccounts = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     provider: varchar('provider', { length: 50 }).notNull(),
     providerAccountId: varchar('provider_account_id', { length: 255 }).notNull(),
+  access_token text, refresh_token text, expires_at timestamp, // AUDIT FIX: per database.md 22.1
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
@@ -608,23 +612,7 @@ app.delete<{ Params: { provider: string } }>(
 
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { OAuthButtons } from '../components/OAuthButtons';
-
-describe('OAuthButtons', () => {
-  it('renders GitHub and Google buttons', () => {
-    render(<OAuthButtons />);
-    expect(screen.getByText(/GitHub/)).toBeDefined();
-    expect(screen.getByText(/Google/)).toBeDefined();
-  });
-
-  it('calls onProviderClick with provider name', () => {
-    const handleClick = vi.fn();
-    render(<OAuthButtons onProviderClick={handleClick} />);
-    fireEvent.click(screen.getByText(/GitHub/));
-    expect(handleClick).toHaveBeenCalledWith('github');
-  });
-});
+);
 ```
 
 - [ ] 1.2 **Verify fail:** `pixi run npx vitest run apps/admin-ui/src/__tests__/OAuthButtons.test.tsx` -- expect FAIL
@@ -1052,7 +1040,6 @@ describe('DELETE /api/v1/auth/webauthn/credentials/:id', () => {
 | **Create** | `apps/admin-ui/src/pages/settings/GeneralSettings.tsx` | Site name/logo settings |
 | **Create** | `apps/admin-ui/src/pages/settings/SecuritySettings.tsx` | Sessions + passkeys |
 | **Modify** | `apps/admin-ui/src/pages/Login.tsx` | Add "Sign in with passkey" button |
-| **Create** | `apps/admin-ui/src/pages/settings/__tests__/Settings.test.tsx` | Component tests |
 | **Create** | `e2e/settings-passkey.spec.ts` | Mock-E2E |
 
 ### Step 1 — Settings page shell
@@ -1061,7 +1048,7 @@ describe('DELETE /api/v1/auth/webauthn/credentials/:id', () => {
 - [ ] 1.2 **Implement** -- create Settings.tsx with AntD Tabs component (General + Security)
 - [ ] 1.3 Add route `/settings` in router config
 
-### Step 2 — Security tab (sessions + passkeys)
+### Step 2 — Security tab (sessions + passkeys + 2FA/TOTP enrollment: QR code via /mfa/setup, verify input via /mfa/enable, recovery codes shown once, disable via /mfa/disable — backend from 6b Task 3)
 
 - [ ] 2.1 **Implement** SecuritySettings.tsx:
   - Active sessions list from `GET /api/v1/auth/sessions` (add TDD backend if missing)
@@ -1267,3 +1254,15 @@ export async function statsRoutes(app: FastifyInstance) {
 ---
 
 *Generated: 2026-08-28 | Tasks: 5 | New tests: ~33 (16 vitest + 10 Playwright + 7 component)*
+
+
+---
+
+## AUDIT RESOLUTIONS (2026-08-28 team review)
+
+1. **P3 enforcement:** OAuthButtons.test.tsx (Task 2) and Settings.test.tsx (Task 4) component tests are CUT. @testing-library/react is NOT in devDeps; behavior is fully covered by e2e/oauth-login.spec.ts and e2e/settings-passkey.spec.ts. Do not add component tests.
+2. **Coverage traps (P1):** before enabling --coverage.enabled in any gate, vitest.config.ts coverage MUST switch to include-scoping: `coverage.include: ['packages/*/src/**', 'apps/server/src/**']` + `coverage.exclude += ['**/*.test.tsx']` + fix `node_modules/` pattern to `**/node_modules/**`. Empirically verified: current exclude config counts node_modules (70.7% gate failure) and first run crashes on missing coverage/.tmp dir.
+3. **a11y (P2):** add @axe-core/playwright; call AxeBuilder scan (critical/serious violations == 0, disableRules(['color-contrast'])) once per spec: roles-crud, users-crud, audit-viewer, profile, layout, oauth-login, settings-passkey.
+4. **Mandated E2E flows added:** empty-state + error-state tests for roles-crud.spec.ts and users-crud.spec.ts; DOM-integrity (.ant-layout-sider length <= 1) in layout.spec.ts; per-spec console listeners per testing.md.
+5. **Dashboard regression:** 6d Task 5 MUST update e2e/dashboard.spec.ts with GET /api/v1/stats mock + card assertions (currently ships unasserted).
+6. **Audit endpoint gap:** 6c Task 3 backend MUST NOT stay a stub — 6a wires middleware persistence but nobody implements the query route. 6c Task 3 implements GET /api/v1/audit-logs for real (drizzle select with filters) + 2 integration tests (insert via middleware -> query returns row; filter by action).

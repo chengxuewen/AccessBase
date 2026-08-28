@@ -43,6 +43,7 @@
 # 通用门禁（每个任务 commit 前必须全绿）
 pixi run npx tsc --noEmit
 pixi run npx vitest run packages/identity apps/server/src 2>&1 | tail -5
+# Coverage gate (Phase closeout only, AFTER include-scoping fix): pnpm test:coverage
 
 # 前端任务追加
 pixi run npx tsc --noEmit -p apps/admin-ui/tsconfig.json

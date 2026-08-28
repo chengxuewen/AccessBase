@@ -192,6 +192,8 @@ interface User {
 
 ## Task 3 — Audit Log Viewer
 
+> **AUDIT FIX (2026-08-28):** backend GET /api/v1/audit-logs must be a REAL drizzle-backed implementation (filters: action/actor/startDate/endDate; pagination), NOT a stub — 6a wires persistence, this task owns the query API + 2 integration tests (write-then-read, filter). Response shape per api.md: flat `{ success, data, total }` (do NOT use api.md 23.3 meta wrapper; add spec-update note to decisions during closeout).
+
 **Files:**
 | Action | Path |
 |--------|------|
@@ -380,6 +382,8 @@ interface AuditLog {
 ---
 
 ## Task 6 — Layout Enhancement: Sidebar + UserDropdown + Page Header
+
+> **AUDIT FIX (2026-08-28):** add Settings to sidebar menu (D1 divergence: ui.md §14.5.1 has it; plans omitted). UserDropdown 'settings' entry links to /settings (NOT /settings/preferences — ui.md bugfix).
 
 **Files:**
 | Action | Path |
