@@ -3,16 +3,17 @@
  * Based on database.md §22 and identity-sdd.md
  */
 import {
-  pgTable,
-  uuid,
-  varchar,
-  text,
-  boolean,
-  integer,
+pgTable,
+uuid,
+varchar,
+text,
+boolean,
+integer,
   timestamp,
-  primaryKey,
-  index,
-  unique,
+  jsonb,
+primaryKey,
+index,
+unique,
 } from 'drizzle-orm/pg-core';
 
 /**
@@ -135,12 +136,19 @@ export const sessions = pgTable(
     token: varchar('token', { length: 255 }).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    // Phase 6a Task 4: refresh token rotation
+    refreshTokenHash: varchar('refresh_token_hash', { length: 255 }),
+    deviceInfo: jsonb('device_info'),
+    ipAddress: varchar('ip_address', { length: 45 }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    usedAt: timestamp('used_at', { withTimezone: true }),
   },
-  (table) => ({
-    userIdIdx: index('idx_sessions_user').on(table.userId),
-    tokenIdx: index('idx_sessions_token').on(table.token),
-    expiresIdx: index('idx_sessions_expires').on(table.expiresAt),
-  }),
+(table) => ({
+userIdIdx: index('idx_sessions_user').on(table.userId),
+tokenIdx: index('idx_sessions_token').on(table.token),
+expiresIdx: index('idx_sessions_expires').on(table.expiresAt),
+refreshTokenHashIdx: index('idx_sessions_refresh_hash').on(table.refreshTokenHash),
+}),
 );
 
 /**

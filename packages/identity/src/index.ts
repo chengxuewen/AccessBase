@@ -44,7 +44,7 @@ export class IdentityService {
     this.userManager = new UserManager();
     this.roleManager = new RoleManager();
     this.permissionManager = new PermissionManager();
-    this.sessionManager = new SessionManager(config.auth.jwt);
+    this.sessionManager = new SessionManager();
     this.mfaManager = new MfaManager(config.auth.mfa);
 
     logger.info('IdentityService initialized successfully');
