@@ -97,3 +97,7 @@ out/
 
 # Deploy data directory
 data/
+
+# JWT RSA keys (never commit)
+keys/
+apps/server/src/__tests__/fixtures/

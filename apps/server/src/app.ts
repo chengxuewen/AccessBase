@@ -75,10 +75,20 @@ export async function buildApp() {
   });
 
 
-  await app.register(fastifyJwt, {
-    secret: config.jwtSecret,
-    sign: { expiresIn: '15m' },
-  });
+  await app.register(fastifyJwt, config.jwtPrivateKeyPath && config.jwtPublicKeyPath
+    ? await (async () => {
+        const { readFileSync } = await import('node:fs');
+        const privateKey = readFileSync(resolve(config.jwtPrivateKeyPath), 'utf-8');
+        const publicKey = readFileSync(resolve(config.jwtPublicKeyPath), 'utf-8');
+        return {
+          secret: { public: publicKey, private: privateKey },
+          sign: { algorithm: 'RS256' as const, expiresIn: '15m' },
+        };
+      })()
+    : {
+        secret: config.jwtSecret,
+        sign: { expiresIn: '15m' },
+      });
 
   // --- Auth decorator ---
 
