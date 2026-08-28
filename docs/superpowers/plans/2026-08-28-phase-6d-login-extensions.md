@@ -1032,7 +1032,7 @@ describe('DELETE /api/v1/auth/webauthn/credentials/:id', () => {
 | Test | Assertion |
 |------|-----------|
 | State mismatch | GET callback with wrong state -> 302 with error= |
-| PKCE verifier consumed once | Issue FlowToken with purpose='oauth_exchange', ConsumeFlowToken returns payload once, second call returns null |
+| PKCE verifier consumed once | issue() with purpose='oauth_exchange', consume() returns payload once, second call returns null |
 | Counter regression | verifyAuthenticationResponse with counter <= stored counter -> throws |
 | Unknown credential | POST login/verify with non-existent credential_id -> 404 WEBAUTHN_002 |
 | Challenge single-use | consume('webauthn_challenge') returns payload once, second call returns null |
