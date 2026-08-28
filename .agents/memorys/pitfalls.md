@@ -148,3 +148,11 @@
 - **根因**: 1) CORS `origin: config.host` = `'0.0.0.0'` 不匹配浏览器的 `localhost`。2) `@fastify/static` v7 是 Fastify v5 专用，v4 需要 v6。3) `setupGuard` 拦截了 `/` 等静态资源路径
 - **解法**: 1) CORS 改为 `origin: true`。2) 安装 `@fastify/static@^6.0.0`。3) `ALLOWED_PATHS` 添加 `/`, `/index.html`, `/assets/`, `/favicon`
 - **验证**: `curl http://localhost:5101/` 返回 `<!DOCTYPE html>`
+
+## PIT-022: 工具调用长数组组合时输出流损坏 (2026-08-28)
+
+- **症状**: edit/write 调用中多行 lines 数组内容中途被替换为垃圾片段（`async () HMAC path {`、错误 UUID、幻影参数 `workdir=`/`filePath=`），部分调用直接 malformed 失败
+- **根因**: 高速连续组合长 tool-call JSON 时采样流退化（degenerate composition loop），非环境问题
+- **解法**: (1) 每条消息一个干净调用，function_calls 块必须结尾（tool result 强制新回合打破循环）(2) 优先 insert-only 小编辑（1 行新内容，零转录）(3) 避免 UUID 长字符串从记忆转录，用简单值 (`id: 'u1'`) (4) 失败后重读文件确认真实状态再重试
+- **验证**: `grep -c "findById" <file>` 确认编辑实际落盘；tsc + vitest 全绿
+- **禁止**: 检测到垃圾片段后继续叠加编辑；批量长数组编辑；从记忆转录长 UUID
