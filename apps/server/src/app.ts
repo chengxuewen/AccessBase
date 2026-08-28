@@ -2,6 +2,8 @@ import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
+import rateLimit from '@fastify/rate-limit';
+import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
 import { config } from './config.js';
 import { authRoutes } from './routes/auth.js';
@@ -9,10 +11,13 @@ import { userRoutes } from './routes/users.js';
 import { roleRoutes } from './routes/roles.js';
 import { healthRoutes } from './routes/health.js';
 import { setupRoutes } from './routes/setup.js';
-import { setupGuard } from './middleware/setup-guard.js';
+import { setupGuard, setSetupComplete } from './middleware/setup-guard.js';
+import { resolveCorsOrigin } from './cors.js';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import fastifyStatic from '@fastify/static';
+
+export { setSetupComplete };
 
 export async function buildApp() {
   const app = Fastify({
@@ -33,7 +38,7 @@ export async function buildApp() {
   // --- Plugins ---
 
   await app.register(cors, {
-    origin: true,
+    origin: resolveCorsOrigin(),
     credentials: true,
   });
 
@@ -61,6 +66,15 @@ export async function buildApp() {
     routePrefix: '/docs',
   });
 
+  // --- Security middleware ---
+  await app.register(helmet);
+
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+  });
+
+
   await app.register(fastifyJwt, {
     secret: config.jwtSecret,
     sign: { expiresIn: '15m' },
@@ -79,6 +93,25 @@ export async function buildApp() {
     }
   });
 
+  // --- Error envelope enrichment (security.md 19.13 / D52) ---
+  app.setErrorHandler((error, request, reply) => {
+    const statusCode = error.statusCode ?? 500;
+    const payload: Record<string, unknown> = {
+      success: false,
+      error: {
+        code: error.code ?? `HTTP_${statusCode}`,
+        message: statusCode >= 500 ? 'Internal server error' : error.message,
+      },
+      timestamp: new Date().toISOString(),
+      requestId: request.id,
+      path: request.url,
+    };
+    if (statusCode < 500) request.log.info({ err: error }, 'Request error');
+    else request.log.error({ err: error }, 'Internal error');
+    return reply.status(statusCode).send(payload);
+  });
+  
+
   // --- Setup Guard Middleware (must be registered before other routes) ---
   app.addHook('onRequest', setupGuard);
 
@@ -94,6 +127,8 @@ export async function buildApp() {
   // await app.register(auditPlugin)
   // await app.register(healthCheckPlugin)
   // await app.register(i18nPlugin)
+
+
   // --- Static file serving (deploy mode) ---
   if (existsSync(resolve(config.staticDir))) {
     await app.register(fastifyStatic, {
@@ -103,22 +138,34 @@ export async function buildApp() {
       decorateReply: true,
       wildcard: false,
     });
-
-    // SPA fallback: for any non-file, non-API route, serve index.html
-    app.setNotFoundHandler(async (request, reply) => {
-      if (
-        request.url.startsWith('/api/') ||
-        request.url.startsWith('/health') ||
-        request.url.startsWith('/docs')
-      ) {
-        return reply.status(404).send({
-          success: false,
-          error: { code: 'NOT_FOUND', message: 'Resource not found' },
-        });
-      }
-      return reply.type('text/html').sendFile('index.html');
-    });
   }
+  // --- SPA fallback / 404 envelope (works with or without static files) ---
+  app.setNotFoundHandler(async (request, reply) => {
+    if (
+      request.url.startsWith('/api/') ||
+      request.url.startsWith('/health') ||
+      request.url.startsWith('/docs')
+    ) {
+      return reply.status(404).send({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Resource not found' },
+        timestamp: new Date().toISOString(),
+        requestId: request.id,
+        path: request.url,
+      });
+    }
+    // SPA fallback: serve index.html for non-API routes
+    if (existsSync(resolve(config.staticDir))) {
+      return reply.type('text/html').sendFile('index.html');
+    }
+    return reply.status(404).send({
+      success: false,
+      error: { code: 'NOT_FOUND', message: 'Resource not found' },
+      timestamp: new Date().toISOString(),
+      requestId: request.id,
+      path: request.url,
+    });
+  });
 
   return app;
 }

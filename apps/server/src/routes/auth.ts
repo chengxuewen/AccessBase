@@ -16,6 +16,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.post<{ Body: LoginBody }>(
     '/login',
     {
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
       schema: {
         description: 'Password login',
         tags: ['auth'],

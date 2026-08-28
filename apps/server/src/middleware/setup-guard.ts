@@ -32,7 +32,7 @@ export async function setupGuard(request: FastifyRequest, reply: FastifyReply): 
   const url = request.url;
 
   // Always allow access to allowed paths
-  if (ALLOWED_PATHS.some((path) => url.startsWith(path))) {
+  if (ALLOWED_PATHS.some((path) => (path === '/' ? url === '/' : url.startsWith(path)))) {
     return;
   }
 

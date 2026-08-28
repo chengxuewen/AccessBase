@@ -9,6 +9,7 @@ export interface AppConfig {
   adminPassword: string;
   staticDir: string;
   adminEmail: string;
+  corsOrigins: string;
 }
 
 function env(key: string, fallback?: string): string {
@@ -32,4 +33,5 @@ export const config: AppConfig = {
   adminPassword: process.env['ADMIN_PASSWORD'] || '',
   staticDir: env('STATIC_DIR', 'out/admin-ui'),
   adminEmail: process.env['ADMIN_EMAIL'] || '',
+  corsOrigins: process.env['CORS_ORIGINS'] || '',
 };

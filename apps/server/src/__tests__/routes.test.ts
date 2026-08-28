@@ -16,6 +16,12 @@ vi.mock('@fastify/swagger', () => ({
 vi.mock('@fastify/swagger-ui', () => ({
   default: async () => {},
 }));
+vi.mock('@fastify/rate-limit', () => ({
+  default: async () => {},
+}));
+vi.mock('@fastify/helmet', () => ({
+  default: async () => {},
+}));
 
 const { buildApp } = await import('../app.js');
 
