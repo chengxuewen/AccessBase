@@ -14,7 +14,7 @@
 | Fastify 服务 | ✅        | REST API + 中间件链                |
 | Admin UI     | ✅        | React + Ant Design Pro             |
 | 测试         | ✅ 138+7 个 | 单元测试 + 集成测试 + setup E2E |
-| Docker       | ✅        | 多阶段构建 + 3 种运行模式 + deploy 模式 |
+| Docker       | ✅        | 多阶段构建 + 3 种运行模式          |
 | CI/CD        | ✅        | GitHub Actions                     |
 | 构建模式     | ✅ 4 种   | native / container / compose / deploy |
 | Auth         | ✅        | login / me / logout / refresh 接通 |

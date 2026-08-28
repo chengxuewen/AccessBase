@@ -134,3 +134,17 @@
 - **根因**: `okText={t('common.confirm')}` → 英文环境显示 "Confirm"，中文环境显示 "确认"，不是 "OK"
 - **解法**: E2E 用 `button:has-text("Confirm"), button:has-text("确认")` 匹配。或用 `.ant-modal .ant-btn-primary` 选择器
 - **验证**: E2E 测试能找到 Modal 按钮并点击
+
+## PIT-020: Deploy 脚本缺 pixi PATH 导致 pg_ctl 未找到 (2026-08-27)
+
+- **症状**: `bash accessbase.sh start:deploy` 报 `pg_ctl：未找到命令`
+- **根因**: deploy 脚本（start/stop/reset.sh）没导出 pixi 环境 PATH，pg_ctl/redis-server 等命令只在 `.pixi/envs/native/bin/` 里
+- **解法**: 脚本顶部加 `export PATH="${PROJECT_ROOT}/.pixi/envs/native/bin:$HOME/.pixi/bin:$PATH"`
+- **验证**: `bash accessbase.sh start:deploy` 不报命令未找到
+
+## PIT-021: Deploy 模式 CORS + @fastify/static 配置错误 (2026-08-27)
+
+- **症状**: Deploy 模式下 `http://localhost:5101/` 返回 403 Forbidden，API 正常
+- **根因**: 1) CORS `origin: config.host` = `'0.0.0.0'` 不匹配浏览器的 `localhost`。2) `@fastify/static` v7 是 Fastify v5 专用，v4 需要 v6。3) `setupGuard` 拦截了 `/` 等静态资源路径
+- **解法**: 1) CORS 改为 `origin: true`。2) 安装 `@fastify/static@^6.0.0`。3) `ALLOWED_PATHS` 添加 `/`, `/index.html`, `/assets/`, `/favicon`
+- **验证**: `curl http://localhost:5101/` 返回 `<!DOCTYPE html>`
