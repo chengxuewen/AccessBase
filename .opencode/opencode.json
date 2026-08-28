@@ -56,11 +56,6 @@
       "enabled": true,
       "command": ["pixi", "run", "node", ".opencode/init-mcp-drizzle.mjs"]
     },
-    "local-openspace": {
-      "type": "local",
-      "enabled": true,
-      "command": ["pixi", "run", "node", ".opencode/init-mcp-openspace.mjs"]
-    },
     "local-github": {
       "type": "local",
       "enabled": true,
