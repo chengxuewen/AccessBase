@@ -133,3 +133,12 @@ logger.error('Operation failed', error); // ❌
 - 不要持久化 UI 状态（`currentStep`、`isLoading` 等）
 - 只持久化业务数据（`formData`、`token`、`refreshToken`）
 - 组件 mount 时不要依赖 persist 恢复的 UI 状态
+- `PrivateRoute` 必须检查 `token || isAuthenticated`（token 总是被持久化）
+
+### E2E 测试约定
+
+- 默认用 mock API（`page.route`），只有 setup/init 类测试用真后端
+- Modal 按钮用 `.ant-modal .ant-btn-primary` 或 `button:has-text("Confirm"), button:has-text("确认")`
+- 每个测试独立数据（`Date.now()` 唯一标识）
+- `beforeEach` 中检测 401 → 重新创建 admin → 重试登录
+- Playwright 配置用 `webServer.reuseExistingServer: true` 避免 Vite 进程冲突

@@ -2278,6 +2278,30 @@ const brandTokens = {
 
 **教训**: Playwright 每个 test() 创建新浏览器上下文（fresh localStorage），无法测试「完成 setup → reset 后端 → 同一浏览器刷新」场景。
 
-**解法**: 用 `page.evaluate(() => localStorage.setItem(...))` 注入残留状态，配合 mock API 验证。
+**新增测试**: `setup-real-reset.spec.ts` — 注入 `currentStep:3` 到 localStorage，mock status 返回 `isInitialized: false`，验证回到 WelcomeStep。
+
+---
+
+## D105: 用户 CRUD API 类型约束 (2026-08-27)
+
+**决策**: User 实体无 `status` 字段（使用 `isActive: boolean`），无 `roles` 字段。
+
+**约束**:
+- 后端返回 `isActive: boolean`，前端映射为 Tag 颜色
+- `PATCH /users/:id/status` 独立端点调用 `UserManager.changeStatus()`
+- `roles` 不在 User 列表/表单中展示
+
+---
+
+## D106: E2E 测试 Mock vs 真后端策略 (2026-08-27)
+
+**决策**: CRUD E2E 测试使用 mock API（`page.route`），setup E2E 测试使用真后端。
+
+**理由**:
+- CRUD 测试关注 UI 交互逻辑，mock 更稳定、更快
+- Setup 测试关注完整初始化流程，需要真后端验证
+- 真后端 E2E 受 bash timeout / Vite 进程生命周期影响，不适合 CI
+
+**规则**: 新 E2E 测试默认用 mock API，只有 setup/init 类测试用真后端。
 
 **新增测试**: `setup-real-reset.spec.ts` — 注入 `currentStep:3` 到 localStorage，mock status 返回 `isInitialized: false`，验证回到 WelcomeStep。

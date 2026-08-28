@@ -79,3 +79,6 @@ docs/
 - 2026-08-27: Deploy 模式（build/start/stop/reset/status/logs）
 - 2026-08-27: Auth 端点接通（login/me/logout/refresh）
 - 2026-08-27: Admin 自动创建 + setup 状态管理
+- 2026-08-27: 用户 CRUD（后端 7 API + 前端 UI + E2E 3/4 通过）
+- 2026-08-27: axios 双层解构修复 + isAuthenticated 持久化 + PrivateRoute token 检查
+- 2026-08-27: E2E 测试策略决策（mock API vs 真后端）

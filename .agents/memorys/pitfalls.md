@@ -99,3 +99,38 @@
 - **根因**: 前端 `client.post('/auth/login')` + `baseURL: '/api'` → 实际 `/api/auth/login`，缺 `/v1`
 - **解法**: `client.post('/v1/auth/login')`
 - **验证**: 浏览器 Network 面板确认请求路径包含 `/v1/`
+
+## PIT-0015: axios response.data 双层解构 (2026-08-27)
+
+- **症状**: `login()` 后 `token` 为 `undefined`，localStorage 只存了 `{isAuthenticated: true}`
+- **根因**: axios 的 `response.data` 已经是 `{success, data: {accessToken, ...}}`。代码 `const { data } = await client.post(...); const { accessToken } = data` 解构的是外层（得到 `success`），不是内层 `data.data`
+- **解法**: `const { data: { accessToken, refreshToken, user } } = data` 或 `const result = data.data; const { accessToken } = result;`
+- **验证**: `console.log` 登录后 localStorage 的 `auth-storage`，确认 `token` 非空
+
+## PIT-0016: Zustand persist 不持久化 isAuthenticated 导致 PrivateRoute 误判 (2026-08-27)
+
+- **症状**: 登录成功后刷新页面，跳回 `/login`。`PrivateRoute` 检查 `isAuthenticated` 为 `false`
+- **根因**: Zustand persist 的 `partialize` 没包含 `isAuthenticated`。页面刷新后 store 重置为默认值 `false`，localStorage 没存它
+- **解法**: `partialize` 加 `isAuthenticated: state.isAuthenticated`，同时 `PrivateRoute` 检查 `token || isAuthenticated`（token 总是被持久化）
+- **验证**: 登录后刷新页面，确认不跳回 `/login`
+
+## PIT-0017: E2E 测试中 Vite 进程被 bash timeout 杀掉 (2026-08-27)
+
+- **症状**: Playwright 测试报 `ERR_CONNECTION_REFUSED at http://localhost:5173`。Vite 进程在 bash 工具 timeout 后被 SIGTERM
+- **根因**: bash 工具 timeout 会杀掉所有子进程（包括后台 `&` 的 Vite）。`nohup`/`disown` 不够，`setsid` 也可能被杀
+- **解法**: Playwright 的 `webServer` 配置加 `reuseExistingServer: true`，让 Playwright 管理 Vite 生命周期。或在 CI 中用独立 shell 启动服务
+- **验证**: `npx playwright test` 不报 `ERR_CONNECTION_REFUSED`
+
+## PIT-0018: E2E beforeEach login 失败因 admin 用户被前一个测试删除 (2026-08-27)
+
+- **症状**: 第 4 个 E2E 测试 `beforeEach` 登录失败 `401 Invalid credentials`
+- **根因**: 第 3 个测试 (delete) 删除了 admin 用户。后续测试的 `beforeEach` 尝试用已删除的用户登录
+- **解法**: `beforeEach` 中检测 401 → 通过 API 重新创建 admin → 重试登录。或用 mock 模式避免真实后端依赖
+- **验证**: 连续运行所有 E2E 测试，每个测试都能独立通过
+
+## PIT-0019: Ant Design Modal 按钮文本是 i18n 翻译值不是 "OK" (2026-08-27)
+
+- **症状**: E2E 测试 `button:has-text("OK")` 找不到 Modal 确认按钮
+- **根因**: `okText={t('common.confirm')}` → 英文环境显示 "Confirm"，中文环境显示 "确认"，不是 "OK"
+- **解法**: E2E 用 `button:has-text("Confirm"), button:has-text("确认")` 匹配。或用 `.ant-modal .ant-btn-primary` 选择器
+- **验证**: E2E 测试能找到 Modal 按钮并点击
