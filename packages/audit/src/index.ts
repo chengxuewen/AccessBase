@@ -5,6 +5,8 @@
  */
 
 export { AuditLogger } from './logger.js';
+export type { AuditStorage, AuditLoggerOptions } from './logger.js';
+
 export { createAuditMiddleware, auditAuthEvent, auditConfigChange } from './middleware.js';
 
 export type {

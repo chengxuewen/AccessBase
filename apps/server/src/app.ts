@@ -16,10 +16,17 @@ import { resolveCorsOrigin } from './cors.js';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import fastifyStatic from '@fastify/static';
+import { createAuditMiddleware, defaultAuditConfig } from '@accessbase/audit';
+import type { AuditStorage } from '@accessbase/audit';
 
 export { setSetupComplete };
 
-export async function buildApp() {
+interface BuildAppOptions {
+  /** Audit storage override; default = drizzle-backed PG audit_logs table. */
+  auditStorage?: AuditStorage;
+}
+
+export async function buildApp(options: BuildAppOptions = {}) {
   const app = Fastify({
     logger: {
       level: config.logLevel,
@@ -124,6 +131,52 @@ export async function buildApp() {
 
   // --- Setup Guard Middleware (must be registered before other routes) ---
   app.addHook('onRequest', setupGuard);
+
+  // --- Audit middleware (Phase 6a Task 5) ---
+  // onResponse hook on /api/v1/* write requests; storage: injected override (tests) or drizzle-backed.
+  // Non-test builds without override lazily create a drizzle db — test env without override never touches PG.
+  if (options.auditStorage || config.nodeEnv !== 'test') {
+    const { AuditLogger } = await import('@accessbase/audit');
+    let storage = options.auditStorage;
+    if (!storage) {
+      const { createDb, auditLogs } = await import('@accessbase/identity/db');
+      const db = createDb(config.databaseUrl);
+      storage = {
+        async write(entries) {
+          if (entries.length === 0) return;
+          await db.insert(auditLogs).values(
+            entries.map((e) => ({
+              tenantId: e.tenantId,
+              userId: e.userId,
+              action: e.action,
+              resourceType: e.resourceType,
+              resourceId: e.resourceId,
+              requestBody: e.requestBody,
+              responseStatus: e.responseStatus,
+              requestId: e.requestId,
+              ip: e.userIp,
+              userAgent: e.userAgent,
+            })),
+          );
+        },
+      };
+    }
+    const auditLogger = new AuditLogger(
+      {
+        ...defaultAuditConfig,
+        level: 'write',
+        async: { ...defaultAuditConfig.async, enabled: false },
+      },
+      { storage },
+    );
+    const auditHook = createAuditMiddleware(auditLogger);
+    app.addHook('onResponse', async (request, reply) => {
+      const url = request.url.split('?')[0] ?? '';
+      if (request.method === 'GET' || request.method === 'HEAD') return;
+      if (url.startsWith('/health') || url.startsWith('/metrics') || url.startsWith('/api/v1/setup')) return;
+      await auditHook(request, reply);
+    });
+  }
 
   // --- Routes ---
   await app.register(healthRoutes, { prefix: '/health' });

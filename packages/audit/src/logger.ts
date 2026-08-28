@@ -3,19 +3,36 @@ import type { AuditLog, AuditLogEntry, AuditConfig } from './types.js';
 import { logger } from '@accessbase/logging';
 
 /**
+ * Storage abstraction for audit persistence. Implementations receive entries AFTER hashing.
+ */
+export interface AuditStorage {
+  write(entries: AuditLog[]): Promise<void>;
+}
+
+/**
+ * Storage options for AuditLogger
+ */
+export interface AuditLoggerOptions {
+  storage?: AuditStorage;
+}
+
+/**
  * AuditLogger class for recording write operations
  */
 export class AuditLogger {
   private config: AuditConfig;
   private logger: typeof logger;
+  private storage: AuditStorage | null;
   private previousHash: string = 'GENESIS';
   private buffer: AuditLogEntry[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
 
-  constructor(config: AuditConfig) {
+  constructor(config: AuditConfig, options: AuditLoggerOptions = {}) {
     this.config = config;
     this.logger = logger;
+    this.storage = options.storage ?? null;
 
+    // No storage configured → writeToStorage falls back to console (test env).
     if (config.async.enabled) {
       this.startFlushTimer();
     }
@@ -94,17 +111,32 @@ export class AuditLogger {
     this.buffer = [];
 
     try {
-      // In a real implementation, this would batch write to database
-      for (const entry of entriesToFlush) {
-        const hash = this.computeHash(entry);
-        const auditLog: AuditLog = {
-          ...entry,
-          id: this.generateId(),
-          hash,
-          previousHash: this.previousHash,
-        };
-        this.previousHash = hash;
-        await this.writeToStorage(auditLog);
+      // Batch write via storage when configured; console fallback otherwise
+      if (this.storage) {
+        const hashed = entriesToFlush.map((entry) => {
+          const hash = this.computeHash(entry);
+          const auditLog: AuditLog = {
+            ...entry,
+            id: this.generateId(),
+            hash,
+            previousHash: this.previousHash,
+          };
+          this.previousHash = hash;
+          return auditLog;
+        });
+        await this.storage.write(hashed);
+      } else {
+        for (const entry of entriesToFlush) {
+          const hash = this.computeHash(entry);
+          const auditLog: AuditLog = {
+            ...entry,
+            id: this.generateId(),
+            hash,
+            previousHash: this.previousHash,
+          };
+          this.previousHash = hash;
+          await this.writeToStorage(auditLog);
+        }
       }
     } catch (error) {
       this.logger.error(
@@ -200,10 +232,14 @@ export class AuditLogger {
   }
 
   /**
-   * Write audit log to storage (to be implemented by subclasses)
+   * Persist one entry: storage (drizzle/memory) when configured, console fallback otherwise.
    */
   protected async writeToStorage(entry: AuditLog): Promise<void> {
-    // Default implementation - log to console
+    if (this.storage) {
+      await this.storage.write([entry]);
+      return;
+    }
+
     this.logger.info(
       {
         audit: true,
@@ -218,9 +254,6 @@ export class AuditLogger {
       },
       'Audit log entry',
     );
-
-    // In a real implementation, this would write to database
-    // await db.insert(auditLogs).values(entry);
   }
 
   /**

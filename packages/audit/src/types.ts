@@ -28,6 +28,7 @@ export interface AuditLogEntry {
   requestId: string;
 
   // Result
+  responseStatus?: number;
   success: boolean;
   errorMessage?: string;
 }

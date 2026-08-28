@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuditLogger } from '../logger.js';
-import type { AuditLogEntry, AuditConfig } from '../types.js';
+import type { AuditLog, AuditLogEntry, AuditConfig, } from '../types.js';
+import type { AuditStorage } from '../logger.js';
 
 // Mock dependencies
 vi.mock('@accessbase/logging', () => ({
@@ -486,5 +487,78 @@ describe('AuditLogger', () => {
       await configLogger.log(configEntry);
       // Config UPDATE should be logged
     });
+  });
+});
+
+describe('AuditLogger storage persistence', () => {
+  const config: AuditConfig = {
+    enabled: true,
+    level: 'all',
+    storage: {
+      tableName: 'audit_logs',
+      archive: { enabled: true, retentionDays: 365, archiveAfterDays: 90 },
+      indexes: [],
+    },
+    async: { enabled: false, bufferSize: 1000, flushInterval: 5000 },
+    sanitize: { enabled: false, fields: [], replacement: '' },
+    integrity: { enabled: false, verifyInterval: 24, alertOnFailure: false },
+    export: { maxRows: 10000, formats: ['csv'] },
+  };
+
+  const entry: AuditLogEntry = {
+    userId: 'u1',
+    username: 'tester',
+    userIp: '127.0.0.1',
+    userAgent: 'vitest',
+    action: 'CREATE',
+    resourceType: 'user',
+    resourceId: 'u1',
+    requestBody: { a: 1 },
+    timestamp: new Date(),
+    tenantId: 't1',
+    requestId: 'req-1',
+    responseStatus: 201,
+    success: true,
+  };
+
+  it('writes to injected storage instead of console', async () => {
+    const written: AuditLog[] = [];
+    const storage: AuditStorage = {
+      write: async (entries) => {
+        written.push(...entries);
+      },
+    };
+    const withStorage = new AuditLogger(config, { storage });
+
+    await withStorage.log(entry);
+
+    expect(written).toHaveLength(1);
+    expect(written[0]?.action).toBe('CREATE');
+    expect(written[0]?.hash).toBeDefined();
+    expect(written[0]?.previousHash).toBe('GENESIS');
+  });
+
+  it('batches entries through storage on flush (async mode)', async () => {
+    vi.useFakeTimers();
+    const written: AuditLog[] = [];
+    const storage: AuditStorage = { write: async (entries) => { written.push(...entries); } };
+    const asyncConfig = { ...config, async: { ...config.async, enabled: true } };
+    const asyncLogger = new AuditLogger(asyncConfig, { storage });
+
+    await asyncLogger.log(entry);
+    expect(written).toHaveLength(0); // buffered, not yet flushed
+
+    await asyncLogger.flushBuffer();
+    expect(written).toHaveLength(1);
+    vi.useRealTimers();
+  });
+
+  it('falls back to console when no storage configured', async () => {
+    const { logger: mockedLogger } = await import('@accessbase/logging');
+    const fallback = new AuditLogger(config);
+
+    await fallback.log(entry);
+
+    expect(mockedLogger.info).toHaveBeenCalled();
   });
 });

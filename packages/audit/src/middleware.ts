@@ -95,6 +95,7 @@ export function createAuditMiddleware(auditLogger: AuditLogger) {
         timestamp: new Date(),
         tenantId: tenantId || 'system',
         requestId: request.id,
+        responseStatus: reply.statusCode,
         success: reply.statusCode < 400,
         errorMessage:
           reply.statusCode >= 400 ? (responseBody as any)?.message || 'Request failed' : undefined,

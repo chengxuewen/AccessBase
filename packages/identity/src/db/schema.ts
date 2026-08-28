@@ -162,3 +162,31 @@ export type Permission = typeof permissions.$inferSelect;
 export type NewPermission = typeof permissions.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
+
+/**
+ * Audit logs table (database.md §22.1, Phase 6a Task 5)
+ */
+export const auditLogs = pgTable(
+  'audit_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: varchar('tenant_id', { length: 64 }),
+    userId: varchar('user_id', { length: 64 }),
+    action: varchar('action', { length: 128 }).notNull(),
+    resourceType: varchar('resource_type', { length: 64 }),
+    resourceId: varchar('resource_id', { length: 64 }),
+    requestBody: jsonb('request_body'),
+    responseStatus: integer('response_status'),
+    requestId: varchar('request_id', { length: 64 }),
+    ip: varchar('ip', { length: 45 }),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    createdIdx: index('idx_audit_logs_created').on(table.createdAt),
+    userIdx: index('idx_audit_logs_user').on(table.userId),
+  }),
+);
+
+export type AuditLogRow = typeof auditLogs.$inferSelect;
+export type NewAuditLogRow = typeof auditLogs.$inferInsert;
