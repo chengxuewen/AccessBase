@@ -1,8 +1,14 @@
 import type { FastifyInstance } from 'fastify';
+import { RoleManager } from '@accessbase/identity';
+
+const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
 
 export async function roleRoutes(app: FastifyInstance) {
   // All role routes require authentication
   app.addHook('preHandler', (app as any).authenticate);
+
+  // Reuse single RoleManager instance per route module
+  const roleManager = new RoleManager();
 
   // GET /api/v1/roles
   app.get(
@@ -22,12 +28,17 @@ export async function roleRoutes(app: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {
-      // TODO: Use @accessbase/identity RoleManager when implemented
-      return reply.status(501).send({
-        success: false,
-        error: { code: 'NOT_IMPLEMENTED', message: 'Identity package not yet wired' },
-      });
+    async (request) => {
+      const { page = 1, pageSize = 20, search } = request.query as {
+        page?: number;
+        pageSize?: number;
+        search?: string;
+      };
+      const result = await roleManager.findAll(
+        { page: Number(page), pageSize: Number(pageSize), search },
+        DEFAULT_TENANT,
+      );
+      return { success: true, data: result.data, total: result.total };
     },
   );
 
@@ -47,10 +58,14 @@ export async function roleRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      return reply.status(501).send({
-        success: false,
-        error: { code: 'NOT_IMPLEMENTED', message: 'Identity package not yet wired' },
-      });
+      const role = await roleManager.findById(request.params.id, DEFAULT_TENANT);
+      if (!role) {
+        return reply.status(404).send({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Role not found' },
+        });
+      }
+      return { success: true, data: role };
     },
   );
 
@@ -75,10 +90,17 @@ export async function roleRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      return reply.status(501).send({
-        success: false,
-        error: { code: 'NOT_IMPLEMENTED', message: 'Identity package not yet wired' },
-      });
+      const { name, description, parentId, permissionIds } = request.body as {
+        name: string;
+        description?: string;
+        parentId?: string;
+        permissionIds?: string[];
+      };
+      const role = await roleManager.create(
+        { name, description, parentId, permissionIds },
+        DEFAULT_TENANT,
+      );
+      return reply.status(201).send({ success: true, data: role });
     },
   );
 
@@ -106,10 +128,14 @@ export async function roleRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      return reply.status(501).send({
-        success: false,
-        error: { code: 'NOT_IMPLEMENTED', message: 'Identity package not yet wired' },
-      });
+      const { id } = request.params;
+      const { name, description, permissionIds } = request.body as {
+        name?: string;
+        description?: string;
+        permissionIds?: string[];
+      };
+      const role = await roleManager.update(id, { name, description, permissionIds }, DEFAULT_TENANT);
+      return { success: true, data: role };
     },
   );
 
@@ -129,10 +155,9 @@ export async function roleRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      return reply.status(501).send({
-        success: false,
-        error: { code: 'NOT_IMPLEMENTED', message: 'Identity package not yet wired' },
-      });
+      const { id } = request.params;
+      await roleManager.delete(id, DEFAULT_TENANT);
+      return { success: true };
     },
   );
 }

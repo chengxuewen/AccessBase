@@ -102,6 +102,14 @@ vi.mock('@accessbase/identity', () => ({
     changeStatus: mockChangeStatus,
     delete: mockDelete,
   })),
+  // roles.ts (wired in Phase 6a Task 1) imports RoleManager; mock it too
+  RoleManager: vi.fn().mockImplementation(() => ({
+    findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+    findById: vi.fn().mockResolvedValue(null),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  })),
 }));
 
 const { buildApp } = await import('../app.js');
