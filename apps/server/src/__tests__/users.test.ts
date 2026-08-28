@@ -110,6 +110,13 @@ vi.mock('@accessbase/identity', () => ({
     update: vi.fn(),
     delete: vi.fn(),
   })),
+  // auth.ts (Phase 6a Task 4) imports SessionManager; mock it too
+  SessionManager: vi.fn().mockImplementation(() => ({
+    rotateRefreshToken: vi.fn(),
+    findSessionByToken: vi.fn().mockResolvedValue(null),
+    revokeSession: vi.fn(),
+    revokeAllUserSessions: vi.fn(),
+  })),
 }));
 
 const { buildApp } = await import('../app.js');

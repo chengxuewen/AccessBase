@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { SessionManager } from '@accessbase/identity';
 
 interface LoginBody {
   email: string;
@@ -12,6 +13,8 @@ interface RegisterBody {
 }
 
 export async function authRoutes(app: FastifyInstance) {
+  const sessionManager = new SessionManager();
+
   // POST /api/v1/auth/login
   app.post<{ Body: LoginBody }>(
     '/login',
@@ -171,13 +174,23 @@ export async function authRoutes(app: FastifyInstance) {
     {
       preHandler: [(app as any).authenticate],
       schema: {
-        description: 'Logout (revoke session)',
+        description: 'Logout revokes the DB session when a refresh token is supplied',
         tags: ['auth'],
         security: [{ bearerAuth: [] }],
       },
     },
-    async (_request, reply) => {
-      // JWT is stateless — logout is client-side (discard tokens)
+    async (request, reply) => {
+      const body = request.body as { refreshToken?: string } | undefined;
+if (body?.refreshToken) {
+try {
+const session = await sessionManager.findSessionByToken(body.refreshToken);
+if (session) {
+await sessionManager.revokeSession(session.id);
+}
+} catch (err) {
+request.log.warn({ err }, 'Logout session revocation failed');
+}
+}
       return { success: true };
     },
   );
@@ -201,23 +214,22 @@ export async function authRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { refreshToken } = request.body as { refreshToken: string };
       try {
-        const payload = app.jwt.verify(refreshToken) as { sub: string; email: string; type?: string };
-        if (payload.type !== 'refresh') {
-          throw new Error('Not a refresh token');
-        }
-        const accessToken = app.jwt.sign(
-          { sub: payload.sub, email: payload.email },
-          { expiresIn: '15m' },
-        );
-        const newRefreshToken = app.jwt.sign(
-          { sub: payload.sub, email: payload.email, type: 'refresh' },
-          { expiresIn: '7d' },
-        );
+        // DB-backed rotation: validates hash, marks old used, detects replay
+        const { refreshToken: newRefreshToken, userId } =
+          await sessionManager.rotateRefreshToken(refreshToken, {
+            ip: request.ip,
+            userAgent: request.headers['user-agent'] ?? '',
+          });
+
+        const accessToken = app.jwt.sign({ sub: userId }, { expiresIn: '15m' });
+
         return {
           success: true,
           data: { accessToken, refreshToken: newRefreshToken, expiresIn: 900 },
         };
-      } catch {
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        request.log.warn({ msg: 'Refresh failed', reason: error.message });
         return reply.status(401).send({
           success: false,
           error: { code: 'AUTH_003', message: 'Invalid refresh token' },
