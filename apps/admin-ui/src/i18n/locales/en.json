@@ -44,6 +44,21 @@
     "success": "Login successful",
     "error": "Login failed"
   },
+  "oauth": {
+    "or": "or",
+    "github": "Sign in with GitHub",
+    "google": "Sign in with Google",
+    "failed": "OAuth login failed ({{reason}})",
+    "linkedAccounts": "Linked Accounts",
+    "noLinks": "No OAuth accounts linked yet.",
+    "linkedAs": "Linked to {{provider}} ({{account}})",
+    "unlink": "Unlink",
+    "unlinkConfirm": "Unlink {{provider}}?",
+    "bindGithub": "Link GitHub",
+    "bindGoogle": "Link Google",
+    "linksLoadError": "Failed to load linked accounts",
+    "unlinkError": "Failed to unlink provider"
+  },
   "dashboard": {
     "title": "Dashboard",
     "totalUsers": "Total Users",

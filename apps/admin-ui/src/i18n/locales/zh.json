@@ -44,6 +44,21 @@
     "success": "登录成功",
     "error": "登录失败"
   },
+  "oauth": {
+    "or": "或",
+    "github": "使用 GitHub 登录",
+    "google": "使用 Google 登录",
+    "failed": "OAuth 登录失败（{{reason}}）",
+    "linkedAccounts": "关联账号",
+    "noLinks": "暂未关联任何 OAuth 账号。",
+    "linkedAs": "已关联 {{provider}}（{{account}}）",
+    "unlink": "解除关联",
+    "unlinkConfirm": "确定解除 {{provider}} 关联？",
+    "bindGithub": "关联 GitHub",
+    "bindGoogle": "关联 Google",
+    "linksLoadError": "加载关联账号失败",
+    "unlinkError": "解除关联失败"
+  },
   "dashboard": {
     "title": "仪表盘",
     "totalUsers": "用户总数",

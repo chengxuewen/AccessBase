@@ -20,6 +20,7 @@ interface AuthState {
   logout: () => void;
   setTokens: (token: string, refreshToken: string) => void;
   fetchUser: () => Promise<void>;
+  exchangeOAuthCode: (code: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -77,6 +78,18 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           get().logout();
         }
+      },
+
+      exchangeOAuthCode: async (code: string) => {
+        const { data } = await client.post('/v1/auth/oauth/exchange', { code });
+        if (!data.success) throw new Error(data.error?.message ?? 'OAuth exchange failed');
+        const { accessToken, refreshToken, user } = data.data;
+        set({
+          user: user ?? null,
+          token: accessToken,
+          refreshToken,
+          isAuthenticated: true,
+        });
       },
     }),
     {

@@ -1,17 +1,40 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Button, Card, Alert } from 'antd';
+import { Form, Input, Button, Card, Alert, Spin } from 'antd';
 import { MailOutlined, LockOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../stores/auth';
+import { OAuthButtons } from '../components/OAuthButtons';
 
 export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, exchangeOAuthCode, fetchUser } = useAuthStore();
   const [form] = Form.useForm();
-
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loginError, setLoginError] = useState(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
+  const [oauthBusy, setOauthBusy] = useState(false);
+
+  useEffect(() => {
+    const code = searchParams.get('oauthCode');
+    const error = searchParams.get('oauthError');
+    if (!code && !error) return;
+    setSearchParams({}, { replace: true });
+    if (error) {
+      setOauthError(error);
+      return;
+    }
+    if (code) {
+      setOauthBusy(true);
+      exchangeOAuthCode(code)
+        .then(() => fetchUser())
+        .then(() => navigate('/', { replace: true }))
+        .catch(() => setOauthError('exchange_failed'))
+        .finally(() => setOauthBusy(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (values: { email: string; password: string }) => {
     try {
@@ -38,6 +61,18 @@ export default function Login() {
         style={{ width: 400 }}
         styles={{ header: { textAlign: 'center' } }}
       >
+        {oauthBusy && <Spin data-testid="oauth-busy" style={{ display: 'block', marginBottom: 16 }} />}
+
+        {oauthError && (
+          <Alert
+            type="error"
+            showIcon
+            message={t('oauth.failed', { reason: oauthError })}
+            style={{ marginBottom: 16 }}
+            data-testid="oauth-error"
+          />
+        )}
+
         {loginError && (
           <Alert
             type="error"
@@ -80,6 +115,8 @@ export default function Login() {
             </Button>
           </Form.Item>
         </Form>
+
+        <OAuthButtons />
       </Card>
     </div>
   );

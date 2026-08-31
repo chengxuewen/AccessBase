@@ -11,11 +11,12 @@ import {
   Space,
   Spin,
   Tag,
+  Divider,
   message,
 } from 'antd';
-import { EditOutlined, LogoutOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { EditOutlined, LogoutOutlined, CheckOutlined, CloseOutlined, LinkOutlined, GithubOutlined, GoogleOutlined } from '@ant-design/icons';
 import { getCurrentUser, updateUser } from '../api/users';
-import { changePassword, revokeOtherSessions } from '../api/auth';
+import { changePassword, revokeOtherSessions, getOAuthLinks, unlinkOAuthProvider, type OAuthLink } from '../api/auth';
 import { useAuthStore } from '../stores/auth';
 
 export default function Profile() {
@@ -29,6 +30,9 @@ export default function Profile() {
   const [pwdForm] = Form.useForm();
   const [changingPwd, setChangingPwd] = useState(false);
   const [pwdError, setPwdError] = useState<string | null>(null);
+  const [links, setLinks] = useState<OAuthLink[]>([]);
+  const [linksLoading, setLinksLoading] = useState(false);
+  const [linksError, setLinksError] = useState<string | null>(null);
 
   useEffect(() => {
     getCurrentUser()
@@ -38,6 +42,29 @@ export default function Profile() {
       .catch(() => message.error(t('profile.loadError')))
       .finally(() => setLoading(false));
   }, [t, nameForm]);
+
+  const loadLinks = () => {
+    setLinksLoading(true);
+    getOAuthLinks()
+      .then(setLinks)
+      .catch(() => setLinksError(t('oauth.linksLoadError')))
+      .finally(() => setLinksLoading(false));
+  };
+
+  useEffect(() => {
+    loadLinks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleUnlink = async (provider: string) => {
+    setLinksError(null);
+    try {
+      await unlinkOAuthProvider(provider);
+      setLinks((prev) => prev.filter((l) => l.provider !== provider));
+    } catch {
+      setLinksError(t('oauth.unlinkError'));
+    }
+  };
 
   const handleSaveName = async () => {
     if (!user) return;
@@ -185,6 +212,47 @@ export default function Profile() {
             {t('profile.changePassword')}
           </Button>
         </Form>
+      </Card>
+
+      <Card title={t('oauth.linkedAccounts')} data-testid="linked-accounts">
+        {linksError && (
+          <Alert type="error" showIcon message={linksError} style={{ marginBottom: 16 }} data-testid="oauth-links-error" />
+        )}
+        <Spin spinning={linksLoading}>
+          {links.length === 0 && !linksLoading ? (
+            <span style={{ color: '#999' }}>{t('oauth.noLinks')}</span>
+          ) : (
+            <Space direction="vertical" style={{ width: '100%' }}>
+              {links.map((link) => (
+                <Space key={link.provider + link.providerAccountId} style={{ width: '100%', justifyContent: 'space-between' }}>
+                  <Space>
+                    {link.provider === 'github' ? <GithubOutlined /> : link.provider === 'google' ? <GoogleOutlined /> : <LinkOutlined />}
+                    <span>{t('oauth.linkedAs', { provider: link.provider, account: link.providerAccountId })}</span>
+                  </Space>
+                  <Popconfirm
+                    title={t('oauth.unlinkConfirm', { provider: link.provider })}
+                    onConfirm={() => handleUnlink(link.provider)}
+                    okText={t('common.confirm')}
+                    cancelText={t('common.cancel')}
+                  >
+                    <Button danger size="small" data-testid={`oauth-unlink-${link.provider}`}>
+                      {t('oauth.unlink')}
+                    </Button>
+                  </Popconfirm>
+                </Space>
+              ))}
+            </Space>
+          )}
+        </Spin>
+        <Divider style={{ margin: '16px 0' }} />
+        <Space>
+          <Button icon={<GithubOutlined />} onClick={() => { window.location.href = '/api/v1/auth/oauth/github/authorize'; }} data-testid="oauth-bind-github">
+            {t('oauth.bindGithub')}
+          </Button>
+          <Button icon={<GoogleOutlined />} onClick={() => { window.location.href = '/api/v1/auth/oauth/google/authorize'; }} data-testid="oauth-bind-google">
+            {t('oauth.bindGoogle')}
+          </Button>
+        </Space>
       </Card>
     </Space>
     </Spin>
