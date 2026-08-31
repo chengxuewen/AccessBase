@@ -2323,3 +2323,9 @@ const brandTokens = {
 - **决策**: GitHub 走经典 OAuth App（不支持 PKCE），仅用 state cookie（httpOnly/SameSite=Lax/10min）做 CSRF 防护；Google 走 arctic 完整 PKCE（state+code_verifier 双 cookie）。记录于 oauth 回调设计。
 - **理由**: D85 要求全流程 PKCE，但 GitHub OAuth App 机制不支持 code_challenge；state cookie 已覆盖 CSRF 面。换 GitHub App（支持 PKCE）留 L1。
 - **参考**: docs/superpowers/plans/2026-08-28-phase-6d-login-extensions.md Task 1 AUDIT FIX, security.md 19.16
+
+## D112: 用户名无发现 WebAuthn Passkey 作为主登录因子 (2026-08-31)
+
+- **决策**: Passkey 登录用 resident/discoverable credential（不含 username 的 allowCredentials）实现用户名无发现登录，作为主认证因子之一；challenge 经 FlowTokenService 单次消费（purpose=webauthn），防重放/并发复用；认证器 counter 只增校验防克隆（counter 回退即拒绝并吊销）。
+- **理由**: discoverable credential 让用户免输用户名即可登录，UX 优于传统 MFA 第二因子；challenge 单次消费堵住 token 重放窗口；counter 回退检测是 WebAuthn 规范内唯一的服务端克隆信号。
+- **参考**: 6d Task 3（webauthn 路由 + counter 回归保护），D111（FlowTokenService），security.md 19.x

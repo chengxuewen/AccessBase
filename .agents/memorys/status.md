@@ -1,19 +1,19 @@
 # AccessBase 项目状态
 
 **更新日期**: 2026-08-31
-**当前阶段**: Phase 6c 完成（核心页面：Roles/Audit/Profile/Users重构 + 403/404 + 布局）
+**当前阶段**: Phase 6 完成（安全基座+会话MFA+核心页面+登录扩展）
 
 ## 模块状态
 
 | 模块         | 状态      | 描述                               |
 | ------------ | --------- | ---------------------------------- |
 | 设计文档     | ✅ v3.0   | 42 章节 + 14 个补充 + 35+ 项目参考 |
-| 设计决策     | ✅ D1-D95 | 95 个设计决策                      |
+| 设计决策     | ✅ D1-D112 | 112 个设计决策                     |
 | 包 SDD       | ✅ 8 个   | 所有 L0 包详细设计                 |
 | L0 包实施    | ✅ 8 个   | 全部实施完成                       |
 | Fastify 服务 | ✅        | REST API + 中间件链                |
 | Admin UI     | ✅        | React + Ant Design Pro             |
-| 测试         | ✅ 236+1 个 | 单元测试 + 集成测试 + setup E2E |
+| 测试         | ✅ 300+62 个 | 300 vitest + 62 E2E（60 pass / 2 预存失败） |
 | Docker       | ✅        | 多阶段构建 + 3 种运行模式          |
 | CI/CD        | ✅        | GitHub Actions                     |
 | 构建模式     | ✅ 4 种   | native / container / compose / deploy |
@@ -24,6 +24,9 @@
 | MFA         | ✅        | TOTP + 恢复码 + flow_token step-up |
 | 锁定        | ✅        | 5次/15分钟 + IP 黑名单 + 密码历史 |
 | 核心页面     | ✅        | Roles/Users/Audit/Profile + 403/404 + 布局 |
+| OAuth/WebAuthn | ✅     | GitHub/Google OAuth + Passkey 用户名无发现登录 |
+| Settings     | ✅        | 会话管理/Passkey管理/站点信息      |
+| Dashboard    | ✅        | 动态统计+最近活动+快捷操作         |
 
 ## 代码结构
 
@@ -50,10 +53,11 @@ docs/
 
 ## 设计决策汇总
 
-共 95 个设计决策（D1-D95）
+共 112 个设计决策（D1-D112）
 
 - D1-D80: 原始设计决策
 - D81-D95: 从 35+ 项目参考中提炼
+- D96-D112: Phase 6 实施（安全基座/会话MFA/登录扩展）
 
 ## 测试覆盖
 
@@ -64,15 +68,15 @@ docs/
 | identity | AuthManager/UserManager/RoleManager | 57         |
 | health   | service.test.ts                     | 11         |
 | audit    | logger.test.ts                      | 10         |
-| server   | routes.test.ts                      | 17         |
-| **合计** | **27 文件**                         | **247 ✅** |
+| server   | routes/auth/mfa/oauth/webauthn/stats 等 | 199    |
+| **合计** | **30 文件**                         | **300 ✅** |
 
 ## 运行模式
 
 | 模式        | 命令                         | 说明              |
 | ----------- | ---------------------------- | ----------------- |
 | 开发        | `./accessbase.sh dev`        | 后端 + 前端热重载 |
-| 测试        | `./accessbase.sh test`       | 247 个测试（vitest）+ 47 E2E |
+| 测试        | `./accessbase.sh test`       | 300 个测试（vitest）+ 62 E2E |
 | 构建        | `./accessbase.sh build`      | 构建所有包        |
 | Docker 开发 | `./accessbase.sh docker:dev` | PG + Redis 分离   |
 | Docker 生产 | `./accessbase.sh docker`     | 单容器 all-in-one |
@@ -91,3 +95,4 @@ docs/
 - 2026-08-31: Phase 6a 安全基座（6 任务，167 测试，E2E 0 新失败，D110/PIT-022）
 - 2026-08-31: Phase 6b 会话+MFA 基座（SessionManager缓存/FlowToken/TOTP/密码管理/锁定，236 测试）
 - 2026-08-31: Phase 6c 核心页面（Roles/Audit/Profile/Users重构/错误页/布局，47 E2E，PIT-023）
+- 2026-08-31: Phase 6d 登录扩展（OAuth GitHub/Google + WebAuthn passkey + Settings 页 + 动态 Dashboard，300 vitest + 62 E2E，D109/D112，验收清单 docs/superpowers/plans/2026-08-31-phase6-acceptance-checklist.md）
