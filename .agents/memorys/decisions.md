@@ -2317,3 +2317,9 @@ const brandTokens = {
 - **理由**: 单次消费 + purpose 绑定 + 短 TTL 三重防护使 flow token 不能重放/跨流滥用；服务端存储意味着颁发后的授权状态变化即时生效；统一层避免每种认证流各造一套 token 语义。
 - **参考**: 6b Task 2/3（FlowTokenService、/auth/mfa/*），security.md 19.x，D110
 
+
+## D109: GitHub OAuth 豁免 PKCE（经典 OAuth App 限制） (2026-08-31)
+
+- **决策**: GitHub 走经典 OAuth App（不支持 PKCE），仅用 state cookie（httpOnly/SameSite=Lax/10min）做 CSRF 防护；Google 走 arctic 完整 PKCE（state+code_verifier 双 cookie）。记录于 oauth 回调设计。
+- **理由**: D85 要求全流程 PKCE，但 GitHub OAuth App 机制不支持 code_challenge；state cookie 已覆盖 CSRF 面。换 GitHub App（支持 PKCE）留 L1。
+- **参考**: docs/superpowers/plans/2026-08-28-phase-6d-login-extensions.md Task 1 AUDIT FIX, security.md 19.16

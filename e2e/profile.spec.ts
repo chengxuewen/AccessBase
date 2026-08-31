@@ -39,6 +39,13 @@ async function mockCommonApis(page: Page): Promise<void> {
       body: JSON.stringify({ success: true, data: MOCK_ME }),
     });
   });
+  await page.route('**/api/v1/auth/oauth/links', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [] }),
+    });
+  });
 }
 
 async function login(page: Page): Promise<void> {
