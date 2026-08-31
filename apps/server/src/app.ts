@@ -12,6 +12,7 @@ import { userRoutes } from './routes/users.js';
 import { roleRoutes } from './routes/roles.js';
 import { permissionRoutes } from './routes/permissions.js';
 import { auditRoutes } from './routes/audit.js';
+import { statsRoutes } from './routes/stats.js';
 import { healthRoutes } from './routes/health.js';
 import { setupRoutes } from './routes/setup.js';
 import { setupGuard, setSetupComplete } from './middleware/setup-guard.js';
@@ -194,6 +195,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(roleRoutes, { prefix: '/api/v1/roles' });
   await app.register(permissionRoutes, { prefix: '/api/v1/permissions' });
   await app.register(auditRoutes, { prefix: '/api/v1/audit-logs' });
+  await app.register(statsRoutes, { prefix: '/api/v1' });
   await app.register(oauthRoutes, { prefix: '/api/v1/auth' });
   await app.register(webauthnRoutes, { prefix: '/api/v1/auth' });
 
