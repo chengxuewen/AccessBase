@@ -20,6 +20,11 @@ export interface AppConfig {
 };
     google: { clientId: string; clientSecret: string };
   };
+  webauthn: {
+    rpName: string;
+    rpId: string;
+    origin: string;
+  };
   oauthRedirectBase: string;
 }
 
@@ -59,6 +64,11 @@ export const config: AppConfig = {
       clientId: process.env['GOOGLE_CLIENT_ID'] || '',
       clientSecret: process.env['GOOGLE_CLIENT_SECRET'] || '',
     },
+  },
+  webauthn: {
+    rpName: process.env['WEBAUTHN_RP_NAME'] || 'AccessBase',
+    rpId: process.env['WEBAUTHN_RP_ID'] || 'localhost',
+    origin: process.env['WEBAUTHN_ORIGIN'] || 'http://localhost:5173',
   },
   oauthRedirectBase: process.env['OAUTH_REDIRECT_BASE'] || 'http://localhost:5101',
 };
