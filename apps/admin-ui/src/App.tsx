@@ -8,6 +8,9 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Roles from './pages/Roles';
+import UserCreate from './pages/users/UserCreate';
+import UserDetail from './pages/users/UserDetail';
+import UserEdit from './pages/users/UserEdit';
 import SetupWizard from './pages/setup';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -88,6 +91,9 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="users" element={<Users />} />
+        <Route path="users/create" element={<UserCreate />} />
+        <Route path="users/:id" element={<UserDetail />} />
+        <Route path="users/:id/edit" element={<UserEdit />} />
         <Route path="roles" element={<Roles />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

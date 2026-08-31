@@ -1,6 +1,6 @@
 import client from './client';
 
-/** User entity — matches @accessbase/types User (no roles field) */
+/** User entity — matches @accessbase/types User; roles/roleIds optional from detail views */
 export interface User {
   id: string;
   email: string;
@@ -11,6 +11,8 @@ export interface User {
   tokenVersion: number;
   createdAt: string;
   updatedAt: string;
+  roles?: { id: string; name: string }[];
+  roleIds?: string[];
 }
 
 export interface PaginatedUsers {
@@ -51,6 +53,8 @@ export async function createUser(payload: {
   name: string;
   password?: string;
   avatarUrl?: string;
+  isActive?: boolean;
+  roleIds?: string[];
 }): Promise<User> {
   const { data } = await client.post('/v1/users', payload);
   return data.data;

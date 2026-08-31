@@ -1,32 +1,24 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Button, Form, Input, Modal, Popconfirm, Tag, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import {
-  listUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-  type User,
-} from '../api/users';
+import { Button, Popconfirm, Tag, message } from 'antd';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { listUsers, deleteUser, type User } from '../api/users';
 
 export default function Users() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const actionRef = useRef<ActionType>(null);
-  const [createForm] = Form.useForm();
-  const [editForm] = Form.useForm();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [createLoading, setCreateLoading] = useState(false);
-  const [editLoading, setEditLoading] = useState(false);
 
   const columns: ProColumns<User>[] = [
     {
       title: t('users.name'),
       dataIndex: 'name',
       sorter: true,
+      render: (_, record) => (
+        <a onClick={() => navigate(`/users/${record.id}`)}>{record.name}</a>
+      ),
     },
     {
       title: t('users.email'),
@@ -52,17 +44,10 @@ export default function Users() {
     {
       title: t('users.actions'),
       valueType: 'option',
-      width: 120,
+      width: 160,
       render: (_, record) => [
-        <a
-          key="edit"
-          onClick={() => {
-            setEditingUser(record);
-            editForm.setFieldsValue({ name: record.name });
-            setEditOpen(true);
-          }}
-        >
-          <EditOutlined /> {t('common.edit')}
+        <a key="edit" onClick={() => navigate(`/users/${record.id}/edit`)}>
+          {t('common.edit')}
         </a>,
         <Popconfirm
           key="delete"
@@ -87,140 +72,38 @@ export default function Users() {
     },
   ];
 
-  const handleCreate = async () => {
-    try {
-      const values = await createForm.validateFields();
-      setCreateLoading(true);
-      await createUser(values);
-      message.success(t('users.createSuccess'));
-      setCreateOpen(false);
-      createForm.resetFields();
-      actionRef.current?.reload();
-    } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'errorFields' in err) return;
-      message.error(t('users.createError'));
-    } finally {
-      setCreateLoading(false);
-    }
-  };
-
-  const handleEdit = async () => {
-    if (!editingUser) return;
-    try {
-      const values = await editForm.validateFields();
-      setEditLoading(true);
-      await updateUser(editingUser.id, values);
-      message.success(t('users.updateSuccess'));
-      setEditOpen(false);
-      setEditingUser(null);
-      editForm.resetFields();
-      actionRef.current?.reload();
-    } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'errorFields' in err) return;
-      message.error(t('users.updateError'));
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
   return (
-    <>
-      <ProTable<User>
-        headerTitle={t('users.title')}
-        actionRef={actionRef}
-        rowKey="id"
-        columns={columns}
-        request={async (params) => {
-          const { current, pageSize, name, ...rest } = params;
-          const result = await listUsers({
-            page: current,
-            pageSize,
-            search: name,
-            ...rest,
-          });
-          return {
-            data: result.data,
-            total: result.total,
-            success: true,
-          };
-        }}
-        pagination={{ defaultPageSize: 10 }}
-        search={{ labelWidth: 'auto' }}
-        toolBarRender={() => [
-          <Button
-            key="create"
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setCreateOpen(true)}
-          >
-            {t('users.create')}
-          </Button>,
-        ]}
-      />
-
-      <Modal
-        title={t('users.createTitle')}
-        open={createOpen}
-        onOk={handleCreate}
-        confirmLoading={createLoading}
-        onCancel={() => {
-          setCreateOpen(false);
-          createForm.resetFields();
-        }}
-        okText={t('common.confirm')}
-        cancelText={t('common.cancel')}
-      >
-        <Form form={createForm} layout="vertical">
-          <Form.Item
-            name="name"
-            label={t('users.name')}
-            rules={[{ required: true, message: t('users.nameRequired') }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="email"
-            label={t('users.email')}
-            rules={[
-              { required: true, message: t('users.emailRequired') },
-              { type: 'email', message: t('users.emailInvalid') },
-            ]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            label={t('users.password')}
-            rules={[{ required: true, message: t('users.passwordRequired') }]}
-          >
-            <Input.Password />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={t('users.editTitle')}
-        open={editOpen}
-        onOk={handleEdit}
-        confirmLoading={editLoading}
-        onCancel={() => {
-          setEditOpen(false);
-          setEditingUser(null);
-          editForm.resetFields();
-        }}
-        okText={t('common.confirm')}
-        cancelText={t('common.cancel')}
-      >
-        <Form form={editForm} layout="vertical">
-          <Form.Item
-            name="name"
-            label={t('users.name')}
-            rules={[{ required: true, message: t('users.nameRequired') }]}
-          >
-            <Input />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </>
+    <ProTable<User>
+      headerTitle={t('users.title')}
+      actionRef={actionRef}
+      rowKey="id"
+      columns={columns}
+      request={async (params) => {
+        const { current, pageSize, name, ...rest } = params;
+        const result = await listUsers({
+          page: current,
+          pageSize,
+          search: name,
+          ...rest,
+        });
+        return {
+          data: result.data,
+          total: result.total,
+          success: true,
+        };
+      }}
+      pagination={{ defaultPageSize: 10 }}
+      search={{ labelWidth: 'auto' }}
+      toolBarRender={() => [
+        <Button
+          key="create"
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => navigate('/users/create')}
+        >
+          {t('users.create')}
+        </Button>,
+      ]}
+    />
   );
 }
