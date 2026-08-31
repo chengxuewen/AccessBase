@@ -142,3 +142,4 @@ logger.error('Operation failed', error); // ❌
 - 每个测试独立数据（`Date.now()` 唯一标识）
 - `beforeEach` 中检测 401 → 重新创建 admin → 重试登录
 - Playwright 配置用 `webServer.reuseExistingServer: true` 避免 Vite 进程冲突
+- 操作反馈用页面内 inline `<Alert data-testid="...">`，禁用 antd 静态 `message.*` API（当前渲染器下不挂载，见 PIT-023）

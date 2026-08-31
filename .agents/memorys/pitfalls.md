@@ -156,3 +156,11 @@
 - **解法**: (1) 每条消息一个干净调用，function_calls 块必须结尾（tool result 强制新回合打破循环）(2) 优先 insert-only 小编辑（1 行新内容，零转录）(3) 避免 UUID 长字符串从记忆转录，用简单值 (`id: 'u1'`) (4) 失败后重读文件确认真实状态再重试
 - **验证**: `grep -c "findById" <file>` 确认编辑实际落盘；tsc + vitest 全绿
 - **禁止**: 检测到垃圾片段后继续叠加编辑；批量长数组编辑；从记忆转录长 UUID
+
+## PIT-023: antd5 静态 message API 在当前 React 渲染器下不弹提示 (2026-08-31)
+
+- **症状**: E2E auth.spec 登录失败 toast 断言（`page.getByText('Login failed')`）一直失败；手动操作也不见任何提示
+- **根因**: antd5 的静态方法 `message.success/error` 不走 React 渲染管线，在当前 React 渲染器下不挂载，提示永不出现；项目也全站未配 `App.useApp()` 上下文
+- **解法**: 全站约定改用页面内 inline `<Alert data-testid="xxx-error">`（Login.tsx 已落地）；E2E 用 `getByTestId` 断言
+- **验证**: `pixi run npx playwright test e2e/auth.spec.ts --project=chromium` → 5/5 通过
+- **禁止**: 新代码使用 `message.success/error` 静态 API；已有 Users/UserDetail/UserEdit 中的调用属于同一隐患，迁移时一并替换

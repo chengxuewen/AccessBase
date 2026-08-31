@@ -1,7 +1,7 @@
 # AccessBase 项目状态
 
-**更新日期**: 2026-08-27
-**当前阶段**: Phase 6a 完成（安全基座：L0接线/中间件链/RS256/refresh轮换/audit持久化）（三种构建模式 + deploy 模式 + setup E2E + auth 接通）
+**更新日期**: 2026-08-31
+**当前阶段**: Phase 6c 完成（核心页面：Roles/Audit/Profile/Users重构 + 403/404 + 布局）
 
 ## 模块状态
 
@@ -23,6 +23,7 @@
 | 审计         | ✅        | audit_logs 表 + 中间件接线 + AuditStorage 注入 |
 | MFA         | ✅        | TOTP + 恢复码 + flow_token step-up |
 | 锁定        | ✅        | 5次/15分钟 + IP 黑名单 + 密码历史 |
+| 核心页面     | ✅        | Roles/Users/Audit/Profile + 403/404 + 布局 |
 
 ## 代码结构
 
@@ -64,14 +65,14 @@ docs/
 | health   | service.test.ts                     | 11         |
 | audit    | logger.test.ts                      | 10         |
 | server   | routes.test.ts                      | 17         |
-| **合计** | **17 文件**                         | **167 ✅** |
+| **合计** | **27 文件**                         | **247 ✅** |
 
 ## 运行模式
 
 | 模式        | 命令                         | 说明              |
 | ----------- | ---------------------------- | ----------------- |
 | 开发        | `./accessbase.sh dev`        | 后端 + 前端热重载 |
-| 测试        | `./accessbase.sh test`       | 138 个测试        |
+| 测试        | `./accessbase.sh test`       | 247 个测试（vitest）+ 47 E2E |
 | 构建        | `./accessbase.sh build`      | 构建所有包        |
 | Docker 开发 | `./accessbase.sh docker:dev` | PG + Redis 分离   |
 | Docker 生产 | `./accessbase.sh docker`     | 单容器 all-in-one |
@@ -89,3 +90,4 @@ docs/
 - 2026-08-27: E2E 测试策略决策（mock API vs 真后端）
 - 2026-08-31: Phase 6a 安全基座（6 任务，167 测试，E2E 0 新失败，D110/PIT-022）
 - 2026-08-31: Phase 6b 会话+MFA 基座（SessionManager缓存/FlowToken/TOTP/密码管理/锁定，236 测试）
+- 2026-08-31: Phase 6c 核心页面（Roles/Audit/Profile/Users重构/错误页/布局，47 E2E，PIT-023）
