@@ -1,7 +1,7 @@
 # AccessBase 项目状态
 
 **更新日期**: 2026-08-27
-**当前阶段**: Phase 5 完成（三种构建模式 + deploy 模式 + setup E2E + auth 接通）
+**当前阶段**: Phase 6a 完成（安全基座：L0接线/中间件链/RS256/refresh轮换/audit持久化）（三种构建模式 + deploy 模式 + setup E2E + auth 接通）
 
 ## 模块状态
 
@@ -17,7 +17,10 @@
 | Docker       | ✅        | 多阶段构建 + 3 种运行模式          |
 | CI/CD        | ✅        | GitHub Actions                     |
 | 构建模式     | ✅ 4 种   | native / container / compose / deploy |
-| Auth         | ✅        | login / me / logout / refresh 接通 |
+| Auth         | ✅        | login / me / logout / refresh + refresh 轮换/重用检测 |
+| 安全中间件   | ✅        | rate-limit + helmet + CORS 白名单 + 完整错误 envelope |
+| JWT          | ✅        | RS256（未配密钥回退 HMAC） |
+| 审计         | ✅        | audit_logs 表 + 中间件接线 + AuditStorage 注入 |
 
 ## 代码结构
 
@@ -59,7 +62,7 @@ docs/
 | health   | service.test.ts                     | 11         |
 | audit    | logger.test.ts                      | 10         |
 | server   | routes.test.ts                      | 17         |
-| **合计** | **8 文件**                          | **138 ✅** |
+| **合计** | **17 文件**                         | **167 ✅** |
 
 ## 运行模式
 
@@ -82,3 +85,4 @@ docs/
 - 2026-08-27: 用户 CRUD（后端 7 API + 前端 UI + E2E 3/4 通过）
 - 2026-08-27: axios 双层解构修复 + isAuthenticated 持久化 + PrivateRoute token 检查
 - 2026-08-27: E2E 测试策略决策（mock API vs 真后端）
+- 2026-08-31: Phase 6a 安全基座（6 任务，167 测试，E2E 0 新失败，D110/PIT-022）

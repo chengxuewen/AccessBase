@@ -2305,3 +2305,9 @@ const brandTokens = {
 **规则**: 新 E2E 测试默认用 mock API，只有 setup/init 类测试用真后端。
 
 **新增测试**: `setup-real-reset.spec.ts` — 注入 `currentStep:3` 到 localStorage，mock status 返回 `isInitialized: false`，验证回到 WelcomeStep。
+
+## D110: 安全基座架构（RS256 回退 + DB 权威会话 + 可注入审计存储） (2026-08-31)
+
+- **决策**: 1) JWT 支持 RS256（JWT_PRIVATE_KEY_PATH/JWT_PUBLIC_KEY_PATH），未配置时回退 HMAC（开发友好，生产必须配密钥）。2) Refresh token 为不透明随机串，DB sessions 表权威（bcrypt 哈希存储、rotation、reuse 检测→吊销全部会话），access token 仍由 @fastify/jwt 签发。3) AuditLogger 通过 AuditStorage 接口注入存储实现，server 默认用 drizzle 写 audit_logs 表，测试注入内存实现。4) 错误 envelope 补全 timestamp/requestId/path（Sec 19.13/D52）。
+- **理由**: 兼顾开发体验（零配置启动）与生产安全（非对称签名+可吊销会话+完整审计）；DB 权威使多设备/吊销语义清晰；接口注入避免 audit 包依赖 drizzle。
+- **参考**: security.md 19.13/19.18/25.4/25.5, database.md 22.1, PIT-020/021
