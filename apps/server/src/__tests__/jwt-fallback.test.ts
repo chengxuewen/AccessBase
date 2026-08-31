@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import type { IdentityService } from '@accessbase/identity';
 
 // Set env before importing config-dependent modules — NO key path envs (HMAC fallback)
 process.env.NODE_ENV = 'test';
@@ -16,7 +15,7 @@ vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 vi.mock('@accessbase/identity', async (importOriginal) => {
-  const actual = await importOriginal<IdentityService>();
+  const actual = await importOriginal<typeof import('@accessbase/identity')>();
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
@@ -25,6 +24,12 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         email: 'admin@test.local',
       }),
       findById: vi.fn().mockResolvedValue({ id: 'u1', email: 'e', name: 'n', status: 'active' }),
+    })),
+    SessionManager: vi.fn().mockImplementation(() => ({
+      issueRefreshToken: vi.fn().mockResolvedValue({ refreshToken: 'test-refresh-token' }),
+      rotateRefreshToken: vi.fn().mockResolvedValue({ refreshToken: 'new-refresh', userId: 'u1' }),
+      revokeSession: vi.fn().mockResolvedValue(undefined),
+      findSessionByToken: vi.fn().mockResolvedValue(null),
     })),
   };
 });
