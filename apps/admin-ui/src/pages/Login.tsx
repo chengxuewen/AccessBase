@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Button, Card, message } from 'antd';
+import { Form, Input, Button, Card, Alert } from 'antd';
 import { MailOutlined, LockOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../stores/auth';
 
@@ -11,13 +11,15 @@ export default function Login() {
   const { login, isLoading } = useAuthStore();
   const [form] = Form.useForm();
 
+  const [loginError, setLoginError] = useState(false);
+
   const handleSubmit = async (values: { email: string; password: string }) => {
     try {
       await login(values.email, values.password);
-      message.success(t('login.success'));
+      setLoginError(false);
       navigate('/');
     } catch {
-      message.error(t('login.error'));
+      setLoginError(true);
     }
   };
 
@@ -36,6 +38,16 @@ export default function Login() {
         style={{ width: 400 }}
         styles={{ header: { textAlign: 'center' } }}
       >
+        {loginError && (
+          <Alert
+            type="error"
+            showIcon
+            message={t('login.error')}
+            style={{ marginBottom: 16 }}
+            data-testid="login-error"
+          />
+        )}
+
         <Form form={form} onFinish={handleSubmit} layout="vertical">
           <Form.Item
             name="email"

@@ -19,7 +19,9 @@ test.describe('Authentication', () => {
     await page.locator('input[id="email"]').fill('invalid@example.com');
     await page.locator('input[id="password"]').fill('wrongpassword');
     await page.locator('button[type="submit"]').click();
-    await expect(page.getByText('Login failed')).toBeVisible();
+    // Inline Alert (antd static message API doesn't render under React 19)
+    await expect(page.getByTestId('login-error')).toBeVisible();
+    await expect(page.getByTestId('login-error')).toContainText('Login failed');
   });
 
   test('successful login redirects to dashboard', async ({ page }) => {
@@ -71,13 +73,11 @@ test.describe('Authentication', () => {
     await page.locator('button[type="submit"]').click();
     await page.waitForURL('/');
 
-    // Find and click logout button
-    // Logout lives inside the user dropdown; hover the avatar then click
-    await page.locator('.ant-pro-layout-header-content').first().hover().catch(() => {});
-    const avatar = page.locator('span.anticon-user, .ant-dropdown-trigger, header .ant-avatar').first();
-    await avatar.hover();
-    await page.locator('span.anticon-logout').click();
-    await page.waitForURL('/login');
+    // Logout lives in the user dropdown (stable testid) — hover to open, click menu item
+    const trigger = page.getByTestId('user-dropdown');
+    await expect(trigger).toBeVisible();
+    await trigger.hover();
+    await page.locator('.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")').first().click();
     await page.waitForURL('/login');
   });
 });
