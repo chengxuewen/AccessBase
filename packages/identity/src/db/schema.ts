@@ -30,6 +30,9 @@ export const users = pgTable(
     emailVerified: boolean('email_verified').default(false),
     mfaEnabled: boolean('mfa_enabled').default(false),
     mfaSecret: varchar('mfa_secret', { length: 255 }),
+    // Phase 6b Task 3: TOTP MFA (encrypted at rest)
+    totpSecret: text('totp_secret'),
+    totpEnabled: boolean('totp_enabled').default(false).notNull(),
     status: varchar('status', { length: 20 }).default('active').notNull(),
     tenantId: uuid('tenant_id').notNull(),
     tokenVersion: integer('token_version').default(1).notNull(),
@@ -190,3 +193,25 @@ export const auditLogs = pgTable(
 
 export type AuditLogRow = typeof auditLogs.$inferSelect;
 export type NewAuditLogRow = typeof auditLogs.$inferInsert;
+
+/**
+ * MFA recovery codes (Phase 6b Task 3). Plaintext never stored — bcrypt hashes only.
+ * `used` boolean is database.md conformance (mandatory alongside used_at).
+ */
+export const mfaRecoveryCodes = pgTable(
+  'mfa_recovery_codes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: varchar('user_id', { length: 64 }).notNull(),
+    codeHash: varchar('code_hash', { length: 255 }).notNull(),
+    used: boolean('used').default(false).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index('idx_mfa_recovery_codes_user').on(table.userId),
+  }),
+);
+
+export type MfaRecoveryCode = typeof mfaRecoveryCodes.$inferSelect;
+export type NewMfaRecoveryCode = typeof mfaRecoveryCodes.$inferInsert;

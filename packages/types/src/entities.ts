@@ -9,6 +9,8 @@ export interface User {
   isActive: boolean;
   tenantId: string;
   tokenVersion: number;
+  /** TOTP MFA enabled (Phase 6b) */
+  totpEnabled?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
