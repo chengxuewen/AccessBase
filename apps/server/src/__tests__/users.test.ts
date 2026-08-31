@@ -92,7 +92,10 @@ const mockDelete = vi.fn().mockImplementation((id: string) => {
   return Promise.resolve();
 });
 
-vi.mock('@accessbase/identity', () => ({
+// Spread actual so later-added identity exports (FlowTokenService, MfaManager,
+// getRedisClient) keep resolving; the explicit mocks below override the managers.
+vi.mock('@accessbase/identity', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@accessbase/identity')>()),
   UserManager: vi.fn().mockImplementation(() => ({
     findAll: mockFindAll,
     findById: mockFindById,
