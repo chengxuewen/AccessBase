@@ -1,9 +1,9 @@
 /**
  * UserManager - User management with Drizzle ORM (SDD 2.2)
  */
-import { eq, and, like, sql, count } from 'drizzle-orm';
+import { eq, and, like, sql, count, desc, notInArray } from 'drizzle-orm';
 import { createDb, type DrizzleDB } from '../db/index.js';
-import { users, type User as DbUser, type NewUser } from '../db/schema.js';
+import { users, passwordHistory, type User as DbUser, type NewUser } from '../db/schema.js';
 import { logger } from '@accessbase/logging';
 import type {
   User,
@@ -207,17 +207,55 @@ export class UserManager {
   }
 
   /**
-   * Reset password (via reset token)
+   * Change password (authed): verify old, reject reuse from last 5, rotate.
+   * Throws Error('Invalid credentials') | Error('PASSWORD_REUSED').
    */
-  async resetPassword(token: string, newPassword: string): Promise<void> {
-    logger.info('Resetting password with token');
-    // Implementation will:
-    // 1. Validate reset token from Redis
-    // 2. Find user by token
-    // 3. Hash new password
-    // 4. Update user password
-    // 5. Invalidate token
-    throw new Error('Not implemented - requires Redis integration');
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+    const [row] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!row?.passwordHash || !(await compare(oldPassword, row.passwordHash))) {
+      throw new Error('Invalid credentials');
+    }
+    await this.rotatePassword(userId, row.passwordHash, newPassword);
+  }
+
+  /**
+   * Reset password (post flow-token): no old-password check, same reuse gate.
+   * Throws Error('PASSWORD_REUSED') | Error('User not found').
+   */
+  async resetPassword(userId: string, newPassword: string): Promise<void> {
+    const [row] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!row?.passwordHash) {
+      throw new Error('User not found');
+    }
+    await this.rotatePassword(userId, row.passwordHash, newPassword);
+  }
+
+  /** Shared tail of change/reset: reuse gate vs last 5, hash+swap, history push+prune. */
+  private async rotatePassword(userId: string, currentHash: string, newPassword: string): Promise<void> {
+    const recent = await this.db.select()
+      .from(passwordHistory)
+      .where(eq(passwordHistory.userId, userId))
+      .orderBy(desc(passwordHistory.createdAt))
+      .limit(5);
+    for (const entry of recent) {
+      if (await compare(newPassword, entry.passwordHash)) {
+        throw new Error('PASSWORD_REUSED');
+      }
+    }
+    const newHash = await hash(newPassword, 12);
+    await this.db.update(users).set({ passwordHash: newHash, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+    await this.db.insert(passwordHistory).values({ userId, passwordHash: currentHash });
+    // Prune beyond last 5 (keep the just-inserted + 4 newest)
+    const keep = await this.db.select({ id: passwordHistory.id })
+      .from(passwordHistory)
+      .where(eq(passwordHistory.userId, userId))
+      .orderBy(desc(passwordHistory.createdAt))
+      .limit(5);
+    await this.db.delete(passwordHistory).where(
+      and(eq(passwordHistory.userId, userId), notInArray(passwordHistory.id, keep.map((k) => k.id))),
+    );
+    logger.info({ userId }, 'Password rotated, history updated');
   }
 
   /**
