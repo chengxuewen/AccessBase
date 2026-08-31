@@ -9,6 +9,20 @@
     "success": "成功",
     "error": "错误"
   },
+  "errors": {
+    "forbidden": {
+      "subTitle": "抱歉，您没有权限访问此页面"
+    },
+    "notFound": {
+      "subTitle": "抱歉，您访问的页面不存在"
+    },
+    "backToDashboard": "返回仪表盘"
+  },
+  "empty": {
+    "noData": "暂无数据",
+    "noResult": "未找到匹配结果",
+    "error": "加载失败"
+  },
   "menu": {
     "dashboard": "仪表盘",
     "users": "用户管理",

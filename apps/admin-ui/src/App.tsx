@@ -14,6 +14,9 @@ import UserCreate from './pages/users/UserCreate';
 import UserDetail from './pages/users/UserDetail';
 import UserEdit from './pages/users/UserEdit';
 import SetupWizard from './pages/setup';
+import Forbidden from './pages/errors/Forbidden';
+import NotFound from './pages/errors/NotFound';
+import GlobalErrorBoundary from './components/GlobalErrorBoundary';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, isAuthenticated } = useAuthStore();
@@ -63,6 +66,8 @@ function GlobalGuard({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
+    <GlobalErrorBoundary>
+  return (
     <Routes>
       <Route
         path="/setup"
@@ -100,7 +105,10 @@ export default function App() {
         <Route path="audit" element={<Audit />} />
         <Route path="profile" element={<Profile />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="403" element={<Forbidden />} />
+      <Route path="404" element={<NotFound />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
+    </GlobalErrorBoundary>
   );
 }

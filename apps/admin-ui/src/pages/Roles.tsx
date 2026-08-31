@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Button, Form, Input, Modal, Popconfirm, Transfer, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import EmptyState from '../components/EmptyState';
 import {
   listRoles,
   createRole,
@@ -129,6 +130,7 @@ export default function Roles() {
         }}
         pagination={{ defaultPageSize: 10 }}
         search={false}
+        locale={{ emptyText: <EmptyState variant="no-data" /> }}
         toolBarRender={() => [
           <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
             {t('roles.create')}

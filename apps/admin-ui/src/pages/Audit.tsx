@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import EmptyState from '../components/EmptyState';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, DatePicker, Input, Select, Tag, Tooltip } from 'antd';
 import { DownloadOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
@@ -153,6 +154,13 @@ export default function Audit() {
         }}
         pagination={{ defaultPageSize: 10 }}
         search={false}
+        locale={{
+          emptyText: (
+            <EmptyState
+              variant={loadError ? 'error' : 'no-data'}
+            />
+          ),
+        }}
       />
     </>
   );

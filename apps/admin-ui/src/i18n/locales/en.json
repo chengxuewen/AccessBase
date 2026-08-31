@@ -9,6 +9,20 @@
     "success": "Success",
     "error": "Error"
   },
+  "errors": {
+    "forbidden": {
+      "subTitle": "Sorry, you don't have permission to access this page."
+    },
+    "notFound": {
+      "subTitle": "Sorry, the page you visited does not exist."
+    },
+    "backToDashboard": "Back to Dashboard"
+  },
+  "empty": {
+    "noData": "No data",
+    "noResult": "No results found",
+    "error": "Load failed"
+  },
   "menu": {
     "dashboard": "Dashboard",
     "users": "Users",
