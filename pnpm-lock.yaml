@@ -56,6 +56,9 @@ importers:
       '@ant-design/pro-components':
         specifier: ^2.8.10
         version: 2.8.10(antd@5.29.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(rc-field-form@2.7.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@simplewebauthn/browser':
+        specifier: ^13.3.0
+        version: 13.3.0
       antd:
         specifier: ^5.24.7
         version: 5.29.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
