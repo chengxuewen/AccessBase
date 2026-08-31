@@ -12,7 +12,8 @@ import Redis from 'ioredis';
 /** Structural subset used by identity services. Keep tiny on purpose. */
 export interface RedisLike {
   get(key: string): Promise<string | null>;
-  set(key: string, value: string): Promise<unknown>;
+  // ponytail: unknown[] rest swallows ioredis' callback overloads — we only ever pass (k, v) or (k, v, 'EX', ttl)
+  set(key: string, value: string, ...args: unknown[]): Promise<unknown>;
   del(key: string): Promise<unknown>;
 }
 
