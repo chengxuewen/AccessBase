@@ -332,11 +332,15 @@ export async function authRoutes(app: FastifyInstance) {
         },
       },
     },
-    async (request) => {
+async (request) => {
       const { sessionId } = request.body;
-      await sessionManager.revokeSession(sessionId);
-      return { success: true };
-    },
+      // JSON-schema required + minLength guarantee presence; guard satisfies noUncheckedIndexedAccess
+      if (!sessionId) {
+        return { success: false, error: { code: 'VALIDATION_001', message: 'sessionId required' } };
+      }
+await sessionManager.revokeSession(sessionId);
+return { success: true };
+},
   );
 
   // POST /api/v1/auth/refresh

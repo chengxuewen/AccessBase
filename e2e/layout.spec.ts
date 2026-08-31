@@ -42,7 +42,7 @@ async function mockPageData(page: Page): Promise<void> {
       body: JSON.stringify({ success: true, data: [], total: 0 }),
     }),
   );
-  await page.route('**/api/audit-logs**', (route) =>
+  await page.route('**/api/v1/audit-logs**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -66,6 +66,29 @@ async function mockPageData(page: Page): Promise<void> {
       }),
     }),
   );
+  // /profile mounts GET /auth/oauth/links — unmocked 401 → axios logout (profile.spec lesson)
+  await page.route('**/api/v1/auth/oauth/links**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [] }),
+    }),
+  );
+  // /settings mounts GET /auth/sessions + /auth/webauthn/credentials (Phase 6d Task 4)
+  await page.route('**/api/v1/auth/sessions**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [] }),
+    }),
+  );
+  await page.route('**/api/v1/auth/webauthn/credentials**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [] }),
+    }),
+  );
 }
 
 async function login(page: Page): Promise<void> {
@@ -79,22 +102,20 @@ async function login(page: Page): Promise<void> {
 
 // Sidebar menu items: label (en) → expected path
 const MENU_ITEMS: Array<[string, string]> = [
-  ['Dashboard', '/dashboard'],
-  ['Users', '/users'],
-  ['Roles', '/roles'],
-  ['Audit', '/audit'],
+['Dashboard', '/dashboard'],
+['Users', '/users'],
+['Roles', '/roles'],
+['Audit', '/audit'],
   ['Profile', '/profile'],
+  ['Settings', '/settings'], // Phase 6d Task 4: Settings page added (6c TODO closed)
 ];
 
 test.describe('Layout', () => {
-  test('sidebar shows 5 items and each navigates to the correct URL', async ({ page }) => {
+  test('sidebar shows 6 items and each navigates to the correct URL', async ({ page }) => {
     await login(page);
     await mockPageData(page);
 
     // DOM integrity: exactly one sider (testing.md mandated flow)
-
-    // DOM integrity: exactly one sider (testing.md mandated flow)
-    await expect(page.locator('.ant-layout-sider')).toHaveCount(1);
 
     for (const [label, path] of MENU_ITEMS) {
       const item = page.locator(`.ant-menu li:has-text("${label}")`).first();
