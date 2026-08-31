@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Authentication', () => {
   test('visits login page', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.locator('text=Login')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
     await expect(page.locator('input[id="email"]')).toBeVisible();
     await expect(page.locator('input[id="password"]')).toBeVisible();
   });
@@ -11,7 +11,7 @@ test.describe('Authentication', () => {
   test('shows validation errors for empty fields', async ({ page }) => {
     await page.goto('/login');
     await page.locator('button[type="submit"]').click();
-    await expect(page.locator('text=Please input your email')).toBeVisible();
+    await expect(page.getByText('Please enter your email')).toBeVisible();
   });
 
   test('shows error for invalid credentials', async ({ page }) => {
@@ -19,7 +19,7 @@ test.describe('Authentication', () => {
     await page.locator('input[id="email"]').fill('invalid@example.com');
     await page.locator('input[id="password"]').fill('wrongpassword');
     await page.locator('button[type="submit"]').click();
-    await expect(page.locator('.ant-message-error')).toBeVisible();
+    await expect(page.getByText('Login failed')).toBeVisible();
   });
 
   test('successful login redirects to dashboard', async ({ page }) => {
@@ -72,7 +72,12 @@ test.describe('Authentication', () => {
     await page.waitForURL('/');
 
     // Find and click logout button
-    await page.locator('[data-testid="logout"]').click();
+    // Logout lives inside the user dropdown; hover the avatar then click
+    await page.locator('.ant-pro-layout-header-content').first().hover().catch(() => {});
+    const avatar = page.locator('span.anticon-user, .ant-dropdown-trigger, header .ant-avatar').first();
+    await avatar.hover();
+    await page.locator('span.anticon-logout').click();
+    await page.waitForURL('/login');
     await page.waitForURL('/login');
   });
 });
