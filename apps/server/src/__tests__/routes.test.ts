@@ -177,6 +177,8 @@ describe('protected routes authentication (setup guard)', () => {
     { method: 'POST' as const, url: '/api/v1/auth/webauthn/register/verify' },
     { method: 'GET' as const, url: '/api/v1/auth/webauthn/credentials' },
     { method: 'DELETE' as const, url: '/api/v1/auth/webauthn/credentials/row-1' },
+    { method: 'GET' as const, url: '/api/v1/auth/sessions' },
+    { method: 'POST' as const, url: '/api/v1/auth/sessions/revoke' },
   ];
 
   for (const route of protectedRoutes) {

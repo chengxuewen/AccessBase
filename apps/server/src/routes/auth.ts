@@ -298,7 +298,46 @@ export async function authRoutes(app: FastifyInstance) {
       return { success: true };
     },
   );
+  // GET /api/v1/auth/sessions — active sessions for the current user (Phase 6d Task 4 Settings)
+  app.get(
+    '/sessions',
+    {
+      preHandler: [app.authenticate],
+      schema: {
+        description: 'List active sessions for the current user',
+        tags: ['auth'],
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    async (request) => {
+      const payload = request.user as { sub: string };
+      const sessions = await sessionManager.getUserSessions(payload.sub);
+      return { success: true, data: sessions };
+    },
+  );
 
+  // POST /api/v1/auth/sessions/revoke — revoke one session by id (Settings)
+  app.post<{ Body: { sessionId?: string } }>(
+    '/sessions/revoke',
+    {
+      preHandler: [app.authenticate],
+      schema: {
+        description: 'Revoke a single session belonging to the current user',
+        tags: ['auth'],
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object',
+          required: ['sessionId'],
+          properties: { sessionId: { type: 'string', minLength: 1 } },
+        },
+      },
+    },
+    async (request) => {
+      const { sessionId } = request.body;
+      await sessionManager.revokeSession(sessionId);
+      return { success: true };
+    },
+  );
 
   // POST /api/v1/auth/refresh
   app.post(
