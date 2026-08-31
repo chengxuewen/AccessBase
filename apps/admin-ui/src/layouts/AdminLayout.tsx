@@ -7,9 +7,13 @@ import {
   UserOutlined,
   LogoutOutlined,
   SettingOutlined,
+  SafetyOutlined,
+  FileSearchOutlined,
+  SolutionOutlined,
 } from '@ant-design/icons';
 import { Dropdown } from 'antd';
 import { useAuthStore } from '../stores/auth';
+import Breadcrumbs from '../components/Breadcrumbs';
 
 const menuRoutes = {
   path: '/',
@@ -23,6 +27,21 @@ const menuRoutes = {
       path: '/users',
       name: 'menu.users',
       icon: <UserOutlined />,
+    },
+    {
+      path: '/roles',
+      name: 'menu.roles',
+      icon: <SafetyOutlined />,
+    },
+    {
+      path: '/audit',
+      name: 'menu.audit',
+      icon: <FileSearchOutlined />,
+    },
+    {
+      path: '/profile',
+      name: 'menu.profile',
+      icon: <SolutionOutlined />,
     },
   ],
 };
@@ -90,7 +109,8 @@ export default function AdminLayout() {
           </div>
         );
       }}
-    >
+      >
+      <Breadcrumbs />
       <Outlet />
     </ProLayout>
   );
