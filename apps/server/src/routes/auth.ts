@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { SessionManager, FlowTokenService, MfaManager, getRedisClient } from '@accessbase/identity';
+import { z } from 'zod';
+import { SessionManager, FlowTokenService, MfaManager, getRedisClient, LockoutService } from '@accessbase/identity';
 import { config } from '../config.js';
 interface LoginBody {
   email: string;
@@ -14,6 +15,11 @@ interface RegisterBody {
 
 export async function authRoutes(app: FastifyInstance) {
   const sessionManager = new SessionManager();
+  const lockout = new LockoutService({
+    redis: config.nodeEnv === 'test' ? undefined : safeRedis(),
+    maxFailures: config.lockoutMaxFailures,
+    windowSeconds: config.lockoutWindowSeconds,
+  });
   const flowTokens = new FlowTokenService(
     config.nodeEnv === 'test' ? undefined : safeRedis(),
   );
@@ -108,6 +114,23 @@ export async function authRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { email, password } = request.body;
 
+      // IP blacklist then account lockout — both before any credential check
+      if (await lockout.isIpBlacklisted(request.ip)) {
+        return reply.status(403).send({
+          success: false,
+          error: { code: 'AUTH_IP_001', message: 'Access denied' },
+        });
+      }
+      if (await lockout.isLocked(email)) {
+        return reply.status(423).send({
+          success: false,
+          error: {
+            code: 'AUTH_LOCKED_001',
+            message: `Account temporarily locked due to failed attempts. Try again in ${Math.ceil(config.lockoutWindowSeconds / 60)} minutes.`,
+          },
+        });
+      }
+
       try {
         const userManager = new (await import('@accessbase/identity')).UserManager();
         const user = await userManager.verifyPassword(email, password);
@@ -124,6 +147,7 @@ export async function authRoutes(app: FastifyInstance) {
         const { accessToken, refreshToken } = await issueTokenPair(request, user);
 
         request.log.info({ email }, 'Login successful');
+        await lockout.clear(email);
 
         return {
           success: true,
@@ -140,6 +164,7 @@ export async function authRoutes(app: FastifyInstance) {
           },
         };
       } catch {
+        await lockout.recordFailure(email);
         request.log.warn({ email }, 'Login failed');
         return reply.status(401).send({
           success: false,
@@ -199,8 +224,10 @@ export async function authRoutes(app: FastifyInstance) {
     async (request) => {
       const payload = request.user as { sub: string; email: string };
       const userManager = new (await import('@accessbase/identity')).UserManager();
-      const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
-      const user = await userManager.findById(payload.sub, DEFAULT_TENANT);
+      const user = await userManager.findById(
+        payload.sub,
+        '00000000-0000-0000-0000-000000000001',
+      );
       if (!user) {
         throw new Error('User not found');
       }
@@ -282,6 +309,154 @@ export async function authRoutes(app: FastifyInstance) {
       }
     },
   );
+
+  // ---- Password management (Phase 6b Task 4) ----
+
+  // AUDIT FIX security.md 19.12: min 12 + upper + lower + digit + special
+  const newPasswordSchema = z
+    .string()
+    .min(12)
+    .regex(/[A-Z]/, 'must contain an uppercase letter')
+    .regex(/[a-z]/, 'must contain a lowercase letter')
+    .regex(/\d/, 'must contain a digit')
+    .regex(/[^A-Za-z0-9]/, 'must contain a special character');
+
+  function zodErrorMessage(err: z.ZodError): string {
+    const issue = err.issues[0];
+    return issue ? `${issue.path.join('.') || 'newPassword'}: ${issue.message}` : 'Invalid input';
+  }
+
+  // POST /api/v1/auth/change-password
+  app.post<{ Body: { oldPassword: string; newPassword: string } }>(
+    '/change-password',
+    {
+      preHandler: [app.authenticate],
+      schema: {
+        description: 'Change password: verifies old, rejects last-5 reuse, revokes other sessions',
+        tags: ['auth'],
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    async (request, reply) => {
+      const payload = request.user as { sub: string };
+      const parsed = newPasswordSchema.safeParse(request.body.newPassword);
+      if (!parsed.success) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'VALIDATION_001', message: zodErrorMessage(parsed.error) },
+        });
+      }
+      try {
+        const userManager = new (await import('@accessbase/identity')).UserManager();
+        await userManager.changePassword(payload.sub, request.body.oldPassword, request.body.newPassword);
+        // Force re-auth everywhere, then hand the current client a fresh session
+        await sessionManager.revokeAllUserSessions(payload.sub);
+        const user = await userManager.findById(
+          payload.sub,
+          '00000000-0000-0000-0000-000000000001',
+        );
+        if (!user) throw new Error('User not found');
+        const { accessToken, refreshToken } = await issueTokenPair(request, { id: user.id, email: user.email });
+        return { success: true, data: { accessToken, refreshToken, expiresIn: 900 } };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Password change failed';
+        if (message === 'PASSWORD_REUSED') {
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'PASSWORD_REUSED', message: 'Password was used recently' },
+          });
+        }
+        request.log.warn({ err }, 'Password change failed');
+        return reply.status(401).send({
+          success: false,
+          error: { code: 'AUTH_002', message: 'Invalid credentials' },
+        });
+      }
+    },
+  );
+
+  // POST /api/v1/auth/forgot-password — always 200 (anti-enumeration)
+  app.post<{ Body: { email: string } }>(
+    '/forgot-password',
+    {
+      config: { rateLimit: { max: 5, timeWindow: '1 hour' } },
+      schema: {
+        description: 'Request password reset. Always succeeds regardless of account existence.',
+        tags: ['auth'],
+        body: {
+          type: 'object',
+          required: ['email'],
+          properties: { email: { type: 'string', format: 'email' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { email } = request.body;
+      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const user = await userManager.findByEmail(email);
+      if (user) {
+        const token = await flowTokens.issue('password_reset', { userId: user.id }, 1800);
+        // No email service yet (P0 out of scope): delivery is the server log.
+        request.log.info({ email, token }, 'Password reset URL: /reset-password?token=' + token);
+      }
+      return reply.send({ success: true });
+    },
+  );
+
+  // POST /api/v1/auth/reset-password
+  app.post<{ Body: { token: string; newPassword: string } }>(
+    '/reset-password',
+    {
+      schema: {
+        description: 'Reset password with a flow token from forgot-password',
+        tags: ['auth'],
+        body: {
+          type: 'object',
+          required: ['token', 'newPassword'],
+          properties: {
+            token: { type: 'string' },
+            newPassword: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const parsed = newPasswordSchema.safeParse(request.body.newPassword);
+      if (!parsed.success) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'VALIDATION_001', message: zodErrorMessage(parsed.error) },
+        });
+      }
+      const payload = await flowTokens.consume<{ userId: string }>(request.body.token, 'password_reset');
+      if (!payload) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'AUTH_RESET_001', message: 'Invalid or expired reset token' },
+        });
+      }
+      try {
+        const userManager = new (await import('@accessbase/identity')).UserManager();
+        await userManager.resetPassword(payload.userId, request.body.newPassword);
+        await sessionManager.revokeAllUserSessions(payload.userId);
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Password reset failed';
+        if (message === 'PASSWORD_REUSED') {
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'PASSWORD_REUSED', message: 'Password was used recently' },
+          });
+        }
+        request.log.warn({ err }, 'Password reset failed');
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'AUTH_RESET_002', message: 'Password reset failed' },
+        });
+      }
+    },
+  );
+
   // ---- MFA endpoints (Phase 6b Task 3) ----
 
   // POST /api/v1/auth/mfa/setup — generate TOTP secret + recovery codes

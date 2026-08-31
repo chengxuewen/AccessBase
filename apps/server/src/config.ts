@@ -13,6 +13,8 @@ export interface AppConfig {
   adminEmail: string;
   corsOrigins: string;
   mfaEncryptionKey: string;
+  lockoutMaxFailures: number;
+  lockoutWindowSeconds: number;
 }
 
 function env(key: string, fallback?: string): string {
@@ -40,4 +42,6 @@ export const config: AppConfig = {
   adminEmail: process.env['ADMIN_EMAIL'] || '',
   corsOrigins: process.env['CORS_ORIGINS'] || '',
   mfaEncryptionKey: process.env['MFA_ENCRYPTION_KEY'] || '',
+  lockoutMaxFailures: Number(process.env['LOCKOUT_MAX_FAILURES'] || '5'),
+  lockoutWindowSeconds: Number(process.env['LOCKOUT_WINDOW_SECONDS'] || '900'),
 };

@@ -116,7 +116,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     const payload: Record<string, unknown> = {
       success: false,
       error: {
-        code: error.code ?? `HTTP_${statusCode}`,
+        code: error.code === 'FST_ERR_VALIDATION' ? 'VALIDATION_001' : (error.code ?? `HTTP_${statusCode}`),
         message: statusCode >= 500 ? 'Internal server error' : error.message,
       },
       timestamp: new Date().toISOString(),
