@@ -65,8 +65,15 @@
     "title": "Dashboard",
     "totalUsers": "Total Users",
     "activeRoles": "Active Roles",
-    "permissions": "Permissions",
-    "auditLogs": "Audit Logs"
+    "activeSessions": "Active Sessions",
+    "auditLogs": "Audit Logs",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No recent activity",
+    "quickActions": "Quick Actions",
+    "createUser": "Create User",
+    "manageRoles": "Manage Roles",
+    "viewAudit": "View Audit Logs",
+    "loadError": "Failed to load statistics"
   },
   "users": {
     "title": "User Management",

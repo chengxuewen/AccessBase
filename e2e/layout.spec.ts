@@ -24,6 +24,15 @@ async function mockCommonApis(page: Page): Promise<void> {
       }),
     });
   });
+  // Phase 6d Task 5: Dashboard mounts GET /api/v1/stats — unmocked 401 → axios logout
+  await page.route('**/api/v1/stats', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+    });
+  });
+
 }
 
 // Data mocks for each admin page so page mounts don't fire 401s (axios interceptor logs out on 401)

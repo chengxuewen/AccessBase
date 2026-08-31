@@ -65,8 +65,15 @@
     "title": "仪表盘",
     "totalUsers": "用户总数",
     "activeRoles": "活跃角色",
-    "permissions": "权限数",
-    "auditLogs": "审计日志"
+    "activeSessions": "活跃会话",
+    "auditLogs": "审计日志",
+    "recentActivity": "最近活动",
+    "noActivity": "暂无活动记录",
+    "quickActions": "快捷操作",
+    "createUser": "创建用户",
+    "manageRoles": "管理角色",
+    "viewAudit": "查看审计日志",
+    "loadError": "加载统计数据失败"
   },
   "users": {
     "title": "用户管理",
