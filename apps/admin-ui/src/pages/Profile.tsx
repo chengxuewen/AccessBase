@@ -28,12 +28,12 @@ export default function Profile() {
   const [nameForm] = Form.useForm();
   const [pwdForm] = Form.useForm();
   const [changingPwd, setChangingPwd] = useState(false);
+  const [pwdError, setPwdError] = useState<string | null>(null);
 
   useEffect(() => {
     getCurrentUser()
       .then((u) => {
         setUser({ id: u.id, email: u.email, name: u.name, isActive: u.isActive });
-        nameForm.setFieldsValue({ name: u.name });
       })
       .catch(() => message.error(t('profile.loadError')))
       .finally(() => setLoading(false));
@@ -60,13 +60,13 @@ export default function Profile() {
     try {
       setChangingPwd(true);
       await changePassword({ oldPassword: values.oldPassword, newPassword: values.newPassword });
-      message.success(t('profile.passwordChangeSuccess'));
+      setPwdError(null);
       pwdForm.resetFields();
     } catch (err: unknown) {
       // Backend enforces 12+ chars with classes; surface its VALIDATION_001 message on 400
       const axiosErr = err as { response?: { data?: { error?: { message?: string } } } };
       const backendMsg = axiosErr?.response?.data?.error?.message;
-      message.error(backendMsg ?? t('profile.passwordChangeError'));
+      setPwdError(backendMsg ?? t('profile.passwordChangeError'));
     } finally {
       setChangingPwd(false);
     }
@@ -85,11 +85,8 @@ export default function Profile() {
     }
   };
 
-  if (loading) {
-    return <Spin size="large" style={{ display: 'block', margin: '40vh auto' }} />;
-  }
-
   return (
+    <Spin spinning={loading}>
     <Space direction="vertical" size="large" style={{ width: '100%', maxWidth: 720 }}>
       <Card
         title={t('profile.personalInfo')}
@@ -122,7 +119,16 @@ export default function Profile() {
             ) : (
               <Space>
                 <span className="profile-name">{user?.name}</span>
-                <Button type="link" size="small" icon={<EditOutlined />} onClick={() => setEditingName(true)} className="profile-name-edit">
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    nameForm.setFieldsValue({ name: user?.name });
+                    setEditingName(true);
+                  }}
+                  className="profile-name-edit"
+                >
                   {t('profile.editName')}
                 </Button>
               </Space>
@@ -140,6 +146,7 @@ export default function Profile() {
       <Card title={t('profile.changePassword')}>
         {/* UI-level min 8 for usability; the backend enforces the real policy (12 + classes) */}
         <Alert type="info" showIcon message={t('profile.passwordPolicyHint')} style={{ marginBottom: 16 }} />
+        {pwdError && <Alert type="error" showIcon message={pwdError} style={{ marginBottom: 16 }} className="profile-pwd-error" />}
         <Form form={pwdForm} layout="vertical" onFinish={handleChangePassword} style={{ maxWidth: 400 }}>
           <Form.Item
             name="oldPassword"
@@ -180,5 +187,6 @@ export default function Profile() {
         </Form>
       </Card>
     </Space>
+    </Spin>
   );
 }
