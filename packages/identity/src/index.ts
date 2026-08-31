@@ -11,6 +11,7 @@ export { PermissionManager } from './managers/PermissionManager.js';
 export { SessionManager } from './managers/SessionManager.js';
 export { MfaManager } from './managers/MfaManager.js';
 export { FlowTokenService } from './services/FlowTokenService.js';
+export { getRedisClient, type RedisLike } from './services/redis.js';
 export { PasswordProvider } from './providers/PasswordProvider.js';
 export { OAuthProvider } from './providers/OAuthProvider.js';
 export { WebAuthnProvider } from './providers/WebAuthnProvider.js';
@@ -46,7 +47,7 @@ export class IdentityService {
     this.roleManager = new RoleManager();
     this.permissionManager = new PermissionManager();
     this.sessionManager = new SessionManager();
-    this.mfaManager = new MfaManager(config.auth.mfa);
+    this.mfaManager = new MfaManager(process.env['MFA_ENCRYPTION_KEY'] ?? '');
 
     logger.info('IdentityService initialized successfully');
   }
