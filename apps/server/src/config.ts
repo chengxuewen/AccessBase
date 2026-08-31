@@ -15,6 +15,12 @@ export interface AppConfig {
   mfaEncryptionKey: string;
   lockoutMaxFailures: number;
   lockoutWindowSeconds: number;
+  oauth: {
+    github: { clientId: string; clientSecret: string
+};
+    google: { clientId: string; clientSecret: string };
+  };
+  oauthRedirectBase: string;
 }
 
 function env(key: string, fallback?: string): string {
@@ -44,4 +50,15 @@ export const config: AppConfig = {
   mfaEncryptionKey: process.env['MFA_ENCRYPTION_KEY'] || '',
   lockoutMaxFailures: Number(process.env['LOCKOUT_MAX_FAILURES'] || '5'),
   lockoutWindowSeconds: Number(process.env['LOCKOUT_WINDOW_SECONDS'] || '900'),
+  oauth: {
+    github: {
+      clientId: process.env['GITHUB_CLIENT_ID'] || '',
+      clientSecret: process.env['GITHUB_CLIENT_SECRET'] || '',
+    },
+    google: {
+      clientId: process.env['GOOGLE_CLIENT_ID'] || '',
+      clientSecret: process.env['GOOGLE_CLIENT_SECRET'] || '',
+    },
+  },
+  oauthRedirectBase: process.env['OAUTH_REDIRECT_BASE'] || 'http://localhost:5101',
 };

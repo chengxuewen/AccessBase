@@ -5,6 +5,7 @@ import fastifySwaggerUi from '@fastify/swagger-ui';
 import rateLimit from '@fastify/rate-limit';
 import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
+import fastifyCookie from '@fastify/cookie';
 import { config } from './config.js';
 import { authRoutes } from './routes/auth.js';
 import { userRoutes } from './routes/users.js';
@@ -14,6 +15,7 @@ import { auditRoutes } from './routes/audit.js';
 import { healthRoutes } from './routes/health.js';
 import { setupRoutes } from './routes/setup.js';
 import { setupGuard, setSetupComplete } from './middleware/setup-guard.js';
+import { oauthRoutes } from './routes/oauth.js';
 import { resolveCorsOrigin } from './cors.js';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -82,6 +84,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
     max: 100,
     timeWindow: '1 minute',
   });
+
+
+  await app.register(fastifyCookie);
 
 
   await app.register(fastifyJwt, config.jwtPrivateKeyPath && config.jwtPublicKeyPath
@@ -188,6 +193,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(roleRoutes, { prefix: '/api/v1/roles' });
   await app.register(permissionRoutes, { prefix: '/api/v1/permissions' });
   await app.register(auditRoutes, { prefix: '/api/v1/audit-logs' });
+  await app.register(oauthRoutes, { prefix: '/api/v1/auth' });
 
   // --- L0 package registration (when packages are implemented) ---
   // await app.register(identityPlugin)

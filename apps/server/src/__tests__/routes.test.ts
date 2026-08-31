@@ -170,6 +170,9 @@ describe('protected routes authentication (setup guard)', () => {
     { method: 'GET' as const, url: '/api/v1/users/550e8400-e29b-41d4-a716-446655440000' },
     { method: 'GET' as const, url: '/api/v1/roles' },
     { method: 'GET' as const, url: '/api/v1/roles/550e8400-e29b-41d4-a716-446655440000' },
+    { method: 'GET' as const, url: '/api/v1/auth/oauth/github/authorize' },
+    { method: 'GET' as const, url: '/api/v1/auth/oauth/links' },
+    { method: 'DELETE' as const, url: '/api/v1/auth/oauth/github' },
   ];
 
   for (const route of protectedRoutes) {
