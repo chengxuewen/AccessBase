@@ -73,9 +73,13 @@ export async function authRoutes(app: FastifyInstance) {
           { sub: user.id, email: user.email },
           { expiresIn: '15m' },
         );
-        const refreshToken = app.jwt.sign(
-          { sub: user.id, email: user.email, type: 'refresh' },
-          { expiresIn: '7d' },
+        const { refreshToken } = await sessionManager.issueRefreshToken(
+          crypto.randomUUID(),
+          user.id,
+          {
+            ip: request.ip,
+            userAgent: (request.headers['user-agent'] as string) ?? 'unknown',
+          },
         );
 
         request.log.info({ email }, 'Login successful');
