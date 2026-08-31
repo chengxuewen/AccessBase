@@ -13,7 +13,7 @@
 | L0 包实施    | ✅ 8 个   | 全部实施完成                       |
 | Fastify 服务 | ✅        | REST API + 中间件链                |
 | Admin UI     | ✅        | React + Ant Design Pro             |
-| 测试         | ✅ 138+7 个 | 单元测试 + 集成测试 + setup E2E |
+| 测试         | ✅ 236+1 个 | 单元测试 + 集成测试 + setup E2E |
 | Docker       | ✅        | 多阶段构建 + 3 种运行模式          |
 | CI/CD        | ✅        | GitHub Actions                     |
 | 构建模式     | ✅ 4 种   | native / container / compose / deploy |
@@ -21,6 +21,8 @@
 | 安全中间件   | ✅        | rate-limit + helmet + CORS 白名单 + 完整错误 envelope |
 | JWT          | ✅        | RS256（未配密钥回退 HMAC） |
 | 审计         | ✅        | audit_logs 表 + 中间件接线 + AuditStorage 注入 |
+| MFA         | ✅        | TOTP + 恢复码 + flow_token step-up |
+| 锁定        | ✅        | 5次/15分钟 + IP 黑名单 + 密码历史 |
 
 ## 代码结构
 
@@ -86,3 +88,4 @@ docs/
 - 2026-08-27: axios 双层解构修复 + isAuthenticated 持久化 + PrivateRoute token 检查
 - 2026-08-27: E2E 测试策略决策（mock API vs 真后端）
 - 2026-08-31: Phase 6a 安全基座（6 任务，167 测试，E2E 0 新失败，D110/PIT-022）
+- 2026-08-31: Phase 6b 会话+MFA 基座（SessionManager缓存/FlowToken/TOTP/密码管理/锁定，236 测试）

@@ -2311,3 +2311,9 @@ const brandTokens = {
 - **决策**: 1) JWT 支持 RS256（JWT_PRIVATE_KEY_PATH/JWT_PUBLIC_KEY_PATH），未配置时回退 HMAC（开发友好，生产必须配密钥）。2) Refresh token 为不透明随机串，DB sessions 表权威（bcrypt 哈希存储、rotation、reuse 检测→吊销全部会话），access token 仍由 @fastify/jwt 签发。3) AuditLogger 通过 AuditStorage 接口注入存储实现，server 默认用 drizzle 写 audit_logs 表，测试注入内存实现。4) 错误 envelope 补全 timestamp/requestId/path（Sec 19.13/D52）。
 - **理由**: 兼顾开发体验（零配置启动）与生产安全（非对称签名+可吊销会话+完整审计）；DB 权威使多设备/吊销语义清晰；接口注入避免 audit 包依赖 drizzle。
 - **参考**: security.md 19.13/19.18/25.4/25.5, database.md 22.1, PIT-020/021
+## D111: FlowTokenService 单次用途 token 作为多步认证主干 (2026-08-31)
+
+- **决策**: FlowTokenService（单次消费、purpose 限定、短 TTL、Redis+内存双后备）作为多步认证流的通用 token 层：MFA step-up（purpose=mfa_verify）现已接入，password_reset（6a）复用同一服务，6d WebAuthn/OAuth 交换将复用同一机制。
+- **理由**: 单次消费 + purpose 绑定 + 短 TTL 三重防护使 flow token 不能重放/跨流滥用；服务端存储意味着颁发后的授权状态变化即时生效；统一层避免每种认证流各造一套 token 语义。
+- **参考**: 6b Task 2/3（FlowTokenService、/auth/mfa/*），security.md 19.x，D110
+

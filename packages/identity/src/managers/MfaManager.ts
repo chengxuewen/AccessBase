@@ -92,8 +92,17 @@ export class MfaManager {
     if (!row?.totpSecret) {
       return { success: false };
     }
-    const check = verifySync({ token: code, secret: decrypt(row.totpSecret, this.keyHex), epochTolerance: EPOCH_TOLERANCE });
-    return { success: check.valid };
+    let valid = false;
+    try {
+      const check = verifySync({ token: code, secret: decrypt(row.totpSecret, this.keyHex), epochTolerance: EPOCH_TOLERANCE });
+      valid = check.valid;
+    } catch {
+      // otplib throws TokenLengthError for non-6-digit input (e.g. an 8-hex
+      // recovery code) — treat as invalid TOTP so callers fall through to
+      // verifyRecoveryCode instead of a 500.
+      valid = false;
+    }
+    return { success: valid };
   }
 
   /** Verify a recovery code and burn it (single-use). */
