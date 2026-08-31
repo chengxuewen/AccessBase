@@ -235,3 +235,32 @@ export const passwordHistory = pgTable(
 
 export type PasswordHistoryRow = typeof passwordHistory.$inferSelect;
 export type NewPasswordHistoryRow = typeof passwordHistory.$inferInsert;
+
+/**
+ * OAuth Accounts table (Phase 6d Task 1) -- links users to external OAuth providers.
+ * user_id is varchar(64) matching recent tables (mfa_recovery_codes/password_history style);
+ * tokens stored for API passthrough (GitHub/Google) per [PLAN].
+ */
+export const oauthAccounts = pgTable(
+  'oauth_accounts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: varchar('user_id', { length: 64 }).notNull(),
+    provider: varchar('provider', { length: 32 }).notNull(),
+    providerAccountId: varchar('provider_account_id', { length: 128 }).notNull(),
+    accessToken: text('access_token'),
+    refreshToken: text('refresh_token'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index('idx_oauth_accounts_user').on(table.userId),
+    providerAccountUnique: unique('unique_oauth_provider_account').on(
+      table.provider,
+      table.providerAccountId,
+    ),
+  }),
+);
+
+export type OAuthAccount = typeof oauthAccounts.$inferSelect;
+export type NewOAuthAccount = typeof oauthAccounts.$inferInsert;
