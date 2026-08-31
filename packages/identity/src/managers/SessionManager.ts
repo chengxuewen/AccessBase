@@ -6,7 +6,7 @@
  * Access tokens are signed by the caller (route handlers via app.jwt).
  */
 import { createHash, randomBytes } from 'node:crypto';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull, ne } from 'drizzle-orm';
 import { createDb, type DrizzleDB } from '../db/index.js';
 import { sessions } from '../db/schema.js';
 import type { RedisLike } from '../services/redis.js';
@@ -199,6 +199,15 @@ export class SessionManager {
       .where(eq(sessions.refreshTokenHash, this.hashToken(refreshToken)))
       .limit(1);
     return session ?? null;
+  }
+
+  /** Revoke every session for the user EXCEPT keepSessionId ("logout other devices"). */
+  async revokeOtherSessions(userId: string, keepSessionId: string): Promise<void> {
+    await this.db
+      .update(sessions)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(sessions.userId, userId), ne(sessions.id, keepSessionId)));
+    await this.cacheInvalidateUser(userId);
   }
 
   async revokeAllUserSessions(userId: string): Promise<void> {

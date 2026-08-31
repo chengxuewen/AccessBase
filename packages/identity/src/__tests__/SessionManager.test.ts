@@ -202,6 +202,14 @@ describe('SessionManager', () => {
     });
   });
 
+  describe('revokeOtherSessions', () => {
+    it('updates sessions for the user with revokedAt patch', async () => {
+      await manager.revokeOtherSessions('u-1', 'sess-keep');
+
+      expect(store.lastUpdatePatch).toHaveProperty('revokedAt');
+    });
+  });
+
   describe('revokeAllUserSessions', () => {
     it('updates all sessions for the user with revokedAt', async () => {
       await manager.revokeAllUserSessions('u-1');

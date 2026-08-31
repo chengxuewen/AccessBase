@@ -266,6 +266,39 @@ export async function authRoutes(app: FastifyInstance) {
       return { success: true };
     },
   );
+  // POST /api/v1/auth/sessions/revoke-others — "logout other devices"
+  app.post<{ Body: { refreshToken?: string } }>(
+    '/sessions/revoke-others',
+    {
+      preHandler: [app.authenticate],
+      schema: {
+        description: 'Revoke all other sessions, keeping the one matching the supplied refresh token',
+        tags: ['auth'],
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    async (request) => {
+      const payload = request.user as { sub: string };
+      const body = request.body as { refreshToken?: string } | undefined;
+      let keepSessionId: string | null = null;
+      if (body?.refreshToken) {
+        try {
+          const session = await sessionManager.findSessionByToken(body.refreshToken);
+          keepSessionId = session?.id ?? null;
+        } catch (err) {
+          request.log.warn({ err }, 'revoke-others session lookup failed');
+        }
+      }
+      if (keepSessionId) {
+        await sessionManager.revokeOtherSessions(payload.sub, keepSessionId);
+      } else {
+        // No resolvable current session → revoke everything (fail-closed)
+        await sessionManager.revokeAllUserSessions(payload.sub);
+      }
+      return { success: true };
+    },
+  );
+
 
   // POST /api/v1/auth/refresh
   app.post(
