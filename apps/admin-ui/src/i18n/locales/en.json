@@ -14,7 +14,8 @@
     "users": "Users",
     "roles": "Roles",
     "permissions": "Permissions",
-    "settings": "Settings"
+    "settings": "Settings",
+    "audit": "Audit"
   },
   "login": {
     "title": "AccessBase Login",
@@ -183,5 +184,20 @@
       "invalidConfig": "Invalid configuration, please check input",
       "setupFailed": "Setup failed, please try again"
     }
+  },
+  "audit": {
+    "title": "Audit Logs",
+    "action": "Action",
+    "actor": "Actor",
+    "resource": "Resource",
+    "ipAddress": "IP Address",
+    "status": "Status",
+    "createdAt": "Time",
+    "export": "Export CSV",
+    "exportTooltip": "Exports the current page only",
+    "filterAction": "Filter by action",
+    "filterActor": "Filter by actor",
+    "search": "Search",
+    "loadError": "Failed to load audit logs"
   }
 }
