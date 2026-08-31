@@ -10,6 +10,7 @@ import Users from './pages/Users';
 import Roles from './pages/Roles';
 import Audit from './pages/Audit';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 import UserCreate from './pages/users/UserCreate';
 import UserDetail from './pages/users/UserDetail';
 import UserEdit from './pages/users/UserEdit';
@@ -104,6 +105,7 @@ export default function App() {
         <Route path="roles" element={<Roles />} />
         <Route path="audit" element={<Audit />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
       <Route path="403" element={<Forbidden />} />
       <Route path="404" element={<NotFound />} />

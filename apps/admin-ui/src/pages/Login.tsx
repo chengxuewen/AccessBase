@@ -2,9 +2,15 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Button, Card, Alert, Spin } from 'antd';
-import { MailOutlined, LockOutlined } from '@ant-design/icons';
+import { MailOutlined, LockOutlined, KeyOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../stores/auth';
 import { OAuthButtons } from '../components/OAuthButtons';
+import {
+  getWebAuthnLoginOptions,
+  verifyWebAuthnLogin,
+} from '../api/auth';
+import { startAuthentication } from '@simplewebauthn/browser';
+import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -15,6 +21,8 @@ export default function Login() {
   const [loginError, setLoginError] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [oauthBusy, setOauthBusy] = useState(false);
+  const [passkeyError, setPasskeyError] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
 
   useEffect(() => {
     const code = searchParams.get('oauthCode');
@@ -35,6 +43,25 @@ export default function Login() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handlePasskeyLogin = async () => {
+    setPasskeyError(false);
+    setPasskeyBusy(true);
+    try {
+      const { options, flowToken } = await getWebAuthnLoginOptions();
+      const assertion = await startAuthentication({
+        optionsJSON: options as PublicKeyCredentialRequestOptionsJSON,
+      });
+      const { accessToken, refreshToken } = await verifyWebAuthnLogin(flowToken, assertion);
+      useAuthStore.getState().setTokens(accessToken, refreshToken);
+      await useAuthStore.getState().fetchUser();
+      navigate('/', { replace: true });
+    } catch {
+      setPasskeyError(true);
+    } finally {
+      setPasskeyBusy(false);
+    }
+  };
 
   const handleSubmit = async (values: { email: string; password: string }) => {
     try {
@@ -73,13 +100,23 @@ export default function Login() {
           />
         )}
 
-        {loginError && (
+{loginError && (
+<Alert
+type="error"
+showIcon
+message={t('login.error')}
+style={{ marginBottom: 16 }}
+data-testid="login-error"
+/>
+        )}
+
+        {passkeyError && (
           <Alert
             type="error"
             showIcon
-            message={t('login.error')}
+            message={t('login.passkeyError')}
             style={{ marginBottom: 16 }}
-            data-testid="login-error"
+            data-testid="passkey-error"
           />
         )}
 
@@ -115,6 +152,18 @@ export default function Login() {
             </Button>
           </Form.Item>
         </Form>
+
+        <Button
+          block
+          size="large"
+          icon={<KeyOutlined />}
+          loading={passkeyBusy}
+          onClick={handlePasskeyLogin}
+          style={{ marginBottom: 16 }}
+          data-testid="passkey-login"
+        >
+          {t('login.passkey')}
+        </Button>
 
         <OAuthButtons />
       </Card>

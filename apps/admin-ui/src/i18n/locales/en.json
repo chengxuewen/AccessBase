@@ -42,7 +42,9 @@
     "passwordRequired": "Please enter your password",
     "submit": "Login",
     "success": "Login successful",
-    "error": "Login failed"
+    "error": "Login failed",
+    "passkey": "Sign in with passkey",
+    "passkeyError": "Passkey login failed"
   },
   "oauth": {
     "or": "or",
@@ -260,5 +262,29 @@
     "logoutOtherDevicesSuccess": "Other sessions revoked",
     "logoutOtherDevicesError": "Failed to revoke other sessions",
     "loadError": "Failed to load profile"
+  },
+  "settings": {
+    "general": "General",
+    "security": "Security",
+    "siteName": "Site Name",
+    "siteNamePlaceholder": "Enter site name",
+    "logoUrl": "Logo URL",
+    "saveSuccess": "Settings saved",
+    "activeSessions": "Active Sessions",
+    "noSessions": "No active sessions",
+    "unknownDevice": "Unknown device",
+    "revoke": "Revoke",
+    "revokeConfirm": "Revoke this session?",
+    "sessionsLoadError": "Failed to load sessions",
+    "sessionRevokeError": "Failed to revoke session",
+    "passkeys": "Passkeys",
+    "noPasskeys": "No passkeys registered yet",
+    "registerPasskey": "Register Passkey",
+    "passkeyRegisterError": "Passkey registration failed",
+    "passkeyDeleteError": "Failed to delete passkey",
+    "passkeyDeleteConfirm": "Delete this passkey?",
+    "lastUsed": "Last used",
+    "never": "never",
+    "passkeysLoadError": "Failed to load passkeys"
   }
 }

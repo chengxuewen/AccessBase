@@ -42,7 +42,9 @@
     "passwordRequired": "请输入密码",
     "submit": "登录",
     "success": "登录成功",
-    "error": "登录失败"
+    "error": "登录失败",
+    "passkey": "使用通行密钥登录",
+    "passkeyError": "通行密钥登录失败"
   },
   "oauth": {
     "or": "或",
@@ -260,5 +262,29 @@
     "logoutOtherDevicesSuccess": "其他会话已撤销",
     "logoutOtherDevicesError": "撤销其他会话失败",
     "loadError": "加载个人资料失败"
+  },
+  "settings": {
+    "general": "通用",
+    "security": "安全",
+    "siteName": "站点名称",
+    "siteNamePlaceholder": "请输入站点名称",
+    "logoUrl": "Logo 地址",
+    "saveSuccess": "设置已保存",
+    "activeSessions": "活跃会话",
+    "noSessions": "暂无活跃会话",
+    "unknownDevice": "未知设备",
+    "revoke": "吊销",
+    "revokeConfirm": "确定吊销该会话？",
+    "sessionsLoadError": "会话加载失败",
+    "sessionRevokeError": "会话吊销失败",
+    "passkeys": "通行密钥",
+    "noPasskeys": "尚未注册通行密钥",
+    "registerPasskey": "注册通行密钥",
+    "passkeyRegisterError": "通行密钥注册失败",
+    "passkeyDeleteError": "通行密钥删除失败",
+    "passkeyDeleteConfirm": "确定删除该通行密钥？",
+    "lastUsed": "最近使用",
+    "never": "从未使用",
+    "passkeysLoadError": "通行密钥加载失败"
   }
 }

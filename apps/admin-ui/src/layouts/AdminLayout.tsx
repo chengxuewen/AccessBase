@@ -38,12 +38,17 @@ const menuRoutes = {
       name: 'menu.audit',
       icon: <FileSearchOutlined />,
     },
-    {
-      path: '/profile',
-      name: 'menu.profile',
-      icon: <SolutionOutlined />,
+{
+path: '/profile',
+name: 'menu.profile',
+icon: <SolutionOutlined />,
     },
-  ],
+    {
+      path: '/settings',
+      name: 'menu.settings',
+      icon: <SettingOutlined />,
+    },
+],
 };
 
 export default function AdminLayout() {
