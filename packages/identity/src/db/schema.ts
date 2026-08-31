@@ -4,6 +4,7 @@
  */
 import {
 pgTable,
+  bigint,
 uuid,
 varchar,
 text,
@@ -264,3 +265,29 @@ export const oauthAccounts = pgTable(
 
 export type OAuthAccount = typeof oauthAccounts.$inferSelect;
 export type NewOAuthAccount = typeof oauthAccounts.$inferInsert;
+
+/**
+ * WebAuthn Credentials table (Phase 6d Task 3) -- passkey registrations.
+ * user_id varchar(64) matching oauth_accounts style (no FK — tests use synthetic ids).
+ * credential_id text: real credential IDs are base64url up to 1023 bytes, too big for varchar.
+ * transports stored as JSON string ('["internal","hybrid"]').
+ */
+export const webauthnCredentials = pgTable(
+  'webauthn_credentials',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: varchar('user_id', { length: 64 }).notNull(),
+    credentialId: text('credential_id').notNull().unique(),
+    publicKey: text('public_key').notNull(),
+    counter: bigint('counter', { mode: 'number' }).notNull().default(0),
+    transports: text('transports'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  },
+  (table) => ({
+    userIdx: index('idx_webauthn_credentials_user').on(table.userId),
+  }),
+);
+
+export type WebauthnCredentialRow = typeof webauthnCredentials.$inferSelect;
+export type NewWebauthnCredentialRow = typeof webauthnCredentials.$inferInsert;

@@ -35,6 +35,8 @@
     "@fastify/static": "^6.0.0",
     "@fastify/swagger": "^8.0.0",
     "@fastify/swagger-ui": "^4.0.0",
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.3",
     "arctic": "^3.7.0",
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.29.0",
