@@ -215,3 +215,23 @@ export const mfaRecoveryCodes = pgTable(
 
 export type MfaRecoveryCode = typeof mfaRecoveryCodes.$inferSelect;
 export type NewMfaRecoveryCode = typeof mfaRecoveryCodes.$inferInsert;
+
+/**
+ * Password history (Phase 6b Task 4). Last-5 reuse prevention; old hashes only —
+ * users.password_hash stays the live credential.
+ */
+export const passwordHistory = pgTable(
+  'password_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: varchar('user_id', { length: 64 }).notNull(),
+    passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index('idx_password_history_user').on(table.userId),
+  }),
+);
+
+export type PasswordHistoryRow = typeof passwordHistory.$inferSelect;
+export type NewPasswordHistoryRow = typeof passwordHistory.$inferInsert;
