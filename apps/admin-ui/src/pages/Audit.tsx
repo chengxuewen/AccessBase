@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Button, DatePicker, Input, Select, Tag, Tooltip, message } from 'antd';
+import { Alert, Button, DatePicker, Input, Select, Tag, Tooltip } from 'antd';
 import { DownloadOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 // ponytail: derive date types from antd instead of importing dayjs types directly
 type RangeDayjs = NonNullable<NonNullable<Parameters<NonNullable<React.ComponentProps<typeof DatePicker.RangePicker>['onChange']>>[0]>[number]>;
@@ -29,6 +29,7 @@ export default function Audit() {
   const actionRef = useRef<ActionType>(null);
   const [filters, setFilters] = useState<FilterState>({});
   const [currentRows, setCurrentRows] = useState<AuditLog[]>([]);
+  const [loadError, setLoadError] = useState(false);
 
   const columns: ProColumns<AuditLog>[] = [
     {
@@ -78,6 +79,15 @@ export default function Audit() {
 
   return (
     <>
+      {loadError && (
+        <Alert
+          type="error"
+          showIcon
+          message={t('audit.loadError')}
+          style={{ marginBottom: 16 }}
+          className="audit-load-error"
+        />
+      )}
       <div style={{ marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Select
           allowClear
@@ -134,9 +144,10 @@ export default function Audit() {
               endDate: filters.endDate?.format('YYYY-MM-DD'),
             });
             setCurrentRows(result.data);
+            setLoadError(false);
             return { data: result.data, total: result.total, success: true };
           } catch {
-            message.error(t('audit.loadError'));
+            setLoadError(true);
             return { data: [], total: 0, success: false };
           }
         }}
