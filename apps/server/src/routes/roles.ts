@@ -5,7 +5,7 @@ const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
 
 export async function roleRoutes(app: FastifyInstance) {
   // All role routes require authentication
-  app.addHook('preHandler', (app as any).authenticate);
+  app.addHook('preHandler', app.authenticate);
 
   // Reuse single RoleManager instance per route module
   const roleManager = new RoleManager();
@@ -127,7 +127,7 @@ export async function roleRoutes(app: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { id } = request.params;
       const { name, description, permissionIds } = request.body as {
         name?: string;
@@ -154,7 +154,7 @@ export async function roleRoutes(app: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { id } = request.params;
       await roleManager.delete(id, DEFAULT_TENANT);
       return { success: true };

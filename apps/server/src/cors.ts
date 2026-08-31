@@ -1,4 +1,3 @@
-import type { FastifyRequest } from 'fastify';
 import { config } from './config.js';
 
 /**

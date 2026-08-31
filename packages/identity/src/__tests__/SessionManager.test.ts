@@ -136,7 +136,10 @@ describe('SessionManager', () => {
       // Old session marked used
       expect(store.lastUpdatePatch).toHaveProperty('usedAt');
       // New insert carried the new hash
-      const inserted = mockDb.insert.mock.results.at(-1)!.value.values.mock.calls.at(-1)[0];
+      const lastResult = mockDb.insert.mock.results.at(-1)?.value;
+      const lastCall = lastResult?.values.mock.calls.at(-1);
+      expect(lastCall).toBeDefined();
+      const inserted = lastCall?.[0];
       expect(inserted.refreshTokenHash).toBe(hash(rotated.refreshToken));
     });
 

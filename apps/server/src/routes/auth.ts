@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { SessionManager } from '@accessbase/identity';
 
 interface LoginBody {
@@ -94,7 +94,7 @@ export async function authRoutes(app: FastifyInstance) {
             },
           },
         };
-      } catch (err: unknown) {
+      } catch {
         request.log.warn({ email }, 'Login failed');
         return reply.status(401).send({
           success: false,
@@ -126,7 +126,7 @@ export async function authRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { email, name, password } = request.body;
+      const { email, name } = request.body;
 
       // TODO: Use @accessbase/identity UserManager when implemented
       request.log.info({ email, name }, 'Registration attempt');
@@ -144,7 +144,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.get(
     '/me',
     {
-      preHandler: [(app as any).authenticate],
+      preHandler: [app.authenticate],
       schema: {
         description: 'Get current user profile',
         tags: ['auth'],
@@ -172,25 +172,25 @@ export async function authRoutes(app: FastifyInstance) {
   app.post(
     '/logout',
     {
-      preHandler: [(app as any).authenticate],
+      preHandler: [app.authenticate],
       schema: {
         description: 'Logout revokes the DB session when a refresh token is supplied',
         tags: ['auth'],
         security: [{ bearerAuth: [] }],
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const body = request.body as { refreshToken?: string } | undefined;
-if (body?.refreshToken) {
-try {
-const session = await sessionManager.findSessionByToken(body.refreshToken);
-if (session) {
-await sessionManager.revokeSession(session.id);
-}
-} catch (err) {
-request.log.warn({ err }, 'Logout session revocation failed');
-}
-}
+      if (body?.refreshToken) {
+        try {
+          const session = await sessionManager.findSessionByToken(body.refreshToken);
+          if (session) {
+            await sessionManager.revokeSession(session.id);
+          }
+        } catch (err) {
+          request.log.warn({ err }, 'Logout session revocation failed');
+        }
+      }
       return { success: true };
     },
   );

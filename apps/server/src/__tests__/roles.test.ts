@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import type { IdentityService } from '@accessbase/identity';
 
 // Set env before importing config-dependent modules
 process.env.NODE_ENV = 'test';
@@ -19,7 +20,7 @@ vi.mock('@fastify/swagger-ui', () => ({
 
 // Mock RoleManager to avoid real DB
 vi.mock('@accessbase/identity', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@accessbase/identity')>();
+  const actual = await importOriginal<IdentityService>();
   const Role = (overrides: Record<string, unknown> = {}) => ({
     id: '11111111-1111-1111-1111-111111111111',
     name: 'seed',

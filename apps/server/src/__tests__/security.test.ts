@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import type { IdentityService } from '@accessbase/identity';
 
 // Set env before importing config-dependent modules
 process.env.NODE_ENV = 'test';
@@ -10,7 +11,7 @@ vi.mock('@fastify/cors', () => ({ default: async () => {} }));
 vi.mock('@fastify/swagger', () => ({ default: async () => {} }));
 vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@accessbase/identity', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@accessbase/identity')>();
+  const actual = await importOriginal<IdentityService>();
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({

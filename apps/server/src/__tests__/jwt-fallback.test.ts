@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import type { IdentityService } from '@accessbase/identity';
 
 // Set env before importing config-dependent modules — NO key path envs (HMAC fallback)
 process.env.NODE_ENV = 'test';
@@ -15,7 +16,7 @@ vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 vi.mock('@accessbase/identity', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@accessbase/identity')>();
+  const actual = await importOriginal<IdentityService>();
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
