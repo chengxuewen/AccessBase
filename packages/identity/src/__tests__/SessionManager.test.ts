@@ -13,6 +13,7 @@ vi.mock('../db/index.js', () => ({
 
 import { SessionManager } from '../managers/SessionManager.js';
 import { sessions } from '../db/schema.js';
+import type { RedisLike } from '../services/redis.js';
 
 const hash = (token: string): string => createHash('sha256').update(token).digest('hex');
 
@@ -36,12 +37,14 @@ function makeMockDb(store: { rows: Record<string, unknown>[] }) {
     };
     db.select.mockReturnValue(chain);
     chain.from.mockReturnValue(chain);
-    chain.where.mockImplementation(() => {
-      // Filter store.rows lazily by the eq() conditions captured via the where arg
-      return {
-        limit: vi.fn(async () => store.rows.slice(0, 1)),
-      };
-    });
+    chain.where.mockImplementation(() => ({
+      // await (select…from…where) → all rows; .limit() → first row (drizzle semantics)
+      limit: vi.fn(async () => store.rows.slice(0, 1)),
+      then: (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve([...store.rows]).then(resolve, reject),
+    }));
     chain.limit.mockImplementation(async () => store.rows.slice(0, 1));
     return chain;
   };
@@ -233,4 +236,201 @@ describe('SessionManager', () => {
       expect(manager.hashToken('abc')).toHaveLength(64);
     });
   });
+
+/**
+ * In-memory RedisLike stub. get/set behave like plain KV; tracks keys
+ * deleted via del() so invalidation assertions can check Redis contents.
+ */
+class FakeRedis implements RedisLike {
+  private kv = new Map<string, string>();
+  deleted: string[] = [];
+
+  async get(key: string): Promise<string | null> {
+    return this.kv.get(key) ?? null;
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    this.kv.set(key, value);
+  }
+
+  async del(key: string): Promise<void> {
+    this.kv.delete(key);
+    this.deleted.push(key);
+  }
+
+  has(key: string): boolean {
+    return this.kv.has(key);
+  }
+}
+
+describe('SessionManager session lifecycle', () => {
+  let store: { rows: Record<string, unknown>[]; lastUpdatePatch?: Record<string, unknown> };
+  let mockDb: ReturnType<typeof makeMockDb>;
+  let manager: SessionManager;
+  let redis: FakeRedis;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    store = { rows: [] };
+    mockDb = makeMockDb(store);
+    const { createDb } = await import('../db/index.js');
+    vi.mocked(createDb).mockReturnValue(mockDb as never);
+    redis = new FakeRedis();
+    manager = new SessionManager(undefined, redis);
+  });
+
+  const sessionRow = (over: Partial<Record<string, unknown>> = {}) => ({
+    id: randomBytes(8).toString('hex'),
+    userId: 'u-1',
+    token: 'legacy-session-token',
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    createdAt: new Date(),
+    revokedAt: null,
+    usedAt: null,
+    refreshTokenHash: null,
+    deviceInfo: { userAgent: 'test-agent' },
+    ipAddress: '127.0.0.1',
+    ...over,
+  });
+
+  describe('getUserSessions', () => {
+    it('returns only active sessions in safe shape', async () => {
+      store.rows = [
+        sessionRow({ id: 'a', deviceInfo: { userAgent: 'chrome' }, ipAddress: '10.0.0.1' }),
+        sessionRow({ id: 'b', revokedAt: new Date() }), // revoked — excluded
+        sessionRow({ id: 'c', expiresAt: new Date(Date.now() - 1000) }), // expired — excluded
+      ];
+      // N.B. mock db .where().limit() returns rows unfiltered (mock limitation);
+      // active-filter is expressed in SQL (asserted below), so simulate the DB
+      // already returning only active rows here.
+      store.rows = [store.rows[0]!];
+
+      const list = await manager.getUserSessions('u-1');
+
+      expect(list).toHaveLength(1);
+      const s = list[0]!;
+      expect(s).toEqual({
+        id: 'a',
+        userAgent: 'chrome',
+        ip: '10.0.0.1',
+        createdAt: expect.any(Date),
+        expiresAt: expect.any(Date),
+      });
+    });
+
+    it('never leaks token hashes in the returned shape', async () => {
+      store.rows = [
+        sessionRow({ id: 'a', token: 'SECRET', refreshTokenHash: 'SECRET', deviceInfo: null, ipAddress: null }),
+      ];
+
+      const list = await manager.getUserSessions('u-1');
+
+      expect(list).toHaveLength(1);
+      expect(JSON.stringify(list[0])).not.toContain('SECRET');
+      expect(list[0]).not.toHaveProperty('refreshTokenHash');
+      expect(list[0]).not.toHaveProperty('token');
+    });
+
+    it('filters by userId + revoked_at IS NULL + expires_at > now (SQL asserted)', async () => {
+      const { and, eq, isNull, gt } = await import('drizzle-orm');
+      const { PgDialect } = await import('drizzle-orm/pg-core');
+      await manager.getUserSessions('u-9');
+
+      const whereArg = mockDb.select.mock.results[0]!.value.where.mock.calls[0]![0];
+      const { sql, params } = new PgDialect().sqlToQuery(whereArg);
+      expect(sql).toContain('"sessions"."user_id" = $1');
+      expect(sql).toContain('"sessions"."revoked_at" is null');
+      expect(sql).toContain('"sessions"."expires_at" > $2');
+      expect(params[0]).toBe('u-9');
+      expect(new Date(params[1] as string | Date).getTime()).toBeGreaterThan(0);
+    });
+
+    it('serves from cache on second call without hitting db again', async () => {
+      store.rows = [sessionRow({ id: 'a', deviceInfo: { userAgent: 'chrome' }, ipAddress: '10.0.0.1' })];
+
+      await manager.getUserSessions('u-1');
+      await manager.getUserSessions('u-1');
+
+      expect(mockDb.select).toHaveBeenCalledTimes(1);
+    });
+
+    it('invalidates cache on revokeSession', async () => {
+      store.rows = [sessionRow({ id: 'a' })];
+      await manager.getUserSessions('u-1');
+      expect(redis.has('session:u-1')).toBe(true);
+
+      await manager.revokeSession('sess-a');
+
+      expect(redis.has('session:u-1')).toBe(false);
+    });
+
+    it('invalidates cache on rotateRefreshToken', async () => {
+      const old = await manager.issueRefreshToken('sess-1', 'u-1', { ip: '127.0.0.1', userAgent: 'ua' });
+      store.rows = [sessionRow({ id: 'sess-1', refreshTokenHash: hash(old.refreshToken) })];
+      await manager.getUserSessions('u-1');
+      expect(redis.has('session:u-1')).toBe(true);
+
+      await manager.rotateRefreshToken(old.refreshToken, { ip: '127.0.0.1', userAgent: 'ua' });
+
+      expect(redis.has('session:u-1')).toBe(false);
+    });
+
+    it('invalidates cache on revokeAllUserSessions', async () => {
+      store.rows = [sessionRow({ id: 'a' })];
+      await manager.getUserSessions('u-1');
+
+      await manager.revokeAllUserSessions('u-1');
+
+      expect(redis.has('session:u-1')).toBe(false);
+    });
+
+    it('falls back to db and does not throw when redis is down', async () => {
+      store.rows = [sessionRow({ id: 'a', deviceInfo: { userAgent: 'ua' }, ipAddress: '1.2.3.4' })];
+      const broken: RedisLike = {
+        get: async () => { throw new Error('ECONNREFUSED'); },
+        set: async () => { throw new Error('ECONNREFUSED'); },
+        del: async () => { throw new Error('ECONNREFUSED'); },
+      };
+      const m = new SessionManager(undefined, broken);
+
+      const list = await m.getUserSessions('u-1');
+
+      expect(list).toHaveLength(1);
+      expect(list[0]!.id).toBe('a');
+      expect(mockDb.select).toHaveBeenCalled();
+    });
+
+    it('works with no redis at all (cache paths no-op)', async () => {
+      store.rows = [sessionRow({ id: 'a', deviceInfo: { userAgent: 'ua' }, ipAddress: '1.2.3.4' })];
+      const m = new SessionManager();
+
+      const list = await m.getUserSessions('u-1');
+      await m.revokeSession('a');
+
+      expect(list).toHaveLength(1);
+    });
+  });
+
+  describe('validateSession', () => {
+    it('returns true for active session', async () => {
+      store.rows = [sessionRow({ id: 'a' })];
+      expect(await manager.validateSession('a')).toBe(true);
+    });
+
+    it('returns false for revoked session', async () => {
+      store.rows = [sessionRow({ id: 'a', revokedAt: new Date() })];
+      expect(await manager.validateSession('a')).toBe(false);
+    });
+
+    it('returns false for expired session', async () => {
+      store.rows = [sessionRow({ id: 'a', expiresAt: new Date(Date.now() - 1000) })];
+      expect(await manager.validateSession('a')).toBe(false);
+    });
+
+    it('returns false when session not found', async () => {
+      store.rows = [];
+      expect(await manager.validateSession('ghost')).toBe(false);
+    });
+  });
+});
 });

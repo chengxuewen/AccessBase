@@ -10,6 +10,7 @@ export { RoleManager } from './managers/RoleManager.js';
 export { PermissionManager } from './managers/PermissionManager.js';
 export { SessionManager } from './managers/SessionManager.js';
 export { MfaManager } from './managers/MfaManager.js';
+export { FlowTokenService } from './services/FlowTokenService.js';
 export { PasswordProvider } from './providers/PasswordProvider.js';
 export { OAuthProvider } from './providers/OAuthProvider.js';
 export { WebAuthnProvider } from './providers/WebAuthnProvider.js';
