@@ -15,7 +15,9 @@
     "roles": "角色管理",
     "permissions": "权限管理",
     "settings": "系统设置",
-    "audit": "审计"
+    "audit": "审计",
+    "profile": "个人资料",
+    "logout": "退出登录"
   },
   "login": {
     "title": "AccessBase 登录",
@@ -199,5 +201,35 @@
     "filterActor": "按操作者筛选",
     "search": "查询",
     "loadError": "加载审计日志失败"
+  },
+  "profile": {
+    "title": "个人资料",
+    "personalInfo": "个人信息",
+    "name": "姓名",
+    "email": "邮箱",
+    "status": "状态",
+    "statusActive": "活跃",
+    "statusSuspended": "已停用",
+    "editName": "编辑",
+    "nameRequired": "请输入姓名",
+    "nameUpdateSuccess": "姓名已更新",
+    "nameUpdateError": "更新姓名失败",
+    "changePassword": "修改密码",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "currentPasswordRequired": "请输入当前密码",
+    "newPasswordRequired": "请输入新密码",
+    "newPasswordMinLength": "密码至少 8 个字符",
+    "confirmPasswordRequired": "请再次输入密码",
+    "confirmPasswordMismatch": "两次输入的密码不一致",
+    "passwordPolicyHint": "至少 12 个字符，包含大写、小写、数字和特殊字符",
+    "passwordChangeSuccess": "密码修改成功",
+    "passwordChangeError": "密码修改失败",
+    "logoutOtherDevices": "退出其他设备",
+    "logoutOtherDevicesConfirm": "确定撤销所有其他会话？",
+    "logoutOtherDevicesSuccess": "其他会话已撤销",
+    "logoutOtherDevicesError": "撤销其他会话失败",
+    "loadError": "加载个人资料失败"
   }
 }

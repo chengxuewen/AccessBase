@@ -8,6 +8,7 @@ import {
   LogoutOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
+import { Dropdown } from 'antd';
 import { useAuthStore } from '../stores/auth';
 
 const menuRoutes = {
@@ -59,7 +60,23 @@ export default function AdminLayout() {
         src: undefined,
         title: user?.name || 'Admin',
         size: 'small',
-        render: (_, defaultDom) => defaultDom,
+        render: (_, defaultDom) => (
+          <Dropdown
+            menu={{
+              items: [
+                { key: 'profile', label: t('menu.profile'), icon: <UserOutlined /> },
+                { type: 'divider' },
+                { key: 'logout', label: t('menu.logout'), icon: <LogoutOutlined />, danger: true },
+              ],
+              onClick: ({ key }) => {
+                if (key === 'profile') navigate('/profile');
+                if (key === 'logout') handleLogout();
+              },
+            }}
+          >
+            <span data-testid="user-dropdown">{defaultDom}</span>
+          </Dropdown>
+        ),
       }}
       actionsRender={() => [
         <SettingOutlined key="settings" onClick={toggleLanguage} />,

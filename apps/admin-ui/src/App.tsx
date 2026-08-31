@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Roles from './pages/Roles';
 import Audit from './pages/Audit';
+import Profile from './pages/Profile';
 import UserCreate from './pages/users/UserCreate';
 import UserDetail from './pages/users/UserDetail';
 import UserEdit from './pages/users/UserEdit';
@@ -97,6 +98,7 @@ export default function App() {
         <Route path="users/:id/edit" element={<UserEdit />} />
         <Route path="roles" element={<Roles />} />
         <Route path="audit" element={<Audit />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

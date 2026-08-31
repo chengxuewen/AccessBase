@@ -15,7 +15,9 @@
     "roles": "Roles",
     "permissions": "Permissions",
     "settings": "Settings",
-    "audit": "Audit"
+    "audit": "Audit",
+    "profile": "Profile",
+    "logout": "Logout"
   },
   "login": {
     "title": "AccessBase Login",
@@ -199,5 +201,35 @@
     "filterActor": "Filter by actor",
     "search": "Search",
     "loadError": "Failed to load audit logs"
+  },
+  "profile": {
+    "title": "Profile",
+    "personalInfo": "Personal Info",
+    "name": "Name",
+    "email": "Email",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusSuspended": "Suspended",
+    "editName": "Edit",
+    "nameRequired": "Please enter name",
+    "nameUpdateSuccess": "Name updated",
+    "nameUpdateError": "Failed to update name",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "currentPasswordRequired": "Please enter current password",
+    "newPasswordRequired": "Please enter new password",
+    "newPasswordMinLength": "Password must be at least 8 characters",
+    "confirmPasswordRequired": "Please confirm password",
+    "confirmPasswordMismatch": "Passwords do not match",
+    "passwordPolicyHint": "Minimum 12 characters with uppercase, lowercase, digit and special character",
+    "passwordChangeSuccess": "Password changed",
+    "passwordChangeError": "Failed to change password",
+    "logoutOtherDevices": "Logout Other Devices",
+    "logoutOtherDevicesConfirm": "Revoke all other sessions?",
+    "logoutOtherDevicesSuccess": "Other sessions revoked",
+    "logoutOtherDevicesError": "Failed to revoke other sessions",
+    "loadError": "Failed to load profile"
   }
 }
