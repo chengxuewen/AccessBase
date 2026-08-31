@@ -7,6 +7,7 @@ import AdminLayout from './layouts/AdminLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
+import Roles from './pages/Roles';
 import SetupWizard from './pages/setup';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -87,6 +88,7 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="users" element={<Users />} />
+        <Route path="roles" element={<Roles />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
