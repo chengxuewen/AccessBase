@@ -254,6 +254,7 @@ export class UserManager {
       email: dbUser.email,
       name: dbUser.name,
       isActive: dbUser.status === 'active',
+      totpEnabled: dbUser.totpEnabled,
       tenantId: dbUser.tenantId,
       tokenVersion: dbUser.tokenVersion,
       createdAt: dbUser.createdAt,
