@@ -68,7 +68,6 @@ function GlobalGuard({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <GlobalErrorBoundary>
-  return (
     <Routes>
       <Route
         path="/setup"
