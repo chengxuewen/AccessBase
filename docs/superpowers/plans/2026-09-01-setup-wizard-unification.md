@@ -426,8 +426,6 @@ git commit -m "test(e2e): setup wizard unification adaptation + status sync"
 ```
 
 ---
-
----
 ### Task 5: setup/reset 真闭环 E2E（真后端 + 真命令）
 
 **Files:**
