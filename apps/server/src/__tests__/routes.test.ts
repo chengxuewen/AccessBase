@@ -6,7 +6,6 @@ process.env.JWT_SECRET = 'test-secret';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 process.env.REDIS_URL = 'redis://localhost:6379';
 
-// Mock plugins that require fastify@5 but fastify@4 is installed.
 vi.mock('@fastify/cors', () => ({
   default: async () => {},
 }));
@@ -21,6 +20,15 @@ vi.mock('@fastify/rate-limit', () => ({
 }));
 vi.mock('@fastify/helmet', () => ({
   default: async () => {},
+}));
+
+// D113: the setup guard queries the users table via UserManager on every request.
+// These cases exercise the "setup not complete" path, so findByEmail resolves null.
+vi.mock('@accessbase/identity', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@accessbase/identity')>()),
+  UserManager: vi.fn().mockImplementation(() => ({
+    findByEmail: vi.fn().mockResolvedValue(null),
+  })),
 }));
 
 const { buildApp } = await import('../app.js');

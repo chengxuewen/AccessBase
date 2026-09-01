@@ -18,7 +18,7 @@ vi.mock('@fastify/swagger-ui', () => ({
   default: async () => {},
 }));
 
-// Mock RoleManager to avoid real DB
+// Mock RoleManager + UserManager (D113 guard) to avoid real DB
 vi.mock('@accessbase/identity', async (importOriginal) => {
   const actual = await importOriginal<IdentityService>();
   const Role = (overrides: Record<string, unknown> = {}) => ({
@@ -56,12 +56,16 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   };
   return {
     ...actual,
+    // D113: the setup guard queries the users table via UserManager on every request —
+    // mock admin as existing so guarded routes are reachable.
+    UserManager: vi.fn().mockImplementation(() => ({
+      findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
+    })),
     RoleManager: vi.fn().mockImplementation(() => instance),
   };
 });
 
 const { buildApp } = await import('../app.js');
-const { setSetupComplete } = await import('../middleware/setup-guard.js');
 const identity = await import('@accessbase/identity');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
@@ -71,13 +75,11 @@ let app: App;
 let token: string;
 
 beforeAll(async () => {
-  setSetupComplete(true);
   app = await buildApp();
   token = app.jwt.sign({ sub: '00000000-0000-0000-0000-0000000000ff', email: 'admin@test.com' });
 });
 
 afterAll(async () => {
-  setSetupComplete(false);
   await app.close();
 });
 

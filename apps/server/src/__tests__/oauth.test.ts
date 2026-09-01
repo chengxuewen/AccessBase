@@ -131,7 +131,7 @@ process.env['GITHUB_CLIENT_SECRET'] = 'test-gh-secret';
 process.env['GOOGLE_CLIENT_ID'] = 'test-gg-id';
 process.env['GOOGLE_CLIENT_SECRET'] = 'test-gg-secret';
 
-const { buildApp, setSetupComplete } = await import('../app.js');
+const { buildApp } = await import('../app.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -139,13 +139,11 @@ type App = Awaited<ReturnType<typeof buildApp>>;
 let app: App;
 
 beforeAll(async () => {
-  setSetupComplete(true);
   app = await buildApp();
 });
 
 afterAll(async () => {
   await app.close();
-  setSetupComplete(false);
 });
 
 function setProviderEnv(on: boolean) {

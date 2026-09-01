@@ -5,20 +5,39 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { UserManager, RoleManager } from '@accessbase/identity';
 import { logger } from '@accessbase/logging';
+import { config } from '../config.js';
 
-// In-memory setup state (production should use database)
-let setupState = {
-  isInitialized: false,
-  adminExists: false,
-  configComplete: false,
+// DB-derived setup state (D113): the users table is the single source of truth.
+// No in-memory state — see queryAdminExists/getSetupStatus below.
+
+export type SetupStatus = {
+  isInitialized: boolean;
+  adminExists: boolean;
+  configComplete: boolean;
 };
 
-export function setAdminExists(value: boolean): void {
-  setupState.adminExists = value;
+// Internal: does not catch — DB failure throws (guard relies on the reject signal).
+async function queryAdminExists(): Promise<SetupStatus> {
+  const userManager = new UserManager();
+  const admin = await userManager.findByEmail(config.adminEmail || 'admin@accessbase.local');
+  if (admin) return { isInitialized: true, adminExists: true, configComplete: true };
+  return { isInitialized: false, adminExists: false, configComplete: false };
 }
 
-export function setIsInitialized(value: boolean): void {
-  setupState.isInitialized = value;
+// For the status endpoint: never rejects (fail-open + log).
+export async function getSetupStatus(): Promise<SetupStatus> {
+  try {
+    return await queryAdminExists();
+  } catch (err) {
+    logger.error({ err }, 'getSetupStatus: DB query failed — reporting uninitialized');
+    return { isInitialized: false, adminExists: false, configComplete: false };
+  }
+}
+
+// For setup-guard: rejects on DB failure (guard three-state判定).
+export async function isSystemInitialized(): Promise<boolean> {
+  const status = await queryAdminExists();
+  return status.isInitialized;
 }
 
 // Track if setup is in progress to prevent concurrent admin creation
@@ -50,14 +69,10 @@ export async function setupRoutes(app: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {
+    async () => {
       return {
         success: true,
-        data: {
-          isInitialized: setupState.isInitialized,
-          adminExists: setupState.adminExists,
-          configComplete: setupState.configComplete,
-        },
+        data: await getSetupStatus(),
       };
     },
   );
@@ -142,8 +157,9 @@ export async function setupRoutes(app: FastifyInstance) {
         password: string;
       };
 
-      // Check if setup already complete
-      if (setupState.isInitialized) {
+      // DB-derived check (D113): admin creation is blocked once an admin exists
+      const status = await queryAdminExists();
+      if (status.isInitialized) {
         return reply.status(410).send({
           success: false,
           error: {
@@ -153,8 +169,7 @@ export async function setupRoutes(app: FastifyInstance) {
         });
       }
 
-      // Check if admin already exists
-      if (setupState.adminExists) {
+      if (status.adminExists) {
         return reply.status(400).send({
           success: false,
           error: {
@@ -198,7 +213,6 @@ export async function setupRoutes(app: FastifyInstance) {
         // Check if admin user already exists in database
         const existingAdmin = await userManager.findByEmail(email);
         if (existingAdmin) {
-          setupState.adminExists = true;
           return reply.status(400).send({
             success: false,
             error: {
@@ -245,7 +259,6 @@ export async function setupRoutes(app: FastifyInstance) {
           DEFAULT_TENANT,
         );
 
-        setupState.adminExists = true;
 
         // Log without sensitive data
         logger.info({ userId: adminUser.id, email }, 'Admin user created via setup wizard');
@@ -333,8 +346,9 @@ export async function setupRoutes(app: FastifyInstance) {
         smtpPassword?: string;
       };
 
-      // Check if setup already complete
-      if (setupState.isInitialized) {
+      // DB-derived check (D113): setup/config writes are blocked once an admin exists
+      const status = await queryAdminExists();
+      if (status.isInitialized) {
         return reply.status(410).send({
           success: false,
           error: {
@@ -347,8 +361,6 @@ export async function setupRoutes(app: FastifyInstance) {
       // Log without sensitive data (redact smtpPassword)
       const { smtpPassword: _, ...safeConfig } = config;
       logger.info({ config: safeConfig }, 'Setup configuration saved');
-
-      setupState.configComplete = true;
 
       return {
         success: true,
@@ -410,8 +422,9 @@ export async function setupRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      // Check if setup already complete
-      if (setupState.isInitialized) {
+      // Verify admin exists in DB (D113: users table is the source of truth)
+      const status = await queryAdminExists();
+      if (status.isInitialized) {
         return reply.status(410).send({
           success: false,
           error: {
@@ -421,8 +434,7 @@ export async function setupRoutes(app: FastifyInstance) {
         });
       }
 
-      // Verify admin exists
-      if (!setupState.adminExists) {
+      if (!status.adminExists) {
         return reply.status(400).send({
           success: false,
           error: {
@@ -431,9 +443,6 @@ export async function setupRoutes(app: FastifyInstance) {
           },
         });
       }
-
-      // Mark setup as complete
-      setupState.isInitialized = true;
 
       // Generate JWT tokens for admin login
       const userManager = new UserManager();

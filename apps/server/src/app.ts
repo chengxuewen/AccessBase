@@ -15,7 +15,7 @@ import { auditRoutes } from './routes/audit.js';
 import { statsRoutes } from './routes/stats.js';
 import { healthRoutes } from './routes/health.js';
 import { setupRoutes } from './routes/setup.js';
-import { setupGuard, setSetupComplete } from './middleware/setup-guard.js';
+import { setupGuard } from './middleware/setup-guard.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { webauthnRoutes } from './routes/webauthn.js';
 import { resolveCorsOrigin } from './cors.js';
@@ -24,8 +24,6 @@ import { resolve } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import { createAuditMiddleware, defaultAuditConfig } from '@accessbase/audit';
 import type { AuditStorage } from '@accessbase/audit';
-
-export { setSetupComplete };
 
 interface BuildAppOptions {
   /** Audit storage override; default = drizzle-backed PG audit_logs table. */

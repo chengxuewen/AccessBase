@@ -29,6 +29,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
+      findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
       findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
       findById: vi.fn().mockResolvedValue(null),
       create: vi.fn(),
@@ -46,7 +47,6 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
 });
 
 const { buildApp } = await import('../app.js');
-const { setSetupComplete } = await import('../middleware/setup-guard.js');
 const { setStatsDb } = await import('../routes/stats.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
@@ -67,7 +67,6 @@ function authedInject(options: { method: 'GET'; url: string }) {
 }
 
 beforeAll(async () => {
-  setSetupComplete(true);
   dbMock.select.mockImplementation((selection: Record<string, unknown>) => ({
     from: (table: { __table?: string }) => {
       const key = table.__table ?? 'auditLogs';
@@ -88,7 +87,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  setSetupComplete(false);
   await app.close();
 });
 

@@ -28,7 +28,7 @@ vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 
-const { buildApp, setSetupComplete } = await import('../app.js');
+const { buildApp } = await import('../app.js');
 const { UserManager } = await import('@accessbase/identity');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
@@ -45,7 +45,6 @@ const userManager = new (UserManager as unknown as {
 })();
 
 beforeAll(async () => {
-  setSetupComplete(true);
   app = await buildApp();
   const user = await userManager.create({ email: EMAIL, name: 'MFA Integration', password: PASSWORD }, TENANT);
   userId = user.id;
@@ -61,7 +60,6 @@ afterAll(async () => {
     }
   }
   await app.close();
-  setSetupComplete(false);
 });
 
 const login = () =>

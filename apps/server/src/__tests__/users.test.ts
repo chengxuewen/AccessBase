@@ -54,7 +54,7 @@ const mockFindById = vi.fn().mockImplementation((id: string) => {
   return Promise.resolve(null);
 });
 
-const mockFindByEmail = vi.fn().mockResolvedValue(null);
+const mockFindByEmail = vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' });
 
 const mockCreate = vi.fn().mockImplementation((data: { email: string; name: string }) => {
   if (data.email === 'existing@example.com') {
@@ -123,7 +123,6 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
 }));
 
 const { buildApp } = await import('../app.js');
-const { setSetupComplete } = await import('../middleware/setup-guard.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -132,14 +131,12 @@ let app: App;
 let token: string;
 
 beforeAll(async () => {
-  setSetupComplete(true);
   app = await buildApp();
   token = app.jwt.sign({ sub: mockUser.id, email: mockUser.email });
 });
 
 afterAll(async () => {
   await app.close();
-  setSetupComplete(false); // Reset state for other test files
 });
 
 const authHeaders = () => ({ Authorization: `Bearer ${token}` });

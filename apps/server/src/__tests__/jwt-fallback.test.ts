@@ -19,6 +19,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
+      findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
       verifyPassword: vi.fn().mockResolvedValue({
         id: '550e8400-e29b-41d4-a716-446655440000',
         email: 'admin@test.local',
@@ -34,7 +35,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   };
 });
 
-const { buildApp, setSetupComplete } = await import('../app.js');
+const { buildApp } = await import('../app.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -42,7 +43,6 @@ type App = Awaited<ReturnType<typeof buildApp>>;
 let app: App;
 
 beforeAll(async () => {
-  setSetupComplete(true);
   app = await buildApp();
 });
 

@@ -158,6 +158,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
+      findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
       findById: vi.fn().mockResolvedValue(testUser),
       findByEmail: vi.fn().mockResolvedValue(testUser),
     })),
@@ -165,7 +166,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   };
 });
 
-const { buildApp, setSetupComplete } = await import('../app.js');
+const { buildApp } = await import('../app.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -201,7 +202,6 @@ function authToken(): string {
 const AUTH = () => ({ authorization: `Bearer ${authToken()}` });
 
 beforeAll(async () => {
-  setSetupComplete(true);
   app = await buildApp();
 });
 

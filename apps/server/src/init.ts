@@ -34,12 +34,7 @@ export async function initializeAdmin(app: FastifyInstance): Promise<void> {
     const existingAdmin = await userManager.findByEmail(adminEmail);
     if (existingAdmin) {
       logger.info('Admin user already exists, skipping initialization');
-      // Still mark setup as complete so wizard doesn't appear
-      const { setAdminExists, setIsInitialized } = await import('./routes/setup.js');
-      const { setSetupComplete } = await import('./middleware/setup-guard.js');
-      setAdminExists(true);
-      setIsInitialized(true);
-      setSetupComplete(true);
+      // D113: DB is the single source of truth — no in-memory state to update
       return;
     }
 
@@ -91,14 +86,6 @@ export async function initializeAdmin(app: FastifyInstance): Promise<void> {
       { userId: adminUser.id, email: adminEmail },
       'Admin user initialized successfully',
     );
-
-    // Mark setup as complete since admin was created
-    const { setAdminExists, setIsInitialized } = await import('./routes/setup.js');
-    const { setSetupComplete } = await import('./middleware/setup-guard.js');
-    setAdminExists(true);
-    setIsInitialized(true);
-    setSetupComplete(true);
-    logger.info('Setup marked complete');
   } catch (error) {
     logger.error({ err: error }, 'Failed to initialize admin user');
     throw error;

@@ -2,31 +2,27 @@
  * Setup Guard Middleware
  * Blocks non-setup routes until setup is complete
  * Blocks setup write endpoints after setup is complete
+ *
+ * D113: setup state is derived from the users table on every request
+ * (DB is the single source of truth — no in-memory flag).
  */
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { logger } from '@accessbase/logging';
-
-// In-memory setup state (should match setup.ts)
-// This is a simplified approach - production should use database
-let setupComplete = false;
+import { isSystemInitialized } from '../routes/setup.js';
 
 const ALLOWED_PATHS = [
   '/api/v1/setup/status',
   '/api/v1/setup/checks',
   '/health',
   '/docs',
-  '/',           // Frontend entry point
-  '/index.html',  // Direct index access
-  '/assets/',     // Vite hashed assets (JS/CSS/images)
-  '/favicon',     // Favicon
+  '/',           // Frontend entry point (exact match only)
+  '/index.html', // Direct index access
+  '/assets/',    // Vite hashed assets (JS/CSS/images)
+  '/favicon',    // Favicon
 ];
 
 // Setup write paths that should be blocked after setup is complete
 const SETUP_WRITE_PATHS = ['/api/v1/setup/admin', '/api/v1/setup/config', '/api/v1/setup/complete'];
-
-export function setSetupComplete(value: boolean): void {
-  setupComplete = value;
-}
 
 export async function setupGuard(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const url = request.url;
@@ -36,8 +32,23 @@ export async function setupGuard(request: FastifyRequest, reply: FastifyReply): 
     return;
   }
 
+  let initialized: boolean;
+  try {
+    initialized = await isSystemInitialized();
+  } catch (err) {
+    // DB unreachable → fail closed (503), distinct from SETUP_REQUIRED (403)
+    logger.error({ err, url }, 'Setup state unavailable (DB error) — failing closed');
+    return reply.status(503).send({
+      success: false,
+      error: {
+        code: 'SETUP_STATE_UNAVAILABLE',
+        message: 'Setup state cannot be determined.',
+      },
+    });
+  }
+
   // After setup complete, block setup write endpoints
-  if (setupComplete && SETUP_WRITE_PATHS.some((path) => url.startsWith(path))) {
+  if (initialized && SETUP_WRITE_PATHS.some((path) => url.startsWith(path))) {
     logger.warn({ url }, 'Setup write endpoint blocked after setup completion');
     return reply.status(410).send({
       success: false,
@@ -49,7 +60,7 @@ export async function setupGuard(request: FastifyRequest, reply: FastifyReply): 
   }
 
   // Before setup complete, block non-setup routes
-  if (!setupComplete && !url.startsWith('/api/v1/setup')) {
+  if (!initialized && !url.startsWith('/api/v1/setup')) {
     logger.warn({ url }, 'Setup not complete, blocking request');
     return reply.status(403).send({
       success: false,

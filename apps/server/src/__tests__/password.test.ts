@@ -66,7 +66,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       }),
       findById: vi.fn().mockResolvedValue({ ...pwUser }),
       findByEmail: vi.fn().mockImplementation(async (email: string) =>
-        email === pwUser.email ? { ...pwUser } : null,
+        email === pwUser.email || email === 'admin@accessbase.local' ? { ...pwUser } : null,
       ),
       changePassword: changePasswordMock.mockImplementation(
         async (_userId: string, oldPassword: string) => {
@@ -80,7 +80,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   };
 });
 
-const { buildApp, setSetupComplete } = await import('../app.js');
+const { buildApp } = await import('../app.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -88,13 +88,11 @@ type App = Awaited<ReturnType<typeof buildApp>>;
 let app: App;
 
 beforeAll(async () => {
-  setSetupComplete(true);
   app = await buildApp();
 });
 
 afterAll(async () => {
   await app.close();
-  setSetupComplete(false);
 });
 
 beforeEach(() => {

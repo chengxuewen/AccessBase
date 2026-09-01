@@ -18,6 +18,15 @@ vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 
+// D113: the setup guard now queries the users table via UserManager on every request.
+// Mock it (admin exists → guard passes; login POST reaches the audit middleware).
+vi.mock('@accessbase/identity', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@accessbase/identity')>()),
+  UserManager: vi.fn().mockImplementation(() => ({
+    findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
+  })),
+}));
+
 // In-memory AuditStorage — captures what AuditLogger hands off.
 class MemoryAuditStorage implements AuditStorage {
   readonly entries: AuditLog[] = [];

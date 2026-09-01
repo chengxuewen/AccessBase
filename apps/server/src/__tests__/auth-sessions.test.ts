@@ -79,8 +79,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
+      findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
       findById: vi.fn().mockResolvedValue(null),
-      findByEmail: vi.fn().mockResolvedValue(null),
       verifyPassword: vi.fn().mockRejectedValue(new Error('nope')),
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
@@ -95,7 +95,6 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
 });
 
 const { buildApp } = await import('../app.js');
-const { setSetupComplete } = await import('../middleware/setup-guard.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -108,12 +107,10 @@ function authedInject(options: { method: 'GET' | 'POST'; url: string; payload?: 
 }
 
 beforeAll(async () => {
-  setSetupComplete(true);
   app = await buildApp();
 });
 
 afterAll(async () => {
-  setSetupComplete(false);
   await app.close();
 });
 

@@ -35,11 +35,17 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       };
     }
   }
-  return { ...original, PermissionManager };
+  return {
+    ...original,
+    // D113: guard queries the users table — mock admin as existing so guarded routes pass.
+    UserManager: vi.fn().mockImplementation(() => ({
+      findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
+    })),
+    PermissionManager,
+  };
 });
 
 const { buildApp } = await import('../app.js');
-const { setSetupComplete } = await import('../middleware/setup-guard.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -54,10 +60,7 @@ afterAll(async () => {
   await app.close();
 });
 
-beforeEach(() => {
-  // Bypass setup guard — tests exercise the auth layer, not setup state
-  setSetupComplete(true);
-});
+
 
 // Sign a valid JWT using the app's own secret so jwtVerify passes
 async function authedInject(options: { method: 'GET'; url: string }) {
