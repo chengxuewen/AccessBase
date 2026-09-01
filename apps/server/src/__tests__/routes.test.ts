@@ -22,13 +22,33 @@ vi.mock('@fastify/helmet', () => ({
   default: async () => {},
 }));
 
-// D113: the setup guard queries the users table via UserManager on every request.
-// These cases exercise the "setup not complete" path, so findByEmail resolves null.
+// D113: the setup guard queries the users table on every request:
+//   1. fast path via UserManager.findByEmail (resolves null here — "not complete"),
+//   2. fallback admin-role join via drizzle (mocked empty — "not complete").
 vi.mock('@accessbase/identity', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@accessbase/identity')>()),
   UserManager: vi.fn().mockImplementation(() => ({
     findByEmail: vi.fn().mockResolvedValue(null),
   })),
+}));
+
+vi.mock('@accessbase/identity/db', () => ({
+  createDb: vi.fn(() => ({
+    select: vi.fn(() => ({
+      from: () => ({
+        innerJoin: () => ({
+          innerJoin: () => ({
+            where: () => ({
+              limit: () => Promise.resolve([]),
+            }),
+          }),
+        }),
+      }),
+    })),
+  })),
+  users: {},
+  userRoles: {},
+  roles: {},
 }));
 
 const { buildApp } = await import('../app.js');

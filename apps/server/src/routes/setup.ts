@@ -4,9 +4,10 @@
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { UserManager, RoleManager } from '@accessbase/identity';
+import { createDb, users, userRoles, roles } from '@accessbase/identity/db';
+import { eq } from 'drizzle-orm';
 import { logger } from '@accessbase/logging';
 import { config } from '../config.js';
-
 // DB-derived setup state (D113): the users table is the single source of truth.
 // No in-memory state — see queryAdminExists/getSetupStatus below.
 
@@ -16,12 +17,31 @@ export type SetupStatus = {
   configComplete: boolean;
 };
 
+let db: ReturnType<typeof createDb> | undefined;
+function setupDb() {
+  if (!db) db = createDb(config.databaseUrl);
+  return db;
+}
+
 // Internal: does not catch — DB failure throws (guard relies on the reject signal).
+// "Initialized" (D113, users table = source of truth):
+//   1. configured/default admin email exists (fast path — one indexed lookup), OR
+//   2. ANY user holds the 'admin' role (users ⋈ user_roles ⋈ roles) — closes the
+//      custom-email blind spot for wizard-created admins (Task 2 carried ruling).
 async function queryAdminExists(): Promise<SetupStatus> {
   const userManager = new UserManager();
   const admin = await userManager.findByEmail(config.adminEmail || 'admin@accessbase.local');
   if (admin) return { isInitialized: true, adminExists: true, configComplete: true };
-  return { isInitialized: false, adminExists: false, configComplete: false };
+
+  const rows = await setupDb()
+    .select({ id: users.id })
+    .from(users)
+    .innerJoin(userRoles, eq(users.id, userRoles.userId))
+    .innerJoin(roles, eq(userRoles.roleId, roles.id))
+    .where(eq(roles.name, 'admin'))
+    .limit(1);
+  const initialized = rows.length > 0;
+  return { isInitialized: initialized, adminExists: initialized, configComplete: initialized };
 }
 
 // For the status endpoint: never rejects (fail-open + log).

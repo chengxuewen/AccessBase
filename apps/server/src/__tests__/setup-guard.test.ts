@@ -1,13 +1,18 @@
 /**
  * Setup Guard — DB-derived state tests (D113)
  *
- * Setup state is derived from the users table via UserManager.findByEmail
- * on every guarded request. No in-memory state; tests control state purely
- * by mocking findByEmail:
- *   - resolves non-null  → initialized (setup writes → 410)
- *   - resolves null      → not initialized (non-setup → 403 SETUP_REQUIRED)
- *   - rejects            → guard fails closed (503 SETUP_STATE_UNAVAILABLE),
- *                          status endpoint fails open (200, adminExists:false)
+ * Setup state is derived from the users table:
+ *   1. fast path: configured/default admin email exists (UserManager.findByEmail)
+ *   2. fallback (carried ruling): ANY user holds the 'admin' role
+ *      (users ⋈ user_roles ⋈ roles) — closes the custom-email blind spot
+ *      for wizard-created admins.
+ *
+ * Tests control state via `setAdminRoleRows` (drizzle db mock) and
+ * `mockFindByEmail`:
+ *   - either path hits → initialized (setup writes → 410)
+ *   - both miss       → not initialized (non-setup → 403 SETUP_REQUIRED)
+ *   - db rejects      → guard fails closed (503 SETUP_STATE_UNAVAILABLE),
+ *                       status endpoint fails open (200, adminExists:false)
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import type { IdentityService } from '@accessbase/identity';
@@ -24,6 +29,20 @@ vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 
+// Drizzle db + table mocks: the existence check joins users ⋈ user_roles ⋈ roles
+// (roles.name = 'admin'). Tests control state via `adminRoleRows`.
+const adminRoleRows: unknown[][] = [];
+const dbMock = { select: vi.fn() };
+
+vi.mock('@accessbase/identity/db', () => ({
+  createDb: vi.fn(() => dbMock),
+  users: { __table: 'users' },
+  userRoles: { __table: 'userRoles' },
+  roles: { __table: 'roles' },
+}));
+
+// UserManager mock: the guard's findByEmail fast path (and other routes) route
+// through this seam; default in beforeEach is null so state is drizzle-driven.
 const mockFindByEmail = vi.fn();
 
 vi.mock('@accessbase/identity', async (importOriginal) => {
@@ -51,15 +70,33 @@ afterAll(async () => {
   await app.close();
 });
 
+// Per-test state control: empty = not initialized, one row = an admin-role user exists.
+function setAdminRoleRows(count: number) {
+  adminRoleRows.length = 0;
+  for (let i = 0; i < count; i++) adminRoleRows.push([{ id: `u${i}` }]);
+}
+
 beforeEach(() => {
   mockFindByEmail.mockReset();
+  dbMock.select.mockReset();
+  dbMock.select.mockImplementation(() => ({
+    from: () => ({
+      innerJoin: () => ({
+        innerJoin: () => ({
+          where: () => ({
+            limit: () => Promise.resolve(adminRoleRows),
+          }),
+        }),
+      }),
+    }),
+  }));
+  setAdminRoleRows(0);
 });
 
-describe('setupGuard: un-initialized state (findByEmail → null)', () => {
+describe('setupGuard: un-initialized state (no admin-role user)', () => {
   beforeEach(() => {
     mockFindByEmail.mockResolvedValue(null);
   });
-
   it('blocks /api/v1/users with 403 SETUP_REQUIRED', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/users' });
     expect(res.statusCode).toBe(403);
@@ -102,18 +139,20 @@ describe('setupGuard: un-initialized state (findByEmail → null)', () => {
     expect(res.statusCode).toBe(403);
     expect(res.json().error.code).toBe('SETUP_REQUIRED');
   });
+
+  it('uses adminEmail fallback when config.adminEmail is empty (fast path)', async () => {
+    mockFindByEmail.mockResolvedValue(null);
+    await app.inject({ method: 'GET', url: '/api/v1/setup/status' });
+    expect(mockFindByEmail).toHaveBeenCalledWith('admin@accessbase.local');
+  });
 });
 
-describe('setupGuard: initialized state (findByEmail → admin user)', () => {
-  const adminUser = {
-    id: '550e8400-e29b-41d4-a716-446655440001',
-    email: 'admin@accessbase.local',
-    name: 'Admin',
-    isActive: true,
-  };
-
+describe('setupGuard: initialized state (admin-role user exists)', () => {
   beforeEach(() => {
-    mockFindByEmail.mockResolvedValue(adminUser);
+    // findByEmail misses (e.g. wizard admin used a custom email);
+    // the admin-role join is what reports initialized.
+    mockFindByEmail.mockResolvedValue(null);
+    setAdminRoleRows(1);
   });
 
   it('allows /api/v1/users through the guard (401 from auth, not 403)', async () => {
@@ -144,8 +183,21 @@ describe('setupGuard: initialized state (findByEmail → admin user)', () => {
 });
 
 describe('setupGuard: DB failure three-state behavior', () => {
+  const dbRejectChain = () =>
+    dbMock.select.mockImplementation(() => ({
+      from: () => ({
+        innerJoin: () => ({
+          innerJoin: () => ({
+            where: () => ({
+              limit: () => Promise.reject(new Error('db down')),
+            }),
+          }),
+        }),
+      }),
+    }));
+
   it('status endpoint fails open: 200 with adminExists:false', async () => {
-    mockFindByEmail.mockRejectedValue(new Error('db down'));
+    dbRejectChain();
     const res = await app.inject({ method: 'GET', url: '/api/v1/setup/status' });
     expect(res.statusCode).toBe(200);
     expect(res.json().data).toEqual({
@@ -156,15 +208,32 @@ describe('setupGuard: DB failure three-state behavior', () => {
   });
 
   it('guard fails closed: /api/v1/users → 503 SETUP_STATE_UNAVAILABLE', async () => {
-    mockFindByEmail.mockRejectedValue(new Error('db down'));
+    dbRejectChain();
     const res = await app.inject({ method: 'GET', url: '/api/v1/users' });
     expect(res.statusCode).toBe(503);
     expect(res.json().error.code).toBe('SETUP_STATE_UNAVAILABLE');
   });
 
-  it('uses adminEmail fallback when config.adminEmail is empty', async () => {
+  it('REGRESSION (custom-email blind spot): wizard admin with custom email counts as initialized', async () => {
+    // Before the carried ruling, queryAdminExists only checked findByEmail(config.adminEmail ||
+    // fallback). A wizard-created admin with a CUSTOM email left the guard thinking the system
+    // was uninitialized → global 403. Now: email miss + ANY admin-role user ⇒ initialized.
     mockFindByEmail.mockResolvedValue(null);
-    await app.inject({ method: 'GET', url: '/api/v1/setup/status' });
-    expect(mockFindByEmail).toHaveBeenCalledWith('admin@accessbase.local');
+    setAdminRoleRows(1);
+    const res = await app.inject({ method: 'GET', url: '/api/v1/users' });
+    // 401 (auth) proves the guard let the request through; 403 would be the blind spot.
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('exposes adminRoleRows-based state: empty rows ⇒ wizard can proceed to POST /setup/admin', async () => {
+    mockFindByEmail.mockResolvedValue(null);
+    setAdminRoleRows(0);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/setup/admin',
+      payload: { email: `admin-${Date.now()}@test.local`, name: 'Admin', password: 'P@ssw0rd1' },
+    });
+    expect(res.statusCode).not.toBe(403);
+    expect(res.statusCode).not.toBe(410);
   });
 });
