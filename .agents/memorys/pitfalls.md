@@ -178,3 +178,10 @@
 - **解法**: apps/server/package.json 加 predev 钩子: pnpm -r --filter '!@accessbase/server' --filter '!@accessbase/admin-ui' run build（自动构建全部依赖包，3-5s）
 - **验证**: NO_PROXY curl -X POST /api/v1/auth/login 返回 accessToken（带 DATABASE_URL/REDIS_URL 启动）
 - **禁止**: 清环境后直接 dev；手动启动 server 缺 DATABASE_URL/REDIS_URL 环境变量
+## PIT-026: dev 端口预检时序窗口 + stop 清理范围缺口 (2026-09-01)
+
+- **症状**: bash accessbase.sh stop 后 dev 报 EADDRINUSE 5101；stop 杀不到脚本外启动的 tsx/vite 孤儿
+- **根因**: (1) 预检与实际启动之间隔着 predev 构建 ~2s，孤儿进程可在此窗口抢端口 (2) stop 只杀 .dev-pids 登记进程，setsid/nohup 起的进程逃逸 (3) server 崩溃后 vite 存活形成半死会话
+- **解法**: accessbase.sh 三处加固: 启动前二次预检(仅 5101/5173，不查脚本自己刚起的 5432/6379)、wait -n fail-fast(任一 dev 进程退出即全停+cleanup)、stop 加 pkill 模式清扫(tsx watch/server dev/vite --host)
+- **验证**: 全周期冒烟 dev(健康 200) → stop → 4 端口全清 0 残留进程；预检拦截验证: infra 未起时 dev 快速失败并自动 cleanup
+- **禁止**: 脚本外 setsid/nohup 起 dev 进程(逃逸 PID 登记成为 stop 盲区)；二次预检包含 infra 端口(会自残拦截刚启动的 PG/Redis)

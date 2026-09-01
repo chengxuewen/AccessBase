@@ -118,7 +118,7 @@ cmd_dev_native() {
     ensure_node
     ensure_pnpm
 
-    # Detect port conflicts
+    # Port conflict detection util (re-checked after predev build — see PIT-026)
     source "${SCRIPT_DIR}/scripts/native/_ports.sh"
     detect_required_ports
 
@@ -174,13 +174,11 @@ cmd_dev_native() {
     }
     trap cleanup_native EXIT
 
-    # Start dev servers in parallel, track PIDs
-    log_info "Starting dev servers..."
-    log_ok "AccessBase running:"
-    log_info "  Frontend:   http://localhost:${UI_PORT:-5173}"
-    log_info "  Backend:    http://localhost:${SERVER_PORT:-5101}"
-    log_info "  PostgreSQL: localhost:${PG_PORT:-5432}"
-    log_info "  Redis:      localhost:${REDIS_PORT:-6379}"
+    # Re-check ONLY dev-server ports right before launch: predev build (~2s)
+    # opens a window where an orphan can grab 5101/5173 after the early check.
+    # NOT 5432/6379 — this script just started them itself (PIT-026).
+    check_port_available "${SERVER_PORT:-5101}" "Server" || exit 1
+    check_port_available "${UI_PORT:-5173}" "Admin UI" || exit 1
 
     pnpm --filter @accessbase/server dev &
     local server_pid=$!
@@ -192,6 +190,15 @@ cmd_dev_native() {
     echo "$server_pid" > "$pidfile"
     echo "$ui_pid" >> "$pidfile"
 
+    # Fail fast: if EITHER dev process exits, stop the other + cleanup (PIT-026)
+    wait -n $server_pid $ui_pid
+    local failed=$?
+    if [ $failed -ne 0 ]; then
+        log_error "A dev process exited unexpectedly (code $failed) — stopping everything"
+        kill -15 $server_pid $ui_pid 2>/dev/null || true
+        cleanup_native
+        exit $failed
+    fi
     wait $server_pid $ui_pid
 }
 
@@ -244,6 +251,13 @@ cmd_stop_native() {
             fi
         fi
     done
+
+    # Orphan sweep: pnpm/tsx/vite dev chain processes escape the PID file
+    # when started outside this script (PIT-026). Match by args, not comm.
+    pkill -15 -f "tsx watch src/index.ts" 2>/dev/null || true
+    pkill -15 -f "@accessbase/server dev" 2>/dev/null || true
+    pkill -15 -f "vite -- --host" 2>/dev/null || true
+    sleep 1
 
     bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
     bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
