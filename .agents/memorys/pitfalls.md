@@ -171,3 +171,10 @@
 - **解法**: 删除孤儿行。重构包裹层时必须整体替换函数体（write > edit 局部插入）
 - **验证**: NO_PROXY pixi run node 复现脚本 body.innerText.includes('return (') === false；E2E 60/2 无回归
 - **禁止**: JSX 包裹重构用局部 edit 插入开闭标签；交付前无杂散文本断言
+## PIT-025: 清环境后 dist/ 缺失致 tsx dev 启动 ERR_MODULE_NOT_FOUND (2026-09-01)
+
+- **症状**: pnpm --filter server dev 报 Cannot find module '@accessbase/identity/dist/index.js'；Vite 起来但 proxy ECONNREFUSED 5101
+- **根因**: workspace 包 exports 指向 dist/（gitignored 构建产物），clean/重 clone 后未 build；tsx 直跑 TS 不经任何构建管线
+- **解法**: apps/server/package.json 加 predev 钩子: pnpm -r --filter '!@accessbase/server' --filter '!@accessbase/admin-ui' run build（自动构建全部依赖包，3-5s）
+- **验证**: NO_PROXY curl -X POST /api/v1/auth/login 返回 accessToken（带 DATABASE_URL/REDIS_URL 启动）
+- **禁止**: 清环境后直接 dev；手动启动 server 缺 DATABASE_URL/REDIS_URL 环境变量

@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "predev": "pnpm -r --filter '!@accessbase/server' --filter '!@accessbase/admin-ui' run build",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
