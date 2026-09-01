@@ -164,3 +164,10 @@
 - **解法**: 全站约定改用页面内 inline `<Alert data-testid="xxx-error">`（Login.tsx 已落地）；E2E 用 `getByTestId` 断言
 - **验证**: `pixi run npx playwright test e2e/auth.spec.ts --project=chromium` → 5/5 通过
 - **禁止**: 新代码使用 `message.success/error` 静态 API；已有 Users/UserDetail/UserEdit 中的调用属于同一隐患，迁移时一并替换
+## PIT-024: JSX 包裹重构孤儿 return ( 泄漏为页面文本 (2026-09-01)
+
+- **症状**: 登录页左上角出现字面文本 'return ('；所有页面 #root 顶部均有
+- **根因**: App.tsx 包裹 <GlobalErrorBoundary> 时旧 'return (' 未删除，成为 JSX 子文本。JSX 裸文本语法合法，tsc 不报错
+- **解法**: 删除孤儿行。重构包裹层时必须整体替换函数体（write > edit 局部插入）
+- **验证**: NO_PROXY pixi run node 复现脚本 body.innerText.includes('return (') === false；E2E 60/2 无回归
+- **禁止**: JSX 包裹重构用局部 edit 插入开闭标签；交付前无杂散文本断言
