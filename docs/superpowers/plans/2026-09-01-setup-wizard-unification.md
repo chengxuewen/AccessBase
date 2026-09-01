@@ -408,7 +408,7 @@ Run: `grep -n "needsSetup\|setup/status\|setup/admin\|Generated admin" e2e/setup
 - [ ] **Step 2: 全量 E2E**
 
 Run: `NO_PROXY="localhost,127.0.0.1" pixi run npx playwright test --project=chromium`
-Expected: ≥60 passed / ≤2 failed（users-search + setup-full-flow），**0 新失败**。若 setup-full-flow 本次转绿 → 更新基线表述。
+Expected: ≥60 passed / ≤2 failed（users-search + setup-full-flow），**0 新失败**。Task 5 落地后基线改为 ≥58 passed（setup-full-flow 被删除，由 setup-real project 替代）+ `--project=setup-real` 4 passed。
 
 - [ ] **Step 3: status.md 同步**
 
@@ -427,6 +427,192 @@ git commit -m "test(e2e): setup wizard unification adaptation + status sync"
 
 ---
 
+---
+### Task 5: setup/reset 真闭环 E2E（真后端 + 真命令）
+
+**Files:**
+- Create: `e2e/setup-real-flow.spec.ts`（T5.1 真 UI setup 闭环 + T5.2 真命令 reset 闭环）
+- Create: `e2e/helpers/backend-control.ts`（execSync 封装：reset/dev server 生命周期管理）
+- Modify: `playwright.config.ts`（新增 `setup-real` project：`testMatch: '**/setup-real-*.spec.ts'`, serial, 独立 webServer 配置）
+- Modify: `e2e/setup.spec.ts`（旧 full-flow 真后端用例删除——由 T5.1 替代，其余 mock 用例保留）
+- Test: `e2e/setup-real-flow.spec.ts`
+
+**Interfaces:**
+- Consumes: Task 1-3 全部产出（DB 推导状态 / env 双变量旁路 / reset+db:push+confirm）
+- Produces: `e2e/helpers/backend-control.ts` 导出 `resetBackend(): void`（execSync `ACCESSBASE_RESET_CONFIRM=yes bash accessbase.sh reset`，cwd=项目根）与 `waitForServer(url, timeoutMs): Promise<void>`（轮询 /setup/status 直至 200）
+- 约束：真后端测试必须 `test.describe.serial`（reset 动全库，与其余真后端测试互斥）；mock 测试不受影响
+
+- [ ] **Step 1: backend-control helper**
+
+```typescript
+// e2e/helpers/backend-control.ts
+import { execSync } from 'node:child_process';
+
+const PROJECT_ROOT = resolve(__dirname, '../..');
+
+export function resetBackend(): void {
+  execSync('ACCESSBASE_RESET_CONFIRM=yes bash accessbase.sh reset', {
+    cwd: PROJECT_ROOT,
+    stdio: 'inherit',
+    timeout: 120_000,
+  });
+}
+
+export async function waitForServer(url = 'http://localhost:5101/api/v1/setup/status', timeoutMs = 60_000): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return;
+    } catch { /* not up yet */ }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`server not ready within ${timeoutMs}ms`);
+}
+```
+
+- [ ] **Step 2: playwright.config.ts 新增 setup-real project**
+
+```typescript
+// projects 数组新增（chromium 之后）:
+{
+  name: 'setup-real',
+  use: { ...devices['Desktop Chrome'] },
+  testMatch: /setup-real-.*\.spec\.ts/,
+  // fullyParallel 默认 false + serial describe —— 真后端全库操作不能并行
+}
+```
+
+同时确认：主 chromium project 的 `testIgnore: /setup-real-.*\.spec\.ts/`（避免重复执行）；webServer 的 `reuseExistingServer: !CI` 使本机已起 dev 时复用（reset 后 tsx watch 内的 server 进程不用手动重启——watch 进程还活着，状态是 DB 推导的，天然反映新库状态，这正是 D113 的优势）
+
+- [ ] **Step 3: 写 spec（RED）**
+
+```typescript
+// e2e/setup-real-flow.spec.ts
+import { test, expect } from '@playwright/test';
+import { execSync } from 'node:child_process';
+import { resetBackend, waitForServer } from './helpers/backend-control';
+
+const API = 'http://localhost:5101/api/v1';
+
+test.describe.serial('Setup real backend flow', () => {
+  test('T5.1 fresh DB → wizard → admin created → login round-trip', async ({ page }) => {
+    resetBackend();                       // 真命令 reset（含 db:push）
+    await waitForServer();                // tsx watch 还活着, DB 推导状态即时反映
+
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 });
+    await expect(page.locator('h2#welcome-title')).toBeVisible();
+    await page.locator('button:has-text("Start Setup")').click();
+    await expect(page.locator('[role="listitem"] .anticon-check-circle').first()).toBeVisible({ timeout: 15_000 });
+    await page.locator('button:has-text("Next")').click();
+
+    const unique = `admin-${Date.now()}@test.local`;
+    await expect(page.locator('h2#admin-title')).toBeVisible({ timeout: 5_000 });
+    await page.locator('input#name').fill('Test Admin');
+    await page.locator('input#email').fill(unique);
+    await page.locator('input#password').fill('TestPassword123!');
+    await page.locator('input#confirmPassword').fill('TestPassword123!');
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes('/setup/admin')),
+      page.locator('button:has-text("Next")').click(),
+    ]);
+    await page.locator('button:has-text("Skip")').click();   // config 步跳过
+    await expect(page).toHaveURL(/\/dashboard|\/$/, { timeout: 15_000 });
+
+    // 登出 → 重新登录闭环（admin 真实可登录）
+    await page.evaluate(() => localStorage.clear());
+    await page.goto('/login');
+    await page.locator('input#email').fill(unique);
+    await page.locator('input#password').fill('TestPassword123!');
+    await page.locator('button[type="submit"]').click();
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+  });
+
+  test('T5.2 real reset → wizard reappears (DB-derived state evidence)', async ({ page }) => {
+    // 前置: T5.1 刚创建了 admin — DB 处于 initialized 状态
+    const before = await (await fetch(`${API}/setup/status`)).json();
+    expect(before.data.adminExists).toBe(true);
+
+    resetBackend();   // ACCESSBASE_RESET_CONFIRM=yes 非交互旁路验证点
+    await waitForServer();
+
+    const after = await (await fetch(`${API}/setup/status`)).json();
+    expect(after.data.adminExists).toBe(false);   // D113: DB 推导的浏览器外证据
+
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 });   // PIT-027 的 E2E 证据: 向导重现
+    await expect(page.locator('h2#welcome-title')).toBeVisible();
+  });
+
+  test('T5.2b reset without confirm fails closed, data intact', async () => {
+    // 无 CONFIRM env + 非交互 stdin → read 失败 → reset 退出非 0
+    let threw = false;
+    try {
+      execSync('bash accessbase.sh reset', { cwd: resolve(__dirname, '..'), stdio: 'pipe', input: '' });
+    } catch { threw = true; }
+    expect(threw).toBe(true);
+    const status = await (await fetch(`${API}/setup/status`)).json();
+    expect(status.data.adminExists).toBe(false); // 数据未被误删（仍在 reset 后状态）且命令被拒
+  });
+
+  test('T5.3 guard states surfaced in UI (mock layer)', async ({ page }) => {
+    // 403 拦截: mock /setup/status 未初始化 → 访问受保护 API 的页面应看到 SETUP_REQUIRED 行为
+    await page.route('**/api/v1/setup/status', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { isInitialized: false, adminExists: false, configComplete: false } }),
+    }));
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 });   // GlobalGuard 重定向
+
+    // 503: mock status 503 → 前端不崩（ErrorBoundary 不触发）
+    await page.route('**/api/v1/setup/status', (r) => r.fulfill({ status: 503, body: '{"success":false}' }));
+    await page.goto('/');
+    await expect(page.locator('body')).toBeVisible();   // 页面可渲染（具体文案断言随实现调整）
+  });
+});
+```
+
+- [ ] **Step 4: 跑 setup-real project（真后端在跑的前提下）**
+
+```bash
+# 前置: bash accessbase.sh dev 已在跑（或 playwright webServer 拉起）
+NO_PROXY="localhost,127.0.0.1" pixi run npx playwright test --project=setup-real
+# Expected: 4 passed（T5.1/T5.2/T5.2b/T5.3）
+# 注意: T5.1/T5.2 执行后 DB 处于"未初始化"状态 → 需重建基线 admin（同 Task 3 Step 3）
+```
+
+- [ ] **Step 5: 重建基线 admin + 全量 E2E**
+
+```bash
+ADMIN_EMAIL=admin@accessbase.local ADMIN_PASSWORD='bQ0zGWZHX2hp0sJ5' \
+DATABASE_URL=postgresql://accessbase:accessbase@localhost:5432/accessbase \
+REDIS_URL=redis://localhost:6379 pixi run pnpm --filter @accessbase/server dev   # 起→等 bypass 日志→Ctrl+C
+
+NO_PROXY="localhost,127.0.0.1" pixi run npx playwright test --project=chromium
+# Expected: ≥58 passed（旧 full-flow 已删）/ 2 pre-existing（users-search；setup-full-flow 已被 T5.1 替代不再存在）→ 0 新失败
+NO_PROXY="localhost,127.0.0.1" pixi run npx playwright test --project=setup-real
+# Expected: 4 passed
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add e2e/setup-real-flow.spec.ts e2e/helpers/backend-control.ts playwright.config.ts e2e/setup.spec.ts
+git commit -m "test(e2e): real backend setup/reset closed-loop — wizard round-trip, reset command, guard states"
+```
+
+**风险与预案：**
+- execSync reset 耗时 15-30s（停库+删库+重建+push）→ serial + 项目级 timeout 放宽（`timeout: 180_000` per test in setup-real project）
+- CI（GitHub Actions）需 bash + node ≥18（fetch 全局可用）；若 runner 无 accessbase.sh 依赖（pixi）→ 该 project 标记 `testIgnore` 于 CI env（`process.env.CI && test.skip()`），本地强制跑
+- tsx watch 跨 reset 存活假设：watch 父进程在 pg 停启期间可能因 DB 连接断开崩溃 → 预案：helper 提供 `restartServer()`（kill 旧 PID + 后台重启 + waitForServer），T5.1 开头先调 waitForServer，失败则走 restartServer 分支
+- T5.2b 的 reset 取消路径依赖 read 在非 TTY stdin 失败——若脚本 read 被绕过导致误删，此测试会暴露（这正是它的价值）；若 bash 版本差异导致 read 行为不同，改用 `</dev/null` 显式空 stdin 保证确定性
+
+---
+
+- [ ] 全量门禁：vitest 0 新失败 / E2E 0 新失败 / tsc 双绿
+
+---
 ## 验收清单（人工，实施完成后逐项打勾）
 
 - [ ] 全新环境模拟：`ACCESSBASE_RESET_CONFIRM=yes bash accessbase.sh reset` → `bash accessbase.sh dev` → 浏览器自动进 `/setup` → 向导三步走通 → 登录成功
@@ -434,3 +620,4 @@ git commit -m "test(e2e): setup wizard unification adaptation + status sync"
 - [ ] env 单变量（只设 email）：启动日志出现 "Setup Wizard will run on first access"，向导出现
 - [ ] reset 取消：交互中直接回车 → "Reset cancelled"，数据完好
 - [ ] 全量门禁：vitest 0 新失败 / E2E 0 新失败 / tsc 双绿
+- [ ] E2E 真闭环（Task 5）：`--project=setup-real` 4 passed —— 真 UI 向导三步+登录回环、真命令 reset 后向导重现、无确认 reset 被拒、guard 三态 UI 表现
