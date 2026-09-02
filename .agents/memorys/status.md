@@ -96,3 +96,4 @@ docs/
 - 2026-08-31: Phase 6b 会话+MFA 基座（SessionManager缓存/FlowToken/TOTP/密码管理/锁定，236 测试）
 - 2026-08-31: Phase 6c 核心页面（Roles/Audit/Profile/Users重构/错误页/布局，47 E2E，PIT-023）
 - 2026-08-31: Phase 6d 登录扩展（OAuth GitHub/Google + WebAuthn passkey + Settings 页 + 动态 Dashboard，300 vitest + 62 E2E，D109/D112，验收清单 docs/superpowers/plans/2026-08-31-phase6-acceptance-checklist.md）
+- 2026-09-01: Setup 统一化（setup 状态 DB 推导 D113 / init.ts 收缩 + env 双变量旁路 / reset 天然回向导 PIT-027；vitest 0 新失败 / E2E 无回归）
