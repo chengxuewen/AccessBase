@@ -265,8 +265,17 @@ cmd_stop_native() {
 }
 
 cmd_reset_native() {
-    log_warn "This will DELETE all native data and reinitialize"
-    # Only stop PG/Redis (not dev servers — they should survive the reset)
+    log_warn "This will DELETE all native data (PG+Redis) — system returns to Setup Wizard on next dev start"
+
+    # Confirm guard — non-interactive bypass for scripts/CI
+    if [ "${ACCESSBASE_RESET_CONFIRM:-}" != "yes" ]; then
+        read -r -p "Type 'yes' to confirm reset: " reply
+        if [ "$reply" != "yes" ]; then
+            log_error "Reset cancelled"
+            return 1
+        fi
+    fi
+
     export PATH="${PROJECT_ROOT}/.pixi/envs/native/bin:$PATH"
     bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
     bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
@@ -274,7 +283,18 @@ cmd_reset_native() {
     rm -rf "${PROJECT_ROOT}/.pixi/data/pg" "${PROJECT_ROOT}/.pixi/data/redis"
     log_info "Reinitializing..."
     bash "${SCRIPT_DIR}/scripts/native/pg-init.sh"
-    log_ok "Reset complete. Dev servers may need a page refresh."
+    # pg-init.sh stops the temp server after user/db creation — restart so db:push can connect
+    bash "${SCRIPT_DIR}/scripts/native/pg-start.sh"
+
+    # Schema push — 空库无表则向导无法创建 admin（users 表不存在）
+    log_info "Pushing database schema..."
+    if ! pnpm db:push; then
+        log_error "Schema push failed — wizard cannot create admin without tables"
+        return 1
+    fi
+
+    log_ok "Reset complete — next 'bash accessbase.sh dev' boots into AccessBase Setup Wizard"
+    log_info "If dev servers are running, restart them to pick up the fresh DB"
 }
 
 cmd_status_native() {

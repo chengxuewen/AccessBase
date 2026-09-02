@@ -2329,3 +2329,8 @@ const brandTokens = {
 - **决策**: Passkey 登录用 resident/discoverable credential（不含 username 的 allowCredentials）实现用户名无发现登录，作为主认证因子之一；challenge 经 FlowTokenService 单次消费（purpose=webauthn），防重放/并发复用；认证器 counter 只增校验防克隆（counter 回退即拒绝并吊销）。
 - **理由**: discoverable credential 让用户免输用户名即可登录，UX 优于传统 MFA 第二因子；challenge 单次消费堵住 token 重放窗口；counter 回退检测是 WebAuthn 规范内唯一的服务端克隆信号。
 - **参考**: 6d Task 3（webauthn 路由 + counter 回归保护），D111（FlowTokenService），security.md 19.x
+## D113: Setup 状态以 DB 为准 + env 双变量旁路 (2026-09-01)
+
+- **决策**: setup 状态（isInitialized/adminExists/configComplete）不再内存化，每次从 users 表推导；env 旁路收紧为 ADMIN_EMAIL+ADMIN_PASSWORD 双变量齐备才触发，未设则首次访问进入 Setup Wizard
+- **理由**: DB-as-truth 使 reset/新环境天然回向导，无状态漂移；双变量设计防半配置意外旁路；随机密码进日志的隐患一并消除
+- **参考**: docs/superpowers/plans/2026-09-01-setup-wizard-unification.md

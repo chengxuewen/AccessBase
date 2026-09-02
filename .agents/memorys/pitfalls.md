@@ -185,3 +185,11 @@
 - **解法**: accessbase.sh 三处加固: 启动前二次预检(仅 5101/5173，不查脚本自己刚起的 5432/6379)、wait -n fail-fast(任一 dev 进程退出即全停+cleanup)、stop 加 pkill 模式清扫(tsx watch/server dev/vite --host)
 - **验证**: 全周期冒烟 dev(健康 200) → stop → 4 端口全清 0 残留进程；预检拦截验证: infra 未起时 dev 快速失败并自动 cleanup
 - **禁止**: 脚本外 setsid/nohup 起 dev 进程(逃逸 PID 登记成为 stop 盲区)；二次预检包含 infra 端口(会自残拦截刚启动的 PG/Redis)
+
+## PIT-027: reset 后 server 未重启 → 内存 setupState 与 DB 漂移 (2026-09-01)
+
+- **症状**: reset 清库后访问不出向导，/setup/status 仍报 initialized（旧机制下）
+- **根因**: setupState/setupComplete 为内存变量，与 DB 生命周期不同步；reset 不重启 server
+- **解法**: D113 DB 推导制落地后免疫；accessbase.sh reset 补 db:push + 重启提示
+- **验证**: reset → dev 重启 → /setup/status 返回 adminExists:false
+- **禁止**: 重新引入内存态 setup 标记；reset 后不重启 server 继续操作
