@@ -1,32 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Setup Wizard', () => {
-  test('full setup flow: welcome → admin → config → complete → dashboard', async ({ page }) => {
-    await page.goto('/');
-    await expect(page).toHaveURL(/\/setup/);
-
-    await expect(page.locator('h2#welcome-title')).toBeVisible();
-    await page.locator('button:has-text("Start Setup")').click();
-    // System checks: at least 3 should pass (disk check may vary)
-    await expect(page.locator('[role="listitem"] .anticon-check-circle')).toHaveCount(3, { timeout: 15000 });
-    await page.locator('button:has-text("Next")').click();
-
-    await expect(page.locator('h2#admin-title')).toBeVisible({ timeout: 5000 });
-    await page.locator('input#name').fill('Test Admin');
-    await page.locator('input#email').fill('admin@test.local');
-    await page.locator('input#password').fill('TestPassword123!');
-    await page.locator('input#confirmPassword').fill('TestPassword123!');
-    await Promise.all([
-      page.waitForResponse(r => r.url().includes('/setup/admin')),
-      page.locator('button:has-text("Next")').click(),
-    ]);
-
-    await expect(page.locator('h2')).toContainText(/config/i, { timeout: 5000 });
-    await page.locator('button:has-text("Skip")').click();
-
-    await expect(page).toHaveURL(/\/dashboard|\/$/, { timeout: 15000 });
-    await expect(page.locator('h2')).toContainText(/dashboard/i);
-  });
 
   test('completeSetup finds wizard-created admin (not hardcoded email)', async ({ page }) => {
     await page.route('**/api/v1/setup/status', async (route) => {

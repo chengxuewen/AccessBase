@@ -15,6 +15,14 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /setup-real-.*\.spec\.ts/,
+    },
+    {
+      name: 'setup-real',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /setup-real-.*\.spec\.ts/,
+      // fullyParallel 默认 false + serial describe —— 真后端全库操作不能并行
+      timeout: 180_000,
     },
   ],
   webServer: {

@@ -278,8 +278,9 @@ export async function setupRoutes(app: FastifyInstance) {
           },
           DEFAULT_TENANT,
         );
-
-
+        // UserManager.create ignores the roles field — assign admin role explicitly,
+        // else wizard admins have no admin-role row and system stays uninitialized (T5 E2E finding)
+        await roleManager.assignToUser(adminUser.id, adminRole.id, DEFAULT_TENANT);
         // Log without sensitive data
         logger.info({ userId: adminUser.id, email }, 'Admin user created via setup wizard');
 

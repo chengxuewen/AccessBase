@@ -242,7 +242,8 @@ cmd_stop_native() {
     # Only kill processes whose command contains 'node' — safe for VS Code
     for port in ${SERVER_PORT:-5101} ${UI_PORT:-5173}; do
         local pid
-        pid=$(lsof -ti :"$port" 2>/dev/null | head -1)
+        # lsof exits 1 when no listener — guard so pipefail doesn't abort the sweep
+        pid=$(lsof -ti :"$port" 2>/dev/null | head -1 || true)
         if [ -n "$pid" ]; then
             local cmd
             cmd=$(ps -p "$pid" -o comm= 2>/dev/null || echo "")
@@ -254,7 +255,7 @@ cmd_stop_native() {
 
     # Orphan sweep: pnpm/tsx/vite dev chain processes escape the PID file
     # when started outside this script (PIT-026). Match by args, not comm.
-    pkill -15 -f "tsx watch src/index.ts" 2>/dev/null || true
+    pkill -15 -f "watch src/index.ts" 2>/dev/null || true
     pkill -15 -f "@accessbase/server dev" 2>/dev/null || true
     pkill -15 -f "vite -- --host" 2>/dev/null || true
     sleep 1

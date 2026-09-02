@@ -193,3 +193,11 @@
 - **解法**: D113 DB 推导制落地后免疫；accessbase.sh reset 补 db:push + 重启提示
 - **验证**: reset → dev 重启 → /setup/status 返回 adminExists:false
 - **禁止**: 重新引入内存态 setup 标记；reset 后不重启 server 继续操作
+## PIT-028: stop 清扫 pkill 模式带二进制前缀匹配不到 node 子进程 (2026-09-02)
+
+- **症状**: `bash accessbase.sh stop` 后 tsx watch 的真实 node 子进程存活（5101 仍被占），后续 dev 报 EADDRINUSE
+- **根因**: `pkill -15 -f "tsx watch src/index.ts"` 的 cmdline 只匹配 `sh -c` 包装进程；真实子进程 cmdline 是 `node .../tsx/dist/cli.mjs watch src/index.ts`（无 "tsx watch" 连续子串）
+- **解法**: 模式去掉二进制名前缀，改为 `pkill -15 -f "watch src/index.ts"` — 同时匹配包装进程与 node 子进程
+- **验证**: 起 dev → stop → `ps aux | grep "[t]sx.*watch src"` = 0
+- **禁止**: pkill -f 模式假设 cmdline 含包名+子命令连续子串；先 `ps aux | grep` 看真实 cmdline 再写模式
+- **同函数附带修复**: `pid=$(lsof -ti :$port | head -1)` 在无监听时 lsof 退出码 1，`set -euo pipefail` 下直接中止整个 stop（exit 1）→ 改为 `| head -1 || true`
