@@ -119,8 +119,13 @@ cmd_dev_native() {
     ensure_pnpm
 
     # Port conflict detection util (re-checked after predev build — see PIT-026)
+    # Ruling 3 (2026-09-02): check ONLY dev-server ports here — infra ports are
+    # owned by pg-start/redis-start, which are idempotent (already-running → reuse).
+    # The old all-ports check made dev unbootable whenever infra was left running,
+    # which after the trap fix is now the NORMAL state between dev sessions.
     source "${SCRIPT_DIR}/scripts/native/_ports.sh"
-    detect_required_ports
+    check_port_available "${SERVER_PORT:-5101}" "Server" || exit 1
+    check_port_available "${UI_PORT:-5173}" "Admin UI" || exit 1
 
     # Initialize + start infra
     log_info "Starting native infrastructure..."
@@ -153,12 +158,15 @@ cmd_dev_native() {
     # PID file for safe process tracking (no lsof — avoids killing unrelated processes)
     local pidfile="${PROJECT_ROOT}/.pixi/data/.dev-pids"
 
-    # Cleanup on exit — kill tracked PIDs + stop infra
+    # Cleanup on exit — kill dev server processes ONLY.
+    # Infra (PG/Redis) lifecycle belongs to `accessbase.sh stop`:
+    # a killed dev session must not take the database down with it
+    # (reset→stop→dev boot-window bug, 2026-09-02).
     _native_cleaned=0
     cleanup_native() {
         [ "$_native_cleaned" -eq 1 ] && return
         _native_cleaned=1
-        log_info "Stopping native services..."
+        log_info "Stopping dev servers..."
         # Kill tracked dev server PIDs
         if [ -f "$pidfile" ]; then
             while IFS= read -r pid; do
@@ -168,9 +176,13 @@ cmd_dev_native() {
             done < "$pidfile"
             rm -f "$pidfile"
         fi
-        bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
-        bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
-        log_ok "Native services stopped"
+        # Orphan sweep — mirrors cmd_stop_native (incl. PIT-026/028 cmdline shapes)
+        pkill -15 -f "watch src/index.ts" 2>/dev/null || true
+        pkill -15 -f "@accessbase/server dev" 2>/dev/null || true
+        pkill -15 -f "vite/bin/vite.js" 2>/dev/null || true
+        pkill -15 -f "sh -c vite" 2>/dev/null || true
+        sleep 1
+        log_ok "Dev servers stopped (infra left running — use 'accessbase.sh stop' to stop PG/Redis)"
     }
     trap cleanup_native EXIT
 
@@ -257,7 +269,8 @@ cmd_stop_native() {
     # when started outside this script (PIT-026). Match by args, not comm.
     pkill -15 -f "watch src/index.ts" 2>/dev/null || true
     pkill -15 -f "@accessbase/server dev" 2>/dev/null || true
-    pkill -15 -f "vite -- --host" 2>/dev/null || true
+    pkill -15 -f "vite/bin/vite.js" 2>/dev/null || true
+    pkill -15 -f "sh -c vite" 2>/dev/null || true
     sleep 1
 
     bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
