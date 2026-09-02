@@ -274,7 +274,6 @@ export async function setupRoutes(app: FastifyInstance) {
             email,
             name,
             password,
-            roles: [adminRole.id],
           },
           DEFAULT_TENANT,
         );

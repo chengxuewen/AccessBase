@@ -19,13 +19,17 @@ vi.mock('../config.js', () => ({
 const mockFindByEmail = vi.fn();
 const mockCreateUser = vi.fn();
 const mockCreateRole = vi.fn();
+const mockAssignToUser = vi.fn();
 
 vi.mock('@accessbase/identity', () => ({
   UserManager: vi.fn().mockImplementation(() => ({
     findByEmail: mockFindByEmail,
     create: mockCreateUser,
   })),
-  RoleManager: vi.fn().mockImplementation(() => ({ create: mockCreateRole })),
+  RoleManager: vi.fn().mockImplementation(() => ({
+    create: mockCreateRole,
+    assignToUser: mockAssignToUser,
+  })),
 }));
 
 vi.mock('@accessbase/logging', () => ({
@@ -50,6 +54,7 @@ beforeEach(() => {
   mockFindByEmail.mockReset();
   mockCreateUser.mockReset();
   mockCreateRole.mockReset();
+  mockAssignToUser.mockReset();
   vi.mocked(mockLogger.info).mockClear();
   vi.mocked(mockLogger.warn).mockClear();
   vi.mocked(mockLogger.error).mockClear();
@@ -83,8 +88,13 @@ describe('initializeAdmin (state sync + env bypass)', () => {
       expect.objectContaining({
         email: 'x@y.z',
         password: 'Xxx12345678',
-        roles: ['role-1'],
       }),
+      expect.anything(),
+    );
+
+    expect(mockAssignToUser).toHaveBeenCalledWith(
+      'u1',
+      'role-1',
       expect.anything(),
     );
 

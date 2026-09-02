@@ -193,6 +193,7 @@
 - **解法**: D113 DB 推导制落地后免疫；accessbase.sh reset 补 db:push + 重启提示
 - **验证**: reset → dev 重启 → /setup/status 返回 adminExists:false
 - **禁止**: 重新引入内存态 setup 标记；reset 后不重启 server 继续操作
+
 ## PIT-028: stop 清扫 pkill 模式带二进制前缀匹配不到 node 子进程 (2026-09-02)
 
 - **症状**: `bash accessbase.sh stop` 后 tsx watch 的真实 node 子进程存活（5101 仍被占），后续 dev 报 EADDRINUSE

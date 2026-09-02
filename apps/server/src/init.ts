@@ -30,10 +30,11 @@ export async function initializeAdmin(_app: FastifyInstance): Promise<void> {
         { name: 'admin', description: 'System administrator with full access' },
         DEFAULT_TENANT,
       );
-      await userManager.create(
-        { email, name: 'Administrator', password: config.adminPassword, roles: [adminRole.id] },
+      const adminUser = await userManager.create(
+        { email, name: 'Administrator', password: config.adminPassword },
         DEFAULT_TENANT,
       );
+      await roleManager.assignToUser(adminUser.id, adminRole.id, DEFAULT_TENANT);
       logger.warn({ email }, 'Admin created via ADMIN_EMAIL/ADMIN_PASSWORD env bypass');
       return;
     }
