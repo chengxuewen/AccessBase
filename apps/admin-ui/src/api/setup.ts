@@ -24,11 +24,15 @@ interface ConfigFormData {
   smtpFrom?: string;
 }
 
-/** Check if the system needs initial setup */
-export async function checkSetupStatus(): Promise<{ needsSetup: boolean }> {
-  const { data } = await client.get('/v1/setup/status');
-  // Backend returns { success, data: { isInitialized, adminExists, configComplete } }
-  return { needsSetup: !data.data?.isInitialized };
+/** Check if the system needs initial setup. Never rejects — network failure → ok:false so guards can retry instead of fail-open. */
+export async function checkSetupStatus(): Promise<{ needsSetup: boolean; ok: boolean }> {
+  try {
+    const { data } = await client.get('/v1/setup/status');
+    // Backend returns { success, data: { isInitialized, adminExists, configComplete } }
+    return { needsSetup: !data.data?.isInitialized, ok: true };
+  } catch {
+    return { needsSetup: false, ok: false };
+  }
 }
 
 /** Run system environment checks */
@@ -59,8 +63,9 @@ export async function saveConfig(formData: ConfigFormData): Promise<void> {
 export async function completeSetup(): Promise<{
   accessToken: string;
   refreshToken: string;
-  user: { id: string; email: string; name: string; roles: string[] };
 }> {
   const { data } = await client.post('/v1/setup/complete');
-  return data;
+  // Backend wraps tokens in the standard envelope { success, data: { accessToken, refreshToken } } — unwrap
+  const payload = data.data ?? {};
+  return { accessToken: payload.accessToken, refreshToken: payload.refreshToken };
 }

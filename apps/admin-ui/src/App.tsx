@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import { useAuthStore } from './stores/auth';
-import { checkSetupStatus } from './api/setup';
+import { useSetupGuardState } from './hooks/useSetupGuardState';
 import AdminLayout from './layouts/AdminLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -25,43 +24,29 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return (token || isAuthenticated) ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
+function SetupGuardRetry() {
+  return (
+    <div
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40vh' }}
+      data-testid="setup-guard-retry"
+    >
+      <Spin size="large" />
+      <p style={{ marginTop: 16 }}>Connecting to server…</p>
+    </div>
+  );
+}
+
 function SetupGuard({ children }: { children: React.ReactNode }) {
-  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    checkSetupStatus()
-      .then((status) => setNeedsSetup(status.needsSetup))
-      .catch(() => setNeedsSetup(false));
-  }, []);
-
-  if (needsSetup === null) {
-    return <Spin size="large" style={{ display: 'block', margin: '40vh auto' }} />;
-  }
-
-  if (!needsSetup) {
-    return <Navigate to="/login" replace />;
-  }
-
+  const { needsSetup } = useSetupGuardState();
+  if (needsSetup === null) return <SetupGuardRetry />;
+  if (!needsSetup) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
 function GlobalGuard({ children }: { children: React.ReactNode }) {
-  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    checkSetupStatus()
-      .then((status) => setNeedsSetup(status.needsSetup))
-      .catch(() => setNeedsSetup(false));
-  }, []);
-
-  if (needsSetup === null) {
-    return <Spin size="large" style={{ display: 'block', margin: '40vh auto' }} />;
-  }
-
-  if (needsSetup) {
-    return <Navigate to="/setup" replace />;
-  }
-
+  const { needsSetup } = useSetupGuardState();
+  if (needsSetup === null) return <SetupGuardRetry />;
+  if (needsSetup) return <Navigate to="/setup" replace />;
   return <>{children}</>;
 }
 

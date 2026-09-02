@@ -52,11 +52,8 @@ test.describe.serial('Setup real backend flow', () => {
     );
     await completeBtn.click({ trial: true }).catch(() => {}); // may detach mid-click (loading → navigation)
     // If the click didn't land (detached), the navigation has already started; wait for either tokens fetch or URL
-    await Promise.race([
-      completeResp,
-      page.waitForURL(/\/dashboard|\/$/, { timeout: 15_000 }),
-    ]);
-    await page.waitForURL(/\/dashboard|\/$/, { timeout: 15_000 });
+    // Complete → tokens → client-side redirects land on /dashboard
+    await expect(page).toHaveURL(/\/dashboard|\/$/, { timeout: 15_000 });
 
     // logout → re-login closed loop (admin is really loggable)
     await page.evaluate(() => localStorage.clear());
@@ -118,5 +115,22 @@ test.describe.serial('Setup real backend flow', () => {
     await page.route('**/api/v1/setup/status', (r) => r.fulfill({ status: 503, body: '{"success":false}' }));
     await page.goto('/');
     await expect(page.locator('body')).toBeVisible();
+  });
+
+  test('T5.4 backend down → guard shows retry state, NOT login; recovers when backend returns', async ({ page }) => {
+    // abort status 请求模拟后端不可达（不依赖真实杀进程——CI 友好）
+    await page.route('**/api/v1/setup/status', (r) => r.abort());
+    await page.goto('/');
+    // 不得落在 /login（旧缺陷行为），不得白屏
+    await page.waitForTimeout(1000);
+    expect(page.url()).not.toMatch(/\/login/);
+    await expect(page.getByTestId('setup-guard-retry')).toBeVisible({ timeout: 5000 });
+    // 恢复后端 → 自动重试应把用户带进 setup（DB 当前为未初始化状态时）
+    await page.unroute('**/api/v1/setup/status');
+    await page.route('**/api/v1/setup/status', (r) => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { isInitialized: false, adminExists: false, configComplete: false } }),
+    }));
+    await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 }); // 3s 重试间隔 + 断言余量
   });
 });
