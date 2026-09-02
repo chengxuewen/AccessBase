@@ -143,3 +143,12 @@ logger.error('Operation failed', error); // ❌
 - `beforeEach` 中检测 401 → 重新创建 admin → 重试登录
 - Playwright 配置用 `webServer.reuseExistingServer: true` 避免 Vite 进程冲突
 - 操作反馈用页面内 inline `<Alert data-testid="...">`，禁用 antd 静态 `message.*` API（当前渲染器下不挂载，见 PIT-023）
+
+## Setup 状态语义约束（D113，2026-09-02）
+
+### DB 推导下的向导时序不变量
+
+- `isInitialized` 在 admin 建成瞬间即为 true——**config/complete 是向导内的合法写**，任何 `isInitialized→410` 拦截都会死锁向导后半程（PIT-027 同族，已在 9c633e3 修复）
+- guard `SETUP_WRITE_PATHS` 只允许 `/setup/admin`（防重复建 admin）；config/complete 的防重由 handler 内部业务检查负责（complete 幂等重发 token）
+- 前端 `checkSetupStatus` 三态（`{needsSetup, ok}`）：**catch 分支禁止直接映射为路由决策**——后端不可达须走重试页（useSetupGuardState，3s），不能落 /login（PIT-029）
+- 检查命令: `grep -n "isInitialized" apps/server/src/routes/setup.ts` 只应出现在 /admin handler 与 status 推导；`grep -rn "catch(() => set" apps/admin-ui/src/App.tsx` 应零命中（已由 useSetupGuardState 替代）

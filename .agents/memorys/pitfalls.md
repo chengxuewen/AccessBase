@@ -202,6 +202,7 @@
 - **验证**: 起 dev → stop → `ps aux | grep "[t]sx.*watch src"` = 0
 - **禁止**: pkill -f 模式假设 cmdline 含包名+子命令连续子串；先 `ps aux | grep` 看真实 cmdline 再写模式
 - **同函数附带修复**: `pid=$(lsof -ti :$port | head -1)` 在无监听时 lsof 退出码 1，`set -euo pipefail` 下直接中止整个 stop（exit 1）→ 改为 `| head -1 || true`
+- **升级**: PIT-028 已两次实例（tsx "tsx watch..." / vite "vite -- --host"）——pkill -f 模式必须匹配真实 cmdline（pnpm sh -c 包装会加引号/改写），禁止想当然用 package.json script 原文；新增 sweep 模式前先 `pgrep -af "<pattern>"` 验证命中
 
 ## PIT-029: 前端 guard 对后端不可达 fail-open → reset 后无法进入向导 (2026-09-02)
 
