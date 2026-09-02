@@ -202,3 +202,11 @@
 - **验证**: 起 dev → stop → `ps aux | grep "[t]sx.*watch src"` = 0
 - **禁止**: pkill -f 模式假设 cmdline 含包名+子命令连续子串；先 `ps aux | grep` 看真实 cmdline 再写模式
 - **同函数附带修复**: `pid=$(lsof -ti :$port | head -1)` 在无监听时 lsof 退出码 1，`set -euo pipefail` 下直接中止整个 stop（exit 1）→ 改为 `| head -1 || true`
+
+## PIT-029: 前端 guard 对后端不可达 fail-open → reset 后无法进入向导 (2026-09-02)
+
+- **症状**: reset→stop→dev 后访问站点落在 /login，向导不出现；后端恢复后需手动刷新才恢复
+- **根因**: GlobalGuard/SetupGuard 的 checkSetupStatus().catch(() => setNeedsSetup(false)) 把"检查失败"等同"无需 setup"；dev EXIT trap 连带停 PG/Redis 加长不可达窗口
+- **解法**: checkSetupStatus 三态（ok 标志）+ useSetupGuardState 3s 自动重试；dev trap 只杀 dev 进程；dev 预检收窄 5101/5173 使 infra 常驻时可复用
+- **验证**: T5.4 E2E（abort status → retry testid → 恢复后自动进 /setup）；dev 被杀后 psql 仍通
+- **禁止**: guard catch 分支做路由决策；EXIT trap 停 infra；dev 预检包含 infra 端口
