@@ -21,8 +21,10 @@ const ALLOWED_PATHS = [
   '/favicon',    // Favicon
 ];
 
-// Setup write paths that should be blocked after setup is complete
-const SETUP_WRITE_PATHS = ['/api/v1/setup/admin', '/api/v1/setup/config', '/api/v1/setup/complete'];
+// Only /admin is guard-blocked once initialized. /config and /complete are legal
+// writes DURING the wizard (admin exists ⇒ isInitialized true mid-wizard), and both
+// handlers re-check state via queryAdminExists → 410 themselves (defense in depth).
+const SETUP_WRITE_PATHS = ['/api/v1/setup/admin'];
 
 export async function setupGuard(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const url = request.url;

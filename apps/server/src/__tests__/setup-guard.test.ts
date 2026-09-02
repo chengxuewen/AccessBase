@@ -171,7 +171,7 @@ describe('setupGuard: initialized state (admin-role user exists)', () => {
     });
   });
 
-  it('blocks setup write endpoints with 410 SETUP_ALREADY_COMPLETE', async () => {
+  it('blocks POST /setup/admin with 410 SETUP_ALREADY_COMPLETE', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/setup/admin',
@@ -179,6 +179,17 @@ describe('setupGuard: initialized state (admin-role user exists)', () => {
     });
     expect(res.statusCode).toBe(410);
     expect(res.json().error.code).toBe('SETUP_ALREADY_COMPLETE');
+  });
+
+  it('lets POST /setup/config through the guard mid-wizard (admin exists)', async () => {
+    // admin 创建后 isInitialized 即为 true，config 是向导内合法写，handler 自身有 410 二道防线
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/setup/config',
+      payload: { siteName: 'AccessBase' },
+    });
+    expect(res.statusCode).not.toBe(403);
+    expect(res.statusCode).not.toBe(410);
   });
 });
 

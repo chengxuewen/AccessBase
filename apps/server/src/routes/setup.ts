@@ -366,17 +366,6 @@ export async function setupRoutes(app: FastifyInstance) {
         smtpPassword?: string;
       };
 
-      // DB-derived check (D113): setup/config writes are blocked once an admin exists
-      const status = await queryAdminExists();
-      if (status.isInitialized) {
-        return reply.status(410).send({
-          success: false,
-          error: {
-            code: 'SETUP_ALREADY_COMPLETE',
-            message: 'System setup has already been completed.',
-          },
-        });
-      }
 
       // Log without sensitive data (redact smtpPassword)
       const { smtpPassword: _, ...safeConfig } = config;
@@ -442,18 +431,10 @@ export async function setupRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      // Verify admin exists in DB (D113: users table is the source of truth)
+      // Verify admin exists in DB (D113: users table is the source of truth).
+      // No isInitialized→410 here: admin creation flips isInitialized mid-wizard,
+      // so /complete is the LEGITIMATE next step (repeat calls are idempotent — re-issue tokens).
       const status = await queryAdminExists();
-      if (status.isInitialized) {
-        return reply.status(410).send({
-          success: false,
-          error: {
-            code: 'SETUP_ALREADY_COMPLETE',
-            message: 'System setup has already been completed.',
-          },
-        });
-      }
-
       if (!status.adminExists) {
         return reply.status(400).send({
           success: false,

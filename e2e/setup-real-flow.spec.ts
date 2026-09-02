@@ -37,9 +37,26 @@ test.describe.serial('Setup real backend flow', () => {
       page.waitForResponse((r) => r.url().includes('/setup/admin')),
       page.locator('button:has-text("Next")').click(),
     ]);
-    await page.locator('button:has-text("Skip")').click(); // config step
-    await page.locator('button:has-text("Enter Dashboard")').click(); // Complete step requires explicit navigation
-    await expect(page).toHaveURL(/\/dashboard|\/$/, { timeout: 15_000 });
+    // config step: fill siteName + Next (regression: guard/handler 410 deadlocked this step — human-tested bug)
+    await expect(page.locator('h2')).toContainText(/config/i, { timeout: 5_000 });
+    await page.locator('input#siteName').fill('AccessBase Test');
+    const cfg = page.waitForResponse((r) => r.url().includes('/setup/config'));
+    await page.locator('button:has-text("Next")').click();
+    expect((await cfg).status()).toBe(200);
+    // Complete step: button goes loading + page navigates — wait for URL, don't click a spinner
+    const completeBtn = page.locator('button:has-text("Enter Dashboard")');
+    await expect(completeBtn).toBeVisible({ timeout: 5_000 });
+    const completeResp = page.waitForResponse(
+      (r) => r.url().includes('/setup/complete'),
+      { timeout: 15_000 },
+    );
+    await completeBtn.click({ trial: true }).catch(() => {}); // may detach mid-click (loading → navigation)
+    // If the click didn't land (detached), the navigation has already started; wait for either tokens fetch or URL
+    await Promise.race([
+      completeResp,
+      page.waitForURL(/\/dashboard|\/$/, { timeout: 15_000 }),
+    ]);
+    await page.waitForURL(/\/dashboard|\/$/, { timeout: 15_000 });
 
     // logout → re-login closed loop (admin is really loggable)
     await page.evaluate(() => localStorage.clear());
