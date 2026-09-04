@@ -375,6 +375,25 @@ export class RoleManager {
   }
 
   /**
+   * Set user roles (full replacement, tenant-scoped)
+   */
+  async setUserRoles(userId: string, roleIds: string[], tenantId: string): Promise<void> {
+    logger.info(`Setting roles [${roleIds.join(', ')}] for user ${userId} in tenant: ${tenantId}`);
+
+    // Remove existing assignments
+    await this.db
+      .delete(userRoles)
+      .where(and(eq(userRoles.userId, userId), eq(userRoles.tenantId, tenantId)));
+
+    // Add new assignments
+    if (roleIds.length > 0) {
+      await this.db.insert(userRoles).values(
+        roleIds.map((roleId) => ({ userId, roleId, tenantId })),
+      );
+    }
+  }
+
+  /**
    * Get user roles in specified tenant (including inherited roles)
    */
   async getUserRoles(userId: string, tenantId: string): Promise<Role[]> {

@@ -66,6 +66,7 @@ export interface CreateUserInput {
   name: string;
   password?: string; // OAuth users may not have password
   avatarUrl?: string;
+  isActive?: boolean; // default true; false → status 'suspended'
   roles?: string[]; // Role ID list
   metadata?: Record<string, unknown>;
 }

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { UserManager } from '@accessbase/identity';
+import { UserManager, RoleManager } from '@accessbase/identity';
 
 const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
 
@@ -9,6 +9,17 @@ export async function userRoutes(app: FastifyInstance) {
 
   // Reuse single UserManager instance per route module
   const userManager = new UserManager();
+  const roleManager = new RoleManager();
+
+  /** Tenant-scope check for caller-supplied roleIds; returns the first unknown id (route-boundary validation). */
+  async function unknownRoleId(roleIds: string[] | undefined): Promise<string | null> {
+    if (!roleIds) return null;
+    for (const roleId of roleIds) {
+      const role = await roleManager.findById(roleId, DEFAULT_TENANT);
+      if (!role) return roleId;
+    }
+    return null;
+  }
 
   // GET /api/v1/users — paginated list
   app.get(
@@ -96,7 +107,16 @@ export async function userRoutes(app: FastifyInstance) {
             error: { code: 'NOT_FOUND', message: 'User not found' },
           });
         }
-        return { success: true, data: user };
+        // Detail exposes the role list (UserDetail renders it, UserEdit prefills roleIds)
+        const roles = await roleManager.getUserRoles(id, DEFAULT_TENANT);
+        return {
+          success: true,
+          data: {
+            ...user,
+            roles: roles.map((r) => ({ id: r.id, name: r.name })),
+            roleIds: roles.map((r) => r.id),
+          },
+        };
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
         if (error.message.includes('not found')) {
@@ -126,19 +146,36 @@ export async function userRoutes(app: FastifyInstance) {
             name: { type: 'string', minLength: 1 },
             password: { type: 'string', minLength: 8 },
             avatarUrl: { type: 'string' },
+            isActive: { type: 'boolean' },
+            roleIds: { type: 'array', items: { type: 'string', format: 'uuid' } },
           },
         },
       },
     },
     async (request, reply) => {
-      const { email, name, password, avatarUrl } = request.body as {
+      const { email, name, password, avatarUrl, isActive, roleIds } = request.body as {
         email: string;
         name: string;
         password?: string;
         avatarUrl?: string;
+        isActive?: boolean;
+        roleIds?: string[];
       };
+      const unknown = await unknownRoleId(roleIds);
+      if (unknown) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'VALIDATION_001', message: `Role ${unknown} not found in tenant` },
+        });
+      }
       try {
-        const user = await userManager.create({ email, name, password, avatarUrl }, DEFAULT_TENANT);
+        const user = await userManager.create(
+          { email, name, password, avatarUrl, isActive },
+          DEFAULT_TENANT,
+        );
+        if (roleIds && roleIds.length > 0) {
+          await roleManager.setUserRoles(user.id, roleIds, DEFAULT_TENANT);
+        }
         return reply.status(201).send({ success: true, data: user });
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
@@ -171,15 +208,30 @@ export async function userRoutes(app: FastifyInstance) {
           properties: {
             name: { type: 'string' },
             avatarUrl: { type: 'string' },
+            roleIds: { type: 'array', items: { type: 'string', format: 'uuid' } },
           },
         },
       },
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { name, avatarUrl } = request.body as { name?: string; avatarUrl?: string };
+      const { name, avatarUrl, roleIds } = request.body as {
+        name?: string;
+        avatarUrl?: string;
+        roleIds?: string[];
+      };
+      const unknown = await unknownRoleId(roleIds);
+      if (unknown) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'VALIDATION_001', message: `Role ${unknown} not found in tenant` },
+        });
+      }
       try {
         const user = await userManager.update(id, { name, avatarUrl }, DEFAULT_TENANT);
+        if (roleIds !== undefined) {
+          await roleManager.setUserRoles(id, roleIds, DEFAULT_TENANT);
+        }
         return { success: true, data: user };
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));

@@ -1,7 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { SessionManager, FlowTokenService, MfaManager, getRedisClient, LockoutService } from '@accessbase/identity';
+import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService } from '@accessbase/identity';
 import { config } from '../config.js';
+
+const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
+
 interface LoginBody {
   email: string;
   password: string;
@@ -15,6 +18,8 @@ interface RegisterBody {
 
 export async function authRoutes(app: FastifyInstance) {
   const sessionManager = new SessionManager();
+  const roleManager = new RoleManager();
+
   const lockout = new LockoutService({
     redis: config.nodeEnv === 'test' ? undefined : safeRedis(),
     maxFailures: config.lockoutMaxFailures,
@@ -61,6 +66,13 @@ export async function authRoutes(app: FastifyInstance) {
     );
     return { accessToken, refreshToken };
   }
+
+  /** Real [{id,name}] role list for a user (login + /me share this projection) */
+  async function rolesOf(userId: string): Promise<{ id: string; name: string }[]> {
+    const roles = await roleManager.getUserRoles(userId, DEFAULT_TENANT);
+    return roles.map((r) => ({ id: r.id, name: r.name }));
+  }
+
   // POST /api/v1/auth/login
   app.post<{ Body: LoginBody }>(
     '/login',
@@ -159,7 +171,7 @@ export async function authRoutes(app: FastifyInstance) {
               id: user.id,
               email: user.email,
               name: user.name,
-              roles: [],
+              roles: await rolesOf(user.id),
             },
           },
         };
@@ -224,18 +236,18 @@ export async function authRoutes(app: FastifyInstance) {
     async (request) => {
       const payload = request.user as { sub: string; email: string };
       const userManager = new (await import('@accessbase/identity')).UserManager();
-      const user = await userManager.findById(
-        payload.sub,
-        '00000000-0000-0000-0000-000000000001',
-      );
+      const user = await userManager.findById(payload.sub, DEFAULT_TENANT);
       if (!user) {
         throw new Error('User not found');
       }
       return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        roles: [],
+        success: true,
+        data: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          roles: await rolesOf(user.id),
+        },
       };
     },
   );
@@ -299,20 +311,33 @@ export async function authRoutes(app: FastifyInstance) {
     },
   );
   // GET /api/v1/auth/sessions — active sessions for the current user (Phase 6d Task 4 Settings)
-  app.get(
+  app.get<{ Querystring: { refreshToken?: string } }>(
     '/sessions',
     {
       preHandler: [app.authenticate],
       schema: {
-        description: 'List active sessions for the current user',
-        tags: ['auth'],
-        security: [{ bearerAuth: [] }],
+        description: 'List active sessions for the current user (each item flagged current:true for the caller\'s own session)',
       },
     },
     async (request) => {
       const payload = request.user as { sub: string };
       const sessions = await sessionManager.getUserSessions(payload.sub);
-      return { success: true, data: sessions };
+      // The access JWT carries no session claim; the client optionally passes its
+      // refresh token (same pattern as /logout) to identify its own session.
+      let currentSessionId: string | null = null;
+      const { refreshToken } = request.query;
+      if (refreshToken) {
+        try {
+          currentSessionId =
+            (await sessionManager.findSessionByToken(refreshToken))?.id ?? null;
+        } catch (err) {
+          request.log.warn({ err }, 'sessions current lookup failed');
+        }
+      }
+      return {
+        success: true,
+        data: sessions.map((s) => ({ ...s, current: s.id === currentSessionId })),
+      };
     },
   );
 

@@ -53,6 +53,10 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       revokeSession: vi.fn(),
       revokeAllUserSessions: vi.fn(),
     })),
+    // login success path now projects real roles (T2-4) — empty list keeps these tests behavior-identical
+    RoleManager: vi.fn().mockImplementation(() => ({
+      getUserRoles: vi.fn().mockResolvedValue([]),
+    })),
     MfaManager: vi.fn().mockImplementation(() => mfaManagerMock),
   };
 });

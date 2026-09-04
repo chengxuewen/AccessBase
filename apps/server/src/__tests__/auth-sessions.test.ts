@@ -14,12 +14,27 @@ vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 
-// Session manager mock — route-level behavior for /sessions/revoke-others
+// Stable mock handles — tests drive them with mockResolvedValueOnce
+const userManagerMock = {
+  findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
+  findById: vi.fn().mockResolvedValue(null),
+  verifyPassword: vi.fn().mockRejectedValue(new Error('nope')),
+};
+
+const roleManagerMock = {
+  findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+  findById: vi.fn().mockResolvedValue(null),
+  getUserRoles: vi.fn().mockResolvedValue([]),
+  create: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+};
+
 const sessionManagerMock = {
-rotateRefreshToken: vi.fn(),
-findSessionByToken: vi.fn().mockResolvedValue(null),
-revokeSession: vi.fn(),
-revokeAllUserSessions: vi.fn(),
+  rotateRefreshToken: vi.fn(),
+  findSessionByToken: vi.fn().mockResolvedValue(null),
+  revokeSession: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
   revokeOtherSessions: vi.fn(),
   getUserSessions: vi.fn().mockResolvedValue([]),
 };
@@ -40,7 +55,22 @@ describe('GET /api/v1/auth/sessions (Settings — active sessions list)', () => 
     expect(body.success).toBe(true);
     expect(body.data).toHaveLength(1);
     expect(body.data[0].id).toBe('s-1');
+    expect(body.data[0].current).toBe(false);
     expect(sessionManagerMock.getUserSessions).toHaveBeenCalledWith('u-1');
+  });
+
+  it('flags the caller\'s own session current:true when refreshToken is supplied', async () => {
+    sessionManagerMock.getUserSessions.mockResolvedValueOnce([
+      { id: 's-1', userAgent: 'Chrome', ip: '1.2.3.4', createdAt: new Date(), expiresAt: new Date() },
+      { id: 's-2', userAgent: 'Firefox', ip: '1.2.3.5', createdAt: new Date(), expiresAt: new Date() },
+    ]);
+    sessionManagerMock.findSessionByToken.mockResolvedValueOnce({ id: 's-2', userId: 'u-1' });
+    const res = await authedInject({ method: 'GET', url: '/api/v1/auth/sessions?refreshToken=rt-current' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.data[0].current).toBe(false);
+    expect(body.data[1].current).toBe(true);
+    expect(sessionManagerMock.findSessionByToken).toHaveBeenCalledWith('rt-current');
   });
 });
 
@@ -78,18 +108,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   const actual = await importOriginal<IdentityService>();
   return {
     ...actual,
-    UserManager: vi.fn().mockImplementation(() => ({
-      findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
-      findById: vi.fn().mockResolvedValue(null),
-      verifyPassword: vi.fn().mockRejectedValue(new Error('nope')),
-    })),
-    RoleManager: vi.fn().mockImplementation(() => ({
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
-      findById: vi.fn().mockResolvedValue(null),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    })),
+    UserManager: vi.fn().mockImplementation(() => userManagerMock),
+    RoleManager: vi.fn().mockImplementation(() => roleManagerMock),
     SessionManager: vi.fn().mockImplementation(() => sessionManagerMock),
   };
 });
@@ -112,6 +132,48 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
+});
+
+// T2-4: /auth/me returns the {success,data} envelope with real [{id,name}] roles
+describe('GET /api/v1/auth/me', () => {
+  it('returns the envelope with assigned roles projected to {id,name}', async () => {
+    userManagerMock.findById.mockResolvedValueOnce({
+      id: 'u-1',
+      email: 'admin@test.local',
+      name: 'Adm',
+      isActive: true,
+    });
+    roleManagerMock.getUserRoles.mockResolvedValueOnce([
+      { id: 'r-1', name: 'admin', description: 'ignored', permissions: [] },
+    ]);
+
+    const res = await authedInject({ method: 'GET', url: '/api/v1/auth/me' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      success: true,
+      data: { id: 'u-1', email: 'admin@test.local', name: 'Adm', roles: [{ id: 'r-1', name: 'admin' }] },
+    });
+    expect(roleManagerMock.getUserRoles).toHaveBeenCalledWith(
+      'u-1',
+      '00000000-0000-0000-0000-000000000001',
+    );
+  });
+
+  it('returns roles:[] when the user has no assignments', async () => {
+    userManagerMock.findById.mockResolvedValueOnce({
+      id: 'u-1',
+      email: 'admin@test.local',
+      name: 'Adm',
+      isActive: true,
+    });
+    roleManagerMock.getUserRoles.mockResolvedValueOnce([]);
+
+    const res = await authedInject({ method: 'GET', url: '/api/v1/auth/me' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.roles).toEqual([]);
+  });
 });
 
 describe('POST /api/v1/auth/sessions/revoke-others', () => {

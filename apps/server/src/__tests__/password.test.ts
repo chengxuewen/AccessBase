@@ -77,6 +77,10 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     })),
     FlowTokenService: vi.fn().mockImplementation(() => flowTokenMock),
     SessionManager: vi.fn().mockImplementation(() => sessionManagerMock),
+    // login success path now projects real roles (T2-4) — empty list keeps these tests behavior-identical
+    RoleManager: vi.fn().mockImplementation(() => ({
+      getUserRoles: vi.fn().mockResolvedValue([]),
+    })),
   };
 });
 

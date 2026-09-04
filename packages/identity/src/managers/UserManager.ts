@@ -41,7 +41,7 @@ export class UserManager {
       passwordHash,
       avatarUrl: data.avatarUrl ?? null,
       tenantId,
-      status: 'active',
+      status: data.isActive === false ? 'suspended' : 'active',
     };
 
     const [inserted] = await this.db.insert(users).values(newUser).returning();

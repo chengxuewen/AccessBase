@@ -21,6 +21,10 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         email: 'admin@test.local',
       }),
     })),
+    // login success path now projects real roles (T2-4) — empty list keeps these tests behavior-identical
+    RoleManager: vi.fn().mockImplementation(() => ({
+      getUserRoles: vi.fn().mockResolvedValue([]),
+    })),
   };
 });
 

@@ -92,6 +92,17 @@ const mockDelete = vi.fn().mockImplementation((id: string) => {
   return Promise.resolve();
 });
 
+const mockSetUserRoles = vi.fn().mockResolvedValue(undefined);
+const mockGetUserRoles = vi.fn().mockResolvedValue([
+  { id: '550e8400-e29b-41d4-a716-4466554400aa', name: 'admin' },
+]);
+// Tenant validator (T2-2): known role ids resolve, anything else is foreign → null
+const mockRoleFindById = vi.fn().mockImplementation((id: string) =>
+  id === '550e8400-e29b-41d4-a716-4466554400aa' || id === '550e8400-e29b-41d4-a716-4466554400bb'
+    ? Promise.resolve({ id, name: 'assigned-role' })
+    : Promise.resolve(null),
+);
+
 // Spread actual so later-added identity exports (FlowTokenService, MfaManager,
 // getRedisClient) keep resolving; the explicit mocks below override the managers.
 vi.mock('@accessbase/identity', async (importOriginal) => ({
@@ -105,14 +116,16 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
     changeStatus: mockChangeStatus,
     delete: mockDelete,
   })),
-  // roles.ts (wired in Phase 6a Task 1) imports RoleManager; mock it too
   RoleManager: vi.fn().mockImplementation(() => ({
     findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
-    findById: vi.fn().mockResolvedValue(null),
+    findById: mockRoleFindById,
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    setUserRoles: mockSetUserRoles,
+    getUserRoles: mockGetUserRoles,
   })),
+  // auth.ts (Phase 6a Task 4) imports SessionManager; mock it too
   // auth.ts (Phase 6a Task 4) imports SessionManager; mock it too
   SessionManager: vi.fn().mockImplementation(() => ({
     rotateRefreshToken: vi.fn(),
@@ -189,8 +202,12 @@ describe('GET /api/v1/users/:id', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
-    expect(body.data.id).toBe(mockUser.id);
+expect(body.data.id).toBe(mockUser.id);
     expect(body.data.email).toBe(mockUser.email);
+    // T2-2 contract: detail exposes roles so UserEdit can prefill roleIds
+    expect(body.data.roles).toEqual([{ id: '550e8400-e29b-41d4-a716-4466554400aa', name: 'admin' }]);
+    expect(body.data.roleIds).toEqual(['550e8400-e29b-41d4-a716-4466554400aa']);
+    expect(mockGetUserRoles).toHaveBeenCalledWith(mockUser.id, '00000000-0000-0000-0000-000000000001');
   });
 
   it('returns 404 for nonexistent user', async () => {
@@ -223,6 +240,64 @@ describe('POST /api/v1/users', () => {
     expect(body.data.email).toBe('new@example.com');
   });
 
+  it('assigns roles when roleIds are provided', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users',
+      headers: authHeaders(),
+      payload: {
+        email: 'roled@example.com',
+        name: 'Rolled User',
+        roleIds: ['550e8400-e29b-41d4-a716-4466554400aa'],
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(mockSetUserRoles).toHaveBeenCalledWith(
+      '550e8400-e29b-41d4-a716-446655440099',
+      ['550e8400-e29b-41d4-a716-4466554400aa'],
+      '00000000-0000-0000-0000-000000000001',
+    );
+  });
+
+  it('rejects foreign roleIds without creating the user (tenant isolation)', async () => {
+    const callsBefore = mockCreate.mock.calls.length;
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users',
+      headers: authHeaders(),
+      payload: {
+        email: 'foreign@example.com',
+        name: 'Foreign User',
+        roleIds: ['550e8400-e29b-41d4-a716-4466554400ff'],
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('VALIDATION_001');
+    expect(mockCreate.mock.calls.length).toBe(callsBefore);
+    expect(mockSetUserRoles).not.toHaveBeenCalledWith(
+      expect.any(String),
+      ['550e8400-e29b-41d4-a716-4466554400ff'],
+      expect.any(String),
+    );
+  });
+
+  it('honours isActive:false on create', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users',
+      headers: authHeaders(),
+      payload: { email: 'off@example.com', name: 'Off User', isActive: false },
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'off@example.com', isActive: false }),
+      '00000000-0000-0000-0000-000000000001',
+    );
+  });
+
   it('returns 409 on duplicate email', async () => {
     const res = await app.inject({
       method: 'POST',
@@ -251,6 +326,36 @@ describe('PUT /api/v1/users/:id', () => {
     const body = res.json();
     expect(body.success).toBe(true);
     expect(body.data.name).toBe('Updated Name');
+  });
+
+  it('replaces role set when roleIds provided', async () => {
+    mockSetUserRoles.mockClear();
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${mockUser.id}`,
+      headers: authHeaders(),
+      payload: { roleIds: ['550e8400-e29b-41d4-a716-4466554400bb'] },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSetUserRoles).toHaveBeenCalledWith(
+      mockUser.id,
+      ['550e8400-e29b-41d4-a716-4466554400bb'],
+      '00000000-0000-0000-0000-000000000001',
+    );
+  });
+
+  it('leaves roles untouched when roleIds omitted', async () => {
+    mockSetUserRoles.mockClear();
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${mockUser.id}`,
+      headers: authHeaders(),
+      payload: { name: 'Name Only' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSetUserRoles).not.toHaveBeenCalled();
   });
 });
 
