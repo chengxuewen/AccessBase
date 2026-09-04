@@ -1,7 +1,7 @@
 # AccessBase 项目状态
 
-**更新日期**: 2026-08-31
-**当前阶段**: Phase 6 完成（安全基座+会话MFA+核心页面+登录扩展）
+**更新日期**: 2026-09-03
+**当前阶段**: Phase 7 完成（Admin UI 审查修复：envelope 类型化/单飞刷新/feedback bridge/lint 门禁）
 
 ## 模块状态
 
@@ -13,7 +13,7 @@
 | L0 包实施    | ✅ 8 个   | 全部实施完成                       |
 | Fastify 服务 | ✅        | REST API + 中间件链                |
 | Admin UI     | ✅        | React + Ant Design Pro             |
-| 测试         | ✅ 300+62 个 | 300 vitest + 62 E2E（60 pass / 2 预存失败） |
+| 测试         | ✅ 321+69 个 | 321 vitest + 69 E2E chromium（全绿，test.fail 清零） |
 | Docker       | ✅        | 多阶段构建 + 3 种运行模式          |
 | CI/CD        | ✅        | GitHub Actions                     |
 | 构建模式     | ✅ 4 种   | native / container / compose / deploy |
@@ -69,14 +69,14 @@ docs/
 | health   | service.test.ts                     | 11         |
 | audit    | logger.test.ts                      | 10         |
 | server   | routes/auth/mfa/oauth/webauthn/stats 等 | 199    |
-| **合计** | **30 文件**                         | **300 ✅** |
+| **合计** | **31 文件**                         | **321 ✅** |
 
 ## 运行模式
 
 | 模式        | 命令                         | 说明              |
 | ----------- | ---------------------------- | ----------------- |
 | 开发        | `./accessbase.sh dev`        | 后端 + 前端热重载 |
-| 测试        | `./accessbase.sh test`       | 300 个测试（vitest）+ 62 E2E |
+| 测试        | `./accessbase.sh test`       | 321 个测试（vitest）+ 69 E2E chromium |
 | 构建        | `./accessbase.sh build`      | 构建所有包        |
 | Docker 开发 | `./accessbase.sh docker:dev` | PG + Redis 分离   |
 | Docker 生产 | `./accessbase.sh docker`     | 单容器 all-in-one |
@@ -98,3 +98,5 @@ docs/
 - 2026-08-31: Phase 6d 登录扩展（OAuth GitHub/Google + WebAuthn passkey + Settings 页 + 动态 Dashboard，300 vitest + 62 E2E，D109/D112，验收清单 docs/superpowers/plans/2026-08-31-phase6-acceptance-checklist.md）
 - 2026-09-01: Setup 统一化（setup 状态 DB 推导 D113 / init.ts 收缩 + env 双变量旁路 / reset 天然回向导 PIT-027；vitest 0 新失败 / E2E 无回归）
 - 2026-09-02: Guard 容错修复（backend-down 三态+自动重试 / dev trap 不停 infra + infra 复用 / PIT-028 vite 模式补刀 + PIT-029；E2E +T5.4，基线无回归）
+- 2026-09-03: Phase 7 Admin UI 审查修复（refresh 单飞+信封单层解包 PIT-030 根治 / feedback bridge / MFA step-up UI / 向导密码不落 persist / roles hydrate 修复 / /auth/me 信封+真实 roles；lint 门禁修复：flat config 关 no-undef + react-hooks error/warn、4 处 disable 真修 deps；E2E chromium 69（+11 净新回归锁），test.fail 全清）
+- 2026-09-03 收口：真后端验收 setup-real 6/6 + health 3/3（首跑 T5.1 冷 reset 超 180s 为负载现象非回归）；curl 验真 T2-2（isActive+roleIds 持久化）/T2-4（真实角色）；追加修 C6 sr-only/C7 菜单裸 key/C8 齿轮标注；教训沉淀 D114 + PIT-031~033；注：dev DB 现为 setup-real 重置后验证态（admin=audit-verify@test.local），恢复日常用 reset:native 重走向导

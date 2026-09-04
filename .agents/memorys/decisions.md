@@ -2335,3 +2335,12 @@ const brandTokens = {
 - **决策**: setup 状态（isInitialized/adminExists/configComplete）不再内存化，每次从 users 表推导；env 旁路收紧为 ADMIN_EMAIL+ADMIN_PASSWORD 双变量齐备才触发，未设则首次访问进入 Setup Wizard
 - **理由**: DB-as-truth 使 reset/新环境天然回向导，无状态漂移；双变量设计防半配置意外旁路；随机密码进日志的隐患一并消除
 - **参考**: docs/superpowers/plans/2026-09-01-setup-wizard-unification.md
+
+
+## D114: 已知 bug 用 E2E RED 回归网锁定（test.fail 标注法） (2026-09-03)
+
+- **背景**: Phase 7 审查发现 11 个真 bug 全部零测试覆盖；若直接加普通断言测试，套件立刻红，阻塞其它门禁验收
+- **决策**: bug 捕获测试立即入库并用 `test.fail()` 标注（Playwright expected-fail 语义），每条附 `// RED: <发现id> until <任务id>` 注释；修复任务的完成判据 = 移除标注后实跑 GREEN；已标注用例意外通过会报 "Fixed" 错误 → 双向防漂移（防"修了没测"与"测试本身写坏"）
+- **效果**: Phase 1-3 每次修复即验；本轮 11 条 RED 全部成功转正且 0 意外通过；建网同时坐实了 mock 漂移掩盖的 B7 权限清空与 C7 裸 key 两个隐藏 bug
+- **参考**: docs/superpowers/plans/2026-09-03-admin-ui-fix-plan.md Phase 0
+- **备选**: test.skip —— 被跳过的用例永不执行，无法证明 bug 存在或已修；否决

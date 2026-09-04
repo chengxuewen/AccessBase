@@ -37,6 +37,8 @@ Test Types (ALL required):
 ### 执行命令
 
 ```bash
+# 本机设有 http_proxy 时必须先排除 localhost，否则 webServer 探活被外网代理 502 卡死（PIT-031）
+export no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1
 pixi run npx playwright test --project=chromium
 ```
 

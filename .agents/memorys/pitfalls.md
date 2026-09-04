@@ -106,6 +106,10 @@
 - **根因**: axios 的 `response.data` 已经是 `{success, data: {accessToken, ...}}`。代码 `const { data } = await client.post(...); const { accessToken } = data` 解构的是外层（得到 `success`），不是内层 `data.data`
 - **解法**: `const { data: { accessToken, refreshToken, user } } = data` 或 `const result = data.data; const { accessToken } = result;`
 - **验证**: `console.log` 登录后 localStorage 的 `auth-storage`，确认 `token` 非空
+- **复发（2026-09-03, Phase 7）**: 同族 bug 再现——refresh 拦截器读 `data.accessToken`（外层信封 `{success,data}` 上无此字段）→ 轮换后新 token 未持久化，会话静默 15 分钟登出
+- **根治**: `client.ts` 单层解包 `data.data` + refresh 单飞（single-flight，并发 401 共享一次轮换）；`api/types.ts` 定义 `ApiEnvelope<T>`，全部 `api/*.ts` 调用点 `client.get<ApiEnvelope<X>>` 类型化，杜绝隐式 any 再犯
+- **验证（新增）**: `e2e/auth-session.spec.ts` R1/R2 回归锁（refresh 轮换 + 重用检测）
+- **禁止**: 新 API 调用点不带 `ApiEnvelope` 泛型直接解构 `response.data`
 
 ## PIT-0016: Zustand persist 不持久化 isAuthenticated 导致 PrivateRoute 误判 (2026-08-27)
 
@@ -211,3 +215,34 @@
 - **解法**: checkSetupStatus 三态（ok 标志）+ useSetupGuardState 3s 自动重试；dev trap 只杀 dev 进程；dev 预检收窄 5101/5173 使 infra 常驻时可复用
 - **验证**: T5.4 E2E（abort status → retry testid → 恢复后自动进 /setup）；dev 被杀后 psql 仍通
 - **禁止**: guard catch 分支做路由决策；EXIT trap 停 infra；dev 预检包含 infra 端口
+
+## PIT-030: axios 拦截器对 refresh 响应信封双重漏解 → 每 15 分钟静默登出 (2026-09-03)
+
+- **症状**: 会话活跃中约 15 分钟（access TTL）后突然被登出回 /login；改密后也是同样结局；E2E mock 全绿掩盖（mock 形状自创，与真服务端点不一致）
+- **根因**: 服务端点信封不统一（/auth/me 裸返回、refresh/change-password 返 {success,data}），client.ts 拦截器按裸形状读 data.accessToken → undefined → `Bearer undefined` 重试 401 → logout；changePassword 则把信封里的新 token 对整个丢弃。同一根因家族：无类型约束的 any 响应层（Phase 7 审查 A1/A4）
+- **解法**: 拦截器读 data.data.{accessToken,refreshToken} + 缺对即视为 refresh 失败走 logout；changePassword 返回并 setTokens 新对；/auth/me 统一信封 + 真实 roles（T2-4）；根治：api/*.ts 全部 ApiEnvelope<T> 泛型化（T4-2），信封错从运行时下沉到编译期
+- **验证**: e2e/auth-session R1（refresh 后 Bearer 新 token 且停留已登录页）/ R3（改密后续用新对）/ R5；`grep -n "data.accessToken" apps/admin-ui/src/api/client.ts` 应只剩带 data.data 前缀的行
+- **禁止**: 新增 API 调用不带 ApiEnvelope/ PaginatedEnvelope 泛型；E2E 新 mock 必须拷自真实 handler 响应形状（Phase 0 T0.2/T0.3 教训）
+
+## PIT-031: http_proxy 无 no_proxy → Playwright webServer 探活被外网代理 502 卡死 (2026-09-03)
+
+- **症状**: `npx playwright test` 报 "Timed out waiting 60000ms from config.webServer"，但 :5173 vite 直连实际 200；本轮全部 E2E 首次启动均撞此坑
+- **根因**: 会话 shell 设有 http_proxy/https_proxy/all_proxy 而未设 no_proxy → 探活请求走外网代理，代理对 localhost 回 502（响应头带 Proxy-Connection 可辨认）
+- **解法**: 跑 e2e/vitest 前 `export no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1`；长期：写入 package.json test:e2e 脚本前置（待后续采纳）
+- **验证**: `curl -s -o /dev/null -w '%{http_code}' http://localhost:5173/` 返 502 而 `curl --noproxy '*'` 返 200 → 即中招；export 后恢复 200
+
+## PIT-032: E2E 假绿三型——console 门死代码 / has-text 子串掩盖裸 key / mock 自创形状 (2026-09-03)
+
+- **症状**: 测试全绿但真 bug 长期不可见：(a) settings.spec 的 console 错误监听注册在 afterEach，测试期错误永不被检查；(b) 侧边栏渲染裸 i18n key "menu.dashboard"（C7 真 bug），但 `:has-text("Dashboard")` 大小写不敏感子串匹配照样绿；(c) auth.spec mock `expiresIn:3600` 缺 user 字段、/auth/me mock 信封不一、roles 列表 mock 带了真服务端没有的 permissionIds → 掩盖 B7 权限清空
+- **根因**: Playwright hasText 默认子串+大小写不敏感；监听器注册时机错位；mock 无"拷自真 handler"约束
+- **解法**: 监听器 beforeEach 注册 afterEach 断言；文案断言用 exact（`getByText('Dashboard',{exact:true})` 或严格正则）；新 mock 必须从 routes/*.ts 实际返回拷贝（Phase 0 T0.2/T0.3 已纠）
+- **验证**: `grep -rn "page.on('console'" e2e/*.ts | grep -c afterEach` 应为 0；文案断言 grep 无裸 has-text 子串匹配 i18n 显示文本
+- **禁止**: 用宽松 has-text 子串做 i18n 文案断言；凭记忆写 mock 形状
+
+## PIT-033: 后台代理被 API 配额断流杀掉 → 工作树半落地语法损坏，状态标记不可信 (2026-09-03)
+
+- **症状**: 多个委托代理 "Allocated quota exceeded" 重试/stale 杀死后，树里留下损坏文件：jwt-fallback 等 6 个测试文件重复 `};` / `})),` 碎片、Login.tsx 在 JSX 内联 `Form.useForm()[0]` + `},` 语法错；某 attempt 标 "COMPLETED" 实为 socket error 死在半路；另一次冷杀代理却实际已写完全部代码
+- **根因**: 代理会话可能在任意 edit/write 中途死掉；编排状态机的 completed ≠ 文件系统一致
+- **解法**: 子代理异常终止/重试后，一律以工作树实态为准：tsc → vitest → e2e 四门实跑后再定续做范围；损坏处按其意图最小修复（勿推倒重来）
+- **验证**: 接手先跑 `pnpm --filter @accessbase/admin-ui typecheck` + `npx vitest run` 基线；语法损坏会直接暴露
+- **禁止**: 盲信 COMPLETED 标记叠加改动；把断流代理的半成品直接当完成验收

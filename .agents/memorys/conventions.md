@@ -142,7 +142,8 @@ logger.error('Operation failed', error); // ❌
 - 每个测试独立数据（`Date.now()` 唯一标识）
 - `beforeEach` 中检测 401 → 重新创建 admin → 重试登录
 - Playwright 配置用 `webServer.reuseExistingServer: true` 避免 Vite 进程冲突
-- 操作反馈用页面内 inline `<Alert data-testid="...">`，禁用 antd 静态 `message.*` API（当前渲染器下不挂载，见 PIT-023）
+- 操作反馈用页面内 inline `<Alert data-testid="...">` 或 toast：toast 必须经 `src/api/feedback.ts` 的 bridge（`App.useApp()` 由 `<AppBridge>` 注入）取实例
+- 禁止从 `'antd'` 直接导入静态 `message`/`notification`（React 19 渲染器下不挂载，见 PIT-023；R11 E2E 验证 bridge 渲染）
 
 ## Setup 状态语义约束（D113，2026-09-02）
 
@@ -152,3 +153,22 @@ logger.error('Operation failed', error); // ❌
 - guard `SETUP_WRITE_PATHS` 只允许 `/setup/admin`（防重复建 admin）；config/complete 的防重由 handler 内部业务检查负责（complete 幂等重发 token）
 - 前端 `checkSetupStatus` 三态（`{needsSetup, ok}`）：**catch 分支禁止直接映射为路由决策**——后端不可达须走重试页（useSetupGuardState，3s），不能落 /login（PIT-029）
 - 检查命令: `grep -n "isInitialized" apps/server/src/routes/setup.ts` 只应出现在 /admin handler 与 status 推导；`grep -rn "catch(() => set" apps/admin-ui/src/App.tsx` 应零命中（已由 useSetupGuardState 替代）
+
+
+## Phase 7 审查追加约束（2026-09-03）
+
+### API 信封与类型层
+
+- 所有 server 新端点必须 `{success,data}` 信封（/auth/me 裸返回例外已消除，T2-4）；前端 api 层必须 `client.get<ApiEnvelope<T>>` / `PaginatedEnvelope<T>` 泛型，禁隐式 any 响应
+- 检查命令: `grep -L "Envelope" apps/admin-ui/src/api/*.ts | grep -v types.ts` 应输出空（feedback.ts 除外，无请求）
+
+### E2E 运行与断言保真
+
+- 跑 e2e/vitest 前必须 `export no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1`（见 PIT-031）
+- i18n 文案断言用 exact（`getByText(x,{exact:true})` 或严格正则），禁裸 `:has-text` 子串（见 PIT-032）
+- 新增 mock 必须从 routes/*.ts 实际返回拷贝；委托代理断流后接手先跑 tsc+vitest 基线（见 PIT-033）
+- 已知 bug 用 `test.fail()`+`// RED:` 入库，修好转绿后移除标注为完成判据（D114）；当前存量应为 0：`grep -c "^ *test.fail()" e2e/*.spec.ts` 全 0
+
+### Zustand persist 敏感字段
+
+- 密码/密钥类字段绝不入 persist：向导类表单走"直传 API 不落 store"（AdminStep T3-1 先例）
