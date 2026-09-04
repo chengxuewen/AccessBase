@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Button, Form, Input, Modal, Popconfirm, Transfer, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Modal, Popconfirm, Transfer } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, LoadingOutlined } from '@ant-design/icons';
 import EmptyState from '../components/EmptyState';
 import {
   listRoles,
+  getRole,
   createRole,
   updateRole,
   deleteRole,
@@ -13,6 +14,7 @@ import {
   type Role,
   type Permission,
 } from '../api/roles';
+import { message } from '../api/feedback';
 
 export default function Roles() {
   const { t } = useTranslation();
@@ -23,6 +25,7 @@ export default function Roles() {
   const [saving, setSaving] = useState(false);
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [targetPermissionIds, setTargetPermissionIds] = useState<string[]>([]);
+  const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     listPermissions({ page: 1, pageSize: 100 })
@@ -37,17 +40,25 @@ export default function Roles() {
     setModalOpen(true);
   };
 
-  const openEdit = (role: Role) => {
-    setEditingRole(role);
-    form.setFieldsValue({ name: role.name, description: role.description });
-    setTargetPermissionIds(role.permissionIds ?? []);
-    setModalOpen(true);
+  // B7 fix: hydrate from the detail endpoint — list rows carry no permission data
+  const openEdit = async (role: Role) => {
+    setEditLoadingId(role.id);
+    try {
+      const detail = await getRole(role.id);
+      setEditingRole(detail);
+      form.setFieldsValue({ name: detail.name, description: detail.description });
+      setTargetPermissionIds((detail.permissions ?? []).map((p) => p.id));
+      setModalOpen(true);
+    } catch {
+      message.error(t('roles.loadDetailError'));
+    } finally {
+      setEditLoadingId(null);
+    }
   };
 
-  const handleSave = async () => {
+  const doSave = async (values: { name: string; description?: string }) => {
+    setSaving(true);
     try {
-      const values = await form.validateFields();
-      setSaving(true);
       const payload = { ...values, permissionIds: targetPermissionIds };
       if (editingRole) {
         await updateRole(editingRole.id, payload);
@@ -60,12 +71,35 @@ export default function Roles() {
       setEditingRole(null);
       form.resetFields();
       actionRef.current?.reload();
-    } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'errorFields' in err) return;
+    } catch {
       message.error(editingRole ? t('roles.updateError') : t('roles.createError'));
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSave = async () => {
+    let values: { name: string; description?: string };
+    try {
+      values = await form.validateFields();
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'errorFields' in err) return;
+      message.error(editingRole ? t('roles.updateError') : t('roles.createError'));
+      return;
+    }
+    if (editingRole && targetPermissionIds.length === 0) {
+      // Deliberate emptying is allowed — but confirm it (saves with [] wipe permissions)
+      Modal.confirm({
+        title: t('roles.confirmEmptyTitle'),
+        content: t('roles.confirmEmptyContent'),
+        okText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        okButtonProps: { danger: true },
+        onOk: () => void doSave(values),
+      });
+      return;
+    }
+    await doSave(values);
   };
 
   const columns: ProColumns<Role>[] = [
@@ -82,8 +116,8 @@ export default function Roles() {
       valueType: 'option',
       width: 140,
       render: (_, record) => [
-        <a key="edit" onClick={() => openEdit(record)}>
-          <EditOutlined /> {t('common.edit')}
+        <a key="edit" onClick={() => void openEdit(record)}>
+          {editLoadingId === record.id ? <LoadingOutlined /> : <EditOutlined />} {t('common.edit')}
         </a>,
         <Popconfirm
           key="delete"
@@ -141,6 +175,7 @@ export default function Roles() {
       <Modal
         title={editingRole ? t('roles.editTitle') : t('roles.createTitle')}
         open={modalOpen}
+        forceRender
         onOk={handleSave}
         confirmLoading={saving}
         onCancel={() => {

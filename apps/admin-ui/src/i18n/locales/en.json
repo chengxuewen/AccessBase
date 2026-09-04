@@ -7,7 +7,9 @@
     "confirm": "Confirm",
     "loading": "Loading...",
     "success": "Success",
-    "error": "Error"
+    "error": "Error",
+    "retry": "Retry",
+    "language": "Language"
   },
   "errors": {
     "forbidden": {
@@ -44,7 +46,13 @@
     "success": "Login successful",
     "error": "Login failed",
     "passkey": "Sign in with passkey",
-    "passkeyError": "Passkey login failed"
+    "passkeyError": "Passkey login failed",
+    "mfaTitle": "Two-factor authentication",
+    "mfaCodePlaceholder": "Enter your 6-digit code or recovery code",
+    "mfaCodeRequired": "Please enter your code",
+    "mfaSubmit": "Verify",
+    "mfaCancel": "Use another account",
+    "mfaError": "Invalid or expired verification code"
   },
   "oauth": {
     "or": "or",
@@ -101,6 +109,7 @@
     "deleteConfirm": "Delete this user?",
     "deleteSuccess": "User deleted",
     "deleteError": "Failed to delete user",
+    "loadError": "Failed to load users",
     "detail": {
       "title": "User Detail",
       "editUser": "Edit User",
@@ -137,6 +146,9 @@
     "deleteSuccess": "Role deleted",
     "deleteError": "Failed to delete role",
     "loadPermissionsError": "Failed to load permissions",
+    "loadDetailError": "Failed to load role details",
+    "confirmEmptyTitle": "Remove all permissions?",
+    "confirmEmptyContent": "This role will be saved without any permissions. Members holding it will lose access. Continue?",
     "transferAvailable": "Available",
     "transferSelected": "Selected"
   },
@@ -276,12 +288,16 @@
     "siteName": "Site Name",
     "siteNamePlaceholder": "Enter site name",
     "logoUrl": "Logo URL",
+    "logoUrlInvalid": "Please enter a valid URL",
     "saveSuccess": "Settings saved",
     "activeSessions": "Active Sessions",
     "noSessions": "No active sessions",
     "unknownDevice": "Unknown device",
     "revoke": "Revoke",
     "revokeConfirm": "Revoke this session?",
+    "currentSession": "Current session",
+    "revokeCurrentTitle": "Revoke current session?",
+    "revokeCurrentWarning": "This is the session you are using now. Revoking it will sign you out immediately.",
     "sessionsLoadError": "Failed to load sessions",
     "sessionRevokeError": "Failed to revoke session",
     "passkeys": "Passkeys",

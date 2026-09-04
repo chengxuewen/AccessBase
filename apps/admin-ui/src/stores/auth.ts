@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { isAxiosError } from 'axios';
 import client from '../api/client';
+import type { ApiEnvelope } from '../api/types';
 
 interface User {
   id: string;
   email: string;
   name: string;
-  roles: string[];
+  roles: { id: string; name: string }[];
 }
 
 interface AuthState {
@@ -16,11 +18,15 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  mfaFlowToken: string | null;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  logoutWithServer: () => Promise<void>;
   setTokens: (token: string, refreshToken: string) => void;
   fetchUser: () => Promise<void>;
   exchangeOAuthCode: (code: string) => Promise<void>;
+  verifyMfa: (code: string) => Promise<boolean>;
+  cancelMfa: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -32,25 +38,44 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      mfaFlowToken: null,
 
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
-          const { data } = await client.post('/v1/auth/login', {
+          const { data } = await client.post<ApiEnvelope<{
+            mfaRequired?: boolean;
+            flowToken?: string;
+            accessToken?: string;
+            refreshToken?: string;
+            user?: User | null;
+          }>>('/v1/auth/login', {
             email,
             password,
           });
-          const { accessToken, refreshToken, user } = data.data;
+          const payload = data.data;
+          // MFA step-up: no tokens yet — hold the flow token, Login.tsx renders the TOTP step
+          if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
+            set({ mfaFlowToken: payload.flowToken, isLoading: false });
+            return false;
+          }
+          const { accessToken, refreshToken, user } = payload as {
+            accessToken: string;
+            refreshToken: string;
+            user: User | null;
+          };
           set({
             user,
             token: accessToken,
             refreshToken,
             isAuthenticated: true,
             isLoading: false,
+            mfaFlowToken: null,
           });
+          return true;
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : 'Login failed';
-          set({ error: message, isLoading: false });
+          set({ error: message, isLoading: false, mfaFlowToken: null });
           throw error;
         }
       },
@@ -62,26 +87,79 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: null,
           isAuthenticated: false,
           error: null,
+          mfaFlowToken: null,
         });
+      },
+
+      logoutWithServer: async () => {
+        const { refreshToken } = get();
+        if (refreshToken) {
+          try {
+            await client.post('/v1/auth/logout', { refreshToken });
+          } catch {
+            // best-effort: server may be unreachable or the session already gone
+          }
+        }
+        get().logout();
       },
 
       setTokens: (token: string, refreshToken: string) => {
         set({ token, refreshToken, isAuthenticated: true });
       },
 
+      // Complete the MFA login step-up: flowToken + TOTP/recovery code → token pair.
+      // Returns false (keeping mfaFlowToken set) on a wrong/expired code so the
+      // form stays visible; on success the session is established immediately.
+      verifyMfa: async (code: string) => {
+        const { mfaFlowToken } = get();
+        if (!mfaFlowToken) return false;
+        set({ isLoading: true, error: null });
+        try {
+          const { data } = await client.post<ApiEnvelope<{ accessToken: string; refreshToken: string }>>('/v1/auth/mfa/verify', {
+            flowToken: mfaFlowToken,
+            code,
+          });
+          const { accessToken, refreshToken } = data.data;
+          set({
+            token: accessToken,
+            refreshToken,
+            isAuthenticated: true,
+            isLoading: false,
+            mfaFlowToken: null,
+          });
+          return true;
+        } catch (error: unknown) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'MFA verification failed',
+          });
+          return false;
+        }
+      },
+
+      cancelMfa: () => {
+        set({ mfaFlowToken: null, error: null });
+      },
+
       fetchUser: async () => {
         const { token } = get();
         if (!token) return;
         try {
-          const { data } = await client.get('/v1/auth/me');
-          set({ user: data, isAuthenticated: true });
-        } catch {
-          get().logout();
+          const { data } = await client.get<ApiEnvelope<User>>('/v1/auth/me');
+          set({ user: data.data, isAuthenticated: true, error: null });
+        } catch (error: unknown) {
+          if (isAxiosError(error) && error.response?.status === 401) {
+            // Refresh already failed in the interceptor — the session is genuinely dead
+            get().logout();
+            return;
+          }
+          // Transient failure (5xx / network): keep the session, surface a retryable error
+          set({ error: error instanceof Error ? error.message : 'Failed to load user' });
         }
       },
 
       exchangeOAuthCode: async (code: string) => {
-        const { data } = await client.post('/v1/auth/oauth/exchange', { code });
+        const { data } = await client.post<ApiEnvelope<{ accessToken: string; refreshToken: string; user: User | null }>>('/v1/auth/oauth/exchange', { code });
         if (!data.success) throw new Error(data.error?.message ?? 'OAuth exchange failed');
         const { accessToken, refreshToken, user } = data.data;
         set({

@@ -1,4 +1,4 @@
-import { Button, Empty } from 'antd';
+import { Empty } from 'antd';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 

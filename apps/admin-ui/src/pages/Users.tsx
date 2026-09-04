@@ -1,15 +1,18 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Button, Popconfirm, Tag, message } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Alert, Button, Popconfirm, Tag } from 'antd';
+import { PlusOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import { listUsers, deleteUser, type User } from '../api/users';
+import EmptyState from '../components/EmptyState';
+import { message } from '../api/feedback';
 
 export default function Users() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const actionRef = useRef<ActionType>(null);
+  const [loadError, setLoadError] = useState(false);
 
   const columns: ProColumns<User>[] = [
     {
@@ -72,38 +75,67 @@ export default function Users() {
     },
   ];
 
+  const handleRetry = () => {
+    setLoadError(false);
+    actionRef.current?.reload();
+  };
+
   return (
-    <ProTable<User>
-      headerTitle={t('users.title')}
-      actionRef={actionRef}
-      rowKey="id"
-      columns={columns}
-      request={async (params) => {
-        const { current, pageSize, name, ...rest } = params;
-        const result = await listUsers({
-          page: current,
-          pageSize,
-          search: name,
-          ...rest,
-        });
-        return {
-          data: result.data,
-          total: result.total,
-          success: true,
-        };
-      }}
-      pagination={{ defaultPageSize: 10 }}
-      search={{ labelWidth: 'auto' }}
-      toolBarRender={() => [
-        <Button
-          key="create"
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => navigate('/users/create')}
-        >
-          {t('users.create')}
-        </Button>,
-      ]}
-    />
+    <>
+      {loadError && (
+        <Alert
+          type="error"
+          showIcon
+          message={t('users.loadError')}
+          action={
+            <Button size="small" icon={<ReloadOutlined />} onClick={handleRetry} data-testid="users-load-retry">
+              {t('common.retry')}
+            </Button>
+          }
+          style={{ marginBottom: 16 }}
+          className="users-load-error"
+          data-testid="users-load-error"
+        />
+      )}
+      <ProTable<User>
+        headerTitle={t('users.title')}
+        actionRef={actionRef}
+        rowKey="id"
+        columns={columns}
+        request={async (params) => {
+          try {
+            const { current, pageSize, name, ...rest } = params;
+            const result = await listUsers({
+              page: current,
+              pageSize,
+              search: name,
+              ...rest,
+            });
+            setLoadError(false);
+            return {
+              data: result.data,
+              total: result.total,
+              success: true,
+            };
+          } catch {
+            setLoadError(true);
+            return { data: [], total: 0, success: false };
+          }
+        }}
+        pagination={{ defaultPageSize: 10 }}
+        search={{ labelWidth: 'auto' }}
+        locale={{ emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} /> }}
+        toolBarRender={() => [
+          <Button
+            key="create"
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate('/users/create')}
+          >
+            {t('users.create')}
+          </Button>,
+        ]}
+      />
+    </>
   );
 }

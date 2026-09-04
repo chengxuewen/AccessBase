@@ -12,7 +12,8 @@ interface CheckItem {
 interface AdminFormData {
   name: string;
   email: string;
-  password: string;
+  // password never enters the store: AdminStep consumes it in the create-admin
+  // API call and passes only name/email here, so it can never reach localStorage
 }
 
 interface ConfigFormData {
@@ -54,7 +55,7 @@ export const useSetupStore = create<SetupState>()(
       isLoading: false,
 
       setCurrentStep: (step) => set({ currentStep: step }),
-      setAdminData: (data) => set((state) => ({ formData: { ...state.formData, admin: data } })),
+      setAdminData: ({ name, email }) => set((state) => ({ formData: { ...state.formData, admin: { name, email } } })),
       setConfigData: (data) => set((state) => ({ formData: { ...state.formData, config: data } })),
       setSystemChecks: (checks) => set({ systemChecks: checks }),
       setError: (error) => set({ error }),
@@ -72,9 +73,16 @@ export const useSetupStore = create<SetupState>()(
     }),
     {
       name: 'accessbase-setup-store',
-      partialize: (state) => ({
-        formData: state.formData,
-      }),
+      partialize: (state) => {
+        const { admin } = state.formData;
+        const { smtpPassword: _omitSmtpPassword, ...configWithoutPassword } = state.formData.config ?? {};
+        return {
+          formData: {
+            ...(admin ? { admin: { name: admin.name, email: admin.email } } : {}),
+            ...(state.formData.config ? { config: configWithoutPassword } : {}),
+          },
+        };
+      },
     },
   ),
 );

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Button, Result, Space, Typography } from 'antd';
+import { Alert, Button, Result, Space, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -21,7 +21,7 @@ interface StepProps {
 export default function CompleteStep({ stepTitleRef }: StepProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { formData, reset, isLoading, setLoading, setError } = useSetupStore();
+  const { formData, reset, isLoading, setLoading, setError, error } = useSetupStore();
   const { setTokens, fetchUser } = useAuthStore();
 
   const completedRef = useRef(false);
@@ -46,7 +46,10 @@ export default function CompleteStep({ stepTitleRef }: StepProps) {
       }
     };
     finalize();
-  }, []);
+    // All deps are stable refs (zustand actions, react-router navigate);
+    // completedRef guard makes the effect run-once regardless of re-runs.
+    // t is included for the error-message fallback only.
+  }, [reset, setLoading, setError, setTokens, fetchUser, navigate, t]);
 
   const handleEnterDashboard = () => {
     navigate('/', { replace: true });
@@ -63,12 +66,27 @@ export default function CompleteStep({ stepTitleRef }: StepProps) {
         {t('setup.complete.title')}
       </h2>
 
+      {error && (
+        <Alert
+          type="error"
+          showIcon
+          message={error}
+          style={{ maxWidth: 480, margin: '0 auto 16px', textAlign: 'left' }}
+          data-testid="complete-error"
+        />
+      )}
       <Result
         icon={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
         title={t('setup.complete.title')}
         subTitle={t('setup.complete.subtitle')}
         extra={
-          <Button type="primary" size="large" onClick={handleEnterDashboard} loading={isLoading}>
+          <Button
+            type="primary"
+            size="large"
+            onClick={handleEnterDashboard}
+            loading={isLoading}
+            disabled={Boolean(error)}
+          >
             {t('setup.complete.enterDashboard')}
           </Button>
         }

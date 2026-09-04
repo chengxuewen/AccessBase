@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -12,12 +12,12 @@ import {
   Spin,
   Tag,
   Divider,
-  message,
 } from 'antd';
 import { EditOutlined, LogoutOutlined, CheckOutlined, CloseOutlined, LinkOutlined, GithubOutlined, GoogleOutlined } from '@ant-design/icons';
 import { getCurrentUser, updateUser } from '../api/users';
 import { changePassword, revokeOtherSessions, getOAuthLinks, unlinkOAuthProvider, type OAuthLink } from '../api/auth';
 import { useAuthStore } from '../stores/auth';
+import { message } from '../api/feedback';
 
 export default function Profile() {
   const { t } = useTranslation();
@@ -43,18 +43,17 @@ export default function Profile() {
       .finally(() => setLoading(false));
   }, [t, nameForm]);
 
-  const loadLinks = () => {
+  const loadLinks = useCallback(() => {
     setLinksLoading(true);
     getOAuthLinks()
       .then(setLinks)
       .catch(() => setLinksError(t('oauth.linksLoadError')))
       .finally(() => setLinksLoading(false));
-  };
+  }, [t]);
 
   useEffect(() => {
     loadLinks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadLinks]);
 
   const handleUnlink = async (provider: string) => {
     setLinksError(null);
@@ -86,7 +85,12 @@ export default function Profile() {
   const handleChangePassword = async (values: { oldPassword: string; newPassword: string }) => {
     try {
       setChangingPwd(true);
-      await changePassword({ oldPassword: values.oldPassword, newPassword: values.newPassword });
+      const pair = await changePassword({
+        oldPassword: values.oldPassword,
+        newPassword: values.newPassword,
+      });
+      // Server revoked all sessions and issued this client a fresh pair (routes/auth.ts:436)
+      useAuthStore.getState().setTokens(pair.accessToken, pair.refreshToken);
       setPwdError(null);
       pwdForm.resetFields();
     } catch (err: unknown) {

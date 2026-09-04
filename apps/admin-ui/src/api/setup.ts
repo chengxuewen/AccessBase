@@ -1,4 +1,14 @@
 import client from './client';
+import type { ApiEnvelope } from './types';
+
+interface SetupStatus {
+  isInitialized: boolean;
+  adminExists: boolean;
+  configComplete: boolean;
+}
+interface ChecksPayload {
+  checks?: { name: string; status: string; message?: string }[];
+}
 
 interface CheckItem {
   name: string;
@@ -27,7 +37,7 @@ interface ConfigFormData {
 /** Check if the system needs initial setup. Never rejects — network failure → ok:false so guards can retry instead of fail-open. */
 export async function checkSetupStatus(): Promise<{ needsSetup: boolean; ok: boolean }> {
   try {
-    const { data } = await client.get('/v1/setup/status');
+    const { data } = await client.get<ApiEnvelope<SetupStatus>>('/v1/setup/status');
     // Backend returns { success, data: { isInitialized, adminExists, configComplete } }
     return { needsSetup: !data.data?.isInitialized, ok: true };
   } catch {
@@ -37,7 +47,7 @@ export async function checkSetupStatus(): Promise<{ needsSetup: boolean; ok: boo
 
 /** Run system environment checks */
 export async function runSystemChecks(): Promise<CheckItem[]> {
-  const { data } = await client.get('/v1/setup/checks');
+  const { data } = await client.get<ApiEnvelope<ChecksPayload>>('/v1/setup/checks');
   // Backend returns { success, data: { checks: [{ name, status: 'pass'|'fail', message }] } }
   // Frontend expects CheckItem[] with status: 'success'|'error'
   const raw = data.data?.checks ?? [];
@@ -64,8 +74,8 @@ export async function completeSetup(): Promise<{
   accessToken: string;
   refreshToken: string;
 }> {
-  const { data } = await client.post('/v1/setup/complete');
+  const { data } = await client.post<ApiEnvelope<{ accessToken: string; refreshToken: string }>>('/v1/setup/complete');
   // Backend wraps tokens in the standard envelope { success, data: { accessToken, refreshToken } } — unwrap
-  const payload = data.data ?? {};
+  const payload = data.data;
   return { accessToken: payload.accessToken, refreshToken: payload.refreshToken };
 }

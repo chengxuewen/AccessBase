@@ -1,4 +1,5 @@
 import client from './client';
+import type { ApiEnvelope, PaginatedEnvelope } from './types';
 
 /** User entity — matches @accessbase/types User; roles/roleIds optional from detail views */
 export interface User {
@@ -31,19 +32,19 @@ export interface ListUsersParams {
 
 /** List users (paginated) */
 export async function listUsers(params: ListUsersParams = {}): Promise<PaginatedUsers> {
-  const { data } = await client.get('/v1/users', { params });
+  const { data } = await client.get<PaginatedEnvelope<User>>('/v1/users', { params });
   return { data: data.data, total: data.total };
 }
 
 /** Get current user profile */
 export async function getCurrentUser(): Promise<User> {
-  const { data } = await client.get('/v1/users/me');
+  const { data } = await client.get<ApiEnvelope<User>>('/v1/users/me');
   return data.data;
 }
 
 /** Get user by ID */
 export async function getUser(id: string): Promise<User> {
-  const { data } = await client.get(`/v1/users/${id}`);
+  const { data } = await client.get<ApiEnvelope<User>>(`/v1/users/${id}`);
   return data.data;
 }
 
@@ -56,7 +57,7 @@ export async function createUser(payload: {
   isActive?: boolean;
   roleIds?: string[];
 }): Promise<User> {
-  const { data } = await client.post('/v1/users', payload);
+  const { data } = await client.post<ApiEnvelope<User>>('/v1/users', payload);
   return data.data;
 }
 
@@ -65,7 +66,7 @@ export async function updateUser(
   id: string,
   payload: { name?: string; avatarUrl?: string },
 ): Promise<User> {
-  const { data } = await client.put(`/v1/users/${id}`, payload);
+  const { data } = await client.put<ApiEnvelope<User>>(`/v1/users/${id}`, payload);
   return data.data;
 }
 
@@ -74,7 +75,7 @@ export async function changeUserStatus(
   id: string,
   status: 'active' | 'suspended' | 'pending',
 ): Promise<User> {
-  const { data } = await client.patch(`/v1/users/${id}/status`, { status });
+  const { data } = await client.patch<ApiEnvelope<User>>(`/v1/users/${id}/status`, { status });
   return data.data;
 }
 

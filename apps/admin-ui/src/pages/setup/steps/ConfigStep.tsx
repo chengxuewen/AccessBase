@@ -1,7 +1,8 @@
-import { Form, Input, InputNumber, Button, Collapse, Grid, notification } from 'antd';
+import { Form, Input, InputNumber, Button, Collapse, Grid } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useSetupStore } from '../../../stores/setup';
 import { saveConfig } from '../../../api/setup';
+import { notification } from '../../../api/feedback';
 
 interface ConfigFormData {
   siteName: string;

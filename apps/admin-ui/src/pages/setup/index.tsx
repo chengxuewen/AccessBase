@@ -34,7 +34,7 @@ export default function SetupWizard() {
   // (stale localStorage may have a higher currentStep from a previous session)
   useEffect(() => {
     setCurrentStep(0);
-  }, []);
+  }, [setCurrentStep]);
 
   useEffect(() => {
     stepTitleRef.current?.focus();

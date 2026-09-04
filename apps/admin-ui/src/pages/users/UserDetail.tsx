@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, Descriptions, Popconfirm, Space, Spin, Switch, Tag, message } from 'antd';
+import { Button, Card, Descriptions, Popconfirm, Space, Spin, Switch, Tag } from 'antd';
 import { deleteUser, changeUserStatus, getUser, type User } from '../../api/users';
+import { message } from '../../api/feedback';
 
 export default function UserDetail() {
   const { t } = useTranslation();

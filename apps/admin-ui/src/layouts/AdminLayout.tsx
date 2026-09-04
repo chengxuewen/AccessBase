@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ProLayout } from '@ant-design/pro-components';
@@ -11,56 +11,56 @@ import {
   FileSearchOutlined,
   SolutionOutlined,
 } from '@ant-design/icons';
-import { Dropdown } from 'antd';
+import { Alert, Button, Dropdown } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import Breadcrumbs from '../components/Breadcrumbs';
+import { loadSiteSettings, SITE_SETTINGS_EVENT } from '../siteSettings';
 
-const menuRoutes = {
-  path: '/',
-  routes: [
-    {
-      path: '/dashboard',
-      name: 'menu.dashboard',
-      icon: <DashboardOutlined />,
-    },
-    {
-      path: '/users',
-      name: 'menu.users',
-      icon: <UserOutlined />,
-    },
-    {
-      path: '/roles',
-      name: 'menu.roles',
-      icon: <SafetyOutlined />,
-    },
-    {
-      path: '/audit',
-      name: 'menu.audit',
-      icon: <FileSearchOutlined />,
-    },
-{
-path: '/profile',
-name: 'menu.profile',
-icon: <SolutionOutlined />,
-    },
-    {
-      path: '/settings',
-      name: 'menu.settings',
-      icon: <SettingOutlined />,
-    },
-],
-};
 
 export default function AdminLayout() {
   const { t, i18n } = useTranslation();
+  // C7 fix: ProLayout renders route `name` verbatim — labels must go through i18next
+  // (raw keys like "menu.dashboard" used to show in the sidebar; confirmed in real-browser snapshot).
+  const menuRoutes = useMemo(
+    () => ({
+      path: '/',
+      routes: [
+        { path: '/dashboard', name: t('menu.dashboard'), icon: <DashboardOutlined /> },
+        { path: '/users', name: t('menu.users'), icon: <UserOutlined /> },
+        { path: '/roles', name: t('menu.roles'), icon: <SafetyOutlined /> },
+        { path: '/audit', name: t('menu.audit'), icon: <FileSearchOutlined /> },
+        { path: '/profile', name: t('menu.profile'), icon: <SolutionOutlined /> },
+        { path: '/settings', name: t('menu.settings'), icon: <SettingOutlined /> },
+      ],
+    }),
+    [t],
+  );
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, error, fetchUser, logoutWithServer } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [site, setSite] = useState(loadSiteSettings);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  useEffect(() => {
+    const refresh = () => setSite(loadSiteSettings());
+    window.addEventListener(SITE_SETTINGS_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener(SITE_SETTINGS_EVENT, refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logoutWithServer();
+    } finally {
+      setLoggingOut(false);
+      navigate('/login');
+    }
   };
 
   const toggleLanguage = () => {
@@ -70,8 +70,8 @@ export default function AdminLayout() {
 
   return (
     <ProLayout
-      title="AccessBase"
-      logo={null}
+      title={site.siteName || 'AccessBase'}
+      logo={site.logoUrl || null}
       fixSiderbar
       collapsed={collapsed}
       onCollapse={setCollapsed}
@@ -103,7 +103,7 @@ export default function AdminLayout() {
         ),
       }}
       actionsRender={() => [
-        <SettingOutlined key="settings" onClick={toggleLanguage} />,
+        <SettingOutlined key="settings" title={t('common.language')} aria-label={t('common.language')} onClick={toggleLanguage} />,
         <LogoutOutlined key="logout" onClick={handleLogout} />,
       ]}
       menuFooterRender={(props) => {
@@ -115,6 +115,20 @@ export default function AdminLayout() {
         );
       }}
       >
+      {error && (
+        <Alert
+          type="error"
+          showIcon
+          message={error}
+          style={{ marginBottom: 16 }}
+          action={
+            <Button size="small" onClick={() => void fetchUser()}>
+              {t('common.retry')}
+            </Button>
+          }
+        />
+      )}
+
       <Breadcrumbs />
       <Outlet />
     </ProLayout>

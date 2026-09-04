@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, Form, Input, Select, message } from 'antd';
+import { Button, Card, Form, Input, Select } from 'antd';
 import { getUser, updateUser, type User } from '../../api/users';
 import { listRoles } from '../../api/roles';
+import { message } from '../../api/feedback';
 
 export default function UserEdit() {
   const { t } = useTranslation();

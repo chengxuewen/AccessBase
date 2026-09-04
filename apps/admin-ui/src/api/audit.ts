@@ -1,4 +1,5 @@
 import client from './client';
+import type { PaginatedEnvelope } from './types';
 
 /** Audit log entry — matches GET /api/v1/audit-logs response */
 export interface AuditLog {
@@ -27,6 +28,6 @@ export interface PaginatedAuditLogs {
 
 /** List audit logs (paginated, filterable) */
 export async function listAuditLogs(params: ListAuditParams = {}): Promise<PaginatedAuditLogs> {
-  const { data } = await client.get('/v1/audit-logs', { params });
+  const { data } = await client.get<PaginatedEnvelope<AuditLog>>('/v1/audit-logs', { params });
   return { data: data.data, total: data.total };
 }

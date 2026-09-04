@@ -1,7 +1,8 @@
-import { Form, Input, Button, Grid, notification } from 'antd';
+import { Form, Input, Button, Grid } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useSetupStore } from '../../../stores/setup';
 import { createAdmin } from '../../../api/setup';
+import { notification } from '../../../api/feedback';
 
 interface AdminFormData {
   name: string;
@@ -27,7 +28,9 @@ export default function AdminStep({ next, prev, stepTitleRef }: StepProps) {
     setError(null);
     try {
       await createAdmin({ name: values.name, email: values.email, password: values.password });
-      setAdminData({ name: values.name, email: values.email, password: values.password });
+      // password deliberately not stored: the API call above consumed it;
+      // keeping it out of the store means it can never reach localStorage
+      setAdminData({ name: values.name, email: values.email });
       next();
     } catch (err: unknown) {
       const error = err as {

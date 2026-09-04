@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Form, Input, Select, Switch, message } from 'antd';
-import { createUser, type User } from '../../api/users';
+import { Button, Card, Form, Input, Select, Switch } from 'antd';
+import { createUser } from '../../api/users';
 import { listRoles } from '../../api/roles';
+import { message } from '../../api/feedback';
 import { useEffect } from 'react';
 
-// ponytail: isActive/roleIds are sent for forward-compat — backend POST /users
-// currently ignores both; wire UserManager role assignment when it exists.
+// isActive/roleIds are accepted by POST /users (T2-2): isActive defaults active,
+// roleIds are tenant-validated then assigned via RoleManager.setUserRoles.
 export default function UserCreate() {
   const { t } = useTranslation();
   const navigate = useNavigate();

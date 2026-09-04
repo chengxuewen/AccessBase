@@ -1,4 +1,5 @@
 import client from './client';
+import type { ApiEnvelope } from './types';
 import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 
 export interface ChangePasswordPayload {
@@ -6,9 +7,20 @@ export interface ChangePasswordPayload {
   newPassword: string;
 }
 
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
+
 /** Change password — returns fresh token pair (all other sessions were revoked) */
-export async function changePassword(payload: ChangePasswordPayload): Promise<void> {
-  await client.post('/v1/auth/change-password', payload);
+export async function changePassword(payload: ChangePasswordPayload): Promise<TokenPair> {
+  const { data } = await client.post<ApiEnvelope<TokenPair>>('/v1/auth/change-password', payload);
+  // Server envelope (routes/auth.ts:436): { success, data: { accessToken, refreshToken, expiresIn } }
+  const pair: TokenPair | undefined = data?.data;
+  if (typeof pair?.accessToken !== 'string' || typeof pair?.refreshToken !== 'string') {
+    throw new Error('change-password response missing token pair');
+  }
+  return { accessToken: pair.accessToken, refreshToken: pair.refreshToken };
 }
 
 /** Revoke all other sessions, keeping the one tied to the current refresh token */
@@ -23,7 +35,7 @@ export interface OAuthLink {
 
 /** List OAuth providers linked to the current user */
 export async function getOAuthLinks(): Promise<OAuthLink[]> {
-  const { data } = await client.get('/v1/auth/oauth/links');
+  const { data } = await client.get<ApiEnvelope<OAuthLink[]>>('/v1/auth/oauth/links');
   return data.data;
 }
 
@@ -38,11 +50,15 @@ export interface SafeSessionInfo {
   ip: string;
   createdAt: string;
   expiresAt: string;
+  /** true = this is the session issuing the request (self-revocation guard) */
+  current: boolean;
 }
 
-/** List active sessions for the current user */
-export async function getSessions(): Promise<SafeSessionInfo[]> {
-  const { data } = await client.get('/v1/auth/sessions');
+/** List active sessions for the current user; refreshToken marks the caller's own session as current */
+export async function getSessions(refreshToken?: string): Promise<SafeSessionInfo[]> {
+  const { data } = await client.get<ApiEnvelope<SafeSessionInfo[]>>('/v1/auth/sessions', {
+    params: refreshToken ? { refreshToken } : undefined,
+  });
   return data.data;
 }
 
@@ -60,7 +76,7 @@ export interface PasskeyCredential {
 
 /** List registered passkeys for the current user */
 export async function getPasskeys(): Promise<PasskeyCredential[]> {
-  const { data } = await client.get('/v1/auth/webauthn/credentials');
+  const { data } = await client.get<ApiEnvelope<PasskeyCredential[]>>('/v1/auth/webauthn/credentials');
   return data.data;
 }
 
@@ -76,7 +92,7 @@ export interface WebAuthnOptionsPayload {
 
 /** Get WebAuthn registration options + single-use challenge token (auth flow) */
 export async function getWebAuthnRegisterOptions(): Promise<WebAuthnOptionsPayload> {
-  const { data } = await client.post('/v1/auth/webauthn/register/options', {});
+  const { data } = await client.post<ApiEnvelope<WebAuthnOptionsPayload>>('/v1/auth/webauthn/register/options', {});
   return data.data;
 }
 
@@ -87,7 +103,7 @@ export async function verifyWebAuthnRegistration(flowToken: string, response: un
 
 /** Get discoverable (usernameless) login options + challenge token */
 export async function getWebAuthnLoginOptions(): Promise<WebAuthnOptionsPayload> {
-  const { data } = await client.post('/v1/auth/webauthn/login/options', {});
+  const { data } = await client.post<ApiEnvelope<WebAuthnOptionsPayload>>('/v1/auth/webauthn/login/options', {});
   return data.data;
 }
 
@@ -96,7 +112,6 @@ export async function verifyWebAuthnLogin(
   flowToken: string,
   response: unknown,
 ): Promise<{ accessToken: string; refreshToken: string; user: unknown }> {
-  const { data } = await client.post('/v1/auth/webauthn/login/verify', { flowToken, response });
-  return data.data;
+  const { data } = await client.post<ApiEnvelope<{ accessToken: string; refreshToken: string; user: unknown }>>('/v1/auth/webauthn/login/verify', { flowToken, response });
   return data.data;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -7,6 +7,7 @@ import {
   Form,
   Input,
   List,
+  Modal,
   Popconfirm,
   Space,
   Spin,
@@ -32,19 +33,9 @@ import {
 } from '../api/auth';
 import { startRegistration } from '@simplewebauthn/browser';
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
+import { useAuthStore } from '../stores/auth';
+import { loadSiteSettings, saveSiteSettings } from '../siteSettings';
 
-const SITE_SETTINGS_KEY = 'accessbase.site-settings';
-
-/** ponytail: General tab persists to localStorage — real settings API is Task 5+ scope */
-function loadSiteSettings(): { siteName: string; logoUrl: string } {
-  try {
-    const raw = localStorage.getItem(SITE_SETTINGS_KEY);
-    if (raw) return JSON.parse(raw) as { siteName: string; logoUrl: string };
-  } catch {
-    // corrupted storage → defaults
-  }
-  return { siteName: '', logoUrl: '' };
-}
 
 export default function Settings() {
   const { t } = useTranslation();
@@ -53,12 +44,14 @@ export default function Settings() {
   const [siteForm] = Form.useForm();
   const [siteSaved, setSiteSaved] = useState(false);
 
-  const handleSaveSite = () => {
+  const handleSaveSite = async () => {
+    try {
+      await siteForm.validateFields();
+    } catch {
+      return; // field-level errors are rendered inline by antd
+    }
     const values = siteForm.getFieldsValue() as { siteName?: string; logoUrl?: string };
-    localStorage.setItem(
-      SITE_SETTINGS_KEY,
-      JSON.stringify({ siteName: values.siteName ?? '', logoUrl: values.logoUrl ?? '' }),
-    );
+    saveSiteSettings({ siteName: values.siteName ?? '', logoUrl: values.logoUrl ?? '' });
     setSiteSaved(true);
   };
 
@@ -67,16 +60,17 @@ export default function Settings() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
 
-  const loadSessions = () => {
+  const loadSessions = useCallback(() => {
     setSessionsLoading(true);
     setSessionsError(null);
-    getSessions()
+    // our refresh token lets the server flag the caller's own session current:true
+    getSessions(useAuthStore.getState().refreshToken ?? undefined)
       .then(setSessions)
       .catch(() => setSessionsError(t('settings.sessionsLoadError')))
       .finally(() => setSessionsLoading(false));
-  };
+  }, [t]);
 
-  const handleRevoke = async (id: string) => {
+  const doRevoke = async (id: string) => {
     setSessionsError(null);
     try {
       await revokeSession(id);
@@ -86,20 +80,36 @@ export default function Settings() {
     }
   };
 
+  const handleRevoke = (item: SafeSessionInfo) => {
+    if (item.current) {
+      // unreachable via UI (current rows render a Tag, no button); hard guard as defense-in-depth
+      Modal.confirm({
+        title: t('settings.revokeCurrentTitle'),
+        content: t('settings.revokeCurrentWarning'),
+        okText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        okButtonProps: { danger: true },
+        onOk: () => void doRevoke(item.id),
+      });
+      return;
+    }
+    void doRevoke(item.id);
+  };
+
   // --- Security tab: passkeys ---
   const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
   const [passkeysLoading, setPasskeysLoading] = useState(true);
   const [passkeysError, setPasskeysError] = useState<string | null>(null);
   const [registering, setRegistering] = useState(false);
 
-  const loadPasskeys = () => {
+  const loadPasskeys = useCallback(() => {
     setPasskeysLoading(true);
     setPasskeysError(null);
     getPasskeys()
       .then(setPasskeys)
       .catch(() => setPasskeysError(t('settings.passkeysLoadError')))
       .finally(() => setPasskeysLoading(false));
-  };
+  }, [t]);
 
   const handleRegisterPasskey = async () => {
     setPasskeysError(null);
@@ -132,8 +142,7 @@ export default function Settings() {
     loadSessions();
     loadPasskeys();
     siteForm.setFieldsValue(loadSiteSettings());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadSessions, loadPasskeys, siteForm]);
 
   const sessionsTab = (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -150,19 +159,27 @@ export default function Settings() {
               renderItem={(item) => (
                 <List.Item
                   data-testid={`session-${item.id}`}
-                  actions={[
-                    <Popconfirm
-                      key="revoke"
-                      title={t('settings.revokeConfirm')}
-                      onConfirm={() => handleRevoke(item.id)}
-                      okText={t('common.confirm')}
-                      cancelText={t('common.cancel')}
-                    >
-                      <Button danger size="small" data-testid={`revoke-session-${item.id}`}>
-                        {t('settings.revoke')}
-                      </Button>
-                    </Popconfirm>,
-                  ]}
+                  actions={
+                    item.current
+                      ? [
+                          <Tag key="current" color="blue" data-testid={`session-current-${item.id}`}>
+                            {t('settings.currentSession')}
+                          </Tag>,
+                        ]
+                      : [
+                          <Popconfirm
+                            key="revoke"
+                            title={t('settings.revokeConfirm')}
+                            onConfirm={() => handleRevoke(item)}
+                            okText={t('common.confirm')}
+                            cancelText={t('common.cancel')}
+                          >
+                            <Button danger size="small" data-testid={`revoke-session-${item.id}`}>
+                              {t('settings.revoke')}
+                            </Button>
+                          </Popconfirm>,
+                        ]
+                  }
                 >
                   <List.Item.Meta
                     title={item.userAgent || t('settings.unknownDevice')}
@@ -241,11 +258,15 @@ export default function Settings() {
       {siteSaved && (
         <Alert type="success" showIcon message={t('settings.saveSuccess')} style={{ marginBottom: 16 }} data-testid="site-save-success" />
       )}
-      <Form form={siteForm} layout="vertical">
+      <Form form={siteForm} layout="vertical" onValuesChange={() => setSiteSaved(false)}>
         <Form.Item name="siteName" label={t('settings.siteName')}>
           <Input placeholder={t('settings.siteNamePlaceholder')} />
         </Form.Item>
-        <Form.Item name="logoUrl" label={t('settings.logoUrl')}>
+        <Form.Item
+          name="logoUrl"
+          label={t('settings.logoUrl')}
+          rules={[{ type: 'url', message: t('settings.logoUrlInvalid') }]}
+        >
           <Input placeholder="https://…" />
         </Form.Item>
         <Button type="primary" htmlType="submit" onClick={handleSaveSite} data-testid="save-site-settings">

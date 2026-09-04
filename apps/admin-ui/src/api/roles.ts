@@ -1,12 +1,16 @@
 import client from './client';
+import type { ApiEnvelope, PaginatedEnvelope } from './types';
 
-/** Role entity — matches roles route response */
+/** Role entity — server wire shape (RoleManager.mapToRole): the detail
+ * (GET /roles/:id) carries full `permissions` objects; there is no
+ * `permissionIds` field on the wire. */
 export interface Role {
   id: string;
   name: string;
   description?: string;
   parentId?: string;
-  permissionIds?: string[];
+  tenantId?: string;
+  permissions?: Permission[];
   createdAt: string;
   updatedAt: string;
 }
@@ -33,13 +37,13 @@ export interface ListRolesParams {
 
 /** List roles (paginated) */
 export async function listRoles(params: ListRolesParams = {}): Promise<PaginatedRoles> {
-  const { data } = await client.get('/v1/roles', { params });
+  const { data } = await client.get<PaginatedEnvelope<Role>>('/v1/roles', { params });
   return { data: data.data, total: data.total };
 }
 
 /** Get role by ID */
 export async function getRole(id: string): Promise<Role> {
-  const { data } = await client.get(`/v1/roles/${id}`);
+  const { data } = await client.get<ApiEnvelope<Role>>(`/v1/roles/${id}`);
   return data.data;
 }
 
@@ -50,7 +54,7 @@ export async function createRole(payload: {
   parentId?: string;
   permissionIds?: string[];
 }): Promise<Role> {
-  const { data } = await client.post('/v1/roles', payload);
+  const { data } = await client.post<ApiEnvelope<Role>>('/v1/roles', payload);
   return data.data;
 }
 
@@ -59,7 +63,7 @@ export async function updateRole(
   id: string,
   payload: { name?: string; description?: string; permissionIds?: string[] },
 ): Promise<Role> {
-  const { data } = await client.put(`/v1/roles/${id}`, payload);
+  const { data } = await client.put<ApiEnvelope<Role>>(`/v1/roles/${id}`, payload);
   return data.data;
 }
 
@@ -73,6 +77,6 @@ export async function listPermissions(params: {
   page?: number;
   pageSize?: number;
 } = {}): Promise<{ data: Permission[]; total: number }> {
-  const { data } = await client.get('/v1/permissions', { params });
+  const { data } = await client.get<PaginatedEnvelope<Permission>>('/v1/permissions', { params });
   return { data: data.data, total: data.total };
 }

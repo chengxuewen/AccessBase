@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
+import type { ApiEnvelope } from './types';
 
 const client = axios.create({
   baseURL: '/api',
@@ -20,6 +21,26 @@ client.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
+
+// Single-flight: concurrent 401s share one refresh instead of racing to rotate
+// the same token (rotation replay would make all but the first fail).
+let refreshInFlight: Promise<TokenPair> | null = null;
+
+async function requestTokenPair(refreshToken: string): Promise<TokenPair> {
+  const { data } = await axios.post<ApiEnvelope<TokenPair>>('/api/v1/auth/refresh', { refreshToken });
+  // Server envelope (routes/auth.ts:374-377): { success, data: { accessToken, refreshToken, expiresIn } }
+  const pair: TokenPair | undefined = data?.data;
+  if (typeof pair?.accessToken !== 'string' || typeof pair?.refreshToken !== 'string') {
+    throw new Error('Refresh response missing token pair');
+  }
+  useAuthStore.getState().setTokens(pair.accessToken, pair.refreshToken);
+  return pair;
+}
+
 client.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -28,11 +49,11 @@ client.interceptors.response.use(
       if (refreshToken && !error.config._retry) {
         error.config._retry = true;
         try {
-          const { data } = await axios.post('/api/v1/auth/refresh', {
-            refreshToken,
+          refreshInFlight ??= requestTokenPair(refreshToken).finally(() => {
+            refreshInFlight = null;
           });
-          useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
-          error.config.headers.Authorization = `Bearer ${data.accessToken}`;
+          const pair = await refreshInFlight;
+          error.config.headers.Authorization = `Bearer ${pair.accessToken}`;
           return client(error.config);
         } catch {
           logout();

@@ -15,14 +15,17 @@ import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/brow
 export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { login, isLoading, exchangeOAuthCode, fetchUser } = useAuthStore();
+  const { login, isLoading, exchangeOAuthCode, fetchUser, mfaFlowToken, verifyMfa, cancelMfa } =
+    useAuthStore();
   const [form] = Form.useForm();
+  const [mfaForm] = Form.useForm();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loginError, setLoginError] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [oauthBusy, setOauthBusy] = useState(false);
   const [passkeyError, setPasskeyError] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const [mfaError, setMfaError] = useState(false);
 
   useEffect(() => {
     const code = searchParams.get('oauthCode');
@@ -41,8 +44,7 @@ export default function Login() {
         .catch(() => setOauthError('exchange_failed'))
         .finally(() => setOauthBusy(false));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams, setSearchParams, exchangeOAuthCode, fetchUser, navigate]);
 
   const handlePasskeyLogin = async () => {
     setPasskeyError(false);
@@ -63,15 +65,84 @@ export default function Login() {
     }
   };
 
+  const handleMfaSubmit = async (values: { code: string }) => {
+    const ok = await verifyMfa(values.code);
+    if (ok) {
+      navigate('/', { replace: true });
+    } else {
+      setMfaError(true);
+    }
+  };
+
+  const handleCancelMfa = () => {
+    cancelMfa();
+    setMfaError(false);
+    mfaForm.resetFields();
+  };
+
   const handleSubmit = async (values: { email: string; password: string }) => {
     try {
-      await login(values.email, values.password);
+      const sessionEstablished = await login(values.email, values.password);
       setLoginError(false);
-      navigate('/');
+      if (sessionEstablished) {
+        navigate('/');
+      }
     } catch {
       setLoginError(true);
     }
   };
+
+  if (mfaFlowToken) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          background: '#f0f2f5',
+        }}
+      >
+        <Card
+          title={t('login.mfaTitle')}
+          style={{ width: 400 }}
+          styles={{ header: { textAlign: 'center' } }}
+        >
+          {mfaError && (
+            <Alert
+              type="error"
+              showIcon
+              message={t('login.mfaError')}
+              style={{ marginBottom: 16 }}
+              data-testid="mfa-error"
+            />
+          )}
+          <Form form={mfaForm} layout="vertical" onFinish={handleMfaSubmit}>
+            <Form.Item
+              name="code"
+              rules={[{ required: true, message: t('login.mfaCodeRequired') }]}
+            >
+              <Input
+                prefix={<KeyOutlined />}
+                placeholder={t('login.mfaCodePlaceholder')}
+                size="large"
+                autoFocus
+                data-testid="mfa-code-input"
+              />
+            </Form.Item>
+            <Form.Item>
+              <Button type="primary" htmlType="submit" loading={isLoading} block size="large">
+                {t('login.mfaSubmit')}
+              </Button>
+            </Form.Item>
+          </Form>
+          <Button block size="large" onClick={handleCancelMfa}>
+            {t('login.mfaCancel')}
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div

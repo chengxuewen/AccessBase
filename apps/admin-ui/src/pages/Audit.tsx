@@ -61,7 +61,8 @@ export default function Audit() {
   const handleExport = () => {
     // ponytail: client-side export of the CURRENT PAGE only — server-side full export when volume demands it
     const header = ['id', 'action', 'actor', 'resource', 'ipAddress', 'status', 'createdAt'];
-    const escape = (v: string) => `"${v.replaceAll('"', '""')}"`;
+    // CSV formula injection guard (OWASP): cells starting with = + - @ get a leading ' inside the quoting
+    const escape = (v: string) => `"${((/^[=+\-@]/.test(v) ? "'" : '') + v).replaceAll('"', '""')}"`;
     const csv = [
       header.join(','),
       ...currentRows.map((r) =>

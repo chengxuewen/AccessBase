@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Col, Row, Statistic, List, Tag, Button, Space, Alert, Spin } from 'antd';
 import {
@@ -44,7 +44,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     setError(null);
     client
@@ -52,12 +52,11 @@ export default function Dashboard() {
       .then((res) => setStats(res.data?.data ?? null))
       .catch(() => setError(t('dashboard.loadError')))
       .finally(() => setLoading(false));
-  };
+  }, [t]);
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [load]);
 
   const cards = [
     {
