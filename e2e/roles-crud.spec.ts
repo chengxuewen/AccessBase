@@ -4,7 +4,7 @@ interface RoleFixture {
   id: string;
   name: string;
   description: string;
-  permissionIds: string[];
+  permissions: PermissionFixture[];
   createdAt: string;
   updatedAt: string;
 }
@@ -17,12 +17,18 @@ interface PermissionFixture {
   createdAt?: string;
 }
 
+const MOCK_PERMISSIONS: PermissionFixture[] = [
+  { id: 'perm-1', resource: 'users', action: 'read', description: 'Read users' },
+  { id: 'perm-2', resource: 'users', action: 'write', description: 'Write users' },
+];
+
+// Server truth (RoleManager.mapToRole): wire roles carry `permissions` objects, never permissionIds
 const MOCK_ROLES: RoleFixture[] = [
   {
     id: 'role-1',
     name: 'Admin',
     description: 'Full access',
-    permissionIds: ['perm-1'],
+    permissions: MOCK_PERMISSIONS.filter((p) => p.id === 'perm-1'),
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
   },
@@ -30,15 +36,10 @@ const MOCK_ROLES: RoleFixture[] = [
     id: 'role-2',
     name: 'Viewer',
     description: 'Read-only access',
-    permissionIds: [],
+    permissions: [],
     createdAt: '2026-01-02T00:00:00Z',
     updatedAt: '2026-01-02T00:00:00Z',
   },
-];
-
-const MOCK_PERMISSIONS: PermissionFixture[] = [
-  { id: 'perm-1', resource: 'users', action: 'read', description: 'Read users' },
-  { id: 'perm-2', resource: 'users', action: 'write', description: 'Write users' },
 ];
 
 const nowIso = () => new Date().toISOString();
@@ -64,7 +65,7 @@ async function mockCommonApis(page: Page): Promise<void> {
           accessToken: 'test-token',
           refreshToken: 'test-refresh',
           expiresIn: 900,
-          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: ['admin'] },
+          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
         },
       }),
     });
@@ -141,7 +142,7 @@ test.describe('Roles CRUD', () => {
           id: `role-${Date.now()}`,
           name: body.name,
           description: body.description ?? '',
-          permissionIds: body.permissionIds ?? [],
+          permissions: MOCK_PERMISSIONS.filter((p) => (body.permissionIds ?? []).includes(p.id)),
           createdAt: nowIso(),
           updatedAt: nowIso(),
         };
@@ -163,7 +164,10 @@ test.describe('Roles CRUD', () => {
         }
         if (body.name !== undefined) role.name = body.name;
         if (body.description !== undefined) role.description = body.description;
-        if (body.permissionIds !== undefined) role.permissionIds = body.permissionIds;
+        if (body.permissionIds !== undefined) {
+          const ids = body.permissionIds;
+          role.permissions = MOCK_PERMISSIONS.filter((p) => ids.includes(p.id));
+        }
         role.updatedAt = nowIso();
         await route.fulfill({
           status: 200,
@@ -255,5 +259,76 @@ test.describe('Roles CRUD', () => {
 
     await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
     await expect(page.locator('td:has-text("Viewer")')).toBeVisible();
+  });
+
+  test('R8: edit role hydrates from GET /roles/:id detail and saves its permission ids', async ({ page }) => {
+
+    // Server-faithful mocks. RoleManager.mapToRole returns `permissions: Permission[]`
+    // — there is NO `permissionIds` field anywhere on the wire, and list rows carry no
+    // permission info at all. Detail (GET /roles/:id) is the only permission source.
+    const detailPermissions = [{ id: 'perm-2', resource: 'users', action: 'write', description: 'Write users' }];
+    const detailRole = {
+      id: 'role-1',
+      name: 'Admin',
+      description: 'Full access',
+      tenantId: 't1',
+      permissions: detailPermissions,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+
+    let detailCalled = false;
+    let putBody: Record<string, unknown> | undefined;
+    await page.route('**/api/v1/roles/role-1', async (route) => {
+      const method = route.request().method();
+      if (method === 'GET') {
+        detailCalled = true;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: detailRole }),
+        });
+        return;
+      }
+      if (method === 'PUT') {
+        putBody = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: { ...detailRole, ...(putBody as object) } }),
+        });
+        return;
+      }
+      await route.fallback();
+    });
+
+    // Override the beforeEach list mock: rows WITHOUT permission fields (server truth)
+    await page.route('**/api/v1/roles**', async (route) => {
+      const req = route.request();
+      const bare = { id: 'role-1', name: 'Admin', description: 'Full access', createdAt: nowIso(), updatedAt: nowIso() };
+      if (req.method() === 'GET' && new URL(req.url()).pathname === '/api/v1/roles') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: [bare], total: 1 }),
+        });
+        return;
+      }
+      await route.fallback();
+    });
+
+    await page.goto('/roles');
+    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+
+    await page.locator('tbody tr').first().locator('a:has-text("Edit"), a:has-text("编辑")').click();
+    await expect(page.locator('.ant-modal input#name')).toHaveValue('Admin');
+
+    // Correct behavior: the modal must be hydrated from the DETAIL endpoint, not the list row
+    await expect.poll(() => detailCalled, { timeout: 5000 }).toBe(true);
+
+    await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")').first().click();
+    await expect.poll(() => putBody, { timeout: 10000 }).toBeDefined();
+    // Saved payload must retain the detail's permissions (current bug sends [] → wipes them)
+    expect(putBody?.permissionIds).toEqual(['perm-2']);
   });
 });

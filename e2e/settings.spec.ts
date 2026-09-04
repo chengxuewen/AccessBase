@@ -5,11 +5,12 @@ const MOCK_ME = {
   email: 'admin@accessbase.local',
   name: 'Administrator',
   isActive: true,
+  roles: [],
 };
 
 const MOCK_SESSIONS = [
-  { id: 's-1', userAgent: 'Chrome/macOS', ip: '10.0.0.2', createdAt: '2026-08-30T10:00:00Z', expiresAt: '2026-09-06T10:00:00Z' },
-  { id: 's-2', userAgent: 'Firefox/Linux', ip: '10.0.0.3', createdAt: '2026-08-31T08:00:00Z', expiresAt: '2026-09-07T08:00:00Z' },
+  { id: 's-1', userAgent: 'Chrome/macOS', ip: '10.0.0.2', createdAt: '2026-08-30T10:00:00Z', expiresAt: '2026-09-06T10:00:00Z', current: false },
+  { id: 's-2', userAgent: 'Firefox/Linux', ip: '10.0.0.3', createdAt: '2026-08-31T08:00:00Z', expiresAt: '2026-09-07T08:00:00Z', current: false },
 ];
 
 const MOCK_PASSKEYS = [
@@ -36,7 +37,7 @@ async function mockCommonApis(page: Page): Promise<void> {
           accessToken: 'test-token',
           refreshToken: 'test-refresh',
           expiresIn: 900,
-          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: ['admin'] },
+          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
         },
       }),
     });
@@ -60,7 +61,8 @@ async function mockCommonApis(page: Page): Promise<void> {
 
   // Settings page mounts fetch these two (PIT: any new endpoint called by an
   // existing page must be mocked in older specs — see profile.spec lesson)
-  await page.route('**/api/v1/auth/sessions', async (route) => {
+  // trailing ** matches the ?refreshToken= query the client now appends (T3-3)
+  await page.route('**/api/v1/auth/sessions**', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -216,22 +218,34 @@ test.describe('Settings page', () => {
     await expect(page.locator('[data-testid="passkey-error"]')).toBeVisible();
   });
 
-  test.afterEach(async ({ page }, testInfo) => {
-    // testing.md: console listener per spec — 0 application errors
-    const errors: string[] = [];
+  // T0.1: listener must be registered BEFORE the test runs (was registered in
+  // afterEach — dead code that never captured test-time errors).
+  let consoleErrors: string[];
+  test.beforeEach(async ({ page }) => {
+    consoleErrors = [];
     page.on('console', (msg) => {
       if (
         msg.type() === 'error' &&
         !msg.text().includes('findDOMNode') &&
         !msg.text().includes('chrome-extension') &&
         !msg.text().includes('moz-extension') &&
-        !msg.text().includes('ResizeObserver')
+        !msg.text().includes('ResizeObserver') &&
+        // page.route-mocked error responses (e.g. the intentional 503 webauthn mock)
+        // make Chromium log a resource-load console error by design; the app surfaces
+        // those failures via inline error UI, not the console — not app noise.
+        !msg.text().includes('Failed to load resource') &&
+        // antd v5 compat/static-API warnings under React 19 — framework noise (same set as users-crud/roles-crud)
+        !msg.text().includes('[antd: compatible]') &&
+        !msg.text().includes('[antd: message]')
       ) {
-        errors.push(msg.text());
+        consoleErrors.push(msg.text());
       }
     });
-    if (errors.length > 0) {
-      throw new Error(`Console errors in ${testInfo.title}: ${errors.join(' | ')}`);
+  });
+  test.afterEach(async ({}, testInfo) => {
+    // testing.md: console listener per spec — 0 application errors
+    if (consoleErrors.length > 0) {
+      throw new Error(`Console errors in ${testInfo.title}: ${consoleErrors.join(' | ')}`);
     }
   });
 });

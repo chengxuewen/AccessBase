@@ -5,6 +5,7 @@ const MOCK_ME = {
   email: 'admin@accessbase.local',
   name: 'Administrator',
   isActive: true,
+  roles: [],
 };
 
 async function mockCommonApis(page: Page): Promise<void> {
@@ -26,7 +27,7 @@ async function mockCommonApis(page: Page): Promise<void> {
           accessToken: 'test-token',
           refreshToken: 'test-refresh',
           expiresIn: 900,
-          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: ['admin'] },
+          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
         },
       }),
     });
@@ -131,7 +132,7 @@ test.describe('OAuth login flow', () => {
             accessToken: 'oauth-access',
             refreshToken: 'oauth-refresh',
             expiresIn: 900,
-            user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: ['admin'] },
+            user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
           },
         }),
       });

@@ -24,7 +24,7 @@ test.describe('Dashboard', () => {
           state: {
             token: 'test-token',
             refreshToken: 'test-refresh',
-            user: { id: '1', email: 'admin@example.com', name: 'Admin', roles: ['admin'] },
+            user: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [{ id: 'role-1', name: 'admin' }] },
             isAuthenticated: true,
           },
           version: 0,
@@ -38,10 +38,13 @@ test.describe('Dashboard', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          id: '1',
-          email: 'admin@example.com',
-          name: 'Admin',
-          roles: ['admin'],
+          success: true,
+          data: {
+            id: '1',
+            email: 'admin@example.com',
+            name: 'Admin',
+            roles: [{ id: 'role-1', name: 'admin' }],
+          },
         }),
       });
     });

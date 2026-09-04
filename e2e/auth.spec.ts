@@ -35,7 +35,8 @@ test.describe('Authentication', () => {
           data: {
             accessToken: 'test-access-token',
             refreshToken: 'test-refresh-token',
-            expiresIn: 3600,
+            expiresIn: 900,
+            user: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [] },
           },
         }),
       });
@@ -70,7 +71,8 @@ test.describe('Authentication', () => {
           data: {
             accessToken: 'test-access-token',
             refreshToken: 'test-refresh-token',
-            expiresIn: 3600,
+            expiresIn: 900,
+            user: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [] },
           },
         }),
       });
