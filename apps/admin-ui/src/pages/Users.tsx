@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, Popconfirm, Tag } from 'antd';
 import { PlusOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
@@ -8,6 +8,7 @@ import { listUsers, deleteUser, type User } from '../api/users';
 import EmptyState from '../components/EmptyState';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
+import { mapSort } from './users/sortParams';
 
 export default function Users() {
   const { t } = useTranslation();
@@ -21,7 +22,7 @@ export default function Users() {
       dataIndex: 'name',
       sorter: true,
       render: (_, record) => (
-        <a onClick={() => navigate(`/users/${record.id}`)}>{record.name}</a>
+        <Link to={`/users/${record.id}`}>{record.name}</Link>
       ),
     },
     {
@@ -50,9 +51,9 @@ export default function Users() {
       valueType: 'option',
       width: 160,
       render: (_, record) => [
-        <a key="edit" onClick={() => navigate(`/users/${record.id}/edit`)}>
+        <Button type="link" size="small" key="edit" onClick={() => navigate(`/users/${record.id}/edit`)}>
           {t('common.edit')}
-        </a>,
+        </Button>,
         <Popconfirm
           key="delete"
           title={t('users.deleteConfirm')}
@@ -68,9 +69,9 @@ export default function Users() {
           okText={t('common.confirm')}
           cancelText={t('common.cancel')}
         >
-          <a style={{ color: '#ff4d4f' }}>
+          <Button type="link" size="small" danger>
             <DeleteOutlined /> {t('common.delete')}
-          </a>
+          </Button>,
         </Popconfirm>,
       ],
     },
@@ -103,13 +104,14 @@ export default function Users() {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
-        request={async (params) => {
+        request={async (params, sort) => {
           try {
             const { current, pageSize, name, ...rest } = params;
             const result = await listUsers({
               page: current,
               pageSize,
               search: name,
+              ...mapSort(sort as Record<string, 'ascend' | 'descend' | undefined>),
               ...rest,
             });
             setLoadError(false);

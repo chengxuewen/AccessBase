@@ -152,4 +152,64 @@ test.describe('UI quality — language persistence', () => {
     // Retry button should be present
     await expect(page.getByTestId('roles-load-error').locator('button')).toBeVisible();
   });
+
+  test('table header sort sends sortBy/sortOrder query params (TA-1)', async ({ page }) => {
+    await seedSession(page, 'test-token', 'test-refresh');
+
+    const userUrls: string[] = [];
+    await page.route('**/api/v1/users**', async (route) => {
+      if (route.request().method() !== 'GET') return route.fallback();
+      userUrls.push(route.request().url());
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [{ id: '1', email: 'a@x.local', name: 'Admin', isActive: true, tenantId: 't1', tokenVersion: 0, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+      });
+    });
+
+    await page.goto('/users');
+    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    const requestCountAfterLoad = userUrls.length;
+
+    // Click the Name column header — antd's sorter trigger is inside th.ant-table-column-has-sorters
+    await page.locator('th.ant-table-column-has-sorters').first().click();
+
+    // Wait for a NEW request (with sort params) to fire
+    await expect.poll(() => userUrls.length > requestCountAfterLoad, { timeout: 10000 }).toBe(true);
+    const newUrl = new URL(userUrls[userUrls.length - 1]);
+    expect(newUrl.searchParams.get('sortBy')).toBe('name');
+    expect(newUrl.searchParams.get('sortOrder')).toBe('asc');
+  });
+
+  test('row actions are keyboard-focusable (AC-1)', async ({ page }) => {
+    await seedSession(page, 'test-token', 'test-refresh');
+
+    await page.route('**/api/v1/users**', async (route) => {
+      if (route.request().method() !== 'GET') return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [{ id: '1', email: 'a@x.local', name: 'Admin', isActive: true, tenantId: 't1', tokenVersion: 0, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+      });
+    });
+
+    await page.goto('/users');
+    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+
+    // Focus the row's name link, then Tab through: name → Edit button → Delete button
+    await page.locator('tbody tr').first().locator('a').first().focus();
+    await page.keyboard.press('Tab');
+    const focusedEdit = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement;
+      return el?.textContent?.includes('Edit') || el?.textContent?.includes('编辑') || false;
+    });
+    expect(focusedEdit, 'Edit action should be focusable via Tab').toBe(true);
+
+    await page.keyboard.press('Tab');
+    const focusedDelete = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement;
+      return el?.textContent?.includes('Delete') || el?.textContent?.includes('删除') || false;
+    });
+    expect(focusedDelete, 'Delete action should be focusable via Tab').toBe(true);
+  });
 });

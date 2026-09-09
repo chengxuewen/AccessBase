@@ -283,7 +283,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
 
     await page.goto('/users');
     await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
-    await page.locator('tbody tr').first().locator('a:has-text("Delete"), a:has-text("删除")').click();
+    await page.locator('tbody tr').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
     await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
     await expect.poll(() => deleted).toBe(true);
 
@@ -376,7 +376,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await page.goto('/users');
     await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
 
-    await page.locator('tbody tr').first().locator('a:has-text("Edit"), a:has-text("编辑")').first().click();
+    await page.locator('tbody tr').first().locator('button:has-text("Edit"), button:has-text("编辑")').first().click();
     await expect(page).toHaveURL(/\/users\/1\/edit/);
 
     // Prefilled name
@@ -439,7 +439,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await page.goto('/users');
     await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
 
-    await page.locator('tbody tr').first().locator('a:has-text("Delete"), a:has-text("删除")').click();
+    await page.locator('tbody tr').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
     await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
 
     // AntD placeholder row ("暂无数据") lives in tbody — assert on the empty description

@@ -244,7 +244,7 @@ test.describe('Roles CRUD', () => {
     await page.goto('/roles');
     await expect(page.locator('.ant-table-tbody tr')).toHaveCount(2);
 
-    await page.locator('tbody tr').first().locator('a:has-text("Edit"), a:has-text("编辑")').click();
+    await page.locator('tbody tr').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
     await expect(page.locator('.ant-modal')).toBeVisible();
 
     // Modal prefilled with existing values
@@ -263,7 +263,7 @@ test.describe('Roles CRUD', () => {
     await page.goto('/roles');
     await expect(page.locator('.ant-table-tbody tr')).toHaveCount(2);
 
-    await page.locator('tbody tr').first().locator('a:has-text("Delete"), a:has-text("删除")').click();
+    await page.locator('tbody tr').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
     await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
 
     await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
@@ -329,7 +329,7 @@ test.describe('Roles CRUD', () => {
     await page.goto('/roles');
     await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
 
-    await page.locator('tbody tr').first().locator('a:has-text("Edit"), a:has-text("编辑")').click();
+    await page.locator('tbody tr').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
     await expect(page.locator('.ant-modal input#name')).toHaveValue('Admin');
 
     // Correct behavior: the modal must be hydrated from the DETAIL endpoint, not the list row

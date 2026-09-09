@@ -118,9 +118,9 @@ export default function Roles() {
       valueType: 'option',
       width: 140,
       render: (_, record) => [
-        <a key="edit" onClick={() => void openEdit(record)}>
+        <Button type="link" size="small" key="edit" onClick={() => void openEdit(record)}>
           {editLoadingId === record.id ? <LoadingOutlined /> : <EditOutlined />} {t('common.edit')}
-        </a>,
+        </Button>,
         <Popconfirm
           key="delete"
           title={t('roles.deleteConfirm')}
@@ -136,9 +136,9 @@ export default function Roles() {
           okText={t('common.confirm')}
           cancelText={t('common.cancel')}
         >
-          <a style={{ color: '#ff4d4f' }}>
+          <Button type="link" size="small" danger>
             <DeleteOutlined /> {t('common.delete')}
-          </a>
+          </Button>,
         </Popconfirm>,
       ],
     },
