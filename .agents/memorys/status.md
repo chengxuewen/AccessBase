@@ -100,3 +100,4 @@ docs/
 - 2026-09-02: Guard 容错修复（backend-down 三态+自动重试 / dev trap 不停 infra + infra 复用 / PIT-028 vite 模式补刀 + PIT-029；E2E +T5.4，基线无回归）
 - 2026-09-03: Phase 7 Admin UI 审查修复（refresh 单飞+信封单层解包 PIT-030 根治 / feedback bridge / MFA step-up UI / 向导密码不落 persist / roles hydrate 修复 / /auth/me 信封+真实 roles；lint 门禁修复：flat config 关 no-undef + react-hooks error/warn、4 处 disable 真修 deps；E2E chromium 69（+11 净新回归锁），test.fail 全清）
 - 2026-09-03 收口：真后端验收 setup-real 6/6 + health 3/3（首跑 T5.1 冷 reset 超 180s 为负载现象非回归）；curl 验真 T2-2（isActive+roleIds 持久化）/T2-4（真实角色）；追加修 C6 sr-only/C7 菜单裸 key/C8 齿轮标注；教训沉淀 D114 + PIT-031~033；注：dev DB 现为 setup-real 重置后验证态（admin=audit-verify@test.local），恢复日常用 reset:native 重走向导
+- 2026-09-04: Phase 8a 批一 UI 速赢包（apiErrorMessage 错误族/语言持久化+探测/状态三修/假排序+行操作/杂项5连，e2e 69→74 全绿）

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { apiErrorMessage } from '../errors';
-import { isAxiosError } from 'axios';
+import type { isAxiosError } from 'axios';
 
 describe('apiErrorMessage', () => {
   it('extracts server envelope message from axios error', () => {
