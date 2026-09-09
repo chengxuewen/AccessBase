@@ -136,9 +136,11 @@ describe('requirePermission preHandler', () => {
       ['apps/server/src/routes/permissions.ts', '/api/v1/permissions'],
     ];
     const missing: string[] = [];
+    let matched = 0;
     for (const [file, root] of files) {
       const src = readFileSync(file, 'utf8');
       for (const m of src.matchAll(/app\.(get|post|put|delete|patch)(?:<[^>]*>)?\(\s*['"`]([^'"`]+)['"`]/g)) {
+        matched += 1;
         const method = m[1].toUpperCase();
         const sub = m[2];
         const url = `${root}${sub === '/' || sub.startsWith('/:') ? '' : sub}`;
@@ -147,6 +149,7 @@ describe('requirePermission preHandler', () => {
       }
     }
     expect(missing).toEqual([]);
+    expect(matched).toBeGreaterThanOrEqual(13); // guard against vacuous-pass
   });
 
   it('still returns 401 without a token (authenticate runs first)', async () => {

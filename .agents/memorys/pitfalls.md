@@ -246,3 +246,19 @@
 - **解法**: 子代理异常终止/重试后，一律以工作树实态为准：tsc → vitest → e2e 四门实跑后再定续做范围；损坏处按其意图最小修复（勿推倒重来）
 - **验证**: 接手先跑 `pnpm --filter @accessbase/admin-ui typecheck` + `npx vitest run` 基线；语法损坏会直接暴露
 - **禁止**: 盲信 COMPLETED 标记叠加改动；把断流代理的半成品直接当完成验收
+
+## PIT-034: dist 陈旧遮蔽 workspace 源码改动 (2026-09-04)
+
+- **症状**: vitest 里 @accessbase/identity 新映射不生效，测试结果与源码逻辑矛盾
+- **根因**: 测试经包 exports 解析到旧 dist 构建产物，而非 workspace 内 src 源码
+- **解法**: 改动被引包后 `pixi run npx tsc -p packages/<name>` 重建再测（或未来给 vitest 配 alias 直指 src）
+- **验证**: 改 map 加路由后静态覆盖测试（route-guard.test）即时可断
+- **禁止**: 改完被依赖包后不重建就跑引用侧测试
+
+## PIT-035: 团队/后台代理 "error state" 播报 ≠ 已死 (2026-09-04)
+
+- **症状**: 配额断流通知后成员文件仍在增长，误发 cancel 惊扰在写会话
+- **根因**: 框架自动换模回退，wrapper 报错与子会话存活是两回事
+- **解法**: 回收前以交付物 mtime/内容增量判生死，"running cannot accept continuation" 即存活证明
+- **验证**: 本会话两成员经此纪律完成 76/120 行交付零损伤
+- **禁止**: 据框架 wrapper 报错直接 kill 实际存活的子会话

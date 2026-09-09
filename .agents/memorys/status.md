@@ -13,7 +13,7 @@
 | L0 包实施    | ✅ 8 个   | 全部实施完成                       |
 | Fastify 服务 | ✅        | REST API + 中间件链                |
 | Admin UI     | ✅        | React + Ant Design Pro             |
-| 测试         | ✅ 357+80 个 | 357 vitest + 80 E2E chromium（全绿，test.fail 清零） |
+| 测试         | ✅ 364+80 个 | 364 vitest + 80 E2E chromium（全绿，test.fail 清零） |
 | Docker       | ✅        | 多阶段构建 + 3 种运行模式          |
 | CI/CD        | ✅        | GitHub Actions                     |
 | 构建模式     | ✅ 4 种   | native / container / compose / deploy |
@@ -76,7 +76,7 @@ docs/
 | 模式        | 命令                         | 说明              |
 | ----------- | ---------------------------- | ----------------- |
 | 开发        | `./accessbase.sh dev`        | 后端 + 前端热重载 |
-| 测试        | `./accessbase.sh test`       | 357 个测试（vitest）+ 80 E2E chromium |
+| 测试        | `./accessbase.sh test`       | 364 个测试（vitest）+ 80 E2E chromium |
 | 构建        | `./accessbase.sh build`      | 构建所有包        |
 | Docker 开发 | `./accessbase.sh docker:dev` | PG + Redis 分离   |
 | Docker 生产 | `./accessbase.sh docker`     | 单容器 all-in-one |
@@ -103,3 +103,4 @@ docs/
 - 2026-09-04: Phase 8a 批一 UI 速赢包（apiErrorMessage 错误族/语言持久化+探测/状态三修/假排序+行操作/杂项5连，e2e 69→74 全绿）
 - 2026-09-04: Phase 8a 批二 RBAC 接线（PermissionManager 补实/9 码种子+启动自愈/requirePermission preHandler/me 暴露 permissions+mfaEnabled/前端菜单路由门+403）；真后端 curl 验真 V1-V4 全过（自愈坐实/无角色 403 PERM_001/半权动作粒度 200+403）；vitest 357 + e2e 77 全绿；D115；注：dev DB admin 现为日常态（用户自建邮箱），MFA 端点需 MFA_ENCRYPTION_KEY 未配——见 conventions 批二约束小节
 - 2026-09-04: Phase 8a 批三 MFA 自助面板（TOTP 扫码/恢复码一次性/密码关闭，e2e 80，vitest 357）
+- 2026-09-04: Phase 8a 终审修复波（PATCH 映射+注册路由覆盖静态锁/PermissionManager 池单例/users-me self-service 豁免/init 去重，vitest 364 两遍全绿）
