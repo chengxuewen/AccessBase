@@ -1,9 +1,10 @@
 /**
  * PermissionManager - Permission management (SDD 2.4)
  */
-import { count, sql, and, eq } from 'drizzle-orm';
 import { createDb, type DrizzleDB } from '../db/index.js';
-import { permissions, type NewPermission } from '../db/schema.js';
+import { count, sql, and, eq } from 'drizzle-orm';
+import { permissions, rolePermissions, type NewPermission } from '../db/schema.js';
+import { RoleManager } from './RoleManager.js';
 import { logger } from '@accessbase/logging';
 import type {
   Permission,
@@ -15,9 +16,11 @@ import type {
 
 export class PermissionManager {
   private readonly db: DrizzleDB;
+  private readonly roleManager: RoleManager;
 
-  constructor(databaseUrl?: string) {
+  constructor(databaseUrl?: string, roleManager?: RoleManager) {
     this.db = createDb(databaseUrl);
+    this.roleManager = roleManager ?? new RoleManager(databaseUrl);
   }
 
   /**
@@ -103,8 +106,21 @@ export class PermissionManager {
    */
   async update(id: string, data: UpdatePermissionInput): Promise<Permission> {
     logger.info(`Updating permission: ${id}`);
-    // Implementation will update permissions table
-    throw new Error('Not implemented');
+
+    const updateData: Partial<NewPermission> = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
+
+    const [updated] = await this.db
+      .update(permissions)
+      .set(updateData)
+      .where(eq(permissions.id, id))
+      .returning();
+
+    if (!updated) {
+      throw new Error('Permission not found');
+    }
+    return this.mapToPermission(updated);
   }
 
   /**
@@ -112,11 +128,16 @@ export class PermissionManager {
    */
   async delete(id: string): Promise<void> {
     logger.info(`Deleting permission: ${id}`);
-    // Implementation will:
-    // 1. Check if permission is referenced by any role
-    // 2. If referenced, throw error
-    // 3. Delete permission
-    throw new Error('Not implemented');
+
+    const [refCount] = await this.db
+      .select({ count: count() })
+      .from(rolePermissions)
+      .where(eq(rolePermissions.permissionId, id));
+
+    if ((refCount?.count ?? 0) > 0) {
+      throw new Error('Permission is in use');
+    }
+    await this.db.delete(permissions).where(eq(permissions.id, id));
   }
 
   /**
@@ -124,12 +145,15 @@ export class PermissionManager {
    */
   async getUserEffectivePermissions(userId: string, tenantId: string): Promise<Permission[]> {
     logger.debug(`Getting effective permissions for user ${userId} in tenant: ${tenantId}`);
-    // Implementation will:
-    // 1. Get user's roles in tenant
-    // 2. For each role, get inherited permissions
-    // 3. Merge all permissions
-    // 4. Remove duplicates
-    throw new Error('Not implemented');
+
+    const roles = await this.roleManager.getUserRoles(userId, tenantId);
+    const seen = new Map<string, Permission>();
+    for (const role of roles) {
+      for (const p of await this.roleManager.resolveInheritedPermissions(role.id, tenantId)) {
+        seen.set(p.id, p);
+      }
+    }
+    return [...seen.values()];
   }
 
   /**
@@ -137,11 +161,9 @@ export class PermissionManager {
    */
   async hasPermission(userId: string, permission: string, tenantId: string): Promise<boolean> {
     logger.debug(`Checking permission ${permission} for user ${userId} in tenant: ${tenantId}`);
-    // Implementation will:
-    // 1. Get user's effective permissions
-    // 2. Check if permission exists in list
-    // Use Redis cache for performance
-    throw new Error('Not implemented');
+
+    const list = await this.getUserEffectivePermissions(userId, tenantId);
+    return this.matches(list, permission);
   }
 
   /**
@@ -151,12 +173,21 @@ export class PermissionManager {
     userId: string,
     permissions: string[],
     tenantId: string,
-  ): Promise<Map<string, boolean>> {
+  ): Promise<boolean> {
     logger.debug(`Checking permissions for user ${userId} in tenant: ${tenantId}`);
-    // Implementation will:
-    // 1. Get user's effective permissions once
-    // 2. Check each requested permission against the list
-    throw new Error('Not implemented');
+
+    const list = await this.getUserEffectivePermissions(userId, tenantId);
+    return permissions.some((permission) => this.matches(list, permission));
+  }
+
+  /**
+   * Match a 'resource:action' string against a permission list.
+   */
+  private matches(list: Permission[], permission: string): boolean {
+    const idx = permission.lastIndexOf(':');
+    const resource = permission.slice(0, idx);
+    const action = permission.slice(idx + 1);
+    return list.some((p) => p.resource === resource && p.action === action);
   }
 
   /**
@@ -164,10 +195,18 @@ export class PermissionManager {
    */
   async setRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
     logger.info(`Setting permissions for role ${roleId}`);
-    // Implementation will:
-    // 1. Delete existing role_permissions for role
-    // 2. Insert new role_permissions
-    // 3. Trigger RBAC invalidation
-    throw new Error('Not implemented');
+
+    // Remove existing permissions
+    await this.db.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
+
+    // Add new permissions
+    if (permissionIds.length > 0) {
+      await this.db.insert(rolePermissions).values(
+        permissionIds.map((permissionId) => ({
+          roleId,
+          permissionId,
+        })),
+      );
+    }
   }
 }
