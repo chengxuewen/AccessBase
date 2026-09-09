@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 // Set env before importing config-dependent modules
 process.env.NODE_ENV = 'test';
@@ -109,5 +111,17 @@ describe('requirePermission preHandler', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/roles' });
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('AUTH_001');
+  });
+});
+
+describe('startup side-effect containment (post-review fix)', () => {
+  it('buildApp factory carries no permission-seed import (no PG dial in tests)', () => {
+    const src = readFileSync(resolve(__dirname, '../app.ts'), 'utf-8');
+    expect(src).not.toMatch(/permissions-seed|ensureSeedForAdmin|selfHealSeed/);
+  });
+
+  it('production entry owns the self-heal call', () => {
+    const src = readFileSync(resolve(__dirname, '../index.ts'), 'utf-8');
+    expect(src).toMatch(/selfHealSeed\(config\.databaseUrl\)/);
   });
 });

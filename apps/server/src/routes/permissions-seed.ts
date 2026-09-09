@@ -84,3 +84,20 @@ export async function ensureSeedForAdmin(db: DrizzleDB): Promise<void> {
     logger.error({ err }, 'ensureSeedForAdmin failed — startup continues');
   }
 }
+
+/**
+ * Startup-entry self-heal: dials DATABASE_URL and re-seeds builtin permissions
+ * onto an existing admin role. Fire-and-forget from the process entry point only —
+ * buildApp() must stay side-effect-free (factory dialing real PG in tests raced
+ * with teardown: 'role test does not exist' FATAL noise, flaky audit tests).
+ * All layers swallow: never rejects, never crashes startup.
+ */
+export async function selfHealSeed(databaseUrl: string): Promise<void> {
+  try {
+    // lazy import keeps pg Pool out of the module graph (same pattern as app.ts audit)
+    const { createDb } = await import('@accessbase/identity/db');
+    await ensureSeedForAdmin(createDb(databaseUrl));
+  } catch (err) {
+    logger.error({ err }, 'permission seed self-heal failed');
+  }
+}

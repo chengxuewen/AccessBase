@@ -1,6 +1,7 @@
 import { buildApp } from './app.js';
 import { config } from './config.js';
 import { initializeAdmin } from './init.js';
+import { selfHealSeed } from './routes/permissions-seed.js';
 
 async function main() {
   const app = await buildApp();
@@ -26,6 +27,16 @@ async function main() {
     app.log.info(`Server listening on ${config.host}:${config.port}`);
 
     // Initialize admin user on first run
+    try {
+      await initializeAdmin(app);
+    } catch (initErr) {
+      app.log.error(initErr, 'Admin initialization failed (server still running)');
+    }
+
+    // Best-effort: re-seed builtin permissions onto a pre-existing admin role
+    // (covers env-bypass admins created above / pre-seeding deployments).
+    // Entry-point only — buildApp must stay side-effect-free (no PG dial in tests).
+    void selfHealSeed(config.databaseUrl);
     try {
       await initializeAdmin(app);
     } catch (initErr) {
