@@ -13,7 +13,7 @@
 | L0 包实施    | ✅ 8 个   | 全部实施完成                       |
 | Fastify 服务 | ✅        | REST API + 中间件链                |
 | Admin UI     | ✅        | React + Ant Design Pro             |
-| 测试         | ✅ 321+69 个 | 321 vitest + 69 E2E chromium（全绿，test.fail 清零） |
+| 测试         | ✅ 357+80 个 | 357 vitest + 80 E2E chromium（全绿，test.fail 清零） |
 | Docker       | ✅        | 多阶段构建 + 3 种运行模式          |
 | CI/CD        | ✅        | GitHub Actions                     |
 | 构建模式     | ✅ 4 种   | native / container / compose / deploy |
@@ -76,7 +76,7 @@ docs/
 | 模式        | 命令                         | 说明              |
 | ----------- | ---------------------------- | ----------------- |
 | 开发        | `./accessbase.sh dev`        | 后端 + 前端热重载 |
-| 测试        | `./accessbase.sh test`       | 321 个测试（vitest）+ 69 E2E chromium |
+| 测试        | `./accessbase.sh test`       | 357 个测试（vitest）+ 80 E2E chromium |
 | 构建        | `./accessbase.sh build`      | 构建所有包        |
 | Docker 开发 | `./accessbase.sh docker:dev` | PG + Redis 分离   |
 | Docker 生产 | `./accessbase.sh docker`     | 单容器 all-in-one |
@@ -102,3 +102,4 @@ docs/
 - 2026-09-03 收口：真后端验收 setup-real 6/6 + health 3/3（首跑 T5.1 冷 reset 超 180s 为负载现象非回归）；curl 验真 T2-2（isActive+roleIds 持久化）/T2-4（真实角色）；追加修 C6 sr-only/C7 菜单裸 key/C8 齿轮标注；教训沉淀 D114 + PIT-031~033；注：dev DB 现为 setup-real 重置后验证态（admin=audit-verify@test.local），恢复日常用 reset:native 重走向导
 - 2026-09-04: Phase 8a 批一 UI 速赢包（apiErrorMessage 错误族/语言持久化+探测/状态三修/假排序+行操作/杂项5连，e2e 69→74 全绿）
 - 2026-09-04: Phase 8a 批二 RBAC 接线（PermissionManager 补实/9 码种子+启动自愈/requirePermission preHandler/me 暴露 permissions+mfaEnabled/前端菜单路由门+403）；真后端 curl 验真 V1-V4 全过（自愈坐实/无角色 403 PERM_001/半权动作粒度 200+403）；vitest 357 + e2e 77 全绿；D115；注：dev DB admin 现为日常态（用户自建邮箱），MFA 端点需 MFA_ENCRYPTION_KEY 未配——见 conventions 批二约束小节
+- 2026-09-04: Phase 8a 批三 MFA 自助面板（TOTP 扫码/恢复码一次性/密码关闭，e2e 80，vitest 357）

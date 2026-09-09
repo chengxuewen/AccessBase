@@ -351,17 +351,17 @@ export function requirePermission() {
 - Consumes: 后端契约（已实测存在）：`POST /v1/auth/mfa/setup` → `{success,data:{otpauthUrl:string, qrDataUrl:string, recoveryCodes:string[]}}`（MfaManager.setup:50-53 QRCode.toDataURL 已是 dataURL，**零新依赖**）；`POST /v1/auth/mfa/enable` body `{code:string}`（6-8 位）；`POST /v1/auth/mfa/disable` body `{password:string}`；Task 10 的 `user.mfaEnabled`
 - Produces: `mfaApi.setup()/enable(code)/disable(password)`，`ApiEnvelope` 泛型（Phase 7 门禁）
 
-- [ ] **Step 1: 失败 e2e**（mock setup/enable/disable + /auth/me mfaEnabled=false→true）：Security tab 见"未开启"态卡片（data-testid="mfa-card"）→ 点"设置身份验证器"→ modal 显示 `img[data-testid="mfa-qr"]` + secret 文本 + 6 位码输入 → 输码提交 → 恢复码一次性 modal（"我已保存"门控）→ 成功 toast + 卡片变"已开启"+ 出现"关闭"入口（密码确认 Modal）
-- [ ] **Step 2: api/mfa.ts**：三函数，信封解包同 api/auth.ts 既有模式；恢复码仅存 modal 组件 state，**不入 zustand/persist**（conventions 敏感字段约束）
-- [ ] **Step 3: Settings totpCard**：三态渲染（disabled → setting(modal) → enabled）；错误全走 Task 1 `apiErrorMessage`；用户取消弹窗不当错误（FO-5 同族注意：NotAllowedError 静默，此卡无 WebAuthn 天然规避）；文案 key `settings.mfa*` 双语
-- [ ] **Step 4: e2e 绿 + tsc/lint**
-- [ ] **Step 5: Commit** `feat(admin-ui): Settings TOTP 自助面板（扫码/验证/恢复码/关闭）`
+- [x] **Step 1: 失败 e2e**（mock setup/enable/disable + /auth/me mfaEnabled=false→true）：Security tab 见"未开启"态卡片（data-testid="mfa-card"）→ 点"设置身份验证器"→ modal 显示 `img[data-testid="mfa-qr"]` + secret 文本 + 6 位码输入 → 输码提交 → 恢复码一次性 modal（"我已保存"门控）→ 成功 toast + 卡片变"已开启"+ 出现"关闭"入口（密码确认 Modal）
+- [x] **Step 2: api/mfa.ts**：三函数，信封解包同 api/auth.ts 既有模式；恢复码仅存 modal 组件 state，**不入 zustand/persist**（conventions 敏感字段约束）
+- [x] **Step 3: Settings totpCard**：三态渲染（disabled → setting(modal) → enabled）；错误全走 Task 1 `apiErrorMessage`；用户取消弹窗不当错误（FO-5 同族注意：NotAllowedError 静默，此卡无 WebAuthn 天然规避）；文案 key `settings.mfa*` 双语
+- [x] **Step 4: e2e 绿 + tsc/lint**
+- [x] **Step 5: Commit** `feat(admin-ui): Settings TOTP 自助面板（扫码/验证/恢复码/关闭）`
 
 ### Task 14: 批三收口 + 全局回归
 
-- [ ] 全量 vitest + `npx playwright test --project=chromium` + lint + tsc；`test.fail()` 存量保持 0
-- [ ] FINAL.md/SYNTHESIS.md 对应条目（G1'/U2/TOP-10）标注"已交付 @commit"
-- [ ] status.md 近况 + 本计划勾选终态；Commit `test+docs: Phase 8a 收口`
+- [x] 全量 vitest + `npx playwright test --project=chromium` + lint + tsc；`test.fail()` 存量保持 0
+- [x] FINAL.md/SYNTHESIS.md 对应条目（G1'/U2/TOP-10）标注"已交付 @commit"
+- [x] status.md 近况 + 本计划勾选终态；Commit `test+docs: Phase 8a 收口`
 
 ---
 
