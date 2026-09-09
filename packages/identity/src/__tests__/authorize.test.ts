@@ -31,4 +31,16 @@ describe('getRequiredPermission (prefix matching)', () => {
   it('returns null for methods without a mapping', () => {
     expect(getRequiredPermission('HEAD', '/api/v1/users/123')).toBeNull();
   });
+
+  it('PATCH on users resolves to users:write', () => {
+    expect(getRequiredPermission('PATCH', '/api/v1/users/123/status')).toBe('users:write');
+  });
+
+  it('returns null for /users/me full-equality exemption (self-service)', () => {
+    expect(getRequiredPermission('GET', '/api/v1/users/me')).toBeNull();
+  });
+
+  it('exemption does not leak to sub-segments: /users/me/<id> still resolves users:read', () => {
+    expect(getRequiredPermission('GET', '/api/v1/users/me/123')).toBe('users:read');
+  });
 });

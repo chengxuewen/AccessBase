@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService } from '@accessbase/identity';
+import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 
@@ -19,6 +19,8 @@ interface RegisterBody {
 export async function authRoutes(app: FastifyInstance) {
   const sessionManager = new SessionManager();
   const roleManager = new RoleManager();
+  // One manager per app registration — same convention as permissionRoutes.
+  const permissionManager = new PermissionManager();
 
   const lockout = new LockoutService({
     redis: config.nodeEnv === 'test' ? undefined : safeRedis(),
@@ -74,8 +76,7 @@ export async function authRoutes(app: FastifyInstance) {
   }
   /** Effective 'resource:action' codes for /auth/me (frontend menu/route gating) */
   async function permissionsOf(userId: string): Promise<string[]> {
-    const { PermissionManager } = await import('@accessbase/identity');
-    const perms = await new PermissionManager().getUserEffectivePermissions(userId, DEFAULT_TENANT);
+    const perms = await permissionManager.getUserEffectivePermissions(userId, DEFAULT_TENANT);
     return perms.map((p) => `${p.resource}:${p.action}`);
   }
 

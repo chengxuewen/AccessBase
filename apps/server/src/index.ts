@@ -37,11 +37,6 @@ async function main() {
     // (covers env-bypass admins created above / pre-seeding deployments).
     // Entry-point only — buildApp must stay side-effect-free (no PG dial in tests).
     void selfHealSeed(config.databaseUrl);
-    try {
-      await initializeAdmin(app);
-    } catch (initErr) {
-      app.log.error(initErr, 'Admin initialization failed (server still running)');
-    }
   } catch (err) {
     app.log.fatal(err, 'Failed to start server');
     process.exit(1);

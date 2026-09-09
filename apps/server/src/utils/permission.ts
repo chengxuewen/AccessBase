@@ -17,12 +17,22 @@ interface TokenPayload {
   tenantId?: string;
 }
 
+/**
+ * Lazy module-level singleton: PermissionManager's ctor builds a pg Pool per call
+ * (connections are lazy, but pools pile up per request without reuse). One per
+ * process mirrors the per-route-module instance convention (permissions.ts).
+ */
+let pm: PermissionManager | null = null; // lazy module singleton; pg pool is lazy — connects on first query
+function getPermissionManager(): PermissionManager {
+  pm ??= new PermissionManager();
+  return pm;
+}
 export function requirePermission() {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     const required = getRequiredPermission(request.method, request.url);
     if (!required) return;
     const user = request.user as TokenPayload;
-    const ok = await new PermissionManager().hasPermission(
+    const ok = await getPermissionManager().hasPermission(
       user.sub,
       required,
       user.tenantId ?? DEFAULT_TENANT,

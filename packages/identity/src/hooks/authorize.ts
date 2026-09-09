@@ -31,6 +31,7 @@ const routePermissions: Record<string, string> = {
   'POST:/api/v1/users': 'users:write',
   'PUT:/api/v1/users': 'users:write',
   'DELETE:/api/v1/users': 'users:delete',
+  'PATCH:/api/v1/users': 'users:write',
   'GET:/api/v1/roles': 'roles:read',
   'POST:/api/v1/roles': 'roles:write',
   'PUT:/api/v1/roles': 'roles:write',
@@ -49,6 +50,9 @@ const routePermissions: Record<string, string> = {
  */
 export function getRequiredPermission(method: string, url: string): string | null {
   const path = url.split('?')[0] ?? url;
+  // Self-service exemption: any authenticated user may read their own profile.
+  // Strict equality only — /users/me/<sub> still resolves to users:read via trimming.
+  if (path === '/api/v1/users/me') return null;
   // Drop the empty leading segment ('/api' …), then try longest → shortest prefix.
   const segments = path.split('/').filter((s) => s.length > 0);
   for (let len = segments.length; len >= 3; len--) {

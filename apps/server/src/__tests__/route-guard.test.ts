@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { getRequiredPermission } from '@accessbase/identity';
 
 // Set env before importing config-dependent modules
 process.env.NODE_ENV = 'test';
@@ -105,6 +106,47 @@ describe('requirePermission preHandler', () => {
 
     expect(res.statusCode).not.toBe(403);
     expect(hasPermission).not.toHaveBeenCalled();
+  });
+
+  it('roles DELETE 403 when roles:delete denied', async () => {
+    allow.value = false;
+    hasPermission.mockClear();
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/roles/550e8400-e29b-41d4-a716-446655440000',
+      headers: AUTH(),
+    });
+
+    expect(res.statusCode).toBe(403);
+    const body = res.json();
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('PERM_001');
+    expect(hasPermission).toHaveBeenCalledWith(
+      '550e8400-e29b-41d4-a716-446655440000',
+      'roles:delete',
+      '00000000-0000-0000-0000-000000000001',
+    );
+  });
+
+  it('every registered route in guarded files resolves a permission (static)', () => {
+    const files: Array<[string, string]> = [
+      ['apps/server/src/routes/users.ts', '/api/v1/users'],
+      ['apps/server/src/routes/roles.ts', '/api/v1/roles'],
+      ['apps/server/src/routes/permissions.ts', '/api/v1/permissions'],
+    ];
+    const missing: string[] = [];
+    for (const [file, root] of files) {
+      const src = readFileSync(file, 'utf8');
+      for (const m of src.matchAll(/app\.(get|post|put|delete|patch)(?:<[^>]*>)?\(\s*['"`]([^'"`]+)['"`]/g)) {
+        const method = m[1].toUpperCase();
+        const sub = m[2];
+        const url = `${root}${sub === '/' || sub.startsWith('/:') ? '' : sub}`;
+        if (url === '/api/v1/users/me') continue; // self-service exempt
+        if (getRequiredPermission(method, url) === null) missing.push(`${file}: ${method} ${root}${sub}`);
+      }
+    }
+    expect(missing).toEqual([]);
   });
 
   it('still returns 401 without a token (authenticate runs first)', async () => {
