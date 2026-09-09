@@ -66,6 +66,7 @@ export default function AdminLayout() {
   const toggleLanguage = () => {
     const next = i18n.language === 'en' ? 'zh' : 'en';
     i18n.changeLanguage(next);
+    localStorage.setItem('lng', next);
   };
 
   return (
@@ -103,7 +104,7 @@ export default function AdminLayout() {
         ),
       }}
       actionsRender={() => [
-        <SettingOutlined key="settings" title={t('common.language')} aria-label={t('common.language')} onClick={toggleLanguage} />,
+        <SettingOutlined key="settings" data-testid="lang-toggle" title={t('common.language')} aria-label={t('common.language')} onClick={toggleLanguage} />,
         <LogoutOutlined key="logout" onClick={handleLogout} />,
       ]}
       menuFooterRender={(props) => {

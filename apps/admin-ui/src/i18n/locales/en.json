@@ -9,7 +9,9 @@
     "success": "Success",
     "error": "Error",
     "retry": "Retry",
-    "language": "Language"
+    "language": "Language",
+    "connecting": "Connecting to server…",
+    "errorTitle": "Error"
   },
   "errors": {
     "forbidden": {

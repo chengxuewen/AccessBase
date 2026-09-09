@@ -9,7 +9,9 @@
     "success": "成功",
     "error": "错误",
     "retry": "重试",
-    "language": "语言"
+    "language": "语言",
+    "connecting": "正在连接服务器…",
+    "errorTitle": "错误"
   },
   "errors": {
     "forbidden": {

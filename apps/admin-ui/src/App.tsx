@@ -1,7 +1,10 @@
+import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Spin } from 'antd';
 import { useAuthStore } from './stores/auth';
 import { useSetupGuardState } from './hooks/useSetupGuardState';
+import { i18nReady as i18nReadyPromise } from './i18n';
 import AdminLayout from './layouts/AdminLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -25,13 +28,14 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function SetupGuardRetry() {
+  const { t } = useTranslation();
   return (
     <div
       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40vh' }}
       data-testid="setup-guard-retry"
     >
       <Spin size="large" />
-      <p style={{ marginTop: 16 }}>Connecting to server…</p>
+      <p style={{ marginTop: 16 }}>{t('common.connecting')}</p>
     </div>
   );
 }
@@ -51,6 +55,17 @@ function GlobalGuard({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const [i18nReady, setI18nReady] = useState(false);
+  useEffect(() => { i18nReadyPromise.then(() => setI18nReady(true)); }, []);
+
+  if (!i18nReady) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
     <GlobalErrorBoundary>
     <Routes>

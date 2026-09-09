@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Button, Result } from 'antd';
+import i18n from '../i18n';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +24,7 @@ export default class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, message: undefined });
+    location.reload();
   };
 
   override render(): ReactNode {
@@ -31,11 +32,11 @@ export default class GlobalErrorBoundary extends Component<Props, State> {
       return (
         <Result
           status="error"
-          title="Error"
+          title={i18n.t('common.errorTitle')}
           subTitle={this.state.message}
           extra={
             <Button type="primary" onClick={this.handleRetry}>
-              Reload
+              {i18n.t('common.retry')}
             </Button>
           }
         />

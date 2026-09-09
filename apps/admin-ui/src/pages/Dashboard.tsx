@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import i18n from '../i18n';
 
 interface RecentActivityItem {
   id: string;
@@ -27,15 +28,12 @@ interface StatsData {
   recentActivity: RecentActivityItem[];
 }
 
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
+const relTime = (ts: number | string) => {
+  const diffMin = Math.round((Date.now() - new Date(ts).getTime()) / 60000);
+  const rtf = new Intl.RelativeTimeFormat(i18n.language, { numeric: 'auto' });
+  if (Math.abs(diffMin) < 60) return rtf.format(-diffMin, 'minute');
+  return rtf.format(-Math.round(diffMin / 60), 'hour');
+};
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -118,7 +116,7 @@ export default function Dashboard() {
                           {item.resourceType && <Tag>{item.resourceType}</Tag>}
                         </Space>
                       }
-                      description={`${item.userId ?? '—'} · ${relativeTime(item.createdAt)}`}
+                      description={`${item.userId ?? '—'} · ${relTime(item.createdAt)}`}
                     />
                   </List.Item>
                 )}
