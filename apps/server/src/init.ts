@@ -10,8 +10,8 @@ import type { FastifyInstance } from 'fastify';
 import { UserManager, RoleManager } from '@accessbase/identity';
 import { logger } from '@accessbase/logging';
 import { config } from './config.js';
+import { DEFAULT_TENANT } from './utils/constants.js';
 
-const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
 
 export async function initializeAdmin(_app: FastifyInstance): Promise<void> {
   try {

@@ -2,10 +2,11 @@
  * Builtin permission seeding — idempotent, best-effort.
  * Seeds 9 {resource, action} permissions and binds all to the admin role.
  */
-import { and, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@accessbase/identity/db';
-import { permissions, rolePermissions } from '@accessbase/identity/db';
+import { permissions, rolePermissions, roles } from '@accessbase/identity/db';
 import { logger } from '@accessbase/logging';
+import { DEFAULT_TENANT } from '../utils/constants.js';
 
 /**
  * 9 builtin permissions — resource/action pairs must match
@@ -58,7 +59,28 @@ export async function seedBuiltinPermissions(db: DrizzleDB, roleId: string): Pro
 
     logger.info({ roleId, count: rows.length }, 'Seeded builtin permissions and bound to role');
   } catch (err) {
-    // best-effort: seed failure must not fail admin creation
     logger.error({ err, roleId }, 'Failed to seed builtin permissions — admin creation continues');
+  }
+}
+
+/**
+ * Startup self-heal: when an 'admin' role already exists in the default tenant
+ * (wizard or env-bypass created it), re-run the idempotent builtin-permission
+ * seed. Covers deployments whose admin predates seeding — requirePermission
+ * would otherwise lock every mapped route for the admin. Never rejects.
+ */
+export async function ensureSeedForAdmin(db: DrizzleDB): Promise<void> {
+  try {
+    const [adminRole] = await db
+      .select({ id: roles.id })
+      .from(roles)
+      .where(and(eq(roles.name, 'admin'), eq(roles.tenantId, DEFAULT_TENANT)))
+      .limit(1);
+    if (adminRole) {
+      await seedBuiltinPermissions(db, adminRole.id);
+    }
+  } catch (err) {
+    // best-effort: missing/broken tables must never crash startup
+    logger.error({ err }, 'ensureSeedForAdmin failed — startup continues');
   }
 }

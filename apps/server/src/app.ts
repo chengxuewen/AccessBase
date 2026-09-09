@@ -15,6 +15,7 @@ import { auditRoutes } from './routes/audit.js';
 import { statsRoutes } from './routes/stats.js';
 import { healthRoutes } from './routes/health.js';
 import { setupRoutes } from './routes/setup.js';
+import { ensureSeedForAdmin } from './routes/permissions-seed.js';
 import { setupGuard } from './middleware/setup-guard.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { webauthnRoutes } from './routes/webauthn.js';
@@ -196,6 +197,15 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(statsRoutes, { prefix: '/api/v1' });
   await app.register(oauthRoutes, { prefix: '/api/v1/auth' });
   await app.register(webauthnRoutes, { prefix: '/api/v1/auth' });
+
+  // --- Permission seed self-heal (best-effort, must never crash startup) ---
+  // Re-seeds builtin permissions onto an existing admin role (idempotent).
+  // Skipped in test env without an injected auditStorage (no real DB expected).
+  if (config.nodeEnv !== 'test' || options.auditStorage) {
+    void import('@accessbase/identity/db')
+      .then(({ createDb }) => ensureSeedForAdmin(createDb(config.databaseUrl)))
+      .catch((err: unknown) => app.log.error({ err }, 'permission seed self-heal failed'));
+  }
 
   // --- L0 package registration (when packages are implemented) ---
   // await app.register(identityPlugin)

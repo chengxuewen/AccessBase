@@ -34,6 +34,10 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         totalPages: 1,
       };
     }
+    // requirePermission preHandler (Task 9) — default allow
+    async hasPermission() {
+      return true;
+    }
   }
   return {
     ...original,

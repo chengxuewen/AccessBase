@@ -18,7 +18,7 @@ export { OAuthProvider } from './providers/OAuthProvider.js';
 export { WebAuthnProvider } from './providers/WebAuthnProvider.js';
 export { LdapProvider } from './providers/LdapProvider.js';
 export { authenticateHook } from './hooks/authenticate.js';
-export { authorizeHook } from './hooks/authorize.js';
+export { authorizeHook, getRequiredPermission } from './hooks/authorize.js';
 
 import { logger } from '@accessbase/logging';
 import { AuthManager } from './managers/AuthManager.js';

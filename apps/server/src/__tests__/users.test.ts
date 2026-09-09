@@ -125,6 +125,10 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
     setUserRoles: mockSetUserRoles,
     getUserRoles: mockGetUserRoles,
   })),
+  // requirePermission preHandler (Task 9) — default allow
+  PermissionManager: vi.fn().mockImplementation(() => ({
+    hasPermission: vi.fn().mockResolvedValue(true),
+  })),
   // auth.ts (Phase 6a Task 4) imports SessionManager; mock it too
   // auth.ts (Phase 6a Task 4) imports SessionManager; mock it too
   SessionManager: vi.fn().mockImplementation(() => ({

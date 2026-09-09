@@ -23,28 +23,40 @@ function isPublicRoute(url: string): boolean {
 }
 
 /**
- * Get required permission for route
+ * Route → permission mapping, keyed by `${method}:/api/v1/<resource>` (root segment only).
+ * Sub-paths resolve via longest-prefix segment trimming in getRequiredPermission.
  */
-function getRequiredPermission(method: string, url: string): string | null {
-  // Map HTTP methods and routes to required permissions
-  // This should be configurable or derived from route metadata
-  const routePermissions: Record<string, string> = {
-    'GET:/api/v1/users': 'users:read',
-    'POST:/api/v1/users': 'users:write',
-    'PUT:/api/v1/users': 'users:write',
-    'DELETE:/api/v1/users': 'users:delete',
-    'GET:/api/v1/roles': 'roles:read',
-    'POST:/api/v1/roles': 'roles:write',
-    'PUT:/api/v1/roles': 'roles:write',
-    'DELETE:/api/v1/roles': 'roles:delete',
-    'GET:/api/v1/permissions': 'permissions:read',
-    'POST:/api/v1/permissions': 'permissions:write',
-    'PUT:/api/v1/permissions': 'permissions:write',
-    'DELETE:/api/v1/permissions': 'permissions:delete',
-  };
+const routePermissions: Record<string, string> = {
+  'GET:/api/v1/users': 'users:read',
+  'POST:/api/v1/users': 'users:write',
+  'PUT:/api/v1/users': 'users:write',
+  'DELETE:/api/v1/users': 'users:delete',
+  'GET:/api/v1/roles': 'roles:read',
+  'POST:/api/v1/roles': 'roles:write',
+  'PUT:/api/v1/roles': 'roles:write',
+  'DELETE:/api/v1/roles': 'roles:delete',
+  'GET:/api/v1/permissions': 'permissions:read',
+  'POST:/api/v1/permissions': 'permissions:write',
+  'PUT:/api/v1/permissions': 'permissions:write',
+  'DELETE:/api/v1/permissions': 'permissions:delete',
+};
 
-  const key = `${method}:${url.split('?')[0]}`;
-  return routePermissions[key] || null;
+/**
+ * Get required permission for route.
+ * Matches the full path first, then trims trailing segments one at a time so
+ * `/api/v1/users/123` resolves to the `users` root mapping (GET → users:read).
+ * Returns null when no mapping covers the path (progressive enforcement).
+ */
+export function getRequiredPermission(method: string, url: string): string | null {
+  const path = url.split('?')[0] ?? url;
+  // Drop the empty leading segment ('/api' …), then try longest → shortest prefix.
+  const segments = path.split('/').filter((s) => s.length > 0);
+  for (let len = segments.length; len >= 3; len--) {
+    const prefix = `/${segments.slice(0, len).join('/')}`;
+    const hit = routePermissions[`${method}:${prefix}`];
+    if (hit) return hit;
+  }
+  return null;
 }
 
 /**

@@ -2,8 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService } from '@accessbase/identity';
 import { config } from '../config.js';
+import { DEFAULT_TENANT } from '../utils/constants.js';
 
-const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
 
 interface LoginBody {
   email: string;

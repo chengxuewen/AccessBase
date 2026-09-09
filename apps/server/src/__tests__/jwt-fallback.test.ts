@@ -32,6 +32,10 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       revokeSession: vi.fn().mockResolvedValue(undefined),
       findSessionByToken: vi.fn().mockResolvedValue(null),
     })),
+    // requirePermission preHandler (Task 9) — default allow so JWT tests stay behavior-identical
+    PermissionManager: vi.fn().mockImplementation(() => ({
+      hasPermission: vi.fn().mockResolvedValue(true),
+    })),
     // login success path now projects real roles (T2-4) — empty list keeps these tests behavior-identical
     RoleManager: vi.fn().mockImplementation(() => ({
       getUserRoles: vi.fn().mockResolvedValue([]),

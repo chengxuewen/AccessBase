@@ -1,11 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import { RoleManager } from '@accessbase/identity';
+import { DEFAULT_TENANT } from '../utils/constants.js';
+import { requirePermission } from '../utils/permission.js';
 
-const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
 
 export async function roleRoutes(app: FastifyInstance) {
   // All role routes require authentication
   app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', requirePermission());
 
   // Reuse single RoleManager instance per route module
   const roleManager = new RoleManager();

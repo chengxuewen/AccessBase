@@ -62,6 +62,10 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
     })),
     RoleManager: vi.fn().mockImplementation(() => instance),
+    // requirePermission preHandler (Task 9) — default allow
+    PermissionManager: vi.fn().mockImplementation(() => ({
+      hasPermission: vi.fn().mockResolvedValue(true),
+    })),
   };
 });
 

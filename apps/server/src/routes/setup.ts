@@ -8,6 +8,7 @@ import { createDb, users, userRoles, roles } from '@accessbase/identity/db';
 import { eq } from 'drizzle-orm';
 import { logger } from '@accessbase/logging';
 import { config } from '../config.js';
+import { DEFAULT_TENANT } from '../utils/constants.js';
 import { seedBuiltinPermissions } from './permissions-seed.js';
 // DB-derived setup state (D113): the users table is the single source of truth.
 // No in-memory state — see queryAdminExists/getSetupStatus below.
@@ -229,7 +230,6 @@ export async function setupRoutes(app: FastifyInstance) {
       try {
         const userManager = new UserManager();
         const roleManager = new RoleManager();
-        const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
 
         // Check if admin user already exists in database
         const existingAdmin = await userManager.findByEmail(email);
@@ -451,7 +451,6 @@ export async function setupRoutes(app: FastifyInstance) {
 
       // Generate JWT tokens for admin login
       const userManager = new UserManager();
-      const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
       const { data: users } = await userManager.findAll({ page: 1, pageSize: 1 }, DEFAULT_TENANT);
       const adminUser = users[0];
 

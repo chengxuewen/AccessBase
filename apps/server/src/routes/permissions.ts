@@ -1,9 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { PermissionManager } from '@accessbase/identity';
+import { requirePermission } from '../utils/permission.js';
 
 export async function permissionRoutes(app: FastifyInstance) {
   // All permission routes require authentication
   app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', requirePermission());
 
   // Reuse single PermissionManager instance per route module
   const permissionManager = new PermissionManager();
