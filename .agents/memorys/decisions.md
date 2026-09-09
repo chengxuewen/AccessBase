@@ -2344,3 +2344,13 @@ const brandTokens = {
 - **效果**: Phase 1-3 每次修复即验；本轮 11 条 RED 全部成功转正且 0 意外通过；建网同时坐实了 mock 漂移掩盖的 B7 权限清空与 C7 裸 key 两个隐藏 bug
 - **参考**: docs/superpowers/plans/2026-09-03-admin-ui-fix-plan.md Phase 0
 - **备选**: test.skip —— 被跳过的用例永不执行，无法证明 bug 存在或已修；否决
+
+
+## D115: 授权强制走 requirePermission preHandler（偏离 identity-sdd §3.3 plugin 路线） (2026-09-04)
+
+- **决策**: 路由级授权不经 identity 包 `identityPlugin` 的全局 `authorizeHook` 实施，改为 server 侧 `utils/permission.ts` 的 `requirePermission()` preHandler，挂在各路由模块 `app.authenticate` 之后（users/roles/permissions 三文件）；无映射 = 不强制，渐进面由 authorize.ts 映射表驱动
+- **理由**: §3.3 plugin 骨架自带 authenticateHook，与 app.ts 已固化的 `app.authenticate` 单飞刷新/JWT 验证链冲突（双认证入口）；plugin 全局 hook 迫使一次性面对所有路由，而映射表驱动的 preHandler 可按资源渐进扩面、每步 E2E 可验
+- **真后端实证（2026-09-04 task-12）**: 无角色用户 GET/DELETE /api/v1/users → 403 `PERM_001`；仅绑 users:read 的角色 → GET 200 / DELETE 403 / GET /roles 403（动作粒度强制）；admin → 200；启动自愈 `ensureSeedForAdmin` 坐实（dev admin 建在种子代码前，role_permissions 9 条唯一写路径即自愈）
+- **附属事实**: users 表 `mfa_enabled` 为死列（无写入方），`totp_enabled` 才是 live MFA 态（MfaManager 唯一写入，auth.ts me 处映射 `mfaEnabled: user.totpEnabled`）；前端菜单/路由权限门属可见性层（fail-open：permissions 缺失时不过滤，兼容旧后端 mock），信任边界 = 后端 requirePermission hook
+- **内置权限 9 码**: `users:read` `users:write` `users:delete` `roles:read` `roles:write` `roles:delete` `permissions:read` `permissions:write` `permissions:delete`（BUILTIN_PERMISSIONS 与 authorize.ts 映射表逐字一致）
+- **参考**: docs/superpowers/plans/2026-09-04-phase8a-ui-quickwins-auth-mfa.md Task 9/12；identity-sdd §3.3（被偏离方）；task-12-report.md curl 验真记录

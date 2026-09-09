@@ -233,8 +233,8 @@ export function mapSort(sort: Record<string, 'ascend' | 'descend' | undefined> |
 - Consumes: `RoleManager.getUserRoles(userId, tenantId)`（RoleManager.ts:399）、`RoleManager.resolveInheritedPermissions(roleId, tenantId)`（:309，继承引擎已实现）
 - Produces: `getUserEffectivePermissions(userId, tenantId): Promise<Permission[]>`；`hasPermission(userId, 'resource:action', tenantId): Promise<boolean>`；`hasPermissions(...)`；`setRolePermissions(roleId, permissionIds, tenantId?)`；`update/delete`
 
-- [ ] **Step 1: 写失败测试**（4 例）：①effective = 多角色 resolveInheritedPermissions 合并去重（按 permission.id）②hasPermission 命中 `'users:read'`（resource+action 拼接）③hasPermissions 任一即真④setRolePermissions 委托 roleManager 私有不泄漏——若 RoleManager.setRolePermissions 为 private（:462），PermissionManager 自实现 role_permissions 表 delete+insert 事务（照抄 :462-475 查询体为私有辅助，非跨类调用）
-- [ ] **Step 2: 实现**——effective 核心：
+- [x] **Step 1: 写失败测试**（4 例）：①effective = 多角色 resolveInheritedPermissions 合并去重（按 permission.id）②hasPermission 命中 `'users:read'`（resource+action 拼接）③hasPermissions 任一即真④setRolePermissions 委托 roleManager 私有不泄漏——若 RoleManager.setRolePermissions 为 private（:462），PermissionManager 自实现 role_permissions 表 delete+insert 事务（照抄 :462-475 查询体为私有辅助，非跨类调用）
+- [x] **Step 2: 实现**——effective 核心：
 
 ```typescript
 async getUserEffectivePermissions(userId: string, tenantId: string): Promise<Permission[]> {
@@ -256,8 +256,8 @@ async hasPermission(userId: string, permission: string, tenantId: string): Promi
 // update/delete: 按 :104/:112 已有前置读取（findById+引用检查）后落 drizzle update/delete（参照同文件 create 的 try/catch + logger 模式）
 ```
 
-- [ ] **Step 3: 测试全绿 + `pixi run npx tsc --noEmit`（packages/identity）**
-- [ ] **Step 4: Commit** `feat(identity): PermissionManager 补实 effective/has/set/update/delete`
+- [x] **Step 3: 测试全绿 + `pixi run npx tsc --noEmit`（packages/identity）**
+- [x] **Step 4: Commit** `feat(identity): PermissionManager 补实 effective/has/set/update/delete`
 
 ### Task 8: 内置权限种子 + admin 全量绑定（启动守卫）
 
@@ -268,9 +268,9 @@ async hasPermission(userId: string, permission: string, tenantId: string): Promi
 **Interfaces:**
 - Produces: 种子清单常量 `BUILTIN_PERMISSIONS: {resource:string; action:string; description:string}[]`，值**必须与 authorize.ts 映射表逐字一致**：3 资源（users/roles/permissions）× 3 动作（read/write/delete）= **9 条**，description 用固定英文说明串
 
-- [ ] **Step 1: 失败测试**：init 完成后 permissions 表含 9 条、admin 角色 role_permissions 关联 9 条、重复执行幂等（ON CONFLICT DO NOTHING）
-- [ ] **Step 2: 实现**：drizzle `insert(permissions).values(...).onConflictDoNothing()` → 回读 id → `insert(rolePermissions).values(adminRole.id × ids).onConflictDoNothing()`；挂在 admin 创建成功后（同事务不必要，best-effort + logger.error 兜底）
-- [ ] **Step 3: 绿 + Commit** `feat(server): 内置权限种子 + admin 绑定（幂等）`
+- [x] **Step 1: 失败测试**：init 完成后 permissions 表含 9 条、admin 角色 role_permissions 关联 9 条、重复执行幂等（ON CONFLICT DO NOTHING）
+- [x] **Step 2: 实现**：drizzle `insert(permissions).values(...).onConflictDoNothing()` → 回读 id → `insert(rolePermissions).values(adminRole.id × ids).onConflictDoNothing()`；挂在 admin 创建成功后（同事务不必要，best-effort + logger.error 兜底）
+- [x] **Step 3: 绿 + Commit** `feat(server): 内置权限种子 + admin 绑定（幂等）`
 
 ### Task 9: requirePermission preHandler + 路由挂线（含 authorize.ts 匹配 bug 修复）
 
@@ -282,9 +282,9 @@ async hasPermission(userId: string, permission: string, tenantId: string): Promi
 - Consumes: Task 7 `PermissionManager.hasPermission`；`request.user`（@fastify/jwt payload `{sub, email, jti?, tenantId?}`——实现前先读 auth.ts 登录签发处确认含 sub；若无 tenantId 字段用 DEFAULT_TENANT）
 - Produces: `requirePermission(app: FastifyInstance)` 或 `preHandler: [app.authenticate, requirePermission()]`——工厂无参，内部按 `getRequiredPermission(method, url)` 查表；**无映射 = 不强制**（渐进面同 authorize.ts 语义）
 
-- [ ] **Step 1: authorize.ts**：`export function getRequiredPermission(...)`；映射键改为 `${method}:/api/v1/${resource}` 仅资源根段，匹配逻辑：按 url 路径段逐段裁剪找首个命中（防 `/users/123` 漏网）；原 authorizeHook 行为不变
-- [ ] **Step 2: utils/permission.ts 失败测试**：三例——无 token→401（由 authenticate 保证，测 403 即可）、角色无 `users:delete` 的 user 调 `DELETE /api/v1/users/:id` → 403 `{success:false,error:{code:'PERM_001',…}}`、admin → 2xx；用现有 server 测试 app 工厂 + inject
-- [ ] **Step 3: 实现 + 挂线**：
+- [x] **Step 1: authorize.ts**：`export function getRequiredPermission(...)`；映射键改为 `${method}:/api/v1/${resource}` 仅资源根段，匹配逻辑：按 url 路径段逐段裁剪找首个命中（防 `/users/123` 漏网）；原 authorizeHook 行为不变
+- [x] **Step 2: utils/permission.ts 失败测试**：三例——无 token→401（由 authenticate 保证，测 403 即可）、角色无 `users:delete` 的 user 调 `DELETE /api/v1/users/:id` → 403 `{success:false,error:{code:'PERM_001',…}}`、admin → 2xx；用现有 server 测试 app 工厂 + inject
+- [x] **Step 3: 实现 + 挂线**：
 
 ```typescript
 // apps/server/src/utils/permission.ts
@@ -307,8 +307,8 @@ export function requirePermission() {
 ```
 
 挂线：users.ts/roles.ts/permissions.ts 各文件顶部现有 `app.addHook('preHandler', …authenticate)` **之后**追加一行 `app.addHook('preHandler', requirePermission())`——Fastify 同阶段 hook 按注册顺序执行，authenticate 先填 `request.user`，本 hook 后读。同时消掉原 `(app as any).authenticate` 的 `as any`：在 server 既有 fastify 类型增强文件声明 `authenticate(request, reply): Promise<void>`（禁 as any）。
-- [ ] **Step 4: 全量 server vitest 绿（现有测试全走 admin → 种子后全放行）**
-- [ ] **Step 5: Commit** `feat(server): requirePermission 路由强制（users/roles/permissions）+ authorize 前缀匹配修复`
+- [x] **Step 4: 全量 server vitest 绿（现有测试全走 admin → 种子后全放行）**
+- [x] **Step 5: Commit** `feat(server): requirePermission 路由强制（users/roles/permissions）+ authorize 前缀匹配修复`
 
 ### Task 10: /auth/me 暴露 permissions + mfaEnabled
 
@@ -316,9 +316,9 @@ export function requirePermission() {
 - Modify: `apps/server/src/routes/auth.ts`（:243-252 me 返回体；rolesOf 旁新增 `permissionsOf`）
 - Test: `apps/server/src/__tests__/auth.test.ts` 追加 2 例
 
-- [ ] **Step 1: 失败测试**：admin me → `data.permissions` 数组含 `'users:read'`、`data.mfaEnabled === false`；无角色用户 → `permissions: []`
-- [ ] **Step 2: 实现**：`permissions: (await permissionManager.getUserEffectivePermissions(user.id, DEFAULT_TENANT)).map(p => `${p.resource}:${p.action}`)`；`mfaEnabled: user.mfaEnabled ?? false`（读 users 表既有列名核实后引用）；me 处 new PermissionManager 复用 Task 9 实例化方式
-- [ ] **Step 3: 绿 + Commit** `feat(server): /auth/me 返回 permissions 与 mfaEnabled`
+- [x] **Step 1: 失败测试**：admin me → `data.permissions` 数组含 `'users:read'`、`data.mfaEnabled === false`；无角色用户 → `permissions: []`
+- [x] **Step 2: 实现**：`permissions: (await permissionManager.getUserEffectivePermissions(user.id, DEFAULT_TENANT)).map(p => `${p.resource}:${p.action}`)`；`mfaEnabled: user.mfaEnabled ?? false`（读 users 表既有列名核实后引用）；me 处 new PermissionManager 复用 Task 9 实例化方式
+- [x] **Step 3: 绿 + Commit** `feat(server): /auth/me 返回 permissions 与 mfaEnabled`
 
 ### Task 11: 前端权限门（store + 菜单过滤 + 路由守卫 + /403 可达）
 
@@ -326,15 +326,15 @@ export function requirePermission() {
 - Modify: `stores/auth.ts`（User 加 `permissions: string[]`、`mfaEnabled: boolean`；state 加 `hasPermission(code): boolean`——admin 语义**不**硬编码 bypass，数据驱动：种子已给 admin 全量）, `layouts/AdminLayout.tsx:25-37`（menuRoutes 过滤：`{path→code}` 表 dashboard/profile/settings=null 恒显，users/roles/audit→`users:read`/`roles:read`/`audit:read`；audit 暂不在 authorize 表 → 过滤表用 `'audit:read'` 但后端不强制本批维持现状，注释标注 ponytail 上限）, `App.tsx:21-25`（PrivateRoute 加可选 `permission` prop，未通过 `<Navigate to="/403" replace />`；users 路由传 `'users:read'`，roles/permissions 同）
 - Test: `e2e/auth-rbac-ui.spec.ts`（mock：/auth/me 返回 `permissions:['users:read']` → 侧栏无 Roles/Audit 项、直访 `/roles` 落 403 页、`/users` 正常）
 
-- [ ] **Step 1-4:** 先写 e2e（红：当前无过滤）→ 实现 → 绿。store 改动注意 persist partialize 不含函数；fetchUser 映射 `permissions ?? []`（向后兼容旧后端）
-- [ ] **Step 5: Commit** `feat(admin-ui): 菜单/路由权限门，/403 可达`
+- [x] **Step 1-4:** 先写 e2e（红：当前无过滤）→ 实现 → 绿。store 改动注意 persist partialize 不含函数；fetchUser 映射 `permissions ?? []`（向后兼容旧后端）
+- [x] **Step 5: Commit** `feat(admin-ui): 菜单/路由权限门，/403 可达`
 
 ### Task 12: 批二收口
 
-- [ ] 真后端 curl 验真：非 admin 新用户（无角色）`GET /api/v1/users` → 403；admin → 200（PIT 纪律：交付层实测，不只 vitest）
-- [ ] 全量 vitest + e2e chromium（mock 登录的旧 spec：/auth/me mock 缺 permissions 字段 → Step 兼容 `?? []` 不得让现有 69 用例红；红了就补 mock 字段而非放宽断言——PIT-032 同源诚实性）
-- [ ] `.agents/memorys/decisions.md` 记 D115（requirePermission 偏离 §3.3 plugin 路线及理由）+ conventions 权限码表更新；status.md 行更新
-- [ ] Commit `docs(memory): D115 授权强制路线决策 + 权限码种子表`
+- [x] 真后端 curl 验真：非 admin 新用户（无角色）`GET /api/v1/users` → 403；admin → 200（PIT 纪律：交付层实测，不只 vitest）
+- [x] 全量 vitest + e2e chromium（mock 登录的旧 spec：/auth/me mock 缺 permissions 字段 → Step 兼容 `?? []` 不得让现有 69 用例红；红了就补 mock 字段而非放宽断言——PIT-032 同源诚实性）
+- [x] `.agents/memorys/decisions.md` 记 D115（requirePermission 偏离 §3.3 plugin 路线及理由）+ conventions 权限码表更新；status.md 行更新
+- [x] Commit `docs(memory): D115 授权强制路线决策 + 权限码种子表`
 
 ---
 
