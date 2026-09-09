@@ -72,6 +72,13 @@ export async function authRoutes(app: FastifyInstance) {
     const roles = await roleManager.getUserRoles(userId, DEFAULT_TENANT);
     return roles.map((r) => ({ id: r.id, name: r.name }));
   }
+  /** Effective 'resource:action' codes for /auth/me (frontend menu/route gating) */
+  async function permissionsOf(userId: string): Promise<string[]> {
+    const { PermissionManager } = await import('@accessbase/identity');
+    const perms = await new PermissionManager().getUserEffectivePermissions(userId, DEFAULT_TENANT);
+    return perms.map((p) => `${p.resource}:${p.action}`);
+  }
+
 
   // POST /api/v1/auth/login
   app.post<{ Body: LoginBody }>(
@@ -247,6 +254,9 @@ export async function authRoutes(app: FastifyInstance) {
           email: user.email,
           name: user.name,
           roles: await rolesOf(user.id),
+          permissions: await permissionsOf(user.id),
+          // users.mfaEnabled column is dead; totpEnabled is the live MFA state (MfaManager writes it)
+          mfaEnabled: user.totpEnabled ?? false,
         },
       };
     },

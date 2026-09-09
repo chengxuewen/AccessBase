@@ -39,6 +39,11 @@ const sessionManagerMock = {
   getUserSessions: vi.fn().mockResolvedValue([]),
 };
 
+// Task 10: /auth/me resolves effective permissions through PermissionManager
+const permissionManagerMock = {
+  getUserEffectivePermissions: vi.fn().mockResolvedValue([]),
+};
+
 describe('GET /api/v1/auth/sessions (Settings — active sessions list)', () => {
   it('returns 401 without a token', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/auth/sessions' });
@@ -111,6 +116,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     UserManager: vi.fn().mockImplementation(() => userManagerMock),
     RoleManager: vi.fn().mockImplementation(() => roleManagerMock),
     SessionManager: vi.fn().mockImplementation(() => sessionManagerMock),
+    PermissionManager: vi.fn().mockImplementation(() => permissionManagerMock),
   };
 });
 
@@ -136,7 +142,7 @@ afterAll(async () => {
 
 // T2-4: /auth/me returns the {success,data} envelope with real [{id,name}] roles
 describe('GET /api/v1/auth/me', () => {
-  it('returns the envelope with assigned roles projected to {id,name}', async () => {
+  it('returns the envelope with roles, effective permission codes and mfaEnabled', async () => {
     userManagerMock.findById.mockResolvedValueOnce({
       id: 'u-1',
       email: 'admin@test.local',
@@ -146,21 +152,36 @@ describe('GET /api/v1/auth/me', () => {
     roleManagerMock.getUserRoles.mockResolvedValueOnce([
       { id: 'r-1', name: 'admin', description: 'ignored', permissions: [] },
     ]);
+    permissionManagerMock.getUserEffectivePermissions.mockResolvedValueOnce([
+      { id: 'p-1', name: 'users:read', resource: 'users', action: 'read' },
+      { id: 'p-2', name: 'roles:read', resource: 'roles', action: 'read' },
+    ]);
 
     const res = await authedInject({ method: 'GET', url: '/api/v1/auth/me' });
 
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({
       success: true,
-      data: { id: 'u-1', email: 'admin@test.local', name: 'Adm', roles: [{ id: 'r-1', name: 'admin' }] },
+      data: {
+        id: 'u-1',
+        email: 'admin@test.local',
+        name: 'Adm',
+        roles: [{ id: 'r-1', name: 'admin' }],
+        permissions: ['users:read', 'roles:read'],
+        mfaEnabled: false,
+      },
     });
     expect(roleManagerMock.getUserRoles).toHaveBeenCalledWith(
       'u-1',
       '00000000-0000-0000-0000-000000000001',
     );
+    expect(permissionManagerMock.getUserEffectivePermissions).toHaveBeenCalledWith(
+      'u-1',
+      '00000000-0000-0000-0000-000000000001',
+    );
   });
 
-  it('returns roles:[] when the user has no assignments', async () => {
+  it('returns roles:[] and permissions:[] when the user has no assignments', async () => {
     userManagerMock.findById.mockResolvedValueOnce({
       id: 'u-1',
       email: 'admin@test.local',
@@ -168,11 +189,29 @@ describe('GET /api/v1/auth/me', () => {
       isActive: true,
     });
     roleManagerMock.getUserRoles.mockResolvedValueOnce([]);
+    permissionManagerMock.getUserEffectivePermissions.mockResolvedValueOnce([]);
 
     const res = await authedInject({ method: 'GET', url: '/api/v1/auth/me' });
 
     expect(res.statusCode).toBe(200);
     expect(res.json().data.roles).toEqual([]);
+    expect(res.json().data.permissions).toEqual([]);
+  });
+
+  it('reports mfaEnabled:true when the user has TOTP enabled', async () => {
+    userManagerMock.findById.mockResolvedValueOnce({
+      id: 'u-1',
+      email: 'admin@test.local',
+      name: 'Adm',
+      isActive: true,
+      totpEnabled: true,
+    });
+    roleManagerMock.getUserRoles.mockResolvedValueOnce([]);
+
+    const res = await authedInject({ method: 'GET', url: '/api/v1/auth/me' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.mfaEnabled).toBe(true);
   });
 });
 
