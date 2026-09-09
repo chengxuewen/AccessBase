@@ -60,9 +60,10 @@ export default function MfaCard() {
     setModalError(null);
     try {
       await enableMfa(code);
+      // read codes before closeSetup() nulls setupData (codes shown exactly once)
+      const codes = setupData?.recoveryCodes ?? [];
       closeSetup();
-      // codes were returned by /mfa/setup and are shown exactly once
-      setRecoveryCodes(setupData?.recoveryCodes ?? []);
+      setRecoveryCodes(codes);
       setCodesSaved(false);
       setRecoveryOpen(true);
     } catch (err: unknown) {
@@ -139,7 +140,7 @@ export default function MfaCard() {
             <>
               <Typography.Paragraph>{t('settings.mfa.scanHint')}</Typography.Paragraph>
               <div style={{ textAlign: 'center', margin: '16px 0' }}>
-                <img src={setupData.qrDataUrl} alt="TOTP QR" data-testid="mfa-qr" style={{ width: 200, height: 200 }} />
+                <img src={setupData.qrDataUrl} alt={t('settings.mfa.qrAlt')} data-testid="mfa-qr" style={{ width: 200, height: 200 }} />
               </div>
               <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
                 {t('settings.mfa.secretHint')}

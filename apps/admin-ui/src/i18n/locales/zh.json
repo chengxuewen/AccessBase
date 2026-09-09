@@ -319,6 +319,7 @@
       "setup": "设置身份验证器",
       "setupTitle": "设置双重验证",
       "scanHint": "使用身份验证器 App 扫描下方二维码：",
+      "qrAlt": "双重验证设置二维码",
       "secretHint": "无法扫码？请手动录入以下密钥：",
       "codePlaceholder": "输入 6 位动态码",
       "verifyEnable": "验证并启用",
