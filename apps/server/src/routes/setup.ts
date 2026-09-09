@@ -8,6 +8,7 @@ import { createDb, users, userRoles, roles } from '@accessbase/identity/db';
 import { eq } from 'drizzle-orm';
 import { logger } from '@accessbase/logging';
 import { config } from '../config.js';
+import { seedBuiltinPermissions } from './permissions-seed.js';
 // DB-derived setup state (D113): the users table is the single source of truth.
 // No in-memory state — see queryAdminExists/getSetupStatus below.
 
@@ -280,6 +281,9 @@ export async function setupRoutes(app: FastifyInstance) {
         // UserManager.create ignores the roles field — assign admin role explicitly,
         // else wizard admins have no admin-role row and system stays uninitialized (T5 E2E finding)
         await roleManager.assignToUser(adminUser.id, adminRole.id, DEFAULT_TENANT);
+        // Best-effort: seed 9 builtin permissions + bind admin role (idempotent)
+        // Seed failure is swallowed — admin creation is the primary goal here.
+        await seedBuiltinPermissions(setupDb(), adminRole.id);
         // Log without sensitive data
         logger.info({ userId: adminUser.id, email }, 'Admin user created via setup wizard');
 
