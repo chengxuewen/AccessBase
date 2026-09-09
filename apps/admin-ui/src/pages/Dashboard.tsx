@@ -59,22 +59,22 @@ export default function Dashboard() {
   const cards = [
     {
       title: t('dashboard.totalUsers'),
-      value: stats?.users ?? 0,
+      value: stats?.users,
       icon: <UserOutlined style={{ fontSize: 24, color: '#1890ff' }} />,
     },
     {
       title: t('dashboard.activeRoles'),
-      value: stats?.roles ?? 0,
+      value: stats?.roles,
       icon: <TeamOutlined style={{ fontSize: 24, color: '#52c41a' }} />,
     },
     {
       title: t('dashboard.activeSessions'),
-      value: stats?.activeSessions ?? 0,
+      value: stats?.activeSessions,
       icon: <SafetyOutlined style={{ fontSize: 24, color: '#faad14' }} />,
     },
     {
       title: t('dashboard.auditLogs'),
-      value: stats?.audits ?? 0,
+      value: stats?.audits,
       icon: <AuditOutlined style={{ fontSize: 24, color: '#f5222d' }} />,
     },
   ];
@@ -91,7 +91,7 @@ export default function Dashboard() {
         {cards.map((stat) => (
           <Col xs={24} sm={12} lg={6} key={stat.title}>
             <Card>
-              <Statistic title={stat.title} value={stat.value} prefix={stat.icon} />
+              <Statistic title={stat.title} value={stat.value} prefix={stat.icon} loading={loading} />
             </Card>
           </Col>
         ))}

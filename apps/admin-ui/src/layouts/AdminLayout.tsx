@@ -52,6 +52,10 @@ export default function AdminLayout() {
     };
   }, []);
 
+  useEffect(() => {
+    if (useAuthStore.getState().token) void fetchUser().catch(() => {});
+  }, [fetchUser]);
+
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);

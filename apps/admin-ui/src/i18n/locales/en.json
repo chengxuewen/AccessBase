@@ -150,6 +150,7 @@
     "deleteError": "Failed to delete role",
     "loadPermissionsError": "Failed to load permissions",
     "loadDetailError": "Failed to load role details",
+    "loadError": "Failed to load roles",
     "confirmEmptyTitle": "Remove all permissions?",
     "confirmEmptyContent": "This role will be saved without any permissions. Members holding it will lose access. Continue?",
     "transferAvailable": "Available",

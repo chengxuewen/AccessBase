@@ -150,6 +150,7 @@
     "deleteError": "角色删除失败",
     "loadPermissionsError": "权限加载失败",
     "loadDetailError": "角色详情加载失败",
+    "loadError": "角色列表加载失败",
     "confirmEmptyTitle": "清空该角色的全部权限？",
     "confirmEmptyContent": "该角色保存后将不再拥有任何权限，拥有该角色的成员会失去相应访问能力。确定继续吗？",
     "transferAvailable": "可选",

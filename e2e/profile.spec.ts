@@ -53,7 +53,16 @@ async function mockCommonApis(page: Page): Promise<void> {
       contentType: 'application/json',
       body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
     });
-  });
+    });
+
+    // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
+    await page.route('**/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] } }),
+      });
+    });
 
 }
 

@@ -89,6 +89,14 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     consoleErrors = trackConsoleErrors(page);
     await mockInitialized(page);
     await mockStats(page);
+    // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
+    await page.route('**/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: MOCK_ME_USER }),
+      });
+    });
   });
 
   test.afterEach(async () => {

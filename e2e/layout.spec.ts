@@ -33,6 +33,15 @@ async function mockCommonApis(page: Page): Promise<void> {
     });
   });
 
+  // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
+  await page.route('**/api/v1/auth/me', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] } }),
+    });
+  });
+
 }
 
 // Data mocks for each admin page so page mounts don't fire 401s (axios interceptor logs out on 401)

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Button, Form, Input, Modal, Popconfirm, Transfer } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Alert, Button, Form, Input, Modal, Popconfirm, Transfer } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, LoadingOutlined, ReloadOutlined } from '@ant-design/icons';
 import EmptyState from '../components/EmptyState';
 import {
   listRoles,
@@ -27,6 +27,7 @@ export default function Roles() {
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [targetPermissionIds, setTargetPermissionIds] = useState<string[]>([]);
   const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     listPermissions({ page: 1, pageSize: 100 })
@@ -145,23 +146,41 @@ export default function Roles() {
 
   return (
     <>
+      {loadError && (
+        <Alert
+          type="error"
+          showIcon
+          message={t('roles.loadError')}
+          action={
+            <Button size="small" icon={<ReloadOutlined />} onClick={() => actionRef.current?.reload()}>{t('common.retry')}</Button>
+          }
+          data-testid="roles-load-error"
+          style={{ marginBottom: 16 }}
+        />
+      )}
       <ProTable<Role>
         headerTitle={t('roles.title')}
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
         request={async (params) => {
-          const { current, pageSize, name } = params;
-          const result = await listRoles({
-            page: current,
-            pageSize,
-            search: name,
-          });
-          return {
-            data: result.data,
-            total: result.total,
-            success: true,
-          };
+          try {
+            const { current, pageSize, name } = params;
+            const result = await listRoles({
+              page: current,
+              pageSize,
+              search: name,
+            });
+            setLoadError(false);
+            return {
+              data: result.data,
+              total: result.total,
+              success: true,
+            };
+          } catch {
+            setLoadError(true);
+            return { data: [], total: 0, success: false };
+          }
         }}
         pagination={{ defaultPageSize: 10 }}
         search={false}

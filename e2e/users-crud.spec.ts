@@ -92,6 +92,15 @@ test.describe('Users CRUD (dedicated routes)', () => {
       });
     });
 
+    // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
+    await page.route('**/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] } }),
+      });
+    });
+
     // Roles list for create/edit role selects
     await page.route('**/api/v1/roles**', async (route) => {
       await route.fulfill({
