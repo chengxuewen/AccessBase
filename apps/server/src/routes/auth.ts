@@ -464,7 +464,7 @@ return { success: true };
         await sessionManager.revokeAllUserSessions(payload.sub);
         const user = await userManager.findById(
           payload.sub,
-          '00000000-0000-0000-0000-000000000001',
+          DEFAULT_TENANT,
         );
         if (!user) throw new Error('User not found');
         const { accessToken, refreshToken } = await issueTokenPair(request, { id: user.id, email: user.email });
@@ -684,7 +684,7 @@ return { success: true };
         const userManager = new (await import('@accessbase/identity')).UserManager();
         const user = await userManager.findById(
           payload.userId,
-          '00000000-0000-0000-0000-000000000001',
+          DEFAULT_TENANT,
         );
         if (!user) {
           return reply.status(401).send({

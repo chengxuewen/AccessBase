@@ -16,6 +16,7 @@ import type { DrizzleDB } from '@accessbase/identity/db';
 import { SessionManager, FlowTokenService, getRedisClient } from '@accessbase/identity';
 import { randomBytes } from 'node:crypto';
 import bcryptjs from 'bcryptjs';
+import { DEFAULT_TENANT } from '../utils/constants.js';
 import { config } from '../config.js';
 
 const SUPPORTED_PROVIDERS = ['github', 'google'] as const;
@@ -188,7 +189,7 @@ export async function oauthRoutes(app: FastifyInstance) {
         email: profile.email || `${profile.providerAccountId}@${provider}.oauth.invalid`,
         name: profile.name,
         passwordHash: await bcryptjs.hash(randomPassword, 12),
-        tenantId: '00000000-0000-0000-0000-000000000001',
+        tenantId: DEFAULT_TENANT,
         status: 'active',
       })
       .returning({ id: users.id, email: users.email });
