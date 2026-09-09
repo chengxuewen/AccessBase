@@ -9,6 +9,9 @@ interface User {
   email: string;
   name: string;
   roles: { id: string; name: string }[];
+  /** Effective 'resource:action' codes from /auth/me; undefined = old backend → no gating */
+  permissions?: string[];
+  mfaEnabled?: boolean;
 }
 
 interface AuthState {
@@ -27,6 +30,7 @@ interface AuthState {
   exchangeOAuthCode: (code: string) => Promise<void>;
   verifyMfa: (code: string) => Promise<boolean>;
   cancelMfa: () => void;
+  hasPermission: (code: string) => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -139,6 +143,13 @@ export const useAuthStore = create<AuthState>()(
 
       cancelMfa: () => {
         set({ mfaFlowToken: null, error: null });
+      },
+
+      // Data-driven gate (admin holds all 9 codes via seed — no hardcoded bypass).
+      // undefined permissions = legacy backend response → allow everything.
+      hasPermission: (code: string) => {
+        const perms = get().user?.permissions;
+        return perms === undefined ? true : perms.includes(code);
       },
 
       fetchUser: async () => {

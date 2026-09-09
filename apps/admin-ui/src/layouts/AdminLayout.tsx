@@ -22,20 +22,25 @@ export default function AdminLayout() {
   const { t, i18n } = useTranslation();
   // C7 fix: ProLayout renders route `name` verbatim — labels must go through i18next
   // (raw keys like "menu.dashboard" used to show in the sidebar; confirmed in real-browser snapshot).
-  const menuRoutes = useMemo(
-    () => ({
-      path: '/',
-      routes: [
-        { path: '/dashboard', name: t('menu.dashboard'), icon: <DashboardOutlined /> },
-        { path: '/users', name: t('menu.users'), icon: <UserOutlined /> },
-        { path: '/roles', name: t('menu.roles'), icon: <SafetyOutlined /> },
-        { path: '/audit', name: t('menu.audit'), icon: <FileSearchOutlined /> },
-        { path: '/profile', name: t('menu.profile'), icon: <SolutionOutlined /> },
-        { path: '/settings', name: t('menu.settings'), icon: <SettingOutlined /> },
-      ],
-    }),
-    [t],
-  );
+  // Permission codes gate menu entries; dashboard/profile/settings are always visible.
+  // ponytail: audit gate waits for audit:* codes (none in the 9-code seed yet) → always visible.
+  const permissions = useAuthStore((s) => s.user?.permissions);
+  const menuRoutes = useMemo(() => {
+    const codeOf: Record<string, string> = { '/users': 'users:read', '/roles': 'roles:read' };
+    const routes = [
+      { path: '/dashboard', name: t('menu.dashboard'), icon: <DashboardOutlined /> },
+      { path: '/users', name: t('menu.users'), icon: <UserOutlined /> },
+      { path: '/roles', name: t('menu.roles'), icon: <SafetyOutlined /> },
+      { path: '/audit', name: t('menu.audit'), icon: <FileSearchOutlined /> },
+      { path: '/profile', name: t('menu.profile'), icon: <SolutionOutlined /> },
+      { path: '/settings', name: t('menu.settings'), icon: <SettingOutlined /> },
+    ].filter((r) => {
+      const code = codeOf[r.path];
+      return code === undefined || (permissions?.includes(code) ?? true);
+    });
+    return { path: '/', routes };
+  }, [t, permissions]);
+
   const navigate = useNavigate();
   const location = useLocation();
   const { user, error, fetchUser, logoutWithServer } = useAuthStore();

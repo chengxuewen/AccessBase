@@ -21,10 +21,16 @@ import Forbidden from './pages/errors/Forbidden';
 import NotFound from './pages/errors/NotFound';
 import GlobalErrorBoundary from './components/GlobalErrorBoundary';
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
+function PrivateRoute({ children, permission }: { children: React.ReactNode; permission?: string }) {
   const { token, isAuthenticated } = useAuthStore();
+  const permissions = useAuthStore((s) => s.user?.permissions);
   // Check token directly — isAuthenticated may not be rehydrated yet
-  return (token || isAuthenticated) ? <>{children}</> : <Navigate to="/login" replace />;
+  if (!(token || isAuthenticated)) return <Navigate to="/login" replace />;
+  // Authenticated but missing the page's read code → 403 (undefined permissions = legacy backend → pass)
+  if (permission && !(permissions === undefined || permissions.includes(permission))) {
+    return <Navigate to="/403" replace />;
+  }
+  return <>{children}</>;
 }
 
 function SetupGuardRetry() {
@@ -97,11 +103,11 @@ export default function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="users" element={<Users />} />
-        <Route path="users/create" element={<UserCreate />} />
-        <Route path="users/:id" element={<UserDetail />} />
-        <Route path="users/:id/edit" element={<UserEdit />} />
-        <Route path="roles" element={<Roles />} />
+        <Route path="users" element={<PrivateRoute permission="users:read"><Users /></PrivateRoute>} />
+        <Route path="users/create" element={<PrivateRoute permission="users:read"><UserCreate /></PrivateRoute>} />
+        <Route path="users/:id" element={<PrivateRoute permission="users:read"><UserDetail /></PrivateRoute>} />
+        <Route path="users/:id/edit" element={<PrivateRoute permission="users:read"><UserEdit /></PrivateRoute>} />
+        <Route path="roles" element={<PrivateRoute permission="roles:read"><Roles /></PrivateRoute>} />
         <Route path="audit" element={<Audit />} />
         <Route path="profile" element={<Profile />} />
         <Route path="settings" element={<Settings />} />
