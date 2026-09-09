@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Descriptions, Popconfirm, Space, Spin, Switch, Tag } from 'antd';
 import { deleteUser, changeUserStatus, getUser, type User } from '../../api/users';
 import { message } from '../../api/feedback';
+import { apiErrorMessage } from '../../api/errors';
 
 export default function UserDetail() {
   const { t } = useTranslation();
@@ -17,7 +18,7 @@ export default function UserDetail() {
     if (!id) return;
     getUser(id)
       .then(setUser)
-      .catch(() => message.error(t('users.deleteError')))
+      .catch((err) => message.error(apiErrorMessage(err, t('users.loadError'))))
       .finally(() => setLoading(false));
   }, [id, t]);
 

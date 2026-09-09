@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSetupStore } from '../../../stores/setup';
 import { createAdmin } from '../../../api/setup';
 import { notification } from '../../../api/feedback';
+import { apiErrorMessage } from '../../../api/errors';
 
 interface AdminFormData {
   name: string;
@@ -33,17 +34,13 @@ export default function AdminStep({ next, prev, stepTitleRef }: StepProps) {
       setAdminData({ name: values.name, email: values.email });
       next();
     } catch (err: unknown) {
-      const error = err as {
-        response?: { data?: { error?: { code?: string } } };
-        message?: string;
-      };
-      const code = error.response?.data?.error?.code;
+      const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
       if (code === 'ADMIN_EXISTS') {
         notification.error({ message: t('setup.errors.adminExists') });
       } else {
         notification.error({
           message: t('setup.errors.serverError'),
-          description: error.message,
+          description: apiErrorMessage(err, ''),
         });
       }
       setError(t('setup.errors.setupFailed'));

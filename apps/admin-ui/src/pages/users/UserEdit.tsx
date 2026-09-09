@@ -5,6 +5,7 @@ import { Button, Card, Form, Input, Select } from 'antd';
 import { getUser, updateUser, type User } from '../../api/users';
 import { listRoles } from '../../api/roles';
 import { message } from '../../api/feedback';
+import { apiErrorMessage } from '../../api/errors';
 
 export default function UserEdit() {
   const { t } = useTranslation();
@@ -22,7 +23,7 @@ export default function UserEdit() {
         setUser(u);
         form.setFieldsValue({ name: u.name, roleIds: u.roleIds ?? [] });
       })
-      .catch(() => message.error(t('users.updateError')));
+      .catch((err) => message.error(apiErrorMessage(err, t('users.loadError'))));
     listRoles({ page: 1, pageSize: 100 })
       .then((result) => setRoleOptions(result.data.map((r) => ({ label: r.name, value: r.id }))))
       .catch(() => setRoleOptions([]));

@@ -15,6 +15,7 @@ import {
   type Permission,
 } from '../api/roles';
 import { message } from '../api/feedback';
+import { apiErrorMessage } from '../api/errors';
 
 export default function Roles() {
   const { t } = useTranslation();
@@ -71,8 +72,8 @@ export default function Roles() {
       setEditingRole(null);
       form.resetFields();
       actionRef.current?.reload();
-    } catch {
-      message.error(editingRole ? t('roles.updateError') : t('roles.createError'));
+    } catch (err) {
+      message.error(apiErrorMessage(err, editingRole ? t('roles.updateError') : t('roles.createError')));
     } finally {
       setSaving(false);
     }

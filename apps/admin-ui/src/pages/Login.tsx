@@ -11,6 +11,7 @@ import {
 } from '../api/auth';
 import { startAuthentication } from '@simplewebauthn/browser';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
+import { apiErrorMessage, apiErrorStatus } from '../api/errors';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -20,7 +21,7 @@ export default function Login() {
   const [form] = Form.useForm();
   const [mfaForm] = Form.useForm();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [loginError, setLoginError] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [oauthBusy, setOauthBusy] = useState(false);
   const [passkeyError, setPasskeyError] = useState(false);
@@ -83,12 +84,13 @@ export default function Login() {
   const handleSubmit = async (values: { email: string; password: string }) => {
     try {
       const sessionEstablished = await login(values.email, values.password);
-      setLoginError(false);
+      setLoginError(null);
       if (sessionEstablished) {
         navigate('/');
       }
-    } catch {
-      setLoginError(true);
+    } catch (err) {
+      const status = apiErrorStatus(err);
+      setLoginError(status === 429 ? t('login.tooManyRequests') : apiErrorMessage(err, t('login.error')));
     }
   };
 
@@ -171,14 +173,14 @@ export default function Login() {
           />
         )}
 
-{loginError && (
-<Alert
-type="error"
-showIcon
-message={t('login.error')}
-style={{ marginBottom: 16 }}
-data-testid="login-error"
-/>
+        {loginError && (
+          <Alert
+            type="error"
+            showIcon
+            message={loginError}
+            style={{ marginBottom: 16 }}
+            data-testid="login-error"
+          />
         )}
 
         {passkeyError && (

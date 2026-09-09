@@ -52,7 +52,8 @@
     "mfaCodeRequired": "Please enter your code",
     "mfaSubmit": "Verify",
     "mfaCancel": "Use another account",
-    "mfaError": "Invalid or expired verification code"
+    "mfaError": "Invalid or expired verification code",
+    "tooManyRequests": "Too many attempts, try again later"
   },
   "oauth": {
     "or": "or",

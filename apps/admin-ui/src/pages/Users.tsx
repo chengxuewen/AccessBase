@@ -7,6 +7,7 @@ import { PlusOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
 import { listUsers, deleteUser, type User } from '../api/users';
 import EmptyState from '../components/EmptyState';
 import { message } from '../api/feedback';
+import { apiErrorMessage } from '../api/errors';
 
 export default function Users() {
   const { t } = useTranslation();
@@ -60,8 +61,8 @@ export default function Users() {
               await deleteUser(record.id);
               message.success(t('users.deleteSuccess'));
               actionRef.current?.reload();
-            } catch {
-              message.error(t('users.deleteError'));
+            } catch (err) {
+              message.error(apiErrorMessage(err, t('users.deleteError')));
             }
           }}
           okText={t('common.confirm')}

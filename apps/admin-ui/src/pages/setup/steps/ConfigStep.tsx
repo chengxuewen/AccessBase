@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSetupStore } from '../../../stores/setup';
 import { saveConfig } from '../../../api/setup';
 import { notification } from '../../../api/feedback';
+import { apiErrorMessage } from '../../../api/errors';
 
 interface ConfigFormData {
   siteName: string;
@@ -34,10 +35,9 @@ export default function ConfigStep({ next, prev, stepTitleRef }: StepProps) {
       setConfigData(values);
       next();
     } catch (err: unknown) {
-      const error = err as { message?: string };
       notification.error({
         message: t('setup.errors.invalidConfig'),
-        description: error.message,
+        description: apiErrorMessage(err, ''),
       });
       setError(t('setup.errors.setupFailed'));
     } finally {

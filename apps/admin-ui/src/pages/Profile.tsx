@@ -18,6 +18,7 @@ import { getCurrentUser, updateUser } from '../api/users';
 import { changePassword, revokeOtherSessions, getOAuthLinks, unlinkOAuthProvider, type OAuthLink } from '../api/auth';
 import { useAuthStore } from '../stores/auth';
 import { message } from '../api/feedback';
+import { apiErrorMessage } from '../api/errors';
 
 export default function Profile() {
   const { t } = useTranslation();
@@ -93,11 +94,10 @@ export default function Profile() {
       useAuthStore.getState().setTokens(pair.accessToken, pair.refreshToken);
       setPwdError(null);
       pwdForm.resetFields();
+      message.success(t('profile.passwordChangeSuccess'));
     } catch (err: unknown) {
       // Backend enforces 12+ chars with classes; surface its VALIDATION_001 message on 400
-      const axiosErr = err as { response?: { data?: { error?: { message?: string } } } };
-      const backendMsg = axiosErr?.response?.data?.error?.message;
-      setPwdError(backendMsg ?? t('profile.passwordChangeError'));
+      setPwdError(apiErrorMessage(err, t('profile.passwordChangeError')));
     } finally {
       setChangingPwd(false);
     }
