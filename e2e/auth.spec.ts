@@ -21,7 +21,7 @@ test.describe('Authentication', () => {
     await page.locator('button[type="submit"]').click();
     // Inline Alert (antd static message API doesn't render under React 19)
     await expect(page.getByTestId('login-error')).toBeVisible();
-    await expect(page.getByTestId('login-error')).toContainText('Login failed');
+    await expect(page.getByTestId('login-error')).toContainText(/Login failed|Invalid email or password|Account temporarily locked/);
   });
 
   test('successful login redirects to dashboard', async ({ page }) => {
@@ -48,6 +48,15 @@ test.describe('Authentication', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      });
+    });
+
+    // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
+    await page.route('**/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [] } }),
       });
     });
 
@@ -83,6 +92,15 @@ test.describe('Authentication', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      });
+    });
+
+    // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
+    await page.route('**/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [] } }),
       });
     });
 

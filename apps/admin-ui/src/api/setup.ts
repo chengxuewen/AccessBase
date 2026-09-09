@@ -45,6 +45,15 @@ export async function checkSetupStatus(): Promise<{ needsSetup: boolean; ok: boo
   }
 }
 
+/** Name → i18n key mapping for check items. WelcomeStep renders via t(label). */
+const CHECK_LABEL_KEYS: Record<string, string> = {
+  database: 'setup.checks.database',
+  redis: 'setup.checks.redis',
+  disk_space: 'setup.checks.disk',
+  disk: 'setup.checks.disk',
+  migrations: 'setup.checks.migrations',
+};
+
 /** Run system environment checks */
 export async function runSystemChecks(): Promise<CheckItem[]> {
   const { data } = await client.get<ApiEnvelope<ChecksPayload>>('/v1/setup/checks');
@@ -53,7 +62,7 @@ export async function runSystemChecks(): Promise<CheckItem[]> {
   const raw = data.data?.checks ?? [];
   return raw.map((c: { name: string; status: string; message?: string }) => ({
     name: c.name,
-    label: c.name,
+    label: CHECK_LABEL_KEYS[c.name] ?? c.name,
     status: c.status === 'pass' ? 'success' : 'error',
     message: c.message,
   })) as CheckItem[];

@@ -11,6 +11,7 @@ import {
   Space,
   Spin,
   Tag,
+  Typography,
   Divider,
 } from 'antd';
 import { EditOutlined, LogoutOutlined, CheckOutlined, CloseOutlined, LinkOutlined, GithubOutlined, GoogleOutlined } from '@ant-design/icons';
@@ -224,7 +225,7 @@ export default function Profile() {
         )}
         <Spin spinning={linksLoading}>
           {links.length === 0 && !linksLoading ? (
-            <span style={{ color: '#999' }}>{t('oauth.noLinks')}</span>
+            <Typography.Text type="secondary">{t('oauth.noLinks')}</Typography.Text>
           ) : (
             <Space direction="vertical" style={{ width: '100%' }}>
               {links.map((link) => (

@@ -31,10 +31,10 @@ export default function WelcomeStep({ next, stepTitleRef }: StepProps) {
     systemChecks.length > 0
       ? systemChecks
       : [
-          { name: 'database', label: t('setup.checks.database'), status: 'pending' },
-          { name: 'redis', label: t('setup.checks.redis'), status: 'pending' },
-          { name: 'disk', label: t('setup.checks.disk'), status: 'pending' },
-          { name: 'migrations', label: t('setup.checks.migrations'), status: 'pending' },
+          { name: 'database', label: 'setup.checks.database', status: 'pending' },
+          { name: 'redis', label: 'setup.checks.redis', status: 'pending' },
+          { name: 'disk', label: 'setup.checks.disk', status: 'pending' },
+          { name: 'migrations', label: 'setup.checks.migrations', status: 'pending' },
         ],
   );
   const [running, setRunning] = useState(false);
@@ -89,6 +89,14 @@ export default function WelcomeStep({ next, stepTitleRef }: StepProps) {
     migrations: t('setup.checks.migrationsRecovery'),
   };
 
+  const checkLabelMap: Record<string, string> = {
+    database: t('setup.checks.database'),
+    redis: t('setup.checks.redis'),
+    disk: t('setup.checks.disk'),
+    disk_space: t('setup.checks.disk'),
+    migrations: t('setup.checks.migrations'),
+  };
+
   return (
     <div role="region" aria-labelledby="welcome-title">
       <h2 id="welcome-title" ref={stepTitleRef} tabIndex={-1}>
@@ -109,7 +117,7 @@ export default function WelcomeStep({ next, stepTitleRef }: StepProps) {
               {check.status === 'checking' && <Spin size="small" />}
               {check.status === 'pending' && <ClockCircleOutlined style={{ color: '#999' }} />}
             </span>
-            <span>{check.label}</span>
+            <span>{checkLabelMap[check.name] ?? check.label}</span>
             <span className="sr-only">
               {check.status === 'success'
                 ? t('setup.checks.success')

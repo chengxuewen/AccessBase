@@ -13,6 +13,7 @@ import {
   Spin,
   Tabs,
   Tag,
+  Typography,
 } from 'antd';
 import {
   SafetyOutlined,
@@ -152,7 +153,7 @@ export default function Settings() {
         )}
         <Spin spinning={sessionsLoading}>
           {sessions.length === 0 && !sessionsLoading ? (
-            <span style={{ color: '#999' }}>{t('settings.noSessions')}</span>
+            <Typography.Text type="secondary">{t('settings.noSessions')}</Typography.Text>
           ) : (
             <List
               dataSource={sessions}
@@ -198,7 +199,7 @@ export default function Settings() {
         )}
         <Spin spinning={passkeysLoading}>
           {passkeys.length === 0 && !passkeysLoading ? (
-            <span style={{ color: '#999' }}>{t('settings.noPasskeys')}</span>
+            <Typography.Text type="secondary">{t('settings.noPasskeys')}</Typography.Text>
           ) : (
             <List
               dataSource={passkeys}

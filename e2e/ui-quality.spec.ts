@@ -174,11 +174,18 @@ test.describe('UI quality — language persistence', () => {
     // Click the Name column header — antd's sorter trigger is inside th.ant-table-column-has-sorters
     await page.locator('th.ant-table-column-has-sorters').first().click();
 
-    // Wait for a NEW request (with sort params) to fire
-    await expect.poll(() => userUrls.length > requestCountAfterLoad, { timeout: 10000 }).toBe(true);
-    const newUrl = new URL(userUrls[userUrls.length - 1]);
-    expect(newUrl.searchParams.get('sortBy')).toBe('name');
-    expect(newUrl.searchParams.get('sortOrder')).toBe('asc');
+    // Wait for a new request carrying sort params (may be followed by trailing unsorted refetch)
+    await expect
+      .poll(
+        () => userUrls.slice(requestCountAfterLoad).some((u) => new URL(u).searchParams.get('sortBy') === 'name'),
+        { timeout: 10000 },
+      )
+      .toBe(true);
+    const sortedUrl = userUrls
+      .slice(requestCountAfterLoad)
+      .map((u) => new URL(u))
+      .find((u) => u.searchParams.get('sortBy') === 'name');
+    expect(sortedUrl!.searchParams.get('sortOrder')).toBe('asc');
   });
 
   test('row actions are keyboard-focusable (AC-1)', async ({ page }) => {

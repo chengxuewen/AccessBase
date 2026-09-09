@@ -7,11 +7,12 @@ import {
   UserOutlined,
   LogoutOutlined,
   SettingOutlined,
+  GlobalOutlined,
   SafetyOutlined,
   FileSearchOutlined,
   SolutionOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Dropdown } from 'antd';
+import { Alert, Button, Dropdown, Typography } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { loadSiteSettings, SITE_SETTINGS_EVENT } from '../siteSettings';
@@ -38,7 +39,9 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, error, fetchUser, logoutWithServer } = useAuthStore();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('admin-layout-collapsed') === 'true'; } catch { return false; }
+  });
   const [loggingOut, setLoggingOut] = useState(false);
   const [site, setSite] = useState(loadSiteSettings);
 
@@ -73,13 +76,18 @@ export default function AdminLayout() {
     localStorage.setItem('lng', next);
   };
 
+  const handleCollapse = (next: boolean) => {
+    setCollapsed(next);
+    try { localStorage.setItem('admin-layout-collapsed', String(next)); } catch { /* noop */ }
+  };
+
   return (
     <ProLayout
       title={site.siteName || 'AccessBase'}
       logo={site.logoUrl || null}
       fixSiderbar
       collapsed={collapsed}
-      onCollapse={setCollapsed}
+      onCollapse={handleCollapse}
       location={{ pathname: location.pathname }}
       route={menuRoutes}
       menuItemRender={(item, dom) => (
@@ -108,14 +116,15 @@ export default function AdminLayout() {
         ),
       }}
       actionsRender={() => [
-        <SettingOutlined key="settings" data-testid="lang-toggle" title={t('common.language')} aria-label={t('common.language')} onClick={toggleLanguage} />,
-        <LogoutOutlined key="logout" onClick={handleLogout} />,
+        <Button type="text" size="small" icon={<GlobalOutlined />} key="lang" data-testid="lang-toggle" onClick={toggleLanguage} title={t('common.language')} aria-label={t('common.language')}>
+          {i18n.language === 'zh' ? '中文' : 'EN'}
+        </Button>,
       ]}
       menuFooterRender={(props) => {
         if (props?.collapsed) return undefined;
         return (
           <div style={{ textAlign: 'center', paddingBlockEnd: 12 }}>
-            <div style={{ fontSize: 12, color: '#999' }}>AccessBase v0.1.0</div>
+            <div style={{ fontSize: 12 }}><Typography.Text type="secondary">AccessBase v0.1.0</Typography.Text></div>
           </div>
         );
       }}
