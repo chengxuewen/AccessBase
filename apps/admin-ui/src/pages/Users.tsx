@@ -106,7 +106,7 @@ export default function Users() {
         columns={columns}
         request={async (params, sort) => {
           try {
-            const { current, pageSize, name, ...rest } = params;
+            const { current, pageSize, name, sort: _paramsSort, ...rest } = params;
             const result = await listUsers({
               page: current,
               pageSize,

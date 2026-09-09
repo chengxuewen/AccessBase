@@ -11,10 +11,9 @@ function trackConsoleErrors(page: Page): string[] {
     const isNoise =
       text.includes('findDOMNode') ||
       text.includes('chrome-extension') ||
-      text.includes('ResizeObserver') ||
+      text.includes('moz-extension') ||
+      text.includes('ResizeObserver loop') ||
       text.includes('Failed to load resource') ||
-      text.includes('[antd: compatible]') ||
-      text.includes('ResizeObserver') ||
       text.includes('[antd: compatible]') ||
       text.includes('[antd: message]');
     if (!isNoise) errors.push(text);
