@@ -36,6 +36,7 @@ import { startRegistration } from '@simplewebauthn/browser';
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
 import { useAuthStore } from '../stores/auth';
 import { loadSiteSettings, saveSiteSettings } from '../siteSettings';
+import MfaCard from './settings/MfaCard';
 
 
 export default function Settings() {
@@ -192,6 +193,8 @@ export default function Settings() {
           )}
         </Spin>
       </Card>
+
+      <MfaCard />
 
       <Card title={t('settings.passkeys')} data-testid="passkeys">
         {passkeysError && (

@@ -312,6 +312,31 @@
     "passkeyDeleteConfirm": "Delete this passkey?",
     "lastUsed": "Last used",
     "never": "never",
-    "passkeysLoadError": "Failed to load passkeys"
+    "passkeysLoadError": "Failed to load passkeys",
+    "mfa": {
+      "title": "Two-Factor Authentication (TOTP)",
+      "description": "Require an authenticator app code in addition to your password at sign-in. Recommended for account security.",
+      "setup": "Set up authenticator",
+      "setupTitle": "Set up two-factor authentication",
+      "scanHint": "Scan the QR code below with your authenticator app.",
+      "secretHint": "Cannot scan? Enter this setup key manually:",
+      "codePlaceholder": "Enter the 6-digit code",
+      "verifyEnable": "Verify & enable",
+      "setupError": "Failed to start setup, please retry",
+      "enableError": "Verification failed, please retry",
+      "recoveryTitle": "Recovery codes (shown once)",
+      "recoveryWarning": "Save these recovery codes now. They will not be shown again, and each code can be used only once.",
+      "savedConfirm": "I have saved my recovery codes",
+      "recoveryDone": "I've saved them",
+      "enableSuccess": "Two-factor authentication enabled",
+      "alreadyEnabled": "Enabled",
+      "disable": "Disable",
+      "disableTitle": "Disable two-factor authentication",
+      "disableNeedPassword": "Enter your current password to confirm disabling.",
+      "passwordLabel": "Current password",
+      "disableError": "Failed to disable, check your password and retry",
+      "disableConfirm": "Confirm disable",
+      "disableSuccess": "Two-factor authentication disabled"
+    }
   }
 }
