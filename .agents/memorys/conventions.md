@@ -188,5 +188,5 @@ logger.error('Operation failed', error); // ❌
 - 提交信息 / 代码注释 / 架构与设计文档（docs/modules、decisions.md 新增条目）：英文
 - 计划（docs/superpowers/plans、.omo/plans）与 AI 对话/报告：中文
 - 既有中文记忆文件（status/pitfalls/conventions）追加沿用中文体例；decisions.md 自 D116 起英文
-- 检查命令：提交后 `git log -1 --format='%s %b' | grep -P '[\x{4e00}-\u9fa5]'` 应无输出（新规后适用；历史中文提交不回改）
+- 检查命令：提交后 `git log -1 --format='%s %b' | grep -P '[\x{4e00}-\x{9fa5}]'` 应无输出（新规后适用；历史中文提交不回改）
 - 新增代码注释扫描：`grep -rnP '^\s*//.*[\x{4e00}-\x{9fa5}]' apps/admin-ui/src packages/*/src --include='*.ts' --include='*.tsx' | grep -v locales` 应零新增
