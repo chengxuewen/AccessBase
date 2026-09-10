@@ -246,6 +246,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await card.locator('input#name').fill(created.name);
     await card.locator('input#email').fill(created.email);
     await card.locator('input#password').fill('E2ePass123!');
+    await card.locator('input#confirmPassword').fill('E2ePass123!');
 
     // No dropdown interaction: UserCreate initialValues already register isActive/roleIds,
     // and an open antd Select popup intercepts pointer events on the submit button.
@@ -258,6 +259,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     expect(postBody).toHaveProperty('isActive');
     expect(postBody).toHaveProperty('roleIds');
     expect(postBody?.roleIds).toEqual([]);
+    expect(postBody, 'confirmPassword is UI-only and never sent').not.toHaveProperty('confirmPassword');
   });
 
   test('delete user success renders visible .ant-message feedback', async ({ page }) => {
@@ -328,6 +330,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await nameInput.fill(created.name);
     await emailInput.fill(created.email);
     await card.locator('input#password').fill('E2ePass123!');
+    await card.locator('input#confirmPassword').fill('E2ePass123!');
 
     // Guard against AntD controlled-input timing: values must be committed before submit
     await expect(nameInput).toHaveValue(created.name);
@@ -445,5 +448,88 @@ test.describe('Users CRUD (dedicated routes)', () => {
     // AntD placeholder row ("暂无数据") lives in tbody — assert on the empty description
     await expect(page.locator('.ant-table-tbody .ant-empty-description')).toBeVisible({ timeout: 10000 });
     expect(deleted, 'DELETE was called').toBe(true);
+  });
+
+  test('weak password shows inline policy error and never POSTs', async ({ page }) => {
+    let posted = false;
+    await page.route('**/api/v1/users', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      posted = true;
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: makeUser({ id: '2' }) }),
+      });
+    });
+
+    await page.goto('/users/create');
+    const card = page.locator('.ant-card');
+    await card.locator('input#name').fill('Weak Pass');
+    await card.locator('input#email').fill(`weak-${Date.now()}@test.local`);
+    await card.locator('input#password').fill('abc123');
+    await card.locator('input#confirmPassword').fill('abc123');
+    await card.locator('button[type="submit"]').click();
+
+    await expect(
+      card.locator('.ant-form-item-explain-error').filter({ hasText: /At least 8 characters|至少 8 位/ }).first(),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/users\/create/);
+    expect(posted, 'no POST issued while the form is invalid').toBe(false);
+  });
+
+  test('confirm-password mismatch shows inline error and never POSTs', async ({ page }) => {
+    let posted = false;
+    await page.route('**/api/v1/users', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      posted = true;
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: makeUser({ id: '2' }) }),
+      });
+    });
+
+    await page.goto('/users/create');
+    const card = page.locator('.ant-card');
+    await card.locator('input#name').fill('Mismatch User');
+    await card.locator('input#email').fill(`mismatch-${Date.now()}@test.local`);
+    await card.locator('input#password').fill('E2ePass123!');
+    await card.locator('input#confirmPassword').fill('E2ePass124!');
+    await card.locator('button[type="submit"]').click();
+
+    await expect(
+      card.locator('.ant-form-item-explain-error').filter({ hasText: /Passwords do not match|两次输入的密码不一致/ }).first(),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/users\/create/);
+    expect(posted, 'no POST issued while the form is invalid').toBe(false);
+  });
+
+  // Faithful to POST /users 409 envelope in apps/server/src/routes/users.ts
+  test('duplicate email 409 surfaces inline email error without success toast', async ({ page }) => {
+    await page.route('**/api/v1/users', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      await route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'CONFLICT', message: 'User with this email already exists' },
+        }),
+      });
+    });
+
+    await page.goto('/users/create');
+    const card = page.locator('.ant-card');
+    await card.locator('input#name').fill('Duplicate User');
+    await card.locator('input#email').fill(`dup-${Date.now()}@test.local`);
+    await card.locator('input#password').fill('E2ePass123!');
+    await card.locator('input#confirmPassword').fill('E2ePass123!');
+    await card.locator('button[type="submit"]').click();
+
+    await expect(
+      card.locator('.ant-form-item-explain-error').filter({ hasText: 'User with this email already exists' }).first(),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/users\/create/);
+    await expect(page.locator('.ant-message-success')).toHaveCount(0);
   });
 });
