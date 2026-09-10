@@ -119,6 +119,15 @@
         ],
         "reasoningEffort": "low"
       },
+      "general": {
+        "temperature": 0,
+        "model": "new-api/fast",
+        "fallback_models": [
+          "new-api/fast-1",
+          "new-api/fast-2"
+        ],
+        "reasoningEffort": "low"
+      },
       "multimodal-looker": {
         "temperature": 0.1,
         "model": "new-api/vision",
