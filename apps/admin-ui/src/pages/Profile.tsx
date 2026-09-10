@@ -119,7 +119,7 @@ export default function Profile() {
 
   return (
     <Spin spinning={loading}>
-    <Space direction="vertical" size="large" style={{ display: 'flex', width: '100%', maxWidth: 720, margin: '0 auto' }}>
+    <Space direction="vertical" size="large" style={{ display: 'flex', width: '100%' }}>
       <Card
         title={t('profile.personalInfo')}
         extra={
@@ -177,8 +177,8 @@ export default function Profile() {
 
       <Card title={t('profile.changePassword')}>
         {/* UI-level min 8 for usability; the backend enforces the real policy (12 + classes) */}
-        <Alert type="info" showIcon message={t('profile.passwordPolicyHint')} style={{ marginBottom: 16 }} />
-        {pwdError && <Alert type="error" showIcon message={pwdError} style={{ marginBottom: 16 }} className="profile-pwd-error" />}
+        <Alert type="info" showIcon message={t('profile.passwordPolicyHint')} style={{ marginBottom: 16, maxWidth: 400 }} />
+        {pwdError && <Alert type="error" showIcon message={pwdError} style={{ marginBottom: 16, maxWidth: 400 }} className="profile-pwd-error" />}
         <Form form={pwdForm} layout="vertical" onFinish={handleChangePassword} style={{ maxWidth: 400 }}>
           <Form.Item
             name="oldPassword"
