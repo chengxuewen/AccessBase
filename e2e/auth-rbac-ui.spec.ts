@@ -91,6 +91,20 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
     expect(page.url()).toContain('/403');
   });
 
+  // Plan B gate alignment: /users/create + /users/:id/edit gate on users:write (backend enforces it)
+  test('user with only users:read: direct /users/create lands on 403', async ({ page }) => {
+    await seedSessionWithMe(page, {
+      id: '1', email: 'limited@accessbase.local', name: 'Limited',
+      roles: [{ id: 'r-2', name: 'staff' }], permissions: ['users:read'], mfaEnabled: false,
+    });
+
+    await page.goto('/users/create');
+    await expect(
+      page.getByText("Sorry, you don't have permission to access this page.", { exact: true }),
+    ).toBeVisible();
+    expect(page.url()).toContain('/403');
+  });
+
   test('user with all 9 codes sees the full menu', async ({ page }) => {
     await seedSessionWithMe(page, {
       id: '1', email: 'admin@accessbase.local', name: 'Administrator',
