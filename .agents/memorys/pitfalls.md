@@ -262,3 +262,11 @@
 - **解法**: 回收前以交付物 mtime/内容增量判生死，"running cannot accept continuation" 即存活证明
 - **验证**: 本会话两成员经此纪律完成 76/120 行交付零损伤
 - **禁止**: 据框架 wrapper 报错直接 kill 实际存活的子会话
+
+## PIT-036: ProTable scroll.x 引入隐藏 measure-row，裸 tr 计数断言全体 +1 (2026-09-10)
+
+- **症状**: 给 ProTable 加 `scroll={{x:'max-content'}}` 后 15 条 e2e 同时红，全部 toHaveCount 实际比期望 +1；行操作点击落到 0 高行
+- **根因**: antd Table 启用 scroll.x 后 tbody 插入 `tr[aria-hidden].ant-table-measure-row`（固定列宽测量用）；空表另有 `.ant-table-placeholder` 行——裸 `tr` 和 `tr.first()` 都被污染
+- **解法**: 数据行断言/点击定位一律用 `tr.ant-table-row`（天然排除 measure-row 与 placeholder）；空态断言改写 `tr.ant-table-row` count(0) 更语义化
+- **验证**: `grep -rn "tbody tr')" e2e/ | grep -v ant-table-row` 应零命中
+- **禁止**: e2e 用裸 `tbody tr`/`.ant-table-tbody tr` 选择器（任意时刻加 scroll.x 即全量爆红）

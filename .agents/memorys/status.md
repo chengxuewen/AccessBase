@@ -1,8 +1,8 @@
 # AccessBase 项目状态
 
-**更新日期**: 2026-09-04
+**更新日期**: 2026-09-10
+**当前阶段**: Phase 8a 完成（UI 速赢包 + RBAC 授权强制接线 + MFA 自助面板）+ 用户体验改进轮（创建用户 B 包 + 宽度自适应五连）
 **当前阶段**: Phase 8a 完成（UI 速赢包 + RBAC 授权强制接线 + MFA 自助面板，全分支终审通过）
-**当前阶段**: Phase 7 完成（Admin UI 审查修复：envelope 类型化/单飞刷新/feedback bridge/lint 门禁）
 
 ## 模块状态
 
@@ -105,6 +105,7 @@ docs/
 - 2026-09-03: Phase 7 Admin UI 审查修复（refresh 单飞+信封单层解包 PIT-030 根治 / feedback bridge / MFA step-up UI / 向导密码不落 persist / roles hydrate 修复 / /auth/me 信封+真实 roles；lint 门禁修复：flat config 关 no-undef + react-hooks error/warn、4 处 disable 真修 deps；E2E chromium 69（+11 净新回归锁），test.fail 全清）
 - 2026-09-03 收口：真后端验收 setup-real 6/6 + health 3/3（首跑 T5.1 冷 reset 超 180s 为负载现象非回归）；curl 验真 T2-2（isActive+roleIds 持久化）/T2-4（真实角色）；追加修 C6 sr-only/C7 菜单裸 key/C8 齿轮标注；教训沉淀 D114 + PIT-031~033；注：dev DB 现为 setup-real 重置后验证态（admin=audit-verify@test.local），恢复日常用 reset:native 重走向导
 - 2026-09-04: Phase 8a 批一 UI 速赢包（apiErrorMessage 错误族/语言持久化+探测/状态三修/假排序+行操作/杂项5连，e2e 69→74 全绿）
+- 2026-09-10: 用户体验改进轮（UserCreate 体验包 B：错误透传/409 高亮/密码策略可视/确认密码/角色三态/路由门 users:write，提交 90c6ae9+0634937；宽度自适应五连：表单卡 flex fit-content 塌陷修复 332→560/三表 scroll.x/Transfer 46%/Login 流宽/UserEdit 三态，提交 ea54c4a；实测矩阵 375-1920 hscroll 归零；e2e 80→84 + 21+7 处 tr 选择器适配 measure-row，PIT-036）
 - 2026-09-04: Phase 8a 批二 RBAC 接线（PermissionManager 补实/9 码种子+启动自愈/requirePermission preHandler/me 暴露 permissions+mfaEnabled/前端菜单路由门+403）；真后端 curl 验真 V1-V4 全过（自愈坐实/无角色 403 PERM_001/半权动作粒度 200+403）；vitest 357 + e2e 77 全绿；D115；注：dev DB admin 现为日常态（用户自建邮箱），MFA 端点需 MFA_ENCRYPTION_KEY 未配——见 conventions 批二约束小节
 - 2026-09-04: Phase 8a 批三 MFA 自助面板（TOTP 扫码/恢复码一次性/密码关闭，e2e 80，vitest 357）
 - 2026-09-04: Phase 8a 终审修复波（PATCH 映射+注册路由覆盖静态锁/PermissionManager 池单例/users-me self-service 豁免/init 去重，vitest 364 两遍全绿）
