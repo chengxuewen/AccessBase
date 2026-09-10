@@ -58,7 +58,7 @@
     },
     "local-github": {
       "type": "local",
-      "enabled": true,
+      "enabled": false,
       "command": ["pixi", "run", "npx", "-y", "@modelcontextprotocol/server-github"],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"

@@ -34,6 +34,8 @@
     "@changesets/cli": "^2.27.0",
     "@colbymchenry/codegraph": "^1.6.0",
     "@iflow-mcp/defrex-drizzle-mcp": "^1.0.0",
+    "@jzone-mcp/antd-components-mcp": "1",
+    "@playwright/mcp": "^0.0.80",
     "@playwright/test": "^1.49.0",
     "@vitest/coverage-v8": "^3.0.0",
     "eslint": "^9.0.0",
