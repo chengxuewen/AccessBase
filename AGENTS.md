@@ -1,12 +1,12 @@
 # PROJECT KNOWLEDGE BASE
 
 **Generated:** 2026-08-21
-**Status:** Phase 4 完成（基础实施完成，可交付）
+**Status:** Phase 8a 完成（RBAC 授权强制接线 + MFA 自助面板 + UI 速赢终审通过）
 **Stack:** TypeScript / Fastify / React / Ant Design / Drizzle ORM / PostgreSQL / Redis
 
 ## OVERVIEW
 
-AccessBase is an enterprise access control foundation (IAM) providing authentication, authorization, and audit capabilities. Currently in Phase 5 — core implementation complete, three build modes operational, setup wizard + auth + user CRUD functional.
+AccessBase is an enterprise access control foundation (IAM) providing authentication, authorization, and audit capabilities. Currently in Phase 8a — RBAC enforcement wired end-to-end (9-code permission seed + requirePermission route guards + frontend menu/route gates with /403 reachable), MFA self-service TOTP panel delivered, vitest 364 + e2e chromium 80 all green.
 
 ## STRUCTURE
 
@@ -35,7 +35,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 | UI design             | `docs/modules/ui.md`            | §14+§37 merged (2678 lines)                    |
 | Database schema       | `docs/modules/database.md`      | §22 core tables                                |
 | API spec              | `docs/modules/api.md`           | §23 RESTful conventions                        |
-| Design decisions      | `.agents/memorys/decisions.md`  | D1-D106 with rationale                         |
+| Design decisions      | `.agents/memorys/decisions.md`  | D1-D115 with rationale                         |
 | Project status        | `.agents/memorys/status.md`     | Current phase, blockers                        |
 | Coding rules          | `.agents/rules/`                | Per-language rules                             |
 | Skills                | `.agents/skills/`               | openspec, graphify, test-harness, etc.         |
@@ -116,7 +116,8 @@ pixi run dev                        # Same as bash accessbase.sh dev:native
 
 ## NOTES
 
-- 106 design decisions documented in `.agents/memorys/decisions.md` (D1-D106)
+- 115 design decisions documented in `.agents/memorys/decisions.md` (D1-D115)
+- 35 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~035)
 - 19 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~019)
 - Architecture doc split into 31 modules under `docs/modules/`
 - Each module has back-link to `architecture.md` stub

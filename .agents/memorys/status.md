@@ -1,6 +1,7 @@
 # AccessBase 项目状态
 
-**更新日期**: 2026-09-03
+**更新日期**: 2026-09-04
+**当前阶段**: Phase 8a 完成（UI 速赢包 + RBAC 授权强制接线 + MFA 自助面板，全分支终审通过）
 **当前阶段**: Phase 7 完成（Admin UI 审查修复：envelope 类型化/单飞刷新/feedback bridge/lint 门禁）
 
 ## 模块状态
@@ -8,7 +9,7 @@
 | 模块         | 状态      | 描述                               |
 | ------------ | --------- | ---------------------------------- |
 | 设计文档     | ✅ v3.0   | 42 章节 + 14 个补充 + 35+ 项目参考 |
-| 设计决策     | ✅ D1-D112 | 112 个设计决策                     |
+| 设计决策     | ✅ D1-D115 | 115 个设计决策                     |
 | 包 SDD       | ✅ 8 个   | 所有 L0 包详细设计                 |
 | L0 包实施    | ✅ 8 个   | 全部实施完成                       |
 | Fastify 服务 | ✅        | REST API + 中间件链                |
@@ -53,11 +54,12 @@ docs/
 
 ## 设计决策汇总
 
-共 112 个设计决策（D1-D112）
+共 115 个设计决策（D1-D115）
 
 - D1-D80: 原始设计决策
 - D81-D95: 从 35+ 项目参考中提炼
 - D96-D112: Phase 6 实施（安全基座/会话MFA/登录扩展）
+- D113-D115: Setup DB 推导 / RED 回归网法 / 授权强制 requirePermission 路线
 
 ## 测试覆盖
 
@@ -69,7 +71,9 @@ docs/
 | health   | service.test.ts                     | 11         |
 | audit    | logger.test.ts                      | 10         |
 | server   | routes/auth/mfa/oauth/webauthn/stats 等 | 199    |
-| **合计** | **31 文件**                         | **321 ✅** |
+| **合计** | **37 文件**                         | **364 ✅** |
+
+> 包行系 2026-09-03 快照；Phase 8a 增量在 identity（PermissionManager/authorize）、server（route-guard/seed/me）、admin-ui（errors/sortParams 新纳入）共 +43，见近期工作行。
 
 ## 运行模式
 
