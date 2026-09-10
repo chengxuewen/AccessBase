@@ -103,6 +103,7 @@ export default function Users() {
         headerTitle={t('users.title')}
         actionRef={actionRef}
         rowKey="id"
+        scroll={{ x: 'max-content' }}
         columns={columns}
         request={async (params, sort) => {
           try {

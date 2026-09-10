@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, Form, Input, Select } from 'antd';
+import { Alert, Button, Card, Form, Input, Select } from 'antd';
 import { getUser, updateUser, type User } from '../../api/users';
 import { listRoles } from '../../api/roles';
 import { message } from '../../api/feedback';
@@ -14,7 +14,18 @@ export default function UserEdit() {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const [roleOptions, setRoleOptions] = useState<{ label: string; value: string }[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [rolesError, setRolesError] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+
+  const fetchRoles = useCallback(() => {
+    setRolesLoading(true);
+    setRolesError(false);
+    listRoles({ page: 1, pageSize: 100 })
+      .then((result) => setRoleOptions(result.data.map((r) => ({ label: r.name, value: r.id }))))
+      .catch(() => setRolesError(true))
+      .finally(() => setRolesLoading(false));
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -24,10 +35,11 @@ export default function UserEdit() {
         form.setFieldsValue({ name: u.name, roleIds: u.roleIds ?? [] });
       })
       .catch((err) => message.error(apiErrorMessage(err, t('users.loadError'))));
-    listRoles({ page: 1, pageSize: 100 })
-      .then((result) => setRoleOptions(result.data.map((r) => ({ label: r.name, value: r.id }))))
-      .catch(() => setRoleOptions([]));
   }, [id, form, t]);
+
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
 
   const handleSubmit = async () => {
     if (!id) return;
@@ -46,7 +58,7 @@ export default function UserEdit() {
   };
 
   return (
-    <Card title={t('users.editTitle')} style={{ maxWidth: 560, margin: '0 auto' }}>
+    <Card title={t('users.editTitle')} style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Form.Item
           name="name"
@@ -59,8 +71,25 @@ export default function UserEdit() {
           <Input value={user?.email} disabled />
         </Form.Item>
         <Form.Item name="roleIds" label={t('users.roles')}>
-          <Select mode="multiple" options={roleOptions} placeholder={t('users.roles')} />
+          <Select
+            mode="multiple"
+            options={roleOptions}
+            loading={rolesLoading}
+            placeholder={roleOptions.length === 0 ? t('users.rolesEmpty') : t('users.rolesPlaceholder')}
+          />
         </Form.Item>
+        {rolesError && (
+          <Alert
+            type="error"
+            showIcon
+            message={t('users.rolesLoadError')}
+            action={
+              <Button size="small" data-testid="roles-retry" onClick={fetchRoles}>
+                {t('common.retry')}
+              </Button>
+            }
+          />
+        )}
         {/* No password change here — password rotation lives in auth change-password flow */}
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={saving}>

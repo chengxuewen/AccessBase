@@ -59,7 +59,7 @@ export default function UserDetail() {
   return (
     <Card
       title={t('users.detail.title')}
-      style={{ maxWidth: 640, margin: '0 auto' }}
+      style={{ width: '100%', maxWidth: 640, margin: '0 auto' }}
       extra={
         <Space>
           <Button type="primary" onClick={() => navigate(`/users/${id}/edit`)}>

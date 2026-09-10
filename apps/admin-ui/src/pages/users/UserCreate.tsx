@@ -65,7 +65,7 @@ export default function UserCreate() {
   };
 
   return (
-    <Card title={t('users.createTitle')} style={{ maxWidth: 560, margin: '0 auto' }}>
+    <Card title={t('users.createTitle')} style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
       <Form
         form={form}
         layout="vertical"

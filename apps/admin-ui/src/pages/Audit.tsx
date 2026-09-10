@@ -134,6 +134,7 @@ export default function Audit() {
         headerTitle={t('audit.title')}
         actionRef={actionRef}
         rowKey="id"
+        scroll={{ x: 'max-content' }}
         columns={columns}
         request={async (params) => {
           try {

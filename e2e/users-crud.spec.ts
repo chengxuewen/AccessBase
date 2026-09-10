@@ -134,7 +134,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     });
 
     await page.goto('/users');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
     await expect(page.locator('td:has-text("Administrator")')).toBeVisible();
     await expect(page.locator('td:has-text("admin@accessbase.local")')).toBeVisible();
   });
@@ -284,8 +284,8 @@ test.describe('Users CRUD (dedicated routes)', () => {
     });
 
     await page.goto('/users');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
-    await page.locator('tbody tr').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
+    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
     await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
     await expect.poll(() => deleted).toBe(true);
 
@@ -377,9 +377,9 @@ test.describe('Users CRUD (dedicated routes)', () => {
     });
 
     await page.goto('/users');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
-    await page.locator('tbody tr').first().locator('button:has-text("Edit"), button:has-text("编辑")').first().click();
+    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').first().click();
     await expect(page).toHaveURL(/\/users\/1\/edit/);
 
     // Prefilled name
@@ -406,7 +406,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     });
 
     await page.goto('/users');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
     const searchInput = page.locator('input[placeholder]').first();
     await searchInput.fill('admin');
@@ -414,7 +414,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await page.locator('button').filter({ hasText: /search|查\s*询|submit/i }).first().click();
 
     // Search param reached the API and table still renders
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
     expect(searched, 'search param was sent to API').toBe(true);
   });
 
@@ -440,9 +440,9 @@ test.describe('Users CRUD (dedicated routes)', () => {
     });
 
     await page.goto('/users');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
-    await page.locator('tbody tr').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
+    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
     await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
 
     // AntD placeholder row ("暂无数据") lives in tbody — assert on the empty description

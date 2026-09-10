@@ -145,7 +145,7 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
       .toBe(true);
     // ...and the user must NOT have been logged out of the protected page
     await expect(page).toHaveURL(/\/users/);
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
   });
 
   test('R2: three concurrent 401s trigger exactly ONE /auth/refresh (single-flight)', async ({ page }) => {

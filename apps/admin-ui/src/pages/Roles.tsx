@@ -162,6 +162,7 @@ export default function Roles() {
         headerTitle={t('roles.title')}
         actionRef={actionRef}
         rowKey="id"
+        scroll={{ x: 'max-content' }}
         columns={columns}
         request={async (params) => {
           try {
@@ -229,7 +230,7 @@ export default function Roles() {
               onChange={(nextTargetKeys) => setTargetPermissionIds(nextTargetKeys as string[])}
               render={(item) => item.title}
               showSearch
-              listStyle={{ width: 250, height: 300 }}
+              listStyle={{ width: '46%', height: 300 }}
             />
           </Form.Item>
         </Form>

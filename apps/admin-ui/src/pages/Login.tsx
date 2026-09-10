@@ -107,7 +107,7 @@ export default function Login() {
       >
         <Card
           title={t('login.mfaTitle')}
-          style={{ width: 400 }}
+          style={{ width: '100%', maxWidth: 400 }}
           styles={{ header: { textAlign: 'center' } }}
         >
           {mfaError && (
@@ -158,7 +158,7 @@ export default function Login() {
     >
       <Card
         title={t('login.title')}
-        style={{ width: 400 }}
+        style={{ width: '100%', maxWidth: 400 }}
         styles={{ header: { textAlign: 'center' } }}
       >
         {oauthBusy && <Spin data-testid="oauth-busy" style={{ display: 'block', marginBottom: 16 }} />}

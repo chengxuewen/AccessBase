@@ -167,7 +167,7 @@ test.describe('UI quality — language persistence', () => {
     });
 
     await page.goto('/users');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
     const requestCountAfterLoad = userUrls.length;
 
     // Click the Name column header — antd's sorter trigger is inside th.ant-table-column-has-sorters
@@ -200,10 +200,10 @@ test.describe('UI quality — language persistence', () => {
     });
 
     await page.goto('/users');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
     // Focus the row's name link, then Tab through: name → Edit button → Delete button
-    await page.locator('tbody tr').first().locator('a').first().focus();
+    await page.locator('tbody tr.ant-table-row').first().locator('a').first().focus();
     await page.keyboard.press('Tab');
     const focusedEdit = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement;

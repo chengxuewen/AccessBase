@@ -209,7 +209,7 @@ test.describe('Roles CRUD', () => {
 
   test('list renders 2 role rows', async ({ page }) => {
     await page.goto('/roles');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(2);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
     await expect(page.locator('td:has-text("Admin")').first()).toBeVisible();
     await expect(page.locator('td:has-text("Viewer")').first()).toBeVisible();
   });
@@ -219,7 +219,7 @@ test.describe('Roles CRUD', () => {
     const roleName = `Editor ${ts}`;
 
     await page.goto('/roles');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(2);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
 
     await page.locator('button:has-text("Create"), button:has-text("创建")').first().click();
     await expect(page.locator('.ant-modal')).toBeVisible();
@@ -233,7 +233,7 @@ test.describe('Roles CRUD', () => {
     await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")').first().click();
 
     // New row appears after reload
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(3);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(3);
     await expect(page.locator(`td:has-text("${roleName}")`)).toBeVisible();
   });
 
@@ -242,9 +242,9 @@ test.describe('Roles CRUD', () => {
     const updatedName = `Admin ${ts}`;
 
     await page.goto('/roles');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(2);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
 
-    await page.locator('tbody tr').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
+    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
     await expect(page.locator('.ant-modal')).toBeVisible();
 
     // Modal prefilled with existing values
@@ -261,12 +261,12 @@ test.describe('Roles CRUD', () => {
 
   test('delete role via popconfirm removes row', async ({ page }) => {
     await page.goto('/roles');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(2);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
 
-    await page.locator('tbody tr').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
+    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
     await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
 
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
     await expect(page.locator('td:has-text("Viewer")')).toBeVisible();
   });
 
@@ -327,9 +327,9 @@ test.describe('Roles CRUD', () => {
     });
 
     await page.goto('/roles');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
-    await page.locator('tbody tr').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
+    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
     await expect(page.locator('.ant-modal input#name')).toHaveValue('Admin');
 
     // Correct behavior: the modal must be hydrated from the DETAIL endpoint, not the list row

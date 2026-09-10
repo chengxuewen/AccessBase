@@ -130,7 +130,7 @@ test.describe('Audit Log Viewer', () => {
     });
 
     await page.goto('/audit');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(3);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(3);
     await expect(page.locator('td:has-text("POST /api/v1/users")').first()).toBeVisible();
     await expect(page.locator('td:has-text("DELETE /api/v1/roles/1")').first()).toBeVisible();
   });
@@ -158,13 +158,13 @@ test.describe('Audit Log Viewer', () => {
     });
 
     await page.goto('/audit');
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(3);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(3);
 
     await page.locator('.audit-action-filter').click();
     await page.locator('.ant-select-dropdown .ant-select-item:has-text("DELETE")').click();
     await page.locator('button:has-text("Search"), button:has-text("查询")').click();
 
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
     await expect(page.locator('td:has-text("DELETE /api/v1/roles/1")')).toBeVisible();
     expect(lastQuery).toContain('action=DELETE');
   });
@@ -180,8 +180,8 @@ test.describe('Audit Log Viewer', () => {
 
     await page.goto('/audit');
     await expect(page.locator('.ant-empty')).toBeVisible();
-    // antd renders a measure-row <tr> even with 0 data rows
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    // empty state: zero real data rows (measure-row/placeholder excluded by .ant-table-row)
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(0);
   });
 
   test('error state shows error message on 500', async ({ page }) => {
@@ -197,8 +197,8 @@ test.describe('Audit Log Viewer', () => {
     // Static message API is broken under React 19 (pre-existing: auth.spec toast tests fail too) — assert inline Alert instead
     await expect(page.locator('.audit-load-error')).toBeVisible();
     await expect(page.locator('.audit-load-error')).toContainText(/Failed to load audit logs|加载审计日志失败/);
-    // antd renders a measure-row <tr> even with 0 data rows
-    await expect(page.locator('.ant-table-tbody tr')).toHaveCount(1);
+    // error state: zero real data rows (measure-row/placeholder excluded by .ant-table-row)
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(0);
   });
 
   test('export button is visible', async ({ page }) => {
