@@ -23,8 +23,8 @@ Project-specific AI agent configuration: skills, coding rules, and project memor
 │   └── ...              # 12 more language dirs
 └── memorys/             # Project memory (auto-updated by agents)
     ├── status.md        # Current phase, blockers, recent work
-    ├── decisions.md     # D1-D115 design decisions with rationale
-    ├── pitfalls.md      # Known issues (PIT-001~036)
+    ├── decisions.md     # D1-D116 design decisions with rationale (English since 2026-09-10)
+    ├── pitfalls.md      # Known issues (PIT-001~037)
     └── conventions.md   # Coding conventions (Phase 6/7/8a 约束段)
     ├── pitfalls.md      # Known issues (currently empty)
     └── conventions.md   # Coding conventions (currently empty)
@@ -34,7 +34,7 @@ Project-specific AI agent configuration: skills, coding rules, and project memor
 
 | Task                   | Location                      | Notes                        |
 | ---------------------- | ----------------------------- | ---------------------------- |
-| Design decision lookup | `memorys/decisions.md`        | D1-D115, searchable by number |
+| Design decision lookup | `memorys/decisions.md`        | D1-D116, searchable by number |
 | Project status         | `memorys/status.md`           | Phase, blockers, recent work |
 | Coding rules for TS    | `rules/typescript/`           | Extends common/ rules        |
 | Security rules         | `rules/common/security.md`    | Mandatory pre-commit checks  |

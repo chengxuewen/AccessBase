@@ -182,3 +182,11 @@ logger.error('Operation failed', error); // ❌
 - DEFAULT_TENANT 单源 `apps/server/src/utils/constants.ts`，禁字面量散落；检查 `grep -rn "00000000-0000-0000-0000-000000000001" apps/server/src --include="*.ts" | grep -v __tests__ | grep -v constants.ts` 应零命中（2026-09-04 已收编 auth.ts 两处 + oauth.ts 一处，commit 8a987f2）
 - dev 环境跑 MFA 端点需 `MFA_ENCRYPTION_KEY`（32-byte hex）：现仓库脚本/accessbase.sh/.env.example 均未透传此变量，缺失时 mfa/setup 返回 400 AUTH_MFA_002（批三 TOTP 面板接线前需补运维配置）
 - `buildApp()` 工厂**禁止启动副作用**（DB 拨号/seed/定时器）：自愈 seed 只挂 `index.ts` 入口（`selfHealSeed` fire-and-forget，双层吞）。带 auditStorage 注入的测试曾因工厂内自愈向真 PG 拨号产生 FATAL 噪声与 flake（回归锁：route-guard.test 静态断言）。检查：`grep -n "permissions-seed\|ensureSeedForAdmin\|selfHealSeed" apps/server/src/app.ts` 应零命中
+
+## 语言约束（2026-09-10 用户指令，硬约束）
+
+- 提交信息 / 代码注释 / 架构与设计文档（docs/modules、decisions.md 新增条目）：英文
+- 计划（docs/superpowers/plans、.omo/plans）与 AI 对话/报告：中文
+- 既有中文记忆文件（status/pitfalls/conventions）追加沿用中文体例；decisions.md 自 D116 起英文
+- 检查命令：提交后 `git log -1 --format='%s %b' | grep -P '[\x{4e00}-\u9fa5]'` 应无输出（新规后适用；历史中文提交不回改）
+- 新增代码注释扫描：`grep -rnP '^\s*//.*[\x{4e00}-\x{9fa5}]' apps/admin-ui/src packages/*/src --include='*.ts' --include='*.tsx' | grep -v locales` 应零新增

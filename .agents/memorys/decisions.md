@@ -2354,3 +2354,12 @@ const brandTokens = {
 - **附属事实**: users 表 `mfa_enabled` 为死列（无写入方），`totp_enabled` 才是 live MFA 态（MfaManager 唯一写入，auth.ts me 处映射 `mfaEnabled: user.totpEnabled`）；前端菜单/路由权限门属可见性层（fail-open：permissions 缺失时不过滤，兼容旧后端 mock），信任边界 = 后端 requirePermission hook
 - **内置权限 9 码**: `users:read` `users:write` `users:delete` `roles:read` `roles:write` `roles:delete` `permissions:read` `permissions:write` `permissions:delete`（BUILTIN_PERMISSIONS 与 authorize.ts 映射表逐字一致）
 - **参考**: docs/superpowers/plans/2026-09-04-phase8a-ui-quickwins-auth-mfa.md Task 9/12；identity-sdd §3.3（被偏离方）；task-12-report.md curl 验真记录
+
+## D116: Frontend state-stack review — keep Zustand + declarative react-router v7; TanStack Query deferred (2026-09-10)
+
+- **Decision**: Retain Zustand (auth/setup stores) and react-router v7 declarative mode with `PrivateRoute` element guards. Do NOT introduce redux or router-state coupling. Adopting TanStack Query is deferred until a concrete cache/dedup/freshness bug demands it.
+- **Rationale**: react-router-redux is officially unmaintained (npm notice; last release 2017) and connected-react-router never supported v6+; the element-guard pattern is the officially sanctioned library-mode approach. Redux's own FAQ criteria (large shared state, complex update logic, many contributors) do not apply to a 2-store app. ProTable manages its own fetch lifecycle, covering the list pages already.
+- **Evidence**: ant-design-pro v6.0.3 carries `@tanstack/react-query ^5.101.2` as a runtime dep; refine core hard-depends on `@tanstack/react-query ^5.81.5` + react-router ^7 — server-state caching is the only genuine gap vs our hand-rolled per-page useEffect fetch (8 pages, zero cache/dedup/invalidation).
+- **Re-trigger condition**: introduce TanStack Query incrementally (api/*.ts untouched; wrap calls in useQuery per page, one commit per page) upon the first real-world duplicate-fetch / stale-data / polling defect, or when audit-log polling or cross-page shared queries land.
+- **Side outcomes**: design-system SKILL.md lines 30/32 corrected (claimed `@refinedev/antd` + `TanStack Query` + `useContext` — none exist in code); language policy (see D117 note in conventions) makes this the first English-language decision entry.
+- **Ref**: research bg_97eeb432 (local inventory), bg_755714d2 (external primary sources), 2026-09-10 session

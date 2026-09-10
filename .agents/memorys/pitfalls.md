@@ -270,3 +270,11 @@
 - **解法**: 数据行断言/点击定位一律用 `tr.ant-table-row`（天然排除 measure-row 与 placeholder）；空态断言改写 `tr.ant-table-row` count(0) 更语义化
 - **验证**: `grep -rn "tbody tr')" e2e/ | grep -v ant-table-row` 应零命中
 - **禁止**: e2e 用裸 `tbody tr`/`.ant-table-tbody tr` 选择器（任意时刻加 scroll.x 即全量爆红）
+
+## PIT-037: antd Space 为 inline-flex，margin:'0 auto' 对其无效 (2026-09-10)
+
+- **症状**: Profile/sessionsTab 给 Space 加 maxWidth+margin auto 实测 gapL=40/gapR=888 仍左瘫（同写法块级 Card 正常居中 464/464）
+- **根因**: Space 默认 display:inline-flex，inline 级盒水平 auto 边距按 0 处理，margin-auto 居中失效；静态推断（"有 maxWidth+auto 即居中"）再次不可靠
+- **解法**: Space style 加 display:'flex' 块化（antd 官方 FAQ 方案）；或包一层块级 div
+- **验证**: 居中类断言用探针量 getBoundingClientRect 左右 gap 对称，不凭代码目测
+- **禁止**: 对 inline-flex 容器依赖 margin auto 居中

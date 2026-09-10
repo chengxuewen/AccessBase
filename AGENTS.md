@@ -35,7 +35,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 | UI design             | `docs/modules/ui.md`            | §14+§37 merged (2678 lines)                    |
 | Database schema       | `docs/modules/database.md`      | §22 core tables                                |
 | API spec              | `docs/modules/api.md`           | §23 RESTful conventions                        |
-| Design decisions      | `.agents/memorys/decisions.md`  | D1-D115 with rationale                         |
+| Design decisions      | `.agents/memorys/decisions.md`  | D1-D116 with rationale                         |
 | Project status        | `.agents/memorys/status.md`     | Current phase, blockers                        |
 | Coding rules          | `.agents/rules/`                | Per-language rules                             |
 | Skills                | `.agents/skills/`               | openspec, graphify, test-harness, etc.         |
@@ -53,6 +53,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 - **Testing**: Vitest (unit) + Playwright (E2E), ≥80% coverage
 - **E2E**: Mock API by default; real backend for setup/init tests; each test independent data
 - **Migration**: Drizzle ORM, 3-phase (preload/postsync/postload)
+- **Language**: English for commit messages, code comments and design/decision docs; Chinese for plans and AI conversation
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
@@ -116,8 +117,8 @@ pixi run dev                        # Same as bash accessbase.sh dev:native
 
 ## NOTES
 
-- 115 design decisions documented in `.agents/memorys/decisions.md` (D1-D115)
-- 36 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~036)
+- 116 design decisions documented in `.agents/memorys/decisions.md` (D1-D116)
+- 37 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~037)
 - Architecture doc split into 31 modules under `docs/modules/`
 - Each module has back-link to `architecture.md` stub
 - Reference implementation (new-api) in `.refinfo/` for studying patterns

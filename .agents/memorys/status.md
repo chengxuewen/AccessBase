@@ -8,7 +8,7 @@
 | 模块         | 状态      | 描述                               |
 | ------------ | --------- | ---------------------------------- |
 | 设计文档     | ✅ v3.0   | 42 章节 + 14 个补充 + 35+ 项目参考 |
-| 设计决策     | ✅ D1-D115 | 115 个设计决策                     |
+| 设计决策     | ✅ D1-D116 | 116 个设计决策                     |
 | 包 SDD       | ✅ 8 个   | 所有 L0 包详细设计                 |
 | L0 包实施    | ✅ 8 个   | 全部实施完成                       |
 | Fastify 服务 | ✅        | REST API + 中间件链                |
@@ -53,12 +53,13 @@ docs/
 
 ## 设计决策汇总
 
-共 115 个设计决策（D1-D115）
+共 116 个设计决策（D1-D116）
 
 - D1-D80: 原始设计决策
 - D81-D95: 从 35+ 项目参考中提炼
 - D96-D112: Phase 6 实施（安全基座/会话MFA/登录扩展）
 - D113-D115: Setup DB 推导 / RED 回归网法 / 授权强制 requirePermission 路线
+- D116: 前端状态栈评审（留 Zustand+RR7 声明式，TQ 缓议；英文决策记录起始）
 
 ## 测试覆盖
 
@@ -108,3 +109,5 @@ docs/
 - 2026-09-04: Phase 8a 批二 RBAC 接线（PermissionManager 补实/9 码种子+启动自愈/requirePermission preHandler/me 暴露 permissions+mfaEnabled/前端菜单路由门+403）；真后端 curl 验真 V1-V4 全过（自愈坐实/无角色 403 PERM_001/半权动作粒度 200+403）；vitest 357 + e2e 77 全绿；D115；注：dev DB admin 现为日常态（用户自建邮箱），MFA 端点需 MFA_ENCRYPTION_KEY 未配——见 conventions 批二约束小节
 - 2026-09-04: Phase 8a 批三 MFA 自助面板（TOTP 扫码/恢复码一次性/密码关闭，e2e 80，vitest 357）
 - 2026-09-04: Phase 8a 终审修复波（PATCH 映射+注册路由覆盖静态锁/PermissionManager 池单例/users-me self-service 豁免/init 去重，vitest 364 两遍全绿）
+
+- 2026-09-10: 架构评审与语言约束（Profile/Settings 720 居中列收尾 77c7e5d；三路调研定 D116：留 Zustand+RR7 声明式守卫、不引入 redux，TanStack Query 按触发条件缓议；design-system SKILL.md 假栈声明清除；新硬约束：提交/注释/架构设计英文、计划与对话中文；PIT-037 Space inline-flex 不受 margin-auto）

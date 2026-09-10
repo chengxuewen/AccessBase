@@ -27,9 +27,9 @@ metadata:
 | -------- | ---------------------------------------------- | --------------------------------- |
 | UI 框架  | React 19                                       | 组件化                            |
 | 组件库   | **Ant Design 5**                               | 唯一 UI 库，不使用其他组件库      |
-| 布局     | @ant-design/pro-layout + @refinedev/antd       | 管理后台骨架 + 数据层             |
+| 布局     | @ant-design/pro-components（ProLayout）        | 管理后台骨架（无 refine 数据层）        |
 | 数据组件 | ProTable / ProForm / antd Table / antd Form    | 列表 / 表单                       |
-| 状态管理 | TanStack Query + useContext                    | 服务端状态 + 客户端状态           |
+| 状态管理 | Zustand 5（auth/setup store）+ axios 手写服务层   | 客户端状态（D116：TanStack Query 缓议） |
 | 国际化   | react-i18next                                  | 双命名空间（插件包名 + `client`） |
 | 样式方案 | antd 5 CSS-in-JS（ConfigProvider.theme.token） | 不使用 Tailwind CSS               |
 
