@@ -110,4 +110,4 @@ docs/
 - 2026-09-04: Phase 8a 批三 MFA 自助面板（TOTP 扫码/恢复码一次性/密码关闭，e2e 80，vitest 357）
 - 2026-09-04: Phase 8a 终审修复波（PATCH 映射+注册路由覆盖静态锁/PermissionManager 池单例/users-me self-service 豁免/init 去重，vitest 364 两遍全绿）
 
-- 2026-09-10: 架构评审与语言约束（Profile/Settings 720 居中列收尾 77c7e5d；三路调研定 D116：留 Zustand+RR7 声明式守卫、不引入 redux，TanStack Query 按触发条件缓议；design-system SKILL.md 假栈声明清除；新硬约束：提交/注释/架构设计英文、计划与对话中文；PIT-037 Space inline-flex 不受 margin-auto）
+- 2026-09-10: 架构评审与语言约束（Profile/Settings 720 居中列收尾 77c7e5d；三路调研定 D116：留 Zustand+RR7 声明式守卫、不引入 redux，TanStack Query 按触发条件缓议；design-system SKILL.md 假栈声明清除；新硬约束：提交/注释/架构设计英文、计划与对话中文；PIT-037 Space inline-flex 不受 margin-auto）- 2026-09-10: 设置/资料页宽度终裁改流式全宽（用户实测后推翻 720 居中列：卡片与列表页一致拉伸，卡内表单/Alert 封顶 400 消断层，提交见 git log fix(admin-ui) fluid；偏好已入 conventions 防回改）

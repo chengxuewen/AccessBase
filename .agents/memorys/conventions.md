@@ -190,3 +190,8 @@ logger.error('Operation failed', error); // ❌
 - 既有中文记忆文件（status/pitfalls/conventions）追加沿用中文体例；decisions.md 自 D116 起英文
 - 检查命令：提交后 `git log -1 --format='%s %b' | grep -P '[\x{4e00}-\x{9fa5}]'` 应无输出（新规后适用；历史中文提交不回改）
 - 新增代码注释扫描：`grep -rnP '^\s*//.*[\x{4e00}-\x{9fa5}]' apps/admin-ui/src packages/*/src --include='*.ts' --include='*.tsx' | grep -v locales` 应零新增
+## 设置/资料类页面宽度策略（2026-09-10 用户实测终裁）
+
+- 卡片壳与列表页一致：流式全宽（width:100%，不封顶不居中）——720 居中列方案已被用户屏幕实测后推翻，勿改回
+- 卡内表单控件与提示 Alert 统一 maxWidth:400 成列（ant-design-pro 同构：容器 fluid + 表单列 cap）
+- 检查：probe 实测 gapL==gapR 且拉窗 cardW 跟随 contentW 变化
