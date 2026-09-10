@@ -119,7 +119,7 @@ export default function Profile() {
 
   return (
     <Spin spinning={loading}>
-    <Space direction="vertical" size="large" style={{ width: '100%', maxWidth: 720 }}>
+    <Space direction="vertical" size="large" style={{ display: 'flex', width: '100%', maxWidth: 720, margin: '0 auto' }}>
       <Card
         title={t('profile.personalInfo')}
         extra={

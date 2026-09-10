@@ -147,7 +147,7 @@ export default function Settings() {
   }, [loadSessions, loadPasskeys, siteForm]);
 
   const sessionsTab = (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space direction="vertical" size="large" style={{ display: 'flex', width: '100%', maxWidth: 720, margin: '0 auto' }}>
       <Card title={t('settings.activeSessions')} data-testid="active-sessions">
         {sessionsError && (
           <Alert type="error" showIcon message={sessionsError} style={{ marginBottom: 16 }} data-testid="sessions-error" />
@@ -258,11 +258,11 @@ export default function Settings() {
   );
 
   const generalTab = (
-    <Card title={t('settings.general')} style={{ maxWidth: 560 }} data-testid="general-settings">
+    <Card title={t('settings.general')} style={{ width: '100%', maxWidth: 720, margin: '0 auto' }} data-testid="general-settings">
       {siteSaved && (
         <Alert type="success" showIcon message={t('settings.saveSuccess')} style={{ marginBottom: 16 }} data-testid="site-save-success" />
       )}
-      <Form form={siteForm} layout="vertical" onValuesChange={() => setSiteSaved(false)}>
+      <Form form={siteForm} layout="vertical" onValuesChange={() => setSiteSaved(false)} style={{ maxWidth: 400 }}>
         <Form.Item name="siteName" label={t('settings.siteName')}>
           <Input placeholder={t('settings.siteNamePlaceholder')} />
         </Form.Item>
