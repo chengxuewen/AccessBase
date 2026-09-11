@@ -404,6 +404,22 @@ describe('OIDC full protocol flows', () => {
     expect(callback.origin + callback.pathname).toBe('http://client.example/cb');
     expect(callback.searchParams.get('error')).toBe('access_denied');
   });
+
+  it('interaction POST without the interaction cookie answers 400 (hang regression lock)', async () => {
+    // Security-hardening fix: interactionDetails throws after reply.hijack()
+    // when the cookie is missing — the catch must end the response, not hang.
+    const res = await app.inject({
+      method: 'POST',
+      url: `/oidc/interaction/no-such-uid`,
+      headers: { authorization: `Bearer ${bearer}` },
+      payload: { decision: 'approve' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({
+      success: false,
+      error: { code: 'OIDC_003' },
+    });
+  });
 });
 
 // keep fastify type import used (App type above)

@@ -101,10 +101,26 @@ export async function registerInteractionRoutes(
 
       reply.hijack();
       const res = reply.raw;
-      const interaction = (await provider.interactionDetails(
-        request.raw,
-        res as unknown as import('node:http').ServerResponse,
-      )) as unknown as InteractionLike;
+      let interaction: InteractionLike;
+      try {
+        interaction = (await provider.interactionDetails(
+          request.raw,
+          res as unknown as import('node:http').ServerResponse,
+        )) as unknown as InteractionLike;
+      } catch {
+        // reply.hijack() means Fastify's error handler is out of the picture —
+        // without this catch a missing/expired interaction cookie would hang
+        // the socket. Answer with the JSON envelope and end the response.
+        res.statusCode = 400;
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.end(
+          JSON.stringify({
+            success: false,
+            error: { code: 'OIDC_003', message: 'Interaction not found or expired' },
+          }),
+        );
+        return;
+      }
 
       const subject = (request.user as { sub: string }).sub;
       if (interaction.session?.accountId && interaction.session.accountId !== subject) {
