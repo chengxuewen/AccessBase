@@ -10,10 +10,10 @@ import {
   createRole,
   updateRole,
   deleteRole,
-  listPermissions,
   type Role,
   type Permission,
-} from '../api/roles';
+  } from '../api/roles';
+import { fetchAllPermissions } from '../utils/fetchAll';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
 
@@ -28,12 +28,20 @@ export default function Roles() {
   const [targetPermissionIds, setTargetPermissionIds] = useState<string[]>([]);
   const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [permLoadError, setPermLoadError] = useState(false);
+
+  const loadPerms = () => {
+    fetchAllPermissions()
+      .then((perms) => {
+        setAllPermissions(perms);
+        setPermLoadError(false);
+      })
+      .catch(() => setPermLoadError(true));
+  };
 
   useEffect(() => {
-    listPermissions({ page: 1, pageSize: 100 })
-      .then((result) => setAllPermissions(result.data))
-      .catch(() => message.error(t('roles.loadPermissionsError')));
-  }, [t]);
+    loadPerms();
+  }, []);
 
   const openCreate = () => {
     setEditingRole(null);
@@ -218,6 +226,18 @@ export default function Roles() {
           <Form.Item name="description" label={t('roles.description')}>
             <Input.TextArea rows={2} />
           </Form.Item>
+          {permLoadError && (
+            <Alert
+              type="error"
+              showIcon
+              message={t('roles.loadPermissionsError')}
+              action={
+                <Button size="small" icon={<ReloadOutlined />} onClick={loadPerms}>{t('common.retry')}</Button>
+              }
+              data-testid="perm-load-error"
+              style={{ marginBottom: 12 }}
+            />
+          )}
           <Form.Item label={t('roles.permissions')}>
             <Transfer
               dataSource={allPermissions.map((p) => ({
