@@ -229,6 +229,7 @@ test.describe('OIDC clients management', () => {
     await reveal.locator('.ant-btn-primary').click();
     await expect(reveal).toBeHidden();
 
+    await expect(page.getByRole('cell', { name: 'Gamma App' })).toBeVisible();
     await expect(page.locator('body')).not.toContainText(SECRET_1);
   });
 
