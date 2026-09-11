@@ -36,12 +36,19 @@ function env(key: string, fallback?: string): string {
   return value;
 }
 
+function requireJwtSecret(env: NodeJS.ProcessEnv): string {
+  if (env['NODE_ENV'] === 'production' && !env['JWT_SECRET']) {
+    throw new Error('JWT_SECRET must be set in production. Generate: openssl rand -hex 32');
+  }
+  return env['JWT_SECRET'] ?? 'dev-secret-do-not-use-in-production';
+}
+
 export const config: AppConfig = {
   port: Number(env('PORT', '5101')),
   host: env('HOST', '0.0.0.0'),
   databaseUrl: env('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/accessbase'),
   redisUrl: env('REDIS_URL', 'redis://localhost:6379'),
-  jwtSecret: env('JWT_SECRET', 'dev-secret-do-not-use-in-production'),
+  jwtSecret: requireJwtSecret(process.env),
   jwtPrivateKeyPath: process.env['JWT_PRIVATE_KEY_PATH'] || '',
   jwtPublicKeyPath: process.env['JWT_PUBLIC_KEY_PATH'] || '',
   nodeEnv: env('NODE_ENV', 'development') as AppConfig['nodeEnv'],
