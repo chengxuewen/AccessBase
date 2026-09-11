@@ -19,6 +19,7 @@ import { setupGuard } from './middleware/setup-guard.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { webauthnRoutes } from './routes/webauthn.js';
 import { optionsRoutes } from './routes/options.js';
+import { clientRoutes } from './routes/clients.js';
 import { resolveCorsOrigin } from './cors.js';
 import { buildOidcProvider } from './oidc/provider.js';
 import { OidcClientManager } from '@accessbase/identity';
@@ -232,6 +233,7 @@ oidcHandler(raw, reply.raw).then(() => done(), done);
   await app.register(auditRoutes, { prefix: '/api/v1/audit-logs' });
   await app.register(statsRoutes, { prefix: '/api/v1' });
   await app.register(optionsRoutes, { prefix: '/api/v1' });
+  await app.register(clientRoutes, { prefix: '/api/v1' });
   await app.register(oauthRoutes, { prefix: '/api/v1/auth' });
   await app.register(webauthnRoutes, { prefix: '/api/v1/auth' });
   // Client display names live in the registry (the provider's Client wrapper
