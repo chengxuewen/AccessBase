@@ -4,9 +4,11 @@
 
 **Goal:** AccessBase becomes an OIDC Identity Provider — third-party apps register as clients and obtain tokens via authorization_code + PKCE and client_credentials, with a clients management UI — closing the largest ratified positioning gap (table stakes in 5/5 mainstream IAM platforms).
 
-**Architecture:** `oidc-provider` (panva, v9.12.2) mounted at `/oidc` behind the existing Fastify server (raw http body parsing delegated via `fastify-express`-free approach: mount the Koa app through `app.all('/oidc/*')` proxying to the provider callback — using node's http-level integration point `provider.callback`). Custom adapter persists clients/grants/codes to PostgreSQL via Drizzle (`oidc_clients`, `oidc_grants` tables — codes/refresh tokens intentionally short-lived and NOT persisted; device/user codes unsupported in scope). `accountId` = AccessBase user id; interaction flow reuses the existing Login page via redirect to `/login?redirect=<oidc interaction url>`; consent handled by a minimal consent page consuming the interaction prompt. Client registry CRUD at `/api/v1/clients` behind `clients:read`/`clients:write` codes (Batch-1 dual-registration pattern, seed 13→15). Client secrets are stored hashed (sha256) — plaintext shown once at creation.
+**Architecture:** `oidc-provider` (panva, v9.12.2) mounted at `/oidc` behind the existing Fastify server (raw http body parsing delegated via `fastify-express`-free approach: mount the Koa app through `app.all('/oidc/*')` proxying to the provider callback — using node's http-level integration point `provider.callback`). Custom adapter persists clients/grants/codes to PostgreSQL via Drizzle (`oidc_clients`, `oidc_grants` tables — codes/refresh tokens intentionally short-lived and NOT persisted; device/user codes unsupported in scope). `accountId` = AccessBase user id; adapter findAccount returns `{ accountId, claims: async () => ({ sub: accountId, name: user.name, email: user.email, email_verified: false }) }` (UserManager field mapping — review M2); interaction flow reuses the existing Login page via redirect to `/login?redirect=<oidc interaction url>`; consent handled by a minimal consent page consuming the interaction prompt. Client registry CRUD at `/api/v1/clients` behind `clients:read`/`clients:write` codes (Batch-1 dual-registration pattern, seed 13→15). Client secrets are stored AES-256-GCM encrypted (review M4 — no sha256 anywhere; see Task 4 ruling). Plaintext shown once at creation.
 
 **Tech Stack:** TypeScript strict, Fastify + Drizzle (PostgreSQL 16), oidc-provider 9.12.2, React 19 + AntD5, vitest + Playwright, pnpm monorepo.
+
+**Dev/Deploy topology (review B3):** dev mode runs SPA on :5173 and API on :5101 — the interaction redirect targets the FRONTEND origin. vite.config proxy gains `'/oidc'` -> http://localhost:5101 (dev) so `/oidc/auth/:uid` resume hits the provider from the SPA origin; interaction.url is composed per environment: dev = `${FRONTEND_ORIGIN}/login?...` (absolute), deploy single-port = relative path. FRONTEND_ORIGIN env (default http://localhost:5173) added to .env.example.
 
 **Spec:** User-ratified decision card (Item 11, option B): oidc-provider library + adapter layer; scope LOCKED to authorization_code + PKCE + client_credentials; SAML/implicit/hybrid/device-flow explicitly OUT; refresh tokens reuse existing rotation semantics; security-hardening skill pass before merge. integration.md already promises OIDC provider endpoints (documented debt, not new scope).
 
@@ -52,18 +54,23 @@
 **Interfaces:**
 - Consumes: oidcClients table (Task 1); MfaManager-style constructor `constructor(databaseUrl?: string | DrizzleDB)`.
 - Produces:
-  - `create(input: { name, redirectUris, grantTypes, scope, tokenAuthMethod? }): Promise<{ client: OidcClientRow; plaintextSecret: string }>` — generates clientId (`ab_` + randomBytes(8).base64url) + secret (randomBytes(32).base64url), stores AES-256-GCM encrypted blob (key = scrypt(JWT_SECRET))
+  - `create(input: { name, redirectUris, grantTypes, scope, tokenAuthMethod? }): Promise<{ client: OidcClientRow; plaintextSecret: string }>` — generates clientId (`ab_` + randomBytes(8).base64url) + secret (randomBytes(32).base64url), stores AES-256-GCM encrypted blob (per-record salt, `v1:salt:iv:tag:ct` format — review M5)
   - `list(): Promise<OidcClientRow[]>` — NEVER includes secretEncrypted in projections (select explicit columns)
   - `get(clientId): Promise<OidcClientRow | undefined>`
-  - `rotateSecret(clientId): Promise<string>` — new plaintext, updated hash
+  - `rotateSecret(clientId): Promise<string>` — new plaintext, re-encrypted blob
   - `remove(clientId): Promise<void>`
 - Barrel export follows OptionsManager pattern.
 
+- Consent contract (review M3 — Task 6 implements and mocks against this, PIT-033):
+  - `GET /oidc/interaction/:uid` → `{ success, data: { clientName, requestedScopes, promptName, uid } }` (envelope)
+  - `POST /oidc/interaction/:uid` body `{ decision: 'approve' | 'deny' }` → approve creates grant (oidcGrants row) + `interactionFinished(consent)`; deny → `interactionFinished({ consent: { rejectedScopes } })`
+  - Auth: AccessBase bearer token required; interaction's accountId MUST equal token user id (bearer = CSRF-immune; provider `_interaction` cookie is SameSite=lax httpOnly by default — stated posture)
+  - GET /oidc/interaction/:uid → { success, data: { clientName, requestedScopes, promptName, uid } } envelope for the consent page
 - [ ] **Step 1: RED tests** — fixture per PermissionManager/OptionsManager pattern (vi.mock db + chainable). Cases: create returns plaintext once + stores ENCRYPTED blob (plaintext never in DB — assert the stored column differs from the returned secret); list excludes secretEncrypted column; decrypt(encrypt(secret)) roundtrip via exported crypto helpers; rotateSecret invalidates old (old plaintext no longer decrypts to same blob check); remove.
 - [ ] **Step 2: RED run** → module not found
-- [ ] **Step 3: Implement** — crypto module `encryptSecret`/`decryptSecret` helpers (AES-256-GCM, scrypt key from JWT_SECRET, exported for adapter reuse); secretEncrypted NEVER in list/get selects
+- [ ] **Step 3: Implement** — crypto module `encryptSecret`/`decryptSecret` helpers (AES-256-GCM; per-record random 16B salt; blob format `v1:salt:iv:tag:ct` base64 segments; key = scrypt(JWT_SECRET, salt, 32) — review M5; version prefix supports a dual-key rotation window, rotation completes by re-issuing client secrets via rotateSecret; exported for adapter reuse); secretEncrypted NEVER in list/get selects
 - [ ] **Step 4: GREEN + package suite** — `pixi run npx vitest run packages/identity`
-- [ ] **Step 5: Commit** — `feat(identity): OidcClientManager with hashed secrets and timing-safe verification`
+- [ ] **Step 5: Commit** — `feat(identity): OidcClientManager with encrypted secrets`
 
 ### Task 3: seed clients:read/clients:write + routePermissions
 
@@ -80,26 +87,27 @@
 - [ ] **Step 3: Convention checks (count 15, diff empty) + vitest both test files green**
 - [ ] **Step 4: Commit** — `feat(server): seed clients permission codes and map client routes`
 
-### Task 4: oidc-provider instance + adapter + mount
+### Task 4a: adapter (review M8 split)
 
-**Files:**
-- Create: `apps/server/src/oidc/provider.ts` (provider factory: config, keystore from RS256 files, adapter)
-- Create: `apps/server/src/oidc/adapter.ts` (Drizzle-backed adapter: findAccount via UserManager; clients from OidcClientManager; grants ↔ oidcGrants; everything else in-memory Map — codes/transient are single-use by protocol)
-- Create: `apps/server/src/oidc/interaction.ts` (interaction url → `/login?redirect=...` and consent page route handlers)
-- Modify: `apps/server/src/app.ts` (mount `/oidc/*` → `provider.callback`)
-- Test: `apps/server/src/__tests__/oidc-provider.test.ts`
+**Files:** Create `apps/server/src/oidc/adapter.ts`; Test `apps/server/src/__tests__/oidc-adapter.test.ts`
+- Drizzle-backed Client (shape-mapped snake_case: clientId→client_id, redirectUris→redirect_uris, grantTypes→grant_types, tokenAuthMethod→token_endpoint_auth_method — review m8) + Grant; catch-all in-memory for all other kinds (M6 sets above); findAccount with claims mapping (M2).
+- RED tests: Client roundtrip incl. secret decryption (uses encryptSecret helpers from Task 2); grant upsert/find; unknown kind → memory Map; account claims shape.
+- Commit: `feat(server): oidc drizzle adapter with account claims mapping`
 
-**Interfaces:**
-- Produces: `buildOidcProvider(deps: { userManager, clientManager, optionsManager }): Provider` — issuer from config (`OIDC_ISSUER` env, default `http://localhost:5101`), scopes `openid profile email offline_access`, features: `{ devInteractions: false, registration: false, revocation: true, introspection: true }`, pkce required, clientCredentials enabled.
-- Produces: `buildOidcProvider(deps: { userManager, clientManager, optionsManager }): Provider` — issuer from config (`OIDC_ISSUER` env, default `http://localhost:5101`), scopes `openid profile email offline_access`, features: `{ devInteractions: false, registration: false, revocation: true, introspection: true }`, pkce required, clientCredentials enabled.
-- Adapter contract: oidc-provider Adapter class — `upsert(id, payload, expiresIn)`, `find(id)`, `findByUid`, `findByUserCode`, `destroy`, `consume` — in-memory Map for transient kinds (AuthorizationCode, Interaction, InteractionSession, RefreshToken, Session), Drizzle-backed for Client (via OidcClientManager) and Grant (oidcGrants table).
-- Client-secret storage (R2, DECIDED RULING): oidc-provider compares `client_secret` literally against plaintext — a hash cannot sit at the provider boundary. Therefore secrets are stored **AES-256-GCM encrypted** (key = scrypt(JWT_SECRET, salt), Node crypto ~15 lines); adapter `find(kind=Client)` decrypts and returns plaintext to provider memory only. Consequences: (a) schema column is `secretEncrypted` (Task 1/2 use encryption, NOT sha256 hashing — Task 2's `verifySecret` is replaced by provider-internal comparison and is dropped); (b) standard clients send the plaintext secret over TLS via client_secret_basic — unchanged from ecosystem norms; (c) plaintext exists once in the create response and decrypted only inside the oidc process.
+### Task 4b: provider factory + keystore + mount (B1/B2)
 
-- [ ] **Step 1: RED tests** — provider builds; adapter Client.find roundtrips a created client (create via OidcClientManager with encryption key set); authorization_code+PKCE full flow via `provider.callback` injection (supertest-style against the mounted path): authorize request (redirect_uri match, PKCE challenge) → interaction redirected to login url → simulate authentication by calling provider.Interaction.get + finishLogin with user id → consent grant → code exchange with verifier → id_token RS256-verifiable via public key; client_credentials flow issues access token for machine client; invalid redirect_uri rejected; PKCE missing/wrong verifier rejected.
-- [ ] **Step 2: Implement adapter + provider factory + interaction glue**
-- [ ] **Step 3: Mount in app.ts — `app.all('/oidc/*', ...)` bridging raw req/res to `provider.callback(req, res)` via Fastify's raw request access**
-- [ ] **Step 4: GREEN + full server suite**
-- [ ] **Step 5: Commit** — `feat(server): oidc-provider with drizzle adapter, pkce, and interaction glue`
+**Files:** Create `apps/server/src/oidc/provider.ts`; Modify `apps/server/src/app.ts`; Test `apps/server/src/__tests__/oidc-provider-mount.test.ts`
+- `buildOidcProvider(deps)`: `new Provider(issuer, configuration)`; features `{ devInteractions: false, registration: false, revocation: true, introspection: true, clientCredentials: { enabled: true } }`; **`pkce: { required: true }` explicit** (review m2 — default only forces PKCE for `none` auth method); cookies keys `[sha256('oidc-cookies:' + JWT_SECRET)]` (review m3 — restart-stable, multi-instance shared); keystore from RS256 key files; **production fail-fast when key files absent** (batch-1 posture, new check in provider build — review C); dev fallback ephemeral keystore + loud warn.
+- Mount via onRequest hook + reply.hijack() + cached `provider.callback()` handler (B1/B2 exact shape in R1); static-assertion test forbids content-type parsers on /oidc.
+- RED tests: provider constructs; /oidc/.well-known/openid-configuration serves; mount hijacks before body parsing (POST urlencoded to /oidc/token reaches provider — the B1 regression lock).
+- Commit: `feat(server): oidc provider factory with keystore and fastify onRequest mount`
+
+### Task 4c: interaction glue + full protocol flow tests
+
+**Files:** Create `apps/server/src/oidc/interaction.ts`; Test `apps/server/src/__tests__/oidc-flow.test.ts`
+- interactions.url branch (login/consent per M7), consent contract endpoints (M3), B3 topology URL composition (FRONTEND_ORIGIN).
+- Full-flow tests: AC+PKCE happy path (interactionDetails → interactionFinished login → grant → code+verifier exchange → RS256 id_token verify), client_credentials flow, invalid redirect_uri rejected, wrong verifier rejected, consent deny path.
+- Commit: `feat(server): oidc interaction glue with consent contract and protocol flow tests`
 
 ### Task 5: /api/v1/clients CRUD routes
 
@@ -157,8 +165,9 @@
 **Files:**
 - Modify: `.agents/memorys/status.md` (+ batch 5 line), `.agents/memorys/conventions.md` (count 13→15 if not done in T3)
 
-- [ ] **Step 1: security-hardening skill pass** — run the project's security-hardening skill checklist over the new attack surface: /oidc/* endpoints unauthenticated by design (protocol), redirect_uri validation, PKCE enforcement, secret storage, interaction resume open-redirect guard, consent CSRF posture (same-site cookie from provider), issuer config. Findings → fix in this task or ledger as follow-ups with user sign-off for anything structural.
+- [ ] **Step 1: security-hardening skill pass** — run the project's security-hardening skill checklist over the new attack surface: /oidc/* endpoints unauthenticated by design (protocol), redirect_uri validation, PKCE enforcement, secret storage, interaction resume open-redirect guard (harden: reject `\\` and double-encoded `%2F%2F` after decode — review M7 hardening note), consent CSRF posture (same-site cookie from provider), issuer config, rate-limit impact on /oidc/token (global 100/min/IP shared bucket — exempt or raise for token endpoint, record decision), /oidc audit exemption (oidcGrants table = partial audit trail; record as explicit decision not silent omission). Findings → fix in this task or ledger as follow-ups with user sign-off for anything structural.
 - [ ] **Step 2: Full gates** — tsc ×2, root vitest, e2e chromium (expect: new specs green; failures = the 13 pre-existing only)
+- [ ] **Step 2b: env/docs updates (review m4/m6/m7)** — add OIDC_ISSUER + FRONTEND_ORIGIN to `.env.example` with comments; record in conventions.md: cookie-keys derivation, /oidc rate-limit decision, /oidc audit exemption (oidcGrants = partial audit trail)
 - [ ] **Step 3: Memory updates + commit** — `docs(memory): record oidc provider batch completion`
 
 ## Out of Scope (ratified LOCK)
@@ -170,6 +179,6 @@
 
 ## Risks
 
-- **R1:** oidc-provider (Koa) inside Fastify — bridging via provider.callback(req, res) is the documented integration path but needs care with Fastify's body parsing (`app.all('/oidc/*', { config: { rawBody: true } })` or mounting before body-parser). Mitigation: Task 4 mounts at raw level; body-parser exclusion for /oidc/* verified in tests.
+- **R1 (RESOLVED per review B1/B2):** Fastify parses bodies BEFORE handlers; /oidc form-urlencoded POSTs would 415 and `provider.callback` is a Koa factory (returns a handler), not an invokable method. Mounting uses an onRequest hook (fires before body parsing) with reply.hijack(): `app.addHook('onRequest', (req, reply, done) => { if (!req.url.startsWith('/oidc/')) return done(); reply.hijack(); oidcHandler(req.raw, reply.raw).then(() => done(), done); })` where `const oidcHandler = provider.callback()` is built ONCE after provider construction (cache the returned handler). A static-assertion test forbids registering any content-type parser for /oidc (route-guard.test precedent).
 - **R2:** Client secret at rest — resolved by AES-256-GCM encryption with key derived from JWT_SECRET (scrypt), encrypted blob stored in `secretEncrypted` column (Task 1/2).
 - **R3:** Interaction resume → login page must NOT create a session for the OIDC user that bypasses consent — consent is enforced by provider prompt; Login redirect only resumes the provider's own interaction cookie.
