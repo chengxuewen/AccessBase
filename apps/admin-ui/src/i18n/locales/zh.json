@@ -57,7 +57,22 @@
     "mfaSubmit": "验证",
     "mfaCancel": "使用其他账号",
     "mfaError": "验证码无效或已过期",
-    "tooManyRequests": "尝试过于频繁，请稍后再试"
+    "tooManyRequests": "尝试过于频繁，请稍后再试",
+    "oidcRedirect": "正在认证——即将继续安全登录…"
+  },
+  "consent": {
+    "title": "授权请求",
+    "clientName": "应用",
+    "requestedScopes": "请求的权限",
+    "approve": "同意",
+    "deny": "拒绝",
+    "error": "加载授权请求失败"
+  },
+  "scope": {
+    "openid": "验证您的身份（openid）",
+    "profile": "查看您的基本资料（profile）",
+    "email": "查看您的邮箱地址（email）",
+    "offline_access": "保持登录状态（offline_access）"
   },
   "oauth": {
     "or": "或",

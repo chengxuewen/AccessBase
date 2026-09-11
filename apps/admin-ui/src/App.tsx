@@ -7,6 +7,7 @@ import { useSetupGuardState } from './hooks/useSetupGuardState';
 import { i18nReady as i18nReadyPromise } from './i18n';
 import AdminLayout from './layouts/AdminLayout';
 import Login from './pages/Login';
+import Consent from './pages/Consent';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Roles from './pages/Roles';
@@ -81,6 +82,12 @@ export default function App() {
           <SetupGuard>
             <SetupWizard />
           </SetupGuard>
+        }
+      />
+      <Route
+        path="/consent"
+        element={
+          <Consent />
         }
       />
       <Route

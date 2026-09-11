@@ -57,7 +57,22 @@
     "mfaSubmit": "Verify",
     "mfaCancel": "Use another account",
     "mfaError": "Invalid or expired verification code",
-    "tooManyRequests": "Too many attempts, try again later"
+    "tooManyRequests": "Too many attempts, try again later",
+    "oidcRedirect": "Authenticating — resuming secure sign-in…"
+  },
+  "consent": {
+    "title": "Authorization Request",
+    "clientName": "Application",
+    "requestedScopes": "Requested permissions",
+    "approve": "Approve",
+    "deny": "Deny",
+    "error": "Failed to load the authorization request"
+  },
+  "scope": {
+    "openid": "Verify your identity (openid)",
+    "profile": "View your basic profile (profile)",
+    "email": "View your email address (email)",
+    "offline_access": "Stay signed in (offline_access)"
   },
   "oauth": {
     "or": "or",

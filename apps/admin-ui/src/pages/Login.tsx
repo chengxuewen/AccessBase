@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Button, Card, Alert, Spin } from 'antd';
@@ -13,6 +13,7 @@ import { startAuthentication } from '@simplewebauthn/browser';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { apiErrorMessage, apiErrorStatus } from '../api/errors';
 import { landingPath } from '../utils/landing';
+import { getInteraction, postInteractionDecision, safeOidcRedirect } from '../api/oidc';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -22,6 +23,15 @@ export default function Login() {
   const [form] = Form.useForm();
   const [mfaForm] = Form.useForm();
   const [searchParams, setSearchParams] = useSearchParams();
+  const oidcRedirect = safeOidcRedirect(searchParams.get('redirect'));
+
+  const navigateAfterAuth = useCallback(() => {
+    if (oidcRedirect) {
+      window.location.assign(oidcRedirect);
+      return;
+    }
+    navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true });
+  }, [oidcRedirect, navigate]);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [oauthBusy, setOauthBusy] = useState(false);
@@ -42,11 +52,32 @@ export default function Login() {
       setOauthBusy(true);
       exchangeOAuthCode(code)
         .then(() => useAuthStore.getState().fetchUser())
-        .then(() => navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true }))
+        .then(() => navigateAfterAuth())
         .catch(() => setOauthError('exchange_failed'))
         .finally(() => setOauthBusy(false));
     }
-  }, [searchParams, setSearchParams, exchangeOAuthCode, fetchUser, navigate]);
+  }, [searchParams, setSearchParams, exchangeOAuthCode, fetchUser, navigate, navigateAfterAuth]);
+
+  // OIDC flow: already-authenticated user landing on /login?redirect=/oidc/auth/:uid
+  // auto-approves the login prompt so the provider flow resumes without retyping credentials.
+  useEffect(() => {
+    const { token, isAuthenticated } = useAuthStore.getState();
+    if (!(token || isAuthenticated) || !oidcRedirect) return;
+    const uid = oidcRedirect.replace('/oidc/auth/', '');
+    if (!uid) return;
+    let cancelled = false;
+    getInteraction(uid)
+      .then(() => postInteractionDecision(uid, 'approve'))
+      .then(() => {
+        if (!cancelled) window.location.assign(oidcRedirect);
+      })
+      .catch(() => {
+        // Fall through to the normal login form; user can sign in again manually
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [oidcRedirect]);
 
   const handlePasskeyLogin = async () => {
     setPasskeyError(false);
@@ -59,7 +90,7 @@ export default function Login() {
       const { accessToken, refreshToken } = await verifyWebAuthnLogin(flowToken, assertion);
       useAuthStore.getState().setTokens(accessToken, refreshToken);
       await useAuthStore.getState().fetchUser();
-      navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true });
+      navigateAfterAuth();
     } catch {
       setPasskeyError(true);
     } finally {
@@ -72,7 +103,7 @@ export default function Login() {
     if (ok) {
       // verifyMfa only sets the token — user (and permissions) must be fetched before routing
       await fetchUser();
-      navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true });
+      navigateAfterAuth();
     } else {
       setMfaError(true);
     }
@@ -91,7 +122,7 @@ export default function Login() {
       if (sessionEstablished) {
         // login() may return a user without permissions — refresh from /auth/me before routing
         await fetchUser();
-        navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true });
+        navigateAfterAuth();
       }
     } catch (err) {
       const status = apiErrorStatus(err);
