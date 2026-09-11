@@ -96,7 +96,7 @@ describe('OidcAdapter', () => {
       const client = (await adapter.find('Client', 'ab_testclient')) as ClientPayload | undefined;
 
       expect(client).toBeDefined();
-      expect(client?.clientId).toBe('ab_testclient');
+      expect(client?.client_id).toBe('ab_testclient');
       expect(client?.client_secret).toBe(secret);
       expect(client?.redirect_uris).toEqual(['https://rp.example/cb']);
       expect(client?.grant_types).toEqual(['authorization_code', 'refresh_token']);
@@ -121,43 +121,21 @@ describe('OidcAdapter', () => {
   });
 
   describe('Grant kind (drizzle-backed)', () => {
-    it('upsert inserts by providerGrantId; find returns grant payload', async () => {
-      const db = makeMockDb();
-
-      // find mocks the DB row shape (oidc_grants columns); adapter maps it
-      // back to the provider payload {jti, accountId, clientId, scope}.
-      const selectChain = makeChain([
-        {
-          providerGrantId: 'grant-jti-1',
-          userId: 'user-1',
-          clientId: 'ab_testclient',
-          scope: 'openid email',
-        },
-      ]);
-      db.select.mockReturnValue(selectChain);
-
-      const insertChain = makeChain([]);
-      db.insert.mockReturnValue(insertChain);
-
-      const adapter = new OidcAdapter(db as unknown as DrizzleDB);
+    it('upsert/find for Grant round-trips through the in-memory catch-all', async () => {
+      const adapter = new OidcAdapter(makeMockDb() as unknown as DrizzleDB);
       const payload = {
         jti: 'grant-jti-1',
+        kind: 'Grant',
         accountId: 'user-1',
         clientId: 'ab_testclient',
-        scope: 'openid email',
+        scope: 'openid profile email',
+        openid: { scope: 'openid profile email' },
       };
+
       await adapter.upsert('Grant', 'grant-jti-1', payload, undefined);
 
-      expect(insertChain.values).toHaveBeenCalledWith(
-        expect.objectContaining({
-          providerGrantId: 'grant-jti-1',
-          userId: 'user-1',
-          clientId: 'ab_testclient',
-        }),
-      );
-
-      const found = (await adapter.find('Grant', 'grant-jti-1')) as { payload: unknown };
-      expect(found?.payload).toEqual(payload);
+      const found = await adapter.find('Grant', 'grant-jti-1');
+      expect(found).toEqual(payload);
     });
 
     it('find returns undefined for unknown grant', async () => {

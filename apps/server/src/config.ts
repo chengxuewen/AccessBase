@@ -26,6 +26,7 @@ export interface AppConfig {
     origin: string;
   };
   oauthRedirectBase: string;
+  frontendOrigin: string;
 }
 
 function env(key: string, fallback?: string): string {
@@ -78,4 +79,5 @@ export const config: AppConfig = {
     origin: process.env['WEBAUTHN_ORIGIN'] || 'http://localhost:5173',
   },
   oauthRedirectBase: process.env['OAUTH_REDIRECT_BASE'] || 'http://localhost:5101',
+  frontendOrigin: process.env['FRONTEND_ORIGIN'] || 'http://localhost:5173',
 };

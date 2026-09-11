@@ -22,6 +22,8 @@ export interface BuildOidcProviderOptions {
   publicKeyPath: string;
   /** Args for the OidcAdapter constructor (databaseUrl + injected deps). */
   adapterCtorArgs: ConstructorParameters<typeof OidcAdapter>;
+  /** SPA origin for interaction redirects (dev topology, review B3). */
+  frontendOrigin?: string;
 }
 
 interface JwkSet {
@@ -63,8 +65,34 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
 }> {
   const jwks = loadJwks(opts);
 
+  // Adapter as a FACTORY (not the class itself): oidc-provider instantiates
+  // `new AdapterCtor(kind)` / calls `Adapter(kind)` and then invokes the
+  // SINGLE-ARG form — find(id) / upsert(id, payload, ttl) / destroy(id) —
+  // with the kind fixed at construction (models/client.js and base_model.js
+  // both call adapter.find(jti) with no kind). OidcAdapter's methods take
+  // (kind, ...) instead, so the factory returns a per-kind partial that
+  // binds the kind. One shared instance serves all kinds.
+  const adapterInstance = new OidcAdapter(...opts.adapterCtorArgs);
+  const accountAdapter = new OidcAdapter(...opts.adapterCtorArgs);
+  const kindAdapter = (kind: string) => ({
+    upsert: (id: string, payload: Record<string, unknown>, expiresIn?: number) =>
+      adapterInstance.upsert(kind, id, payload, expiresIn),
+    find: (id: string) => adapterInstance.find(kind, id),
+    findByUid: (uid: string) => adapterInstance.findByUid(kind, uid),
+    findByUserCode: (userCode: string) => adapterInstance.findByUserCode(kind, userCode),
+    destroy: (id: string) => adapterInstance.destroy(kind, id),
+    consume: (id: string) => adapterInstance.consume(kind, id),
+    revokeByGrantId: (grantId: string) => adapterInstance.revokeByGrantId(grantId),
+  });
+  const frontendOrigin = opts.frontendOrigin ?? 'http://localhost:5173';
+
   const configuration: Configuration = {
-    adapter: OidcAdapter as unknown as Configuration['adapter'],
+    adapter: ((kind: string) => kindAdapter(kind)) as unknown as Configuration['adapter'],
+    // M2: account claims come from the adapter's user mapping (sub/name/email).
+    // Cast: OidcAccount is structurally the {accountId, claims} pair provider
+    // consumes, but the lib's Account type demands an index signature.
+    findAccount: (async (_ctx: unknown, accountId: string) =>
+      accountAdapter.findAccount(_ctx, accountId)) as unknown as Configuration['findAccount'],
     features: {
       devInteractions: { enabled: false },
       registration: { enabled: false },
@@ -72,10 +100,36 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
       introspection: { enabled: true },
       clientCredentials: { enabled: true },
     },
+    // M2: scope + claims mapping — `openid profile email` must be declared or
+    // authorize requests requesting those scopes fail with invalid_client_metadata
+    // ("scope must only contain Authorization Server supported scope values").
+    claims: {
+      profile: ['name'],
+      email: ['email', 'email_verified'],
+    },
     // Explicit: the default only forces PKCE for token_endpoint_auth_method=none.
     pkce: { required: () => true },
+    // B3 topology: the provider 302s to our frontend for login (dev: absolute
+    // FRONTEND_ORIGIN URL; deploy single-port: relative) and to /consent for
+    // the consent prompt (Task 6 renders both routes).
+    interactions: {
+      url: (_ctx, interaction) => {
+        if (interaction.prompt.name === 'login') {
+          const target = `/login?redirect=${encodeURIComponent(`/oidc/auth/${interaction.uid}`)}`;
+          return opts.nodeEnv === 'production' ? target : `${frontendOrigin}${target}`;
+        }
+        return `/consent?uid=${interaction.uid}`;
+      },
+    },
     cookies: {
       keys: [createHash('sha256').update(`oidc-cookies:${opts.jwtSecret}`).digest('hex')],
+      // Interaction/resume cookies must reach every consumer regardless of the
+      // interaction destination path (/login on the SPA origin, /consent) and
+      // the /oidc mount prefix-strip — site-wide path is the only setting that
+      // survives both topologies. Scoped paths would drop the interaction
+      // cookie on the consent contract endpoints (verified by the flow tests).
+      short: { path: '/' },
+      long: { path: '/' },
     },
   };
 

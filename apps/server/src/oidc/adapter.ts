@@ -2,12 +2,19 @@
  * OidcAdapter — the adapter class shape oidc-provider expects (Task 4a).
  *
  * Standalone-testable: no oidc-provider import (Task 4b wires it as the
- * adapter factory). Explicit persisted set = {Client, Grant}; every other
- * kind falls through to an in-memory Map catch-all.
+ * adapter factory). Persisted set = {Client} via OidcClientManager; every
+ * other kind (Grant included) falls through to an in-memory Map catch-all.
+ *
+ * ponytail: Grant/Interaction/transient kinds are in-memory — a server
+ * restart drops pending consents (users re-approve) and all RP refresh
+ * tokens; move Grant/RefreshToken to PG or Redis when restart-survival or
+ * multi-instance deployment matters. (The oidc_grants DB round-trip was
+ * tried and broken: provider-side Grant instantiation loses non-whitelisted
+ * payload fields on reload, re-prompting consent endlessly.)
  */
 import type { DrizzleDB } from '@accessbase/identity/db';
 import { decryptSecret } from '@accessbase/identity';
-import { oidcClients, oidcGrants, type OidcClientRow } from '@accessbase/identity/db';
+import { oidcClients, type OidcClientRow } from '@accessbase/identity/db';
 import { eq } from 'drizzle-orm';
 
 // ponytail: transient kinds in-memory; restart invalidates all RP refresh
@@ -58,10 +65,7 @@ export class OidcAdapter {
       throw new Error('Client upsert not supported; use OidcClientManager');
     }
 
-    if (kind === 'Grant') {
-      await this.upsertGrant(id, payload);
-      return;
-    }
+
 
     let bucket = memory.get(kind);
     if (!bucket) {
@@ -75,11 +79,9 @@ export class OidcAdapter {
     if (kind === 'Client') {
       return await this.findClient(id);
     }
-    if (kind === 'Grant') {
-      return await this.findGrant(id);
-    }
     return memory.get(kind)?.get(id);
   }
+
 
   async findByUid(_kind: string, uid: string): Promise<unknown | undefined> {
     for (const bucket of memory.values()) {
@@ -109,8 +111,21 @@ export class OidcAdapter {
     memory.get(kind)?.delete(id);
   }
 
-  async consume(kind: string, id: string): Promise<void> {
-    memory.get(kind)?.delete(id);
+async consume(kind: string, id: string): Promise<void> {
+memory.get(kind)?.delete(id);
+  }
+
+  /** oidc-provider revocation feature: drop every token bound to the grant.
+   *  In-memory kinds carry grantId in their payload; PG-persisted kinds
+   *  (Client/Grant) are not tokens. */
+  async revokeByGrantId(grantId: string): Promise<void> {
+    for (const bucket of memory.values()) {
+      for (const [id, payload] of bucket) {
+        if ((payload as { grantId?: string }).grantId === grantId) {
+          bucket.delete(id);
+        }
+      }
+    }
   }
 
   async findAccount(_ctx: unknown, accountId: string): Promise<OidcAccount> {
@@ -138,7 +153,9 @@ export class OidcAdapter {
       return undefined;
     }
     return {
-      clientId: row.clientId,
+      // Protocol metadata uses snake_case — camelCase clientId would fail the
+      // provider's Client schema ("client_id is mandatory property").
+      client_id: row.clientId,
       name: row.name,
       client_secret: decryptSecret(row.secretEncrypted),
       redirect_uris: row.redirectUris,
@@ -149,50 +166,4 @@ export class OidcAdapter {
     };
   }
 
-  private async upsertGrant(id: string, payload: Record<string, unknown>): Promise<void> {
-    const accountId = payload['accountId'];
-    const clientId = payload['clientId'];
-    const scope = payload['scope'];
-    if (typeof accountId !== 'string' || typeof clientId !== 'string') {
-      throw new Error('Grant payload requires accountId and clientId strings');
-    }
-    await this.db
-      .insert(oidcGrants)
-      .values({
-        providerGrantId: id,
-        userId: accountId,
-        clientId,
-        scope: typeof scope === 'string' ? scope : '',
-      })
-      .onConflictDoUpdate({
-        target: oidcGrants.providerGrantId,
-        set: {
-          userId: accountId,
-          clientId,
-          scope: typeof scope === 'string' ? scope : '',
-        },
-      });
-  }
-
-  private async findGrant(id: string): Promise<{ payload: Record<string, unknown> } | undefined> {
-    const rows = await this.db
-      .select()
-      .from(oidcGrants)
-      .where(eq(oidcGrants.providerGrantId, id))
-      .limit(1);
-    const row = rows[0] as
-      | { providerGrantId: string; userId: string; clientId: string; scope: string }
-      | undefined;
-    if (!row) {
-      return undefined;
-    }
-    return {
-      payload: {
-        jti: row.providerGrantId,
-        accountId: row.userId,
-        clientId: row.clientId,
-        scope: row.scope,
-      },
-    };
-  }
 }

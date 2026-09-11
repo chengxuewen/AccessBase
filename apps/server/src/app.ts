@@ -21,6 +21,8 @@ import { webauthnRoutes } from './routes/webauthn.js';
 import { optionsRoutes } from './routes/options.js';
 import { resolveCorsOrigin } from './cors.js';
 import { buildOidcProvider } from './oidc/provider.js';
+import { OidcClientManager } from '@accessbase/identity';
+import { registerInteractionRoutes } from './oidc/interaction.js';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { IncomingMessage } from 'node:http';
@@ -147,25 +149,29 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // DB round-trip entirely (the provider's adapter dials PG only when a
   // flow actually needs a Client/Grant lookup).
   const { createDb } = await import('@accessbase/identity/db');
-  const { oidcHandler } = await buildOidcProvider({
+  const { provider: oidcProvider, oidcHandler } = await buildOidcProvider({
     issuer: `${config.oauthRedirectBase}/oidc`,
     jwtSecret: config.jwtSecret,
     nodeEnv: config.nodeEnv,
     privateKeyPath: config.jwtPrivateKeyPath,
     publicKeyPath: config.jwtPublicKeyPath,
     adapterCtorArgs: [createDb(config.databaseUrl)],
+    frontendOrigin: config.frontendOrigin,
   });
-  app.addHook('onRequest', (req, reply, done) => {
-    if (!req.url.startsWith('/oidc/')) return done();
-    reply.hijack();
-    // Provider routes are registered WITHOUT the /oidc prefix (issuer path =
-    // mountPath); per panva's official mount docs, strip the prefix and keep
-    // originalUrl so urlFor recomposes absolute URLs with the prefix.
-    const raw = req.raw as IncomingMessage & { originalUrl?: string };
-    raw.originalUrl = raw.url;
-    raw.url = (raw.url ?? '').slice('/oidc'.length);
-    oidcHandler(raw, reply.raw).then(() => done(), done);
-  });
+app.addHook('onRequest', (req, reply, done) => {
+// Interaction contract endpoints (Task 4c) are real Fastify routes — they
+// need body parsing + bearer auth, so they bypass the provider hijack.
+if (req.url.startsWith('/oidc/interaction/')) return done();
+if (!req.url.startsWith('/oidc/')) return done();
+reply.hijack();
+// Provider routes are registered WITHOUT the /oidc prefix (issuer path =
+// mountPath); per panva's official mount docs, strip the prefix and keep
+// originalUrl so urlFor recomposes absolute URLs with the prefix.
+const raw = req.raw as IncomingMessage & { originalUrl?: string };
+raw.originalUrl = raw.url;
+raw.url = (raw.url ?? '').slice('/oidc'.length);
+oidcHandler(raw, reply.raw).then(() => done(), done);
+});
 
   // --- Setup Guard Middleware (must be registered before other routes) ---
   app.addHook('onRequest', setupGuard);
@@ -228,6 +234,15 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(optionsRoutes, { prefix: '/api/v1' });
   await app.register(oauthRoutes, { prefix: '/api/v1/auth' });
   await app.register(webauthnRoutes, { prefix: '/api/v1/auth' });
+  // Client display names live in the registry (the provider's Client wrapper
+  // drops non-schema fields), so the interaction GET resolves them here.
+  const oidcClientManager = new OidcClientManager(createDb(config.databaseUrl));
+  await app.register(registerInteractionRoutes, {
+    prefix: '/oidc',
+    provider: oidcProvider,
+    clientNameLookup: async (clientId) =>
+      (await oidcClientManager.get(clientId))?.name,
+  });
   // --- L0 package registration (when packages are implemented) ---
   // await app.register(identityPlugin)
   // await app.register(auditPlugin)
