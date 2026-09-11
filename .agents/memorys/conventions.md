@@ -195,3 +195,11 @@ logger.error('Operation failed', error); // ❌
 - 卡片壳与列表页一致：流式全宽（width:100%，不封顶不居中）——720 居中列方案已被用户屏幕实测后推翻，勿改回
 - 卡内表单控件与提示 Alert 统一 maxWidth:400 成列（ant-design-pro 同构：容器 fluid + 表单列 cap）
 - 检查：probe 实测 gapL==gapR 且拉窗 cardW 跟随 contentW 变化
+
+## Phase 9 OIDC Provider 约束（2026-09-11）
+
+- /oidc/* 挂载为 onRequest 劫持（B1）：**禁止给 /oidc 注册任何 content-type parser**（provider 自解析 urlencoded；检查命令：`grep -c "addContentTypeParser" apps/server/src/app.ts` 应 =0）
+- 客户端密钥列 secretEncrypted 为 **AES-256-GCM blob**（v1:salt:iv:tag:ct），**禁止改回 sha256 哈希**（provider 边界需明文比对）；轮换 = rotateSecret 接口，明文仅 create/rotate 响应出现一次
+- Grant/Interaction 等瞬时 kind 走内存 catch-all（**重启=consent 重做+RP refresh token 全失效**）；持久化前先解决 provider payload round-trip 丢字段问题
+- /oidc 不入审计（写体含密钥语义）；oidcGrants 表为部分审计轨迹——需完整审计须显式设计
+- interaction resume 守卫 `/^\/oidc\/auth\//`（拒绝 \\ 与二次编码）——前端 login redirect 参数唯一合法形态
