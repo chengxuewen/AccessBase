@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button, Card, Form, Input, Select } from 'antd';
+import { Alert, Button, Card, Form, Input, Select, Spin } from 'antd';
 import { getUser, updateUser, type User } from '../../api/users';
 import { listRoles } from '../../api/roles';
 import { message } from '../../api/feedback';
 import { apiErrorMessage } from '../../api/errors';
+import EmptyState from '../../components/EmptyState';
 
 export default function UserEdit() {
   const { t } = useTranslation();
@@ -17,6 +18,25 @@ export default function UserEdit() {
   const [rolesLoading, setRolesLoading] = useState(false);
   const [rolesError, setRolesError] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const refetch = useCallback(() => {
+    if (!id) return;
+    setLoading(true);
+    setLoadError(false);
+    getUser(id)
+      .then((u) => {
+        setUser(u);
+        form.setFieldsValue({ name: u.name, roleIds: u.roleIds ?? [] });
+      })
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false));
+  }, [id, form]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const fetchRoles = useCallback(() => {
     setRolesLoading(true);
@@ -27,15 +47,6 @@ export default function UserEdit() {
       .finally(() => setRolesLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (!id) return;
-    getUser(id)
-      .then((u) => {
-        setUser(u);
-        form.setFieldsValue({ name: u.name, roleIds: u.roleIds ?? [] });
-      })
-      .catch((err) => message.error(apiErrorMessage(err, t('users.loadError'))));
-  }, [id, form, t]);
 
   useEffect(() => {
     fetchRoles();
@@ -57,9 +68,23 @@ export default function UserEdit() {
     }
   };
 
+  if (loadError) {
+    return (
+      <Card data-testid="detail-error">
+        <EmptyState
+          variant="error"
+          action={
+            <Button type="primary" onClick={refetch}>{t('common.retry')}</Button>
+          }
+        />
+      </Card>
+    );
+  }
+
   return (
     <Card title={t('users.editTitle')} style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
-      <Form form={form} layout="vertical" onFinish={handleSubmit}>
+      <Spin spinning={loading}>
+      <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={loading}>
         <Form.Item
           name="name"
           label={t('users.name')}
@@ -103,6 +128,7 @@ export default function UserEdit() {
           </Button>
         </Form.Item>
       </Form>
+      </Spin>
     </Card>
   );
 }

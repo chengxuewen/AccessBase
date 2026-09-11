@@ -532,4 +532,21 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await expect(page).toHaveURL(/\/users\/create/);
     await expect(page.locator('.ant-message-success')).toHaveCount(0);
   });
+
+  // T9: detail page on user fetch 404 must render the unified error empty-state
+  // with retry (not a blank page — the old `if (!user) return null` behavior).
+  test('detail page 404 renders error empty-state with retry', async ({ page }) => {
+    await page.route('**/api/v1/users/00000000-0000-0000-0000-000000000099', async (route) => {
+      if (route.request().method() !== 'GET') return route.fallback();
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } }),
+      });
+    });
+
+    await page.goto('/users/00000000-0000-0000-0000-000000000099');
+    await expect(page.getByTestId('detail-error')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('detail-error').getByRole('button', { name: /Retry|重试/ })).toBeVisible();
+  });
 });

@@ -5,6 +5,7 @@ import { Button, Card, Descriptions, Popconfirm, Space, Spin, Switch, Tag } from
 import { deleteUser, changeUserStatus, getUser, type User } from '../../api/users';
 import { message } from '../../api/feedback';
 import { apiErrorMessage } from '../../api/errors';
+import EmptyState from '../../components/EmptyState';
 
 export default function UserDetail() {
   const { t } = useTranslation();
@@ -13,14 +14,22 @@ export default function UserDetail() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const refetch = () => {
     if (!id) return;
+    setLoading(true);
+    setLoadError(false);
     getUser(id)
       .then(setUser)
-      .catch((err) => message.error(apiErrorMessage(err, t('users.loadError'))))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, [id, t]);
+  };
+
+  useEffect(() => {
+    refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch closes over route param id; re-fire on id change only
+  }, [id]);
 
   const handleStatusToggle = async (checked: boolean) => {
     if (!id || !user) return;
@@ -52,9 +61,19 @@ export default function UserDetail() {
     return <Spin size="large" style={{ display: 'block', margin: '40vh auto' }} />;
   }
 
-  if (!user) {
-    return null;
+  if (loadError) {
+    return (
+      <Card data-testid="detail-error">
+        <EmptyState
+          variant="error"
+          action={
+            <Button type="primary" onClick={refetch}>{t('common.retry')}</Button>
+          }
+        />
+      </Card>
+    );
   }
+  if (!user) return <Card><Spin /></Card>;
 
   return (
     <Card

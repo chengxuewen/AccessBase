@@ -20,6 +20,7 @@ import { changePassword, revokeOtherSessions, getOAuthLinks, unlinkOAuthProvider
 import { useAuthStore } from '../stores/auth';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
+import EmptyState from '../components/EmptyState';
 
 export default function Profile() {
   const { t } = useTranslation();
@@ -35,15 +36,22 @@ export default function Profile() {
   const [links, setLinks] = useState<OAuthLink[]>([]);
   const [linksLoading, setLinksLoading] = useState(false);
   const [linksError, setLinksError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     getCurrentUser()
       .then((u) => {
         setUser({ id: u.id, email: u.email, name: u.name, isActive: u.isActive });
       })
-      .catch(() => message.error(t('profile.loadError')))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, [t, nameForm]);
+  }, []);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const loadLinks = useCallback(() => {
     setLinksLoading(true);
@@ -116,6 +124,19 @@ export default function Profile() {
       message.error(t('profile.logoutOtherDevicesError'));
     }
   };
+
+  if (loadError && !loading) {
+    return (
+      <Card data-testid="detail-error">
+        <EmptyState
+          variant="error"
+          action={
+            <Button type="primary" onClick={refetch}>{t('common.retry')}</Button>
+          }
+        />
+      </Card>
+    );
+  }
 
   return (
     <Spin spinning={loading}>
