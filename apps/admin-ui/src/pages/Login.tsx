@@ -12,6 +12,7 @@ import {
 import { startAuthentication } from '@simplewebauthn/browser';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { apiErrorMessage, apiErrorStatus } from '../api/errors';
+import { landingPath } from '../utils/landing';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -40,8 +41,8 @@ export default function Login() {
     if (code) {
       setOauthBusy(true);
       exchangeOAuthCode(code)
-        .then(() => fetchUser())
-        .then(() => navigate('/', { replace: true }))
+        .then(() => useAuthStore.getState().fetchUser())
+        .then(() => navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true }))
         .catch(() => setOauthError('exchange_failed'))
         .finally(() => setOauthBusy(false));
     }
@@ -58,7 +59,7 @@ export default function Login() {
       const { accessToken, refreshToken } = await verifyWebAuthnLogin(flowToken, assertion);
       useAuthStore.getState().setTokens(accessToken, refreshToken);
       await useAuthStore.getState().fetchUser();
-      navigate('/', { replace: true });
+      navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true });
     } catch {
       setPasskeyError(true);
     } finally {
@@ -69,7 +70,9 @@ export default function Login() {
   const handleMfaSubmit = async (values: { code: string }) => {
     const ok = await verifyMfa(values.code);
     if (ok) {
-      navigate('/', { replace: true });
+      // verifyMfa only sets the token — user (and permissions) must be fetched before routing
+      await fetchUser();
+      navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true });
     } else {
       setMfaError(true);
     }
@@ -86,7 +89,9 @@ export default function Login() {
       const sessionEstablished = await login(values.email, values.password);
       setLoginError(null);
       if (sessionEstablished) {
-        navigate('/');
+        // login() may return a user without permissions — refresh from /auth/me before routing
+        await fetchUser();
+        navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true });
       }
     } catch (err) {
       const status = apiErrorStatus(err);

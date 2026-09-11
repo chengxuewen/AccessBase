@@ -1,7 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // Mock response shapes copied from apps/server/src/routes/
-const MOCK_ME_USER = { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] };
+const ADMIN_PERMISSIONS = [
+  'users:read', 'users:write', 'users:delete',
+  'roles:read', 'roles:write', 'roles:delete',
+  'permissions:read', 'permissions:write', 'permissions:delete',
+  'audit:read', 'stats:read',
+];
+const MOCK_ME_USER = { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [], permissions: ADMIN_PERMISSIONS };
 
 function trackConsoleErrors(page: Page): string[] {
   const errors: string[] = [];

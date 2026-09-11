@@ -34,11 +34,26 @@ async function mockCommonApis(page: Page): Promise<void> {
   });
 
   // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
+  // Full admin permission set: login lands on /dashboard and the full menu renders
   await page.route('**/api/v1/auth/me', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: {
+          id: '1',
+          email: 'admin@accessbase.local',
+          name: 'Administrator',
+          roles: [],
+          permissions: [
+            'users:read', 'users:write', 'users:delete',
+            'roles:read', 'roles:write', 'roles:delete',
+            'permissions:read', 'permissions:write', 'permissions:delete',
+            'audit:read', 'stats:read',
+          ],
+        },
+      }),
     });
   });
 

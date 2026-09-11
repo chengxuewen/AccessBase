@@ -1,11 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // Task 11 — menu/route permission gates fed by /auth/me permissions (Task 10 contract).
-// The 9 codes mirror BUILTIN_PERMISSIONS in apps/server/src/routes/permissions-seed.ts.
+// The 11 codes mirror BUILTIN_PERMISSIONS in apps/server/src/routes/permissions-seed.ts.
 const FULL_PERMISSIONS = [
   'users:read', 'users:write', 'users:delete',
   'roles:read', 'roles:write', 'roles:delete',
   'permissions:read', 'permissions:write', 'permissions:delete',
+  'audit:read', 'stats:read',
 ];
 
 function trackConsoleErrors(page: Page): string[] {
@@ -62,6 +63,14 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
         body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
       });
     });
+    // Users list for /users navigation in the users:read-holder test
+    await page.route('**/api/v1/users**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [], total: 0 }),
+      });
+    });
   });
 
   test.afterEach(async () => {
@@ -74,14 +83,15 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
       roles: [{ id: 'r-2', name: 'staff' }], permissions: ['users:read'], mfaEnabled: false,
     });
 
-    await page.goto('/dashboard');
+    await page.goto('/users'); // users:read holder → renders layout; /dashboard now 403s for this user
     const sider = page.locator('.ant-layout-sider');
-    await expect(sider.getByText('Dashboard', { exact: true })).toBeVisible();
     await expect(sider.getByText('Users', { exact: true })).toBeVisible();
+    await expect(sider.getByText('Dashboard', { exact: true })).toHaveCount(0);
     await expect(sider.getByText('Profile', { exact: true })).toBeVisible();
     await expect(sider.getByText('Settings', { exact: true })).toBeVisible();
-    // ponytail: audit stays visible by design — no audit:* codes in the 9-code seed yet
-    await expect(sider.getByText('Audit', { exact: true })).toBeVisible();
+    // Audit and Dashboard menu entries now gate on audit:read / stats:read
+    await expect(sider.getByText('Audit', { exact: true })).toHaveCount(0);
+    await expect(sider.getByText('Dashboard', { exact: true })).toHaveCount(0);
     await expect(sider.getByText('Roles', { exact: true })).toHaveCount(0);
 
     await page.goto('/roles');
@@ -105,7 +115,7 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
     expect(page.url()).toContain('/403');
   });
 
-  test('user with all 9 codes sees the full menu', async ({ page }) => {
+  test('user with all 11 codes sees the full menu', async ({ page }) => {
     await seedSessionWithMe(page, {
       id: '1', email: 'admin@accessbase.local', name: 'Administrator',
       roles: [{ id: 'r-1', name: 'admin' }], permissions: FULL_PERMISSIONS, mfaEnabled: false,
@@ -132,5 +142,6 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
     await expect(sider.getByText('Roles', { exact: true })).toBeVisible();
     await expect(sider.getByText('Users', { exact: true })).toBeVisible();
     await expect(sider.getByText('Audit', { exact: true })).toBeVisible();
+    await expect(sider.getByText('Dashboard', { exact: true })).toBeVisible();
   });
 });

@@ -102,13 +102,13 @@ export default function App() {
         }
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="dashboard" element={<PrivateRoute permission="stats:read"><Dashboard /></PrivateRoute>} />
         <Route path="users" element={<PrivateRoute permission="users:read"><Users /></PrivateRoute>} />
         <Route path="users/create" element={<PrivateRoute permission="users:write"><UserCreate /></PrivateRoute>} />
         <Route path="users/:id" element={<PrivateRoute permission="users:read"><UserDetail /></PrivateRoute>} />
         <Route path="users/:id/edit" element={<PrivateRoute permission="users:write"><UserEdit /></PrivateRoute>} />
         <Route path="roles" element={<PrivateRoute permission="roles:read"><Roles /></PrivateRoute>} />
-        <Route path="audit" element={<Audit />} />
+        <Route path="audit" element={<PrivateRoute permission="audit:read"><Audit /></PrivateRoute>} />
         <Route path="profile" element={<Profile />} />
         <Route path="settings" element={<Settings />} />
       </Route>

@@ -22,11 +22,15 @@ export default function AdminLayout() {
   const { t, i18n } = useTranslation();
   // C7 fix: ProLayout renders route `name` verbatim — labels must go through i18next
   // (raw keys like "menu.dashboard" used to show in the sidebar; confirmed in real-browser snapshot).
-  // Permission codes gate menu entries; dashboard/profile/settings are always visible.
-  // ponytail: audit gate waits for audit:* codes (none in the 9-code seed yet) → always visible.
+  // Permission codes gate menu entries; profile/settings are always visible.
   const permissions = useAuthStore((s) => s.user?.permissions);
   const menuRoutes = useMemo(() => {
-    const codeOf: Record<string, string> = { '/users': 'users:read', '/roles': 'roles:read' };
+    const codeOf: Record<string, string> = {
+      '/dashboard': 'stats:read',
+      '/users': 'users:read',
+      '/roles': 'roles:read',
+      '/audit': 'audit:read',
+    };
     const routes = [
       { path: '/dashboard', name: t('menu.dashboard'), icon: <DashboardOutlined /> },
       { path: '/users', name: t('menu.users'), icon: <UserOutlined /> },
