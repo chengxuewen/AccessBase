@@ -11,15 +11,19 @@ import {
   Popconfirm,
   Space,
   Spin,
+  Table,
   Tabs,
   Tag,
   Typography,
 } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import {
   SafetyOutlined,
   KeyOutlined,
   GlobalOutlined,
+  SlidersOutlined,
   PlusOutlined,
+  EditOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
 import {
@@ -36,11 +40,32 @@ import { startRegistration } from '@simplewebauthn/browser';
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
 import { useAuthStore } from '../stores/auth';
 import { loadSiteSettings, saveSiteSettings } from '../siteSettings';
+import { listOptions, setOption, deleteOption, type OptionRow } from '../api/options';
+import { message } from '../api/feedback';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+// register relativeTime once at module load; per-render extend would be wasteful
+dayjs.extend(relativeTime);
+
 import MfaCard from './settings/MfaCard';
 
+// Client-side mirror of server SENSITIVE_KEY_PATTERN (routes/options.ts) —
+// DISPLAY masking only; the server remains the authority on mask rejection.
+const SENSITIVE_KEY_PATTERN = /secret|password|token|key/i;
+const MASK = '******';
+const OPTION_KEY_PATTERN = /^[a-z][a-zA-Z0-9_.]{1,63}$/;
+
+interface OptionFormValues {
+  key?: string;
+  valueText?: string;
+}
 
 export default function Settings() {
   const { t } = useTranslation();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canManageOptions = hasPermission('options:read');
 
   // --- General tab (localStorage only, backend out of scope) ---
   const [siteForm] = Form.useForm();
@@ -280,6 +305,198 @@ export default function Settings() {
     </Card>
   );
 
+  // --- Options tab: runtime key/value config ---
+  const [optionForm] = Form.useForm<OptionFormValues>();
+  const [options, setOptions] = useState<OptionRow[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
+  const [optionModalOpen, setOptionModalOpen] = useState(false);
+  const [editingOption, setEditingOption] = useState<OptionRow | null>(null);
+  const [savingOption, setSavingOption] = useState(false);
+
+  const loadOptions = useCallback(() => {
+    setOptionsLoading(true);
+    setOptionsError(null);
+    listOptions()
+      .then((res) => setOptions(res.data.data ?? []))
+      .catch(() => setOptionsError(t('settings.options.loadError')))
+      .finally(() => setOptionsLoading(false));
+  }, [t]);
+
+  useEffect(() => {
+    if (canManageOptions) loadOptions();
+  }, [canManageOptions, loadOptions]);
+
+  const openAddOption = () => {
+    setEditingOption(null);
+    optionForm.resetFields();
+    setOptionModalOpen(true);
+  };
+
+  // Mask write-back guard (M5): never prefill '******' — blank = keep current.
+  const openEditOption = (row: OptionRow) => {
+    setEditingOption(row);
+    optionForm.setFieldsValue({ key: row.key, valueText: '' });
+    setOptionModalOpen(true);
+  };
+
+  const handleSaveOption = async () => {
+    let values: OptionFormValues;
+    try {
+      values = await optionForm.validateFields();
+    } catch {
+      return; // field-level errors are rendered inline by antd
+    }
+    const key = values.key?.trim() ?? '';
+    const raw = (values.valueText ?? '').trim();
+    // Edit of a sensitive row with a blank value = keep current, no PUT.
+    if (editingOption && raw === '') return;
+    let parsed: unknown;
+    try {
+      parsed = raw === '' ? '' : JSON.parse(raw);
+    } catch {
+      optionForm.setFields([{ name: 'valueText', errors: [t('settings.options.invalidJson')] }]);
+      return;
+    }
+    setSavingOption(true);
+    try {
+      const { data } = await setOption(key, parsed);
+      const saved = data.data;
+      setOptions((prev) => {
+        const rest = prev.filter((o) => o.key !== key);
+        return [...rest, { key, value: saved?.value ?? parsed, updatedAt: saved ? saved.updatedAt : new Date().toISOString() }].sort(
+          (a, b) => a.key.localeCompare(b.key),
+        );
+      });
+      message.success(t('settings.options.saveSuccess'));
+      setOptionModalOpen(false);
+    } catch {
+      message.error(t('settings.options.saveError'));
+    } finally {
+      setSavingOption(false);
+    }
+  };
+
+  const handleDeleteOption = async (key: string) => {
+    try {
+      await deleteOption(key);
+      setOptions((prev) => prev.filter((o) => o.key !== key));
+    } catch {
+      message.error(t('settings.options.deleteError'));
+    }
+  };
+
+  const optionColumns: ColumnsType<OptionRow> = [
+    {
+      title: t('settings.options.key'),
+      dataIndex: 'key',
+      render: (value: string) => <code>{value}</code>,
+    },
+    {
+      title: t('settings.options.value'),
+      dataIndex: 'value',
+      render: (value: unknown, record: OptionRow) => (
+        <code data-testid={`option-value-${record.key}`}>
+          {SENSITIVE_KEY_PATTERN.test(record.key) ? MASK : JSON.stringify(value)}
+        </code>
+      ),
+    },
+    {
+      title: t('settings.options.updatedAt'),
+      dataIndex: 'updatedAt',
+      render: (value: string) => dayjs(value).fromNow(),
+    },
+    {
+      title: t('settings.options.actions'),
+      render: (_, record: OptionRow) => (
+        <Space>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openEditOption(record)}
+            data-testid={`edit-option-${record.key}`}
+          >
+            {t('common.edit')}
+          </Button>
+          <Popconfirm
+            title={t('settings.options.deleteConfirm')}
+            okButtonProps={{ danger: true }}
+            onConfirm={() => void handleDeleteOption(record.key)}
+            okText={t('common.confirm')}
+            cancelText={t('common.cancel')}
+          >
+            <Button danger type="link" size="small" icon={<DeleteOutlined />} data-testid={`delete-option-${record.key}`}>
+              {t('common.delete')}
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  const optionsTab = (
+    <Card
+      title={t('settings.options.title')}
+      extra={(
+        <Button type="primary" icon={<PlusOutlined />} onClick={openAddOption} data-testid="add-option">
+          {t('settings.options.add')}
+        </Button>
+      )}
+      style={{ width: '100%' }}
+      data-testid="options-settings"
+    >
+      {optionsError && (
+        <Alert type="error" showIcon message={optionsError} style={{ marginBottom: 16 }} data-testid="options-error" />
+      )}
+      <Table<OptionRow>
+        rowKey="key"
+        size="small"
+        columns={optionColumns}
+        dataSource={options}
+        loading={optionsLoading}
+        pagination={false}
+        locale={{ emptyText: t('settings.options.empty') }}
+        data-testid="options-table"
+      />
+
+      <Modal
+        title={editingOption ? t('settings.options.editTitle') : t('settings.options.addTitle')}
+        open={optionModalOpen}
+        forceRender
+        onOk={() => void handleSaveOption()}
+        onCancel={() => setOptionModalOpen(false)}
+        confirmLoading={savingOption}
+        okText={t('common.save')}
+        cancelText={t('common.cancel')}
+        destroyOnHidden
+      >
+        <Form form={optionForm} layout="vertical">
+          <Form.Item
+            name="key"
+            rules={[
+              { required: true, message: t('settings.options.keyRequired') },
+              { pattern: OPTION_KEY_PATTERN, message: t('settings.options.invalidKey') },
+            ]}
+          >
+            <Input
+              placeholder="my_feature.flag"
+              disabled={editingOption !== null}
+              data-testid="option-key-input"
+            />
+          </Form.Item>
+          <Form.Item name="valueText" label={t('settings.options.value')} extra={editingOption ? t('settings.options.editValueHint') : undefined}>
+            <Input.TextArea
+              rows={4}
+              placeholder={editingOption ? t('settings.options.editValuePlaceholder') : t('settings.options.valuePlaceholder')}
+              data-testid="option-value-input"
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </Card>
+  );
+
   return (
     <Tabs
       defaultActiveKey="general"
@@ -302,6 +519,19 @@ export default function Settings() {
           ),
           children: sessionsTab,
         },
+        ...(canManageOptions
+          ? [
+              {
+                key: 'options',
+                label: (
+                  <span>
+                    <SlidersOutlined /> {t('settings.options.tab')}
+                  </span>
+                ),
+                children: optionsTab,
+              },
+            ]
+          : []),
       ]}
     />
   );

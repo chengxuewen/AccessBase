@@ -350,6 +350,30 @@
       "disableError": "关闭失败，请检查密码后重试",
       "disableConfirm": "确认关闭",
       "disableSuccess": "双重验证已关闭"
+    },
+    "options": {
+      "tab": "选项",
+      "title": "运行时选项",
+      "add": "新增选项",
+      "addTitle": "新增选项",
+      "editTitle": "编辑选项",
+      "key": "键名",
+      "value": "值 (JSON)",
+      "updatedAt": "更新时间",
+      "actions": "操作",
+      "keyPlaceholder": "例如 site.feature_flag",
+      "valuePlaceholder": "JSON 值，例如 \"文本\" 或 42 或 {\"a\":1}",
+      "keyRequired": "请输入键名",
+      "invalidKey": "键名格式不正确",
+      "invalidJson": "值必须是合法 JSON",
+      "deleteConfirm": "确定删除该选项？",
+      "saveSuccess": "已保存",
+      "saveError": "保存选项失败",
+      "deleteError": "删除选项失败",
+      "loadError": "选项加载失败",
+      "empty": "暂无选项",
+      "editValueHint": "留空表示保留当前值。",
+      "editValuePlaceholder": "新值（留空表示保留当前值）"
     }
   }
 }

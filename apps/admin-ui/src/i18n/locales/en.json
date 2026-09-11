@@ -350,6 +350,30 @@
       "disableError": "Failed to disable, check your password and retry",
       "disableConfirm": "Confirm disable",
       "disableSuccess": "Two-factor authentication disabled"
+    },
+    "options": {
+      "tab": "Options",
+      "title": "Runtime Options",
+      "add": "Add option",
+      "addTitle": "Add option",
+      "editTitle": "Edit option",
+      "key": "Key",
+      "value": "Value (JSON)",
+      "updatedAt": "Updated",
+      "actions": "Actions",
+      "keyPlaceholder": "e.g. site.feature_flag",
+      "valuePlaceholder": "JSON value, e.g. \"text\" or 42 or {\"a\":1}",
+      "keyRequired": "Please enter a key",
+      "invalidKey": "Key must match /^[a-z][a-zA-Z0-9_.]{1,63}$/",
+      "invalidJson": "Value must be valid JSON",
+      "deleteConfirm": "Delete this option?",
+      "saveSuccess": "Option saved",
+      "saveError": "Failed to save option",
+      "deleteError": "Failed to delete option",
+      "loadError": "Failed to load options",
+      "empty": "No options yet",
+      "editValueHint": "Leave blank to keep the current value.",
+      "editValuePlaceholder": "New value (leave blank to keep current)"
     }
   }
 }
