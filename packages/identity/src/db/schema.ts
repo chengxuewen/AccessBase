@@ -291,3 +291,14 @@ export const webauthnCredentials = pgTable(
 
 export type WebauthnCredentialRow = typeof webauthnCredentials.$inferSelect;
 export type NewWebauthnCredentialRow = typeof webauthnCredentials.$inferInsert;
+
+/**
+ * Options key-value table (Batch 4) -- runtime configuration store.
+ */
+export const options = pgTable('options', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type OptionsRow = typeof options.$inferSelect;
