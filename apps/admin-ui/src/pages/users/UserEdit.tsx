@@ -5,7 +5,6 @@ import { Alert, Button, Card, Form, Input, Select, Spin } from 'antd';
 import { getUser, updateUser, type User } from '../../api/users';
 import { listRoles } from '../../api/roles';
 import { message } from '../../api/feedback';
-import { apiErrorMessage } from '../../api/errors';
 import EmptyState from '../../components/EmptyState';
 
 export default function UserEdit() {

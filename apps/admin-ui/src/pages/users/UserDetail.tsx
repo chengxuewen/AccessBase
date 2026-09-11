@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Descriptions, Popconfirm, Space, Spin, Switch, Tag } from 'antd';
 import { deleteUser, changeUserStatus, getUser, type User } from '../../api/users';
 import { message } from '../../api/feedback';
-import { apiErrorMessage } from '../../api/errors';
 import EmptyState from '../../components/EmptyState';
 
 export default function UserDetail() {
@@ -16,7 +15,7 @@ export default function UserDetail() {
   const [statusSaving, setStatusSaving] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
-  const refetch = () => {
+  const refetch = useCallback(() => {
     if (!id) return;
     setLoading(true);
     setLoadError(false);
@@ -24,12 +23,11 @@ export default function UserDetail() {
       .then(setUser)
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  };
+  }, [id]);
 
   useEffect(() => {
     refetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch closes over route param id; re-fire on id change only
-  }, [id]);
+  }, [refetch]);
 
   const handleStatusToggle = async (checked: boolean) => {
     if (!id || !user) return;
