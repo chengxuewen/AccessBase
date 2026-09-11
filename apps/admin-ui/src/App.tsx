@@ -14,6 +14,7 @@ import Roles from './pages/Roles';
 import Audit from './pages/Audit';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import Clients from './pages/Clients';
 import UserCreate from './pages/users/UserCreate';
 import UserDetail from './pages/users/UserDetail';
 import UserEdit from './pages/users/UserEdit';
@@ -116,6 +117,7 @@ export default function App() {
         <Route path="users/:id/edit" element={<PrivateRoute permission="users:write"><UserEdit /></PrivateRoute>} />
         <Route path="roles" element={<PrivateRoute permission="roles:read"><Roles /></PrivateRoute>} />
         <Route path="audit" element={<PrivateRoute permission="audit:read"><Audit /></PrivateRoute>} />
+        <Route path="clients" element={<PrivateRoute permission="clients:read"><Clients /></PrivateRoute>} />
         <Route path="profile" element={<Profile />} />
         <Route path="settings" element={<Settings />} />
       </Route>

@@ -37,7 +37,8 @@
     "settings": "Settings",
     "audit": "Audit",
     "profile": "Profile",
-    "logout": "Logout"
+    "logout": "Logout",
+    "clients": "OIDC Clients"
   },
   "login": {
     "title": "AccessBase Login",
@@ -390,5 +391,39 @@
       "editValueHint": "Leave blank to keep the current value.",
       "editValuePlaceholder": "New value (leave blank to keep current)"
     }
+  },
+  "clients": {
+    "title": "OIDC Clients",
+    "create": "New Client",
+    "createTitle": "New OIDC Client",
+    "name": "Name",
+    "nameRequired": "Please enter a client name",
+    "clientId": "Client ID",
+    "redirectUris": "Redirect URIs",
+    "redirectUrisHint": "One URI per line (https required; http://localhost allowed in dev)",
+    "redirectUrisRequired": "Please enter at least one redirect URI",
+    "grantTypes": "Grant Types",
+    "grantTypesRequired": "Please select at least one grant type",
+    "scope": "Scope",
+    "scopeRequired": "Please enter a scope",
+    "tokenAuthMethod": "Token Endpoint Auth Method",
+    "actions": "Actions",
+    "rotateSecret": "Rotate secret",
+    "rotateError": "Failed to rotate the secret",
+    "deleteConfirm": "Delete this client? Applications using it will stop working.",
+    "deleteError": "Failed to delete the client",
+    "secretTitle": "Client Secret",
+    "secretWarning": "Copy this secret now — it will never be shown again. If lost, rotate the secret to get a new one.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Copy failed — select and copy manually",
+    "created": "Client created",
+    "rotated": "Secret rotated",
+    "deleted": "Client deleted",
+    "loadError": "Failed to load clients",
+    "empty": "No clients yet",
+    "createdAt": "Created At",
+    "createError": "Failed to create the client",
+    "ok": "Done"
   }
 }

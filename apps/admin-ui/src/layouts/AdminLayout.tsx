@@ -11,6 +11,7 @@ import {
   SafetyOutlined,
   FileSearchOutlined,
   SolutionOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Dropdown, Typography } from 'antd';
 import { useAuthStore } from '../stores/auth';
@@ -30,12 +31,14 @@ export default function AdminLayout() {
       '/users': 'users:read',
       '/roles': 'roles:read',
       '/audit': 'audit:read',
+      '/clients': 'clients:read',
     };
     const routes = [
       { path: '/dashboard', name: t('menu.dashboard'), icon: <DashboardOutlined /> },
       { path: '/users', name: t('menu.users'), icon: <UserOutlined /> },
       { path: '/roles', name: t('menu.roles'), icon: <SafetyOutlined /> },
       { path: '/audit', name: t('menu.audit'), icon: <FileSearchOutlined /> },
+      { path: '/clients', name: t('menu.clients'), icon: <ApiOutlined /> },
       { path: '/profile', name: t('menu.profile'), icon: <SolutionOutlined /> },
       { path: '/settings', name: t('menu.settings'), icon: <SettingOutlined /> },
     ].filter((r) => {

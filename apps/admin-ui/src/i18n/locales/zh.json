@@ -37,7 +37,8 @@
     "settings": "系统设置",
     "audit": "审计",
     "profile": "个人资料",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "clients": "OIDC 客户端"
   },
   "login": {
     "title": "AccessBase 登录",
@@ -390,5 +391,39 @@
       "editValueHint": "留空表示保留当前值。",
       "editValuePlaceholder": "新值（留空表示保留当前值）"
     }
+  },
+  "clients": {
+    "title": "OIDC 客户端",
+    "create": "新建客户端",
+    "createTitle": "新建 OIDC 客户端",
+    "name": "名称",
+    "nameRequired": "请输入客户端名称",
+    "clientId": "客户端 ID",
+    "redirectUris": "重定向 URI",
+    "redirectUrisHint": "每行一个 URI（必须 https；开发环境允许 http://localhost）",
+    "redirectUrisRequired": "请至少输入一个重定向 URI",
+    "grantTypes": "授权类型",
+    "grantTypesRequired": "请至少选择一种授权类型",
+    "scope": "作用域",
+    "scopeRequired": "请输入作用域",
+    "tokenAuthMethod": "令牌端点认证方式",
+    "actions": "操作",
+    "rotateSecret": "轮换密钥",
+    "rotateError": "轮换密钥失败",
+    "deleteConfirm": "确定删除该客户端？使用它的应用将无法继续工作。",
+    "deleteError": "删除客户端失败",
+    "secretTitle": "客户端密钥",
+    "secretWarning": "请立即复制此密钥——它不会再次显示。若丢失，可通过轮换密钥获取新密钥。",
+    "copy": "复制",
+    "copied": "已复制",
+    "copyFailed": "复制失败——请手动选中复制",
+    "created": "客户端已创建",
+    "rotated": "密钥已轮换",
+    "deleted": "客户端已删除",
+    "loadError": "加载客户端列表失败",
+    "empty": "暂无客户端",
+    "createdAt": "创建时间",
+    "createError": "创建客户端失败",
+    "ok": "完成"
   }
 }
