@@ -20,8 +20,10 @@ import { oauthRoutes } from './routes/oauth.js';
 import { webauthnRoutes } from './routes/webauthn.js';
 import { optionsRoutes } from './routes/options.js';
 import { resolveCorsOrigin } from './cors.js';
+import { buildOidcProvider } from './oidc/provider.js';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import type { IncomingMessage } from 'node:http';
 import fastifyStatic from '@fastify/static';
 import { createAuditMiddleware, defaultAuditConfig } from '@accessbase/audit';
 import type { AuditStorage } from '@accessbase/audit';
@@ -136,6 +138,34 @@ export async function buildApp(options: BuildAppOptions = {}) {
     return reply.status(statusCode).send(payload);
   });
   
+
+  // --- OIDC provider (mounted at /oidc, unauthenticated protocol endpoints) ---
+  // B1/B2: Fastify parses bodies BEFORE handlers and provider.callback() is a
+  // Koa factory — hijack on onRequest (before body parsing) and hand the raw
+  // req/res to the cached provider handler. No content-type parsers for /oidc.
+  // Registered BEFORE setupGuard: hijacked /oidc requests skip the guard's
+  // DB round-trip entirely (the provider's adapter dials PG only when a
+  // flow actually needs a Client/Grant lookup).
+  const { createDb } = await import('@accessbase/identity/db');
+  const { oidcHandler } = await buildOidcProvider({
+    issuer: `${config.oauthRedirectBase}/oidc`,
+    jwtSecret: config.jwtSecret,
+    nodeEnv: config.nodeEnv,
+    privateKeyPath: config.jwtPrivateKeyPath,
+    publicKeyPath: config.jwtPublicKeyPath,
+    adapterCtorArgs: [createDb(config.databaseUrl)],
+  });
+  app.addHook('onRequest', (req, reply, done) => {
+    if (!req.url.startsWith('/oidc/')) return done();
+    reply.hijack();
+    // Provider routes are registered WITHOUT the /oidc prefix (issuer path =
+    // mountPath); per panva's official mount docs, strip the prefix and keep
+    // originalUrl so urlFor recomposes absolute URLs with the prefix.
+    const raw = req.raw as IncomingMessage & { originalUrl?: string };
+    raw.originalUrl = raw.url;
+    raw.url = (raw.url ?? '').slice('/oidc'.length);
+    oidcHandler(raw, reply.raw).then(() => done(), done);
+  });
 
   // --- Setup Guard Middleware (must be registered before other routes) ---
   app.addHook('onRequest', setupGuard);

@@ -6,7 +6,7 @@
  * kind falls through to an in-memory Map catch-all.
  */
 import type { DrizzleDB } from '@accessbase/identity/db';
-import { decryptSecret, OidcClientManager } from '@accessbase/identity';
+import { decryptSecret } from '@accessbase/identity';
 import { oidcClients, oidcGrants, type OidcClientRow } from '@accessbase/identity/db';
 import { eq } from 'drizzle-orm';
 
