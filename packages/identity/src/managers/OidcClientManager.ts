@@ -15,7 +15,6 @@ import { oidcClients, type OidcClientRow } from '../db/schema.js';
 
 const SALT_LEN = 16;
 const IV_LEN = 12;
-const TAG_LEN = 16;
 const KEY_LEN = 32;
 const SCRYPT_N = 16384;
 const SCRYPT_R = 8;
@@ -83,6 +82,8 @@ const SAFE_COLUMNS = {
   updatedAt: oidcClients.updatedAt,
 };
 
+export type OidcClientListRow = Omit<OidcClientRow, 'secretEncrypted'>;
+
 export interface OidcClientCreateInput {
   name: string;
   redirectUris: string[];
@@ -122,21 +123,14 @@ export class OidcClientManager {
       tokenAuthMethod: input.tokenAuthMethod ?? 'client_secret_basic',
     };
 
-    await this.db.insert(oidcClients).values(row);
-
-    const client: OidcClientRow = {
-      id: crypto.randomUUID(),
-      ...row,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    const [inserted] = await this.db.insert(oidcClients).values(row).returning();
 
     logger.info({ clientId }, 'OIDC client created');
-    return { client, plaintextSecret };
+    return { client: inserted, plaintextSecret };
   }
 
-  async list(): Promise<OidcClientRow[]> {
-    return await this.db.select(SAFE_COLUMNS).from(oidcClients) as unknown as OidcClientRow[];
+  async list(): Promise<OidcClientListRow[]> {
+    return await this.db.select(SAFE_COLUMNS).from(oidcClients);
   }
 
   async get(clientId: string): Promise<OidcClientRow | undefined> {

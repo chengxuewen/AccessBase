@@ -124,7 +124,20 @@ describe('OidcClientManager', () => {
 
   describe('create', () => {
     it('returns a plaintext secret once and stores an encrypted blob that differs', async () => {
-      const insertChain = makeChain(undefined);
+      const fakeInsertedRow = {
+        id: 'db-assigned-uuid-001',
+        clientId: 'ab_test123',
+        name: 'Test Client',
+        secretEncrypted: 'v1:placeholder',
+        redirectUris: ['https://example.com/callback'],
+        postLogoutRedirectUris: [],
+        grantTypes: ['authorization_code', 'refresh_token'],
+        scope: 'openid profile',
+        tokenAuthMethod: 'client_secret_basic',
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+      };
+      const insertChain = makeChain([fakeInsertedRow]);
       db.insert.mockReturnValue(insertChain);
 
       const result = await manager.create({
@@ -134,7 +147,7 @@ describe('OidcClientManager', () => {
         scope: 'openid profile',
       });
 
-      // clientId starts with ab_
+      expect(result.client.id).toBe('db-assigned-uuid-001');
       expect(result.client.clientId).toMatch(/^ab_/);
       // plaintext secret is a base64url string
       expect(result.plaintextSecret).toBeTruthy();
