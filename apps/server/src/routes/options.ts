@@ -33,7 +33,7 @@ export function resetOptionsManager(): void {
   optionsManager = undefined;
 }
 
-function getOptionsManager(): OptionsManager {
+export function getOptionsManager(): OptionsManager {
   optionsManager ??= new OptionsManager(config.databaseUrl);
   return optionsManager;
 }

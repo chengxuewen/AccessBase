@@ -8,6 +8,7 @@ import { createDb, users, userRoles, roles } from '@accessbase/identity/db';
 import { eq } from 'drizzle-orm';
 import { logger } from '@accessbase/logging';
 import { config } from '../config.js';
+import { getOptionsManager } from './options.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { seedBuiltinPermissions } from './permissions-seed.js';
 // DB-derived setup state (D113): the users table is the single source of truth.
@@ -61,6 +62,11 @@ export async function isSystemInitialized(): Promise<boolean> {
   const status = await queryAdminExists();
   return status.isInitialized;
 }
+// Fail-open site name resolution: never breaks the status contract if the
+// options read fails (keep default on error).
+async function getSiteName(): Promise<string> {
+  return getOptionsManager().get('site.name', undefined, 'AccessBase');
+}
 
 // Track if setup is in progress to prevent concurrent admin creation
 let setupInProgress = false;
@@ -84,6 +90,7 @@ export async function setupRoutes(app: FastifyInstance) {
                   isInitialized: { type: 'boolean' },
                   adminExists: { type: 'boolean' },
                   configComplete: { type: 'boolean' },
+                  siteName: { type: 'string' },
                 },
               },
             },
@@ -92,9 +99,13 @@ export async function setupRoutes(app: FastifyInstance) {
       },
     },
     async () => {
+      const [status, siteName] = await Promise.all([
+        getSetupStatus(),
+        getSiteName().catch(() => 'AccessBase'),
+      ]);
       return {
         success: true,
-        data: await getSetupStatus(),
+        data: { ...status, siteName },
       };
     },
   );
@@ -370,6 +381,8 @@ export async function setupRoutes(app: FastifyInstance) {
         smtpPassword?: string;
       };
 
+      // Persist site name into runtime options (wizard is the first writer).
+      await getOptionsManager().set('site.name', config.siteName);
 
       // Log without sensitive data (redact smtpPassword)
       const { smtpPassword: _, ...safeConfig } = config;

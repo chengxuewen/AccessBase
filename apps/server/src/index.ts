@@ -2,6 +2,7 @@ import { buildApp } from './app.js';
 import { config } from './config.js';
 import { initializeAdmin } from './init.js';
 import { selfHealSeed } from './routes/permissions-seed.js';
+import { getOptionsManager } from './routes/options.js';
 
 async function main() {
   const app = await buildApp();
@@ -37,6 +38,15 @@ async function main() {
     // (covers env-bypass admins created above / pre-seeding deployments).
     // Entry-point only — buildApp must stay side-effect-free (no PG dial in tests).
     void selfHealSeed(config.databaseUrl);
+
+    // Best-effort: warm the options cache and log the resolved site name.
+    // Startup must not fail if the options table is unreachable.
+    try {
+      const siteName = await getOptionsManager().get('site.name', undefined, 'AccessBase');
+      app.log.info({ siteName }, '[options] site.name resolved from option|default');
+    } catch (err) {
+      app.log.warn({ err }, 'Failed to resolve site.name at startup');
+    }
   } catch (err) {
     app.log.fatal(err, 'Failed to start server');
     process.exit(1);

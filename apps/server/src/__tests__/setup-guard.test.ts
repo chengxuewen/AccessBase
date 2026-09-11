@@ -32,6 +32,8 @@ vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 // Drizzle db + table mocks: the existence check joins users ⋈ user_roles ⋈ roles
 // (roles.name = 'admin'). Tests control state via `adminRoleRows`.
 const adminRoleRows: unknown[][] = [];
+// In-memory options store consumed by the mocked OptionsManager (same pattern as options-routes.test.ts).
+const optionStore = new Map<string, { value: unknown; updatedAt: Date }>();
 const dbMock = { select: vi.fn() };
 
 vi.mock('@accessbase/identity/db', () => ({
@@ -52,9 +54,21 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     UserManager: vi.fn().mockImplementation(() => ({
       findByEmail: mockFindByEmail,
     })),
+    OptionsManager: vi.fn().mockImplementation(() => ({
+      get: vi.fn(async (key: string, envValue: unknown, defaultValue: unknown) => {
+        if (envValue !== undefined) return envValue;
+        const row = optionStore.get(key);
+        return row ? row.value : defaultValue;
+      }),
+      set: vi.fn(async (key: string, value: unknown) => {
+        optionStore.set(key, { value, updatedAt: new Date() });
+      }),
+      listAll: vi.fn(async () => []),
+      delete: vi.fn(async () => {}),
+      invalidate: vi.fn(async () => {}),
+    })),
   };
 });
-
 const { buildApp } = await import('../app.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
@@ -77,8 +91,8 @@ function setAdminRoleRows(count: number) {
 }
 
 beforeEach(() => {
+  optionStore.clear();
   mockFindByEmail.mockReset();
-  dbMock.select.mockReset();
   dbMock.select.mockImplementation(() => ({
     from: () => ({
       innerJoin: () => ({
@@ -110,7 +124,14 @@ describe('setupGuard: un-initialized state (no admin-role user)', () => {
       isInitialized: false,
       adminExists: false,
       configComplete: false,
+      siteName: 'AccessBase',
     });
+  });
+
+  it('returns siteName AccessBase when no option row exists', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/setup/status' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.siteName).toBe('AccessBase');
   });
 
   it('allows /health/live', async () => {
@@ -168,7 +189,20 @@ describe('setupGuard: initialized state (admin-role user exists)', () => {
       isInitialized: true,
       adminExists: true,
       configComplete: true,
+      siteName: 'AccessBase',
     });
+  });
+
+  it('config persists siteName and status resolves it', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/setup/config',
+      payload: { siteName: 'Custom' },
+    });
+    expect(res.statusCode).toBe(200);
+    const statusRes = await app.inject({ method: 'GET', url: '/api/v1/setup/status' });
+    expect(statusRes.statusCode).toBe(200);
+    expect(statusRes.json().data.siteName).toBe('Custom');
   });
 
   it('blocks POST /setup/admin with 410 SETUP_ALREADY_COMPLETE', async () => {
@@ -215,6 +249,7 @@ describe('setupGuard: DB failure three-state behavior', () => {
       isInitialized: false,
       adminExists: false,
       configComplete: false,
+      siteName: 'AccessBase',
     });
   });
 
