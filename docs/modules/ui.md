@@ -766,6 +766,8 @@ $breakpoints: (
 }
 ```
 
+> **Implementation note (2026-09-11):** Mobile tables use `scroll={{ x: 'max-content' }}` horizontal scroll instead of table-to-card transformation. Measured zero h-scroll across 375-1920px viewport width on 2026-09-10 (ref: conventions.md Settings/Profile width strategy)
+
 ### 14.9 配置示例
 
 ```yaml
@@ -1102,6 +1104,8 @@ function useUserForm(defaultValues?: Partial<CreateUserFormData>) {
 }
 ```
 
+> **Implementation note (2026-09-11):** Form validation ships as antd Form rules (required, pattern, message) in JSX, not zod + react-hook-form. Antd Form already handles validation state, error display, and submission gating this way (ref: UserCreate.tsx as reference implementation)
+
 #### 14.11.2 表单布局规范
 
 ```typescript
@@ -1144,6 +1148,8 @@ function StandardForm({ title, children, onSubmit, loading }: StandardFormProps)
 // - 表单操作栏固定在卡片底部
 // - 表单宽度最大 800px，超宽屏居中
 ```
+
+> **Implementation note (2026-09-11):** StandardForm width uses per-page caps: Settings/Profile cards 400px, UserCreate/Edit 560px, UserDetail 640px. Cards use fluid full-width shells; the single 800px value is not applied (ref: conventions.md Settings/Profile width strategy)
 
 #### 14.11.3 批量操作规范
 
@@ -1383,6 +1389,8 @@ api.interceptors.response.use(
   },
 );
 ```
+
+> **Implementation note (2026-09-11):** ERR_001-013 static error-code map replaced by `apiErrorMessage` server-envelope passthrough with local fallback. Server returns `{ success, data?, error?: { code, message } }` and frontend renders `error.message` directly; only unrecognized errors fall back to a generic string (ref: conventions.md Phase 7 API envelope and type layer)
 
 #### 14.12.3 Toast 消息规范
 
@@ -2222,6 +2230,8 @@ function NotificationCenter() {
 ```
 
 > **Gap note:** ui.md has no Profile page spec. 6c Task 4 builds /profile (name edit, change password, revoke sessions); 6d Task 2 adds OAuth linked-accounts card.
+
+> **Implementation note (2026-09-11):** Settings/Profile pages use fluid full-width card shells. Inner form column capped at 400px via `maxWidth: 400`. User-ratified 2026-09-10; supersedes the 720px centered-column approach (ref: conventions.md Settings/Profile width strategy)
 ### 14.19 用户个人中心
 
 ```typescript
