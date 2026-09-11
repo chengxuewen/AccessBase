@@ -124,6 +124,9 @@ export class OidcClientManager {
     };
 
     const [inserted] = await this.db.insert(oidcClients).values(row).returning();
+    if (!inserted) {
+      throw new Error('Failed to create OIDC client');
+    }
 
     logger.info({ clientId }, 'OIDC client created');
     return { client: inserted, plaintextSecret };
