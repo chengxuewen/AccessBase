@@ -5,6 +5,8 @@
     "save": "保存",
     "cancel": "取消",
     "confirm": "确认",
+    "confirmEdit": "确认编辑",
+    "cancelEdit": "取消编辑",
     "loading": "加载中...",
     "success": "成功",
     "error": "错误",
@@ -84,6 +86,7 @@
     "createUser": "创建用户",
     "manageRoles": "管理角色",
     "viewAudit": "查看审计日志",
+    "refresh": "刷新",
     "loadError": "加载统计数据失败"
   },
   "users": {
@@ -262,6 +265,7 @@
     "filterAction": "按操作筛选",
     "filterActor": "按操作者筛选",
     "search": "查询",
+    "resetFilters": "重置筛选",
     "loadError": "加载审计日志失败"
   },
   "profile": {

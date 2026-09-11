@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Col, Row, Statistic, List, Tag, Button, Space, Alert, Spin } from 'antd';
+import { Card, Col, Row, Statistic, List, Tag, Button, Space, Alert, Spin, Tooltip } from 'antd';
 import {
   UserOutlined,
   TeamOutlined,
@@ -99,7 +99,7 @@ export default function Dashboard() {
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={16}>
-          <Card title={t('dashboard.recentActivity')} extra={<Button icon={<ReloadOutlined />} onClick={load} size="small" />}>
+          <Card title={t('dashboard.recentActivity')} extra={<Tooltip title={t('dashboard.refresh')}><Button icon={<ReloadOutlined />} aria-label={t('dashboard.refresh')} onClick={load} size="small" /></Tooltip>}>
             {loading ? (
               <Spin data-testid="dashboard-loading" />
             ) : (

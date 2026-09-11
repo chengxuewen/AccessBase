@@ -117,13 +117,16 @@ export default function Audit() {
         <Button type="primary" icon={<SearchOutlined />} onClick={() => actionRef.current?.reload()}>
           {t('audit.search')}
         </Button>
-        <Button
-          icon={<ReloadOutlined />}
-          onClick={() => {
-            setFilters({});
-            actionRef.current?.reload();
-          }}
-        />
+        <Tooltip title={t('audit.resetFilters')}>
+          <Button
+            icon={<ReloadOutlined />}
+            aria-label={t('audit.resetFilters')}
+            onClick={() => {
+              setFilters({});
+              actionRef.current?.reload();
+            }}
+          />
+        </Tooltip>
         <Tooltip title={t('audit.exportTooltip')}>
           <Button icon={<DownloadOutlined />} onClick={handleExport} className="audit-export">
             {t('audit.export')}

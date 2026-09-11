@@ -135,6 +135,7 @@ export default function Login() {
                 size="large"
                 autoFocus
                 data-testid="mfa-code-input"
+                autoComplete="one-time-code"
               />
             </Form.Item>
             <Form.Item>
@@ -210,6 +211,7 @@ export default function Login() {
               prefix={<MailOutlined />}
               placeholder={t('login.emailPlaceholder')}
               size="large"
+              autoComplete="username"
             />
           </Form.Item>
 
@@ -221,6 +223,7 @@ export default function Login() {
               prefix={<LockOutlined />}
               placeholder={t('login.passwordPlaceholder')}
               size="large"
+              autoComplete="current-password"
             />
           </Form.Item>
 

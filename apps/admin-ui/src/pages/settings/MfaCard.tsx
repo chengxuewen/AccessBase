@@ -155,6 +155,7 @@ export default function MfaCard() {
                 inputMode="numeric"
                 maxLength={8}
                 data-testid="mfa-code-input"
+                autoComplete="one-time-code"
                 style={{ marginBottom: 16 }}
               />
               <Button

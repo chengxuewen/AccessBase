@@ -145,8 +145,8 @@ export default function Profile() {
                 >
                   <Input style={{ width: 200 }} />
                 </Form.Item>
-                <Button type="link" icon={<CheckOutlined />} loading={savingName} onClick={handleSaveName} className="profile-name-save" />
-                <Button type="link" icon={<CloseOutlined />} onClick={() => setEditingName(false)} />
+                <Button type="link" icon={<CheckOutlined />} loading={savingName} onClick={handleSaveName} className="profile-name-save" aria-label={t('common.confirmEdit')} />
+                <Button type="link" icon={<CloseOutlined />} onClick={() => setEditingName(false)} aria-label={t('common.cancelEdit')} />
               </Form>
             ) : (
               <Space>
@@ -185,7 +185,7 @@ export default function Profile() {
             label={t('profile.currentPassword')}
             rules={[{ required: true, message: t('profile.currentPasswordRequired') }]}
           >
-            <Input.Password />
+            <Input.Password autoComplete="current-password" />
           </Form.Item>
           <Form.Item
             name="newPassword"
@@ -195,7 +195,7 @@ export default function Profile() {
               { min: 8, message: t('profile.newPasswordMinLength') },
             ]}
           >
-            <Input.Password />
+            <Input.Password autoComplete="new-password" />
           </Form.Item>
           <Form.Item
             name="confirmPassword"
@@ -211,7 +211,7 @@ export default function Profile() {
               }),
             ]}
           >
-            <Input.Password />
+            <Input.Password autoComplete="new-password" />
           </Form.Item>
           <Button type="primary" htmlType="submit" loading={changingPwd} className="profile-password-submit">
             {t('profile.changePassword')}

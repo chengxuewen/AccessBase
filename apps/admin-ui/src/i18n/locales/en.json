@@ -5,6 +5,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "confirmEdit": "Confirm edit",
+    "cancelEdit": "Cancel edit",
     "loading": "Loading...",
     "success": "Success",
     "error": "Error",
@@ -84,6 +86,7 @@
     "createUser": "Create User",
     "manageRoles": "Manage Roles",
     "viewAudit": "View Audit Logs",
+    "refresh": "Refresh",
     "loadError": "Failed to load statistics"
   },
   "users": {
@@ -262,6 +265,7 @@
     "filterAction": "Filter by action",
     "filterActor": "Filter by actor",
     "search": "Search",
+    "resetFilters": "Reset filters",
     "loadError": "Failed to load audit logs"
   },
   "profile": {
