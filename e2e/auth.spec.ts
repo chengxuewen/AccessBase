@@ -3,6 +3,14 @@ import { test, expect } from '@playwright/test';
 test.describe('Authentication', () => {
   test('visits login page', async ({ page }) => {
     await page.goto('/login');
+    // setup/status: GlobalGuard checks this before rendering any authed page
+    await page.route('**/api/v1/setup/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      });
+    });
     await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
     await expect(page.locator('input[id="email"]')).toBeVisible();
     await expect(page.locator('input[id="password"]')).toBeVisible();
@@ -10,12 +18,28 @@ test.describe('Authentication', () => {
 
   test('shows validation errors for empty fields', async ({ page }) => {
     await page.goto('/login');
+    // setup/status: GlobalGuard checks this before rendering any authed page
+    await page.route('**/api/v1/setup/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      });
+    });
     await page.locator('button[type="submit"]').click();
     await expect(page.getByText('Please enter your email')).toBeVisible();
   });
 
   test('shows error for invalid credentials', async ({ page }) => {
     await page.goto('/login');
+    // setup/status: GlobalGuard checks this before rendering any authed page
+    await page.route('**/api/v1/setup/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      });
+    });
     await page.locator('input[id="email"]').fill('invalid@example.com');
     await page.locator('input[id="password"]').fill('wrongpassword');
     await page.locator('button[type="submit"]').click();
@@ -25,6 +49,14 @@ test.describe('Authentication', () => {
   });
 
   test('successful login redirects to dashboard', async ({ page }) => {
+    // setup/status: GlobalGuard checks this before rendering any authed page
+    await page.route('**/api/v1/setup/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      });
+    });
     // Stub the login API
     await page.route('**/api/v1/auth/login', async (route) => {
       await route.fulfill({
@@ -70,6 +102,14 @@ test.describe('Authentication', () => {
   });
 
   test('logout clears session', async ({ page }) => {
+    // setup/status: GlobalGuard checks this before rendering any authed page
+    await page.route('**/api/v1/setup/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      });
+    });
     // Stub login
     await page.route('**/api/v1/auth/login', async (route) => {
       await route.fulfill({

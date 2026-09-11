@@ -32,6 +32,14 @@ test.describe('Dashboard', () => {
       );
     });
 
+    // setup/status: GlobalGuard checks this before rendering any authed page
+    await page.route('**/api/v1/setup/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      });
+    });
     // Stub user fetch
     await page.route('**/api/v1/auth/me', async (route) => {
       await route.fulfill({
