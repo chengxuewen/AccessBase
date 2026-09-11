@@ -18,6 +18,7 @@ import { setupRoutes } from './routes/setup.js';
 import { setupGuard } from './middleware/setup-guard.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { webauthnRoutes } from './routes/webauthn.js';
+import { optionsRoutes } from './routes/options.js';
 import { resolveCorsOrigin } from './cors.js';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -180,7 +181,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     app.addHook('onResponse', async (request, reply) => {
       const url = request.url.split('?')[0] ?? '';
       if (request.method === 'GET' || request.method === 'HEAD') return;
-      if (url.startsWith('/health') || url.startsWith('/metrics') || url.startsWith('/api/v1/setup')) return;
+      if (url.startsWith('/health') || url.startsWith('/metrics') || url.startsWith('/api/v1/setup') || url.startsWith('/api/v1/options')) return;
       await auditHook(request, reply);
     });
   }
@@ -194,6 +195,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(permissionRoutes, { prefix: '/api/v1/permissions' });
   await app.register(auditRoutes, { prefix: '/api/v1/audit-logs' });
   await app.register(statsRoutes, { prefix: '/api/v1' });
+  await app.register(optionsRoutes, { prefix: '/api/v1' });
   await app.register(oauthRoutes, { prefix: '/api/v1/auth' });
   await app.register(webauthnRoutes, { prefix: '/api/v1/auth' });
   // --- L0 package registration (when packages are implemented) ---
