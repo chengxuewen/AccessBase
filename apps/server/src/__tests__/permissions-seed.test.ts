@@ -38,8 +38,8 @@ function mockDb(selectRows: Array<{ id: string }> = []) {
 
 // ---------- constants ----------
 
-const EXPECTED_PERMISSION_COUNT = 9;
-const RESOURCES = ['users', 'roles', 'permissions'] as const;
+const EXPECTED_PERMISSION_COUNT = 11;
+const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats'] as const;
 const ACTIONS = ['read', 'write', 'delete'] as const;
 
 // ---------- tests ----------
@@ -49,12 +49,10 @@ describe('seedBuiltinPermissions', () => {
     vi.clearAllMocks();
   });
 
-  it('inserts 9 permissions and binds all to admin role on first run', async () => {
-    const fakeIds = Array.from({ length: 9 }, (_, i) => `perm-${i}`);
-    // select returns 9 rows matching the 9 inserted permissions
-    const selectRows = RESOURCES.flatMap((_, ri) =>
-      ACTIONS.map((_, ai) => ({ id: fakeIds[ri * 3 + ai] })),
-    );
+  it('inserts 11 permissions and binds all to admin role on first run', async () => {
+    const fakeIds = Array.from({ length: 11 }, (_, i) => `perm-${i}`);
+    // select returns 11 rows matching the 11 inserted permissions
+    const selectRows = Array.from({ length: EXPECTED_PERMISSION_COUNT }, (_, i) => ({ id: fakeIds[i] }));
     const db = mockDb(selectRows) as unknown as ReturnType<typeof import('@accessbase/identity/db').createDb>;
 
     await seedBuiltinPermissions(db, 'admin-role-id');
@@ -68,9 +66,7 @@ describe('seedBuiltinPermissions', () => {
   });
 
   it('is idempotent — second call does not throw (onConflictDoNothing)', async () => {
-    const selectRows = RESOURCES.flatMap((_, ri) =>
-      ACTIONS.map((_, ai) => ({ id: `id-${ri * 3 + ai}` })),
-    );
+    const selectRows = Array.from({ length: EXPECTED_PERMISSION_COUNT }, (_, i) => ({ id: `id-${i}` }));
     const db = mockDb(selectRows) as unknown as ReturnType<typeof import('@accessbase/identity/db').createDb>;
 
     // First seed

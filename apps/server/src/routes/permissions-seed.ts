@@ -1,6 +1,6 @@
 /**
  * Builtin permission seeding — idempotent, best-effort.
- * Seeds 9 {resource, action} permissions and binds all to the admin role.
+ * Seeds 11 {resource, action} permissions and binds all to the admin role.
  */
 import { and, eq, inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@accessbase/identity/db';
@@ -9,7 +9,7 @@ import { logger } from '@accessbase/logging';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 
 /**
- * 9 builtin permissions — resource/action pairs must match
+ * 11 builtin permissions — resource/action pairs must match
  * authorize.ts getRequiredPermission() mapping verbatim.
  */
 export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: string; description: string }[] = [
@@ -22,13 +22,15 @@ export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: stri
   { name: 'permissions:read', resource: 'permissions', action: 'read', description: 'View permissions' },
   { name: 'permissions:write', resource: 'permissions', action: 'write', description: 'Create or update permissions' },
   { name: 'permissions:delete', resource: 'permissions', action: 'delete', description: 'Delete permissions' },
+  { name: 'audit:read', resource: 'audit', action: 'read', description: 'View audit logs' },
+  { name: 'stats:read', resource: 'stats', action: 'read', description: 'View deployment stats' },
 ];
 
-const RESOURCES = ['users', 'roles', 'permissions'];
+const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats'];
 const ACTIONS = ['read', 'write', 'delete'];
 
 /**
- * Insert the 9 builtin permissions (ON CONFLICT DO NOTHING), read back their
+ * Insert the 11 builtin permissions (ON CONFLICT DO NOTHING), read back their
  * IDs by resource+action, then bind all to the given role (idempotent).
  * Never throws — failures are logged and swallowed (best-effort, seed must not
  * block admin creation).
