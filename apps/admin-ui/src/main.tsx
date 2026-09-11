@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { App as AntdApp } from 'antd';
+import { LocaleGate } from './components/LocaleGate';
 import App from './App';
 import AppBridge from './components/AppBridge';
 import './i18n';
@@ -12,10 +12,10 @@ if (!rootEl) throw new Error('Missing #root element');
 ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AntdApp>
+      <LocaleGate>
         <AppBridge />
         <App />
-      </AntdApp>
+      </LocaleGate>
     </BrowserRouter>
   </React.StrictMode>,
 );
