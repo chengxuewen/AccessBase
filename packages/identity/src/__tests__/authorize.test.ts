@@ -50,4 +50,13 @@ describe('getRequiredPermission (prefix matching)', () => {
   it('exemption does not leak to sub-segments: /users/me/<id> still resolves users:read', () => {
     expect(getRequiredPermission('GET', '/api/v1/users/me/123')).toBe('users:read');
   });
+
+  it('resolves options to options:read on GET', () => {
+    expect(getRequiredPermission('GET', '/api/v1/options')).toBe('options:read');
+  });
+
+  it('resolves PUT and DELETE options to options:write', () => {
+    expect(getRequiredPermission('PUT', '/api/v1/options')).toBe('options:write');
+    expect(getRequiredPermission('DELETE', '/api/v1/options/foo')).toBe('options:write');
+  });
 });

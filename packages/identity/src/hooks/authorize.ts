@@ -42,6 +42,9 @@ const routePermissions: Record<string, string> = {
   'DELETE:/api/v1/permissions': 'permissions:delete',
   'GET:/api/v1/audit-logs': 'audit:read',
   'GET:/api/v1/stats': 'stats:read',
+  'GET:/api/v1/options': 'options:read',
+  'PUT:/api/v1/options': 'options:write',
+  'DELETE:/api/v1/options': 'options:write',
 };
 
 /**

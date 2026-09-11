@@ -38,8 +38,8 @@ function mockDb(selectRows: Array<{ id: string }> = []) {
 
 // ---------- constants ----------
 
-const EXPECTED_PERMISSION_COUNT = 11;
-const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats'] as const;
+const EXPECTED_PERMISSION_COUNT = 13;
+const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats', 'options'] as const;
 const ACTIONS = ['read', 'write', 'delete'] as const;
 
 // ---------- tests ----------
@@ -49,9 +49,9 @@ describe('seedBuiltinPermissions', () => {
     vi.clearAllMocks();
   });
 
-  it('inserts 11 permissions and binds all to admin role on first run', async () => {
-    const fakeIds = Array.from({ length: 11 }, (_, i) => `perm-${i}`);
-    // select returns 11 rows matching the 11 inserted permissions
+  it(`inserts ${EXPECTED_PERMISSION_COUNT} permissions and binds all to admin role on first run`, async () => {
+    const fakeIds = Array.from({ length: EXPECTED_PERMISSION_COUNT }, (_, i) => `perm-${i}`);
+    // select returns EXPECTED_PERMISSION_COUNT rows matching the inserted permissions
     const selectRows = Array.from({ length: EXPECTED_PERMISSION_COUNT }, (_, i) => ({ id: fakeIds[i] }));
     const db = mockDb(selectRows) as unknown as ReturnType<typeof import('@accessbase/identity/db').createDb>;
 
