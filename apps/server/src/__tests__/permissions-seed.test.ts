@@ -38,8 +38,8 @@ function mockDb(selectRows: Array<{ id: string }> = []) {
 
 // ---------- constants ----------
 
-const EXPECTED_PERMISSION_COUNT = 13;
-const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats', 'options'] as const;
+const EXPECTED_PERMISSION_COUNT = 15;
+const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats', 'options', 'clients'] as const;
 const ACTIONS = ['read', 'write', 'delete'] as const;
 
 // ---------- tests ----------

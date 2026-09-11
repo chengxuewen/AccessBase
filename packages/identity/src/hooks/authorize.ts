@@ -45,6 +45,10 @@ const routePermissions: Record<string, string> = {
   'GET:/api/v1/options': 'options:read',
   'PUT:/api/v1/options': 'options:write',
   'DELETE:/api/v1/options': 'options:write',
+  'GET:/api/v1/clients': 'clients:read',
+  'POST:/api/v1/clients': 'clients:write',
+  'PUT:/api/v1/clients': 'clients:write',
+  'DELETE:/api/v1/clients': 'clients:write',
 };
 
 /**
