@@ -173,6 +173,17 @@ test.describe('OIDC consent page + login redirect glue', () => {
         body: JSON.stringify({ success: true, data: ME }),
       });
     });
+    // Auto-approve gate fetches interaction details — login prompt resumes directly (PIT-033)
+    await page.route('**/api/v1/oidc/interaction/xyz', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { clientName: 'Third Party App', requestedScopes: ['openid'], promptName: 'login', uid: 'xyz' },
+        }),
+      });
+    });
     const redirect = encodeURIComponent('/oidc/auth/xyz');
     await page.goto(`/login?redirect=${redirect}`);
     await page.locator('input[id="email"]').fill('admin@example.com');
