@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Card, Checkbox, Space, Spin } from 'antd';
 import { useAuthStore } from '../stores/auth';
-import { getInteraction, postInteractionDecision, safeOidcRedirect } from '../api/oidc';
+import { getInteraction, postInteractionDecision } from '../api/oidc';
 import type { OidcInteraction } from '../api/oidc';
 import { apiErrorMessage } from '../api/errors';
 import EmptyState from '../components/EmptyState';
@@ -60,7 +60,6 @@ export default function Consent() {
     }
   };
 
-  const resume = safeOidcRedirect(window.location.pathname + window.location.search);
 
   if (loadError) {
     return (
@@ -104,9 +103,6 @@ export default function Consent() {
             ))}
           </Space>
         </div>
-        {resume && promptNameIsLogin(interaction) && (
-          <Alert type="info" showIcon message={t('login.oidcRedirect')} />
-        )}
         <Space>
           <Button
             type="primary"
@@ -130,9 +126,6 @@ export default function Consent() {
   );
 }
 
-function promptNameIsLogin(interaction: OidcInteraction): boolean {
-  return interaction.promptName === 'login';
-}
 
 function CenteredCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
