@@ -302,3 +302,39 @@ export const options = pgTable('options', {
 });
 
 export type OptionsRow = typeof options.$inferSelect;
+
+/**
+ * OIDC clients table (Batch 5) -- OpenID Connect provider registrations.
+ * secret_encrypted stores AES-256-GCM blob (v1:salt:iv:tag:ct, key scrypt(JWT_SECRET, salt))
+ * -- never plaintext; see task-1-brief + task 4 ruling.
+ */
+export const oidcClients = pgTable('oidc_clients', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  clientId: text('client_id').notNull().unique(),
+  name: text('name').notNull(),
+  secretEncrypted: text('secret_encrypted').notNull(),
+  redirectUris: jsonb('redirect_uris').notNull(),
+  postLogoutRedirectUris: jsonb('post_logout_redirect_uris').default([]),
+  grantTypes: jsonb('grant_types').notNull(),
+  scope: text('scope').notNull(),
+  tokenAuthMethod: text('token_endpoint_auth_method').notNull().default('client_secret_basic'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type OidcClientRow = typeof oidcClients.$inferSelect;
+
+/**
+ * OIDC grants table (Batch 5) -- persisted consent/grant records.
+ * provider_grant_id is oidc-provider's grant jti; userId is the AccessBase user uuid.
+ */
+export const oidcGrants = pgTable('oidc_grants', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  providerGrantId: text('provider_grant_id').notNull().unique(),
+  userId: uuid('user_id').notNull(),
+  clientId: text('client_id').notNull(),
+  scope: text('scope').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type OidcGrantRow = typeof oidcGrants.$inferSelect;
