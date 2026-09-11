@@ -45,6 +45,7 @@ import { message } from '../api/feedback';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { resolveLang } from '../utils/locale';
 
 // register relativeTime once at module load; per-render extend would be wasteful
 dayjs.extend(relativeTime);
@@ -63,9 +64,11 @@ interface OptionFormValues {
 }
 
 export default function Settings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const canManageOptions = hasPermission('options:read');
+  // relative timestamps follow the UI language (register ≠ activate in dayjs)
+  dayjs.locale(resolveLang(i18n.language) === 'zh' ? 'zh-cn' : 'en');
 
   // --- General tab (localStorage only, backend out of scope) ---
   const [siteForm] = Form.useForm();

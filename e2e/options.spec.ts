@@ -60,7 +60,13 @@ const MOCK_OPTIONS = [
   { key: 'site.api_key', value: '******', updatedAt: new Date(now - 120_000).toISOString() },
 ];
 
-async function mockOptionsApis(page: Page, options: typeof MOCK_OPTIONS = MOCK_OPTIONS): Promise<void> {
+type OptionsRouteHooks = { onPut?: (body: string) => void };
+
+async function mockOptionsApis(
+  page: Page,
+  options: typeof MOCK_OPTIONS = MOCK_OPTIONS,
+  hooks: OptionsRouteHooks = {},
+): Promise<void> {
   await page.route('**/api/v1/setup/status', async (route) => {
     await route.fulfill({
       status: 200,
@@ -99,11 +105,13 @@ async function mockOptionsApis(page: Page, options: typeof MOCK_OPTIONS = MOCK_O
       return;
     }
     if (route.request().method() === 'PUT') {
-      const body = route.request().postDataJSON() as { key: string; value: unknown };
+      const body = route.request().postData() ?? '';
+      hooks.onPut?.(body);
+      const parsed = JSON.parse(body) as { key: string; value: unknown };
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { key: body.key, value: body.value } }),
+        body: JSON.stringify({ success: true, data: { key: parsed.key, value: parsed.value } }),
       });
       return;
     }
@@ -164,23 +172,10 @@ test.describe('Settings Options tab', () => {
 
   test('editing a sensitive row with blank value does not fire PUT (mask write-back guard)', async ({ page }) => {
     const putCalls: string[] = [];
-    await page.route('**/api/v1/options', async (route) => {
-      if (route.request().method() === 'PUT') {
-        putCalls.push(route.request().postData() ?? '');
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ success: true, data: { key: 'site.api_key', value: 'x' } }),
-        });
-        return;
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: [{ key: 'site.api_key', value: '******', updatedAt: new Date().toISOString() }] }),
-      });
-    });
-    await mockOptionsApis(page);
+    // single LIFO-final route: tracks AND fulfills PUTs (registering a tracking
+    // route before mockOptionsApis would be swallowed by its echo route —
+    // Playwright routes are last-registered-wins)
+    await mockOptionsApis(page, undefined, { onPut: (body) => putCalls.push(body) });
     await seedSessionWithMe(page, FULL_PERMS_ME);
     await page.goto('/settings');
     await page.locator('.ant-tabs-tab', { hasText: 'Options' }).click();
@@ -188,9 +183,10 @@ test.describe('Settings Options tab', () => {
     await page.getByTestId('edit-option-site.api_key').click();
     // value field must NOT be prefilled with the mask
     await expect(page.getByTestId('option-value-input')).toHaveValue('');
-    // leave blank and save → guard must skip the PUT entirely
+    // blank save → guard returns before the PUT: modal stays open, no call fired
     await page.locator('.ant-modal .ant-btn-primary').click();
-    await expect(page.locator('.ant-modal')).not.toBeVisible({ timeout: 5000 }).catch(() => {});
+    await expect(page.locator('.ant-modal')).toBeVisible();
+    await expect(page.getByTestId('option-value-site.api_key')).toHaveText('******');
     expect(putCalls, 'PUT must not fire when the value is blank on sensitive edit').toEqual([]);
   });
 
