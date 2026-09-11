@@ -40,6 +40,8 @@ const routePermissions: Record<string, string> = {
   'POST:/api/v1/permissions': 'permissions:write',
   'PUT:/api/v1/permissions': 'permissions:write',
   'DELETE:/api/v1/permissions': 'permissions:delete',
+  'GET:/api/v1/audit-logs': 'audit:read',
+  'GET:/api/v1/stats': 'stats:read',
 };
 
 /**

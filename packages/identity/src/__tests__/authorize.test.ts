@@ -23,8 +23,15 @@ describe('getRequiredPermission (prefix matching)', () => {
     expect(getRequiredPermission('POST', '/api/v1/users')).toBe('users:write');
   });
 
+  it('resolves audit-logs to audit:read on GET', () => {
+    expect(getRequiredPermission('GET', '/api/v1/audit-logs')).toBe('audit:read');
+  });
+
+  it('resolves stats to stats:read on GET', () => {
+    expect(getRequiredPermission('GET', '/api/v1/stats')).toBe('stats:read');
+  });
+
   it('returns null for non-resource paths', () => {
-    expect(getRequiredPermission('GET', '/api/v1/audit-logs')).toBeNull();
     expect(getRequiredPermission('GET', '/health/live')).toBeNull();
   });
 
