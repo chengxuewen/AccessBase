@@ -71,7 +71,7 @@ export default function Users() {
         >
           <Button type="link" size="small" danger>
             <DeleteOutlined /> {t('common.delete')}
-          </Button>,
+          </Button>
         </Popconfirm>,
       ],
     },
