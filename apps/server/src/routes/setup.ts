@@ -381,8 +381,12 @@ export async function setupRoutes(app: FastifyInstance) {
         smtpPassword?: string;
       };
 
-      // Persist site name into runtime options (wizard is the first writer).
-      await getOptionsManager().set('site.name', config.siteName);
+      // Persist site name (wizard is the FIRST writer): setIfAbsent makes
+      // post-setup replays of this unauthenticated endpoint a no-op —
+      // renames go through the permission-gated PUT /v1/options. Trade-off:
+      // mid-wizard back-and-re-edit won't overwrite either; editable later
+      // in the Options tab.
+      await getOptionsManager().setIfAbsent('site.name', config.siteName);
 
       // Log without sensitive data (redact smtpPassword)
       const { smtpPassword: _, ...safeConfig } = config;

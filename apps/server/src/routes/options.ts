@@ -101,7 +101,9 @@ export async function optionsRoutes(app: FastifyInstance): Promise<void> {
         });
       }
       await getOptionsManager().set(key, value);
-      return { success: true as const, data: { key, value } };
+      // Return the full row: upsert wrote exactly this timestamp; handler-time
+      // ISO string is sub-ms accurate.
+      return { success: true as const, data: { key, value, updatedAt: new Date().toISOString() } };
     },
   );
 

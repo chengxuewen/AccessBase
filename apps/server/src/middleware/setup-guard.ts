@@ -22,8 +22,11 @@ const ALLOWED_PATHS = [
 ];
 
 // Only /admin is guard-blocked once initialized. /config and /complete are legal
-// writes DURING the wizard (admin exists ⇒ isInitialized true mid-wizard), and both
-// handlers re-check state via queryAdminExists → 410 themselves (defense in depth).
+// writes DURING the wizard (admin exists ⇒ isInitialized true mid-wizard).
+// /complete re-checks state via queryAdminExists → 410 itself; /config passes
+// by design and its persistence is first-write-only (OptionsManager.setIfAbsent),
+// so post-setup replays cannot overwrite site.name — renames go through
+// permission-gated PUT /v1/options.
 const SETUP_WRITE_PATHS = ['/api/v1/setup/admin'];
 
 export async function setupGuard(request: FastifyRequest, reply: FastifyReply): Promise<void> {

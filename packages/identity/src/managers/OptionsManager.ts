@@ -57,6 +57,12 @@ export class OptionsManager {
     this.cache = null;
   }
 
+  /** Insert only if the key does not exist yet (used by setup config: first write wins). */
+  async setIfAbsent(key: string, value: unknown): Promise<void> {
+    await this.db.insert(options).values({ key, value }).onConflictDoNothing();
+    this.cache = null;
+  }
+
   async delete(key: string): Promise<void> {
     await this.db.delete(options).where(eq(options.key, key));
     this.cache = null;

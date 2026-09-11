@@ -63,6 +63,11 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       set: vi.fn(async (key: string, value: unknown) => {
         optionStore.set(key, { value, updatedAt: new Date() });
       }),
+      setIfAbsent: vi.fn(async (key: string, value: unknown) => {
+        if (!optionStore.has(key)) {
+          optionStore.set(key, { value, updatedAt: new Date() });
+        }
+      }),
       listAll: vi.fn(async () => []),
       delete: vi.fn(async () => {}),
       invalidate: vi.fn(async () => {}),
@@ -202,6 +207,24 @@ describe('setupGuard: initialized state (admin-role user exists)', () => {
     expect(res.statusCode).toBe(200);
     const statusRes = await app.inject({ method: 'GET', url: '/api/v1/setup/status' });
     expect(statusRes.statusCode).toBe(200);
+    expect(statusRes.json().data.siteName).toBe('Custom');
+  });
+
+  it('REGRESSION (first-write-only): replay config cannot overwrite siteName', async () => {
+    // Before the fix, the unauthenticated /config used set() and any replay
+    // overwrote site.name. setIfAbsent makes the FIRST write win.
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/setup/config',
+      payload: { siteName: 'Custom' },
+    });
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/api/v1/setup/config',
+      payload: { siteName: 'Other' },
+    });
+    expect(replay.statusCode).toBe(200);
+    const statusRes = await app.inject({ method: 'GET', url: '/api/v1/setup/status' });
     expect(statusRes.json().data.siteName).toBe('Custom');
   });
 
