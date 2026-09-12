@@ -219,23 +219,54 @@ export async function authRoutes(app: FastifyInstance) {
           properties: {
             email: { type: 'string', format: 'email' },
             name: { type: 'string', minLength: 1 },
-            password: { type: 'string', minLength: 8 },
+            // No minLength here: password policy (8+ / lower / upper / digit)
+            // is enforced by the handler so all rejections share AUTH_REG_002.
+            password: { type: 'string', minLength: 1 },
           },
         },
       },
     },
     async (request, reply) => {
-      const { email, name } = request.body;
+      const { email, name, password } = request.body;
 
-      // TODO: Use @accessbase/identity UserManager when implemented
-      request.log.info({ email, name }, 'Registration attempt');
+      const userManager = new (await import('@accessbase/identity')).UserManager();
 
-      return reply.status(501).send({
-        success: false,
-        error: {
-          code: 'NOT_IMPLEMENTED',
-          message: 'Identity package not yet wired',
-        },
+      if (await userManager.findByEmail(email)) {
+        return reply.status(409).send({
+          success: false,
+          error: { code: 'AUTH_REG_001', message: 'Email already registered' },
+        });
+      }
+
+      const policyOk =
+        password.length >= 8 &&
+        /[a-z]/.test(password) &&
+        /[A-Z]/.test(password) &&
+        /[0-9]/.test(password);
+      if (!policyOk) {
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: 'AUTH_REG_002',
+            message: 'Password needs 8+ chars with lower, upper and digit',
+          },
+        });
+      }
+
+      // create() derives status from isActive (default active); pending is
+      // achieved by create-then-changeStatus — dropping changeStatus would
+      // silently register ACTIVE users.
+      const user = await userManager.create(
+        { email, name, password },
+        DEFAULT_TENANT,
+      );
+      await userManager.changeStatus(user.id, 'pending', DEFAULT_TENANT);
+
+      request.log.info({ email }, 'Registration created pending user');
+
+      return reply.status(201).send({
+        success: true,
+        data: { id: user.id, email: user.email, name: user.name, status: 'pending' },
       });
     },
   );
