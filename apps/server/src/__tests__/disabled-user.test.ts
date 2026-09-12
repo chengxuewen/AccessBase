@@ -17,6 +17,7 @@ vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 // Shared spies for assertions
 const revokeAllUserSessions = vi.fn().mockResolvedValue(undefined);
 const rotateRefreshToken = vi.fn();
+const findSessionByToken = vi.fn().mockResolvedValue(null);
 const recordFailure = vi.fn().mockResolvedValue(1);
 const mockVerifyPassword = vi.fn();
 const mockFindById = vi.fn();
@@ -58,7 +59,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     // would create its own instance and our spy would never fire.
     SessionManager: vi.fn().mockImplementation(() => ({
       rotateRefreshToken,
-      findSessionByToken: vi.fn().mockResolvedValue(null),
+      findSessionByToken,
       revokeSession: vi.fn(),
       revokeAllUserSessions,
     })),
@@ -140,12 +141,13 @@ describe('disabled user enforcement (P0)', () => {
   });
 
   it('refresh mints access token carrying status claim from findById', async () => {
-    mockFindById.mockResolvedValueOnce({
+    mockFindById.mockResolvedValue({
       id: VICTIM_ID,
       email: 'victim@test.local',
       name: 'victim',
       status: 'active',
     });
+    findSessionByToken.mockResolvedValue({ userId: VICTIM_ID, id: 'sess-1' });
     rotateRefreshToken.mockResolvedValueOnce({
       refreshToken: 'new-raw-refresh-token',
       userId: VICTIM_ID,
@@ -164,16 +166,14 @@ describe('disabled user enforcement (P0)', () => {
   });
 
   it('refresh rejects pre-existing suspended users (fail-closed)', async () => {
-    mockFindById.mockResolvedValueOnce({
+    mockFindById.mockResolvedValue({
       id: VICTIM_ID,
       email: 'victim@test.local',
       name: 'victim',
       status: 'suspended',
     });
-    rotateRefreshToken.mockResolvedValueOnce({
-      refreshToken: 'new-raw-refresh-token',
-      userId: VICTIM_ID,
-    });
+    findSessionByToken.mockResolvedValue({ userId: VICTIM_ID, id: 'sess-1' });
+    rotateRefreshToken.mockClear();
 
     const res = await app.inject({
       method: 'POST',
@@ -182,5 +182,8 @@ describe('disabled user enforcement (P0)', () => {
     });
 
     expect(res.statusCode).toBe(401);
+    expect(res.json()).toMatchObject({ success: false, error: { code: 'AUTH_003' } });
+    // Gate ran BEFORE rotate: no orphaned fresh session was ever created
+    expect(rotateRefreshToken).not.toHaveBeenCalled();
   });
 });

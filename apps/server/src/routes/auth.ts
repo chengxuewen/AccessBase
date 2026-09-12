@@ -407,6 +407,21 @@ return { success: true };
     async (request, reply) => {
       const { refreshToken } = request.body as { refreshToken: string };
       try {
+        // Status gate BEFORE rotate: rejecting after rotate would strand a fresh
+        // session row per attempt (old token consumed, new one never delivered).
+        // The userId comes from the presented token's row — fetch its owner first.
+        const presented = await sessionManager.findSessionByToken(refreshToken);
+        const gateUserId = presented?.userId;
+        if (gateUserId) {
+          const user = await new (await import('@accessbase/identity')).UserManager().findById(
+            gateUserId,
+            DEFAULT_TENANT,
+          );
+          if (user?.status && user.status !== 'active') {
+            throw new Error('ACCOUNT_SUSPENDED');
+          }
+        }
+
         // DB-backed rotation: validates hash, marks old used, detects replay
         const { refreshToken: newRefreshToken, userId } =
           await sessionManager.rotateRefreshToken(refreshToken, {
@@ -414,16 +429,13 @@ return { success: true };
             userAgent: request.headers['user-agent'] ?? '',
           });
 
-        // Status re-check even on bypass-signing: a pre-existing suspended user
-        // (imported data) would otherwise mint claim-less tokens forever.
+        // Claim source for the new access token (post-rotate owner re-check is
+        // the same user; gate above already rejected suspended owners).
         const user = await new (await import('@accessbase/identity')).UserManager().findById(
           userId,
           DEFAULT_TENANT,
         );
         if (!user) throw new Error('User not found');
-        if (user.status && user.status !== 'active') {
-          throw new Error('ACCOUNT_SUSPENDED');
-        }
         const accessToken = app.jwt.sign(
           { sub: userId, email: user.email, status: user.status },
           { expiresIn: '15m' },

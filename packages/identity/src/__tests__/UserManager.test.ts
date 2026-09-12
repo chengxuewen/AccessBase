@@ -154,4 +154,23 @@ describe('verifyPassword status enforcement', () => {
     const user = await mgr.verifyPassword('a@b.c', 'right-password');
     expect(user.isActive).toBe(true);
   });
+
+  // Regression: mapToUser must map BOTH totpEnabled (MFA step-up branch in
+  // auth.ts login) and status (JWT status claim / P0 enforcement). A past edit
+  // dropped totpEnabled, silently disabling MFA step-up for all users.
+  it('findById output carries totpEnabled and status from the DB row', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.select.mockReturnValue(
+      makeChain([{ ...userRow('suspended'), totpEnabled: true }]),
+    );
+
+    const mgr = new UserManager();
+    const user = await mgr.findById('u1', '00000000-0000-0000-0000-000000000001');
+    expect(user).not.toBeNull();
+    expect(user?.totpEnabled).toBe(true);
+    expect(user?.status).toBe('suspended');
+    expect(user?.isActive).toBe(false);
+  });
 });

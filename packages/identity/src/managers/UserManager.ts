@@ -296,6 +296,7 @@ export class UserManager {
       email: dbUser.email,
       name: dbUser.name,
       isActive: dbUser.status === 'active',
+      totpEnabled: dbUser.totpEnabled,
       // DB status is a varchar; narrow to the claim's enum. Invalid values →
       // undefined = no claim = legacy-pass in authenticate.
       status: (['active', 'suspended', 'pending'] as const).includes(
