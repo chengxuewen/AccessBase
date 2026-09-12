@@ -15,6 +15,7 @@ export { OidcClientManager, encryptSecret, decryptSecret, type OidcClientListRow
 export { FlowTokenService } from './services/FlowTokenService.js';
 export { LockoutService, MAX_FAILURES, WINDOW_SECONDS, type LockoutOptions } from './services/LockoutService.js';
 export { getRedisClient, type RedisLike } from './services/redis.js';
+export { Mailer, type SmtpConfig } from './services/mailer.js';
 export { PasswordProvider } from './providers/PasswordProvider.js';
 export { OAuthProvider } from './providers/OAuthProvider.js';
 export { WebAuthnProvider } from './providers/WebAuthnProvider.js';

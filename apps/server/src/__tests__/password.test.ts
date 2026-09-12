@@ -13,6 +13,12 @@ vi.mock('@fastify/swagger', () => ({ default: async () => {} }));
 vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
+// Module-level Mailer mock (addendum #3): no real SMTP is ever attempted. send is
+// a shared vi.fn so forgot-password tests can assert delivery/degradation.
+const mailerSend = vi.fn().mockResolvedValue(undefined);
+const mailerFromConfig = vi.fn(
+  (cfg: { host?: string } | null | undefined) => (cfg && cfg.host ? { send: mailerSend } : null),
+);
 
 let loginPasswordInvalid = false;
 
@@ -75,7 +81,15 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       ),
       resetPassword: resetPasswordMock,
     })),
+    Mailer: { fromConfig: mailerFromConfig },
     FlowTokenService: vi.fn().mockImplementation(() => flowTokenMock),
+    // OptionsManager mock: keeps getOptionsManager() off the fake PG; get honors
+    // the env-first contract so SMTP_HOST tests just set the env var.
+    OptionsManager: vi.fn().mockImplementation(() => ({
+      get: vi.fn(async (_key: string, envValue: unknown, defaultValue: unknown) =>
+        envValue !== undefined ? envValue : defaultValue,
+      ),
+    })),
     SessionManager: vi.fn().mockImplementation(() => sessionManagerMock),
     // login success path now projects real roles (T2-4) — empty list keeps these tests behavior-identical
     RoleManager: vi.fn().mockImplementation(() => ({
@@ -205,6 +219,36 @@ describe('POST /api/v1/auth/forgot-password', () => {
     expect(body.data).toBeUndefined();
     // No email service (P0 out of scope): token is logged server-side, not returned
     expect(flowTokenMock.issue).toHaveBeenCalledWith('password_reset', { userId: pwUser.id }, 1800);
+  });
+
+  it('SMTP configured → reset email sent with link (Task 6)', async () => {
+    process.env['SMTP_HOST'] = 'smtp.x.io';
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/forgot-password',
+      payload: { email: pwUser.email },
+    });
+    expect(mailerFromConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ host: 'smtp.x.io', port: 587 }),
+    );
+    expect(mailerSend).toHaveBeenCalledTimes(1);
+    const [, subject, html] = mailerSend.mock.calls[0] as [string, string, string];
+    expect(subject).toBe('Reset your password');
+    expect(html).toContain(issuedTokens.at(-1) as string);
+    delete process.env['SMTP_HOST'];
+  });
+
+  it('SMTP absent → no email attempt, behavior unchanged (anti-enumeration 200)', async () => {
+    delete process.env['SMTP_HOST'];
+    mailerSend.mockClear();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/forgot-password',
+      payload: { email: pwUser.email },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true });
+    expect(mailerSend).not.toHaveBeenCalled();
   });
 
   it('non-existing email → IDENTICAL success body (anti-enumeration)', async () => {

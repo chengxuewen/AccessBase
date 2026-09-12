@@ -1,9 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager } from '@accessbase/identity';
+import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { config } from '../config.js';
+import { getOptionsManager } from './options.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
+import { logger } from '@accessbase/logging';
 
 
 interface LoginBody {
@@ -570,12 +572,27 @@ return { success: true };
     },
     async (request, reply) => {
       const { email } = request.body;
+      const options = getOptionsManager();
       const userManager = new (await import('@accessbase/identity')).UserManager();
       const user = await userManager.findByEmail(email);
       if (user) {
         const token = await flowTokens.issue('password_reset', { userId: user.id }, 1800);
-        // No email service yet (P0 out of scope): delivery is the server log.
-        request.log.info({ email, token }, 'Password reset URL: /reset-password?token=' + token);
+        // Options table SMTP config (env>option>default built into OptionsManager.get);
+        // no host → fromConfig returns null → log-only fallback, behavior unchanged.
+        const host = await options.get('smtp_host', process.env['SMTP_HOST'], '');
+        const port = Number(await options.get('smtp_port', process.env['SMTP_PORT'] ? Number(process.env['SMTP_PORT']) : undefined, 587));
+        const smtpUser = await options.get('smtp_user', process.env['SMTP_USER'], '');
+        const pass = await options.get('smtp_password', process.env['SMTP_PASSWORD'], '');
+        const from = await options.get('smtp_from', process.env['SMTP_FROM'], '');
+        const mailer = host ? Mailer.fromConfig({ host, port, user: smtpUser, pass, from }) : null;
+        if (mailer) {
+          const link = `${process.env['FRONTEND_ORIGIN'] ?? ''}/reset-password?token=${token}`;
+          await mailer.send(email, 'Reset your password', `<p>Click to reset: <a href="${link}">${link}</a></p>`).catch((err: unknown) => {
+            logger.warn({ err }, 'Reset email delivery failed (degraded to log)');
+          });
+        } else {
+          request.log.info({ email, token }, 'Password reset URL: /reset-password?token=' + token);
+        }
       }
       return reply.send({ success: true });
     },
