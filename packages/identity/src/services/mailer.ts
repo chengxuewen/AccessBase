@@ -28,7 +28,7 @@ export class Mailer {
         secure: (cfg.port ?? 587) === 465,
         auth: cfg.user ? { user: cfg.user, pass: cfg.pass ?? '' } : undefined,
       }),
-      cfg.from ?? `no-reply@${cfg.host}`,
+      cfg.from || `no-reply@${cfg.host}`,
     );
   }
 

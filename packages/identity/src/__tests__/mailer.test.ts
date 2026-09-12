@@ -24,6 +24,15 @@ describe('Mailer', () => {
     );
   });
 
+  it("fromConfig with empty from falls back to no-reply@host (options.get returns '' when unset)", async () => {
+    const m = Mailer.fromConfig({ host: 'smtp.x.io', port: 587, user: 'u', pass: 'p', from: '' })!;
+    await m.send('a@b.c', 'S', 'h');
+    const transport = (createTransport as ReturnType<typeof vi.fn>).mock.results[0].value;
+    expect(transport.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 'no-reply@smtp.x.io' }),
+    );
+  });
+
   it('send delivers to recipient with subject and html', async () => {
     const m = Mailer.fromConfig({
       host: 'smtp.x.io', port: 587, user: 'u', pass: 'p', from: 'no-reply@x.io',
