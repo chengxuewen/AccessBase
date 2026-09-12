@@ -423,6 +423,27 @@ describe('POST /api/v1/auth/webauthn/login/verify', () => {
     });
     expect(res.statusCode).toBe(401);
   });
+
+  it('returns 403 AUTH_004 when the passkey owner is suspended (no token issued)', async () => {
+    seedCredential({ credentialId: 'cred-1', counter: 0 });
+    // Credential verifies fine; the owner's account status is the only gate
+    const saved = userRows[0]?.['status'];
+    userRows[0] = { ...userRows[0], status: 'suspended' };
+    sessionManagerMock.issueRefreshToken.mockClear();
+    try {
+      const flowToken = await getLoginFlowToken();
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/webauthn/login/verify',
+        payload: { flowToken, response: assertion },
+      });
+      expect(res.statusCode).toBe(403);
+      expect(res.json()).toMatchObject({ success: false, error: { code: 'AUTH_004' } });
+      expect(sessionManagerMock.issueRefreshToken).not.toHaveBeenCalled();
+    } finally {
+      userRows[0] = { ...userRows[0], status: saved as string };
+    }
+  });
 });
 
 describe('GET /api/v1/auth/webauthn/credentials', () => {

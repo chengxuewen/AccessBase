@@ -128,9 +128,13 @@ export async function oauthRoutes(app: FastifyInstance) {
   /** Issue access JWT + refresh token (same claims/shape as login). */
   async function issueTokenPair(
     request: { ip: string; headers: Record<string, unknown> },
-    user: { id: string; email: string },
+    user: { id: string; email: string; status?: string },
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const accessToken = app.jwt.sign({ sub: user.id, email: user.email }, { expiresIn: '15m' });
+    // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
+    const accessToken = app.jwt.sign(
+      { sub: user.id, email: user.email, status: user.status },
+      { expiresIn: '15m' },
+    );
     const { refreshToken } = await sessionManager.issueRefreshToken(
       crypto.randomUUID(),
       user.id,
@@ -147,7 +151,7 @@ export async function oauthRoutes(app: FastifyInstance) {
     provider: SupportedProvider,
     profile: NormalizedProfile,
     tokens: OAuth2Tokens,
-  ): Promise<{ id: string; email: string }> {
+  ): Promise<{ id: string; email: string; status: string }> {
     const [existingLink] = await db
       .select({ userId: oauthAccounts.userId })
       .from(oauthAccounts)
@@ -161,7 +165,7 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     if (existingLink) {
       const [user] = await db
-        .select({ id: users.id, email: users.email })
+        .select({ id: users.id, email: users.email, status: users.status })
         .from(users)
         .where(eq(users.id, existingLink.userId))
         .limit(1);
@@ -171,7 +175,7 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     if (profile.email) {
       const [userByEmail] = await db
-        .select({ id: users.id, email: users.email })
+        .select({ id: users.id, email: users.email, status: users.status })
         .from(users)
         .where(eq(users.email, profile.email))
         .limit(1);
@@ -192,7 +196,7 @@ export async function oauthRoutes(app: FastifyInstance) {
         tenantId: DEFAULT_TENANT,
         status: 'active',
       })
-      .returning({ id: users.id, email: users.email });
+      .returning({ id: users.id, email: users.email, status: users.status });
     if (!created) throw new Error('oauth_user_provision_failed');
     await linkAccount(created.id, provider, profile, tokens);
     return created;
@@ -283,6 +287,17 @@ export async function oauthRoutes(app: FastifyInstance) {
 
         const profile = await fetchProviderProfile(provider, tokens.accessToken());
         const user = await findOrCreateOAuthUser(provider, profile, tokens);
+        // P0 (final review C1): a suspended/pending account must not obtain an
+        // OAuth session even with a valid provider link — mirror the login
+        // handler's 403 AUTH_004. Only existing users can be non-active; the
+        // provision branch above always creates with status 'active'.
+        if (user.status !== 'active') {
+          request.log.warn({ userId: user.id }, 'OAuth login blocked: account not active');
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_004', message: 'Account suspended' },
+          });
+        }
         const { accessToken, refreshToken } = await issueTokenPair(request, user);
         const exchangeCode = await flowTokens.issue(
           'oauth_exchange',

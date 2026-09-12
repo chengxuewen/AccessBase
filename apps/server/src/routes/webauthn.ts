@@ -85,9 +85,13 @@ export async function webauthnRoutes(app: FastifyInstance) {
   /** Issue access JWT + refresh token (same claims/shape as login). */
   async function issueTokenPair(
     request: { ip: string; headers: Record<string, unknown> },
-    user: { id: string; email: string },
+    user: { id: string; email: string; status?: string },
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const accessToken = app.jwt.sign({ sub: user.id, email: user.email }, { expiresIn: '15m' });
+    // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
+    const accessToken = app.jwt.sign(
+      { sub: user.id, email: user.email, status: user.status },
+      { expiresIn: '15m' },
+    );
     const { refreshToken } = await sessionManager.issueRefreshToken(
       crypto.randomUUID(),
       user.id,
@@ -277,12 +281,18 @@ export async function webauthnRoutes(app: FastifyInstance) {
         .where(eq(webauthnCredentials.id, row.id));
 
       const [user] = await db
-        .select({ id: users.id, email: users.email, name: users.name })
+        .select({ id: users.id, email: users.email, name: users.name, status: users.status })
         .from(users)
         .where(eq(users.id, row.userId))
         .limit(1);
       if (!user) {
         return authError(reply, 401, 'AUTH_WEBAUTHN_002', 'Unknown credential');
+      }
+      // P0 (final review C1): a suspended account with a valid passkey must not
+      // obtain a session — mirror the login handler's 403 AUTH_004 before issuing.
+      if (user.status !== 'active') {
+        request.log.warn({ userId: user.id }, 'WebAuthn login blocked: account not active');
+        return authError(reply, 403, 'AUTH_004', 'Account suspended');
       }
 
       const { accessToken, refreshToken } = await issueTokenPair(request, user);

@@ -108,7 +108,7 @@ vi.mock('@accessbase/identity/db', () => ({
       }),
     }),
     insert() {
-      return { values: () => ({ returning: async () => [{ id: testUser.id, email: testUser.email }] }) };
+      return { values: () => ({ returning: async () => [{ id: testUser.id, email: testUser.email, status: 'active' }] }) };
     },
     delete() {
       return {
@@ -295,6 +295,53 @@ describe('GET /api/v1/auth/oauth/:provider/callback', () => {
     // cookies cleared after use
     expect(res.headers['set-cookie']?.toString()).toContain('oauth_state=;');
     vi.unstubAllGlobals();
+  });
+
+  it('returns 403 AUTH_004 when the linked user is suspended (no token issued)', async () => {
+    setProviderEnv(true);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL) => {
+        const u = String(url);
+        // /user/emails must be matched BEFORE the broader /user prefix check
+        if (u.endsWith('/user/emails')) {
+          return { ok: true, json: async () => [{ email: 'gh@users.noreply.github.com', primary: true, verified: true }] };
+        }
+        if (u.includes('api.github.com/user')) {
+          return { ok: true, json: async () => ({ id: 4242, login: 'ghuser', name: 'GH User', email: null }) };
+        }
+        throw new Error('unexpected fetch ' + u);
+      }),
+    );
+
+    // linkedAccounts doubles as the mocked users-table store: an existing link
+    // whose user row is suspended exercises the login gate, not provisioning.
+    linkedAccounts.push({
+      id: testUser.id,
+      email: testUser.email,
+      userId: testUser.id,
+      provider: 'github',
+      providerAccountId: '4242',
+      status: 'suspended',
+    });
+    sessionManagerMock.issueRefreshToken.mockClear();
+    try {
+      const auth = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/github/authorize' });
+      const state = auth.cookies.find((c) => c.name === 'oauth_state')?.value ?? '';
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/auth/oauth/github/callback?code=real_code&state=${state}`,
+        cookies: { oauth_state: state },
+      });
+      expect(res.statusCode).toBe(403);
+      expect(res.json()).toMatchObject({ success: false, error: { code: 'AUTH_004' } });
+      // Gate fired before issuance: no redirect with an exchange code, no session
+      expect(res.headers['location']).toBeUndefined();
+      expect(sessionManagerMock.issueRefreshToken).not.toHaveBeenCalled();
+    } finally {
+      linkedAccounts.length = 0;
+      vi.unstubAllGlobals();
+    }
   });
 });
 
