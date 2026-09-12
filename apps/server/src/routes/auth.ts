@@ -591,7 +591,12 @@ return { success: true };
             logger.warn({ err }, 'Reset email delivery failed (degraded to log)');
           });
         } else {
-          request.log.info({ email, token }, 'Password reset URL: /reset-password?token=' + token);
+          // Credential-in-log rule: the full reset token authorizes a password
+          // change, so it may only hit logs in development. Outside development
+          // log an 8-char prefix — enough to correlate, useless to an attacker.
+          const loggedToken =
+            config.nodeEnv === 'development' ? token : token.slice(0, 8) + '…';
+          request.log.info({ email, token: loggedToken }, 'Password reset URL: /reset-password?token=' + loggedToken);
         }
       }
       return reply.send({ success: true });
