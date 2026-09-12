@@ -1,8 +1,18 @@
 import type { FastifyInstance } from 'fastify';
-import { UserManager, RoleManager } from '@accessbase/identity';
+import { UserManager, RoleManager, SessionManager } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { requirePermission } from '../utils/permission.js';
 
+
+/**
+ * Module-level lazy singleton (addendum #5): per-request `new SessionManager()`
+ * would pile up pg Pools. Constructed only when suspend first needs it.
+ */
+let sessionManagerSingleton: SessionManager | null = null;
+function getSessionManager(): SessionManager {
+  sessionManagerSingleton ??= new SessionManager();
+  return sessionManagerSingleton;
+}
 
 export async function userRoutes(app: FastifyInstance) {
   // All user routes require authentication
@@ -275,6 +285,11 @@ export async function userRoutes(app: FastifyInstance) {
       const { status } = request.body as { status: 'active' | 'suspended' | 'pending' };
       try {
         const user = await userManager.changeStatus(id, status, DEFAULT_TENANT);
+        // P0: suspension must take effect immediately — kill all refresh sessions.
+        // Access tokens die at authenticate via the status claim re-check.
+        if (status === 'suspended') {
+          await getSessionManager().revokeAllUserSessions(id);
+        }
         return { success: true, data: user };
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));

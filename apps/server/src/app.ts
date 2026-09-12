@@ -120,6 +120,17 @@ export async function buildApp(options: BuildAppOptions = {}) {
         success: false,
         error: { code: 'AUTH_001', message: 'Missing or invalid token' },
       });
+      return;
+    }
+    // P0 disabled-user enforcement: re-check the status claim on every
+    // authenticated request. Legacy tokens without the claim pass — 15m TTL
+    // retires them naturally.
+    const claims = request.user as { status?: string };
+    if (claims.status && claims.status !== 'active') {
+      reply.status(403).send({
+        success: false,
+        error: { code: 'AUTH_004', message: 'Account suspended' },
+      });
     }
   });
 

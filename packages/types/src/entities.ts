@@ -7,6 +7,8 @@ export interface User {
   name: string;
   avatar?: string;
   isActive: boolean;
+  /** Raw account status; JWT status claim source for disabled-user enforcement (P0) */
+  status?: 'active' | 'suspended' | 'pending';
   tenantId: string;
   tokenVersion: number;
   /** TOTP MFA enabled (Phase 6b) */

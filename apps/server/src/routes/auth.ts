@@ -51,10 +51,11 @@ export async function authRoutes(app: FastifyInstance) {
   /** Issue access JWT + refresh token — shared by login (non-MFA) and /mfa/verify */
   async function issueTokenPair(
     request: { ip: string; headers: Record<string, unknown> },
-    user: { id: string; email: string },
+    user: { id: string; email: string; status?: string },
   ) {
     const accessToken = app.jwt.sign(
-      { sub: user.id, email: user.email },
+      // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
+      { sub: user.id, email: user.email, status: user.status },
       { expiresIn: '15m' },
     );
     const { refreshToken } = await sessionManager.issueRefreshToken(
@@ -183,8 +184,16 @@ export async function authRoutes(app: FastifyInstance) {
             },
           },
         };
-      } catch {
-        await lockout.recordFailure(email);
+    } catch (err) {
+      // P0: suspended/pending accounts map to a distinct 403 — not a credential
+      // failure, so it must not feed the lockout counter either.
+      if (err instanceof Error && err.message === 'ACCOUNT_SUSPENDED') {
+        return reply.status(403).send({
+          success: false,
+          error: { code: 'AUTH_004', message: 'Account suspended' },
+        });
+      }
+      await lockout.recordFailure(email);
         request.log.warn({ email }, 'Login failed');
         return reply.status(401).send({
           success: false,
@@ -405,7 +414,20 @@ return { success: true };
             userAgent: request.headers['user-agent'] ?? '',
           });
 
-        const accessToken = app.jwt.sign({ sub: userId }, { expiresIn: '15m' });
+        // Status re-check even on bypass-signing: a pre-existing suspended user
+        // (imported data) would otherwise mint claim-less tokens forever.
+        const user = await new (await import('@accessbase/identity')).UserManager().findById(
+          userId,
+          DEFAULT_TENANT,
+        );
+        if (!user) throw new Error('User not found');
+        if (user.status && user.status !== 'active') {
+          throw new Error('ACCOUNT_SUSPENDED');
+        }
+        const accessToken = app.jwt.sign(
+          { sub: userId, email: user.email, status: user.status },
+          { expiresIn: '15m' },
+        );
 
         return {
           success: true,
@@ -468,7 +490,7 @@ return { success: true };
           DEFAULT_TENANT,
         );
         if (!user) throw new Error('User not found');
-        const { accessToken, refreshToken } = await issueTokenPair(request, { id: user.id, email: user.email });
+        const { accessToken, refreshToken } = await issueTokenPair(request, { id: user.id, email: user.email, status: user.status });
         return { success: true, data: { accessToken, refreshToken, expiresIn: 900 } };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Password change failed';
@@ -696,6 +718,7 @@ return { success: true };
         const { accessToken, refreshToken } = await issueTokenPair(request, {
           id: user.id,
           email: user.email,
+          status: user.status,
         });
         return {
           success: true,
