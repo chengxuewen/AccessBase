@@ -203,3 +203,10 @@ logger.error('Operation failed', error); // ❌
 - Grant/Interaction 等瞬时 kind 走内存 catch-all（**重启=consent 重做+RP refresh token 全失效**）；持久化前先解决 provider payload round-trip 丢字段问题
 - /oidc 不入审计（写体含密钥语义）；oidcGrants 表为部分审计轨迹——需完整审计须显式设计
 - interaction resume 守卫 `/^\/oidc\/auth\//`（拒绝 \\ 与二次编码）——前端 login redirect 参数唯一合法形态
+
+## e2e 双模式互斥与 OIDC 密钥纪律（2026-09-12）
+
+- mock-API e2e 全量跑之前**必须确认 5101 无真后端进程**（穿透请求会污染 mock 流程）；health.spec 是唯一例外（真后端冒烟，自动探测可达性，不可达时 skip）
+- 检查：`curl -s -m 2 --noproxy '*' -o /dev/null -w '%{http_code}' http://localhost:5101/health/live` 应 000（后端停）
+- 客户端密钥一次性揭示是**硬约束**：create/rotate 响应之外任何路径（list/get/日志/e2e list 断言）出现明文即缺陷；OidcClientListRow 类型已从类型层排除 secretEncrypted
+- dist 同步陷阱：packages/identity 的 schema/manager 改动后若 apps/server 的 tsc 报幽灵字段错误，先 `pnpm --filter @accessbase/identity build` 再查代码（server 从 dist 解析 @accessbase/identity）

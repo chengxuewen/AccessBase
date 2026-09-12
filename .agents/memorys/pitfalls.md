@@ -278,3 +278,23 @@
 - **解法**: Space style 加 display:'flex' 块化（antd 官方 FAQ 方案）；或包一层块级 div
 - **验证**: 居中类断言用探针量 getBoundingClientRect 左右 gap 对称，不凭代码目测
 - **禁止**: 对 inline-flex 容器依赖 margin auto 居中
+## PIT-038: oidc-provider Grant 经 DB round-trip 后实例只剩 {kind,jti}，consent 无限重提示 (2026-09-12)
+
+- **症状**: AC+PKCE 流程中 consent approve（grant.save() 成功、adapter upsert 日志正常）后 resume 再次 303 回 consent 页，或 500 `accountId mismatch`；同代码走纯内存 adapter 时 4/5 全过。
+- **根因**: oidc-provider 的 `Grant.find` 链路 `verify(stored)` → `instantiate(payload)`，其中 base_model 构造器用 `pickPayload(Model, input)` 按 `Model.IN_PAYLOAD` 白名单挑字段。该链路对 DB round-trip 的 payload 有隐含契约（exp/iat/openid map 等字段必须原样），adapter 返回重构子集时字段被丢，grant 实例退化为 `{kind,jti}`，`getOIDCScopeEncountered()` 返回空 → `op_scopes_missing` 永真。这个隐含契约在 provider 文档中不显著，只有逐层读 provider 源码（base_model.js/payload.js/models/grant.js/resume.js/session.js）才能确认。
+- **解法**: Grant 类瞬时 kind 放弃 DB 持久化，走内存 catch-all（二分实证：OIDC_GRANT_MEMORY=1 时全过）。重启代价（consent 重做、RP refresh token 失效）已在 adapter 头注释声明；未来要持久化必须原样存 payload JSONB 并让 find 返回 verbatim（且当时 identity dist 需重建，否则 schema 列定义不同步）。
+- **验证**: `pixi run npx vitest run apps/server/src/__tests__/oidc-flow.test.ts` 6/6 全绿（含 RS256 id_token 验签全流程）；grep adapter.ts 无 oidcGrants 写路径。
+
+## PIT-039: reply.hijack() 之后抛错 = socket 挂起（Fastify 错误处理器失效） (2026-09-12)
+
+- **症状**: POST /oidc/interaction/:uid 缺失/过期 interaction cookie 时请求永久挂起直到超时；vitest 单测不超时所以测试全绿，只有真实 HTTP 层暴露。
+- **根因**: `reply.hijack()` 使 Fastify 的 onError 流程对原始 reply 失效；此后 `provider.interactionDetails()` 抛 SessionNotFound 时无人写响应、无人 end。
+- **解法**: hijack 之后的每一个 await 都必须在 try/catch 内，catch 里手动写状态码+body+end。已修 interaction.ts POST（OIDC_003 JSON 400）+ 回归锁（无 cookie POST 立即 400）。
+- **验证**: `pixi run npx vitest run apps/server/src/__tests__/oidc-flow.test.ts -g "without the interaction cookie"`；grep interaction.ts 的 hijack 后有 catch。
+
+## PIT-040: 真后端进程存活会污染 mock-API e2e（穿透请求 + 状态漂移） (2026-09-12)
+
+- **症状**: settings/mfa-panel 等纯 mock spec 单跑全绿，但真后端跑起来后串行全量挂 8 个；同一 commit 下时好时坏，看似 flaky。
+- **根因**: 测试约定 mock-API e2e 假设"没有真后端"，mock 只覆盖 spec 用到的端点；真后端存活时未 mock 的请求穿透到真 API，返回真实数据/401 级联，破坏组件状态。mock 完整性从未被设计为"真后端在场"场景。
+- **解法**: 两类测试天然互斥——health.spec（真后端冒烟）加 beforeEach 探测：后端不可达时 `test.skip` 并注明 NOT VERIFIED（testing.md 条款测试化）；跑纯 mock 全量前确认 5101 无进程（`pkill -f "tsx src/index.ts"`）。
+- **验证**: 后端停 → `playwright test --project=chromium` 应 102 passed + 3 skipped 0 failed；后端起 → health 3/3 passed。
