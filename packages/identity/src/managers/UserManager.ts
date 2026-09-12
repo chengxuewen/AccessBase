@@ -197,6 +197,10 @@ export class UserManager {
       throw new Error('Invalid credentials');
     }
 
+    // P0: disabled (suspended/pending) accounts must fail before any bcrypt work
+    if (user.status !== 'active') {
+      throw new Error('ACCOUNT_SUSPENDED');
+    }
     const isValid = await compare(password, user.passwordHash);
 
     if (!isValid) {
