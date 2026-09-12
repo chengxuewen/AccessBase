@@ -196,6 +196,9 @@ importers:
       '@types/pg':
         specifier: ^8.11.0
         version: 8.23.1
+      ioredis:
+        specifier: ^5.3.2
+        version: 5.11.1
       otplib:
         specifier: ^13.5.0
         version: 13.5.0

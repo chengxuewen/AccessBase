@@ -80,16 +80,16 @@ describe('GET /health/live', () => {
 });
 
 describe('GET /health/ready', () => {
-  it('returns 503 when dependencies are not configured', async () => {
+  it('reports real db/redis status and degrades when down', async () => {
     const res = await app.inject({ method: 'GET', url: '/health/ready' });
 
-    // DB/Redis stubs report "not_configured" → degraded
+    // Test env has no reachable PG/Redis → real checks report 'down' → degraded
     expect(res.statusCode).toBe(503);
     const body = res.json();
     expect(body.status).toBe('degraded');
     expect(body.checks).toBeDefined();
-    expect(body.checks.database).toBe('not_configured');
-    expect(body.checks.redis).toBe('not_configured');
+    expect(['ok', 'down']).toContain(body.checks.database);
+    expect(['ok', 'down']).toContain(body.checks.redis);
   });
 });
 

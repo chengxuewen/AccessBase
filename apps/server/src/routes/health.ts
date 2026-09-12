@@ -1,4 +1,6 @@
 import type { FastifyInstance } from 'fastify';
+import { config } from '../config.js';
+import { getRedis } from '../utils/redis.js';
 
 export async function healthRoutes(app: FastifyInstance) {
   // GET /health/live — Liveness probe (is the process alive?)
@@ -49,10 +51,31 @@ export async function healthRoutes(app: FastifyInstance) {
       },
     },
     async (_request, reply) => {
-      // ponytail: stub checks until db/redis are wired
+      const redis = await getRedis();
+      let redisStatus = 'down';
+      if (redis) {
+        try {
+          await redis.ping();
+          redisStatus = 'ok';
+        } catch {
+          redisStatus = 'down';
+        }
+      }
+
+      const dbStatus = await (async () => {
+        try {
+          const { createDb } = await import('@accessbase/identity/db');
+          const { sql } = await import('drizzle-orm');
+          await createDb(config.databaseUrl).execute(sql`SELECT 1`);
+          return 'ok';
+        } catch {
+          return 'down';
+        }
+      })();
+
       const checks = {
-        database: 'not_configured',
-        redis: 'not_configured',
+        database: dbStatus,
+        redis: redisStatus,
       };
 
       const allHealthy = Object.values(checks).every((s) => s === 'ok');

@@ -32,7 +32,7 @@ export class SessionManager {
   private readonly db: DrizzleDB;
   private readonly redis: RedisLike | null;
 
-  constructor(databaseUrl?: string, redis?: RedisLike) {
+  constructor(databaseUrl?: string, redis?: RedisLike | null) {
     this.db = createDb(databaseUrl);
     this.redis = redis ?? null;
   }

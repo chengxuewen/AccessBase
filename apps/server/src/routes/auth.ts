@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager } from '@accessbase/identity';
+import { getRedis } from '../utils/redis.js';
 import { config } from '../config.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 
@@ -17,7 +18,7 @@ interface RegisterBody {
 }
 
 export async function authRoutes(app: FastifyInstance) {
-  const sessionManager = new SessionManager();
+  const sessionManager = new SessionManager(undefined, await getRedis());
   const roleManager = new RoleManager();
   // One manager per app registration — same convention as permissionRoutes.
   const permissionManager = new PermissionManager();

@@ -21,6 +21,7 @@ import { webauthnRoutes } from './routes/webauthn.js';
 import { optionsRoutes } from './routes/options.js';
 import { clientRoutes } from './routes/clients.js';
 import { resolveCorsOrigin } from './cors.js';
+import { getRedis } from './utils/redis.js';
 import { buildOidcProvider } from './oidc/provider.js';
 import { OidcClientManager } from '@accessbase/identity';
 import { registerInteractionRoutes } from './oidc/interaction.js';
@@ -86,9 +87,12 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // --- Security middleware ---
   await app.register(helmet);
 
+  const redis = await getRedis();
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
+    // @fastify/rate-limit v9 builds a RedisStore internally; null → plugin falls back to in-memory
+    redis: redis ?? undefined,
   });
 
 
