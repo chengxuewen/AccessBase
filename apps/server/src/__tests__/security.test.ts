@@ -46,6 +46,19 @@ afterAll(async () => {
 });
 
 describe('Rate limit (real @fastify/rate-limit, unmocked)', () => {
+  beforeAll(async () => {
+    // Counters persist in shared Redis across runs and poison the 429 assertion
+    // (a previous run's hits already burn the budget). Flush if Redis is up;
+    // when absent the plugin falls back to its local in-memory store, which is
+    // per-process and needs no flush.
+    try {
+      const { getRedisClient } = await import('@accessbase/identity');
+      await getRedisClient().flushall();
+    } catch {
+      // redis absent — local store, nothing to flush
+    }
+  });
+
   it('returns 429 on the 11th login request within one minute', async () => {
     const statuses: number[] = [];
     for (let i = 0; i < 11; i++) {
