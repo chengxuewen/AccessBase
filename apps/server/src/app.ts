@@ -93,9 +93,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
     timeWindow: '1 minute',
     // @fastify/rate-limit v9 builds a RedisStore internally; null → plugin falls back to in-memory
     redis: redis ?? undefined,
+    // Fail open: without this, a redis outage rethrows on every request → global 500s.
+    // skipOnError falls back to local counting, matching SessionManager's fail-soft redis discipline.
+    skipOnError: true,
   });
-
-
   await app.register(fastifyCookie);
 
 

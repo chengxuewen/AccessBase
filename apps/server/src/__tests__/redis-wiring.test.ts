@@ -21,6 +21,13 @@ describe('redis wiring (P0 infra consolidation)', () => {
     const src = readFileSync(resolve(__dirname, '../app.ts'), 'utf-8');
     expect(src).toMatch(/rateLimit[\s\S]{0,200}redis/i);
   });
+  
+  it('rate-limit fails open on redis outage (skipOnError)', () => {
+    // Static regression lock: RedisStore incr rethrows by default (skipOnError:false)
+    // → a redis outage would 500 every request. Must stay fail-open.
+    const src = readFileSync(resolve(__dirname, '../app.ts'), 'utf-8');
+    expect(src).toMatch(/rateLimit[\s\S]{0,400}skipOnError:\s*true/);
+  });
 
   it('health ready reports redis status truthfully', () => {
     // Static regression lock: stubbed value removed in favor of real ping
