@@ -298,3 +298,24 @@
 - **根因**: 测试约定 mock-API e2e 假设"没有真后端"，mock 只覆盖 spec 用到的端点；真后端存活时未 mock 的请求穿透到真 API，返回真实数据/401 级联，破坏组件状态。mock 完整性从未被设计为"真后端在场"场景。
 - **解法**: 两类测试天然互斥——health.spec（真后端冒烟）加 beforeEach 探测：后端不可达时 `test.skip` 并注明 NOT VERIFIED（testing.md 条款测试化）；跑纯 mock 全量前确认 5101 无进程（`pkill -f "tsx src/index.ts"`）。
 - **验证**: 后端停 → `playwright test --project=chromium` 应 102 passed + 3 skipped 0 failed；后端起 → health 3/3 passed。
+
+## PIT-041: 主线程长文档单次 write 生成损坏 → 分段写入 (2026-09-12)
+
+- **症状**: 写 600+ 行计划文档时 write 调用生成中途损坏（乱码/重复块/自相矛盾注入），随后陷入"叙述不行动"退化循环多个 turn。
+- **根因**: 超长单次生成触发模型输出退化；事实收集（工具调用+短输出）一直正常，仅长篇生成损坏。
+- **解法**: 长文档分段写入——bash heredoc append 每段 <150 行；或派 fresh-context 子代理重写。损坏文件绝不落盘后继续使用（重写成本<审计成本）。
+- **验证**: 分段写入 686 行计划一次成功，grep 零损坏标记。
+
+## PIT-042: claim-less token 的"有界性"论证只对停止铸发的存量成立 (2026-09-12)
+
+- **症状**: 批次 A 终审发现 OAuth/WebAuthn 登录路径为 suspended 用户无限续铸无 status claim 的 token，禁用形同虚设；而 T2 任务审查曾裁定该状态"safe, bounded"。
+- **根因**: "15min TTL 自然淘汰"论证混淆了"存量 token 会被淘汰"与"路径停止铸发"——legacy-pass 窗口只有在新签发全部带 claim 后才有界。
+- **解法**: 任何"向后兼容放行"设计必须逐签发路径清点：该路径是否已切到带 claim 签发？未切的路径=永久绕过。禁用语义要覆盖 verifyPassword/issueTokenPair 的每一个调用方（密码/MFA/OAuth/WebAuthn/refresh/register）。
+- **验证**: `grep -n "issueTokenPair\|issueRefreshToken" apps/server/src/routes/*.ts` 每处签发点均有 status 门或签入 claim。
+
+## PIT-043: vi.mock 提升语义 + bcryptjs 惯性错误 (2026-09-12)
+
+- **症状**: 计划文本写 `vi.mock('bcrypt')` 内联块与 `await import('bcrypt')` 实现——前者因 vi.mock 提升到文件顶在测试体内不生效且遮蔽既有 mock，后者运行时 module not found（项目只有 bcryptjs）。
+- **根因**: 计划生成时凭通用 Node 习惯而非仓库实际依赖；评审后由计划附录强制修正（addendum 机制生效的实证）。
+- **解法**: 计划中的代码片段必须先 grep 仓库依赖与既有 mock 模式；vi.mock 一律文件顶层；hash 库以 package.json 为准。
+- **验证**: `grep -rn "from 'bcrypt'" apps packages` 应零命中（bcryptjs 除外）。
