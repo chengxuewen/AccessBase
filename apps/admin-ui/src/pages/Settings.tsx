@@ -56,7 +56,7 @@ import MfaCard from './settings/MfaCard';
 // DISPLAY masking only; the server remains the authority on mask rejection.
 const SENSITIVE_KEY_PATTERN = /secret|password|token|key/i;
 const MASK = '******';
-const OPTION_KEY_PATTERN = /^[a-z][a-zA-Z0-9_.]{1,63}$/;
+const OPTION_KEY_PATTERN = /^[a-z][a-zA-Z0-9_.-]{1,63}$/;
 
 interface OptionFormValues {
   key?: string;

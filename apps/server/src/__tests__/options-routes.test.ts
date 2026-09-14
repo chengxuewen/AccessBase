@@ -165,6 +165,32 @@ describe('PUT /api/v1/options', () => {
     expect(entry.value).toBe('Hello');
   });
 
+  it('accepts hyphenated provider secret keys (PROVIDER_NAME_PATTERN cross-contract)', async () => {
+    // Dynamic provider secrets use oauth_<name>_client_secret keys and
+    // PROVIDER_NAME_PATTERN allows hyphens — the key charset must allow them too.
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/options',
+      headers: { ...AUTH(), 'content-type': 'application/json' },
+      payload: { key: 'oauth_my-oidc_client_secret', value: '"yyy"' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.key).toBe('oauth_my-oidc_client_secret');
+  });
+
+  it('still rejects keys with a leading digit after hyphen widening', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/options',
+      headers: { ...AUTH(), 'content-type': 'application/json' },
+      payload: { key: '1bad-key', value: 'x' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('OPT_001');
+  });
+
   it('403 without options:write', async () => {
     allow.value = false;
 

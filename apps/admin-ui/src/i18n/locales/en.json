@@ -382,7 +382,7 @@
       "keyPlaceholder": "e.g. site.feature_flag",
       "valuePlaceholder": "JSON value, e.g. \"text\" or 42 or {\"a\":1}",
       "keyRequired": "Please enter a key",
-      "invalidKey": "Key must match /^[a-z][a-zA-Z0-9_.]{1,63}$/",
+      "invalidKey": "Key must match /^[a-z][a-zA-Z0-9_.-]{1,63}$/",
       "invalidJson": "Value must be valid JSON",
       "deleteConfirm": "Delete this option?",
       "saveSuccess": "Option saved",

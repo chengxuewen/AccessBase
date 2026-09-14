@@ -17,7 +17,7 @@ import { requirePermission } from '../utils/permission.js';
 /** Keys matching this pattern are masked in GET and reject '******' on PUT. */
 export const SENSITIVE_KEY_PATTERN = /secret|password|token|key/i;
 
-const KEY_FORMAT = /^[a-z][a-zA-Z0-9_.]{1,63}$/;
+const KEY_FORMAT = /^[a-z][a-zA-Z0-9_.-]{1,63}$/;
 const MASK = '******';
 
 // Same lazy-singleton + test seam pattern as stats.ts (review M9).
@@ -79,7 +79,7 @@ export async function optionsRoutes(app: FastifyInstance): Promise<void> {
           success: false,
           error: {
             code: 'OPT_001',
-            message: 'Invalid key format (expected /^[a-z][a-zA-Z0-9_.]{1,63}$/)',
+            message: 'Invalid key format (expected /^[a-z][a-zA-Z0-9_.-]{1,63}$/)',
           },
         });
       }
