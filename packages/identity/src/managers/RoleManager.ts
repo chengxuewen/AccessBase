@@ -2,7 +2,7 @@
  * RoleManager - Role management with RBAC1 inheritance (SDD 2.3)
  * Drizzle ORM implementation
  */
-import { eq, and, sql, count } from 'drizzle-orm';
+import { eq, and, sql, count, inArray } from 'drizzle-orm';
 import { createDb, type DrizzleDB } from '../db/index.js';
 import {
   roles,
@@ -150,12 +150,29 @@ export class RoleManager {
       .offset(offset)
       .orderBy(roles.createdAt);
 
-    // Get permissions for each role
-    const rolesWithPermissions = await Promise.all(
-      results.map(async (role) => {
-        const perms = await this.getRolePermissions(role.id);
-        return this.mapToRole(role, perms);
-      }),
+    // Fetch all permissions for the page in ONE query, group by roleId in memory
+    const roleIds = results.map((r) => r.id);
+    const permRows = roleIds.length
+      ? await this.db
+          .select()
+          .from(permissions)
+          .innerJoin(rolePermissions, eq(permissions.id, rolePermissions.permissionId))
+          .where(inArray(rolePermissions.roleId, roleIds))
+      : [];
+    const permsByRole = new Map<string, Permission[]>();
+    for (const row of permRows) {
+      const list = permsByRole.get(row.role_permissions.roleId) ?? [];
+      list.push({
+        id: row.permissions.id,
+        resource: row.permissions.resource,
+        action: row.permissions.action,
+        description: row.permissions.description ?? undefined,
+        createdAt: row.permissions.createdAt,
+      });
+      permsByRole.set(row.role_permissions.roleId, list);
+    }
+    const rolesWithPermissions = results.map((role) =>
+      this.mapToRole(role, permsByRole.get(role.id) ?? []),
     );
 
     return {
