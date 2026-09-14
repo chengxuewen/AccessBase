@@ -326,3 +326,17 @@
 - **根因**: 生成 question 参数时 JSON 字符串值内混入杂散 \r 转义序列（如 "推荐\r组合\r（Recommended\r）"）——\r 在源码字符串里合法（JSON 能解析）但用户端渲染层拒收；多字节中文 + 全角括号场景下生成器更易插入。
 - **解法**: question 的 label/description/question 字段只写纯净单行文本：禁手工拼接 \r，全角括号内不放换行类转义；提问后若 dismiss 先怀疑参数污染而非用户意愿。
 - **验证**: 提问 JSON 落盘后 `python3 -c "import json,sys; json.load(open(f)); print('ok')"` 通过且 `grep -c '\\\\r' f` 为 0。
+
+## PIT-045: jsonb 列的 get() 返回已解析对象，字符串假设被测试 seam 掩盖 (2026-09-12)
+
+- **症状**: 批次 B 终审发现动态 OAuth provider 的真实配置路径（Settings→Options 粘贴 JSON→PUT 存 jsonb 对象→get 返回对象）被 `JSON.parse(对象)` 静默跳过；全部套件绿，因为测试 seam 用 JSON.stringify 字符串直灌 Map——恰好只覆盖 env 形态。
+- **根因**: `OptionsManager.get<T>` 的 T 标注为 string，但 jsonb 列经 pg 驱动返回已解析 JS 值——类型标注不转换运行时行为。测试 seam 与真实存储路径形态不一致是盲区根源。
+- **解法**: 读端判型双形态接受（string→parse，非 string→直接用）+ 对象校验；**测试 seam 必须按真实存储形态注入**（jsonb 键的测试用对象而非字符串）。
+- **验证**: `grep -n "typeof raw" apps/server/src/routes/oauth.ts` 双形态分流在位；oauth.test.ts 有 object-typed seam 用例。
+
+## PIT-046: 同名常量跨模块的正则字符集交叉契约无人测 (2026-09-12)
+
+- **症状**: PROVIDER_NAME_PATTERN 允许连字符（示例名 my-oidc），options KEY_FORMAT 禁止——`oauth_<name>_client_secret` 经 PUT 400，带连字符 provider 永远无法端到端配置；两正则各自测试全绿。
+- **根因**: 两个模块各自测试自己的正则，拼接产物（`oauth_${name}_client_secret`）的合法性无人断言。
+- **解法**: 凡「A 模块生成 B 模块消费的标识符」，必须有一条跨模块拼接断言（合法名→键可写 + 负例）。对齐方向选放宽容器（KEY_FORMAT 加连字符）而非收紧名规则——最小爆炸半径。
+- **验证**: options 路由测试含 `oauth_my-oidc_client_secret` PUT 200 + 负例 1bad-key 400。

@@ -118,7 +118,7 @@ pixi run dev                        # Same as bash accessbase.sh dev:native
 ## NOTES
 
 - 116 design decisions documented in `.agents/memorys/decisions.md` (D1-D116)
-- 44 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~044)
+- 46 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~046)
 - Architecture doc split into 31 modules under `docs/modules/`
 - Each module has back-link to `architecture.md` stub
 - Reference implementation (new-api) in `.refinfo/` for studying patterns
