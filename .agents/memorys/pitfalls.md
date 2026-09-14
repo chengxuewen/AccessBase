@@ -319,3 +319,10 @@
 - **根因**: 计划生成时凭通用 Node 习惯而非仓库实际依赖；评审后由计划附录强制修正（addendum 机制生效的实证）。
 - **解法**: 计划中的代码片段必须先 grep 仓库依赖与既有 mock 模式；vi.mock 一律文件顶层；hash 库以 package.json 为准。
 - **验证**: `grep -rn "from 'bcrypt'" apps packages` 应零命中（bcryptjs 除外）。
+
+## PIT-044: question 工具 JSON 内杂散 \r 导致用户端解析失败 (2026-09-12)
+
+- **症状**: question 工具调用反复报"询问格式错误"，用户端 dismiss；两次提问同样失败。
+- **根因**: 生成 question 参数时 JSON 字符串值内混入杂散 \r 转义序列（如 "推荐\r组合\r（Recommended\r）"）——\r 在源码字符串里合法（JSON 能解析）但用户端渲染层拒收；多字节中文 + 全角括号场景下生成器更易插入。
+- **解法**: question 的 label/description/question 字段只写纯净单行文本：禁手工拼接 \r，全角括号内不放换行类转义；提问后若 dismiss 先怀疑参数污染而非用户意愿。
+- **验证**: 提问 JSON 落盘后 `python3 -c "import json,sys; json.load(open(f)); print('ok')"` 通过且 `grep -c '\\\\r' f` 为 0。
