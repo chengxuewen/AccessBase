@@ -5,6 +5,12 @@ import { createDb, type DrizzleDB } from '../db/index.js';
 import { count, sql, and, eq } from 'drizzle-orm';
 import { permissions, rolePermissions, type NewPermission } from '../db/schema.js';
 import { RoleManager } from './RoleManager.js';
+import {
+  PERMISSION_CACHE_TTL_MS,
+  getCachedPermissions,
+  invalidatePermissionCache,
+  setCachedPermissions,
+} from './permission-cache.js';
 import { logger } from '@accessbase/logging';
 import type {
   Permission,
@@ -17,10 +23,16 @@ import type {
 export class PermissionManager {
   private readonly db: DrizzleDB;
   private readonly roleManager: RoleManager;
+  private readonly cacheTtlMs: number;
 
-  constructor(databaseUrl?: string, roleManager?: RoleManager) {
+  constructor(
+    databaseUrl?: string,
+    roleManager?: RoleManager,
+    options?: { cacheTtlMs?: number },
+  ) {
     this.db = createDb(databaseUrl);
     this.roleManager = roleManager ?? new RoleManager(databaseUrl);
+    this.cacheTtlMs = options?.cacheTtlMs ?? PERMISSION_CACHE_TTL_MS;
   }
 
   /**
@@ -144,7 +156,10 @@ export class PermissionManager {
    * Get user's effective permissions (including role inheritance)
    */
   async getUserEffectivePermissions(userId: string, tenantId: string): Promise<Permission[]> {
-    logger.debug(`Getting effective permissions for user ${userId} in tenant: ${tenantId}`);
+    const hit = getCachedPermissions(tenantId, userId);
+    if (hit && hit.expiresAt > Date.now()) return hit.permissions;
+
+    logger.debug(`Computing effective permissions for user ${userId} in tenant: ${tenantId}`);
 
     const roles = await this.roleManager.getUserRoles(userId, tenantId);
     const seen = new Map<string, Permission>();
@@ -153,7 +168,17 @@ export class PermissionManager {
         seen.set(p.id, p);
       }
     }
-    return [...seen.values()];
+    const permissions = [...seen.values()];
+    setCachedPermissions(tenantId, userId, permissions, this.cacheTtlMs);
+    return permissions;
+  }
+
+  /**
+   * Invalidate cached effective permissions: one (tenantId, userId) entry,
+   * all entries of a tenant, or everything when called without arguments.
+   */
+  invalidatePermissionCache(tenantId?: string, userId?: string): void {
+    invalidatePermissionCache(tenantId, userId);
   }
 
   /**

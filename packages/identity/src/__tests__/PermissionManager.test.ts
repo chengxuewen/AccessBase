@@ -12,6 +12,7 @@ vi.mock('../db/index.js', () => ({
 
 import { PermissionManager } from '../managers/PermissionManager.js';
 import type { RoleManager } from '../managers/RoleManager.js';
+import { resetPermissionCache } from '../managers/permission-cache.js';
 import type { Permission, Role } from '../types.js';
 
 /**
@@ -69,6 +70,7 @@ describe('PermissionManager', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    resetPermissionCache();
     db = makeMockDb();
     const { createDb } = await import('../db/index.js');
     vi.mocked(createDb).mockReturnValue(db as never);
@@ -210,5 +212,81 @@ describe('PermissionManager', () => {
       expect(db.delete).toHaveBeenCalledTimes(1);
       expect(db.insert).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('permission cache', () => {
+  let roleManager: {
+    getUserRoles: ReturnType<typeof vi.fn>;
+    resolveInheritedPermissions: ReturnType<typeof vi.fn>;
+  };
+  let manager: PermissionManager;
+
+  const makeManager = (cacheTtlMs: number): PermissionManager =>
+    new PermissionManager(undefined, roleManager as unknown as RoleManager, { cacheTtlMs });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetPermissionCache();
+    roleManager = {
+      getUserRoles: vi.fn(),
+      resolveInheritedPermissions: vi.fn(),
+    };
+  });
+
+  it('caches effective permissions within TTL (one db round for two calls)', async () => {
+    manager = makeManager(60_000);
+    roleManager.getUserRoles.mockResolvedValue([role('r1')]);
+    roleManager.resolveInheritedPermissions.mockResolvedValue([permission('p1', 'users', 'read')]);
+
+    await manager.getUserEffectivePermissions('u1', 't1');
+    await manager.getUserEffectivePermissions('u1', 't1');
+
+    expect(roleManager.getUserRoles.mock.calls).toHaveLength(1);
+  });
+
+  it('expires after TTL and re-fetches', async () => {
+    vi.useFakeTimers();
+    try {
+      manager = makeManager(50);
+      roleManager.getUserRoles.mockResolvedValue([role('r1')]);
+      roleManager.resolveInheritedPermissions.mockResolvedValue([permission('p1', 'users', 'read')]);
+
+      await manager.getUserEffectivePermissions('u1', 't1');
+      vi.advanceTimersByTime(60);
+      await manager.getUserEffectivePermissions('u1', 't1');
+
+      expect(roleManager.getUserRoles.mock.calls).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('invalidatePermissionCache(tenantId, userId) forces re-fetch for that user only', async () => {
+    manager = makeManager(60_000);
+    roleManager.getUserRoles.mockResolvedValue([role('r1')]);
+    roleManager.resolveInheritedPermissions.mockResolvedValue([permission('p1', 'users', 'read')]);
+
+    await manager.getUserEffectivePermissions('u1', 't1');
+    await manager.getUserEffectivePermissions('u2', 't1');
+    manager.invalidatePermissionCache('t1', 'u1');
+    await manager.getUserEffectivePermissions('u1', 't1');
+    await manager.getUserEffectivePermissions('u2', 't1');
+
+    const u1Calls = roleManager.getUserRoles.mock.calls.filter((c) => c[0] === 'u1').length;
+    const u2Calls = roleManager.getUserRoles.mock.calls.filter((c) => c[0] === 'u2').length;
+    expect(u1Calls).toBe(2);
+    expect(u2Calls).toBe(1);
+  });
+
+  it('cross-tenant isolation: same userId different tenant does not share cache', async () => {
+    manager = makeManager(60_000);
+    roleManager.getUserRoles.mockResolvedValue([role('r1')]);
+    roleManager.resolveInheritedPermissions.mockResolvedValue([permission('p1', 'users', 'read')]);
+
+    await manager.getUserEffectivePermissions('u1', 't1');
+    await manager.getUserEffectivePermissions('u1', 't2');
+
+    expect(roleManager.getUserRoles.mock.calls).toHaveLength(2);
   });
 });
