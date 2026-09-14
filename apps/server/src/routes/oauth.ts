@@ -9,7 +9,7 @@
  * Errors redirect to /login?oauthError=<reason> — no stack traces (anti-enumeration).
  */
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import { GitHub, Google, generateState, generateCodeVerifier, type OAuth2Tokens } from 'arctic';
+import { GitHub, Google, OAuth2Client, generateState, generateCodeVerifier, CodeChallengeMethod, type OAuth2Tokens } from 'arctic';
 import { and, eq } from 'drizzle-orm';
 import { createDb, oauthAccounts, users } from '@accessbase/identity/db';
 import type { DrizzleDB } from '@accessbase/identity/db';
@@ -18,6 +18,8 @@ import { randomBytes } from 'node:crypto';
 import bcryptjs from 'bcryptjs';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { config } from '../config.js';
+import { getOptionsManager } from './options.js';
+import { logger } from '@accessbase/logging';
 
 const SUPPORTED_PROVIDERS = ['github', 'google'] as const;
 type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
@@ -31,6 +33,26 @@ interface NormalizedProfile {
   providerAccountId: string;
   email: string;
   name: string;
+}
+
+/** Valid dynamic provider name (also the options-key suffix for its secret). */
+const PROVIDER_NAME_PATTERN = /^[a-z0-9-]{1,32}$/;
+
+/** Non-sensitive fields of a dynamic provider (secret lives in its own option key, R7). */
+interface DynamicProviderConfig {
+  authUrl: string;
+  tokenUrl: string;
+  userinfoUrl: string;
+  clientId: string;
+  scope?: string;
+}
+
+/** A provider resolved for the authorize/callback flow. */
+interface ResolvedProvider {
+  kind: 'github' | 'google' | 'generic';
+  client: GitHub | Google | OAuth2Client;
+  /** Present only for kind 'generic'. */
+  genericConfig?: DynamicProviderConfig & { clientSecret: string };
 }
 
 function isSupportedProvider(p: string): p is SupportedProvider {
@@ -59,6 +81,82 @@ function providerConfigured(name: SupportedProvider): boolean {
   return creds.clientId !== '' && creds.clientSecret !== '';
 }
 
+
+/**
+ * Dynamic providers from options: `oauth_providers` holds the non-sensitive
+ * JSON (R7); each secret lives in its own `oauth_<name>_client_secret` key
+ * (matches SENSITIVE_KEY_PATTERN → masked in GET /v1/options). Malformed
+ * JSON / invalid name / missing fields skip that provider with a warn —
+ * built-ins and startup are never affected.
+ */
+async function loadDynamicProviders(): Promise<Record<string, DynamicProviderConfig & { clientSecret: string }>> {
+  const options = getOptionsManager();
+  const raw = await options.get('oauth_providers', process.env['OAUTH_PROVIDERS'], '');
+  if (raw === '') return {};
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    logger.warn('oauth: oauth_providers option is not valid JSON — dynamic providers skipped');
+    return {};
+  }
+  if (parsed === null || typeof parsed !== 'object') {
+    logger.warn('oauth: oauth_providers option is not an object — dynamic providers skipped');
+    return {};
+  }
+  const out: Record<string, DynamicProviderConfig & { clientSecret: string }> = {};
+  for (const [name, value] of Object.entries(parsed as Record<string, unknown>)) {
+    if (!PROVIDER_NAME_PATTERN.test(name)) {
+      logger.warn(`oauth: dynamic provider name '${name}' is invalid — skipped`);
+      continue;
+    }
+    const c = (value ?? {}) as Partial<DynamicProviderConfig>;
+    if (
+      typeof c.authUrl !== 'string' || c.authUrl === '' ||
+      typeof c.tokenUrl !== 'string' || c.tokenUrl === '' ||
+      typeof c.userinfoUrl !== 'string' || c.userinfoUrl === '' ||
+      typeof c.clientId !== 'string' || c.clientId === ''
+    ) {
+      logger.warn(`oauth: dynamic provider '${name}' is missing required fields — skipped`);
+      continue;
+    }
+    const clientSecret = await options.get(`oauth_${name}_client_secret`, undefined, '');
+    if (clientSecret === '') {
+      logger.warn(`oauth: dynamic provider '${name}' has no oauth_${name}_client_secret option — skipped`);
+      continue;
+    }
+    out[name] = {
+      authUrl: c.authUrl,
+      tokenUrl: c.tokenUrl,
+      userinfoUrl: c.userinfoUrl,
+      clientId: c.clientId,
+      scope: c.scope,
+      clientSecret,
+    };
+  }
+  return out;
+}
+
+/** Built-in github/google first (env creds), else dynamic options entry. */
+async function resolveProvider(name: string): Promise<ResolvedProvider | null> {
+  if (isSupportedProvider(name) && providerConfigured(name)) {
+    return { kind: name, client: getProvider(name) };
+  }
+  if (!PROVIDER_NAME_PATTERN.test(name)) return null;
+  const dynamic = await loadDynamicProviders();
+  const dyn = dynamic[name];
+  if (!dyn) return null;
+  return {
+    kind: 'generic',
+    client: new OAuth2Client(
+      dyn.clientId,
+      dyn.clientSecret,
+      `${config.oauthRedirectBase}/api/v1/auth/oauth/${name}/callback`,
+    ),
+    genericConfig: dyn,
+  };
+}
+
 function cookieOptions() {
   return {
     httpOnly: true,
@@ -69,7 +167,7 @@ function cookieOptions() {
   };
 }
 
-/** GitHub: /user (+ /user/emails when no public email). Google: userinfo endpoint. */
+/** Built-in providers keep their native profile fetch; generic uses userinfoUrl. */
 async function fetchProviderProfile(provider: SupportedProvider, accessToken: string): Promise<NormalizedProfile> {
   if (provider === 'github') {
     const res = await fetch('https://api.github.com/user', {
@@ -93,11 +191,28 @@ async function fetchProviderProfile(provider: SupportedProvider, accessToken: st
       name: profile.name ?? profile.login,
     };
   }
-  // Google
   const res = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error('google_profile_fetch_failed');
+  const profile = (await res.json()) as { sub: string; email?: string; name?: string };
+  return {
+    providerAccountId: profile.sub,
+    email: profile.email ?? '',
+    name: profile.name ?? profile.email ?? profile.sub,
+  };
+}
+
+/** Generic OIDC: userinfoUrl → { sub, email?, name? } (same shape as Google userinfo). */
+async function fetchGenericProfile(
+  provider: string,
+  userinfoUrl: string,
+  accessToken: string,
+): Promise<NormalizedProfile> {
+  const res = await fetch(userinfoUrl, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`${provider}_profile_fetch_failed`);
   const profile = (await res.json()) as { sub: string; email?: string; name?: string };
   return {
     providerAccountId: profile.sub,
@@ -146,9 +261,10 @@ export async function oauthRoutes(app: FastifyInstance) {
     return { accessToken, refreshToken };
   }
 
-  /** Find by (provider, providerAccountId) → user; else link/create by email. */
+  /** Find by (provider, providerAccountId) → user; else link/create by email.
+   * R18a: provider is any registry name (built-in or dynamic). */
   async function findOrCreateOAuthUser(
-    provider: SupportedProvider,
+    provider: string,
     profile: NormalizedProfile,
     tokens: OAuth2Tokens,
   ): Promise<{ id: string; email: string; status: string }> {
@@ -204,7 +320,7 @@ export async function oauthRoutes(app: FastifyInstance) {
 
   async function linkAccount(
     userId: string,
-    provider: SupportedProvider,
+    provider: string,
     profile: NormalizedProfile,
     tokens: OAuth2Tokens,
   ): Promise<void> {
@@ -223,36 +339,52 @@ export async function oauthRoutes(app: FastifyInstance) {
     '/oauth/:provider/authorize',
     async (request, reply) => {
       const { provider } = request.params;
-      if (!isSupportedProvider(provider)) {
-        return reply.status(400).send({
+      const resolved = await resolveProvider(provider);
+      // R17: name not in the registry (unknown / invalid charset / dynamic
+      // skipped for malformed options) → 404; known built-in without env
+      // creds → 503 (existing semantics preserved).
+      if (!resolved) {
+        if (isSupportedProvider(provider)) {
+          return reply.status(503).send({
+            success: false,
+            error: { code: 'AUTH_OAUTH_002', message: 'OAuth provider not configured' },
+          });
+        }
+        return reply.status(404).send({
           success: false,
           error: { code: 'AUTH_OAUTH_001', message: 'Unsupported OAuth provider' },
         });
       }
-      if (!providerConfigured(provider)) {
-        return reply.status(503).send({
-          success: false,
-          error: { code: 'AUTH_OAUTH_002', message: 'OAuth provider not configured' },
-        });
-      }
 
-      const arcticProvider = getProvider(provider);
       const state = generateState();
       const cookieOpts = cookieOptions();
       reply.setCookie(STATE_COOKIE, state, cookieOpts);
 
       let authorizationURL: URL;
-      if (provider === 'github') {
+      if (resolved.kind === 'github') {
         // D109: no PKCE for GitHub OAuth Apps — state-cookie CSRF protection only
-        authorizationURL = (arcticProvider as GitHub).createAuthorizationURL(state, ['user:email']);
-      } else {
+        authorizationURL = (resolved.client as GitHub).createAuthorizationURL(state, ['user:email']);
+      } else if (resolved.kind === 'google') {
         const codeVerifier = generateCodeVerifier();
         reply.setCookie(VERIFIER_COOKIE, codeVerifier, cookieOpts);
-        authorizationURL = (arcticProvider as Google).createAuthorizationURL(state, codeVerifier, [
+        authorizationURL = (resolved.client as Google).createAuthorizationURL(state, codeVerifier, [
           'openid',
           'profile',
           'email',
         ]);
+      } else {
+        // Generic OIDC: always PKCE (state + verifier cookies reused)
+        const codeVerifier = generateCodeVerifier();
+        reply.setCookie(VERIFIER_COOKIE, codeVerifier, cookieOpts);
+        const cfg = resolved.genericConfig!;
+        const scopes = cfg.scope ? cfg.scope.split(/\s+/).filter(Boolean) : ['openid'];
+        authorizationURL = (resolved.client as OAuth2Client).createAuthorizationURLWithPKCE(
+          cfg.authUrl,
+          state,
+          CodeChallengeMethod.S256,
+          codeVerifier,
+          scopes,
+        );
       }
       return reply.redirect(authorizationURL.toString());
     },
@@ -266,7 +398,8 @@ export async function oauthRoutes(app: FastifyInstance) {
       const { provider } = request.params as { provider: string };
 
       if (providerError) return oauthError(reply, providerError);
-      if (!isSupportedProvider(provider)) return oauthError(reply, 'unsupported_provider');
+      const resolved = await resolveProvider(provider);
+      if (!resolved) return oauthError(reply, 'unsupported_provider');
       if (!code || !state) return oauthError(reply, 'invalid_request');
 
       const savedState = request.cookies?.[STATE_COOKIE];
@@ -276,16 +409,22 @@ export async function oauthRoutes(app: FastifyInstance) {
       reply.clearCookie(VERIFIER_COOKIE, { path: '/' });
 
       try {
-        const arcticProvider = getProvider(provider);
+        const verifier = request.cookies?.[VERIFIER_COOKIE] ?? '';
         const tokens =
-          provider === 'github'
-            ? await (arcticProvider as GitHub).validateAuthorizationCode(code)
-            : await (arcticProvider as Google).validateAuthorizationCode(
-                code,
-                request.cookies?.[VERIFIER_COOKIE] ?? '',
-              );
+          resolved.kind === 'github'
+            ? await (resolved.client as GitHub).validateAuthorizationCode(code)
+            : resolved.kind === 'google'
+              ? await (resolved.client as Google).validateAuthorizationCode(code, verifier)
+              : await (resolved.client as OAuth2Client).validateAuthorizationCode(
+                  resolved.genericConfig!.tokenUrl,
+                  code,
+                  verifier,
+                );
 
-        const profile = await fetchProviderProfile(provider, tokens.accessToken());
+        const profile =
+          resolved.kind === 'generic'
+            ? await fetchGenericProfile(provider, resolved.genericConfig!.userinfoUrl, tokens.accessToken())
+            : await fetchProviderProfile(provider as SupportedProvider, tokens.accessToken());
         const user = await findOrCreateOAuthUser(provider, profile, tokens);
         // P0 (final review C1): a suspended/pending account must not obtain an
         // OAuth session even with a valid provider link — mirror the login

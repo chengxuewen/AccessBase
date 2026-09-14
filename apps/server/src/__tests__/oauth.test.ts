@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { IdentityService } from '@accessbase/identity';
+import type { IdentityService, OptionsManager } from '@accessbase/identity';
 
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret';
@@ -46,7 +46,54 @@ vi.mock('arctic', () => {
   }
   class GitHub extends FakeProvider {}
   class Google extends FakeProvider {}
-  return { GitHub, Google, generateState: () => 'test-state-123', generateCodeVerifier: () => 'test-verifier-456' };
+  // Generic OIDC RP stub (options-driven providers): numeric CodeChallengeMethod
+  // mirrors arctic's runtime enum (R16); methods live on the prototype so tests
+  // can vi.spyOn them.
+  class OAuth2Client {
+    constructor(
+      public clientId: string,
+      public clientPassword: string | null,
+      public redirectURI: string | null,
+    ) {}
+    createAuthorizationURLWithPKCE(
+      authorizationEndpoint: string,
+      state: string,
+      codeChallengeMethod: number,
+      codeVerifier: string,
+      scopes: string[],
+    ): URL {
+      const url = new URL(authorizationEndpoint);
+      url.searchParams.set('client_id', this.clientId);
+      url.searchParams.set('state', state);
+      url.searchParams.set('code_challenge', `s256-${codeVerifier}`);
+      url.searchParams.set('code_challenge_method', codeChallengeMethod === 0 ? 'S256' : 'plain');
+      for (const s of scopes) url.searchParams.append('scope', s);
+      return url;
+    }
+    async validateAuthorizationCode(): Promise<{
+      accessToken: () => string;
+      refreshToken: () => string;
+      idToken: () => string;
+      hasRefreshToken: () => boolean;
+      accessTokenExpiresAt: () => Date;
+    }> {
+      return {
+        accessToken: () => 'generic-access-token',
+        refreshToken: () => 'generic-refresh-token',
+        idToken: () => 'generic-id-token',
+        hasRefreshToken: () => true,
+        accessTokenExpiresAt: () => new Date(Date.now() + 3600_000),
+      };
+    }
+  }
+  return {
+    GitHub,
+    Google,
+    OAuth2Client,
+    CodeChallengeMethod: { S256: 0, Plain: 1 },
+    generateState: () => 'test-state-123',
+    generateCodeVerifier: () => 'test-verifier-456',
+  };
 });
 
 // Mock plugins that require fastify@5 but fastify@4 is installed
@@ -131,6 +178,16 @@ process.env['GITHUB_CLIENT_SECRET'] = 'test-gh-secret';
 process.env['GOOGLE_CLIENT_ID'] = 'test-gg-id';
 process.env['GOOGLE_CLIENT_SECRET'] = 'test-gg-secret';
 
+// Options seam: generic OIDC providers read config via getOptionsManager().
+// A plain object with a get() honoring env-first matches the real contract;
+// the identity mock above keeps @accessbase/identity itself off PG.
+const optionsStore = new Map<string, unknown>();
+const { setOptionsManager } = await import('../routes/options.js');
+setOptionsManager({
+  get: async (key: string, envValue: unknown, defaultValue: unknown) =>
+    envValue !== undefined ? envValue : (optionsStore.has(key) ? optionsStore.get(key) : defaultValue),
+} as unknown as OptionsManager);
+
 const { buildApp } = await import('../app.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
@@ -177,12 +234,12 @@ describe('oauth_accounts schema', () => {
 });
 
 describe('GET /api/v1/auth/oauth/:provider/authorize', () => {
-  it('returns 400 AUTH_OAUTH_001 for unsupported provider', async () => {
+  it('returns 404 AUTH_OAUTH_001 for unknown provider (R17: not in registry)', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/v1/auth/oauth/unknown-provider/authorize',
     });
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(404);
     expect(res.json().error.code).toBe('AUTH_OAUTH_001');
   });
 
@@ -220,6 +277,120 @@ describe('GET /api/v1/auth/oauth/:provider/authorize', () => {
     expect(verifierCookie).toBeDefined();
     // state cookie also set for Google
     // state cookie also set for Google
+  });
+});
+
+describe('generic OIDC providers (options-driven)', () => {
+  const dynamicConfig = {
+    'my-oidc': {
+      authUrl: 'https://idp.example.com/authorize',
+      tokenUrl: 'https://idp.example.com/token',
+      userinfoUrl: 'https://idp.example.com/userinfo',
+      clientId: 'xxx',
+      scope: 'openid profile email',
+    },
+  };
+
+  function setDynamicOptions(): void {
+    optionsStore.set('oauth_providers', JSON.stringify(dynamicConfig));
+    optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
+  }
+
+  it('authorize redirects for an options-configured provider with PKCE', async () => {
+    setDynamicOptions();
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/my-oidc/authorize' });
+      expect(res.statusCode).toBe(302);
+      const location = res.headers['location'] as string;
+      expect(location).toContain('idp.example.com/authorize');
+      expect(location).toContain('client_id=xxx');
+      expect(location).toContain('code_challenge_method=S256');
+      expect(location).toContain('code_challenge=');
+      expect(res.cookies.find((c) => c.name === 'oauth_state')).toBeDefined();
+      expect(res.cookies.find((c) => c.name === 'oauth_verifier')).toBeDefined();
+    } finally {
+      optionsStore.clear();
+    }
+  });
+
+  it('skips malformed options JSON with warn (built-ins unaffected)', async () => {
+    optionsStore.set('oauth_providers', 'not-json');
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/my-oidc/authorize' });
+      expect(res.statusCode).toBe(404);
+      expect(res.json().error.code).toBe('AUTH_OAUTH_001');
+      const gh = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/github/authorize' });
+      expect(gh.statusCode).toBe(302);
+      expect(gh.headers['location']).toContain('github.com');
+    } finally {
+      optionsStore.clear();
+    }
+  });
+
+  it('invalid provider names are rejected (404)', async () => {
+    for (const name of ['UPPER', 'has_underscore']) {
+      const res = await app.inject({ method: 'GET', url: `/api/v1/auth/oauth/${name}/authorize` });
+      expect(res.statusCode).toBe(404);
+      expect(res.json().error.code).toBe('AUTH_OAUTH_001');
+    }
+  });
+
+  it('built-in takes precedence over same-name dynamic provider', async () => {
+    optionsStore.set(
+      'oauth_providers',
+      JSON.stringify({
+        github: {
+          authUrl: 'https://evil.example.com/authorize',
+          tokenUrl: 'https://evil.example.com/token',
+          userinfoUrl: 'https://evil.example.com/userinfo',
+          clientId: 'dynamic-id',
+        },
+      }),
+    );
+    optionsStore.set('oauth_github_client_secret', 'dyn-secret');
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/github/authorize' });
+      expect(res.statusCode).toBe(302);
+      const location = res.headers['location'] as string;
+      expect(location).toContain('github.com');
+      expect(location).not.toContain('evil.example.com');
+    } finally {
+      optionsStore.clear();
+    }
+  });
+
+  it('callback happy path: PKCE token exchange + userinfo + provisioning', async () => {
+    setDynamicOptions();
+    const { OAuth2Client } = await import('arctic');
+    const validateSpy = vi.spyOn(OAuth2Client.prototype, 'validateAuthorizationCode');
+    const fetchMock = vi.fn().mockImplementation(async (url: string | URL) => {
+      if (String(url).includes('idp.example.com/userinfo')) {
+        return { ok: true, json: async () => ({ sub: 'sub-123', email: 'gen@t.local', name: 'Gen User' }) };
+      }
+      throw new Error('unexpected fetch ' + String(url));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const auth = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/my-oidc/authorize' });
+      const state = auth.cookies.find((c) => c.name === 'oauth_state')?.value ?? '';
+      const verifier = auth.cookies.find((c) => c.name === 'oauth_verifier')?.value ?? '';
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/auth/oauth/my-oidc/callback?code=gen_code&state=${state}`,
+        cookies: { oauth_state: state, oauth_verifier: verifier },
+      });
+      expect(res.statusCode).toBe(302);
+      expect(res.headers['location']).toContain('/login?oauthCode=');
+      expect(validateSpy).toHaveBeenCalledWith('https://idp.example.com/token', 'gen_code', 'test-verifier-456');
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://idp.example.com/userinfo',
+        expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer generic-access-token' }) }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+      validateSpy.mockRestore();
+      optionsStore.clear();
+    }
   });
 });
 
