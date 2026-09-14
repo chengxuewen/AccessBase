@@ -1,6 +1,17 @@
+import { useEffect, useState } from 'react';
 import { Button, Divider, Space } from 'antd';
-import { GithubOutlined, GoogleOutlined } from '@ant-design/icons';
+import { GithubOutlined, GoogleOutlined, KeyOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { listOAuthProviders } from '../api/auth';
+
+/** Backward-compat fallback when the providers endpoint is unreachable. */
+const FALLBACK_PROVIDERS = ['github', 'google'];
+
+function ProviderIcon({ provider }: { provider: string }) {
+  if (provider === 'github') return <GithubOutlined />;
+  if (provider === 'google') return <GoogleOutlined />;
+  return <KeyOutlined />;
+}
 
 interface OAuthButtonsProps {
   authorizeBase?: string;
@@ -9,6 +20,22 @@ interface OAuthButtonsProps {
 /** Provider buttons → browser navigates to backend authorize endpoint. */
 export function OAuthButtons({ authorizeBase = '/api/v1/auth/oauth' }: OAuthButtonsProps) {
   const { t } = useTranslation();
+  // Empty until the list resolves: no hardcoded names on success (R8).
+  const [providers, setProviders] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listOAuthProviders()
+      .then((list) => {
+        if (!cancelled && Array.isArray(list)) setProviders(list);
+      })
+      .catch(() => {
+        if (!cancelled) setProviders(FALLBACK_PROVIDERS);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const go = (provider: string) => {
     window.location.href = `${authorizeBase}/${provider}/authorize`;
@@ -20,12 +47,18 @@ export function OAuthButtons({ authorizeBase = '/api/v1/auth/oauth' }: OAuthButt
         {t('oauth.or')}
       </Divider>
       <Space direction="vertical" style={{ width: '100%' }}>
-        <Button block size="large" icon={<GithubOutlined />} onClick={() => go('github')} data-testid="oauth-github">
-          {t('oauth.github')}
-        </Button>
-        <Button block size="large" icon={<GoogleOutlined />} onClick={() => go('google')} data-testid="oauth-google">
-          {t('oauth.google')}
-        </Button>
+        {providers.map((provider) => (
+          <Button
+            key={provider}
+            block
+            size="large"
+            icon={<ProviderIcon provider={provider} />}
+            onClick={() => go(provider)}
+            data-testid={`oauth-${provider}`}
+          >
+            {t(`oauth.${provider}`, { defaultValue: provider.toUpperCase() })}
+          </Button>
+        ))}
       </Space>
     </>
   );

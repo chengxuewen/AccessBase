@@ -57,6 +57,15 @@ async function mockCommonApis(page: Page): Promise<void> {
     });
   });
 
+  // B2 Task 5: login page buttons come from the providers endpoint
+  await page.route('**/api/v1/auth/oauth/providers', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { providers: ['github', 'google', 'acme'] } }),
+    });
+  });
+
 }
 
 async function login(page: Page): Promise<void> {
@@ -97,6 +106,16 @@ test.describe('OAuth login flow', () => {
     await expect(page.locator('[data-testid="oauth-github"]')).toBeVisible();
     await expect(page.locator('[data-testid="oauth-google"]')).toBeVisible();
     await expect(page.locator('[data-testid="oauth-divider"]')).toBeVisible();
+  });
+
+  // B2 Task 5: buttons render EXACTLY the providers endpoint list (R8)
+  test('login page renders dynamic provider list from backend', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.locator('[data-testid="oauth-github"]')).toBeVisible();
+    await expect(page.locator('[data-testid="oauth-google"]')).toBeVisible();
+    const acme = page.locator('[data-testid="oauth-acme"]');
+    await expect(acme).toBeVisible();
+    await expect(acme).toHaveText(/Sign in with ACME|使用 ACME 登录/);
   });
 
   test('clicking GitHub navigates browser to authorize URL', async ({ page }) => {

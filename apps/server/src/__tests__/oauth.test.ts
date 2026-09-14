@@ -627,3 +627,45 @@ describe('GET /api/v1/auth/oauth/links', () => {
     expect(body.data).toEqual([{ provider: 'github', providerAccountId: '4242' }]);
   });
 });
+
+describe('GET /api/v1/auth/oauth/providers', () => {
+  it('returns only env-configured built-ins when no dynamic options (public, names only)', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/providers' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(body.data.providers).toEqual(['github', 'google']);
+  });
+
+  it('merges dynamic providers (deduped) with env-configured built-ins', async () => {
+    optionsStore.set(
+      'oauth_providers',
+      JSON.stringify({
+        'my-oidc': {
+          authUrl: 'https://idp.example.com/authorize',
+          tokenUrl: 'https://idp.example.com/token',
+          userinfoUrl: 'https://idp.example.com/userinfo',
+          clientId: 'xxx',
+        },
+        github: {
+          authUrl: 'https://x.example.com/authorize',
+          tokenUrl: 'https://x.example.com/token',
+          userinfoUrl: 'https://x.example.com/userinfo',
+          clientId: 'dup',
+        },
+      }),
+    );
+    optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
+    optionsStore.set('oauth_github_client_secret', 'zzz');
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/providers' });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.success).toBe(true);
+      // built-ins first, dynamic appended, same-name dynamic deduped
+      expect(body.data.providers).toEqual(['github', 'google', 'my-oidc']);
+    } finally {
+      optionsStore.clear();
+    }
+  });
+});

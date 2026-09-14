@@ -157,6 +157,16 @@ async function resolveProvider(name: string): Promise<ResolvedProvider | null> {
   };
 }
 
+/** Public: names of all resolvable providers (built-ins with env creds + dynamic). */
+async function listResolvedProviders(): Promise<string[]> {
+  const out: string[] = SUPPORTED_PROVIDERS.filter((name) => providerConfigured(name));
+  const dynamic = await loadDynamicProviders();
+  for (const name of Object.keys(dynamic)) {
+    if (!out.includes(name)) out.push(name);
+  }
+  return out;
+}
+
 function cookieOptions() {
   return {
     httpOnly: true,
@@ -489,6 +499,21 @@ export async function oauthRoutes(app: FastifyInstance) {
           user: payload.user,
         },
       };
+    },
+  );
+
+  // GET /api/v1/auth/oauth/providers — public, names only (no creds/URLs)
+  app.get(
+    '/oauth/providers',
+    {
+      schema: {
+        description: 'List configured OAuth provider names for the login page',
+        tags: ['auth'],
+      },
+    },
+    async () => {
+      const providers = await listResolvedProviders();
+      return { success: true, data: { providers } };
     },
   );
 

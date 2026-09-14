@@ -88,7 +88,8 @@
     "bindGithub": "Link GitHub",
     "bindGoogle": "Link Google",
     "linksLoadError": "Failed to load linked accounts",
-    "unlinkError": "Failed to unlink provider"
+    "unlinkError": "Failed to unlink provider",
+    "acme": "Sign in with ACME"
   },
   "dashboard": {
     "title": "Dashboard",

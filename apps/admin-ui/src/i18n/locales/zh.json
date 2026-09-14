@@ -88,7 +88,8 @@
     "bindGithub": "关联 GitHub",
     "bindGoogle": "关联 Google",
     "linksLoadError": "加载关联账号失败",
-    "unlinkError": "解除关联失败"
+    "unlinkError": "解除关联失败",
+    "acme": "使用 ACME 登录"
   },
   "dashboard": {
     "title": "仪表盘",

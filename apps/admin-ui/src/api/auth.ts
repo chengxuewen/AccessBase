@@ -44,6 +44,11 @@ export async function unlinkOAuthProvider(provider: string): Promise<void> {
   await client.delete(`/v1/auth/oauth/${provider}`);
 }
 
+/** Configured OAuth provider names for the login page (public endpoint) */
+export async function listOAuthProviders(): Promise<string[]> {
+  const { data } = await client.get<ApiEnvelope<{ providers: string[] }>>('/v1/auth/oauth/providers');
+  return data.data.providers;
+}
 export interface SafeSessionInfo {
   id: string;
   userAgent: string;
