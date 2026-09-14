@@ -91,16 +91,23 @@ function providerConfigured(name: SupportedProvider): boolean {
  */
 async function loadDynamicProviders(): Promise<Record<string, DynamicProviderConfig & { clientSecret: string }>> {
   const options = getOptionsManager();
-  const raw = await options.get('oauth_providers', process.env['OAUTH_PROVIDERS'], '');
-  if (raw === '') return {};
+  const raw = await options.get<unknown>('oauth_providers', process.env['OAUTH_PROVIDERS'], '');
   let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    logger.warn('oauth: oauth_providers option is not valid JSON — dynamic providers skipped');
-    return {};
+  if (typeof raw === 'string') {
+    if (raw === '') return {};
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      logger.warn('oauth: oauth_providers option is not valid JSON — dynamic providers skipped');
+      return {};
+    }
+  } else {
+    // jsonb object path: the options value column is jsonb, so the natural
+    // Settings→Options flow (UI JSON.parse → PUT object) stores an object and
+    // OptionsManager.get() returns it already parsed — never JSON.parse it again.
+    parsed = raw;
   }
-  if (parsed === null || typeof parsed !== 'object') {
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     logger.warn('oauth: oauth_providers option is not an object — dynamic providers skipped');
     return {};
   }
@@ -120,7 +127,19 @@ async function loadDynamicProviders(): Promise<Record<string, DynamicProviderCon
       logger.warn(`oauth: dynamic provider '${name}' is missing required fields — skipped`);
       continue;
     }
-    const clientSecret = await options.get(`oauth_${name}_client_secret`, undefined, '');
+    // tokenUrl carries the client secret — plaintext http transport is rejected.
+    const httpsUrl = (u: string) => u.startsWith('https://');
+    const clientSecretRaw = await options.get<unknown>(`oauth_${name}_client_secret`, undefined, '');
+    // Secret option values may arrive as a jsonb string (UI sends a quoted
+    // JSON string) or as a bare value — coerce only real strings through.
+    const clientSecret = typeof clientSecretRaw === 'string' ? clientSecretRaw : '';
+    if (
+      (c.scope !== undefined && typeof c.scope !== 'string') ||
+      !httpsUrl(c.authUrl) || !httpsUrl(c.tokenUrl) || !httpsUrl(c.userinfoUrl)
+    ) {
+      logger.warn(`oauth: dynamic provider '${name}' has invalid fields (scope must be a string, URLs must be https) — skipped`);
+      continue;
+    }
     if (clientSecret === '') {
       logger.warn(`oauth: dynamic provider '${name}' has no oauth_${name}_client_secret option — skipped`);
       continue;

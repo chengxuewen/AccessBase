@@ -327,6 +327,43 @@ describe('generic OIDC providers (options-driven)', () => {
     }
   });
 
+  it('accepts the jsonb object shape for oauth_providers (Settings→Options flow)', async () => {
+    // The options value column is jsonb: PUT /v1/options with an already-parsed
+    // object stores the object itself, so OptionsManager.get() returns it
+    // without a JSON text round-trip — the natural admin flow end-to-end.
+    optionsStore.set('oauth_providers', dynamicConfig);
+    optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/my-oidc/authorize' });
+      expect(res.statusCode).toBe(302);
+      expect(res.headers['location'] as string).toContain('idp.example.com/authorize');
+    } finally {
+      optionsStore.clear();
+    }
+  });
+
+  it('skips entries with non-string scope or non-https endpoints (warn)', async () => {
+    optionsStore.set('oauth_providers', {
+      ...dynamicConfig,
+      'num-scope': { ...dynamicConfig['my-oidc'], scope: 42 },
+      'insecure-idp': { ...dynamicConfig['my-oidc'], authUrl: 'http://idp.example.com/authorize' },
+    });
+    // secrets present for all three — the skip must come from the field checks
+    optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
+    optionsStore.set('oauth_num-scope_client_secret', 'yyy');
+    optionsStore.set('oauth_insecure-idp_client_secret', 'yyy');
+    try {
+      const good = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/my-oidc/authorize' });
+      expect(good.statusCode).toBe(302);
+      const numScope = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/num-scope/authorize' });
+      expect(numScope.statusCode).toBe(404);
+      const insecure = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/insecure-idp/authorize' });
+      expect(insecure.statusCode).toBe(404);
+    } finally {
+      optionsStore.clear();
+    }
+  });
+
   it('invalid provider names are rejected (404)', async () => {
     for (const name of ['UPPER', 'has_underscore']) {
       const res = await app.inject({ method: 'GET', url: `/api/v1/auth/oauth/${name}/authorize` });
