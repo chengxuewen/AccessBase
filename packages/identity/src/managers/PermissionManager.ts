@@ -233,5 +233,9 @@ export class PermissionManager {
         })),
       );
     }
+
+    // Role→permission mapping changed: every user holding this role is
+    // affected; cache is cross-tenant, so clear all entries.
+    invalidatePermissionCache();
   }
 }

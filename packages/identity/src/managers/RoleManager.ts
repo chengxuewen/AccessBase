@@ -13,6 +13,7 @@ import {
   type NewRole,
   type Permission as DbPermission,
 } from '../db/schema.js';
+import { invalidatePermissionCache } from './permission-cache.js';
 import { logger } from '@accessbase/logging';
 import type {
   Role,
@@ -213,6 +214,8 @@ export class RoleManager {
     }
 
     const perms = await this.getRolePermissions(id);
+    // update() may replace permissionIds → tenant-wide effect; always invalidate.
+    invalidatePermissionCache(tenantId);
     return this.mapToRole(updated, perms);
   }
 
@@ -252,6 +255,7 @@ export class RoleManager {
 
     // Delete role (cascade will handle role_permissions)
     await this.db.delete(roles).where(and(eq(roles.id, id), eq(roles.tenantId, tenantId)));
+    invalidatePermissionCache(tenantId);
   }
 
   /**
@@ -300,6 +304,7 @@ export class RoleManager {
     }
 
     const perms = await this.getRolePermissions(roleId);
+    invalidatePermissionCache(tenantId);
     return this.mapToRole(updated, perms);
   }
 
@@ -355,6 +360,7 @@ export class RoleManager {
       roleId,
       tenantId,
     });
+    invalidatePermissionCache(tenantId, userId);
   }
 
   /**
@@ -372,6 +378,7 @@ export class RoleManager {
           eq(userRoles.tenantId, tenantId),
         ),
       );
+    invalidatePermissionCache(tenantId, userId);
   }
 
   /**
@@ -391,6 +398,7 @@ export class RoleManager {
         roleIds.map((roleId) => ({ userId, roleId, tenantId })),
       );
     }
+    invalidatePermissionCache(tenantId, userId);
   }
 
   /**

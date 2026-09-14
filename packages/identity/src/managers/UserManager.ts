@@ -4,6 +4,7 @@
 import { eq, and, like, sql, count, desc, notInArray } from 'drizzle-orm';
 import { createDb, type DrizzleDB } from '../db/index.js';
 import { users, passwordHistory, type User as DbUser, type NewUser } from '../db/schema.js';
+import { invalidatePermissionCache } from './permission-cache.js';
 import { logger } from '@accessbase/logging';
 import type {
   User,
@@ -180,6 +181,7 @@ export class UserManager {
       throw new Error('User not found');
     }
 
+    invalidatePermissionCache(tenantId, id);
     return this.mapToUser(updated);
   }
 
