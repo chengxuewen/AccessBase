@@ -33,6 +33,11 @@ export default function Users() {
       title: t('users.status'),
       dataIndex: 'isActive',
       search: false,
+      filters: [
+        { text: t('users.statusActive'), value: 'active' },
+        { text: t('users.statusSuspended'), value: 'suspended' },
+      ],
+      onFilter: (value, record) => (value === 'active' ? record.isActive : !record.isActive),
       render: (_, record) => (
         <Tag color={record.isActive ? 'green' : 'red'}>
           {record.isActive ? t('users.statusActive') : t('users.statusSuspended')}

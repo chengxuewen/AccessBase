@@ -12,6 +12,7 @@
     "error": "Error",
     "retry": "Retry",
     "language": "Language",
+    "theme": "Toggle dark mode",
     "connecting": "Connecting to server…",
     "errorTitle": "Error"
   },

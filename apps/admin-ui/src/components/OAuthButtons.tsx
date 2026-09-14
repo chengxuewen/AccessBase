@@ -20,8 +20,9 @@ interface OAuthButtonsProps {
 /** Provider buttons → browser navigates to backend authorize endpoint. */
 export function OAuthButtons({ authorizeBase = '/api/v1/auth/oauth' }: OAuthButtonsProps) {
   const { t } = useTranslation();
-  // Empty until the list resolves: no hardcoded names on success (R8).
-  const [providers, setProviders] = useState<string[]>([]);
+  // F1: seed with built-ins so loading shows buttons instead of an empty flash (R8: any
+  // names the backend returns overwrite this list on success).
+  const [providers, setProviders] = useState<string[]>(FALLBACK_PROVIDERS);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +42,8 @@ export function OAuthButtons({ authorizeBase = '/api/v1/auth/oauth' }: OAuthButt
     window.location.href = `${authorizeBase}/${provider}/authorize`;
   };
 
+  // F2: empty resolved list → no dangling "or" divider above nothing
+  if (providers.length === 0) return null;
   return (
     <>
       <Divider plain data-testid="oauth-divider">

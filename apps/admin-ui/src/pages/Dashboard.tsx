@@ -11,6 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import i18n from '../i18n';
+import EmptyState from '../components/EmptyState';
 
 interface RecentActivityItem {
   id: string;
@@ -106,7 +107,7 @@ export default function Dashboard() {
               <List
                 data-testid="recent-activity"
                 dataSource={stats?.recentActivity ?? []}
-                locale={{ emptyText: t('dashboard.noActivity') }}
+                locale={{ emptyText: <EmptyState variant="no-data" /> }}
                 renderItem={(item) => (
                   <List.Item>
                     <List.Item.Meta

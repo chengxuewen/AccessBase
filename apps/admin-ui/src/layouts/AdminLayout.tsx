@@ -12,15 +12,21 @@ import {
   FileSearchOutlined,
   SolutionOutlined,
   ApiOutlined,
+  MoonOutlined,
+  SunOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Dropdown, Typography } from 'antd';
 import { useAuthStore } from '../stores/auth';
+import { useUiStore } from '../stores/ui';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { loadSiteSettings, SITE_SETTINGS_EVENT } from '../siteSettings';
 
 
 export default function AdminLayout() {
   const { t, i18n } = useTranslation();
+  const { theme, setTheme } = useUiStore();
+  // auto resolves to light/dark; toggling from auto lands on the opposite side
+  const resolvedTheme = theme === 'auto' ? 'light' : theme;
   // C7 fix: ProLayout renders route `name` verbatim — labels must go through i18next
   // (raw keys like "menu.dashboard" used to show in the sidebar; confirmed in real-browser snapshot).
   // Permission codes gate menu entries; profile/settings are always visible.
@@ -128,6 +134,16 @@ export default function AdminLayout() {
         ),
       }}
       actionsRender={() => [
+        <Button
+          type="text"
+          size="small"
+          key="theme"
+          data-testid="theme-toggle"
+          icon={resolvedTheme === 'dark' ? <SunOutlined /> : <MoonOutlined />}
+          title={t('common.theme')}
+          aria-label={t('common.theme')}
+          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+        />,
         <Button type="text" size="small" icon={<GlobalOutlined />} key="lang" data-testid="lang-toggle" onClick={toggleLanguage} title={t('common.language')} aria-label={t('common.language')}>
           {i18n.language === 'zh' ? '中文' : 'EN'}
         </Button>,
