@@ -83,3 +83,38 @@ export async function changeUserStatus(
 export async function deleteUser(id: string): Promise<void> {
   await client.delete(`/v1/users/${id}`);
 }
+
+/** Import report — dry-run or commit result (matches POST /v1/users/import). */
+export interface ImportReport {
+  valid?: number;
+  created?: number;
+  errors: Array<{ row: number; field: string; message: string }>;
+}
+
+/** Two-phase import: omit commit for dry-run report. */
+export async function importUsers(
+  rows: Array<{ email: string; name: string; password: string }>,
+  commit = false,
+): Promise<ImportReport> {
+  const { data } = await client.post<ApiEnvelope<ImportReport>>('/v1/users/import', {
+    rows,
+    ...(commit ? { commit: true } : {}),
+  });
+  return data.data;
+}
+
+/** Force logout — revoke every session of the user. */
+export async function forceLogoutUser(id: string): Promise<void> {
+  await client.post(`/v1/users/${id}/force-logout`);
+}
+
+/** Export users CSV — resolves with a Blob for browser download. */
+export async function exportUsersCsv(): Promise<void> {
+  const res = await client.get('/v1/users/export', { responseType: 'blob' });
+  const url = URL.createObjectURL(res.data as Blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}

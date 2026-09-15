@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, Popconfirm, Tag } from 'antd';
-import { PlusOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
-import { listUsers, deleteUser, type User } from '../api/users';
+import { PlusOutlined, DeleteOutlined, ReloadOutlined, ImportOutlined, ExportOutlined, LogoutOutlined } from '@ant-design/icons';
+import { listUsers, deleteUser, forceLogoutUser, exportUsersCsv, type User } from '../api/users';
+import ImportUsersModal from './users/ImportUsersModal';
 import EmptyState from '../components/EmptyState';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
@@ -15,6 +16,7 @@ export default function Users() {
   const navigate = useNavigate();
   const actionRef = useRef<ActionType>(null);
   const [loadError, setLoadError] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const columns: ProColumns<User>[] = [
     {
@@ -59,6 +61,24 @@ export default function Users() {
         <Button type="link" size="small" key="edit" onClick={() => navigate(`/users/${record.id}/edit`)}>
           {t('common.edit')}
         </Button>,
+        <Popconfirm
+          key="force-logout"
+          title={t('users.forceLogoutConfirm')}
+          onConfirm={async () => {
+            try {
+              await forceLogoutUser(record.id);
+              message.success(t('users.forceLogoutSuccess'));
+            } catch (err) {
+              message.error(apiErrorMessage(err, t('users.forceLogoutError')));
+            }
+          }}
+          okText={t('common.confirm')}
+          cancelText={t('common.cancel')}
+        >
+          <Button type="link" size="small">
+            <LogoutOutlined /> {t('users.forceLogout')}
+          </Button>
+        </Popconfirm>,
         <Popconfirm
           key="delete"
           title={t('users.deleteConfirm')}
@@ -136,6 +156,22 @@ export default function Users() {
         locale={{ emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} /> }}
         toolBarRender={() => [
           <Button
+            key="import"
+            icon={<ImportOutlined />}
+            onClick={() => setImportOpen(true)}
+            data-testid="users-import"
+          >
+            {t('users.import')}
+          </Button>,
+          <Button
+            key="export"
+            icon={<ExportOutlined />}
+            onClick={() => void exportUsersCsv()}
+            data-testid="users-export"
+          >
+            {t('users.export')}
+          </Button>,
+          <Button
             key="create"
             type="primary"
             icon={<PlusOutlined />}
@@ -144,6 +180,13 @@ export default function Users() {
             {t('users.create')}
           </Button>,
         ]}
+      />
+      <ImportUsersModal
+        open={importOpen}
+        onClose={(changed) => {
+          setImportOpen(false);
+          if (changed) actionRef.current?.reload();
+        }}
       />
     </>
   );

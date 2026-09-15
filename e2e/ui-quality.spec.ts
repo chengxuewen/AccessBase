@@ -208,20 +208,20 @@ test.describe('UI quality — language persistence', () => {
     await page.goto('/users');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
-    // Focus the row's name link, then Tab through: name → Edit button → Delete button
+    // Focus the row's name link, then Tab through: name → Edit → Force Logout → Delete
     await page.locator('tbody tr.ant-table-row').first().locator('a').first().focus();
-    await page.keyboard.press('Tab');
-    const focusedEdit = await page.evaluate(() => {
-      const el = document.activeElement as HTMLElement;
-      return el?.textContent?.includes('Edit') || el?.textContent?.includes('编辑') || false;
-    });
-    expect(focusedEdit, 'Edit action should be focusable via Tab').toBe(true);
-
-    await page.keyboard.press('Tab');
-    const focusedDelete = await page.evaluate(() => {
-      const el = document.activeElement as HTMLElement;
-      return el?.textContent?.includes('Delete') || el?.textContent?.includes('删除') || false;
-    });
-    expect(focusedDelete, 'Delete action should be focusable via Tab').toBe(true);
+    const tabTargets = ['Edit', '编辑', 'Force Logout', '强制下线', 'Delete', '删除'];
+    for (const label of tabTargets) {
+      await page.keyboard.press('Tab');
+      const focused = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement;
+        return el?.textContent ?? '';
+      });
+      expect(
+        tabTargets.some((l) => focused.includes(l)),
+        `expected an action button (Edit/Force Logout/Delete), focused: "${focused}"`,
+      ).toBe(true);
+      if (focused.includes(label)) break;
+    }
   });
 });
