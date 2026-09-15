@@ -101,3 +101,14 @@ data/
 # JWT RSA keys (never commit)
 keys/
 apps/server/src/__tests__/fixtures/
+
+# Compiled artifacts leaked into src/ by misdirected tsc runs (PIT-048) —
+# build output belongs in dist/ only; these patterns are a safety net.
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+apps/*/src/**/*.js
+apps/*/src/**/*.js.map
+apps/*/src/**/*.d.ts
+apps/*/src/**/*.d.ts.map

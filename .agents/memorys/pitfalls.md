@@ -351,3 +351,10 @@
   3. 中断后**绝不重派**：用 `task(task_id="ses_...")` 续接（子代理上下文完整保留），工作树里的未提交改动就是断点
   4. 续接被 gate 挡（"promptAsync skipped by gate: active"）→ sleep 轮询等子代理自然结束，别硬注入
 - **验证**: 派发长任务前检查 run_in_background 参数；中断后 git status 即断点还原现场。
+
+## PIT-048: 无 -p 的 tsc 在错误 cwd 编译，产物散落 src/ 险些入 git (2026-09-12)
+
+- **症状**: packages/identity/src、apps/server/src、packages/migration 下出现 .js/.js.map/.d.ts.map 编译产物（untracked）；根因是执行者在错误目录跑 `npx tsc`（无 -p 指向正确 tsconfig，outDir 失效或被覆盖）。
+- **根因**: apps/server/tsconfig 有 outDir:./dist 但无 include 限定；cwd 错位时 tsc 以当前目录为根把 src/**/*.ts 编到源码旁。declarationMap+sourceMap 加剧产物数量。
+- **解法**: ① .gitignore 加 src 下编译产物兜底模式（packages/*/src/**、apps/*/src/** 的 js/map/d.ts/d.ts.map）；② 产物一律 rm；③ 铁律：identity build 只经 `pnpm --filter @accessbase/identity build`，不裸跑 tsc。
+- **验证**: `git ls-files | grep -c '\.map$'` 应为 0；`find packages apps -path '*src*' -name '*.js.map' | grep -v node_modules` 应为空。

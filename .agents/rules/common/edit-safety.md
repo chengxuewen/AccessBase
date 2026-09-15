@@ -147,3 +147,5 @@ curl -sf http://localhost:5173 && echo "Frontend OK" || echo "Frontend DOWN"
 - **NEVER dispatch long subagent tasks synchronously** (`run_in_background=false` + expected >15min): the silent blocking window kills remote terminal sessions (PIT-047). Use `run_in_background=true` + `<system-reminder>` collection, or split the task into <15min legs.
 - **Interrupted dispatch = resume, never redispatch**: recover via `task(task_id="ses_...")` with a resume prompt; the working tree holds the breakpoint (`git status` is the resume map).
 - **Continuation gated ("skipped by gate: active")**: the child session is still mid-turn — wait with bounded sleep loops; do not force-inject.
+
+- **NEVER run bare `npx tsc` inside package dirs** (PIT-048): misdirected outDir scatters .js/.map into src/. Use `pnpm --filter @accessbase/identity build` for identity; `pixi run npx tsc --noEmit` for checks only (--noEmit never writes).
