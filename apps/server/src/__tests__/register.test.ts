@@ -52,6 +52,13 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       revokeSession: vi.fn(),
       revokeAllUserSessions: vi.fn(),
     })),
+    // OptionsManager mock: C2 policy read must not dial the fake PG;
+    // get honors the env-first contract (password.test precedent).
+    OptionsManager: vi.fn().mockImplementation(() => ({
+      get: vi.fn(async (_key: string, envValue: unknown, defaultValue: unknown) =>
+        envValue !== undefined ? envValue : defaultValue,
+      ),
+    })),
   };
 });
 

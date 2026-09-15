@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { z } from 'zod';
-import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer } from '@accessbase/identity';
+import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
@@ -241,17 +240,17 @@ export async function authRoutes(app: FastifyInstance) {
         });
       }
 
-      const policyOk =
-        password.length >= 8 &&
-        /[a-z]/.test(password) &&
-        /[A-Z]/.test(password) &&
-        /[0-9]/.test(password);
-      if (!policyOk) {
+      // Policy is options-driven (C2); defaults reproduce the hardcoded
+      // 8/lower/upper/digit rule exactly when nothing is configured.
+      const om = getOptionsManager();
+      const policy = await readPasswordPolicy(om.get.bind(om), 'register');
+      const result = assertPasswordPolicy(password, policy, 'AUTH_REG_002');
+      if (!result.ok) {
         return reply.status(400).send({
           success: false,
           error: {
             code: 'AUTH_REG_002',
-            message: 'Password needs 8+ chars with lower, upper and digit',
+            message: result.message,
           },
         });
       }
@@ -492,18 +491,11 @@ return { success: true };
 
   // ---- Password management (Phase 6b Task 4) ----
 
-  // AUDIT FIX security.md 19.12: min 12 + upper + lower + digit + special
-  const newPasswordSchema = z
-    .string()
-    .min(12)
-    .regex(/[A-Z]/, 'must contain an uppercase letter')
-    .regex(/[a-z]/, 'must contain a lowercase letter')
-    .regex(/\d/, 'must contain a digit')
-    .regex(/[^A-Za-z0-9]/, 'must contain a special character');
-
-  function zodErrorMessage(err: z.ZodError): string {
-    const issue = err.issues[0];
-    return issue ? `${issue.path.join('.') || 'newPassword'}: ${issue.message}` : 'Invalid input';
+  // AUDIT FIX security.md 19.12 baseline (min 12 + 4 classes) is now the
+  // 'password-change' callsite default of the options-driven policy (C2);
+  // failures keep the 400 VALIDATION_001 + 'newPassword: ...' contract.
+  function policyErrorMessage(message: string): string {
+    return `newPassword: ${message.charAt(0).toLowerCase()}${message.slice(1)}`;
   }
 
   // POST /api/v1/auth/change-password
@@ -519,11 +511,13 @@ return { success: true };
     },
     async (request, reply) => {
       const payload = request.user as { sub: string };
-      const parsed = newPasswordSchema.safeParse(request.body.newPassword);
-      if (!parsed.success) {
+      const om = getOptionsManager();
+      const policy = await readPasswordPolicy(om.get.bind(om), 'password-change');
+      const result = assertPasswordPolicy(request.body.newPassword, policy);
+      if (!result.ok) {
         return reply.status(400).send({
           success: false,
-          error: { code: 'VALIDATION_001', message: zodErrorMessage(parsed.error) },
+          error: { code: 'VALIDATION_001', message: policyErrorMessage(result.message) },
         });
       }
       try {
@@ -621,11 +615,13 @@ return { success: true };
       },
     },
     async (request, reply) => {
-      const parsed = newPasswordSchema.safeParse(request.body.newPassword);
-      if (!parsed.success) {
+      const om = getOptionsManager();
+      const policy = await readPasswordPolicy(om.get.bind(om), 'password-change');
+      const result = assertPasswordPolicy(request.body.newPassword, policy);
+      if (!result.ok) {
         return reply.status(400).send({
           success: false,
-          error: { code: 'VALIDATION_001', message: zodErrorMessage(parsed.error) },
+          error: { code: 'VALIDATION_001', message: policyErrorMessage(result.message) },
         });
       }
       const payload = await flowTokens.consume<{ userId: string }>(request.body.token, 'password_reset');
