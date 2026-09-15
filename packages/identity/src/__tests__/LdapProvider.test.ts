@@ -15,7 +15,6 @@ vi.mock('ldapts', () => ({
   Client: vi.fn(() => mockClientInstance),
 }));
 
-import { Client } from 'ldapts';
 import { escapeLdapFilter, LdapProvider } from '../providers/LdapProvider.js';
 import type { LdapConfig } from '../types.js';
 

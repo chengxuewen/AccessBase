@@ -44,7 +44,10 @@ export class LdapProvider implements AuthProvider {
   }
 
   /**
-   * Map raw LDAP attributes to a User-shaped record via attributeMapping.
+   * Map raw LDAP entry to identity claims carried in the AuthResult user
+   * field. The LDAP protocol layer cannot produce a full User row (no id,
+   * tenantId, tokenVersion - R5 forbids tenant knowledge here); the route
+   * layer (Task 3) completes find-or-provision and issues the real row.
    */
   /**
    * Map raw LDAP entry to identity claims carried in the AuthResult user
@@ -111,7 +114,7 @@ export class LdapProvider implements AuthProvider {
     if (!entry) {
       return this.errorResult('AUTH_064', 'User not found in LDAP directory');
     }
-    const dn = typeof entry.dn === 'string' ? entry.dn : '';
+    const dn = typeof entry['dn'] === 'string' ? entry['dn'] : '';
     if (!dn) {
       return this.errorResult('AUTH_064', 'LDAP entry has no DN');
     }
@@ -186,10 +189,10 @@ export class LdapProvider implements AuthProvider {
     const out: Record<string, unknown> = {};
     const mail = ldapAttributes[this.config.attributeMapping.mail];
     const cn = ldapAttributes[this.config.attributeMapping.cn];
-    if (typeof mail === 'string') out.email = mail;
-    if (typeof cn === 'string') out.name = cn;
-    if (typeof ldapAttributes.displayName === 'string' && !('name' in out)) {
-      out.name = ldapAttributes.displayName;
+    if (typeof mail === 'string') out['email'] = mail;
+    if (typeof cn === 'string') out['name'] = cn;
+    if (typeof ldapAttributes['displayName'] === 'string' && !('name' in out)) {
+      out['name'] = ldapAttributes['displayName'];
     }
     return out;
   }
@@ -200,10 +203,10 @@ export class LdapProvider implements AuthProvider {
    * does find-or-provision.
    */
   async autoProvision(ldapAttributes: Record<string, unknown>): Promise<Record<string, unknown>> {
-    logger.info({ email: ldapAttributes.mail }, 'Auto-provisioning user from LDAP');
+    logger.info({ email: ldapAttributes['mail'] }, 'Auto-provisioning user from LDAP');
 
     const email = ldapAttributes[this.config.attributeMapping.mail];
-    const name = ldapAttributes.displayName ?? ldapAttributes[this.config.attributeMapping.cn];
+    const name = ldapAttributes['displayName'] ?? ldapAttributes[this.config.attributeMapping.cn];
 
     return {
       email: typeof email === 'string' ? email : '',
