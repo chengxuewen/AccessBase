@@ -100,21 +100,23 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
   await app.register(fastifyCookie);
 
-
-  await app.register(fastifyJwt, config.jwtPrivateKeyPath && config.jwtPublicKeyPath
-    ? await (async () => {
-        const { readFileSync } = await import('node:fs');
-        const privateKey = readFileSync(resolve(config.jwtPrivateKeyPath), 'utf-8');
-        const publicKey = readFileSync(resolve(config.jwtPublicKeyPath), 'utf-8');
-        return {
-          secret: { public: publicKey, private: privateKey },
-          sign: { algorithm: 'RS256' as const, expiresIn: '15m' },
-        };
-      })()
-    : {
-        secret: config.jwtSecret,
-        sign: { expiresIn: '15m' },
-      });
+  await app.register(
+    fastifyJwt,
+    config.jwtPrivateKeyPath && config.jwtPublicKeyPath
+      ? await (async () => {
+          const { readFileSync } = await import('node:fs');
+          const privateKey = readFileSync(resolve(config.jwtPrivateKeyPath), 'utf-8');
+          const publicKey = readFileSync(resolve(config.jwtPublicKeyPath), 'utf-8');
+          return {
+            secret: { public: publicKey, private: privateKey },
+            sign: { algorithm: 'RS256' as const, expiresIn: '15m' },
+          };
+        })()
+      : {
+          secret: config.jwtSecret,
+          sign: { expiresIn: '15m' },
+        },
+  );
 
   // --- Auth decorator ---
 
@@ -122,7 +124,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
     // API-key dual-read: ab_-prefixed bearer tokens are API keys, not JWTs —
     // route them to a sha256 lookup before jwtVerify rejects the format.
     const authHeader = request.headers.authorization;
-    const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : undefined;
+    const bearer = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice('Bearer '.length)
+      : undefined;
     if (bearer?.startsWith('ab_')) {
       const key = await getApiKeyManager().findByHash(hashApiKey(bearer));
       if (!key || key.revokedAt !== null || ApiKeyManager.isExpired(key.expiresAt)) {
@@ -140,8 +144,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
       };
       return;
     }
-try {
-await request.jwtVerify();
+    try {
+      await request.jwtVerify();
     } catch {
       reply.status(401).send({
         success: false,
@@ -167,7 +171,10 @@ await request.jwtVerify();
     const payload: Record<string, unknown> = {
       success: false,
       error: {
-        code: error.code === 'FST_ERR_VALIDATION' ? 'VALIDATION_001' : (error.code ?? `HTTP_${statusCode}`),
+        code:
+          error.code === 'FST_ERR_VALIDATION'
+            ? 'VALIDATION_001'
+            : (error.code ?? `HTTP_${statusCode}`),
         message: statusCode >= 500 ? 'Internal server error' : error.message,
       },
       timestamp: new Date().toISOString(),
@@ -178,7 +185,6 @@ await request.jwtVerify();
     else request.log.error({ err: error }, 'Internal error');
     return reply.status(statusCode).send(payload);
   });
-  
 
   // --- OIDC provider (mounted at /oidc, unauthenticated protocol endpoints) ---
   // B1/B2: Fastify parses bodies BEFORE handlers and provider.callback() is a
@@ -197,20 +203,20 @@ await request.jwtVerify();
     adapterCtorArgs: [createDb(config.databaseUrl)],
     frontendOrigin: config.frontendOrigin,
   });
-app.addHook('onRequest', (req, reply, done) => {
-// Interaction contract endpoints (Task 4c) are real Fastify routes — they
-// need body parsing + bearer auth, so they bypass the provider hijack.
-if (req.url.startsWith('/oidc/interaction/')) return done();
-if (!req.url.startsWith('/oidc/')) return done();
-reply.hijack();
-// Provider routes are registered WITHOUT the /oidc prefix (issuer path =
-// mountPath); per panva's official mount docs, strip the prefix and keep
-// originalUrl so urlFor recomposes absolute URLs with the prefix.
-const raw = req.raw as IncomingMessage & { originalUrl?: string };
-raw.originalUrl = raw.url;
-raw.url = (raw.url ?? '').slice('/oidc'.length);
-oidcHandler(raw, reply.raw).then(() => done(), done);
-});
+  app.addHook('onRequest', (req, reply, done) => {
+    // Interaction contract endpoints (Task 4c) are real Fastify routes — they
+    // need body parsing + bearer auth, so they bypass the provider hijack.
+    if (req.url.startsWith('/oidc/interaction/')) return done();
+    if (!req.url.startsWith('/oidc/')) return done();
+    reply.hijack();
+    // Provider routes are registered WITHOUT the /oidc prefix (issuer path =
+    // mountPath); per panva's official mount docs, strip the prefix and keep
+    // originalUrl so urlFor recomposes absolute URLs with the prefix.
+    const raw = req.raw as IncomingMessage & { originalUrl?: string };
+    raw.originalUrl = raw.url;
+    raw.url = (raw.url ?? '').slice('/oidc'.length);
+    oidcHandler(raw, reply.raw).then(() => done(), done);
+  });
 
   // --- Setup Guard Middleware (must be registered before other routes) ---
   app.addHook('onRequest', setupGuard);
@@ -256,7 +262,13 @@ oidcHandler(raw, reply.raw).then(() => done(), done);
     app.addHook('onResponse', async (request, reply) => {
       const url = request.url.split('?')[0] ?? '';
       if (request.method === 'GET' || request.method === 'HEAD') return;
-      if (url.startsWith('/health') || url.startsWith('/metrics') || url.startsWith('/api/v1/setup') || url.startsWith('/api/v1/options')) return;
+      if (
+        url.startsWith('/health') ||
+        url.startsWith('/metrics') ||
+        url.startsWith('/api/v1/setup') ||
+        url.startsWith('/api/v1/options')
+      )
+        return;
       await auditHook(request, reply);
     });
   }
@@ -281,15 +293,13 @@ oidcHandler(raw, reply.raw).then(() => done(), done);
   await app.register(registerInteractionRoutes, {
     prefix: '/oidc',
     provider: oidcProvider,
-    clientNameLookup: async (clientId) =>
-      (await oidcClientManager.get(clientId))?.name,
+    clientNameLookup: async (clientId) => (await oidcClientManager.get(clientId))?.name,
   });
   // --- L0 package registration (when packages are implemented) ---
   // await app.register(identityPlugin)
   // await app.register(auditPlugin)
   // await app.register(healthCheckPlugin)
   // await app.register(i18nPlugin)
-
 
   // --- Static file serving (deploy mode) ---
   if (existsSync(resolve(config.staticDir))) {
