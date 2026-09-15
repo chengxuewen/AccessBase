@@ -140,6 +140,19 @@ describe('authenticate dual-read (ab_ prefix → ApiKeyManager)', () => {
     expect(hasPermission).not.toHaveBeenCalled();
   });
 
+  it('valid ab_ key POST /api/v1/auth/api-keys → 403 PERM_002 (keys cannot manage keys)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/api-keys',
+      headers: KEY_AUTH(VALID_KEY),
+      payload: { name: 'proliferation-attempt' },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('PERM_002');
+    expect(res.json().error.message).toBe('API keys cannot manage API keys');
+  });
+
   it('revoked ab_ key → 401 AUTH_001', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/users', headers: KEY_AUTH(REVOKED_KEY) });
 

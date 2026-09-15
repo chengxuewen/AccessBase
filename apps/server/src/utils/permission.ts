@@ -36,7 +36,18 @@ export function requirePermission() {
     // (deadlock). Scope engine is a spec non-goal for now.
     const payload = request.user as TokenPayload & { type?: string; scopes?: string[] };
     if (payload.type === 'apikey') {
-      return;
+      // v1: scopes are ['*'] only (scope engine deferred — spec non-goal).
+      // Carve-out: keys may not manage keys (self-proliferation would defeat
+      // revocation-as-remediation). Management requires an interactive JWT.
+      if (required.startsWith('apikeys:')) {
+        request.log.warn({ userId: payload.sub, required }, 'API key denied on key-management route');
+        await reply.status(403).send({
+          success: false,
+          error: { code: 'PERM_002', message: 'API keys cannot manage API keys' },
+        });
+        return;
+      }
+      return; // allow on data-plane routes
     }
     const user = request.user as TokenPayload;
     const ok = await getPermissionManager().hasPermission(
