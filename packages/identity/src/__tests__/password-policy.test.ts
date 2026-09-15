@@ -175,4 +175,20 @@ describe('readPasswordPolicy — jsonb-typed seams (R12/PIT-045)', () => {
     );
     expect(policy.minLength).toBe(8);
   });
+
+  it('env "TRUE" (uppercase) is now honored — asBool hardened case-insensitively', async () => {
+    const policy = await readPasswordPolicy(
+      optsFrom({ password_require_special: 'TRUE' }).get,
+      'register',
+    );
+    expect(policy.requireSpecial).toBe(true); // previously silently fell back to default
+  });
+
+  it('"True" (mixed case) still enables the dimension', async () => {
+    const policy = await readPasswordPolicy(
+      optsFrom({ password_require_special: 'True' }).get,
+      'register',
+    );
+    expect(policy.requireSpecial).toBe(true);
+  });
 });

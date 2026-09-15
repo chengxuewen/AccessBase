@@ -40,7 +40,7 @@ const DEFAULTS: Record<PasswordPolicyCallsite, PasswordPolicy> = {
 /** Coerce an env-string-or-jsonb option into a boolean, defensively. */
 function asBool(v: unknown, fallback: boolean): boolean {
   if (v === undefined || v === null) return fallback;
-  if (typeof v === 'string') return v === 'true';
+  if (typeof v === 'string') return v.toLowerCase() === 'true';
   return v === true;
 }
 

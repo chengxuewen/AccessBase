@@ -44,6 +44,10 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       update: vi.fn(),
       delete: vi.fn(),
     })),
+    // Audit routes now carry the requirePermission gate (Task 5 R7) — default allow.
+    PermissionManager: vi.fn().mockImplementation(() => ({
+      hasPermission: vi.fn().mockResolvedValue(true),
+    })),
   };
 });
 

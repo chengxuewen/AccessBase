@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { UserManager, RoleManager, SessionManager } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { requirePermission } from '../utils/permission.js';
+import { toCsv } from '../utils/csv.js';
 
 
 /**
@@ -68,6 +69,60 @@ export async function userRoutes(app: FastifyInstance) {
         DEFAULT_TENANT,
       );
       return { success: true, data: result.data, total: result.total };
+    },
+  );
+
+  // GET /api/v1/users/export — full CSV download.
+  // NOTE: rides the existing GET:/api/v1/users mapping (prefix truncation →
+  // users:read); no new authorize.ts key (addendum #4 drift guard). Registered
+  // before the /:id route so 'export' is not swallowed as an id.
+  app.get(
+    '/export',
+    {
+      schema: {
+        description: 'Export users as CSV',
+        tags: ['users'],
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    async (request, reply) => {
+      // OFFSET pages of 500 until an empty/short batch; 50k safety cap.
+      // ponytail: 50k-row cap — raise if real exports hit it
+      const PAGE = 500;
+      const MAX_ROWS = 50_000;
+      const headers = [
+        'id',
+        'email',
+        'name',
+        'status',
+        'isActive',
+        'totpEnabled',
+        'tenantId',
+        'roles',
+        'createdAt',
+        'updatedAt',
+      ];
+      const csvRows: Record<string, unknown>[] = [];
+      for (let page = 1; csvRows.length < MAX_ROWS; page++) {
+        const result = await userManager.findAll({ page, pageSize: PAGE }, DEFAULT_TENANT);
+        if (result.data.length === 0) break;
+        for (const user of result.data) {
+          if (csvRows.length >= MAX_ROWS) break;
+          const roles = await roleManager.getUserRoles(user.id, DEFAULT_TENANT);
+          csvRows.push({
+            ...user,
+            roles: roles.map((r) => r.name).join(','),
+            createdAt: user.createdAt.toISOString(),
+            updatedAt: user.updatedAt.toISOString(),
+          });
+        }
+        if (result.data.length < PAGE) break;
+      }
+
+      const csv = toCsv(headers, csvRows);
+      reply.header('Content-Type', 'text/csv; charset=utf-8');
+      reply.header('Content-Disposition', `attachment; filename="users-${new Date().toISOString().slice(0, 10)}.csv"`);
+      return reply.send(csv);
     },
   );
 
