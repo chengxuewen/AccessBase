@@ -170,9 +170,26 @@ export const useAuthStore = create<AuthState>()(
       },
 
       exchangeOAuthCode: async (code: string) => {
-        const { data } = await client.post<ApiEnvelope<{ accessToken: string; refreshToken: string; user: User | null }>>('/v1/auth/oauth/exchange', { code });
+        const { data } = await client.post<ApiEnvelope<{
+          mfaRequired?: boolean;
+          flowToken?: string;
+          accessToken?: string;
+          refreshToken?: string;
+          user?: User | null;
+        }>>('/v1/auth/oauth/exchange', { code });
         if (!data.success) throw new Error(data.error?.message ?? 'OAuth exchange failed');
-        const { accessToken, refreshToken, user } = data.data;
+        const payload = data.data;
+        // MFA step-up (Batch E): totp users get a flow token, not a session —
+        // hold it so Login.tsx renders the TOTP step; verifyMfa takes over next.
+        if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
+          set({ mfaFlowToken: payload.flowToken, isAuthenticated: false });
+          return;
+        }
+        const { accessToken, refreshToken, user } = payload as {
+          accessToken: string;
+          refreshToken: string;
+          user: User | null;
+        };
         set({
           user: user ?? null,
           token: accessToken,

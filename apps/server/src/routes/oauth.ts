@@ -296,7 +296,7 @@ export async function oauthRoutes(app: FastifyInstance) {
     provider: string,
     profile: NormalizedProfile,
     tokens: OAuth2Tokens,
-  ): Promise<{ id: string; email: string; status: string }> {
+  ): Promise<{ id: string; email: string; status: string; totpEnabled?: boolean }> {
     const [existingLink] = await db
       .select({ userId: oauthAccounts.userId })
       .from(oauthAccounts)
@@ -310,7 +310,7 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     if (existingLink) {
       const [user] = await db
-        .select({ id: users.id, email: users.email, status: users.status })
+        .select({ id: users.id, email: users.email, status: users.status, totpEnabled: users.totpEnabled })
         .from(users)
         .where(eq(users.id, existingLink.userId))
         .limit(1);
@@ -320,7 +320,7 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     if (profile.email) {
       const [userByEmail] = await db
-        .select({ id: users.id, email: users.email, status: users.status })
+        .select({ id: users.id, email: users.email, status: users.status, totpEnabled: users.totpEnabled })
         .from(users)
         .where(eq(users.email, profile.email))
         .limit(1);
@@ -344,6 +344,7 @@ export async function oauthRoutes(app: FastifyInstance) {
       .returning({ id: users.id, email: users.email, status: users.status });
     if (!created) throw new Error('oauth_user_provision_failed');
     await linkAccount(created.id, provider, profile, tokens);
+    // Freshly provisioned users have no TOTP secret — totpEnabled omitted (false)
     return created;
   }
 
@@ -466,6 +467,18 @@ export async function oauthRoutes(app: FastifyInstance) {
             error: { code: 'AUTH_004', message: 'Account suspended' },
           });
         }
+        // Batch E Task 2: TOTP-enabled user gets the MFA step-up — the callback
+        // issues ONLY the oauth_exchange code whose payload carries mfaPending
+        // (no token pair on the redirect chain); the exchange endpoint does the
+        // mfa_verify issuance at exchange time (R6).
+        if (user.totpEnabled) {
+          const exchangeCode = await flowTokens.issue(
+            'oauth_exchange',
+            { userId: user.id, mfaPending: true },
+            EXCHANGE_TTL_SECONDS,
+          );
+          return reply.redirect(`/login?oauthCode=${encodeURIComponent(exchangeCode)}`);
+        }
         const { accessToken, refreshToken } = await issueTokenPair(request, user);
         const exchangeCode = await flowTokens.issue(
           'oauth_exchange',
@@ -497,17 +510,28 @@ export async function oauthRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { code } = request.body;
       const payload = code
-        ? await flowTokens.consume<{
-            accessToken: string;
-            refreshToken: string;
-            user: { id: string; email: string };
-          }>(code, 'oauth_exchange')
+        ? await flowTokens.consume<
+            | { mfaPending: true; userId: string }
+            | {
+                accessToken: string;
+                refreshToken: string;
+                user: { id: string; email: string };
+              }>(code, 'oauth_exchange')
         : null;
       if (!payload) {
         return reply.status(401).send({
           success: false,
           error: { code: 'AUTH_OAUTH_003', message: 'Invalid or expired exchange code' },
         });
+      }
+      // Batch E Task 2: MFA step-up — issue the mfa_verify flow token NOW
+      // (exchange-time issuance, R6); the SPA completes via /auth/mfa/verify.
+      if ('mfaPending' in payload) {
+        const flowToken = await flowTokens.issue('mfa_verify', { userId: payload.userId }, 300);
+        return {
+          success: true,
+          data: { mfaRequired: true, flowToken },
+        };
       }
       return {
         success: true,

@@ -43,6 +43,9 @@ export default function Login() {
     const code = searchParams.get('oauthCode');
     const error = searchParams.get('oauthError');
     if (!code && !error) return;
+    // OAuth MFA step-up: a pending mfaFlowToken means the TOTP form is showing —
+    // do not re-exchange or navigate; verifyMfa handles the flow after code entry.
+    if (code && useAuthStore.getState().mfaFlowToken) return;
     setSearchParams({}, { replace: true });
     if (error) {
       setOauthError(error);

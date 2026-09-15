@@ -1,10 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { IdentityService, OptionsManager } from '@accessbase/identity';
 
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 process.env.REDIS_URL = 'redis://localhost:6379';
+// MFA_ENCRYPTION_KEY: needed because the /auth/mfa/verify completion test calls
+// auth.ts's requireMfaKey() — the MfaManager class itself is mocked below.
+process.env.MFA_ENCRYPTION_KEY = 'ab'.repeat(32);
 
 // arctic network calls must never run in tests — replace providers with stubs
 vi.mock('arctic', () => {
@@ -103,21 +106,43 @@ vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 
-// UserManager + SessionManager mocked (DB-touching); FlowTokenService stays REAL
-// so the exchange round-trip (issue → consume, single-use) is actually exercised.
-const sessionManagerMock = {
-  issueRefreshToken: vi.fn().mockResolvedValue({ refreshToken: 'test-refresh-token' }),
-  findSessionByToken: vi.fn().mockResolvedValue(null),
-  revokeSession: vi.fn(),
-  revokeAllUserSessions: vi.fn(),
-};
-
+// UserManager + SessionManager mocked (DB-touching); see the FlowTokenService
+// seam below for the shared issue/consume stub.
 const testUser = {
   id: '550e8400-e29b-41d4-a716-446655440000',
   email: 'oauth@test.local',
   name: 'OAuth User',
   status: 'active',
   tenantId: '00000000-0000-0000-0000-000000000001',
+};
+
+const sessionManagerMock = {
+  issueRefreshToken: vi.fn().mockResolvedValue({ refreshToken: 'test-refresh-token' }),
+  findSessionByToken: vi.fn().mockResolvedValue(null),
+  revokeSession: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
+};
+const mfaManagerMock = {
+  verify: vi.fn(async (_userId: string, code: string) => ({ success: code === '123456' })),
+  verifyRecoveryCode: vi.fn(async () => ({ success: false })),
+};
+
+const sharedFlowStore = new Map<string, { purpose: string; payload: unknown }>();
+function resetSharedFlowStore(): void {
+  sharedFlowStore.clear();
+}
+const sharedFlowTokens = {
+  issue: vi.fn(async (purpose: string, payload: unknown) => {
+    const token = crypto.randomUUID().replaceAll('-', '');
+    sharedFlowStore.set(token, { purpose, payload });
+    return token;
+  }),
+  consume: vi.fn(async <T,>(token: string, purpose: string): Promise<T | null> => {
+    const rec = sharedFlowStore.get(token);
+    if (!rec || rec.purpose !== purpose) return null;
+    sharedFlowStore.delete(token);
+    return rec.payload as T;
+  }),
 };
 
 vi.mock('@accessbase/identity', async (importOriginal) => {
@@ -131,6 +156,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       create: vi.fn().mockResolvedValue(testUser),
     })),
     SessionManager: vi.fn().mockImplementation(() => sessionManagerMock),
+    FlowTokenService: vi.fn().mockImplementation(() => sharedFlowTokens),
+    // mfa/verify completion test stubs the TOTP check (real class would hit PG)
+    MfaManager: vi.fn().mockImplementation(() => mfaManagerMock),
   };
 });
 
@@ -612,6 +640,148 @@ describe('POST /api/v1/auth/oauth/exchange', () => {
     const res2 = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: { code: oauthCode } });
     expect(res2.statusCode).toBe(401);
     vi.unstubAllGlobals();
+  });
+});
+
+// Task 2 (Batch E): MFA step-up on the OAuth login path. Callback issues ONLY
+// an oauth_exchange code whose payload carries { userId, mfaPending: true } for
+// TOTP-enabled users; the exchange endpoint consumes it AT EXCHANGE TIME and
+// returns { mfaRequired, flowToken } (mfa_verify, 300s) instead of a token pair.
+// /auth/mfa/verify is untouched (R5) — it already issues the session uniformly.
+describe('OAuth MFA step-up (totpEnabled user)', () => {
+  beforeEach(() => {
+    resetSharedFlowStore();
+    setProviderEnv(true);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL) => {
+        const u = String(url);
+        if (u.endsWith('/user/emails')) {
+          return { ok: true, json: async () => [{ email: testUser.email, primary: true, verified: true }] };
+        }
+        if (u.includes('api.github.com/user')) {
+          return { ok: true, json: async () => ({ id: 4242, login: 'ghuser', name: 'GH User', email: null }) };
+        }
+        throw new Error('unexpected fetch ' + u);
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function runCallback(): Promise<string> {
+    const auth = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/github/authorize' });
+    const state = auth.cookies.find((c) => c.name === 'oauth_state')?.value ?? '';
+    const cb = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auth/oauth/github/callback?code=c&state=${state}`,
+      cookies: { oauth_state: state },
+    });
+    expect(cb.statusCode).toBe(302);
+    return (cb.headers['location'] as string).split('oauthCode=')[1]?.split('&')[0] ?? '';
+  }
+
+  function useTotpUser(): void {
+    // linkedAccounts row drives the mocked users-table projection (id/email/status)
+    linkedAccounts.length = 0;
+    linkedAccounts.push({
+      id: testUser.id,
+      email: testUser.email,
+      userId: testUser.id,
+      provider: 'github',
+      providerAccountId: '4242',
+      status: 'active',
+      totpEnabled: true,
+    });
+  }
+
+  it('callback issues oauth_exchange code with mfaPending payload (no token pair pre-issued)', async () => {
+    useTotpUser();
+    sessionManagerMock.issueRefreshToken.mockClear();
+    const oauthCode = await runCallback();
+    expect(oauthCode).toBeTruthy();
+    // R6: NO refresh session on the redirect chain — issuance stays centralized
+    expect(sessionManagerMock.issueRefreshToken).not.toHaveBeenCalled();
+    // payload rides the exchange code: { userId, mfaPending: true }
+    const record = [...sharedFlowStore.values()].find((r) => r.purpose === 'oauth_exchange');
+    expect(record).toBeDefined();
+    expect(record?.payload).toMatchObject({ userId: testUser.id, mfaPending: true });
+    expect(record?.payload).not.toHaveProperty('accessToken');
+  });
+
+  it('exchange for mfaPending user returns { mfaRequired, flowToken } instead of tokens', async () => {
+    useTotpUser();
+    const oauthCode = await runCallback();
+    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: { code: oauthCode } });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(body.data.mfaRequired).toBe(true);
+    expect(typeof body.data.flowToken).toBe('string');
+    expect(body.data.accessToken).toBeUndefined();
+    expect(body.data.refreshToken).toBeUndefined();
+    // exchange-time issuance (R6): the mfa_verify token is minted HERE
+    const mfaRecord = [...sharedFlowStore.values()].find((r) => r.purpose === 'mfa_verify');
+    expect(mfaRecord?.payload).toMatchObject({ userId: testUser.id });
+  });
+
+  it('issued mfa_verify flowToken completes via the untouched /auth/mfa/verify (R5)', async () => {
+    useTotpUser();
+    const oauthCode = await runCallback();
+    const ex = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: { code: oauthCode } });
+    const { flowToken } = ex.json().data;
+    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/mfa/verify', payload: { flowToken, code: '123456' } });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.accessToken).toBeTruthy();
+    expect(res.json().data.refreshToken).toBe('test-refresh-token');
+    expect(mfaManagerMock.verify).toHaveBeenCalledWith(testUser.id, '123456');
+  });
+});
+
+// Behavior lock: non-TOTP users keep the full token-pair flow unchanged.
+describe('OAuth non-TOTP regression', () => {
+  beforeEach(() => {
+    resetSharedFlowStore();
+    setProviderEnv(true);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL) => {
+        const u = String(url);
+        if (u.includes('api.github.com/user')) {
+          return { ok: true, json: async () => ({ id: 777, login: 'ex', name: 'Ex User', email: 'ex@t.local' }) };
+        }
+        throw new Error('unexpected fetch ' + u);
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('callback → exchange still yields the login-shaped token pair (no mfaRequired)', async () => {
+    // provisioned user path: linkedAccounts empty → insert branch returns active user without totpEnabled
+    linkedAccounts.length = 0;
+    const auth = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/github/authorize' });
+    const state = auth.cookies.find((c) => c.name === 'oauth_state')?.value ?? '';
+    const cb = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auth/oauth/github/callback?code=c&state=${state}`,
+      cookies: { oauth_state: state },
+    });
+    expect(cb.statusCode).toBe(302);
+    const oauthCode = (cb.headers['location'] as string).split('oauthCode=')[1]?.split('&')[0] ?? '';
+    expect(oauthCode).toBeTruthy();
+
+    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: { code: oauthCode } });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.data.accessToken).toBeTruthy();
+    expect(body.data.refreshToken).toBe('test-refresh-token');
+    expect(body.data.mfaRequired).toBeUndefined();
+    expect(body.data.user).toMatchObject({ email: testUser.email });
   });
 });
 
