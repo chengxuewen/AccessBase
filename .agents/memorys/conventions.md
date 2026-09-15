@@ -210,3 +210,8 @@ logger.error('Operation failed', error); // ❌
 - 检查：`curl -s -m 2 --noproxy '*' -o /dev/null -w '%{http_code}' http://localhost:5101/health/live` 应 000（后端停）
 - 客户端密钥一次性揭示是**硬约束**：create/rotate 响应之外任何路径（list/get/日志/e2e list 断言）出现明文即缺陷；OidcClientListRow 类型已从类型层排除 secretEncrypted
 - dist 同步陷阱：packages/identity 的 schema/manager 改动后若 apps/server 的 tsc 报幽灵字段错误，先 `pnpm --filter @accessbase/identity build` 再查代码（server 从 dist 解析 @accessbase/identity）
+
+## API Key 与迁移链纪律（2026-09-12，批次 C）
+
+- **迁移链仅面向全新数据库**：drizzle 链（packages/migration/drizzle/）不含 ALTER ADD COLUMN 守卫，对存量 db:push 管理的库手动跑 migrate 会 duplicate column 报错——存量开发库一律继续 `accessbase.sh db:push`；迁移链服务全新部署（commit 0001_violet_butterfly 起与 schema 同步）
+- **API Key 明文契约**：`ab_` + 32 位小写字母数字（35 总长，api.md §23.10）；明文仅 create 响应出现一次，存储 sha256 hex；认证层凭 revokedAt/isExpired 判定失效（findByHash 不过滤）
