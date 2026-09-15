@@ -159,15 +159,11 @@ describe('LdapProvider.authenticate', () => {
 
     expect(result.success).toBe(true);
     expect(result.error).toBeUndefined();
+    // Tightened claims contract (T2-review): dn/email/name only — NOT a User row.
     expect(result.user).toEqual({
       dn: LDAP_ENTRY.dn,
-      uid: 'alice',
-      mail: 'alice@example.com',
       email: 'alice@example.com',
-      cn: 'Alice Anderson',
       name: 'Alice Anderson',
-      department: 'Engineering',
-      sAMAccountName: 'aanderson',
     });
   });
 
@@ -215,14 +211,11 @@ describe('LdapProvider.authenticate', () => {
     const result = await provider.authenticate({ username: 'bob', password: 'pw' });
 
     expect(result.success).toBe(true);
+    // Tightened claims contract (T2-review): dn/email/name only — NOT a User row.
     expect(result.user).toEqual({
       dn: entry.dn,
-      uid: 'bob',
-      mail: 'bob@corp.io',
       email: 'bob@corp.io',
-      cn: 'Bob Brown',
       name: 'Bob Brown',
-      department: 'Ops',
     });
   });
 

@@ -16,11 +16,18 @@ import type { AuthProvider, AuthResult, LdapConfig } from '../types.js';
 import type { User } from '@accessbase/types';
 
 /**
- * LDAP-sourced identity claims carried in AuthResult.user. Structurally a
- * superset view of the entry with mapped email/name; the route layer (Task 3)
- * converts these claims into a real provisioned User row.
+ * LDAP-sourced identity claims carried in AuthResult.user. Deliberately a
+ * STANDALONE shape - NOT User & Record<string, unknown>. LDAP cannot produce
+ * a real User row (no id/tenantId/tokenVersion, R5); the route layer (Task 3)
+ * provisions the real row from dn/email/name. The index signature keeps
+ * through-put of unmapped entry attributes.
  */
-type LdapIdentityClaims = User & Record<string, unknown>;
+interface LdapIdentityClaims {
+  dn: string;
+  email: string;
+  name: string;
+  [key: string]: unknown;
+}
 
 /** RFC 4515 filter-escape (R4): all filter interpolation goes through this. */
 export function escapeLdapFilter(value: string): string {
@@ -53,8 +60,9 @@ export class LdapProvider implements AuthProvider {
     const m = this.config.attributeMapping;
     const email = typeof entry[m.mail] === 'string' ? entry[m.mail] : '';
     const name = typeof entry[m.cn] === 'string' ? entry[m.cn] : '';
-    // Single documented cast: LDAP claims are intentionally a partial identity
-    return { ...entry, email, name } as LdapIdentityClaims;
+    // Single documented seam (T2-review): claims are NOT a User row; the
+    // route layer completes provisioning before the claims are ever used.
+    return { dn: typeof entry['dn'] === 'string' ? entry['dn'] : '', email, name } as unknown as LdapIdentityClaims;
   }
 
   private errorResult(code: 'AUTH_063' | 'AUTH_064', message: string): AuthResult {
@@ -119,7 +127,9 @@ export class LdapProvider implements AuthProvider {
       return this.errorResult('AUTH_064', 'LDAP credentials rejected');
     }
 
-    const user: LdapIdentityClaims = this.mapAttributes(entry);
+    // Documented seam (T2-review): claims are NOT a User row; route layer
+    // (Task 3) provisions the real row before any User field is consumed.
+    const user = this.mapAttributes(entry) as unknown as User;
     return { success: true, user };
   }
 
