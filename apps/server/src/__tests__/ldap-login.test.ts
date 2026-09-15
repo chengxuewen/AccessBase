@@ -28,6 +28,9 @@ const testUser = {
 let claimsIdDereferenced = false;
 let claimsTenantIdDereferenced = false;
 
+// Per-test knob: force findByEmail to return a suspended row for one email.
+let suspendedEmail: string | null = null;
+
 const authenticateMock = vi.fn();
 
 const ldapProviderInstances: Array<{
@@ -43,6 +46,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       findByEmail: vi.fn(async (email: string) => {
         // Guard fast path: queryAdminExists looks up the admin email first.
         if (email === 'admin@accessbase.local') return { ...testUser, email };
+        if (email === suspendedEmail) return { ...testUser, email, status: 'suspended' };
         return email === testUser.email ? testUser : null;
       }),
       create: vi.fn(async (data: { email: string; name: string }) => ({
@@ -301,5 +305,44 @@ describe('POST /api/v1/auth/ldap/login', () => {
 
     expect(res.statusCode).toBe(401);
     expect(res.json().error.message).toBe('Invalid credentials');
+  });
+
+  it('suspended existing user → 403 AUTH_004, no token issuance', async () => {
+    // SessionManager instances are shared across tests (created at app
+    // registration) — clear issuance spies so earlier 200s don't pollute.
+    const smMock = vi.mocked((await import('@accessbase/identity')).SessionManager);
+    for (const r of smMock.mock.results) {
+      (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> })
+        .issueRefreshToken.mockClear();
+    }
+
+    suspendedEmail = 'ldap-user@test.local';
+    authenticateMock.mockResolvedValueOnce({ success: true, user: CLAIMS });
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/ldap/login',
+        payload: { username: 'alice', password: 'pw' },
+      });
+
+      expect(res.statusCode).toBe(403);
+      const body = res.json();
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('AUTH_004');
+      expect(body.error.message).toBe('Account suspended');
+
+      // Gate must fire before issuance: zero refresh tokens across ALL
+      // SessionManager instances (access token only exists inside the pair).
+      const issued = smMock.mock.results.reduce(
+        (n, r) =>
+          n +
+          (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> })
+            .issueRefreshToken.mock.calls.length,
+        0,
+      );
+      expect(issued).toBe(0);
+    } finally {
+      suspendedEmail = null;
+    }
   });
 });

@@ -838,6 +838,8 @@ return { success: true };
   app.post<{ Body: LdapLoginBody }>(
     '/ldap/login',
     {
+      // Parity with local login brute-force protection (final review MED).
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
       schema: {
         description: 'LDAP login',
         tags: ['auth'],
@@ -959,6 +961,18 @@ return { success: true };
         // tenant with a null passwordHash (local login stays impossible).
         const existing = await userManager.findByEmail(email);
         const user = existing ?? (await userManager.create({ email, name }, DEFAULT_TENANT));
+
+        // Final review HIGH: a suspended/pending existing account must not
+        // obtain an LDAP session — mirror oauth.ts/webauthn.ts 403 AUTH_004.
+        // Only the existing row is gated; the provision branch always
+        // creates with status 'active'.
+        if (existing && existing.status !== 'active') {
+          request.log.warn({ userId: existing.id }, 'LDAP login rejected: account suspended');
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_004', message: 'Account suspended' },
+          });
+        }
 
         const { accessToken, refreshToken } = await issueTokenPair(request, user);
         request.log.info({ email }, 'LDAP login successful');
