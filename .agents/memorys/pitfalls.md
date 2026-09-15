@@ -372,3 +372,17 @@
 - **根因**: seam 是测试便利性与真实性的交易；当被测行为恰好分布在 seam 两侧（存储层序列化、路由校验、中间件链），绿套件给出虚假信心。
 - **解法**: ① seam 注入必须用真实存储形态（jsonb 键注对象非字符串——PIT-045 姊妹条）；② 每条"配置 X → 消费 Y"链至少一条端到端断言（真实 PUT → 真实消费）；③ 权限 bypass 分支必须测试 bypass 目标路由本身（不只测认证层）。
 - **验证**: 批 C 附录 R 项与终审 findings 即清单；后续批次计划评审把"seam 形态真实性"列为强制检查项。
+
+## PIT-051: 子包 tsconfig 不 extends 根配置 = 双闸静默失守 (2026-09-15)
+
+- **症状**: 批 D 修复轮发现根 `tsc --noEmit` 9×TS4111（noPropertyAccessFromIndexSignature），但 identity 包内 typecheck 全绿——包 tsconfig 不 extends 根，`pnpm --filter build` 的 tsc 用包内宽松配置，"build 通过"给人干净假象。
+- **根因**: 双闸（根+admin-ui）从未覆盖各子包自身 tsconfig 的严格度差异；per-package build 只验证 dist 可产出，不验证根严格度。
+- **解法**: ① 子包 tsconfig 统一 extends 根（逐包迁移是独立工程）；② 铁律改为**最终树跑根 tsc**——共享树双 worker 各自"基线净"推不出 HEAD 净（PIT-050 姊妹条）；③ CI 若有根 tsc 步骤即天然兜底。
+- **验证**: `pixi run npx tsc --noEmit`（根）在 HEAD 应 0 error。
+
+## PIT-052: 新签发路径必须显式对齐既有签发门清单 (2026-09-15)
+
+- **症状**: 批 D 新增 LDAP 登录路由漏掉 suspended 前置门（oauth/webauthn 在 Batch A 终审已补同门），suspended 用户拿 200+死 token+孤儿 session 行；终审靠跨任务对比（"oauth:462 有、LDAP 为什么没有"）才抓到。
+- **根因**: 每次新增签发路径（login/oauth/webauthn/ldap/…）都是独立任务，"所有签发路径同门"的横切契约没有清单化，靠终审记忆比对。
+- **解法**: 维护签发路径清单（status.md 或 conventions）：每处列出 status 门/claim/限流/MFA step-up 四要素状态；新增路径的 plan 评审必须对照清单逐项打勾。
+- **验证**: conventions 或 status 维护"签发路径×安全要素"矩阵；新路径 PR 引用矩阵。
