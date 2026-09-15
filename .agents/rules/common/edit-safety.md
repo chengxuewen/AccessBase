@@ -141,3 +141,9 @@ curl -sf http://localhost:5173 && echo "Frontend OK" || echo "Frontend DOWN"
 
 - ✅ "E2E 12/12 通过，控制台 0 应用错误，新路由 /api/admin/ldap-config 返回 200"
 - ✅ "NOT VERIFIED — Docker 未启动，无法运行后端"
+
+## Subagent Dispatch Safety (PIT-047)
+
+- **NEVER dispatch long subagent tasks synchronously** (`run_in_background=false` + expected >15min): the silent blocking window kills remote terminal sessions (PIT-047). Use `run_in_background=true` + `<system-reminder>` collection, or split the task into <15min legs.
+- **Interrupted dispatch = resume, never redispatch**: recover via `task(task_id="ses_...")` with a resume prompt; the working tree holds the breakpoint (`git status` is the resume map).
+- **Continuation gated ("skipped by gate: active")**: the child session is still mid-turn — wait with bounded sleep loops; do not force-inject.

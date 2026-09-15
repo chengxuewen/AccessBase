@@ -340,3 +340,14 @@
 - **根因**: 两个模块各自测试自己的正则，拼接产物（`oauth_${name}_client_secret`）的合法性无人断言。
 - **解法**: 凡「A 模块生成 B 模块消费的标识符」，必须有一条跨模块拼接断言（合法名→键可写 + 负例）。对齐方向选放宽容器（KEY_FORMAT 加连字符）而非收紧名规则——最小爆炸半径。
 - **验证**: options 路由测试含 `oauth_my-oidc_client_secret` PUT 200 + 负例 1bad-key 400。
+
+## PIT-047: 同步长阻塞派发子代理导致远程终端/opencode 会话被杀 (2026-09-12)
+
+- **症状**: `task(run_in_background=false)` 派发长任务（10-45 分钟单 turn）时返回 `[Tool execution was interrupted]`，用户侧观察到 opencode / 远程终端被关闭；批次 B/C 各发生 2+ 次。
+- **根因**: 同步阻塞期间主会话零输出，远程 SSH/终端复用层因静默超时或 RPC 层超时重连杀掉进程树（opencode 主进程死 → 子代理连带死亡）。任务越长越易触发。
+- **解法**（按优先级）:
+  1. **后台派发**：`task(run_in_background=true)` + 等 `<system-reminder>` 通知收集——主会话保持空闲心跳，不阻塞 RPC
+  2. 无法后台时**拆短任务**：单任务目标控制在 15 分钟内，长任务拆多棒（实现棒 + 收尾棒）
+  3. 中断后**绝不重派**：用 `task(task_id="ses_...")` 续接（子代理上下文完整保留），工作树里的未提交改动就是断点
+  4. 续接被 gate 挡（"promptAsync skipped by gate: active"）→ sleep 轮询等子代理自然结束，别硬注入
+- **验证**: 派发长任务前检查 run_in_background 参数；中断后 git status 即断点还原现场。
