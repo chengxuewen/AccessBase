@@ -83,7 +83,8 @@ export function createAuditMiddleware(auditLogger: AuditLogger) {
       const tenantId = (request as any).tenantId;
 
       const entry: AuditLogEntry = {
-        userId: user?.id || 'anonymous',
+        // JWT/apikey payloads carry sub, not id — fall through to sub (D1)
+        userId: user?.id ?? user?.sub ?? 'anonymous',
         username: user?.username || 'anonymous',
         userIp: request.ip,
         userAgent: request.headers['user-agent'] || 'unknown',
@@ -118,16 +119,16 @@ export function auditAuthEvent(
   auditLogger: AuditLogger,
   request: FastifyRequest,
   event: 'LOGIN' | 'LOGOUT' | 'LOGIN_FAILED',
-  user?: { id: string; username: string; tenantId: string },
+  user?: { id?: string; sub?: string; username: string; tenantId: string },
 ): void {
   const entry: AuditLogEntry = {
-    userId: user?.id || 'anonymous',
+    userId: user?.id ?? user?.sub ?? 'anonymous', // D1: sub fallback
     username: user?.username || (request.body as any)?.email || 'anonymous',
     userIp: request.ip,
     userAgent: request.headers['user-agent'] || 'unknown',
     action: event,
     resourceType: 'auth',
-    resourceId: user?.id || 'unknown',
+    resourceId: user?.id ?? user?.sub ?? 'unknown', // D1: sub fallback
     requestBody: { email: (request.body as any)?.email },
     timestamp: new Date(),
     tenantId: user?.tenantId || 'system',
@@ -154,7 +155,7 @@ export function auditConfigChange(
   const tenantId = (request as any).tenantId;
 
   const entry: AuditLogEntry = {
-    userId: user?.id || 'system',
+    userId: user?.id ?? user?.sub ?? 'system', // D1: sub read before system fallback
     username: user?.username || 'system',
     userIp: request.ip,
     userAgent: request.headers['user-agent'] || 'unknown',
