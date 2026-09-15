@@ -33,6 +33,7 @@
     "fastify-plugin": "^4.5.1",
     "ioredis": "^5.3.2",
     "jsonwebtoken": "^9.0.2",
+    "ldapts": "^9.0.0",
     "nodemailer": "^10.0.9",
     "otplib": "^13.5.0",
     "pg": "^8.12.0",
