@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import { UserManager, RoleManager, SessionManager } from '@accessbase/identity';
+import { assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { requirePermission } from '../utils/permission.js';
 import { toCsv } from '../utils/csv.js';
+import { getOptionsManager } from './options.js';
 
 
 /**
@@ -256,6 +258,111 @@ export async function userRoutes(app: FastifyInstance) {
       }
     },
   );
+
+  // POST /api/v1/users/import — two-phase CSV/JSON row import (C5b).
+  // Dry-run (default) validates each row and returns a report without writing.
+  // commit=true creates valid rows individually — one bad row never blocks others.
+  // Imported users land ACTIVE (R6): create receives isActive: true explicitly.
+  // Rides POST:/api/v1/users prefix → users:write; no new authorize.ts key.
+  app.post(
+    '/import',
+    {
+      schema: {
+        description: 'Import users (two-phase: dry-run report, then commit)',
+        tags: ['users'],
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object',
+          required: ['rows'],
+          properties: {
+            rows: { type: 'array', maxItems: 1000, items: { type: 'object' } },
+            commit: { type: 'boolean' },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const { rows, commit } = request.body as {
+        rows: Array<{ email?: string; name?: string; password?: string }>;
+        commit?: boolean;
+      };
+      const policy = await readPasswordPolicy(getOptionsManager().get.bind(getOptionsManager()), 'register');
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const errors: Array<{ row: number; field: string; message: string }> = [];
+      const valid: Array<{ email: string; name: string; password: string }> = [];
+
+      for (const [i, row] of rows.entries()) {
+        const email = (row.email ?? '').trim();
+        const name = (row.name ?? '').trim();
+        const password = row.password ?? '';
+        if (!emailRe.test(email)) {
+          errors.push({ row: i, field: 'email', message: 'Invalid email' });
+          continue;
+        }
+        if (!name) {
+          errors.push({ row: i, field: 'name', message: 'Name is required' });
+          continue;
+        }
+        const pw = assertPasswordPolicy(password, policy);
+        if (!pw.ok) {
+          errors.push({ row: i, field: 'password', message: pw.message });
+          continue;
+        }
+        if (commit) {
+          try {
+            // Pre-existing duplicate check; in-batch duplicates surface via the
+            // same path once the first row is created (findByEmail sees it).
+            if (await userManager.findByEmail(email)) {
+              errors.push({ row: i, field: 'email', message: 'User with this email already exists' });
+              continue;
+            }
+            await userManager.create(
+              { email, name, password, isActive: true },
+              DEFAULT_TENANT,
+            );
+          } catch (err) {
+            // Per-row isolation: unique-violation or any create failure only
+            // fails this row; the loop continues.
+            const error = err instanceof Error ? err : new Error(String(err));
+            request.log.error({ err: error, row: i }, 'Import row failed');
+            errors.push({ row: i, field: 'email', message: 'User with this email already exists' });
+            continue;
+          }
+        } else {
+          valid.push({ email, name, password });
+        }
+      }
+
+      return commit
+        ? { success: true, data: { created: rows.length - errors.length, errors } }
+        : { success: true, data: { valid: valid.length, errors } };
+    },
+  );
+
+  // POST /api/v1/users/:id/force-logout — revoke every session of a user (C3).
+  // R13 simplified: revokeAllUserSessions only — NO permission-cache invalidation
+  // (the affected user's authz is unchanged; only their sessions die). Idempotent.
+  app.post<{ Params: { id: string } }>(
+    '/:id/force-logout',
+    {
+      schema: {
+        description: 'Revoke all sessions for a user (force logout)',
+        tags: ['users'],
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string', format: 'uuid' } },
+        },
+      },
+    },
+    async (request) => {
+      const { id } = request.params;
+      await getSessionManager().revokeAllUserSessions(id);
+      return { success: true, data: { revoked: true } };
+    },
+  );
+
 
   // PUT /api/v1/users/:id — update user
   app.put<{ Params: { id: string } }>(
