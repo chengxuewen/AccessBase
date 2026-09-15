@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuditLogger } from '../logger.js';
-import type { AuditLog, AuditLogEntry, AuditConfig, } from '../types.js';
+import type { AuditLog, AuditLogEntry, AuditConfig } from '../types.js';
+import { defaultAuditConfig } from '../types.js';
 import type { AuditStorage } from '../logger.js';
 
 // Mock dependencies
@@ -297,6 +298,50 @@ describe('AuditLogger', () => {
 
       await sanitizeLogger.log(entry);
       // Password and token should be redacted
+    });
+
+    it('default config redacts plaintext from responseBody (final-review MED)', async () => {
+      const written: AuditLog[] = [];
+      const storage: AuditStorage = {
+        write: async (entries) => {
+          written.push(...entries);
+        },
+      };
+      // Sync write path (async disabled) so storage receives the entry directly;
+      // sanitize behavior is identical on both paths (sanitizeEntry precedes buffering).
+      const defaultLogger = new AuditLogger(
+        { ...defaultAuditConfig, async: { ...defaultAuditConfig.async, enabled: false } },
+        { storage },
+      );
+
+      const entry: AuditLogEntry = {
+        userId: 'user1',
+        username: 'testuser',
+        userIp: '127.0.0.1',
+        userAgent: 'test-agent',
+        action: 'CREATE',
+        resourceType: 'api_key',
+        resourceId: 'key123',
+        requestBody: { name: 'ci-key' },
+        responseBody: {
+          id: 'key123',
+          plaintext: 'ab_sensitivematerial',
+          nested: { plaintext: 'ab_nested', keep: 'ok' },
+        },
+        timestamp: new Date(),
+        tenantId: 'tenant1',
+        requestId: 'req123',
+        success: true,
+      };
+
+      await defaultLogger.log(entry);
+
+      expect(written).toHaveLength(1);
+      expect(written[0]?.responseBody?.['plaintext']).toBe('[REDACTED]');
+      const nested = written[0]?.responseBody?.['nested'] as Record<string, unknown>;
+      expect(nested['plaintext']).toBe('[REDACTED]');
+      expect(nested['keep']).toBe('ok');
+      expect(written[0]?.responseBody?.['id']).toBe('key123');
     });
 
     it('should not redact when disabled', async () => {
