@@ -358,3 +358,17 @@
 - **根因**: apps/server/tsconfig 有 outDir:./dist 但无 include 限定；cwd 错位时 tsc 以当前目录为根把 src/**/*.ts 编到源码旁。declarationMap+sourceMap 加剧产物数量。
 - **解法**: ① .gitignore 加 src 下编译产物兜底模式（packages/*/src/**、apps/*/src/** 的 js/map/d.ts/d.ts.map）；② 产物一律 rm；③ 铁律：identity build 只经 `pnpm --filter @accessbase/identity build`，不裸跑 tsc。
 - **验证**: `git ls-files | grep -c '\.map$'` 应为 0；`find packages apps -path '*src*' -name '*.js.map' | grep -v node_modules` 应为空。
+
+## PIT-049: src/ 下残留编译产物遮蔽 vitest 的 .js→.ts 解析 (2026-09-15)
+
+- **症状**: 修复波改了 packages/audit/src/types.ts 后测试仍失败——vitest 把 `import ... from '../types.js'` 解析到残留的 **src/types.js**（旧编译产物，12:34 生成）而非 types.ts；dist 手工复验通过、vitest 持续红，疑云重重。
+- **根因**: PIT-048 的变体——bare tsc 把产物散进 src/ 后，vitest 的 .js→.ts 映射优先命中真实 .js 文件；gitignore 兜底让产物"隐形"（git status 看不到），排查方向被带偏。
+- **解法**: 遇到"源已改、测试装瞎"先查 src/ 下有无同名 .js 产物（`ls packages/*/src/*.js`）；删除即可。.gitignore 兜底模式已存在（PIT-048 提交）。
+- **验证**: `ls packages/*/src/*.js 2>/dev/null` 应为空。
+
+## PIT-050: 测试 seam 与真实存储形态不一致是集成缺陷的掩蔽体（批 C 终审复盘） (2026-09-15)
+
+- **症状**: 批次 C 三处终审抓到的缺陷（jsonb 字符串假设、KEY_FORMAT 连字符、apikey 授权死锁）全部是"套件绿但真实路径断"——测试 seam 直灌 Map/字符串，绕过了 PUT 校验、jsonb 反序列化、requirePermission 权限链。
+- **根因**: seam 是测试便利性与真实性的交易；当被测行为恰好分布在 seam 两侧（存储层序列化、路由校验、中间件链），绿套件给出虚假信心。
+- **解法**: ① seam 注入必须用真实存储形态（jsonb 键注对象非字符串——PIT-045 姊妹条）；② 每条"配置 X → 消费 Y"链至少一条端到端断言（真实 PUT → 真实消费）；③ 权限 bypass 分支必须测试 bypass 目标路由本身（不只测认证层）。
+- **验证**: 批 C 附录 R 项与终审 findings 即清单；后续批次计划评审把"seam 形态真实性"列为强制检查项。

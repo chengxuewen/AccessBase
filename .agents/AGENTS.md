@@ -24,7 +24,7 @@ Project-specific AI agent configuration: skills, coding rules, and project memor
 └── memorys/             # Project memory (auto-updated by agents)
     ├── status.md        # Current phase, blockers, recent work
     ├── decisions.md     # D1-D116 design decisions with rationale (English since 2026-09-10)
-    ├── pitfalls.md      # Known issues (PIT-001~048)
+    ├── pitfalls.md      # Known issues (PIT-001~050)
     └── conventions.md   # Coding conventions (Phase 6/7/8a 约束段)
     ├── pitfalls.md      # Known issues (currently empty)
     └── conventions.md   # Coding conventions (currently empty)
