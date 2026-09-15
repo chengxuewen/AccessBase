@@ -39,7 +39,8 @@
     "audit": "审计",
     "profile": "个人资料",
     "logout": "退出登录",
-    "clients": "OIDC 客户端"
+    "clients": "OIDC 客户端",
+    "apiKeys": "API 密钥"
   },
   "login": {
     "title": "AccessBase 登录",
@@ -426,6 +427,35 @@
     "empty": "暂无客户端",
     "createdAt": "创建时间",
     "createError": "创建客户端失败",
+    "ok": "完成"
+  },
+  "apiKeys": {
+    "title": "API 密钥",
+    "create": "新建密钥",
+    "createTitle": "新建 API 密钥",
+    "name": "名称",
+    "nameRequired": "请输入密钥名称",
+    "prefix": "前缀",
+    "scopes": "作用域",
+    "createdAt": "创建时间",
+    "expiresAt": "过期时间",
+    "never": "永不过期",
+    "status": "状态",
+    "activeTag": "有效",
+    "revokedTag": "已撤销",
+    "actions": "操作",
+    "revoke": "撤销",
+    "revokeConfirm": "确定撤销该 API 密钥？使用它的客户端将立即被拒绝。",
+    "revoked": "API 密钥已撤销",
+    "revokeError": "撤销 API 密钥失败",
+    "secretTitle": "API 密钥",
+    "secretWarning": "请立即复制该密钥——它只会显示这一次。丢失后只能撤销并新建。",
+    "copy": "复制",
+    "copied": "已复制",
+    "copyFailed": "复制失败——请手动选择复制",
+    "created": "API 密钥已创建",
+    "createError": "创建 API 密钥失败",
+    "loadError": "加载 API 密钥失败",
     "ok": "完成"
   }
 }

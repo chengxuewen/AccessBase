@@ -39,7 +39,8 @@
     "audit": "Audit",
     "profile": "Profile",
     "logout": "Logout",
-    "clients": "OIDC Clients"
+    "clients": "OIDC Clients",
+    "apiKeys": "API Keys"
   },
   "login": {
     "title": "AccessBase Login",
@@ -426,6 +427,35 @@
     "empty": "No clients yet",
     "createdAt": "Created At",
     "createError": "Failed to create the client",
+    "ok": "Done"
+  },
+  "apiKeys": {
+    "title": "API Keys",
+    "create": "New Key",
+    "createTitle": "New API Key",
+    "name": "Name",
+    "nameRequired": "Please enter a key name",
+    "prefix": "Prefix",
+    "scopes": "Scopes",
+    "createdAt": "Created At",
+    "expiresAt": "Expires At",
+    "never": "Never",
+    "status": "Status",
+    "activeTag": "Active",
+    "revokedTag": "Revoked",
+    "actions": "Actions",
+    "revoke": "Revoke",
+    "revokeConfirm": "Revoke this API key? Clients using it will be rejected immediately.",
+    "revoked": "API key revoked",
+    "revokeError": "Failed to revoke the API key",
+    "secretTitle": "API Key",
+    "secretWarning": "Copy this key now — it will never be shown again. If lost, revoke it and create a new one.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Copy failed — select and copy manually",
+    "created": "API key created",
+    "createError": "Failed to create the API key",
+    "loadError": "Failed to load API keys",
     "ok": "Done"
   }
 }

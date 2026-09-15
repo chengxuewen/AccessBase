@@ -13,6 +13,7 @@ import {
   SolutionOutlined,
   ApiOutlined,
   MoonOutlined,
+  KeyOutlined,
   SunOutlined,
 } from '@ant-design/icons';
 import { Alert, Button, Dropdown, Typography } from 'antd';
@@ -38,6 +39,7 @@ export default function AdminLayout() {
       '/roles': 'roles:read',
       '/audit': 'audit:read',
       '/clients': 'clients:read',
+      '/api-keys': 'apikeys:read',
     };
     const routes = [
       { path: '/dashboard', name: t('menu.dashboard'), icon: <DashboardOutlined /> },
@@ -45,6 +47,7 @@ export default function AdminLayout() {
       { path: '/roles', name: t('menu.roles'), icon: <SafetyOutlined /> },
       { path: '/audit', name: t('menu.audit'), icon: <FileSearchOutlined /> },
       { path: '/clients', name: t('menu.clients'), icon: <ApiOutlined /> },
+      { path: '/api-keys', name: t('menu.apiKeys'), icon: <KeyOutlined /> },
       { path: '/profile', name: t('menu.profile'), icon: <SolutionOutlined /> },
       { path: '/settings', name: t('menu.settings'), icon: <SettingOutlined /> },
     ].filter((r) => {
