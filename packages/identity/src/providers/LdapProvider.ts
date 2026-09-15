@@ -49,12 +49,6 @@ export class LdapProvider implements AuthProvider {
    * tenantId, tokenVersion - R5 forbids tenant knowledge here); the route
    * layer (Task 3) completes find-or-provision and issues the real row.
    */
-  /**
-   * Map raw LDAP entry to identity claims carried in the AuthResult user
-   * field. The LDAP protocol layer cannot produce a full User row (no id,
-   * tenantId, tokenVersion - R5 forbids tenant knowledge here); the route
-   * layer (Task 3) completes find-or-provision and issues the real row.
-   */
   private mapAttributes(entry: Record<string, unknown>): LdapIdentityClaims {
     const m = this.config.attributeMapping;
     const email = typeof entry[m.mail] === 'string' ? entry[m.mail] : '';
