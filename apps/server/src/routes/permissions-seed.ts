@@ -1,6 +1,6 @@
 /**
  * Builtin permission seeding — idempotent, best-effort.
- * Seeds 15 {resource, action} permissions and binds all to the admin role.
+ * Seeds 18 {resource, action} permissions and binds all to the admin role.
  */
 import { and, eq, inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@accessbase/identity/db';
@@ -9,7 +9,7 @@ import { logger } from '@accessbase/logging';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 
 /**
- * 15 builtin permissions — resource/action pairs must match
+ * 18 builtin permissions — resource/action pairs must match
  * authorize.ts getRequiredPermission() mapping verbatim.
  */
 export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: string; description: string }[] = [
@@ -28,9 +28,12 @@ export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: stri
   { name: 'options:write', resource: 'options', action: 'write', description: 'Modify runtime options' },
   { name: 'clients:read', resource: 'clients', action: 'read', description: 'View OIDC clients' },
   { name: 'clients:write', resource: 'clients', action: 'write', description: 'Manage OIDC clients' },
+  { name: 'apikeys:read', resource: 'apikeys', action: 'read', description: 'View API keys' },
+  { name: 'apikeys:write', resource: 'apikeys', action: 'write', description: 'Create API keys' },
+  { name: 'apikeys:delete', resource: 'apikeys', action: 'delete', description: 'Revoke API keys' },
 ];
 
-const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats', 'options', 'clients'];
+const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats', 'options', 'clients', 'apikeys'];
 const ACTIONS = ['read', 'write', 'delete'];
 
 /**

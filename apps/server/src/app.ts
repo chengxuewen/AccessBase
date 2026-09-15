@@ -23,7 +23,8 @@ import { clientRoutes } from './routes/clients.js';
 import { resolveCorsOrigin } from './cors.js';
 import { getRedis } from './utils/redis.js';
 import { buildOidcProvider } from './oidc/provider.js';
-import { OidcClientManager } from '@accessbase/identity';
+import { OidcClientManager, ApiKeyManager, hashApiKey } from '@accessbase/identity';
+import { apiKeysRoutes, getApiKeyManager } from './routes/api-keys.js';
 import { registerInteractionRoutes } from './oidc/interaction.js';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -118,8 +119,29 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // --- Auth decorator ---
 
   app.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      await request.jwtVerify();
+    // API-key dual-read: ab_-prefixed bearer tokens are API keys, not JWTs —
+    // route them to a sha256 lookup before jwtVerify rejects the format.
+    const authHeader = request.headers.authorization;
+    const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : undefined;
+    if (bearer?.startsWith('ab_')) {
+      const key = await getApiKeyManager().findByHash(hashApiKey(bearer));
+      if (!key || key.revokedAt !== null || ApiKeyManager.isExpired(key.expiresAt)) {
+        reply.status(401).send({
+          success: false,
+          error: { code: 'AUTH_001', message: 'Invalid API key' },
+        });
+        return;
+      }
+      (request as FastifyRequest & { user?: unknown }).user = {
+        sub: key.id,
+        type: 'apikey',
+        scopes: ['*'],
+        tenantId: key.tenantId,
+      };
+      return;
+    }
+try {
+await request.jwtVerify();
     } catch {
       reply.status(401).send({
         success: false,
@@ -252,6 +274,7 @@ oidcHandler(raw, reply.raw).then(() => done(), done);
   await app.register(clientRoutes, { prefix: '/api/v1' });
   await app.register(oauthRoutes, { prefix: '/api/v1/auth' });
   await app.register(webauthnRoutes, { prefix: '/api/v1/auth' });
+  await app.register(apiKeysRoutes, { prefix: '/api/v1/auth/api-keys' });
   // Client display names live in the registry (the provider's Client wrapper
   // drops non-schema fields), so the interaction GET resolves them here.
   const oidcClientManager = new OidcClientManager(createDb(config.databaseUrl));

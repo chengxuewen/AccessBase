@@ -31,6 +31,13 @@ export function requirePermission() {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     const required = getRequiredPermission(request.method, request.url);
     if (!required) return;
+    // API keys bypass permission checks in v1: scopes are ['*'] only, and keyId
+    // is not a user id — hasPermission(sub, ...) would 403 every key request
+    // (deadlock). Scope engine is a spec non-goal for now.
+    const payload = request.user as TokenPayload & { type?: string; scopes?: string[] };
+    if (payload.type === 'apikey') {
+      return;
+    }
     const user = request.user as TokenPayload;
     const ok = await getPermissionManager().hasPermission(
       user.sub,
