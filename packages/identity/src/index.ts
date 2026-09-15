@@ -12,6 +12,7 @@ export { SessionManager } from './managers/SessionManager.js';
 export { MfaManager } from './managers/MfaManager.js';
 export { OptionsManager, type OptionEntry } from './managers/OptionsManager.js';
 export { OidcClientManager, encryptSecret, decryptSecret, type OidcClientListRow } from './managers/OidcClientManager.js';
+export { ApiKeyManager, hashApiKey, type SafeApiKey, type GeneratedApiKey } from './managers/ApiKeyManager.js';
 export { FlowTokenService } from './services/FlowTokenService.js';
 export { LockoutService, MAX_FAILURES, WINDOW_SECONDS, type LockoutOptions } from './services/LockoutService.js';
 export { getRedisClient, type RedisLike } from './services/redis.js';

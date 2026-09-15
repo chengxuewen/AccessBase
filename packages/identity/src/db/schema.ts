@@ -338,3 +338,32 @@ export const oidcGrants = pgTable('oidc_grants', {
 });
 
 export type OidcGrantRow = typeof oidcGrants.$inferSelect;
+
+/**
+ * API keys table (Batch C Task 1). Plaintext is shown exactly once at create
+ * time and never stored -- only sha256 hex hash. prefix (first 8 chars) exists
+ * for list identification. hash UNIQUE constraint provides the lookup index.
+ */
+export const apiKeys = pgTable(
+  'api_keys',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 128 }).notNull(),
+    prefix: varchar('prefix', { length: 16 }).notNull(),
+    hash: varchar('hash', { length: 64 }).notNull().unique(),
+    scopes: jsonb('scopes').default(['*']).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    tenantId: uuid('tenant_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    tenantIdx: index('idx_api_keys_tenant').on(table.tenantId),
+  }),
+);
+
+export type ApiKeyRow = typeof apiKeys.$inferSelect;
+export type NewApiKeyRow = typeof apiKeys.$inferInsert;
+
