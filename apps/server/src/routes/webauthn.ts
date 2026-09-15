@@ -16,8 +16,8 @@
  *   update counter/lastUsedAt → issue session (same shape as password login).
  * - GET/DELETE /credentials (auth): passkey management for Settings.
  *
- * MFA interplay: NONE — WebAuthn login bypasses TOTP step-up (same known
- * limitation as OAuth login; a passkey with UV is itself a possession+inherence factor).
+ * MFA interplay: TOTP-enabled users get the same step-up branch as local login
+ * (mfa_verify flow token instead of a token pair); non-TOTP users are unchanged.
  */
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import {
@@ -281,7 +281,13 @@ export async function webauthnRoutes(app: FastifyInstance) {
         .where(eq(webauthnCredentials.id, row.id));
 
       const [user] = await db
-        .select({ id: users.id, email: users.email, name: users.name, status: users.status })
+        .select({
+          id: users.id,
+          email: users.email,
+          name: users.name,
+          status: users.status,
+          totpEnabled: users.totpEnabled,
+        })
         .from(users)
         .where(eq(users.id, row.userId))
         .limit(1);
@@ -293,6 +299,15 @@ export async function webauthnRoutes(app: FastifyInstance) {
       if (user.status !== 'active') {
         request.log.warn({ userId: user.id }, 'WebAuthn login blocked: account not active');
         return authError(reply, 403, 'AUTH_004', 'Account suspended');
+      }
+
+      // MFA step-up: TOTP-enabled user gets a flow token, not a session
+      if (user.totpEnabled) {
+        const flowToken = await flowTokens.issue('mfa_verify', { userId: user.id }, 300);
+        return {
+          success: true,
+          data: { mfaRequired: true, flowToken },
+        };
       }
 
       const { accessToken, refreshToken } = await issueTokenPair(request, user);

@@ -31,6 +31,9 @@ let claimsTenantIdDereferenced = false;
 // Per-test knob: force findByEmail to return a suspended row for one email.
 let suspendedEmail: string | null = null;
 
+// Per-test knob: make the found row TOTP-enabled for one email (E step-up).
+let totpEmail: string | null = null;
+
 const authenticateMock = vi.fn();
 
 const ldapProviderInstances: Array<{
@@ -47,6 +50,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         // Guard fast path: queryAdminExists looks up the admin email first.
         if (email === 'admin@accessbase.local') return { ...testUser, email };
         if (email === suspendedEmail) return { ...testUser, email, status: 'suspended' };
+        if (email === totpEmail) return { ...testUser, email, totpEnabled: true };
         return email === testUser.email ? testUser : null;
       }),
       create: vi.fn(async (data: { email: string; name: string }) => ({
@@ -343,6 +347,43 @@ describe('POST /api/v1/auth/ldap/login', () => {
       expect(issued).toBe(0);
     } finally {
       suspendedEmail = null;
+    }
+  });
+
+  it('TOTP-enabled existing user → 200 MFA step-up ({mfaRequired, flowToken}), no token pair (E)', async () => {
+    const smMock = vi.mocked((await import('@accessbase/identity')).SessionManager);
+    for (const r of smMock.mock.results) {
+      (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> })
+        .issueRefreshToken.mockClear();
+    }
+
+    totpEmail = 'ldap-user@test.local';
+    authenticateMock.mockResolvedValueOnce({ success: true, user: CLAIMS });
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/ldap/login',
+        payload: { username: 'alice', password: 'pw' },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.success).toBe(true);
+      expect(body.data.mfaRequired).toBe(true);
+      expect(typeof body.data.flowToken).toBe('string');
+      expect(body.data).not.toHaveProperty('accessToken');
+      expect(body.data).not.toHaveProperty('refreshToken');
+
+      const issued = smMock.mock.results.reduce(
+        (n, r) =>
+          n +
+          (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> })
+            .issueRefreshToken.mock.calls.length,
+        0,
+      );
+      expect(issued).toBe(0);
+    } finally {
+      totpEmail = null;
     }
   });
 });

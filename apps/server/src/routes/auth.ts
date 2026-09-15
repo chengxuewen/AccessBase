@@ -862,6 +862,8 @@ return { success: true };
                   accessToken: { type: 'string' },
                   refreshToken: { type: 'string' },
                   expiresIn: { type: 'number' },
+                  mfaRequired: { type: 'boolean' },
+                  flowToken: { type: 'string' },
                   user: {
                     type: 'object',
                     properties: {
@@ -972,6 +974,15 @@ return { success: true };
             success: false,
             error: { code: 'AUTH_004', message: 'Account suspended' },
           });
+        }
+
+        // MFA step-up: TOTP-enabled user gets a flow token, not a session
+        if (user.totpEnabled) {
+          const flowToken = await flowTokens.issue('mfa_verify', { userId: user.id }, 300);
+          return {
+            success: true,
+            data: { mfaRequired: true, flowToken },
+          };
         }
 
         const { accessToken, refreshToken } = await issueTokenPair(request, user);

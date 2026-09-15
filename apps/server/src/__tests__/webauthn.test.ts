@@ -444,6 +444,31 @@ describe('POST /api/v1/auth/webauthn/login/verify', () => {
       userRows[0] = { ...userRows[0], status: saved as string };
     }
   });
+
+  it('TOTP-enabled user → 200 MFA step-up ({mfaRequired, flowToken}), no token pair (E)', async () => {
+    seedCredential({ credentialId: 'cred-1', counter: 0 });
+    const saved = userRows[0]?.['totpEnabled'];
+    userRows[0] = { ...userRows[0], totpEnabled: true };
+    sessionManagerMock.issueRefreshToken.mockClear();
+    try {
+      const flowToken = await getLoginFlowToken();
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/webauthn/login/verify',
+        payload: { flowToken, response: assertion },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.success).toBe(true);
+      expect(body.data.mfaRequired).toBe(true);
+      expect(typeof body.data.flowToken).toBe('string');
+      expect(body.data).not.toHaveProperty('accessToken');
+      expect(body.data).not.toHaveProperty('refreshToken');
+      expect(sessionManagerMock.issueRefreshToken).not.toHaveBeenCalled();
+    } finally {
+      userRows[0] = { ...userRows[0], totpEnabled: saved };
+    }
+  });
 });
 
 describe('GET /api/v1/auth/webauthn/credentials', () => {
