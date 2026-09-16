@@ -17,6 +17,7 @@ import { healthRoutes } from './routes/health.js';
 import { setupRoutes } from './routes/setup.js';
 import { setupGuard } from './middleware/setup-guard.js';
 import { oauthRoutes } from './routes/oauth.js';
+import { samlRoutes } from './routes/saml.js';
 import { webauthnRoutes } from './routes/webauthn.js';
 import { optionsRoutes } from './routes/options.js';
 import { clientRoutes } from './routes/clients.js';
@@ -266,7 +267,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
         url.startsWith('/health') ||
         url.startsWith('/metrics') ||
         url.startsWith('/api/v1/setup') ||
-        url.startsWith('/api/v1/options')
+        url.startsWith('/api/v1/options') ||
+        // R10 (Batch F): the ACS urlencoded body (multi-KB SAMLResponse XML)
+        // must not land in audit_logs — bloat + assertion content at rest.
+        url.startsWith('/api/v1/auth/saml/acs')
       )
         return;
       await auditHook(request, reply);
@@ -285,6 +289,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(optionsRoutes, { prefix: '/api/v1' });
   await app.register(clientRoutes, { prefix: '/api/v1' });
   await app.register(oauthRoutes, { prefix: '/api/v1/auth' });
+  await app.register(samlRoutes, { prefix: '/api/v1/auth' });
   await app.register(webauthnRoutes, { prefix: '/api/v1/auth' });
   await app.register(apiKeysRoutes, { prefix: '/api/v1/auth/api-keys' });
   // Client display names live in the registry (the provider's Client wrapper
