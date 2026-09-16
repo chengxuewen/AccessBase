@@ -22,6 +22,8 @@ export { PasswordProvider } from './providers/PasswordProvider.js';
 export { OAuthProvider } from './providers/OAuthProvider.js';
 export { WebAuthnProvider } from './providers/WebAuthnProvider.js';
 export { LdapProvider } from './providers/LdapProvider.js';
+export { SamlProvider } from './providers/SamlProvider.js';
+export type { SamlProviderConfig } from './providers/SamlProvider.js';
 export { authenticateHook } from './hooks/authenticate.js';
 export { authorizeHook, getRequiredPermission } from './hooks/authorize.js';
 
