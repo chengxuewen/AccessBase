@@ -10,7 +10,7 @@ import { logger } from '@accessbase/logging';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
-import { seedBuiltinPermissions } from './permissions-seed.js';
+import { seedBuiltinPermissions, ensureDefaultTenantRow } from './permissions-seed.js';
 // DB-derived setup state (D113): the users table is the single source of truth.
 // No in-memory state — see queryAdminExists/getSetupStatus below.
 
@@ -241,6 +241,10 @@ export async function setupRoutes(app: FastifyInstance) {
       try {
         const userManager = new UserManager();
         const roleManager = new RoleManager();
+
+        // Default tenant first-writer (R6): the row must exist BEFORE any user
+        // is created with tenant_id = DEFAULT_TENANT. Idempotent (onConflictDoNothing).
+        await ensureDefaultTenantRow(setupDb());
 
         // Check if admin user already exists in database
         const existingAdmin = await userManager.findByEmail(email);

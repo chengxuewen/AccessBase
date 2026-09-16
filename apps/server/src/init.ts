@@ -11,6 +11,8 @@ import { UserManager, RoleManager } from '@accessbase/identity';
 import { logger } from '@accessbase/logging';
 import { config } from './config.js';
 import { DEFAULT_TENANT } from './utils/constants.js';
+import { createDb } from '@accessbase/identity/db';
+import { ensureDefaultTenantRow } from './routes/permissions-seed.js';
 
 
 export async function initializeAdmin(_app: FastifyInstance): Promise<void> {
@@ -24,6 +26,14 @@ export async function initializeAdmin(_app: FastifyInstance): Promise<void> {
     }
 
     if (config.adminEmail && config.adminPassword) {
+      // Default tenant first-writer (R6): row must exist before user creation.
+      // Tolerant of missing/broken DB (best-effort helper would swallow, but
+      // createDb itself may throw) — never block admin bootstrap.
+      try {
+        await ensureDefaultTenantRow(createDb(config.databaseUrl));
+      } catch (dbErr: unknown) {
+        logger.warn({ err: dbErr }, 'Default tenant row skipped — DB unavailable');
+      }
       // env bypass for automated deployments (Docker/CI) — D113
       const roleManager = new RoleManager();
       const adminRole = await roleManager.create(

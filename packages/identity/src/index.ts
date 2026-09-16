@@ -7,6 +7,7 @@ export * from './types.js';
 export { AuthManager } from './managers/AuthManager.js';
 export { UserManager } from './managers/UserManager.js';
 export { RoleManager } from './managers/RoleManager.js';
+export { TenantManager, DEFAULT_TENANT_ID, TENANT_PROTECTED, type Tenant } from './managers/TenantManager.js';
 export { PermissionManager } from './managers/PermissionManager.js';
 export { SessionManager } from './managers/SessionManager.js';
 export { MfaManager } from './managers/MfaManager.js';

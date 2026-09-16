@@ -367,3 +367,26 @@ export const apiKeys = pgTable(
 export type ApiKeyRow = typeof apiKeys.$inferSelect;
 export type NewApiKeyRow = typeof apiKeys.$inferInsert;
 
+
+/**
+ * Tenants table (Batch G Task 1). Hard-tenant rows; the bootstrap seed writes
+ * the default tenant with the fixed DEFAULT_TENANT literal id + slug 'default'.
+ * slug is globally unique — tenant resolution key.
+ */
+export const tenants = pgTable(
+  'tenants',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 200 }).notNull(),
+    slug: varchar('slug', { length: 64 }).notNull().unique(),
+    status: varchar('status', { length: 20 }).default('active').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    slugIdx: index('idx_tenants_slug').on(table.slug),
+  }),
+);
+
+export type TenantRow = typeof tenants.$inferSelect;
+export type NewTenantRow = typeof tenants.$inferInsert;

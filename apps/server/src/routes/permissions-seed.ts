@@ -4,7 +4,7 @@
  */
 import { and, eq, inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@accessbase/identity/db';
-import { permissions, rolePermissions, roles } from '@accessbase/identity/db';
+import { permissions, rolePermissions, roles, tenants } from '@accessbase/identity/db';
 import { logger } from '@accessbase/logging';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 
@@ -35,6 +35,29 @@ export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: stri
 
 const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats', 'options', 'clients', 'apikeys'];
 const ACTIONS = ['read', 'write', 'delete'];
+
+/**
+ * First-writer insert of the default tenant row (R6). Idempotent via the slug
+ * unique constraint (onConflictDoNothing): safe against pre-existing rows from
+ * a prior bootstrap. Uses the fixed DEFAULT_TENANT literal id so auth claim
+ * fallback and permission-cache keys resolve to the same row.
+ */
+export async function ensureDefaultTenantRow(db: DrizzleDB): Promise<void> {
+  try {
+    await db
+      .insert(tenants)
+      .values({
+        id: DEFAULT_TENANT,
+        name: 'Default',
+        slug: 'default',
+      })
+      .onConflictDoNothing();
+  } catch (err) {
+    // best-effort: tenants table may predate migration 0002 on legacy DBs
+    logger.warn({ err }, 'ensureDefaultTenantRow failed — continuing without default tenant row');
+  }
+}
+
 
 /**
  * Insert the 15 builtin permissions (ON CONFLICT DO NOTHING), read back their
@@ -80,6 +103,10 @@ export async function seedBuiltinPermissions(db: DrizzleDB, roleId: string): Pro
  */
 export async function ensureSeedForAdmin(db: DrizzleDB): Promise<void> {
   try {
+    // Default tenant first-writer (R6) — independent of the admin-role early
+    // return below: self-heal backfills the row even with no admin role.
+    await ensureDefaultTenantRow(db);
+
     const [adminRole] = await db
       .select({ id: roles.id })
       .from(roles)
