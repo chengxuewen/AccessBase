@@ -146,7 +146,7 @@ export const defaultAuditConfig: AuditConfig = {
   },
   sanitize: {
     enabled: true,
-    fields: ['password', 'token', 'secret', 'api_key', 'credit_card', 'plaintext'],
+    fields: ['password', 'token', 'secret', 'api_key', 'credit_card', 'plaintext', 'accesstoken', 'refreshtoken'],
     replacement: '[REDACTED]',
   },
   integrity: {

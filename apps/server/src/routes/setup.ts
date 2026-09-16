@@ -388,6 +388,12 @@ export async function setupRoutes(app: FastifyInstance) {
       // in the Options tab.
       await getOptionsManager().setIfAbsent('site.name', config.siteName);
 
+      // Same FIRST-writer discipline for site.url (R3); skip empty string so
+      // an omitted URL never lands as an empty option value.
+      if (config.siteUrl) {
+        await getOptionsManager().setIfAbsent('site.url', config.siteUrl);
+      }
+
       // Log without sensitive data (redact smtpPassword)
       const { smtpPassword: _, ...safeConfig } = config;
       logger.info({ config: safeConfig }, 'Setup configuration saved');

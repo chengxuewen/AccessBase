@@ -344,6 +344,50 @@ describe('AuditLogger', () => {
       expect(written[0]?.responseBody?.['id']).toBe('key123');
     });
 
+    it('default config redacts accessToken/refreshToken from responseBody (token-pair envelopes)', async () => {
+      const written: AuditLog[] = [];
+      const storage: AuditStorage = {
+        write: async (entries) => {
+          written.push(...entries);
+        },
+      };
+      const defaultLogger = new AuditLogger(
+        { ...defaultAuditConfig, async: { ...defaultAuditConfig.async, enabled: false } },
+        { storage },
+      );
+
+      const entry: AuditLogEntry = {
+        userId: 'user1',
+        username: 'testuser',
+        userIp: '127.0.0.1',
+        userAgent: 'test-agent',
+        action: 'CREATE',
+        resourceType: 'session',
+        resourceId: 'req123',
+        requestBody: { email: 'a@b.c' },
+        responseBody: {
+          accessToken: 'raw-access',
+          refreshToken: 'raw-refresh',
+          expiresIn: 900,
+          nested: { data: { accessToken: 'nested-access' } },
+        },
+        timestamp: new Date(),
+        tenantId: 'tenant1',
+        requestId: 'req123',
+        success: true,
+      };
+
+      await defaultLogger.log(entry);
+
+      expect(written).toHaveLength(1);
+      expect(written[0]?.responseBody?.['accessToken']).toBe('[REDACTED]');
+      expect(written[0]?.responseBody?.['refreshToken']).toBe('[REDACTED]');
+      expect(written[0]?.responseBody?.['expiresIn']).toBe(900);
+      const nested = written[0]?.responseBody?.['nested'] as Record<string, unknown>;
+      const inner = nested['data'] as Record<string, unknown>;
+      expect(inner['accessToken']).toBe('[REDACTED]');
+    });
+
     it('should not redact when disabled', async () => {
       const noSanitizeConfig = {
         ...config,

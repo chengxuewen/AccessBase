@@ -228,6 +228,25 @@ describe('setupGuard: initialized state (admin-role user exists)', () => {
     expect(statusRes.json().data.siteName).toBe('Custom');
   });
 
+  it('config persists siteUrl (first-write-wins like siteName)', async () => {
+    // R3 writer half: wizard persists site.url alongside site.name via the
+    // same FIRST-writer setIfAbsent discipline.
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/setup/config',
+      payload: { siteName: 'Custom', siteUrl: 'https://first.example.com' },
+    });
+    expect(optionStore.get('site.url')?.value).toBe('https://first.example.com');
+
+    // Replay (already initialized path): first write wins, no overwrite.
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/setup/config',
+      payload: { siteName: 'Other', siteUrl: 'https://second.example.com' },
+    });
+    expect(optionStore.get('site.url')?.value).toBe('https://first.example.com');
+  });
+
   it('blocks POST /setup/admin with 410 SETUP_ALREADY_COMPLETE', async () => {
     const res = await app.inject({
       method: 'POST',

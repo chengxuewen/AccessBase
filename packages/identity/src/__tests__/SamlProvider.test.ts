@@ -219,6 +219,10 @@ describe('SamlProvider constructor options', () => {
     expect(opts['entryPoint']).toBe('https://idp.example.com/sso/saml');
     expect(opts['wantAssertionsSigned']).toBe(true);
     expect(opts['wantAuthnResponseSigned']).toBe(true);
+    // Replay protection is non-negotiable: node-saml v5.1.0 defaults
+    // validateInResponseTo to 'never', enabling assertion replay within
+    // the clock window. Provider must force 'always' (spec F1 hardening).
+    expect(opts['validateInResponseTo']).toBe('always');
     expect(opts['acceptedClockSkewMs']).toBe(600000);
     expect(opts['audience']).toBe('https://sp.example.com/metadata');
   });

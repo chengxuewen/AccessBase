@@ -73,6 +73,8 @@ export class SamlProvider {
         entryPoint: this.config.entryPoint,
         wantAssertionsSigned: true,
         wantAuthnResponseSigned: true,
+        // Request-ID cache is in-memory (node-saml default): multi-instance deployments must supply a Redis CacheProvider — see spec F1 hardening notes
+        validateInResponseTo: 'always',
         acceptedClockSkewMs: this.config.clockSkewMs ?? 300000,
         identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
         audience: this.config.entityId,
