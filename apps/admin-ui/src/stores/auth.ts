@@ -181,12 +181,14 @@ export const useAuthStore = create<AuthState>()(
         }>>('/v1/auth/oauth/exchange', { code });
         if (!data.success) throw new Error(data.error?.message ?? 'OAuth exchange failed');
         const payload = data.data;
-        // MFA step-up (Batch E): totp users get a flow token, not a session —
-        // hold it so Login.tsx renders the TOTP step; verifyMfa takes over next.
-        // ponytail: token/refreshToken/user not cleared here (pre-Batch-F wart);
-        // exchangeSamlCode shows the hygiene-correct shape — retrofit when touched.
         if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
-          set({ mfaFlowToken: payload.flowToken, isAuthenticated: false });
+          set({
+            mfaFlowToken: payload.flowToken,
+            isAuthenticated: false,
+            token: null,
+            refreshToken: null,
+            user: null,
+          });
           return;
         }
         const { accessToken, refreshToken, user } = payload as {

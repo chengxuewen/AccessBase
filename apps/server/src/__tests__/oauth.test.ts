@@ -139,8 +139,8 @@ const sharedFlowTokens = {
   }),
   consume: vi.fn(async <T,>(token: string, purpose: string): Promise<T | null> => {
     const rec = sharedFlowStore.get(token);
+    if (rec) sharedFlowStore.delete(token); // burn-first: mirrors FlowTokenService consume
     if (!rec || rec.purpose !== purpose) return null;
-    sharedFlowStore.delete(token);
     return rec.payload as T;
   }),
 };

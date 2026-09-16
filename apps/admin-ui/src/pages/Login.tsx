@@ -29,6 +29,9 @@ export default function Login() {
 
   const navigateAfterAuth = useCallback(() => {
     if (oidcRedirect) {
+      const pendingFlow = useAuthStore.getState().mfaFlowToken;
+      if (pendingFlow) sessionStorage.setItem('mfaFlowToken', pendingFlow);
+      else sessionStorage.removeItem('mfaFlowToken');
       window.location.assign(oidcRedirect);
       return;
     }
@@ -46,6 +49,16 @@ export default function Login() {
   const [magicOpen, setMagicOpen] = useState(false);
   const [magicBusy, setMagicBusy] = useState(false);
   const [magicMessage, setMagicMessage] = useState<string | null>(null);
+
+  // Restore MFA flow token from sessionStorage (set before oidcRedirect navigation).
+  // Must run before the oauthCode effect to avoid stale re-exchange on mount.
+  useEffect(() => {
+    const stored = sessionStorage.getItem('mfaFlowToken');
+    if (stored) {
+      useAuthStore.setState({ mfaFlowToken: stored });
+      sessionStorage.removeItem('mfaFlowToken');
+    }
+  }, []);
 
   useEffect(() => {
     const code = searchParams.get('oauthCode');
