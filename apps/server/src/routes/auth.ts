@@ -597,6 +597,196 @@ return { success: true };
     },
   );
 
+  // POST /api/v1/auth/magic/request — passwordless sign-in link (F2).
+  // Enumeration-safe: identical 202 body whether or not the account exists.
+  // R7: per-IP rate limit only (no email+IP keyGenerator — no in-repo precedent).
+  app.post<{ Body: { email: string } }>(
+    '/magic/request',
+    {
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+      schema: {
+        description: 'Request a magic sign-in link. Always succeeds regardless of account existence.',
+        tags: ['auth'],
+        body: {
+          type: 'object',
+          required: ['email'],
+          properties: { email: { type: 'string', format: 'email' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { email } = request.body;
+      const options = getOptionsManager();
+      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const user = await userManager.findByEmail(email);
+      if (user && user.status === 'active') {
+        const token = await flowTokens.issue('magic_login', { userId: user.id, email: user.email }, 900);
+        // R8: identical SMTP keys to forgot-password — no second config source.
+        const host = await options.get('smtp_host', process.env['SMTP_HOST'], '');
+        const port = Number(await options.get('smtp_port', process.env['SMTP_PORT'] ? Number(process.env['SMTP_PORT']) : undefined, 587));
+        const smtpUser = await options.get('smtp_user', process.env['SMTP_USER'], '');
+        const pass = await options.get('smtp_password', process.env['SMTP_PASSWORD'], '');
+        const from = await options.get('smtp_from', process.env['SMTP_FROM'], '');
+        const mailer = host ? Mailer.fromConfig({ host, port, user: smtpUser, pass, from }) : null;
+        if (mailer) {
+          // R3 origin chain: options site.url → env SITE_URL → request origin.
+          const siteUrl = await options.get('site.url', process.env['SITE_URL'], '');
+          const host = request.headers.host ?? '';
+          const proto = request.headers['x-forwarded-proto'] ?? request.protocol;
+          const origin = siteUrl || `${proto}://${host}`;
+          const link = `${origin}/login/magic?token=${token}`;
+          await mailer.send(email, 'Your sign-in link', `<p>Click to sign in: <a href="${link}">${link}</a></p>`).catch((err: unknown) => {
+            logger.warn({ err }, 'Magic link delivery failed (degraded to log)');
+          });
+        } else {
+          // Never log the token — it grants a full session.
+          logger.warn('magic link: SMTP not configured, link not sent');
+        }
+      }
+      return reply.status(202).send({
+        success: true,
+        data: { message: 'If an account exists, a sign-in link has been sent.' },
+      });
+    },
+  );
+
+  // POST /api/v1/auth/magic/consume — exchange a magic link token for a session.
+  // R13 failure order: bad token → deleted user → email mismatch all return the
+  // same generic 401 (token is already burned by consume); suspended is 403.
+  app.post<{ Body: { token: string } }>(
+    '/magic/consume',
+    {
+      config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
+      schema: {
+        description: 'Consume a magic sign-in link token (or receive an MFA step-up).',
+        tags: ['auth'],
+        body: {
+          type: 'object',
+          required: ['token'],
+          properties: { token: { type: 'string', minLength: 1 } },
+        },
+        response: {
+          // R2 lesson: declare the FULL union or fast-json-stringify strips fields.
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  // mfa step-up arm
+                  mfaRequired: { type: 'boolean' },
+                  flowToken: { type: 'string' },
+                  // token-pair arm
+                  accessToken: { type: 'string' },
+                  refreshToken: { type: 'string' },
+                  expiresIn: { type: 'number' },
+                  user: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      email: { type: 'string' },
+                      name: { type: 'string' },
+                      // R2: declare item fields or fast-json-stringify strips them.
+                      roles: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string' },
+                            name: { type: 'string' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' },
+                },
+              },
+            },
+          },
+          403: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const payload = await flowTokens.consume<{ userId: string; email: string }>(
+        request.body.token,
+        'magic_login',
+      );
+      if (!payload) {
+        return reply.status(401).send({
+          success: false,
+          error: { code: 'AUTH_MAGIC_001', message: 'Invalid or expired sign-in link' },
+        });
+      }
+      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const user = await userManager.findById(payload.userId, DEFAULT_TENANT);
+      if (!user || user.email !== payload.email) {
+        // Token already burned above — same generic 401 (R13).
+        return reply.status(401).send({
+          success: false,
+          error: { code: 'AUTH_MAGIC_001', message: 'Invalid or expired sign-in link' },
+        });
+      }
+      if (user.status !== 'active') {
+        request.log.warn({ userId: user.id }, 'Magic link consume rejected: account suspended');
+        return reply.status(403).send({
+          success: false,
+          error: { code: 'AUTH_004', message: 'Account suspended' },
+        });
+      }
+      // MFA step-up: six-way uniform {userId}/300s/mfa_verify.
+      if (user.totpEnabled) {
+        const flowToken = await flowTokens.issue('mfa_verify', { userId: user.id }, 300);
+        return {
+          success: true,
+          data: { mfaRequired: true, flowToken },
+        };
+      }
+      const { accessToken, refreshToken } = await issueTokenPair(request, user);
+      request.log.info({ userId: user.id }, 'Magic link sign-in successful');
+      return {
+        success: true,
+        data: {
+          accessToken,
+          refreshToken,
+          expiresIn: 900,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            roles: await rolesOf(user.id),
+          },
+        },
+      };
+    },
+  );
+
   // POST /api/v1/auth/reset-password
   app.post<{ Body: { token: string; newPassword: string } }>(
     '/reset-password',
