@@ -252,7 +252,16 @@ export async function samlRoutes(app: FastifyInstance) {
                       id: { type: 'string' },
                       email: { type: 'string' },
                       name: { type: 'string' },
-                      roles: { type: 'array', items: { type: 'object' } },
+                      roles: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string' },
+                            name: { type: 'string' },
+                          },
+                        },
+                      },
                     },
                   },
                 },

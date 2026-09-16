@@ -66,14 +66,14 @@ const sessionManagerMock = {
 // Shared FlowTokenService stub via module-level Map (oauth.test.ts seam) —
 // with burn-first consume ordering (delete BEFORE payload check; Task 6 fixes
 // the real stub to match this shape).
-const sharedFlowStore = new Map<string, { purpose: string; payload: unknown }>();
+const sharedFlowStore = new Map<string, { purpose: string; payload: unknown; ttl?: number }>();
 function resetSharedFlowStore(): void {
   sharedFlowStore.clear();
 }
 const sharedFlowTokens = {
-  issue: vi.fn(async (purpose: string, payload: unknown, _ttl?: number) => {
+  issue: vi.fn(async (purpose: string, payload: unknown, ttl?: number) => {
     const token = crypto.randomUUID().replaceAll('-', '');
-    sharedFlowStore.set(token, { purpose, payload });
+    sharedFlowStore.set(token, { purpose, payload, ttl });
     return token;
   }),
   consume: vi.fn(async <T,>(token: string, purpose: string): Promise<T | null> => {
@@ -108,7 +108,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       })),
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
-      getUserRoles: vi.fn().mockResolvedValue([]),
+      getUserRoles: vi.fn().mockResolvedValue([{ id: 'r1', name: 'Admin' }]),
     })),
     SessionManager: vi.fn().mockImplementation(() => sessionManagerMock),
     FlowTokenService: vi.fn().mockImplementation(() => sharedFlowTokens),
@@ -297,6 +297,8 @@ describe('POST /api/v1/auth/saml/exchange', () => {
     const mfaRecord = [...sharedFlowStore.entries()].find(([, r]) => r.purpose === 'mfa_verify');
     expect(mfaRecord).toBeDefined();
     expect(mfaRecord?.[1].payload).toEqual({ userId: testUser.id });
+    // R2 batch-E parity: mfa_verify must carry the 300s TTL end-to-end
+    expect(mfaRecord?.[1].ttl).toBe(300);
   });
 
   it('non-mfaPending variant: token-pair envelope with user roles (union arm 2)', async () => {
@@ -311,7 +313,9 @@ describe('POST /api/v1/auth/saml/exchange', () => {
     expect(body.data.refreshToken).toBe('test-refresh-token');
     expect(body.data.expiresIn).toBe(900);
     expect(body.data.user).toMatchObject({ id: testUser.id, email: testUser.email, name: testUser.name });
-    expect(Array.isArray(body.data.user.roles)).toBe(true);
+    // Wire shape (R2 batch-E class): declared item properties must survive
+    // fast-json-stringify — bare `items: {type:'object'}` would emit [{}].
+    expect(body.data.user.roles).toEqual([{ id: 'r1', name: 'Admin' }]);
     // single-use: second exchange fails
     const res2 = await app.inject({ method: 'POST', url: '/api/v1/auth/saml/exchange', payload: { code } });
     expect(res2.statusCode).toBe(401);
