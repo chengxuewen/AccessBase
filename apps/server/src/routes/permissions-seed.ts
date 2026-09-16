@@ -1,6 +1,6 @@
 /**
  * Builtin permission seeding — idempotent, best-effort.
- * Seeds 18 {resource, action} permissions and binds all to the admin role.
+ * Seeds 21 {resource, action} permissions and binds all to the admin role.
  */
 import { and, eq, inArray } from 'drizzle-orm';
 import type { DrizzleDB } from '@accessbase/identity/db';
@@ -9,7 +9,7 @@ import { logger } from '@accessbase/logging';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 
 /**
- * 18 builtin permissions — resource/action pairs must match
+ * 21 builtin permissions — resource/action pairs must match
  * authorize.ts getRequiredPermission() mapping verbatim.
  */
 export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: string; description: string }[] = [
@@ -31,9 +31,12 @@ export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: stri
   { name: 'apikeys:read', resource: 'apikeys', action: 'read', description: 'View API keys' },
   { name: 'apikeys:write', resource: 'apikeys', action: 'write', description: 'Create API keys' },
   { name: 'apikeys:delete', resource: 'apikeys', action: 'delete', description: 'Revoke API keys' },
+  { name: 'tenants:read', resource: 'tenants', action: 'read', description: 'View tenants' },
+  { name: 'tenants:write', resource: 'tenants', action: 'write', description: 'Create or update tenants' },
+  { name: 'tenants:delete', resource: 'tenants', action: 'delete', description: 'Delete tenants' },
 ];
 
-const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats', 'options', 'clients', 'apikeys'];
+const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats', 'options', 'clients', 'apikeys', 'tenants'];
 const ACTIONS = ['read', 'write', 'delete'];
 
 /**
@@ -60,7 +63,9 @@ export async function ensureDefaultTenantRow(db: DrizzleDB): Promise<void> {
 
 
 /**
- * Insert the 15 builtin permissions (ON CONFLICT DO NOTHING), read back their
+  }
+/**
+ * Insert the 21 builtin permissions (ON CONFLICT DO NOTHING), read back their
  * IDs by resource+action, then bind all to the given role (idempotent).
  * Never throws — failures are logged and swallowed (best-effort, seed must not
  * block admin creation).

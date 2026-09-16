@@ -134,6 +134,7 @@ describe('requirePermission preHandler', () => {
       ['apps/server/src/routes/users.ts', '/api/v1/users'],
       ['apps/server/src/routes/roles.ts', '/api/v1/roles'],
       ['apps/server/src/routes/permissions.ts', '/api/v1/permissions'],
+      ['apps/server/src/routes/tenants.ts', '/api/v1/tenants'],
     ];
     const missing: string[] = [];
     let matched = 0;
@@ -149,7 +150,7 @@ describe('requirePermission preHandler', () => {
       }
     }
     expect(missing).toEqual([]);
-    expect(matched).toBeGreaterThanOrEqual(13); // guard against vacuous-pass
+    expect(matched).toBeGreaterThanOrEqual(18); // guard against vacuous-pass (13 + 5 tenants)
   });
 
   it('still returns 401 without a token (authenticate runs first)', async () => {

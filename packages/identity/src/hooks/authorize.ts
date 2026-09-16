@@ -52,6 +52,10 @@ const routePermissions: Record<string, string> = {
   'GET:/api/v1/auth/api-keys': 'apikeys:read',
   'POST:/api/v1/auth/api-keys': 'apikeys:write',
   'DELETE:/api/v1/auth/api-keys': 'apikeys:delete',
+  'GET:/api/v1/tenants': 'tenants:read',
+  'POST:/api/v1/tenants': 'tenants:write',
+  'PUT:/api/v1/tenants': 'tenants:write',
+  'DELETE:/api/v1/tenants': 'tenants:delete',
 };
 
 /**
