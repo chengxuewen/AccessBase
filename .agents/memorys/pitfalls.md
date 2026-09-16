@@ -386,3 +386,17 @@
 - **根因**: 每次新增签发路径（login/oauth/webauthn/ldap/…）都是独立任务，"所有签发路径同门"的横切契约没有清单化，靠终审记忆比对。
 - **解法**: 维护签发路径清单（status.md 或 conventions）：每处列出 status 门/claim/限流/MFA step-up 四要素状态；新增路径的 plan 评审必须对照清单逐项打勾。
 - **验证**: conventions 或 status 维护"签发路径×安全要素"矩阵；新路径 PR 引用矩阵。
+
+## PIT-053: 远程 subagent 修复波提交落 detached HEAD (2026-09-16)
+
+- **症状**: 批次 F 终审修复波 commit b157edc 报告"分离头指针"，master 仍停在 e9dbfd4 前一位——后 2 个批次提交不在任何分支上
+- **根因**: 后台 subagent 会话继承的工作目录在某次操作后 HEAD 脱离分支（此前批次全程在 master 上直提交，无此现象）；实现者只核对 commit 成功未核对分支归属，控制器收尾时也未第一时间查
+- **解法**: 控制器在每个 subagent 提交后立即 `git branch --show-current` 核验；发现脱管用 `git branch -f master <hash> && git checkout master` 快进收编（本例零损失）
+- **验证**: 每次收尾必跑 `git branch --show-current` 应输出 master 且 `git log master --oneline -1` = `git log --oneline -1`
+
+## PIT-054: 全量 e2e 在高负载机器上失败集漂移假阳性 (2026-09-16)
+
+- **症状**: 批次 F 收口期全量 chromium e2e 连跑 5 轮失败数 8→9→6→5→6 漂移，失败集合每轮不同（roles-crud/users-crud/theme/ui-quality 轮换），load average 4-17 波动；单文件单跑全绿
+- **根因**: 共享 Vite dev server + fullyParallel 并发在 load>10 的机器上自压垮（waitForTimeout 类时序断言 + 网络探活超时），与代码无关；T6 报告的"0 fail"恰在低负载窗口跑出，控制器复跑 3 次全撞高负载——同一代码两种结论
+- **解法**: 权威数只认 `--workers=1` + 低负载窗口（uptime load<2）；报告 e2e 数字必须附 workers/窗口条件；间歇漂移失败先 A/B 单跑再定性
+- **验证**: `uptime` load<2 后 `pixi run npx playwright test --project=chromium --workers=1` → 稳定 0 failed
