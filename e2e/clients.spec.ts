@@ -103,6 +103,10 @@ async function mockCommonApis(page: Page): Promise<void> {
       body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
     });
   });
+  // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
+  await page.route('**/api/v1/auth/saml/status', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+  });
 }
 
 /** GET /api/v1/clients backed by a mutable list so create/delete mutate the "DB". */

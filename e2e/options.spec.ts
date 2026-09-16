@@ -131,6 +131,10 @@ test.describe('Settings Options tab', () => {
 
   test.beforeEach(async ({ page }) => {
     consoleErrors = trackConsoleErrors(page);
+    // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
+    await page.route('**/api/v1/auth/saml/status', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    });
   });
 
   test.afterEach(async () => {
