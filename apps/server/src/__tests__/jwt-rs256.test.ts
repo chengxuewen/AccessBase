@@ -3,6 +3,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DEFAULT_TENANT } from '../utils/constants.js';
 
 // Set env before importing config-dependent modules
 process.env.NODE_ENV = 'test';
@@ -90,6 +91,10 @@ describe('JWT RS256 (key paths configured)', () => {
     // Decode header without verification
     const decoded = app.jwt.decode(token, { complete: true });
     expect(decoded.header.alg).toBe('RS256');
+
+    // Batch G (R0): access tokens carry the tenantId claim (falls back to DEFAULT_TENANT)
+    const payload = app.jwt.decode(token) as { tenantId?: string };
+    expect(payload.tenantId).toBe(DEFAULT_TENANT);
 
     const res = await app.inject({
       method: 'GET',

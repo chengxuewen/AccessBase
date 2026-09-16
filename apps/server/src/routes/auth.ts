@@ -53,11 +53,11 @@ export async function authRoutes(app: FastifyInstance) {
   /** Issue access JWT + refresh token — shared by login (non-MFA) and /mfa/verify */
   async function issueTokenPair(
     request: { ip: string; headers: Record<string, unknown> },
-    user: { id: string; email: string; status?: string },
+    user: { id: string; email: string; status?: string; tenantId?: string },
   ) {
     const accessToken = app.jwt.sign(
       // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
-      { sub: user.id, email: user.email, status: user.status },
+      { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT },
       { expiresIn: '15m' },
     );
     const { refreshToken } = await sessionManager.issueRefreshToken(
@@ -470,7 +470,7 @@ return { success: true };
         );
         if (!user) throw new Error('User not found');
         const accessToken = app.jwt.sign(
-          { sub: userId, email: user.email, status: user.status },
+          { sub: userId, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT },
           { expiresIn: '15m' },
         );
 
@@ -971,6 +971,7 @@ return { success: true };
           id: user.id,
           email: user.email,
           status: user.status,
+          tenantId: user.tenantId,
         });
         return {
           success: true,

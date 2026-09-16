@@ -272,11 +272,11 @@ export async function oauthRoutes(app: FastifyInstance) {
   /** Issue access JWT + refresh token (same claims/shape as login). */
   async function issueTokenPair(
     request: { ip: string; headers: Record<string, unknown> },
-    user: { id: string; email: string; status?: string },
+    user: { id: string; email: string; status?: string; tenantId?: string },
   ): Promise<{ accessToken: string; refreshToken: string }> {
     // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
     const accessToken = app.jwt.sign(
-      { sub: user.id, email: user.email, status: user.status },
+      { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT },
       { expiresIn: '15m' },
     );
     const { refreshToken } = await sessionManager.issueRefreshToken(
