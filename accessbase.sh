@@ -71,6 +71,12 @@ EOF
 # ===== Development Commands =====
 
 cmd_dev() {
+    # Source .env (set -a auto-exports) so the server process sees keys like
+    # MFA_ENCRYPTION_KEY / SAML_* (R4: dev paths had no .env loading).
+    set -a
+    [ -f .env ] && . ./.env
+    set +a
+
     ensure_node
     ensure_pnpm
 
@@ -114,6 +120,12 @@ cmd_dev() {
 # ===== Native Commands (Pixi-managed) =====
 
 cmd_dev_native() {
+    # Source .env (set -a auto-exports) so the server process sees keys like
+    # MFA_ENCRYPTION_KEY / SAML_* (R4: dev paths had no .env loading).
+    set -a
+    [ -f .env ] && . ./.env
+    set +a
+
     ensure_pixi
     ensure_node
     ensure_pnpm
@@ -458,11 +470,24 @@ cmd_start_container() {
     $D build -t accessbase:latest .
 
     log_info "Starting all-in-one container..."
-    $D run -d --name accessbase \
-        -p 5101:5101 \
-        -e JWT_SECRET="${JWT_SECRET}" \
-        -e NODE_ENV=production \
-        accessbase:latest
+    if [ -f .env ]; then
+        # Pass the full .env (R4: explicit -e list can't cover MFA_ENCRYPTION_KEY,
+        # SAML_*, SMTP_*, SITE_URL, OAUTH_PROVIDERS). Explicit -e flags remain as
+        # fallback for when .env is absent.
+        log_info "Using .env file for container env"
+        $D run -d --name accessbase \
+            -p 5101:5101 \
+            --env-file .env \
+            -e NODE_ENV=production \
+            accessbase:latest
+    else
+        log_warn ".env not found — falling back to explicit -e flags (JWT_SECRET only)"
+        $D run -d --name accessbase \
+            -p 5101:5101 \
+            -e JWT_SECRET="${JWT_SECRET}" \
+            -e NODE_ENV=production \
+            accessbase:latest
+    fi
 
     log_ok "AccessBase running at http://localhost:5101"
 }
