@@ -61,7 +61,16 @@
     "mfaCancel": "使用其他账号",
     "mfaError": "验证码无效或已过期",
     "tooManyRequests": "尝试过于频繁，请稍后再试",
-    "oidcRedirect": "正在认证——即将继续安全登录…"
+    "oidcRedirect": "正在认证——即将继续安全登录…",
+    "samlButton": "使用 SAML 登录",
+    "samlFailed": "SAML 登录失败（{{reason}}）",
+    "magicTrigger": "使用邮箱链接登录",
+    "magicEmailPlaceholder": "接收登录链接的邮箱",
+    "magicSubmit": "发送登录链接",
+    "magicTitle": "邮箱登录",
+    "magicInvalid": "此登录链接无效或已过期。",
+    "magicBackToLogin": "返回登录",
+    "magicError": "登录链接发送失败。"
   },
   "consent": {
     "title": "授权请求",

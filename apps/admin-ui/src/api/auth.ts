@@ -49,6 +49,54 @@ export async function listOAuthProviders(): Promise<string[]> {
   const { data } = await client.get<ApiEnvelope<{ providers: string[] }>>('/v1/auth/oauth/providers');
   return data.data.providers;
 }
+
+/** SAML login-page probe: is SAML SP configured (strict gate — no fallback) */
+export async function fetchSamlStatus(): Promise<boolean> {
+  const { data } = await client.get<ApiEnvelope<{ enabled: boolean }>>('/v1/auth/saml/status');
+  return data.data.enabled === true;
+}
+
+export interface ExchangeUser {
+  id: string;
+  email: string;
+  name: string;
+  roles: { id: string; name: string }[];
+}
+
+export interface SamlExchangeResult {
+  mfaRequired?: boolean;
+  flowToken?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  user?: ExchangeUser | null;
+}
+
+/** SAML/magic exchange union shape — same contract as oauth exchange */
+type ExchangePayload = SamlExchangeResult;
+
+/** Consume a SAML one-time code → session (token pair or MFA step-up) */
+export async function exchangeSamlCode(code: string): Promise<ExchangePayload> {
+  const { data } = await client.post<ApiEnvelope<ExchangePayload>>('/v1/auth/saml/exchange', { code });
+  if (!data.success) throw new Error(data.error?.message ?? 'SAML exchange failed');
+  return data.data;
+}
+
+/** Request a magic sign-in link. Enumeration-safe: always 202 with a fixed message */
+export async function requestMagicLink(email: string): Promise<string> {
+  const { data } = await client.post<ApiEnvelope<{ message: string }>>('/v1/auth/magic/request', { email });
+  return data.data.message;
+}
+
+/** Magic link consume union shape — same contract as saml exchange */
+export type MagicConsumeResult = SamlExchangeResult;
+
+/** Consume a magic link token → session (token pair or MFA step-up) */
+export async function consumeMagicLink(token: string): Promise<MagicConsumeResult> {
+  const { data } = await client.post<ApiEnvelope<MagicConsumeResult>>('/v1/auth/magic/consume', { token });
+  if (!data.success) throw new Error(data.error?.message ?? 'Magic link sign-in failed');
+  return data.data;
+}
+
 export interface SafeSessionInfo {
   id: string;
   userAgent: string;

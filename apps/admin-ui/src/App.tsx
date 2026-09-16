@@ -7,6 +7,7 @@ import { useSetupGuardState } from './hooks/useSetupGuardState';
 import { i18nReady as i18nReadyPromise } from './i18n';
 import AdminLayout from './layouts/AdminLayout';
 import Login from './pages/Login';
+import MagicLogin from './pages/MagicLogin';
 import Consent from './pages/Consent';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
@@ -97,6 +98,14 @@ export default function App() {
         element={
           <GlobalGuard>
             <Login />
+          </GlobalGuard>
+        }
+      />
+      <Route
+        path="/login/magic"
+        element={
+          <GlobalGuard>
+            <MagicLogin />
           </GlobalGuard>
         }
       />

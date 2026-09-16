@@ -28,6 +28,8 @@ interface AuthState {
   setTokens: (token: string, refreshToken: string) => void;
   fetchUser: () => Promise<void>;
   exchangeOAuthCode: (code: string) => Promise<void>;
+  exchangeSamlCode: (code: string) => Promise<void>;
+  consumeMagicLink: (token: string) => Promise<void>;
   verifyMfa: (code: string) => Promise<boolean>;
   cancelMfa: () => void;
   hasPermission: (code: string) => boolean;
@@ -181,8 +183,79 @@ export const useAuthStore = create<AuthState>()(
         const payload = data.data;
         // MFA step-up (Batch E): totp users get a flow token, not a session —
         // hold it so Login.tsx renders the TOTP step; verifyMfa takes over next.
+        // ponytail: token/refreshToken/user not cleared here (pre-Batch-F wart);
+        // exchangeSamlCode shows the hygiene-correct shape — retrofit when touched.
         if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
           set({ mfaFlowToken: payload.flowToken, isAuthenticated: false });
+          return;
+        }
+        const { accessToken, refreshToken, user } = payload as {
+          accessToken: string;
+          refreshToken: string;
+          user: User | null;
+        };
+        set({
+          user: user ?? null,
+          token: accessToken,
+          refreshToken,
+          isAuthenticated: true,
+        });
+      },
+
+      // SAML exchange — same contract as exchangeOAuthCode. MFA branch wipes any
+      // persisted session at birth (hygiene fix; the oauth twin is retrofitted by T5).
+      exchangeSamlCode: async (code: string) => {
+        const { data } = await client.post<ApiEnvelope<{
+          mfaRequired?: boolean;
+          flowToken?: string;
+          accessToken?: string;
+          refreshToken?: string;
+          user?: User | null;
+        }>>('/v1/auth/saml/exchange', { code });
+        if (!data.success) throw new Error(data.error?.message ?? 'SAML exchange failed');
+        const payload = data.data;
+        if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
+          set({
+            mfaFlowToken: payload.flowToken,
+            isAuthenticated: false,
+            token: null,
+            refreshToken: null,
+            user: null,
+          });
+          return;
+        }
+        const { accessToken, refreshToken, user } = payload as {
+          accessToken: string;
+          refreshToken: string;
+          user: User | null;
+        };
+        set({
+          user: user ?? null,
+          token: accessToken,
+          refreshToken,
+          isAuthenticated: true,
+        });
+      },
+
+      // Magic link consume — same contract as exchangeSamlCode (shared MFA TOTP step).
+      consumeMagicLink: async (token: string) => {
+        const { data } = await client.post<ApiEnvelope<{
+          mfaRequired?: boolean;
+          flowToken?: string;
+          accessToken?: string;
+          refreshToken?: string;
+          user?: User | null;
+        }>>('/v1/auth/magic/consume', { token });
+        if (!data.success) throw new Error(data.error?.message ?? 'Magic link sign-in failed');
+        const payload = data.data;
+        if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
+          set({
+            mfaFlowToken: payload.flowToken,
+            isAuthenticated: false,
+            token: null,
+            refreshToken: null,
+            user: null,
+          });
           return;
         }
         const { accessToken, refreshToken, user } = payload as {

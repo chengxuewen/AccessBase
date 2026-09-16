@@ -334,4 +334,27 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
       .toEqual({ flowToken: 'flow-1', code: '123456' });
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
   });
+
+  test('F3-5: oauth exchange mfaRequired shows the TOTP step (flow token held, no session)', async ({ page }) => {
+    await page.route('**/api/v1/auth/oauth/exchange', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        // Real shape (routes/oauth.ts MFA arm): step-up challenge, no tokens
+        body: JSON.stringify({ success: true, data: { mfaRequired: true, flowToken: 'flow-1' } }),
+      });
+    });
+
+    await page.goto('/login?oauthCode=e2e-oauth-mfa-code');
+
+    // Step-up UI must appear and the user must stay on /login (no session yet)
+    const codeInput = page.locator('[data-testid="mfa-code-input"], input#code, input[name="code"]').first();
+    await expect(codeInput).toBeVisible({ timeout: 10000 });
+    await expect(page).toHaveURL(/\/login/);
+    // No session must exist while only the flow token is held
+    const stored = await page.evaluate(() => localStorage.getItem('auth-storage'));
+    const parsed = JSON.parse(stored ?? '{}') as { state?: { token?: string | null; isAuthenticated?: boolean } };
+    expect(parsed.state?.token ?? null).toBeNull();
+    expect(parsed.state?.isAuthenticated ?? false).toBe(false);
+  });
 });

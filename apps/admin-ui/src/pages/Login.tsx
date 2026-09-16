@@ -2,12 +2,14 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Button, Card, Alert, Spin } from 'antd';
-import { MailOutlined, LockOutlined, KeyOutlined } from '@ant-design/icons';
+import { MailOutlined, LockOutlined, KeyOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../stores/auth';
 import { OAuthButtons } from '../components/OAuthButtons';
 import {
   getWebAuthnLoginOptions,
   verifyWebAuthnLogin,
+  fetchSamlStatus,
+  requestMagicLink,
 } from '../api/auth';
 import { startAuthentication } from '@simplewebauthn/browser';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
@@ -18,7 +20,7 @@ import { getInteraction, postInteractionDecision, safeOidcRedirect } from '../ap
 export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { login, isLoading, exchangeOAuthCode, fetchUser, mfaFlowToken, verifyMfa, cancelMfa } =
+  const { login, isLoading, exchangeOAuthCode, exchangeSamlCode, fetchUser, mfaFlowToken, verifyMfa, cancelMfa } =
     useAuthStore();
   const [form] = Form.useForm();
   const [mfaForm] = Form.useForm();
@@ -38,6 +40,12 @@ export default function Login() {
   const [passkeyError, setPasskeyError] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   const [mfaError, setMfaError] = useState(false);
+  // SAML: strict enabled gate (addendum) — no fallback semantics like OAuthButtons
+  const [samlEnabled, setSamlEnabled] = useState(false);
+  const [samlError, setSamlError] = useState<string | null>(null);
+  const [magicOpen, setMagicOpen] = useState(false);
+  const [magicBusy, setMagicBusy] = useState(false);
+  const [magicMessage, setMagicMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const code = searchParams.get('oauthCode');
@@ -60,6 +68,43 @@ export default function Login() {
         .finally(() => setOauthBusy(false));
     }
   }, [searchParams, setSearchParams, exchangeOAuthCode, fetchUser, navigate, navigateAfterAuth]);
+
+  // SAML: strict enabled gate — probe status on mount; no fallback semantics.
+  useEffect(() => {
+    let cancelled = false;
+    fetchSamlStatus()
+      .then((enabled) => {
+        if (!cancelled) setSamlEnabled(enabled);
+      })
+      .catch(() => {
+        // Unreachable backend → keep the button hidden (strict gate)
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // SAML flow: mirror the oauthCode effect — one-shot exchange, MFA step-up aware.
+  useEffect(() => {
+    const code = searchParams.get('samlCode');
+    const error = searchParams.get('samlError');
+    if (!code && !error) return;
+    // SAML MFA step-up: TOTP form showing — do not re-exchange or navigate.
+    if (code && useAuthStore.getState().mfaFlowToken) return;
+    setSearchParams({}, { replace: true });
+    if (error) {
+      setSamlError(error);
+      return;
+    }
+    if (code) {
+      setOauthBusy(true);
+      exchangeSamlCode(code)
+        .then(() => useAuthStore.getState().fetchUser())
+        .then(() => navigateAfterAuth())
+        .catch(() => setSamlError('AUTH_SAML_002'))
+        .finally(() => setOauthBusy(false));
+    }
+  }, [searchParams, setSearchParams, exchangeSamlCode, navigateAfterAuth]);
 
   // OIDC flow: already-authenticated user landing on /login?redirect=/oidc/auth/:uid
   // auto-approves the LOGIN prompt so the provider flow resumes without retyping
@@ -124,6 +169,20 @@ export default function Login() {
     mfaForm.resetFields();
   };
 
+  // Magic link request: the server answers 202 with a fixed enumeration-safe message —
+  // show data.message verbatim regardless of account existence.
+  const handleMagicRequest = async (values: { email: string }) => {
+    setMagicBusy(true);
+    setMagicMessage(null);
+    try {
+      const message = await requestMagicLink(values.email);
+      setMagicMessage(message);
+    } catch (err) {
+      setMagicMessage(apiErrorMessage(err, t('login.magicError')));
+    } finally {
+      setMagicBusy(false);
+    }
+  };
   const handleSubmit = async (values: { email: string; password: string }) => {
     try {
       const sessionEstablished = await login(values.email, values.password);
@@ -229,6 +288,16 @@ export default function Login() {
           />
         )}
 
+        {samlError && (
+          <Alert
+            type="error"
+            showIcon
+            message={t('login.samlFailed', { reason: samlError })}
+            style={{ marginBottom: 16 }}
+            data-testid="saml-error"
+          />
+        )}
+
         {passkeyError && (
           <Alert
             type="error"
@@ -287,6 +356,67 @@ export default function Login() {
         </Button>
 
         <OAuthButtons />
+        {samlEnabled && (
+          <a href="/api/v1/auth/saml/login" style={{ display: 'block' }} data-testid="saml-login">
+            <Button block size="large" icon={<SafetyCertificateOutlined />}>
+              {t('login.samlButton')}
+            </Button>
+          </a>
+        )}
+
+        {!magicOpen && !magicMessage && (
+          <Button
+            block
+            size="large"
+            type="text"
+            icon={<MailOutlined />}
+            onClick={() => setMagicOpen(true)}
+            style={{ marginTop: samlEnabled ? 16 : 0 }}
+            data-testid="magic-trigger"
+          >
+            {t('login.magicTrigger')}
+          </Button>
+        )}
+
+        {magicOpen && !magicMessage && (
+          <Form onFinish={handleMagicRequest} layout="vertical" style={{ marginTop: 16 }}>
+            <Form.Item
+              name="email"
+              rules={[
+                { required: true, message: t('login.emailRequired') },
+                { type: 'email', message: t('login.emailInvalid') },
+              ]}
+            >
+              <Input
+                prefix={<MailOutlined />}
+                placeholder={t('login.magicEmailPlaceholder')}
+                size="large"
+                autoComplete="username"
+                data-testid="magic-email-input"
+              />
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={magicBusy}
+              block
+              size="large"
+              data-testid="magic-submit"
+            >
+              {t('login.magicSubmit')}
+            </Button>
+          </Form>
+        )}
+
+        {magicMessage && (
+          <Alert
+            type="success"
+            showIcon
+            message={magicMessage}
+            style={{ marginTop: 16 }}
+            data-testid="magic-success"
+          />
+        )}
       </Card>
     </div>
   );

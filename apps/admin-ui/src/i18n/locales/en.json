@@ -61,7 +61,16 @@
     "mfaCancel": "Use another account",
     "mfaError": "Invalid or expired verification code",
     "tooManyRequests": "Too many attempts, try again later",
-    "oidcRedirect": "Authenticating — resuming secure sign-in…"
+    "oidcRedirect": "Authenticating — resuming secure sign-in…",
+    "samlButton": "Sign in with SAML",
+    "samlFailed": "SAML sign-in failed ({{reason}})",
+    "magicTrigger": "Sign in with email link",
+    "magicEmailPlaceholder": "Email for sign-in link",
+    "magicSubmit": "Send sign-in link",
+    "magicTitle": "Email sign-in",
+    "magicInvalid": "This sign-in link is invalid or has expired.",
+    "magicBackToLogin": "Back to sign in",
+    "magicError": "Failed to send the sign-in link."
   },
   "consent": {
     "title": "Authorization Request",
