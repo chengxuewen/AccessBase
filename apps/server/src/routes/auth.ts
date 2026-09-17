@@ -589,7 +589,7 @@ return { success: true };
           request.tenantId ?? DEFAULT_TENANT,
         );
         if (!user) throw new Error('User not found');
-        const { accessToken, refreshToken } = await issueTokenPair(request, { id: user.id, email: user.email, status: user.status });
+        const { accessToken, refreshToken } = await issueTokenPair(request, { id: user.id, email: user.email, status: user.status, tenantId: user.tenantId });
         return { success: true, data: { accessToken, refreshToken, expiresIn: 900 } };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Password change failed';

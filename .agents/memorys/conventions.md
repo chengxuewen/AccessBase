@@ -177,7 +177,7 @@ logger.error('Operation failed', error); // ❌
 ## Phase 8a 授权接线约束（2026-09-04）
 
 - 新增路由的权限码必须**同时**进 authorize.ts `routePermissions` 映射表与 permissions-seed.ts `BUILTIN_PERMISSIONS`（只改其一 = 映射到了无种子码 或 种子码无人消费，均永久 403/死码）
-- 检查命令 1：`grep -c "resource: '" apps/server/src/routes/permissions-seed.ts` 应 =18（码数变更时同步更新此期望值；2026-09-12 批 C Task 2 15→18：apikeys:read/write/delete + RESOURCES 数组同步加 'apikeys'，缺 RESOURCES 会过滤掉 admin 角色绑定回读；2026-09-16 batch G Task 2 将 18→21：tenants:read/write/delete + RESOURCES 数组同步加 'tenants'——该计数落地于 batch G Task 2，非 Task 1，届时更新此期望值）
+- 检查命令 1：`grep -c "resource: '" apps/server/src/routes/permissions-seed.ts` 应 =21（码数变更时同步更新此期望值；2026-09-12 批 C Task 2 15→18：apikeys:read/write/delete + RESOURCES 数组同步加 'apikeys'；2026-09-16 batch G Task 2 升至 21：tenants:read/write/delete + RESOURCES 数组同步加 'tenants'——该计数落地于 batch G Task 2，非 Task 1，届时更新此期望值）
 - 检查命令 2（映射 unique 值 vs 种子清单 diff 应空）：`diff <(grep -oE "'[a-z]+:(read|write|delete)'" packages/identity/src/hooks/authorize.ts | sort -u | tr -d "'") <(grep -oE "name: '[a-z]+:(read|write|delete)'" apps/server/src/routes/permissions-seed.ts | grep -oE "[a-z]+:(read|write|delete)" | sort -u)`
 - DEFAULT_TENANT 单源 `apps/server/src/utils/constants.ts`，禁字面量散落；检查 `grep -rn "00000000-0000-0000-0000-000000000001" apps/server/src --include="*.ts" | grep -v __tests__ | grep -v constants.ts` 应零命中（2026-09-04 已收编 auth.ts 两处 + oauth.ts 一处，commit 8a987f2）
 - dev 环境跑 MFA 端点需 `MFA_ENCRYPTION_KEY`（32-byte hex）：现仓库脚本/accessbase.sh/.env.example 均未透传此变量，缺失时 mfa/setup 返回 400 AUTH_MFA_002（批三 TOTP 面板接线前需补运维配置）
@@ -190,6 +190,12 @@ logger.error('Operation failed', error); // ❌
 - 既有中文记忆文件（status/pitfalls/conventions）追加沿用中文体例；decisions.md 自 D116 起英文
 - 检查命令：提交后 `git log -1 --format='%s %b' | grep -P '[\x{4e00}-\x{9fa5}]'` 应无输出（新规后适用；历史中文提交不回改）
 - 新增代码注释扫描：`grep -rnP '^\s*//.*[\x{4e00}-\x{9fa5}]' apps/admin-ui/src packages/*/src --include='*.ts' --include='*.tsx' | grep -v locales` 应零新增
+
+## R3 收敛 keep-list 记录（2026-09-16）
+
+- DEFAULT_TENANT 唯一写入 keep-list = `constants.ts` / `permissions-seed.ts` / `setup.ts` / `init.ts` 四件套
+- 路由层回退形态 `request.tenantId ?? DEFAULT_TENANT`（公共路由无 authenticate → 回退 DEFAULT，语义即 spec G2）
+- 检查命令：`grep -rn "00000000-0000-0000-0000-000000000001" apps/server/src --include="*.ts" | grep -v __tests__ | grep -v constants.ts | grep -v permissions-seed.ts | grep -v setup.ts | grep -v init.ts` 应零命中
 ## 设置/资料类页面宽度策略（2026-09-10 用户实测终裁）
 
 - 卡片壳与列表页一致：流式全宽（width:100%，不封顶不居中）——720 居中列方案已被用户屏幕实测后推翻，勿改回

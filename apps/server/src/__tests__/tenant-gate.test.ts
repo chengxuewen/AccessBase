@@ -139,6 +139,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         email: data.email,
         name: data.name,
       })),
+      changePassword: vi.fn(async () => {}),
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
       getUserRoles: vi.fn().mockResolvedValue([]),
@@ -421,5 +422,26 @@ describe('tenant suspension gate (AUTH_TENANT_001)', () => {
     expect(tenantFindById).toHaveBeenCalledWith(SUSPENDED_TENANT_ID);
     // Gate fired before issuance — zero refresh tokens minted across the flow
     expect(sessionManagerMock.issueRefreshToken).not.toHaveBeenCalled();
+  });
+
+  // FIX 1 regression: change-password re-issuance must propagate tenantId
+  // to issueTokenPair so the gate checks the user's real tenant, not DEFAULT.
+  it('change-password for suspended-tenant user → 403 AUTH_TENANT_001', async () => {
+    const token = app.jwt.sign(
+      { sub: suspendedTenantUser.id, email: suspendedTenantUser.email, status: 'active', tenantId: SUSPENDED_TENANT_ID },
+      { expiresIn: '15m' },
+    );
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/change-password',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { oldPassword: 'OldPass1!', newPassword: 'Brand#New!Pass789' },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toMatchObject(TENANT_403);
+    // Gate consulted the user's REAL tenant (suspended row)
+    expect(tenantFindById).toHaveBeenCalledWith(SUSPENDED_TENANT_ID);
   });
 });

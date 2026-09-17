@@ -63,8 +63,6 @@ export async function ensureDefaultTenantRow(db: DrizzleDB): Promise<void> {
 
 
 /**
-  }
-/**
  * Insert the 21 builtin permissions (ON CONFLICT DO NOTHING), read back their
  * IDs by resource+action, then bind all to the given role (idempotent).
  * Never throws — failures are logged and swallowed (best-effort, seed must not
