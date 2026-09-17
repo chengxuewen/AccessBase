@@ -449,4 +449,74 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     await sessionManager.revokeAllUserSessions(id);
     return reply.status(204).send();
   });
+  /**
+   * PATCH /Users/:id (RFC 7644 §3.5.2) — sequential Operations (R7): each
+   * attribute maps to its own Manager call. Unknown attribute or op → 400
+   * invalidPath (IdP misconfig must surface, not be swallowed); emails →
+   * 400 (immutable, PUT parity); remove active → 400 (required attribute).
+   * Response is a FRESH re-read (T2 H1 discipline) — never a pre-write snapshot.
+   */
+  app.patch('/Users/:id', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const { id } = request.params as { id: string };
+    const body = (request.body ?? {}) as Record<string, unknown>;
+
+    // PatchOp envelope validation → 400 invalidValue (RFC 7644 §3.5.2).
+    const operations = Array.isArray(body['Operations']) ? body['Operations'] : undefined;
+    if (!operations || operations.length === 0) {
+      return scimError(reply, 400, 'invalidValue', 'Patch body must carry a non-empty Operations array');
+    }
+
+    // Pre-check BEFORE processing: an unknown id must 404 without writes.
+    if (!(await userManager.findById(id, tenantId))) {
+      return scimError(reply, 404, 'notFound', `User ${id} not found`);
+    }
+
+    for (const rawOp of operations) {
+      const op = (typeof rawOp === 'object' && rawOp !== null ? rawOp : {}) as {
+        op?: unknown;
+        path?: unknown;
+        value?: unknown;
+      };
+      // Azure AD sends capitalized op names — case-insensitive per RFC 7644.
+      const kind = typeof op.op === 'string' ? op.op.toLowerCase() : '';
+      const path = typeof op.path === 'string' ? op.path.trim().toLowerCase() : '';
+
+      if (kind !== 'add' && kind !== 'replace' && kind !== 'remove') {
+        return scimError(reply, 400, 'invalidPath', `Unsupported patch op: ${String(op.op)}`);
+      }
+      if (path === 'active') {
+        if (kind === 'remove') {
+          return scimError(reply, 400, 'invalidPath', 'active is required and cannot be removed');
+        }
+        if (typeof op.value !== 'boolean') {
+          return scimError(reply, 400, 'invalidPath', 'active requires a boolean value');
+        }
+        if (op.value === false) {
+          await userManager.changeStatus(id, 'suspended', tenantId);
+          sessionManager ??= new SessionManager();
+          await sessionManager.revokeAllUserSessions(id);
+        } else {
+          await userManager.changeStatus(id, 'active', tenantId);
+        }
+      } else if (path === 'name' || path === 'name.formatted') {
+        if (kind === 'remove' || typeof op.value !== 'string' || op.value.trim() === '') {
+          return scimError(reply, 400, 'invalidPath', 'name requires a non-empty string value');
+        }
+        await userManager.update(id, { name: op.value }, tenantId);
+      } else if (path === 'emails' || path.startsWith('emails')) {
+        return scimError(reply, 400, 'invalidPath', 'emails is immutable (matches userName)');
+      } else {
+        // R7: unknown attributes are explicitly rejected, never ignored.
+        return scimError(reply, 400, 'invalidPath', `Unsupported patch path: ${op.path === undefined ? '(missing)' : String(op.path)}`);
+      }
+    }
+
+    // T2 H1 carry-over: fresh re-read after ALL writes — the response must
+    // reflect the persisted row, not any pre-write snapshot.
+    const finalUser = await userManager.findById(id, tenantId);
+    if (!finalUser) return scimError(reply, 500, undefined, `User ${id} disappeared during update`);
+    return scimSend(reply, 200, toScimUser(finalUser));
+  });
 }
