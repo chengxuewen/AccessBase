@@ -173,4 +173,33 @@ describe('verifyPassword status enforcement', () => {
     expect(user?.status).toBe('suspended');
     expect(user?.isActive).toBe(false);
   });
+  
+  // findByIdAny: tenant-unfiltered lookup for cross-tenant flows (refresh
+  // door resolves the token owner without knowing their tenant). Unlike
+  // findById, no tenantId predicate is applied — the where clause filters by
+  // id only, so a user in ANY tenant resolves.
+  it('findByIdAny resolves a user regardless of tenant (no tenantId predicate)', async () => {
+    const { createDb } = await import('../db/index.js');
+    const { eq } = await import('drizzle-orm');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.select.mockReturnValue(makeChain([userRow('active')]));
+
+    const mgr = new UserManager();
+    const user = await mgr.findByIdAny('u1');
+    expect(user).not.toBeNull();
+    expect(user?.status).toBe('active');
+    expect(user?.status).toBe('active');
+  });
+
+  it('findByIdAny returns null for unknown id', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.select.mockReturnValue(makeChain([]));
+
+    const mgr = new UserManager();
+    const user = await mgr.findByIdAny('missing');
+    expect(user).toBeNull();
+  });
 });

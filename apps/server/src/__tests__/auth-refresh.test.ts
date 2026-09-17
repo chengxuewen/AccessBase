@@ -38,6 +38,13 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         name: 'admin',
         status: 'active',
       }),
+      // Refresh path resolves the session owner tenant-blind (G fix H1/L1)
+      findByIdAny: vi.fn().mockResolvedValue({
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        email: 'admin@test.local',
+        name: 'admin',
+        status: 'active',
+      }),
     })),
     SessionManager: vi.fn().mockImplementation(() => sessionManagerMock),
   };

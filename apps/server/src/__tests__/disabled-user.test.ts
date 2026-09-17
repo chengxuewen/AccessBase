@@ -42,6 +42,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     UserManager: vi.fn().mockImplementation(() => ({
       verifyPassword: mockVerifyPassword,
       findById: mockFindById,
+      // Refresh path resolves the session owner tenant-blind (G fix H1/L1)
+      findByIdAny: mockFindById,
       changeStatus: mockChangeStatus,
       // Non-null admin short-circuits setup-guard's queryAdminExists (skips its raw-PG fallback)
       findByEmail: vi.fn().mockResolvedValue({ id: ADMIN_ID, email: 'admin@accessbase.local' }),

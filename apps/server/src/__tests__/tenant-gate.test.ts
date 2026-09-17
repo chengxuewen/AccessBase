@@ -123,7 +123,15 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         if (email === 'admin@accessbase.local') return { ...defaultTenantUser, email };
         return userByEmail[email] ?? null;
       }),
-      findById: vi.fn(async (id: string) =>
+      // Mock models the REAL scoping: findById is tenant-scoped in UserManager,
+      // so a (id, tenantId) two-key lookup — a non-default-tenant user passed
+      // with DEFAULT_TENANT returns null, exactly as production behaves.
+      findById: vi.fn(async (id: string, tenantId: string) =>
+        [defaultTenantUser, suspendedTenantUser].find(
+          (u) => u.id === id && u.tenantId === tenantId,
+        ) ?? null,
+      ),
+      findByIdAny: vi.fn(async (id: string) =>
         [defaultTenantUser, suspendedTenantUser].find((u) => u.id === id) ?? null,
       ),
       create: vi.fn(async (data: { email: string; name: string }) => ({
@@ -170,14 +178,20 @@ vi.mock('@accessbase/identity/db', () => ({
               where: () => thenable([] as Array<Record<string, unknown>>),
             }),
           }),
-          // oauth.ts: user rows by id/email — serve the two fixtures with the
-          // requested projection so the gate sees the row's real tenantId.
+          // oauth.ts findOrCreateOAuthUser: the single linkedAccounts row (with
+          // full user fields) drives BOTH lookups — account match and the
+          // users-table row (id lookup by the link's userId). Projection maps
+          // the requested columns; the gate therefore sees the row's REAL tenantId.
           where: () =>
             thenable(
-              [defaultTenantUser, suspendedTenantUser].map((r) =>
+              linkedAccounts.map((r) =>
                 projection
-                  ? Object.fromEntries(Object.keys(projection).map((k) => [k, r[k as keyof typeof r]]))
-                  : (r as unknown as Record<string, unknown>),
+                  ? Object.fromEntries(
+                      Object.keys(projection)
+                        .map((k) => [k, r[k]])
+                        .filter(([, v]) => v !== undefined),
+                    )
+                  : r,
               ),
             ),
         }),
@@ -186,6 +200,13 @@ vi.mock('@accessbase/identity/db', () => ({
   }),
 }));
 
+// GitHub provider creds must exist BEFORE any module that snapshots config.ts
+// (H2 fix: routes/options.js imports config — env set after this import left
+// the provider unconfigured, authorize 503'd, and the callback died at
+// unsupported_provider without ever reaching the gate).
+process.env['GITHUB_CLIENT_ID'] = 'test-gh-id';
+process.env['GITHUB_CLIENT_SECRET'] = 'test-gh-secret';
+
 // Options seam (SAML/options probes read via getOptionsManager)
 const optionsStore = new Map<string, unknown>();
 const { setOptionsManager } = await import('../routes/options.js');
@@ -193,10 +214,6 @@ setOptionsManager({
   get: async (key: string, envValue: unknown, defaultValue: unknown) =>
     envValue !== undefined ? envValue : (optionsStore.has(key) ? optionsStore.get(key) : defaultValue),
 } as unknown as OptionsManager);
-
-// GitHub provider creds must exist BEFORE config.ts module snapshot
-process.env['GITHUB_CLIENT_ID'] = 'test-gh-id';
-process.env['GITHUB_CLIENT_SECRET'] = 'test-gh-secret';
 
 const { buildApp } = await import('../app.js');
 
@@ -231,16 +248,24 @@ const TENANT_403 = {
   error: { code: 'AUTH_TENANT_001', message: 'Access denied' },
 };
 
-async function githubCallbackFor(userId: string, profileEmail: string, tenantId: string): Promise<void> {
-  // Seed the link row (provider+accountId match the stubbed github profile)
-  // so findOrCreateOAuthUser resolves the user by the link, then reach
-  // issueTokenPair with that user's tenant.
+async function githubCallbackFor(
+  userId: string,
+  profileEmail: string,
+  tenantId: string,
+): Promise<Awaited<ReturnType<typeof app.inject>> | undefined> {
+  // Single linked row drives both lookups (account match + users-table row by
+  // the link's userId) — oauth.test.ts useTotpUser precedent. Full user fields
+  // so the gate sees the row's real tenantId.
+  linkedAccounts.length = 0;
   linkedAccounts.push({
     id: userId,
     email: profileEmail,
     userId,
     provider: 'github',
     providerAccountId: '4242',
+    status: 'active',
+    totpEnabled: false,
+    tenantId,
   });
   vi.stubGlobal(
     'fetch',
@@ -262,12 +287,13 @@ async function githubCallbackFor(userId: string, profileEmail: string, tenantId:
   );
   const auth = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/github/authorize' });
   const state = auth.cookies.find((c) => c.name === 'oauth_state')?.value ?? '';
-  await app.inject({
+  const reply = await app.inject({
     method: 'GET',
     url: `/api/v1/auth/oauth/github/callback?code=real_code&state=${state}`,
     cookies: { oauth_state: state },
   });
   vi.unstubAllGlobals();
+  return reply;
 }
 
 describe('tenant suspension gate (AUTH_TENANT_001)', () => {
@@ -327,6 +353,34 @@ describe('tenant suspension gate (AUTH_TENANT_001)', () => {
     // Door fires BEFORE rotation — the presented token is not consumed
     expect(sessionManagerMock.rotateRefreshToken).not.toHaveBeenCalled();
   });
+  
+  // H1 regression: the gate's user resolution must be tenant-unfiltered.
+  // findById is tenant-scoped — with the old DEFAULT_TENANT call a
+  // non-default-tenant user resolves to null, the gate is SKIPPED, and
+  // assertTenantActive falls back to the DEFAULT (active) tenant so rotation
+  // proceeds. This test is RED against that code shape.
+  it('refresh for a suspended NON-default-tenant user → 403 before rotation (findByIdAny door)', async () => {
+    sessionManagerMock.findSessionByToken.mockResolvedValueOnce({
+      id: 'sess-3',
+      userId: suspendedTenantUser.id,
+    });
+    sessionManagerMock.rotateRefreshToken.mockResolvedValueOnce({
+      refreshToken: 'must-not-be-issued',
+      userId: suspendedTenantUser.id,
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/refresh',
+      payload: { refreshToken: 'non-default-suspended' },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toMatchObject(TENANT_403);
+    // Suspended tenant was actually consulted (door saw the real tenant)
+    expect(tenantFindById).toHaveBeenCalledWith(SUSPENDED_TENANT_ID);
+    expect(sessionManagerMock.rotateRefreshToken).not.toHaveBeenCalled();
+  });
 
   it('refresh with active tenant still rotates (door does not over-block)', async () => {
     sessionManagerMock.findSessionByToken.mockResolvedValueOnce({
@@ -349,11 +403,22 @@ describe('tenant suspension gate (AUTH_TENANT_001)', () => {
     expect(tenantFindById).toHaveBeenCalledWith(DEFAULT_TENANT_ID);
   });
 
-  it('oauth callback path (issueTokenPair caller): suspended tenant → tagged error, no token pair minted', async () => {
-    // The gate throws inside issueTokenPair during the ACS-style callback;
-    // the tagged error propagates out of the callback's catch (G rethrow)
-    // and the global handler renders the 403 envelope.
-    await githubCallbackFor(suspendedTenantUser.id, suspendedTenantUser.email, SUSPENDED_TENANT_ID);
+  it('oauth callback: suspended-tenant user → 302 /login?oauthError=AUTH_TENANT_001, gate fired, no tokens', async () => {
+    // H2 fix (option a): GITHUB env now precedes the config snapshot, so the
+    // provider resolves and the callback truly reaches issueTokenPair's gate.
+    // M2 contract: the browser navigation channel carries the code on the
+    // redirect (/login?oauthError=...) — never a raw JSON body.
+    const reply = await githubCallbackFor(
+      suspendedTenantUser.id,
+      suspendedTenantUser.email,
+      SUSPENDED_TENANT_ID,
+    );
+    expect(reply?.statusCode).toBe(302);
+    expect(reply?.headers.location).toBe(
+      '/login?oauthError=' + encodeURIComponent('AUTH_TENANT_001'),
+    );
+    // Gate consulted the user's REAL tenant (suspended row)
+    expect(tenantFindById).toHaveBeenCalledWith(SUSPENDED_TENANT_ID);
     // Gate fired before issuance — zero refresh tokens minted across the flow
     expect(sessionManagerMock.issueRefreshToken).not.toHaveBeenCalled();
   });

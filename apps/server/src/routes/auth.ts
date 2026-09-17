@@ -489,10 +489,12 @@ return { success: true };
         const presented = await sessionManager.findSessionByToken(refreshToken);
         const gateUserId = presented?.userId;
         if (gateUserId) {
-          const user = await new (await import('@accessbase/identity')).UserManager().findById(
-            gateUserId,
-            DEFAULT_TENANT,
-          );
+          // findByIdAny (G fix H1): the session row's owner may live in ANY
+          // tenant — tenant-scoped findById with DEFAULT_TENANT returned null
+          // for non-default users, silently skipping both doors below.
+          const user = await new (await import('@accessbase/identity'))
+            .UserManager()
+            .findByIdAny(gateUserId);
           if (user?.status && user.status !== 'active') {
             throw new Error('ACCOUNT_SUSPENDED');
           }
@@ -508,12 +510,12 @@ return { success: true };
             userAgent: request.headers['user-agent'] ?? '',
           });
 
-        // Claim source for the new access token (post-rotate owner re-check is
-        // the same user; gate above already rejected suspended owners).
-        const user = await new (await import('@accessbase/identity')).UserManager().findById(
-          userId,
-          DEFAULT_TENANT,
-        );
+        // findByIdAny (G fix L1): same tenant-blindness argument as the gate —
+        // a non-default-tenant owner must resolve post-rotation, or a valid
+        // refresh 401s AFTER consuming the presented token (stranded token).
+        const user = await new (await import('@accessbase/identity'))
+          .UserManager()
+          .findByIdAny(userId);
         if (!user) throw new Error('User not found');
         const accessToken = app.jwt.sign(
           { sub: userId, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT },

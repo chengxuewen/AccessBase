@@ -69,6 +69,24 @@ export class UserManager {
     const user = result[0];
     return user ? this.mapToUser(user) : null;
   }
+  
+  /**
+   * Find user by ID across ALL tenants (no tenantId predicate).
+   * For flows that hold only a user id from a token/session row and cannot
+   * know the tenant up front (e.g. the refresh door in apps/server auth.ts).
+   */
+  async findByIdAny(id: string): Promise<User | null> {
+    logger.debug(`Finding user by ID across tenants: ${id}`);
+
+    const result = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+
+    const user = result[0];
+    return user ? this.mapToUser(user) : null;
+  }
 
   /**
    * Find user by email (global, for login)

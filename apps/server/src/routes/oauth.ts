@@ -505,8 +505,11 @@ export async function oauthRoutes(app: FastifyInstance) {
         );
         return reply.redirect(`/login?oauthCode=${encodeURIComponent(exchangeCode)}`);
       } catch (err) {
-        // Tenant gate (G): propagate ahead of the redirect mapping.
-        if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') throw err;
+        // Tenant gate (G fix M2): mirror SAML — surface the code on the
+        // browser redirect channel, never raw JSON down a navigation.
+        if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') {
+          return oauthError(reply, 'AUTH_TENANT_001');
+        }
         request.log.warn({ err }, 'OAuth callback failed');
         return oauthError(reply, 'exchange_failed');
       }
