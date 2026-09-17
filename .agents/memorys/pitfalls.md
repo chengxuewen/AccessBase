@@ -400,3 +400,17 @@
 - **根因**: 共享 Vite dev server + fullyParallel 并发在 load>10 的机器上自压垮（waitForTimeout 类时序断言 + 网络探活超时），与代码无关；T6 报告的"0 fail"恰在低负载窗口跑出，控制器复跑 3 次全撞高负载——同一代码两种结论
 - **解法**: 权威数只认 `--workers=1` + 低负载窗口（uptime load<2）；报告 e2e 数字必须附 workers/窗口条件；间歇漂移失败先 A/B 单跑再定性
 - **验证**: `uptime` load<2 后 `pixi run npx playwright test --project=chromium --workers=1` → 稳定 0 failed
+
+## PIT-055: tenant-scoped 测试 mock 忽略 tenantId 参数 = seam 掩盖端到端缺陷 (2026-09-16)
+
+- **症状**: 批次 G T3 refresh 挂起门对非 default 租户用户完全失效（UserManager.findById 带 tenantId 过滤，非 default 用户返回 null → 门跳过），但测试全绿——mock findById 只按 id 单键查找，忽略 tenantId 参数照返行
+- **根因**: 测试 mock 与真实实现的查询签名不对齐：真实 findById(id, tenantId) 是双键 tenant-scoped，mock 建模成单键。seam 假绿掩盖端到端缺陷（batch B T2 jsonb-string 教训同族——mock 建模不诚实是空洞绿的温床）
+- **解法**: tenant-scoped 查询的测试 mock 必须两键建模 `(id, tenantId)`——修复 mock 后测试立即转 RED 驱动真修（findByIdAny 引入）；mock 建模诚实性是 probe 实测的前置条件
+- **验证**: `grep -n "findById.*tenantId" packages/identity/src/__tests__/UserManager.test.ts` mock 签名含 tenantId 参数且 fixture 按双键过滤
+
+## PIT-056: probe 实测（mock 调用计数断言）是空洞绿的最廉价照妖镜 (2026-09-16)
+
+- **症状**: 批次 G T3 H2——oauth callback 测试断言"no token minted"恒真（flow 在 unsupported_provider 503 处早死，门从未触发），终审 probe 实测 `tenantFindById calls=[]` 一击坐实
+- **根因**: 测试只断言"坏事没发生"（token 未签发），未断言"好事发生了"（门真的被调用了）——流早死与门正常拦截产生相同的外部可观测结果
+- **解法**: 对安全门类逻辑，测试必须断言门的调用记录（mock 调用计数 + 收到参数），而非仅断言下游结果；`expect(spy).toHaveBeenCalledWith(expectedArgs)` 是最廉价的空洞绿照妖镜
+- **验证**: tenant-gate.test.ts oauth 用例现含 `expect(tenantFindById).toHaveBeenCalledWith(SUSPENDED_TENANT_ID)` 断言（门触发实证）
