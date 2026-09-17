@@ -291,7 +291,10 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
       });
     }
 
-    const result = await userManager.findAll({ page: startIndex, pageSize: count, search }, tenantId);
+    // H2: SCIM startIndex is a 1-based ROW OFFSET; findAll's page is 1-based
+    // PAGES. startIndex=11&count=10 → page 2, not page 11.
+    const page = Math.max(1, Math.ceil(startIndex / count));
+    const result = await userManager.findAll({ page, pageSize: count, search }, tenantId);
     return scimSend(reply, 200, {
       schemas: [LIST_RESPONSE_SCHEMA],
       totalResults: result.total,
@@ -421,9 +424,14 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
       await userManager.changeStatus(id, 'active', tenantId);
     }
 
-    const updated =
-      name !== current.name ? await userManager.update(id, { name }, tenantId) : current;
-    return scimSend(reply, 200, toScimUser(updated));
+    if (name !== current.name) await userManager.update(id, { name }, tenantId);
+
+    // H1: re-read after the active-toggle block — `current` is a stale
+    // snapshot once changeStatus/update have run, and the response must
+    // reflect the persisted row, not the pre-write read.
+    const finalUser = await userManager.findById(id, tenantId);
+    if (!finalUser) return scimError(reply, 500, undefined, `User ${id} disappeared during update`);
+    return scimSend(reply, 200, toScimUser(finalUser));
   });
 
   /**

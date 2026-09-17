@@ -96,8 +96,13 @@ const userStore = new Map<string, MockUser>();
 const userManagerMock = {
   /** R8 probe: records every lookup argument; PIT-056 asserts normalization. */
   findByEmail: vi.fn(async (email: string) => userStore.get(email.toLowerCase()) ?? null),
-  findById: vi.fn(async (id: string, tenantId: string) =>
-    [...userStore.values()].find((u) => u.id === id && u.tenantId === tenantId) ?? null),
+  // H1 seam: reads return a FRESH clone — handlers must not rely on object
+  // aliasing between findById and changeStatus/update (the real manager +
+  // PG hands out independent row snapshots per call).
+  findById: vi.fn(async (id: string, tenantId: string) => {
+    const stored = [...userStore.values()].find((u) => u.id === id && u.tenantId === tenantId);
+    return stored ? { ...stored } : null;
+  }),
   findAll: vi.fn(
     async (params: { page?: number; pageSize?: number; search?: string }, tenantId: string) => {
       let rows = [...userStore.values()].filter((u) => u.tenantId === tenantId);
@@ -126,7 +131,7 @@ const userManagerMock = {
       if (!user) throw new Error('User not found');
       if (data.name !== undefined) user.name = data.name;
       user.updatedAt = new Date();
-      return user;
+      return { ...user };
     },
   ),
   changeStatus: vi.fn(
@@ -135,7 +140,7 @@ const userManagerMock = {
       if (!user) throw new Error('User not found');
       user.status = status;
       user.updatedAt = new Date();
-      return user;
+      return { ...user };
     },
   ),
 };
@@ -482,6 +487,20 @@ describe('SCIM user provisioning (T2)', () => {
         DEFAULT_TENANT,
       );
     });
+
+    it('H2: startIndex=11&count=10 → manager sees page=2 (row offset → page mapping)', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users?startIndex=11&count=10`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(userManagerMock.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ page: 2, pageSize: 10 }),
+        DEFAULT_TENANT,
+      );
+      expect(res.json().startIndex).toBe(11); // echo = requested (clamped) value
+    });
   });
 
   describe('GET /Users/:id', () => {
@@ -551,6 +570,22 @@ describe('SCIM user provisioning (T2)', () => {
       expect(res.json().active).toBe(false);
       expect(userManagerMock.changeStatus).toHaveBeenCalledWith(u.id, 'suspended', DEFAULT_TENANT);
       expect(sessionManagerMock.revokeAllUserSessions).toHaveBeenCalledWith(u.id);
+    });
+
+    it('H1 regression: active:false (no name field) → response reflects FRESH suspended state', async () => {
+      const u = makeUser({ email: 'stale@x.io', name: 'Same Name' });
+      userStore.set(u.email, u);
+      const res = await app.inject({
+        method: 'PUT',
+        url: `${SCIM_BASE}/Users/${u.id}`,
+        headers: AUTH,
+        payload: JSON.stringify({ userName: 'stale@x.io', active: false }),
+      });
+      expect(res.statusCode).toBe(200);
+      // Pre-fix this echoed the pre-change snapshot (active:true): the
+      // aliased mock let `current` absorb the changeStatus mutation.
+      expect(res.json().active).toBe(false);
+      expect(userManagerMock.changeStatus).toHaveBeenCalledWith(u.id, 'suspended', DEFAULT_TENANT);
     });
   });
 
