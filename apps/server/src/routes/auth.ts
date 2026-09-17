@@ -161,6 +161,16 @@ export async function authRoutes(app: FastifyInstance) {
                   // MFA step-up branch
                   mfaRequired: { type: 'boolean' },
                   flowToken: { type: 'string' },
+                  // Wire carries `user` — undeclared props are stripped by fast-json-stringify
+                  user: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      email: { type: 'string' },
+                      name: { type: 'string' },
+                      roles: { type: 'array', items: { type: 'object' } },
+                    },
+                  },
                 },
               },
             },

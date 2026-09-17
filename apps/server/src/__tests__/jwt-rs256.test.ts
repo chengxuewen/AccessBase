@@ -43,6 +43,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       verifyPassword: vi.fn().mockResolvedValue({
         id: '550e8400-e29b-41d4-a716-446655440000',
         email: 'admin@test.local',
+        name: 'Admin',
       }),
       findById: vi.fn().mockResolvedValue({ id: 'u1', email: 'e', name: 'n', status: 'active' }),
     })),
@@ -86,7 +87,17 @@ describe('JWT RS256 (key paths configured)', () => {
       payload: { email: 'admin@test.local', password: 'x' },
     });
     expect(login.statusCode).toBe(200);
-    const token = login.json().data.accessToken;
+    const body = login.json();
+    const token = body.data.accessToken;
+
+    // H′5: wire response must carry the `user` object (fast-json-stringify
+    // strips undeclared properties — schema must declare what handler sends)
+    expect(body.data.user).toEqual({
+      id: expect.any(String),
+      email: expect.any(String),
+      name: expect.any(String),
+      roles: [],
+    });
 
     // Decode header without verification
     const decoded = app.jwt.decode(token, { complete: true });
