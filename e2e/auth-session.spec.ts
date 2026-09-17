@@ -101,6 +101,16 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
         body: JSON.stringify({ success: true, data: MOCK_ME_USER }),
       });
     });
+  // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
+  // unmocked → console-error net failure (R4 discipline)
+  await page.route('**/api/v1/tenants**', async (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [{ id: '00000000-0000-0000-0000-000000000001', name: 'Default', slug: 'default', status: 'active', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+    });
+  });
   });
 
   test.afterEach(async () => {

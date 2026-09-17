@@ -91,6 +91,16 @@ async function mockCommonApis(page: Page): Promise<void> {
   await page.route('**/api/v1/auth/saml/status', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
   });
+  // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
+  // unmocked → console-error net failure (R4 discipline)
+  await page.route('**/api/v1/tenants**', async (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [{ id: '00000000-0000-0000-0000-000000000001', name: 'Default', slug: 'default', status: 'active', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+    });
+  });
   // Phase 6d Task 5: Dashboard mounts GET /api/v1/stats — unmocked 401 → axios logout
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
