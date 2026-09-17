@@ -12,10 +12,11 @@
  * traces (anti-enumeration, same style as oauthError).
  */
 import type { FastifyInstance } from 'fastify';
-import { SessionManager, RoleManager, FlowTokenService, getRedisClient } from '@accessbase/identity';
+import { SessionManager, RoleManager, FlowTokenService, getRedisClient, TenantManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
+import { logger } from '@accessbase/logging';
 
 const EXCHANGE_TTL_SECONDS = 60;
 
@@ -86,6 +87,26 @@ export async function samlRoutes(app: FastifyInstance) {
     request: { ip: string; headers: Record<string, unknown> },
     user: { id: string; email: string; status?: string; tenantId?: string },
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    // Tenant suspension gate (G/R1) — inside the helper so every issuance call
+    // site inherits it. ACS's browser-channel invariant (never JSON) maps this
+    // to a samlError redirect at the catch site below; the exchange channel
+    // surfaces it via the global handler as 403 AUTH_TENANT_001.
+    const tenantId = user.tenantId ?? DEFAULT_TENANT;
+    // Fail-open on lookup error (auth.ts precedent): only a confirmed
+    // suspended row blocks.
+    let tenant;
+    try {
+      tenant = await new TenantManager().findById(tenantId);
+    } catch (err) {
+      logger.warn({ err }, 'Tenant status lookup failed — allowing (fail-open)');
+      tenant = null;
+    }
+    if (tenant && tenant.status === 'suspended') {
+      const err: Error & { code?: string; statusCode?: number } = new Error('Access denied');
+      err.code = 'AUTH_TENANT_001';
+      err.statusCode = 403;
+      throw err;
+    }
     // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
     const accessToken = app.jwt.sign(
       { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT },
@@ -208,6 +229,12 @@ export async function samlRoutes(app: FastifyInstance) {
         }
         return reply.redirect(`/login?samlCode=${encodeURIComponent(code)}`);
       } catch (err) {
+        // Tenant gate (G): browser channel never returns JSON — map to a
+        // redirect carrying the same code (samlError convention).
+        if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') {
+          request.log.warn('SAML login rejected: tenant suspended');
+          return samlError(reply, 'AUTH_TENANT_001');
+        }
         request.log.error({ err }, 'SAML provisioning/token issuance failed');
         return samlError(reply, 'AUTH_SAML_002');
       }

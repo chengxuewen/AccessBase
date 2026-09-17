@@ -29,9 +29,10 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { createDb, webauthnCredentials, users } from '@accessbase/identity/db';
 import type { DrizzleDB } from '@accessbase/identity/db';
-import { SessionManager, FlowTokenService, getRedisClient } from '@accessbase/identity';
+import { SessionManager, FlowTokenService, getRedisClient, TenantManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
+import { logger } from '@accessbase/logging';
 import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
 
 const CHALLENGE_TTL_SECONDS = 300;
@@ -88,6 +89,24 @@ export async function webauthnRoutes(app: FastifyInstance) {
     request: { ip: string; headers: Record<string, unknown> },
     user: { id: string; email: string; status?: string; tenantId?: string },
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    // Tenant suspension gate (G/R1) — inside the helper so every issuance call
+    // site inherits it. Tagged error → global handler renders 403 AUTH_TENANT_001.
+    const tenantId = user.tenantId ?? DEFAULT_TENANT;
+    // Fail-open on lookup error (auth.ts precedent): only a confirmed
+    // suspended row blocks.
+    let tenant;
+    try {
+      tenant = await new TenantManager().findById(tenantId);
+    } catch (err) {
+      logger.warn({ err }, 'Tenant status lookup failed — allowing (fail-open)');
+      tenant = null;
+    }
+    if (tenant && tenant.status === 'suspended') {
+      const err: Error & { code?: string; statusCode?: number } = new Error('Access denied');
+      err.code = 'AUTH_TENANT_001';
+      err.statusCode = 403;
+      throw err;
+    }
     // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
     const accessToken = app.jwt.sign(
       { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT },
@@ -288,6 +307,7 @@ export async function webauthnRoutes(app: FastifyInstance) {
           name: users.name,
           status: users.status,
           totpEnabled: users.totpEnabled,
+          tenantId: users.tenantId,
         })
         .from(users)
         .where(eq(users.id, row.userId))

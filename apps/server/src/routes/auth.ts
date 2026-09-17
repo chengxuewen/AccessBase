@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
+import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy, TenantManager } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
@@ -43,6 +43,41 @@ export async function authRoutes(app: FastifyInstance) {
     }
   }
 
+  // Tenant suspension gate: lazily constructed (DB touch only at issuance,
+  // +1 query per login — acceptable per R8).
+  let tenantManager: TenantManager | undefined;
+  function getTenantManager(): TenantManager {
+    if (!tenantManager) tenantManager = new TenantManager();
+    return tenantManager;
+  }
+
+  /**
+   * Tenant suspension gate (G/R1) — fail-closed check run INSIDE issueTokenPair
+   * so every issuance path (login/ldap/webauthn/oauth/saml/magic/mfa/
+   * change-password) inherits it. Throws a tagged error that the global error
+   * handler renders as 403 {code:'AUTH_TENANT_001'}; callers with swallowing
+   * catch blocks rethrow it (see catch sites in this file).
+   */
+  async function assertTenantActive(user?: { tenantId?: string } | null): Promise<void> {
+    const tenantId = user?.tenantId ?? DEFAULT_TENANT;
+    // Fail-open on lookup ERROR (log + allow): only a confirmed suspended row
+    // blocks. Mirrors the rate-limit skipOnError fail-open discipline — a PG
+    // blip must not 403/500 every login. DB-down already fails login earlier.
+    let tenant;
+    try {
+      tenant = await getTenantManager().findById(tenantId);
+    } catch (err) {
+      logger.warn({ err }, 'Tenant status lookup failed — allowing (fail-open)');
+      tenant = null;
+    }
+    if (tenant && tenant.status === 'suspended') {
+      const err: Error & { code?: string; statusCode?: number } = new Error('Access denied');
+      err.code = 'AUTH_TENANT_001';
+      err.statusCode = 403;
+      throw err;
+    }
+  }
+
   function requireMfaKey(): string {
     if (!config.mfaEncryptionKey) {
       throw new Error('MFA_ENCRYPTION_KEY not configured (32-byte hex required for TOTP)');
@@ -55,6 +90,7 @@ export async function authRoutes(app: FastifyInstance) {
     request: { ip: string; headers: Record<string, unknown> },
     user: { id: string; email: string; status?: string; tenantId?: string },
   ) {
+    await assertTenantActive(user);
     const accessToken = app.jwt.sign(
       // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
       { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT },
@@ -193,6 +229,13 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.status(403).send({
           success: false,
           error: { code: 'AUTH_004', message: 'Account suspended' },
+        });
+      }
+      // Tenant gate (G): propagate before lockout counting (same family).
+      if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') {
+        return reply.status(403).send({
+          success: false,
+          error: { code: 'AUTH_TENANT_001', message: 'Access denied' },
         });
       }
       await lockout.recordFailure(email);
@@ -453,6 +496,9 @@ return { success: true };
           if (user?.status && user.status !== 'active') {
             throw new Error('ACCOUNT_SUSPENDED');
           }
+          // Tenant door (G/R1): refresh must not outlive a suspended tenant —
+          // fail-closed before rotation (batch A user-status door precedent).
+          await assertTenantActive(user);
         }
 
         // DB-backed rotation: validates hash, marks old used, detects replay
@@ -479,6 +525,13 @@ return { success: true };
           data: { accessToken, refreshToken: newRefreshToken, expiresIn: 900 },
         };
       } catch (err) {
+        // Tenant door (G): map ahead of the generic invalid-token reply.
+        if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') {
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_TENANT_001', message: 'Access denied' },
+          });
+        }
         const error = err instanceof Error ? err : new Error(String(err));
         request.log.warn({ msg: 'Refresh failed', reason: error.message });
         return reply.status(401).send({
@@ -538,6 +591,12 @@ return { success: true };
           return reply.status(400).send({
             success: false,
             error: { code: 'PASSWORD_REUSED', message: 'Password was used recently' },
+          });
+        }
+        if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') {
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_TENANT_001', message: 'Access denied' },
           });
         }
         request.log.warn({ err }, 'Password change failed');
@@ -977,7 +1036,14 @@ return { success: true };
           success: true,
           data: { accessToken, refreshToken, expiresIn: 900 },
         };
-      } catch {
+      } catch (err) {
+        // Tenant gate (G): propagate ahead of the generic MFA failure mapping.
+        if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') {
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_TENANT_001', message: 'Access denied' },
+          });
+        }
         return reply.status(401).send({
           success: false,
           error: { code: 'AUTH_MFA_001', message: 'MFA verification failed' },
@@ -1193,6 +1259,13 @@ return { success: true };
           },
         };
       } catch (err) {
+        // Tenant gate (G): propagate ahead of the generic LDAP failure mapping.
+        if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') {
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_TENANT_001', message: 'Access denied' },
+          });
+        }
         request.log.error({ err }, 'LDAP provisioning/token issuance failed');
         return reply.status(500).send({
           success: false,

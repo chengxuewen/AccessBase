@@ -13,7 +13,7 @@ import { GitHub, Google, OAuth2Client, generateState, generateCodeVerifier, Code
 import { and, eq } from 'drizzle-orm';
 import { createDb, oauthAccounts, users } from '@accessbase/identity/db';
 import type { DrizzleDB } from '@accessbase/identity/db';
-import { SessionManager, FlowTokenService, getRedisClient } from '@accessbase/identity';
+import { SessionManager, FlowTokenService, getRedisClient, TenantManager } from '@accessbase/identity';
 import { randomBytes } from 'node:crypto';
 import bcryptjs from 'bcryptjs';
 import { DEFAULT_TENANT } from '../utils/constants.js';
@@ -274,6 +274,24 @@ export async function oauthRoutes(app: FastifyInstance) {
     request: { ip: string; headers: Record<string, unknown> },
     user: { id: string; email: string; status?: string; tenantId?: string },
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    // Tenant suspension gate (G/R1) — inside the helper so every issuance call
+    // site inherits it. Tagged error → global handler renders 403 AUTH_TENANT_001.
+    const tenantId = user.tenantId ?? DEFAULT_TENANT;
+    // Fail-open on lookup error (auth.ts precedent): only a confirmed
+    // suspended row blocks.
+    let tenant;
+    try {
+      tenant = await new TenantManager().findById(tenantId);
+    } catch (err) {
+      logger.warn({ err }, 'Tenant status lookup failed — allowing (fail-open)');
+      tenant = null;
+    }
+    if (tenant && tenant.status === 'suspended') {
+      const err: Error & { code?: string; statusCode?: number } = new Error('Access denied');
+      err.code = 'AUTH_TENANT_001';
+      err.statusCode = 403;
+      throw err;
+    }
     // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
     const accessToken = app.jwt.sign(
       { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT },
@@ -296,7 +314,7 @@ export async function oauthRoutes(app: FastifyInstance) {
     provider: string,
     profile: NormalizedProfile,
     tokens: OAuth2Tokens,
-  ): Promise<{ id: string; email: string; status: string; totpEnabled?: boolean }> {
+  ): Promise<{ id: string; email: string; status: string; totpEnabled?: boolean; tenantId?: string }> {
     const [existingLink] = await db
       .select({ userId: oauthAccounts.userId })
       .from(oauthAccounts)
@@ -310,7 +328,7 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     if (existingLink) {
       const [user] = await db
-        .select({ id: users.id, email: users.email, status: users.status, totpEnabled: users.totpEnabled })
+        .select({ id: users.id, email: users.email, status: users.status, totpEnabled: users.totpEnabled, tenantId: users.tenantId })
         .from(users)
         .where(eq(users.id, existingLink.userId))
         .limit(1);
@@ -320,7 +338,7 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     if (profile.email) {
       const [userByEmail] = await db
-        .select({ id: users.id, email: users.email, status: users.status, totpEnabled: users.totpEnabled })
+        .select({ id: users.id, email: users.email, status: users.status, totpEnabled: users.totpEnabled, tenantId: users.tenantId })
         .from(users)
         .where(eq(users.email, profile.email))
         .limit(1);
@@ -487,6 +505,8 @@ export async function oauthRoutes(app: FastifyInstance) {
         );
         return reply.redirect(`/login?oauthCode=${encodeURIComponent(exchangeCode)}`);
       } catch (err) {
+        // Tenant gate (G): propagate ahead of the redirect mapping.
+        if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') throw err;
         request.log.warn({ err }, 'OAuth callback failed');
         return oauthError(reply, 'exchange_failed');
       }
