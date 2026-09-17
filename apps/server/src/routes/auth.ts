@@ -17,6 +17,13 @@ interface RegisterBody {
   name: string;
   password: string;
 }
+// H′3: loud one-time warn when the magic-link origin falls back to the request
+// Host (attacker-controllable). Module latch = once per process; exported reset
+// is a test seam only (latch would otherwise fire in the first fallthrough test).
+let hostFallbackWarned = false;
+export function _resetHostFallbackWarnForTest(): void {
+  hostFallbackWarned = false;
+}
 
 export async function authRoutes(app: FastifyInstance) {
   const sessionManager = new SessionManager(undefined, await getRedis());
@@ -646,7 +653,8 @@ return { success: true };
         const mailer = host ? Mailer.fromConfig({ host, port, user: smtpUser, pass, from }) : null;
         if (mailer) {
           const link = `${process.env['FRONTEND_ORIGIN'] ?? ''}/reset-password?token=${token}`;
-          await mailer.send(email, 'Reset your password', `<p>Click to reset: <a href="${link}">${link}</a></p>`).catch((err: unknown) => {
+          // Async: response returns immediately — SMTP RTT is an enumeration timing side-channel (batch F review)
+          mailer.send(email, 'Reset your password', `<p>Click to reset: <a href="${link}">${link}</a></p>`).catch((err: unknown) => {
             logger.warn({ err }, 'Reset email delivery failed (degraded to log)');
           });
         } else {
@@ -694,13 +702,34 @@ return { success: true };
         const from = await options.get('smtp_from', process.env['SMTP_FROM'], '');
         const mailer = host ? Mailer.fromConfig({ host, port, user: smtpUser, pass, from }) : null;
         if (mailer) {
-          // R3 origin chain: options site.url → env SITE_URL → request origin.
+          // H′3 origin chain: options site.url → env SITE_URL → request origin.
+          // Raw Host arm is attacker-controllable → loud one-time warn on fallthrough
+          // (production MUST set SITE_URL); x-forwarded-host only wins with TRUST_PROXY.
           const siteUrl = await options.get('site.url', process.env['SITE_URL'], '');
-          const host = request.headers.host ?? '';
-          const proto = request.headers['x-forwarded-proto'] ?? request.protocol;
-          const origin = siteUrl || `${proto}://${host}`;
+          let origin: string;
+          if (siteUrl) {
+            origin = siteUrl;
+          } else {
+            // x-forwarded-host only wins when TRUST_PROXY is set (H′3).
+            const forwardedHost = config.trustProxy
+              ? (request.headers['x-forwarded-host'] as string | undefined)
+              : undefined;
+            const proto = request.headers['x-forwarded-proto'] ?? request.protocol;
+            if (forwardedHost) {
+              origin = `${proto}://${forwardedHost}`;
+            } else {
+              origin = `${proto}://${request.headers.host ?? ''}`;
+              if (!hostFallbackWarned) {
+                hostFallbackWarned = true;
+                logger.warn(
+                  'magic-link origin falling back to request Host — production MUST set SITE_URL (poisoning risk)',
+                );
+              }
+            }
+          }
           const link = `${origin}/login/magic?token=${token}`;
-          await mailer.send(email, 'Your sign-in link', `<p>Click to sign in: <a href="${link}">${link}</a></p>`).catch((err: unknown) => {
+          // Async: response returns immediately — SMTP RTT is an enumeration timing side-channel (batch F review)
+          mailer.send(email, 'Your sign-in link', `<p>Click to sign in: <a href="${link}">${link}</a></p>`).catch((err: unknown) => {
             logger.warn({ err }, 'Magic link delivery failed (degraded to log)');
           });
         } else {

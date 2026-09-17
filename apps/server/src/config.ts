@@ -27,6 +27,8 @@ export interface AppConfig {
   };
   oauthRedirectBase: string;
   frontendOrigin: string;
+  /** Trust x-forwarded-host for magic-link origin derivation (H′3). */
+  trustProxy: boolean;
 }
 
 function env(key: string, fallback?: string): string {
@@ -80,4 +82,8 @@ export const config: AppConfig = {
   },
   oauthRedirectBase: process.env['OAUTH_REDIRECT_BASE'] || 'http://localhost:5101',
   frontendOrigin: process.env['FRONTEND_ORIGIN'] || 'http://localhost:5173',
+  // Trust x-forwarded-host when deriving the magic-link origin (H′3). Only set
+  // true when running behind a TLS-terminating proxy you control; production
+  // MUST set SITE_URL regardless (magic-link Host poisoning mitigation).
+  trustProxy: process.env['TRUST_PROXY'] === 'true',
 };

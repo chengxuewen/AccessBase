@@ -135,6 +135,15 @@ vi.mock('@accessbase/identity/db', () => ({
     },
   }),
 }));
+// Static imports of route/config modules must come AFTER vi.mock declarations
+// (hoisting): auth.ts consumes the @accessbase/identity mock seam at module
+// scope, so a top-of-file static import would evaluate the real module graph
+// against uninitialized mock fns. config is safe to import statically (no mock
+// seam), but importing it here keeps a single post-mock import block.
+const [{ _resetHostFallbackWarnForTest }, { config }] = await Promise.all([
+  import('../routes/auth.js'),
+  import('../config.js'),
+]);
 
 const { getOptionsManager, setOptionsManager } = await import('../routes/options.js');
 setOptionsManager({
@@ -312,6 +321,103 @@ describe('POST /api/v1/auth/magic/request', () => {
     } finally {
       delete process.env['SMTP_HOST'];
       delete process.env['SITE_URL'];
+    }
+  });
+});
+
+describe('magic-link Host trust gating (H′3)', () => {
+  beforeEach(() => {
+    _resetHostFallbackWarnForTest();
+  });
+
+  it('poisoned Host + no site.url/SITE_URL: link uses request Host + warn logged', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+    process.env['SMTP_HOST'] = 'smtp.test.local';
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: REQUEST_URL,
+        payload: { email: MAGIC_EMAIL },
+        headers: { host: 'evil.example.com' },
+      });
+      expect(res.statusCode).toBe(202);
+      const html = String(mailerSend.mock.calls[0]?.[2] ?? '');
+      expect(html).toContain('http://evil.example.com/login/magic?token=');
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('magic-link origin falling back to request Host'),
+      );
+    } finally {
+      delete process.env['SMTP_HOST'];
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('TRUST_PROXY=true + x-forwarded-host: link uses forwarded host, not Host, no warn', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+    config.trustProxy = true;
+    process.env['SMTP_HOST'] = 'smtp.test.local';
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: REQUEST_URL,
+        payload: { email: MAGIC_EMAIL },
+        headers: { host: 'evil.example.com', 'x-forwarded-host': 'fwd.example.com' },
+      });
+      expect(res.statusCode).toBe(202);
+      const html = String(mailerSend.mock.calls[0]?.[2] ?? '');
+      expect(html).toContain('http://fwd.example.com/login/magic?token=');
+      expect(html).not.toContain('evil.example.com');
+      expect(warnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('magic-link origin falling back to request Host'),
+      );
+    } finally {
+      delete process.env['SMTP_HOST'];
+      config.trustProxy = false;
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('TRUST_PROXY=true + NO x-forwarded-host: falls back to Host header + warn', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+    config.trustProxy = true;
+    process.env['SMTP_HOST'] = 'smtp.test.local';
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: REQUEST_URL,
+        payload: { email: MAGIC_EMAIL },
+        headers: { host: 'evil.example.com' },
+      });
+      expect(res.statusCode).toBe(202);
+      const html = String(mailerSend.mock.calls[0]?.[2] ?? '');
+      expect(html).toContain('http://evil.example.com/login/magic?token=');
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('magic-link origin falling back to request Host'),
+      );
+    } finally {
+      delete process.env['SMTP_HOST'];
+      config.trustProxy = false;
+      warnSpy.mockRestore();
+    }
+  });
+});
+
+describe('magic-link SMTP async send (H′4)', () => {
+  it('never-resolving send: response still 202 (send not awaited)', async () => {
+    process.env['SMTP_HOST'] = 'smtp.test.local';
+    mailerSend.mockImplementation(() => new Promise<void>(() => {}));
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: REQUEST_URL,
+        payload: { email: MAGIC_EMAIL },
+        headers: { host: 'localhost:3000' },
+      });
+      expect(res.statusCode).toBe(202);
+      expect(mailerSend).toHaveBeenCalledTimes(1);
+    } finally {
+      delete process.env['SMTP_HOST'];
+      mailerSend.mockResolvedValue(undefined);
     }
   });
 });
