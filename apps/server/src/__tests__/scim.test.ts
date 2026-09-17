@@ -7,10 +7,11 @@
  * + scim+json content-type, scoped parser proof (POST /Users 501), app.ts
  * addContentTypeParser=0 invariant, PIT-056 hashed-lookup spy.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import type { OptionsManager } from '@accessbase/identity';
 
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret';
@@ -60,21 +61,111 @@ function seedKeys(): void {
 }
 seedKeys();
 
+
+// --- Mutable seams for T2 CRUD tests ---
+
+/** Mock user rows keyed by email (lowercased). One user per test via unique emails. */
+interface MockUser {
+  id: string;
+  email: string;
+  name: string;
+  status: 'active' | 'suspended' | 'pending';
+  tenantId: string;
+  totpEnabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
+
+function makeUser(overrides: Partial<MockUser> & { email: string }): MockUser {
+  return {
+    id: `u-${Math.random().toString(36).slice(2, 10)}`,
+    name: overrides.email.split('@')[0] ?? overrides.email,
+    status: 'active',
+    tenantId: DEFAULT_TENANT,
+    totpEnabled: false,
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    updatedAt: new Date('2026-01-01T00:00:00Z'),
+    ...overrides,
+  };
+}
+
+const userStore = new Map<string, MockUser>();
+
+const userManagerMock = {
+  /** R8 probe: records every lookup argument; PIT-056 asserts normalization. */
+  findByEmail: vi.fn(async (email: string) => userStore.get(email.toLowerCase()) ?? null),
+  findById: vi.fn(async (id: string, tenantId: string) =>
+    [...userStore.values()].find((u) => u.id === id && u.tenantId === tenantId) ?? null),
+  findAll: vi.fn(
+    async (params: { page?: number; pageSize?: number; search?: string }, tenantId: string) => {
+      let rows = [...userStore.values()].filter((u) => u.tenantId === tenantId);
+      if (params.search) rows = rows.filter((u) => u.email.toLowerCase().includes(params.search as string));
+      const total = rows.length;
+      const page = params.page ?? 1;
+      const pageSize = params.pageSize ?? 20;
+      const start = (page - 1) * pageSize;
+      return {
+        data: rows.slice(start, start + pageSize),
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      };
+    },
+  ),
+  create: vi.fn(async (input: { email: string; name: string }, tenantId: string) => {
+    const user = makeUser({ email: input.email, name: input.name, tenantId });
+    userStore.set(user.email.toLowerCase(), user);
+    return user;
+  }),
+  update: vi.fn(
+    async (id: string, data: { name?: string }, tenantId: string): Promise<MockUser> => {
+      const user = [...userStore.values()].find((u) => u.id === id && u.tenantId === tenantId);
+      if (!user) throw new Error('User not found');
+      if (data.name !== undefined) user.name = data.name;
+      user.updatedAt = new Date();
+      return user;
+    },
+  ),
+  changeStatus: vi.fn(
+    async (id: string, status: 'active' | 'suspended' | 'pending', tenantId: string): Promise<MockUser> => {
+      const user = [...userStore.values()].find((u) => u.id === id && u.tenantId === tenantId);
+      if (!user) throw new Error('User not found');
+      user.status = status;
+      user.updatedAt = new Date();
+      return user;
+    },
+  ),
+};
+
+const sessionManagerMock = {
+  revokeAllUserSessions: vi.fn(async () => {}),
+};
+
 vi.mock('@accessbase/identity', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@accessbase/identity')>();
   return {
     ...actual,
     // Guard fast path: setup-guard's isSystemInitialized → findByEmail must
     // resolve a stub admin or the guard 503s (saml.test.ts precedent).
-    UserManager: vi.fn().mockImplementation(() => ({
-      findByEmail: vi.fn(async () => ({ id: 'admin-u1', email: 'admin@accessbase.local' })),
-    })),
+    UserManager: vi.fn().mockImplementation(() => userManagerMock),
+    SessionManager: vi.fn().mockImplementation(() => sessionManagerMock),
     ApiKeyManager: Object.assign(
       vi.fn().mockImplementation(() => ({ findByHash: findByHashSpy })),
       { isExpired: actual.ApiKeyManager.isExpired },
     ),
   };
 });
+
+// Password-policy read path: scim.ts reads via getOptionsManager().get — inject
+// an env-first stub so POST /Users never dials the fake PG (ldap-login precedent).
+const { setOptionsManager } = await import('../routes/options.js');
+setOptionsManager({
+  get: async (_key: string, envValue: unknown, defaultValue: unknown) =>
+    envValue !== undefined ? envValue : defaultValue,
+} as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');
 
@@ -84,6 +175,7 @@ type App = Awaited<ReturnType<typeof buildApp>>;
 let app: App;
 
 beforeAll(async () => {
+  resetUserStore(); // guard fast path needs the admin stub before the first request
   app = await buildApp();
 });
 
@@ -172,21 +264,357 @@ describe('SCIM mount skeleton', () => {
     });
   });
 
-  it('POST /Users with application/scim+json body → parser runs, placeholder 501 with parsed body', async () => {
+  it('POST /Users with application/scim+json body → parser runs (create, 201)', async () => {
     const res = await app.inject({
       method: 'POST',
       url: `${SCIM_BASE}/Users`,
       headers: { authorization: `Bearer ${SCIM_KEY}`, 'content-type': 'application/scim+json' },
-      payload: JSON.stringify({ schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'], userName: 'a@b.c' }),
+      payload: JSON.stringify({ schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'], userName: 'parser-proof@b.c', name: { formatted: 'Parser Proof' } }),
     });
-    // 501 = auth passed, scoped parser accepted the media type (no 415), T2 owns the real handler.
-    expect(res.statusCode).toBe(501);
+    // 201 = scoped parser accepted the media type (no 415) and the real
+    // provisioning handler ran (T1 placeholder was 501).
+    expect(res.statusCode).toBe(201);
     expect(res.headers['content-type']).toContain('application/scim+json');
-    expect(res.json().schemas).toEqual(['urn:ietf:params:scim:api:messages:2.0:Error']);
+    expect(res.json().schemas).toEqual(['urn:ietf:params:scim:schemas:core:2.0:User']);
   });
 
   it('app.ts static invariant: zero global addContentTypeParser', () => {
     const src = readFileSync(resolve(__dirname, '../app.ts'), 'utf-8');
     expect((src.match(/addContentTypeParser/g) ?? []).length).toBe(0);
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// Task 2: User provisioning CRUD (filter + pagination + lifecycle)
+// ---------------------------------------------------------------------------
+
+/**
+ * Admin stub seeded in every reset: setup-guard's queryAdminExists does a
+ * findByEmail('admin@accessbase.local') fast path — without it the guard
+ * falls into the role-JOIN query and 503s on the fake PG (T1 stub precedent).
+ */
+const ADMIN_STUB = makeUser({ email: 'admin@accessbase.local', name: 'Admin', id: 'admin-u1' });
+
+function resetUserStore(): void {
+  userStore.clear();
+  userStore.set(ADMIN_STUB.email, { ...ADMIN_STUB });
+  userManagerMock.findByEmail.mockClear();
+  userManagerMock.findById.mockClear();
+  userManagerMock.findAll.mockClear();
+  userManagerMock.create.mockClear();
+  userManagerMock.update.mockClear();
+  userManagerMock.changeStatus.mockClear();
+  sessionManagerMock.revokeAllUserSessions.mockClear();
+}
+
+const AUTH = { authorization: `Bearer ${SCIM_KEY}`, 'content-type': 'application/scim+json' };
+
+describe('SCIM user provisioning (T2)', () => {
+  beforeEach(() => resetUserStore());
+
+  describe('POST /Users', () => {
+    it('happy path → 201 + Location + User resource (id/userName/meta/emails) + scim+json', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `${SCIM_BASE}/Users`,
+        headers: AUTH,
+        payload: JSON.stringify({
+          schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+          userName: 'New.User@Example.COM',
+          name: { formatted: 'New User' },
+        }),
+      });
+      expect(res.statusCode).toBe(201);
+      expect(res.headers['content-type']).toContain('application/scim+json');
+      const body = res.json();
+      expect(body.schemas).toEqual(['urn:ietf:params:scim:schemas:core:2.0:User']);
+      expect(body.id).toBeTruthy();
+      expect(body.userName).toBe('new.user@example.com'); // R8 normalized
+      expect(body.name).toEqual({ formatted: 'New User' });
+      expect(body.emails).toEqual([{ value: 'new.user@example.com', primary: true }]);
+      expect(body.active).toBe(true);
+      expect(body.meta).toMatchObject({ resourceType: 'User', location: `/api/v1/scim/v2/Users/${body.id}` });
+      expect(res.headers.location).toBe(`/api/v1/scim/v2/Users/${body.id}`);
+    });
+
+    it('PIT-056: duplicate provision → 409 uniqueness, findByEmail called with LOWERCASED userName (R8)', async () => {
+      userStore.set('dup@example.com', makeUser({ email: 'dup@example.com' }));
+      const res = await app.inject({
+        method: 'POST',
+        url: `${SCIM_BASE}/Users`,
+        headers: AUTH,
+        payload: JSON.stringify({ userName: '  DUP@Example.COM  ' }),
+      });
+      expect(res.statusCode).toBe(409);
+      const body = res.json();
+      expect(body.scimType).toBe('uniqueness');
+      expect(body.schemas).toEqual(['urn:ietf:params:scim:api:messages:2.0:Error']);
+      // R8 probe: trim + lowercase BEFORE the manager call.
+      expect(userManagerMock.findByEmail).toHaveBeenCalledWith('dup@example.com');
+    });
+
+    it('R9: name absent → name falls back to userName', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `${SCIM_BASE}/Users`,
+        headers: AUTH,
+        payload: JSON.stringify({ userName: 'noname@x.io' }),
+      });
+      expect(res.statusCode).toBe(201);
+      expect(res.json().name.formatted).toBe('noname@x.io');
+    });
+
+    it('password fails policy → 400 invalidValue (no user created)', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `${SCIM_BASE}/Users`,
+        headers: AUTH,
+        payload: JSON.stringify({ userName: 'weak@x.io', password: 'short' }),
+      });
+      expect(res.statusCode).toBe(400);
+      const body = res.json();
+      expect(body.scimType).toBe('invalidValue');
+      expect(userStore.has('weak@x.io')).toBe(false); // not provisioned
+    });
+
+    it('missing userName → 400 invalidValue', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `${SCIM_BASE}/Users`,
+        headers: AUTH,
+        payload: JSON.stringify({ name: { formatted: 'X' } }),
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().scimType).toBe('invalidValue');
+    });
+  });
+
+  describe('GET /Users — filter', () => {
+    it('PIT-056: filter userName eq → 200 ListResponse, findAll receives LOWERCASED value (R8 push-down)', async () => {
+      userStore.set('hit@x.io', makeUser({ email: 'hit@x.io' }));
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users?filter=${encodeURIComponent('userName eq "HIT@X.IO"')}`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.schemas).toEqual(['urn:ietf:params:scim:api:messages:2.0:ListResponse']);
+      expect(body.totalResults).toBe(1);
+      expect(body.Resources[0].userName).toBe('hit@x.io');
+      // R8 probe: the normalized value reached the manager layer.
+      expect(userManagerMock.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ search: 'hit@x.io' }),
+        DEFAULT_TENANT,
+      );
+    });
+
+    it('filter id eq → direct lookup by id', async () => {
+      const u = makeUser({ email: 'byid@x.io' });
+      userStore.set(u.email, u);
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users?filter=${encodeURIComponent(`id eq "${u.id}"`)}`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.totalResults).toBe(1);
+      expect(body.Resources[0].id).toBe(u.id);
+      expect(userManagerMock.findById).toHaveBeenCalledWith(u.id, DEFAULT_TENANT);
+    });
+
+    it('unsupported filter attribute → 400 invalidFilter', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users?filter=${encodeURIComponent('unsupported eq "x"')}`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().scimType).toBe('invalidFilter');
+    });
+
+    it('malformed filter syntax → 400 invalidFilter', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users?filter=${encodeURIComponent('userName eq')}`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().scimType).toBe('invalidFilter');
+    });
+  });
+
+  describe('GET /Users — pagination (PIT-056 mapping probe)', () => {
+    it('startIndex=1&count=10 → manager sees page=1, pageSize=10 (1-based passthrough)', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users?startIndex=1&count=10`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(userManagerMock.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ page: 1, pageSize: 10 }),
+        DEFAULT_TENANT,
+      );
+      const body = res.json();
+      expect(body.startIndex).toBe(1);
+      expect(body.itemsPerPage).toBe(userStore.size); // admin stub present, page of 10 fits all
+    });
+
+    it('startIndex=0 (invalid) clamps to 1; count beyond cap clamps to 200 (SPC maxResults)', async () => {
+      await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users?startIndex=0&count=9999`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(userManagerMock.findAll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ page: 1, pageSize: 200 }),
+        DEFAULT_TENANT,
+      );
+    });
+
+    it('defaults: no query → page=1 pageSize=100', async () => {
+      await app.inject({ method: 'GET', url: `${SCIM_BASE}/Users`, headers: { authorization: `Bearer ${SCIM_KEY}` } });
+      expect(userManagerMock.findAll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ page: 1, pageSize: 100 }),
+        DEFAULT_TENANT,
+      );
+    });
+  });
+
+  describe('GET /Users/:id', () => {
+    it('found → 200 User resource', async () => {
+      const u = makeUser({ email: 'one@x.io' });
+      userStore.set(u.email, u);
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users/${u.id}`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ id: u.id, userName: 'one@x.io', active: true });
+    });
+
+    it('not found → 404 scimType notFound', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users/00000000-0000-0000-0000-00000000dead`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(404);
+      expect(res.json().scimType).toBe('notFound');
+    });
+  });
+
+  describe('PUT /Users/:id', () => {
+    it('happy path → 200 with replaced name', async () => {
+      const u = makeUser({ email: 'put@x.io', name: 'Old Name' });
+      userStore.set(u.email, u);
+      const res = await app.inject({
+        method: 'PUT',
+        url: `${SCIM_BASE}/Users/${u.id}`,
+        headers: AUTH,
+        payload: JSON.stringify({ userName: 'put@x.io', name: { formatted: 'Replaced' } }),
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().name.formatted).toBe('Replaced');
+      expect(userManagerMock.update).toHaveBeenCalled();
+    });
+
+    it('PIT-056: userName mismatch → 400 invalidValue, update NOT called', async () => {
+      const u = makeUser({ email: 'imm@x.io' });
+      userStore.set(u.email, u);
+      const res = await app.inject({
+        method: 'PUT',
+        url: `${SCIM_BASE}/Users/${u.id}`,
+        headers: AUTH,
+        payload: JSON.stringify({ userName: 'other@x.io', name: { formatted: 'X' } }),
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().scimType).toBe('invalidValue');
+      expect(userManagerMock.update).not.toHaveBeenCalled();
+      expect(userManagerMock.changeStatus).not.toHaveBeenCalled();
+    });
+
+    it('active:false → changeStatus(suspended) + revokeAllUserSessions (batch A parity)', async () => {
+      const u = makeUser({ email: 'deact@x.io' });
+      userStore.set(u.email, u);
+      const res = await app.inject({
+        method: 'PUT',
+        url: `${SCIM_BASE}/Users/${u.id}`,
+        headers: AUTH,
+        payload: JSON.stringify({ userName: 'deact@x.io', active: false }),
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().active).toBe(false);
+      expect(userManagerMock.changeStatus).toHaveBeenCalledWith(u.id, 'suspended', DEFAULT_TENANT);
+      expect(sessionManagerMock.revokeAllUserSessions).toHaveBeenCalledWith(u.id);
+    });
+  });
+
+  describe('DELETE /Users/:id', () => {
+    it('PIT-056: → 204 empty + changeStatus(suspended) + revokeAllUserSessions called', async () => {
+      const u = makeUser({ email: 'gone@x.io' });
+      userStore.set(u.email, u);
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `${SCIM_BASE}/Users/${u.id}`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(204);
+      expect(res.body).toBe('');
+      expect(userManagerMock.changeStatus).toHaveBeenCalledWith(u.id, 'suspended', DEFAULT_TENANT);
+      expect(sessionManagerMock.revokeAllUserSessions).toHaveBeenCalledWith(u.id);
+    });
+
+    it('missing user → 404 notFound, no session revocation', async () => {
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `${SCIM_BASE}/Users/00000000-0000-0000-0000-00000000dead`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(404);
+      expect(res.json().scimType).toBe('notFound');
+      expect(sessionManagerMock.revokeAllUserSessions).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('M1 scoped error handler', () => {
+    it('invalid JSON body → 400 SCIM Error invalidSyntax (not the global envelope)', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `${SCIM_BASE}/Users`,
+        headers: AUTH,
+        payload: '{not json',
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.headers['content-type']).toContain('application/scim+json');
+      const body = res.json();
+      expect(body.schemas).toEqual(['urn:ietf:params:scim:api:messages:2.0:Error']);
+      expect(body.scimType).toBe('invalidSyntax');
+      expect(body.status).toBe('400');
+    });
+  });
+
+  describe('L1 ServiceProviderConfig carry-overs', () => {
+    it('SPC declares bulk block (RFC 7644 §5 required)', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/ServiceProviderConfig`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.json().bulk).toEqual({ supported: false, maxOperations: 0, maxPayloadSize: 0 });
+    });
+
+    it('SPC filter.maxResults = actual page cap (200)', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/ServiceProviderConfig`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.json().filter).toEqual({ supported: true, maxResults: 200 });
+    });
   });
 });

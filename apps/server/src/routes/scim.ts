@@ -1,5 +1,5 @@
 /**
- * SCIM 2.0 protocol mount skeleton (Batch H Task 1).
+ * SCIM 2.0 protocol routes (Batch H).
  *
  * Mounted at /api/v1/scim/v2. S2S provisioning protocol: IdPs (Azure AD,
  * Okta, Google Workspace) authenticate with an API key scoped to ['scim']
@@ -9,17 +9,32 @@
  * request.tenantId (R3) so downstream handlers never fall back to
  * DEFAULT_TENANT.
  *
+ * User provisioning CRUD (Task 2): SCIM User resource ↔ users table via
+ * UserManager. userName ↔ email (lower/trim normalized, R8); name absent →
+ * userName (R9). Filtering supports only `userName eq` / `id eq` (SQL
+ * push-down via scim2-parse-filter AST); anything else → 400 invalidFilter.
+ *
  * ALL responses use the SCIM error/list shape ({schemas: [...], ...}) —
  * never our {success,data} envelope (RFC 7644 wire contract).
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { SafeApiKey } from '@accessbase/identity';
-import { ApiKeyManager, hashApiKey } from '@accessbase/identity';
+import { ApiKeyManager, UserManager, SessionManager, hashApiKey } from '@accessbase/identity';
+import { assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
+import type { User } from '@accessbase/identity';
+import { parse as parseFilter } from 'scim2-parse-filter';
 import { getApiKeyManager } from './api-keys.js';
+import { getOptionsManager } from './options.js';
 
 const SCIM_MEDIA_TYPE = 'application/scim+json';
 
 const ERROR_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:Error';
+const LIST_RESPONSE_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:ListResponse';
+const USER_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:User';
+
+/** RFC 7644 §3.7.3: list page size default/cap — mirrored in SPC filter.maxResults. */
+const PAGE_SIZE_DEFAULT = 100;
+const PAGE_SIZE_MAX = 200;
 
 /** RFC 7644 §3.12 error envelope. */
 function scimError(
@@ -41,7 +56,78 @@ function scimSend(reply: FastifyReply, status: number, body: Record<string, unkn
   reply.status(status).header('content-type', SCIM_MEDIA_TYPE).send(body);
 }
 
+/** R8: SCIM userName matching is case-insensitive; PG varchar unique is not. */
+function normalizeUserName(userName: unknown): string | undefined {
+  if (typeof userName !== 'string' || userName.trim() === '') return undefined;
+  return userName.trim().toLowerCase();
+}
+
+/**
+ * DB user row → SCIM User resource (RFC 7643 §4.3 + §7 meta).
+ * location mirrors the public mount path (front proxy keeps /api prefix).
+ */
+function toScimUser(user: User): Record<string, unknown> {
+  return {
+    schemas: [USER_SCHEMA],
+    id: user.id,
+    userName: user.email,
+    ...(user.name ? { name: { formatted: user.name } } : {}),
+    emails: [{ value: user.email, primary: true }],
+    active: user.status === 'active',
+    meta: {
+      resourceType: 'User',
+      location: `/api/v1/scim/v2/Users/${user.id}`,
+      created: user.createdAt.toISOString(),
+      lastModified: user.updatedAt.toISOString(),
+    },
+  };
+}
+
+/**
+ * SCIM filter AST → manager query. Only single-clause `userName eq` /
+ * `id eq` push down to SQL; any other shape is rejected (400 invalidFilter)
+ * rather than silently broadening the match.
+ * Returns search (email/name ILIKE for userName) or id filter.
+ */
+function filterToQuery(filterStr: string): { search?: string; id?: string } | null {
+  let ast: ReturnType<typeof parseFilter>;
+  try {
+    ast = parseFilter(filterStr);
+  } catch {
+    return null;
+  }
+  if (ast.op !== 'eq') return null;
+  const value = typeof ast.compValue === 'string' ? ast.compValue : undefined;
+  if (value === undefined) return null;
+  if (ast.attrPath.toLowerCase() === 'username') {
+    const normalized = normalizeUserName(value);
+    return normalized ? { search: normalized } : null;
+  }
+  if (ast.attrPath.toLowerCase() === 'id') return { id: value };
+  return null;
+}
+
 export async function scimRoutes(app: FastifyInstance): Promise<void> {
+  // Scoped managers (users.ts route-module precedent).
+  const userManager = new UserManager();
+  // Lazy singleton: a per-request SessionManager would pile up pg Pools
+  // (users.ts getSessionManager precedent). Only DELETE touches it.
+  let sessionManager: SessionManager | null = null;
+
+  // M1 (T1 review carry-over): scoped error handler. Parser failures and
+  // validation errors → 400 SCIM Error (invalidSyntax); anything else in
+  // this subtree → SCIM-shaped 500. Never the global {success,data} envelope.
+  app.setErrorHandler((err, _request, reply) => {
+    const status = typeof err.statusCode === 'number' && err.statusCode >= 400 ? err.statusCode : 500;
+    const isSyntax = status === 400 || status === 422;
+    scimError(
+      reply,
+      status,
+      isSyntax ? 'invalidSyntax' : undefined,
+      err.message || 'Request could not be processed',
+    );
+  });
+
   // R5: scoped parser, registered UNCONDITIONALLY — Fastify 4 has no
   // application/scim+json parser, so Azure AD's constant media type would 415.
   // Scoped to this plugin's encapsulation context (saml.ts:27 precedent);
@@ -52,8 +138,12 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     (_req, body, done: (err: Error | null, result?: unknown) => void) => {
       try {
         done(null, JSON.parse(body as string));
-      } catch (e) {
-        done(e as Error);
+      } catch {
+        // statusCode=400 routes the failure to the scoped error handler
+        // (raw SyntaxError would fall through to Fastify's default 500).
+        const err: Error & { statusCode?: number } = new Error('Request body is not valid JSON');
+        err.statusCode = 400;
+        done(err);
       }
     },
   );
@@ -92,7 +182,9 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
       schemas: ['urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig'],
       documentationUri: 'https://datatracker.ietf.org/doc/html/rfc7644',
       patch: { supported: true },
-      filter: { supported: true, maxResults: 200 },
+      filter: { supported: true, maxResults: PAGE_SIZE_MAX },
+      // L1 (T1 review): RFC 7644 §5 requires the bulk block on SPC.
+      bulk: { supported: false, maxOperations: 0, maxPayloadSize: 0 },
       changePassword: { supported: false },
       sort: { supported: false },
       etag: { supported: false },
@@ -130,7 +222,7 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
             { name: 'active', type: 'boolean', multiValued: false, required: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
             { name: 'emails', type: 'complex', multiValued: true, required: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none', subAttributes: [
               { name: 'value', type: 'string', multiValued: false, required: false, caseExact: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
-              { name: 'primary', type: 'boolean', multiValued: false, required: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
+              { name: 'primary', type: 'boolean', multiValued: false, required: false, caseExact: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
             ] },
           ],
           meta: { resourceType: 'Schema', location: '/api/v1/scim/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:User' },
@@ -161,14 +253,192 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     });
   });
 
-  // POST /Users placeholder — T2 owns the real implementation. Proves the
-  // scoped parser (request.body is a parsed object, not a string) and the
-  // auth chain end to end.
-  app.post('/Users', async (_req, reply) => {
-    scimSend(reply, 501, {
-      schemas: [ERROR_SCHEMA],
-      status: '501',
-      detail: 'SCIM User provisioning not yet implemented',
+  // --- User provisioning CRUD (Task 2) ---
+
+  /**
+   * GET /Users — ListResponse with optional filter + startIndex/count paging.
+   * startIndex is 1-based (SCIM) → page is 1-based in findAll; count caps at
+   * PAGE_SIZE_MAX (mirrors SPC filter.maxResults, L1 alignment).
+   */
+  app.get('/Users', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+
+    const query = request.query as { filter?: string; startIndex?: string; count?: string };
+
+    let search: string | undefined;
+    let id: string | undefined;
+    if (query.filter) {
+      const mapped = filterToQuery(query.filter);
+      if (!mapped) return scimError(reply, 400, 'invalidFilter', 'Unsupported or malformed filter');
+      search = mapped.search;
+      id = mapped.id;
+    }
+
+    const startIndex = Math.max(1, Number.parseInt(query.startIndex ?? '1', 10) || 1);
+    const countRaw = Number.parseInt(query.count ?? String(PAGE_SIZE_DEFAULT), 10);
+    const count = Number.isNaN(countRaw) ? PAGE_SIZE_DEFAULT : Math.min(Math.max(1, countRaw), PAGE_SIZE_MAX);
+
+    // id eq → direct lookup, list response with 0/1 result.
+    if (id) {
+      const user = await userManager.findById(id, tenantId);
+      return scimSend(reply, 200, {
+        schemas: [LIST_RESPONSE_SCHEMA],
+        totalResults: user ? 1 : 0,
+        startIndex,
+        itemsPerPage: user ? 1 : 0,
+        Resources: user ? [toScimUser(user)] : [],
+      });
+    }
+
+    const result = await userManager.findAll({ page: startIndex, pageSize: count, search }, tenantId);
+    return scimSend(reply, 200, {
+      schemas: [LIST_RESPONSE_SCHEMA],
+      totalResults: result.total,
+      startIndex,
+      itemsPerPage: result.data.length,
+      Resources: result.data.map(toScimUser),
     });
+  });
+
+  app.get('/Users/:id', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const { id } = request.params as { id: string };
+    const user = await userManager.findById(id, tenantId);
+    if (!user) return scimError(reply, 404, 'notFound', `User ${id} not found`);
+    return scimSend(reply, 200, toScimUser(user));
+  });
+
+  /**
+   * POST /Users — find-or-create.
+   * emails[0].value vs userName: when both present and they differ, emails[0]
+   * wins as the account email and userName is recorded verbatim in name
+   * (fallback, R9) — the email claim is the stronger SCIM attribute.
+   */
+  app.post('/Users', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const body = (request.body ?? {}) as Record<string, unknown>;
+
+    const emails = Array.isArray(body['emails']) ? body['emails'] : [];
+    const firstEmail = emails.length > 0 && typeof emails[0] === 'object' && emails[0] !== null
+      ? (emails[0] as { value?: unknown }).value
+      : undefined;
+    const userName = normalizeUserName(body['userName']) ?? normalizeUserName(firstEmail);
+    if (!userName) {
+      return scimError(reply, 400, 'invalidValue', 'userName is required');
+    }
+    // emails[0].value, when present, wins over userName as the account email.
+    const email = normalizeUserName(firstEmail) ?? userName;
+
+    const scimName =
+      typeof body['name'] === 'object' && body['name'] !== null
+        ? (body['name'] as { formatted?: unknown }).formatted
+        : undefined;
+    // R9: users.name is NOT NULL; fall back to the provided userName/email.
+    const name =
+      typeof scimName === 'string' && scimName.trim() !== ''
+        ? scimName
+        : (typeof body['userName'] === 'string' ? body['userName'] : email);
+
+    const externalId = typeof body['externalId'] === 'string' ? body['externalId'] : undefined;
+
+    // Find-or-create: 409 uniqueness on an existing account (R8 normalized).
+    const existing = await userManager.findByEmail(email);
+    if (existing) {
+      return scimError(reply, 409, 'uniqueness', `User already exists: ${email}`);
+    }
+
+    const password = typeof body['password'] === 'string' && body['password'] !== '' ? body['password'] : undefined;
+    if (password) {
+      const policy = await readPasswordPolicy(getOptionsManager().get.bind(getOptionsManager()), 'register');
+      const verdict = assertPasswordPolicy(password, policy);
+      if (!verdict.ok) {
+        return scimError(reply, 400, 'invalidValue', verdict.message ?? 'Password does not meet policy');
+      }
+    }
+
+    const created = await userManager.create(
+      {
+        email,
+        name,
+        ...(password ? { password } : {}),
+        ...(externalId ? { metadata: { scimExternalId: externalId } } : {}),
+        isActive: true,
+      },
+      tenantId,
+    );
+    const location = `/api/v1/scim/v2/Users/${created.id}`;
+    return reply.status(201).header('content-type', SCIM_MEDIA_TYPE).header('location', location).send(
+      toScimUser(created),
+    );
+  });
+
+  /**
+   * PUT /Users/:id — full replace of mutable attributes (name/emails/active).
+   * Immutable: id, userName (email) — a differing userName → 400 invalidValue.
+   */
+  app.put('/Users/:id', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const { id } = request.params as { id: string };
+    const body = (request.body ?? {}) as Record<string, unknown>;
+
+    const current = await userManager.findById(id, tenantId);
+    if (!current) return scimError(reply, 404, 'notFound', `User ${id} not found`);
+
+    const bodyUserName = normalizeUserName(body['userName']);
+    if (bodyUserName && bodyUserName !== current.email.toLowerCase()) {
+      return scimError(reply, 400, 'invalidValue', 'userName is immutable');
+    }
+
+    const scimName =
+      typeof body['name'] === 'object' && body['name'] !== null
+        ? (body['name'] as { formatted?: unknown }).formatted
+        : undefined;
+    const name =
+      typeof scimName === 'string' && scimName.trim() !== ''
+        ? scimName
+        : current.name;
+
+    const emails = Array.isArray(body['emails']) ? body['emails'] : [];
+    const firstEmail = emails.length > 0 && typeof emails[0] === 'object' && emails[0] !== null
+      ? (emails[0] as { value?: unknown }).value
+      : undefined;
+    const emailFromEmails = normalizeUserName(firstEmail);
+    if (emailFromEmails && emailFromEmails !== current.email.toLowerCase()) {
+      return scimError(reply, 400, 'invalidValue', 'emails[0].value is immutable (matches userName)');
+    }
+
+    // active=false → suspension parity (batch A): revoke all sessions so the
+    // deactivation is immediate. active=true only un-suspends.
+    if (body['active'] === false) {
+      await userManager.changeStatus(id, 'suspended', tenantId);
+      sessionManager ??= new SessionManager();
+      await sessionManager.revokeAllUserSessions(id);
+    } else if (body['active'] === true && current.status !== 'active') {
+      await userManager.changeStatus(id, 'active', tenantId);
+    }
+
+    const updated =
+      name !== current.name ? await userManager.update(id, { name }, tenantId) : current;
+    return scimSend(reply, 200, toScimUser(updated));
+  });
+
+  /**
+   * DELETE /Users/:id — soft delete: suspend + revoke sessions (batch A
+   * parity, users.ts changeStatus precedent). 204 empty per RFC 7644 §3.6.2.
+   */
+  app.delete('/Users/:id', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const { id } = request.params as { id: string };
+    const current = await userManager.findById(id, tenantId);
+    if (!current) return scimError(reply, 404, 'notFound', `User ${id} not found`);
+    await userManager.changeStatus(id, 'suspended', tenantId);
+    sessionManager ??= new SessionManager();
+    await sessionManager.revokeAllUserSessions(id);
+    return reply.status(204).send();
   });
 }
