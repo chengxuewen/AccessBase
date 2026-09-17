@@ -16,6 +16,7 @@ import {
 import { fetchAllPermissions } from '../utils/fetchAll';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
+import TenantCell from '../components/TenantCell';
 
 export default function Roles() {
   const { t } = useTranslation();
@@ -115,6 +116,13 @@ export default function Roles() {
   const columns: ProColumns<Role>[] = [
     { title: t('roles.name'), dataIndex: 'name' },
     { title: t('roles.description'), dataIndex: 'description', search: false },
+    {
+      // Batch G5: read-only tenant column — slug via cached lookup, '—' on failure
+      title: t('roles.tenant'),
+      dataIndex: 'tenantId',
+      search: false,
+      render: (_, record) => record.tenantId ? <TenantCell tenantId={record.tenantId} /> : '—',
+    },
     {
       title: t('roles.createdAt'),
       dataIndex: 'createdAt',

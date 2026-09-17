@@ -10,6 +10,7 @@ import EmptyState from '../components/EmptyState';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
 import { mapSort } from './users/sortParams';
+import TenantCell from '../components/TenantCell';
 
 export default function Users() {
   const { t } = useTranslation();
@@ -45,6 +46,14 @@ export default function Users() {
           {record.isActive ? t('users.statusActive') : t('users.statusSuspended')}
         </Tag>
       ),
+    },
+    {
+      title: t('users.tenant'),
+      dataIndex: 'tenantId',
+      search: false,
+      // Batch G5: read-only tenant slug via cached lookup; '—' when lookup
+      // failed (cached failure, no retry) or tenant not in first page.
+      render: (_, record) => <TenantCell tenantId={record.tenantId} />,
     },
     {
       title: t('users.createdAt'),
