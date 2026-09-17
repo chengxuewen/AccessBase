@@ -19,6 +19,7 @@ import { setupRoutes } from './routes/setup.js';
 import { setupGuard } from './middleware/setup-guard.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { samlRoutes } from './routes/saml.js';
+import { scimRoutes } from './routes/scim.js';
 import { webauthnRoutes } from './routes/webauthn.js';
 import { optionsRoutes } from './routes/options.js';
 import { clientRoutes } from './routes/clients.js';
@@ -293,6 +294,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(userRoutes, { prefix: '/api/v1/users' });
   await app.register(roleRoutes, { prefix: '/api/v1/roles' });
   await app.register(tenantRoutes, { prefix: '/api/v1/tenants' });
+  // SCIM 2.0 (Batch H) — own bearer preHandler inside the plugin; never app.authenticate.
+  await app.register(scimRoutes, { prefix: '/api/v1/scim/v2' });
   await app.register(permissionRoutes, { prefix: '/api/v1/permissions' });
   await app.register(auditRoutes, { prefix: '/api/v1/audit-logs' });
   await app.register(statsRoutes, { prefix: '/api/v1' });
