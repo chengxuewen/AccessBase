@@ -70,6 +70,7 @@
     "magicTitle": "邮箱登录",
     "magicInvalid": "此登录链接无效或已过期。",
     "magicBackToLogin": "返回登录",
+    "accountSuspended": "该账号已被停用。",
     "magicError": "登录链接发送失败。"
   },
   "consent": {

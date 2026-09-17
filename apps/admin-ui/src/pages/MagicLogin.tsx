@@ -40,7 +40,10 @@ export default function MagicLogin() {
           .fetchUser()
           .then(() => navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true }));
       })
-      .catch(() => setError('invalid'));
+      .catch((err: unknown) => {
+        const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+        setError(code === 'AUTH_004' ? 'suspended' : 'invalid');
+      });
   }, [searchParams, setSearchParams, navigate]);
 
   return (
@@ -59,7 +62,7 @@ export default function MagicLogin() {
             <Alert
               type="error"
               showIcon
-              message={t('login.magicInvalid')}
+              message={error === 'suspended' ? t('login.accountSuspended') : t('login.magicInvalid')}
               style={{ marginBottom: 16 }}
               data-testid="magic-error"
             />

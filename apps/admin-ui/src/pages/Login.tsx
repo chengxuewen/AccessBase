@@ -39,7 +39,7 @@ export default function Login() {
   }, [oidcRedirect, navigate]);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
-  const [oauthBusy, setOauthBusy] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
   const [passkeyError, setPasskeyError] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   const [mfaError, setMfaError] = useState(false);
@@ -73,12 +73,12 @@ export default function Login() {
       return;
     }
     if (code) {
-      setOauthBusy(true);
+      setAuthBusy(true);
       exchangeOAuthCode(code)
         .then(() => useAuthStore.getState().fetchUser())
         .then(() => navigateAfterAuth())
         .catch(() => setOauthError('exchange_failed'))
-        .finally(() => setOauthBusy(false));
+        .finally(() => setAuthBusy(false));
     }
   }, [searchParams, setSearchParams, exchangeOAuthCode, fetchUser, navigate, navigateAfterAuth]);
 
@@ -110,12 +110,12 @@ export default function Login() {
       return;
     }
     if (code) {
-      setOauthBusy(true);
+      setAuthBusy(true);
       exchangeSamlCode(code)
         .then(() => useAuthStore.getState().fetchUser())
         .then(() => navigateAfterAuth())
         .catch(() => setSamlError('AUTH_SAML_002'))
-        .finally(() => setOauthBusy(false));
+        .finally(() => setAuthBusy(false));
     }
   }, [searchParams, setSearchParams, exchangeSamlCode, navigateAfterAuth]);
 
@@ -279,7 +279,7 @@ export default function Login() {
         style={{ width: '100%', maxWidth: 400 }}
         styles={{ header: { textAlign: 'center' } }}
       >
-        {oauthBusy && <Spin data-testid="oauth-busy" style={{ display: 'block', marginBottom: 16 }} />}
+        {authBusy && <Spin data-testid="auth-busy" style={{ display: 'block', marginBottom: 16 }} />}
 
         {oauthError && (
           <Alert

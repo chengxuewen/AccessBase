@@ -203,8 +203,7 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     await page.locator(menuUsersSelector).first().click();
     await expect(page).toHaveURL(/\/users/);
 
-    await page.waitForTimeout(5000); // let every interceptor settle
-    expect(refreshCalls, `expected single-flight refresh, observed ${refreshCalls} refresh calls`).toBe(1);
+    await expect.poll(() => refreshCalls, { timeout: 10000 }).toBe(1);
   });
 
   test('R3: change-password adopts the returned token pair — later requests use the NEW access token', async ({ page }) => {

@@ -235,6 +235,9 @@ export async function samlRoutes(app: FastifyInstance) {
           request.log.warn('SAML login rejected: tenant suspended');
           return samlError(reply, 'AUTH_TENANT_001');
         }
+        // R1 fold: AUTH_SAML_003 (500 provisioning) absorbed here — ACS uses a
+        // two-exit model: AUTH_SAML_001 (config/unavailable) and AUTH_SAML_002
+        // (sign-in/provisioning failure).  No separate 500 code needed.
         request.log.error({ err }, 'SAML provisioning/token issuance failed');
         return samlError(reply, 'AUTH_SAML_002');
       }

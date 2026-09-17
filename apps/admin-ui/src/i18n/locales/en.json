@@ -70,6 +70,7 @@
     "magicTitle": "Email sign-in",
     "magicInvalid": "This sign-in link is invalid or has expired.",
     "magicBackToLogin": "Back to sign in",
+    "accountSuspended": "This account has been suspended.",
     "magicError": "Failed to send the sign-in link."
   },
   "consent": {
