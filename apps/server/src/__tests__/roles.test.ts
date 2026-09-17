@@ -113,6 +113,33 @@ describe('GET /api/v1/roles', () => {
   });
 });
 
+// G/R3 RED: a token's tenantId claim must reach the Manager via request context,
+// not the hardcoded DEFAULT_TENANT constant.
+describe('GET /api/v1/roles — tenantId injection', () => {
+  it('passes the token tenantId claim to RoleManager.findAll', async () => {
+    const tenantToken = app.jwt.sign({
+      sub: '00000000-0000-0000-0000-0000000000ff',
+      email: 'admin@test.com',
+      tenantId: '99999999-9999-9999-9999-999999999999',
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/roles',
+      headers: AUTH(tenantToken),
+    });
+
+    expect(res.statusCode).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rm = (identity as any).RoleManager.mock.results[0].value as {
+      findAll: ReturnType<typeof vi.fn>;
+    };
+    expect(rm.findAll).toHaveBeenLastCalledWith(
+      expect.anything(),
+      '99999999-9999-9999-9999-999999999999',
+    );
+  });
+});
+
 describe('GET /api/v1/roles/:id', () => {
   it('returns role by ID', async () => {
     const res = await app.inject({

@@ -108,14 +108,18 @@ export async function authRoutes(app: FastifyInstance) {
     return { accessToken, refreshToken };
   }
 
-  /** Real [{id,name}] role list for a user (login + /me share this projection) */
-  async function rolesOf(userId: string): Promise<{ id: string; name: string }[]> {
-    const roles = await roleManager.getUserRoles(userId, DEFAULT_TENANT);
+  /**
+   * Real [{id,name}] role list for a user (login + /me share this projection).
+   * tenantId comes from the request context; callers on public issuance paths
+   * omit it and the default-tenant fallback applies.
+   */
+  async function rolesOf(userId: string, tenantId?: string): Promise<{ id: string; name: string }[]> {
+    const roles = await roleManager.getUserRoles(userId, tenantId ?? DEFAULT_TENANT);
     return roles.map((r) => ({ id: r.id, name: r.name }));
   }
   /** Effective 'resource:action' codes for /auth/me (frontend menu/route gating) */
-  async function permissionsOf(userId: string): Promise<string[]> {
-    const perms = await permissionManager.getUserEffectivePermissions(userId, DEFAULT_TENANT);
+  async function permissionsOf(userId: string, tenantId?: string): Promise<string[]> {
+    const perms = await permissionManager.getUserEffectivePermissions(userId, tenantId ?? DEFAULT_TENANT);
     return perms.map((p) => `${p.resource}:${p.action}`);
   }
 
@@ -218,7 +222,7 @@ export async function authRoutes(app: FastifyInstance) {
               id: user.id,
               email: user.email,
               name: user.name,
-              roles: await rolesOf(user.id),
+              roles: await rolesOf(user.id, request.tenantId),
             },
           },
         };
@@ -303,9 +307,9 @@ export async function authRoutes(app: FastifyInstance) {
       // silently register ACTIVE users.
       const user = await userManager.create(
         { email, name, password },
-        DEFAULT_TENANT,
+        request.tenantId ?? DEFAULT_TENANT,
       );
-      await userManager.changeStatus(user.id, 'pending', DEFAULT_TENANT);
+      await userManager.changeStatus(user.id, 'pending', request.tenantId ?? DEFAULT_TENANT);
 
       request.log.info({ email }, 'Registration created pending user');
 
@@ -329,7 +333,7 @@ export async function authRoutes(app: FastifyInstance) {
     async (request) => {
       const payload = request.user as { sub: string; email: string };
       const userManager = new (await import('@accessbase/identity')).UserManager();
-      const user = await userManager.findById(payload.sub, DEFAULT_TENANT);
+      const user = await userManager.findById(payload.sub, request.tenantId ?? DEFAULT_TENANT);
       if (!user) {
         throw new Error('User not found');
       }
@@ -339,8 +343,8 @@ export async function authRoutes(app: FastifyInstance) {
           id: user.id,
           email: user.email,
           name: user.name,
-          roles: await rolesOf(user.id),
-          permissions: await permissionsOf(user.id),
+          roles: await rolesOf(user.id, request.tenantId),
+          permissions: await permissionsOf(user.id, request.tenantId),
           // users.mfaEnabled column is dead; totpEnabled is the live MFA state (MfaManager writes it)
           mfaEnabled: user.totpEnabled ?? false,
         },
@@ -582,7 +586,7 @@ return { success: true };
         await sessionManager.revokeAllUserSessions(payload.sub);
         const user = await userManager.findById(
           payload.sub,
-          DEFAULT_TENANT,
+          request.tenantId ?? DEFAULT_TENANT,
         );
         if (!user) throw new Error('User not found');
         const { accessToken, refreshToken } = await issueTokenPair(request, { id: user.id, email: user.email, status: user.status });
@@ -806,7 +810,7 @@ return { success: true };
         });
       }
       const userManager = new (await import('@accessbase/identity')).UserManager();
-      const user = await userManager.findById(payload.userId, DEFAULT_TENANT);
+      const user = await userManager.findById(payload.userId, request.tenantId ?? DEFAULT_TENANT);
       if (!user || user.email !== payload.email) {
         // Token already burned above — same generic 401 (R13).
         return reply.status(401).send({
@@ -1020,7 +1024,7 @@ return { success: true };
         const userManager = new (await import('@accessbase/identity')).UserManager();
         const user = await userManager.findById(
           payload.userId,
-          DEFAULT_TENANT,
+          request.tenantId ?? DEFAULT_TENANT,
         );
         if (!user) {
           return reply.status(401).send({
@@ -1221,7 +1225,7 @@ return { success: true };
         // reused (link semantics), absent ones provisioned into the default
         // tenant with a null passwordHash (local login stays impossible).
         const existing = await userManager.findByEmail(email);
-        const user = existing ?? (await userManager.create({ email, name }, DEFAULT_TENANT));
+        const user = existing ?? (await userManager.create({ email, name }, request.tenantId ?? DEFAULT_TENANT));
 
         // Final review HIGH: a suspended/pending existing account must not
         // obtain an LDAP session — mirror oauth.ts/webauthn.ts 403 AUTH_004.

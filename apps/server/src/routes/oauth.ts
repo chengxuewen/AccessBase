@@ -314,6 +314,7 @@ export async function oauthRoutes(app: FastifyInstance) {
     provider: string,
     profile: NormalizedProfile,
     tokens: OAuth2Tokens,
+    tenantId?: string,
   ): Promise<{ id: string; email: string; status: string; totpEnabled?: boolean; tenantId?: string }> {
     const [existingLink] = await db
       .select({ userId: oauthAccounts.userId })
@@ -356,7 +357,7 @@ export async function oauthRoutes(app: FastifyInstance) {
         email: profile.email || `${profile.providerAccountId}@${provider}.oauth.invalid`,
         name: profile.name,
         passwordHash: await bcryptjs.hash(randomPassword, 12),
-        tenantId: DEFAULT_TENANT,
+        tenantId: tenantId ?? DEFAULT_TENANT,
         status: 'active',
       })
       .returning({ id: users.id, email: users.email, status: users.status });
@@ -473,7 +474,7 @@ export async function oauthRoutes(app: FastifyInstance) {
           resolved.kind === 'generic'
             ? await fetchGenericProfile(provider, resolved.genericConfig!.userinfoUrl, tokens.accessToken())
             : await fetchProviderProfile(provider as SupportedProvider, tokens.accessToken());
-        const user = await findOrCreateOAuthUser(provider, profile, tokens);
+        const user = await findOrCreateOAuthUser(provider, profile, tokens, request.tenantId);
         // P0 (final review C1): a suspended/pending account must not obtain an
         // OAuth session even with a valid provider link — mirror the login
         // handler's 403 AUTH_004. Only existing users can be non-active; the

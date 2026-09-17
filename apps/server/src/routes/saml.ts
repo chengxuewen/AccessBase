@@ -124,8 +124,8 @@ export async function samlRoutes(app: FastifyInstance) {
   }
 
   /** Real [{id,name}] role list for a user (login projection parity). */
-  async function rolesOf(userId: string): Promise<{ id: string; name: string }[]> {
-    const roles = await roleManager.getUserRoles(userId, DEFAULT_TENANT);
+  async function rolesOf(userId: string, tenantId?: string): Promise<{ id: string; name: string }[]> {
+    const roles = await roleManager.getUserRoles(userId, tenantId ?? DEFAULT_TENANT);
     return roles.map((r) => ({ id: r.id, name: r.name }));
   }
 
@@ -200,7 +200,7 @@ export async function samlRoutes(app: FastifyInstance) {
         const existing = await userManager.findByEmail(identity.email);
         const user = existing ?? (await userManager.create(
           { email: identity.email, name: identity.displayName ?? '' },
-          DEFAULT_TENANT,
+          request.tenantId ?? DEFAULT_TENANT,
         ));
 
         // Suspended/pending accounts get no session — AUTH_004 on the browser channel.
@@ -222,7 +222,7 @@ export async function samlRoutes(app: FastifyInstance) {
             {
               accessToken,
               refreshToken,
-              user: { id: user.id, email: user.email, name: user.name, roles: await rolesOf(user.id) },
+              user: { id: user.id, email: user.email, name: user.name, roles: await rolesOf(user.id, request.tenantId) },
             },
             EXCHANGE_TTL_SECONDS,
           );

@@ -38,7 +38,7 @@ export async function roleRoutes(app: FastifyInstance) {
       };
       const result = await roleManager.findAll(
         { page: Number(page), pageSize: Number(pageSize), search },
-        DEFAULT_TENANT,
+        request.tenantId ?? DEFAULT_TENANT,
       );
       return { success: true, data: result.data, total: result.total };
     },
@@ -60,7 +60,7 @@ export async function roleRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const role = await roleManager.findById(request.params.id, DEFAULT_TENANT);
+      const role = await roleManager.findById(request.params.id, request.tenantId ?? DEFAULT_TENANT);
       if (!role) {
         return reply.status(404).send({
           success: false,
@@ -100,7 +100,7 @@ export async function roleRoutes(app: FastifyInstance) {
       };
       const role = await roleManager.create(
         { name, description, parentId, permissionIds },
-        DEFAULT_TENANT,
+        request.tenantId ?? DEFAULT_TENANT,
       );
       return reply.status(201).send({ success: true, data: role });
     },
@@ -136,7 +136,7 @@ export async function roleRoutes(app: FastifyInstance) {
         description?: string;
         permissionIds?: string[];
       };
-      const role = await roleManager.update(id, { name, description, permissionIds }, DEFAULT_TENANT);
+      const role = await roleManager.update(id, { name, description, permissionIds }, request.tenantId ?? DEFAULT_TENANT);
       return { success: true, data: role };
     },
   );
@@ -158,7 +158,7 @@ export async function roleRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      await roleManager.delete(id, DEFAULT_TENANT);
+      await roleManager.delete(id, request.tenantId ?? DEFAULT_TENANT);
       return { success: true };
     },
   );

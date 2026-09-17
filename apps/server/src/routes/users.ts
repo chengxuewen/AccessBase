@@ -27,10 +27,10 @@ export async function userRoutes(app: FastifyInstance) {
   const roleManager = new RoleManager();
 
   /** Tenant-scope check for caller-supplied roleIds; returns the first unknown id (route-boundary validation). */
-  async function unknownRoleId(roleIds: string[] | undefined): Promise<string | null> {
+  async function unknownRoleId(roleIds: string[] | undefined, tenantId?: string): Promise<string | null> {
     if (!roleIds) return null;
     for (const roleId of roleIds) {
-      const role = await roleManager.findById(roleId, DEFAULT_TENANT);
+      const role = await roleManager.findById(roleId, tenantId ?? DEFAULT_TENANT);
       if (!role) return roleId;
     }
     return null;
@@ -68,7 +68,7 @@ export async function userRoutes(app: FastifyInstance) {
           sortBy,
           sortOrder: sortOrder as 'asc' | 'desc' | undefined,
         },
-        DEFAULT_TENANT,
+        request.tenantId ?? DEFAULT_TENANT,
       );
       return { success: true, data: result.data, total: result.total };
     },
@@ -106,11 +106,11 @@ export async function userRoutes(app: FastifyInstance) {
       ];
       const csvRows: Record<string, unknown>[] = [];
       for (let page = 1; csvRows.length < MAX_ROWS; page++) {
-        const result = await userManager.findAll({ page, pageSize: PAGE }, DEFAULT_TENANT);
+        const result = await userManager.findAll({ page, pageSize: PAGE }, request.tenantId ?? DEFAULT_TENANT);
         if (result.data.length === 0) break;
         for (const user of result.data) {
           if (csvRows.length >= MAX_ROWS) break;
-          const roles = await roleManager.getUserRoles(user.id, DEFAULT_TENANT);
+          const roles = await roleManager.getUserRoles(user.id, request.tenantId ?? DEFAULT_TENANT);
           csvRows.push({
             ...user,
             roles: roles.map((r) => r.name).join(','),
@@ -140,7 +140,7 @@ export async function userRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const payload = request.user as { sub: string };
-      const user = await userManager.findById(payload.sub, DEFAULT_TENANT);
+      const user = await userManager.findById(payload.sub, request.tenantId ?? DEFAULT_TENANT);
       if (!user) {
         throw new Error('User not found');
       }
@@ -169,7 +169,7 @@ export async function userRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params;
       try {
-        const user = await userManager.findById(id, DEFAULT_TENANT);
+        const user = await userManager.findById(id, request.tenantId ?? DEFAULT_TENANT);
         if (!user) {
           return reply.status(404).send({
             success: false,
@@ -177,7 +177,7 @@ export async function userRoutes(app: FastifyInstance) {
           });
         }
         // Detail exposes the role list (UserDetail renders it, UserEdit prefills roleIds)
-        const roles = await roleManager.getUserRoles(id, DEFAULT_TENANT);
+        const roles = await roleManager.getUserRoles(id, request.tenantId ?? DEFAULT_TENANT);
         return {
           success: true,
           data: {
@@ -230,7 +230,7 @@ export async function userRoutes(app: FastifyInstance) {
         isActive?: boolean;
         roleIds?: string[];
       };
-      const unknown = await unknownRoleId(roleIds);
+      const unknown = await unknownRoleId(roleIds, request.tenantId);
       if (unknown) {
         return reply.status(400).send({
           success: false,
@@ -240,10 +240,10 @@ export async function userRoutes(app: FastifyInstance) {
       try {
         const user = await userManager.create(
           { email, name, password, avatarUrl, isActive },
-          DEFAULT_TENANT,
+          request.tenantId ?? DEFAULT_TENANT,
         );
         if (roleIds && roleIds.length > 0) {
-          await roleManager.setUserRoles(user.id, roleIds, DEFAULT_TENANT);
+          await roleManager.setUserRoles(user.id, roleIds, request.tenantId ?? DEFAULT_TENANT);
         }
         return reply.status(201).send({ success: true, data: user });
       } catch (err) {
@@ -318,7 +318,7 @@ export async function userRoutes(app: FastifyInstance) {
             }
             await userManager.create(
               { email, name, password, isActive: true },
-              DEFAULT_TENANT,
+              request.tenantId ?? DEFAULT_TENANT,
             );
           } catch (err) {
             // Per-row isolation: unique-violation or any create failure only
@@ -394,7 +394,7 @@ export async function userRoutes(app: FastifyInstance) {
         avatarUrl?: string;
         roleIds?: string[];
       };
-      const unknown = await unknownRoleId(roleIds);
+      const unknown = await unknownRoleId(roleIds, request.tenantId);
       if (unknown) {
         return reply.status(400).send({
           success: false,
@@ -402,9 +402,9 @@ export async function userRoutes(app: FastifyInstance) {
         });
       }
       try {
-        const user = await userManager.update(id, { name, avatarUrl }, DEFAULT_TENANT);
+        const user = await userManager.update(id, { name, avatarUrl }, request.tenantId ?? DEFAULT_TENANT);
         if (roleIds !== undefined) {
-          await roleManager.setUserRoles(id, roleIds, DEFAULT_TENANT);
+          await roleManager.setUserRoles(id, roleIds, request.tenantId ?? DEFAULT_TENANT);
         }
         return { success: true, data: user };
       } catch (err) {
@@ -446,7 +446,7 @@ export async function userRoutes(app: FastifyInstance) {
       const { id } = request.params;
       const { status } = request.body as { status: 'active' | 'suspended' | 'pending' };
       try {
-        const user = await userManager.changeStatus(id, status, DEFAULT_TENANT);
+        const user = await userManager.changeStatus(id, status, request.tenantId ?? DEFAULT_TENANT);
         // P0: suspension must take effect immediately — kill all refresh sessions.
         // Access tokens die at authenticate via the status claim re-check.
         if (status === 'suspended') {
@@ -484,7 +484,7 @@ export async function userRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params;
       try {
-        await userManager.delete(id, DEFAULT_TENANT);
+        await userManager.delete(id, request.tenantId ?? DEFAULT_TENANT);
         return { success: true };
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));

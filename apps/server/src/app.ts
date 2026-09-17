@@ -27,6 +27,7 @@ import { getRedis } from './utils/redis.js';
 import { buildOidcProvider } from './oidc/provider.js';
 import { OidcClientManager, ApiKeyManager, hashApiKey } from '@accessbase/identity';
 import { apiKeysRoutes, getApiKeyManager } from './routes/api-keys.js';
+import { DEFAULT_TENANT } from './utils/constants.js';
 import { registerInteractionRoutes } from './oidc/interaction.js';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -144,6 +145,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
         scopes: ['*'],
         tenantId: key.tenantId,
       };
+      // R7: apikey rows carry their own tenant — no DEFAULT fallback.
+      request.tenantId = key.tenantId;
       return;
     }
     try {
@@ -164,7 +167,12 @@ export async function buildApp(options: BuildAppOptions = {}) {
         success: false,
         error: { code: 'AUTH_004', message: 'Account suspended' },
       });
+      return;
     }
+    // G/R3: resolve tenant from the request context. JWT claim wins;
+    // legacy claim-less tokens fall back to the default tenant.
+    const jwtPayload = request.user as { tenantId?: string };
+    request.tenantId = jwtPayload.tenantId ?? DEFAULT_TENANT;
   });
 
   // --- Error envelope enrichment (security.md 19.13 / D52) ---

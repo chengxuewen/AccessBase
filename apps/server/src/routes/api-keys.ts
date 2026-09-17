@@ -55,11 +55,11 @@ export async function apiKeysRoutes(app: FastifyInstance): Promise<void> {
         : ['*'];
       const expiresAt =
         typeof body['expiresAt'] === 'string' ? new Date(body['expiresAt']) : undefined;
-      const payload = request.user as { sub: string; tenantId?: string };
+      const payload = request.user as { sub: string };
       const created = await getApiKeyManager().create(
         name,
         scopes,
-        payload.tenantId ?? DEFAULT_TENANT,
+        request.tenantId ?? DEFAULT_TENANT,
         expiresAt,
       );
       return reply.status(201).send({ success: true as const, data: created });
@@ -77,8 +77,7 @@ export async function apiKeysRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     async (request) => {
-      const payload = request.user as { tenantId?: string };
-      const keys = await getApiKeyManager().list(payload.tenantId ?? DEFAULT_TENANT);
+      const keys = await getApiKeyManager().list(request.tenantId ?? DEFAULT_TENANT);
       return { success: true as const, data: keys };
     },
   );
@@ -100,8 +99,8 @@ export async function apiKeysRoutes(app: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const payload = request.user as { tenantId?: string };
-      await getApiKeyManager().revoke(id, payload.tenantId ?? DEFAULT_TENANT);
+      const payload = request.user as { sub: string };
+      await getApiKeyManager().revoke(id, request.tenantId ?? DEFAULT_TENANT);
       return { success: true as const, data: { id, revoked: true } };
     },
   );
