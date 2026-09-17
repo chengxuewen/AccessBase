@@ -203,6 +203,6 @@ describe('authenticate dual-read (ab_ prefix → ApiKeyManager)', () => {
     expect(src).toMatch(/startsWith\(['"`]ab_/);
     expect(src).toContain('findByHash');
     expect(src).toContain("type: 'apikey'");
-    expect(src).toContain("scopes: ['*']");
+    expect(src).toContain("key.scopes ?? ['*']");
   });
 });
