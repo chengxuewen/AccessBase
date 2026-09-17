@@ -180,6 +180,9 @@ importers:
       pino-pretty:
         specifier: ^11.0.0
         version: 11.3.0
+      scim2-parse-filter:
+        specifier: 0.3.0
+        version: 0.3.0
       zod:
         specifier: ^3.22.4
         version: 3.25.76
