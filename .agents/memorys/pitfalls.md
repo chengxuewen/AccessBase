@@ -414,3 +414,10 @@
 - **根因**: 测试只断言"坏事没发生"（token 未签发），未断言"好事发生了"（门真的被调用了）——流早死与门正常拦截产生相同的外部可观测结果
 - **解法**: 对安全门类逻辑，测试必须断言门的调用记录（mock 调用计数 + 收到参数），而非仅断言下游结果；`expect(spy).toHaveBeenCalledWith(expectedArgs)` 是最廉价的空洞绿照妖镜
 - **验证**: tenant-gate.test.ts oauth 用例现含 `expect(tenantFindById).toHaveBeenCalledWith(SUSPENDED_TENANT_ID)` 断言（门触发实证）
+
+## PIT-057: 外部协议分页契约须以 manager 真实 offset 公式为准 (2026-09-16)
+
+- **症状**: 批次 H T2 SCIM GET /Users 分页映射——brief 写 page=Math.max(0,startIndex-1)（0-based 假设），实现写 page=startIndex（1-based 直传假设），两者都与 findAll 真实公式 offset=(page-1)*pageSize 不符（startIndex=11&count=10 → 直传得 offset=100 跳行）。测试恰好只测 startIndex=1（两公式同解）而假绿
+- **根因**: 外部协议（SCIM startIndex=1-based 行偏移）映射到内部 manager（1-based 页号）时凭直觉直传而非从 manager 源码的 offset 公式反推；单点测试值恰好是公式不动点掩盖分歧
+- **解法**: 协议字段映射必须从内部实现的实际 offset/limit 公式反推换算式（此处 page=ceil(startIndex/count)），并加非不动点测试值（如 startIndex=11&count=10→page=2）锁死
+- **验证**: scim.test.ts 含 `startIndex=11&count=10 → findAll({page:2,pageSize:10})` probe 断言
