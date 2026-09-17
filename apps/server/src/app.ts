@@ -142,7 +142,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
       (request as FastifyRequest & { user?: unknown }).user = {
         sub: key.id,
         type: 'apikey',
-        scopes: ['*'],
+        scopes: key.scopes ?? ['*'],
         tenantId: key.tenantId,
       };
       // R7: apikey rows carry their own tenant — no DEFAULT fallback.

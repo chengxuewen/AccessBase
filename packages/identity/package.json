@@ -39,6 +39,8 @@
     "otplib": "^13.5.0",
     "pg": "^8.12.0",
     "qrcode": "^1.5.4",
+    "scim-patch": "^0.9.3",
+    "scim2-parse-filter": "^0.3.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

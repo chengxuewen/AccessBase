@@ -36,7 +36,6 @@ export function requirePermission() {
     // (deadlock). Scope engine is a spec non-goal for now.
     const payload = request.user as TokenPayload & { type?: string; scopes?: string[] };
     if (payload.type === 'apikey') {
-      // v1: scopes are ['*'] only (scope engine deferred — spec non-goal).
       // Carve-out: keys may not manage keys (self-proliferation would defeat
       // revocation-as-remediation). Management requires an interactive JWT.
       if (required.startsWith('apikeys:')) {
@@ -44,6 +43,14 @@ export function requirePermission() {
         await reply.status(403).send({
           success: false,
           error: { code: 'PERM_002', message: 'API keys cannot manage API keys' },
+        });
+        return;
+      }
+      const scopes = (payload as { scopes?: string[] }).scopes ?? ['*'];
+      if (!scopes.includes('*')) {
+        await reply.status(403).send({
+          success: false,
+          error: { code: 'PERM_003', message: 'Insufficient token scope' },
         });
         return;
       }

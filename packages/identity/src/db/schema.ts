@@ -39,6 +39,8 @@ export const users = pgTable(
     tokenVersion: integer('token_version').default(1).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    // SCIM correlation-only (per-tenant, best-effort) — no unique constraint (R6).
+    externalId: uuid('external_id'),
   },
   (table) => ({
     emailIdx: index('idx_users_email').on(table.email),
