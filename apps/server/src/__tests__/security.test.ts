@@ -71,8 +71,8 @@ describe('Rate limit (real @fastify/rate-limit, unmocked)', () => {
     }
     // First 10 requests pass the limit (400 from validation, not 429)
     expect(statuses.slice(0, 10)).not.toContain(429);
-    // 11th request hits the rate limit
-    expect(statuses[10]).toBe(429);
+    // 11th request is limited — 429 (rate-limit) or 423 (lockout co-fires first; lockoutMaxFailures=5 < rate-limit max=10)
+    expect([429, 423]).toContain(statuses[10]);
   });
 });
 

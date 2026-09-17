@@ -21,6 +21,13 @@ process.env.DATABASE_URL = 'postgresql://accessbase:accessbase@localhost:5432/ac
 process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.MFA_ENCRYPTION_KEY = 'ab'.repeat(32);
 
+import pg from 'pg';
+
+// PG-reachable probe — skip entire suite when native PG is down (per e2e/health.spec.ts:15 precedent).
+const pgProbe = new pg.Client({ connectionString: process.env.DATABASE_URL });
+const pgAvailable = await (async () => {
+  try { await pgProbe.connect(); await pgProbe.end(); return true; } catch { return false; }
+})();
 // Mock plugins that require fastify@5 but fastify@4 is installed
 vi.mock('@fastify/cors', () => ({ default: async () => {} }));
 vi.mock('@fastify/swagger', () => ({ default: async () => {} }));
@@ -44,23 +51,6 @@ const userManager = new (UserManager as unknown as {
   new (): import('@accessbase/identity').UserManager;
 })();
 
-beforeAll(async () => {
-  app = await buildApp();
-  const user = await userManager.create({ email: EMAIL, name: 'MFA Integration', password: PASSWORD }, TENANT);
-  userId = user.id;
-});
-
-afterAll(async () => {
-  // Recovery codes cascade-delete with the user row.
-  if (userId) {
-    try {
-      await userManager.delete(userId, TENANT);
-    } catch {
-      // best-effort cleanup of test-local data
-    }
-  }
-  await app.close();
-});
 
 const login = () =>
   app.inject({
@@ -74,7 +64,25 @@ const codeFromSecret = async (secret: string): Promise<string> => {
   return generateSync({ secret });
 };
 
-describe('MFA true-backend E2E (real DB)', () => {
+describe.skipIf(!pgAvailable)('MFA true-backend E2E (real DB)', () => {
+  beforeAll(async () => {
+    app = await buildApp();
+    const user = await userManager.create({ email: EMAIL, name: 'MFA Integration', password: PASSWORD }, TENANT);
+    userId = user.id;
+  });
+
+  afterAll(async () => {
+    // Recovery codes cascade-delete with the user row.
+    if (userId) {
+      try {
+        await userManager.delete(userId, TENANT);
+      } catch {
+        // best-effort cleanup of test-local data
+      }
+    }
+    await app.close();
+  });
+
   it('full 2FA lifecycle: setup → enable → step-up → verify → recovery', { timeout: 60_000 }, async () => {
     // (a) user exists in real DB
     const found = await userManager.findById(userId, TENANT);

@@ -168,6 +168,7 @@ logger.error('Operation failed', error); // ❌
 - i18n 文案断言用 exact（`getByText(x,{exact:true})` 或严格正则），禁裸 `:has-text` 子串（见 PIT-032）
 - 新增 mock 必须从 routes/*.ts 实际返回拷贝；委托代理断流后接手先跑 tsc+vitest 基线（见 PIT-033）
 - 已知 bug 用 `test.fail()`+`// RED:` 入库，修好转绿后移除标注为完成判据（D114）；当前存量应为 0：`grep -c "^ *test.fail()" e2e/*.spec.ts` 全 0
+- batch-gate vitest 基线（`pixi run npx vitest run apps/server`，2026-09-16 H′ 起）：PG up = `352 passed | 7 skipped (359)`；PG down = `352 passed | 7 skipped (359)`（mfa-integration/oidc-flow 两文件 beforeAll PG 探针跳过，非失败；security rate-limit 断言 [429,423] 双态）——后续控制器直接对表，勿再重新推导
 
 ### Zustand persist 敏感字段
 

@@ -27,6 +27,14 @@ process.env.MFA_ENCRYPTION_KEY = 'ab'.repeat(32);
 process.env.OAUTH_REDIRECT_BASE = 'http://localhost:5101';
 process.env.FRONTEND_ORIGIN = 'http://localhost:5173';
 
+import pg from 'pg';
+
+// PG-reachable probe — skip entire suite when native PG is down (per e2e/health.spec.ts:15 precedent).
+const pgProbe = new pg.Client({ connectionString: process.env.DATABASE_URL });
+const pgAvailable = await (async () => {
+  try { await pgProbe.connect(); await pgProbe.end(); return true; } catch { return false; }
+})();
+
 // Mock plugins that require fastify@5 but fastify@4 is installed (per mount/mfa tests)
 vi.mock('@fastify/cors', () => ({ default: async () => {} }));
 vi.mock('@fastify/swagger', () => ({ default: async () => {} }));
@@ -67,56 +75,6 @@ const clientManager = new (OidcClientManager as unknown as {
   new (): import('@accessbase/identity').OidcClientManager;
 })();
 
-beforeAll(async () => {
-  app = await buildApp();
-  const user = await userManager.create(
-    { email: `oidc-flow-${RUN}@test.local`, name: 'OIDC Flow', password: 'CorrectHorse1!' },
-    TENANT,
-  );
-  userId = user.id;
-  const ac = await clientManager.create({
-    name: 'Flow RP',
-    redirectUris: ['http://client.example/cb'],
-    grantTypes: ['authorization_code'],
-    scope: 'openid profile email',
-    tokenAuthMethod: 'none',
-  });
-  acClient = { clientId: ac.client.clientId, plaintextSecret: ac.plaintextSecret };
-  const cc = await clientManager.create({
-    name: 'Flow Machine',
-    redirectUris: ['http://machine.example/cb'],
-    grantTypes: ['client_credentials'],
-    scope: 'openid profile email',
-    tokenAuthMethod: 'client_secret_basic',
-  });
-  ccClient = { clientId: cc.client.clientId, plaintextSecret: cc.plaintextSecret };
-
-  const login = await app.inject({
-    method: 'POST',
-    url: '/api/v1/auth/login',
-    payload: { email: `oidc-flow-${RUN}@test.local`, password: 'CorrectHorse1!' },
-  });
-  expect(login.statusCode).toBe(200);
-  bearer = login.json().data.accessToken;
-});
-
-afterAll(async () => {
-  if (userId) {
-    try {
-      await userManager.delete(userId, TENANT);
-    } catch {
-      // best-effort cleanup
-    }
-  }
-  try {
-    await clientManager.remove(acClient.clientId);
-    await clientManager.remove(ccClient.clientId);
-  } catch {
-    // best-effort cleanup
-  }
-  await app.close();
-  rmSync(keyDir, { recursive: true, force: true });
-});
 
 // --- helpers ---
 
@@ -220,7 +178,58 @@ async function follow(jar: Jar, url: string) {
 
 // --- tests ---
 
-describe('OIDC full protocol flows', () => {
+describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
+  beforeAll(async () => {
+    app = await buildApp();
+    const user = await userManager.create(
+      { email: `oidc-flow-${RUN}@test.local`, name: 'OIDC Flow', password: 'CorrectHorse1!' },
+      TENANT,
+    );
+    userId = user.id;
+    const ac = await clientManager.create({
+      name: 'Flow RP',
+      redirectUris: ['http://client.example/cb'],
+      grantTypes: ['authorization_code'],
+      scope: 'openid profile email',
+      tokenAuthMethod: 'none',
+    });
+    acClient = { clientId: ac.client.clientId, plaintextSecret: ac.plaintextSecret };
+    const cc = await clientManager.create({
+      name: 'Flow Machine',
+      redirectUris: ['http://machine.example/cb'],
+      grantTypes: ['client_credentials'],
+      scope: 'openid profile email',
+      tokenAuthMethod: 'client_secret_basic',
+    });
+    ccClient = { clientId: cc.client.clientId, plaintextSecret: cc.plaintextSecret };
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: `oidc-flow-${RUN}@test.local`, password: 'CorrectHorse1!' },
+    });
+    expect(login.statusCode).toBe(200);
+    bearer = login.json().data.accessToken;
+  });
+
+  afterAll(async () => {
+    if (userId) {
+      try {
+        await userManager.delete(userId, TENANT);
+      } catch {
+        // best-effort cleanup
+      }
+    }
+    try {
+      await clientManager.remove(acClient.clientId);
+      await clientManager.remove(ccClient.clientId);
+    } catch {
+      // best-effort cleanup
+    }
+    await app.close();
+    rmSync(keyDir, { recursive: true, force: true });
+  });
+
   it('AC+PKCE happy path: authorize → login → consent → code → token with verifiable RS256 id_token', async () => {
     const jar = makeJar();
     const { verifier, challenge } = pkcePair();
