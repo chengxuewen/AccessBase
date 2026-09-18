@@ -196,6 +196,7 @@ describe('findAll permissions fetch', () => {
           name: 'role-r1',
           description: undefined,
           tenantId: 't1',
+          isSystem: false,
           permissions: [permission('p1'), permission('p2')],
           createdAt: new Date(0),
           updatedAt: new Date(0),
@@ -206,5 +207,113 @@ describe('findAll permissions fetch', () => {
       pageSize: 20,
       totalPages: 1,
     });
+  });
+});
+
+describe('K-T2 isSystem flag + guards', () => {
+  let db: ReturnType<typeof makeMockDb>;
+  let manager: RoleManager;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    db = makeMockDb();
+    const { createDb } = await import('../db/index.js');
+    vi.mocked(createDb).mockReturnValue(db as never);
+    manager = new RoleManager();
+  });
+
+  // Row shape returned by the guard's users×user_roles×roles holder query.
+  const holderRow = (userId: string) => ({ userId });
+
+  it('create persists isSystem:true when requested and exposes it back', async () => {
+    const inserted = { ...dbRole('r-admin'), name: 'admin', isSystem: true };
+    // 1st select: duplicate-name check → none
+    db.select.mockReturnValueOnce(makeChain([]));
+    const capturedValues: unknown[] = [];
+    db.insert.mockImplementation(() => {
+      const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+      chain.values = vi.fn((v: unknown) => {
+        capturedValues.push(v);
+        return chain;
+      });
+      chain.returning = vi.fn(() => makeChain([inserted]));
+      return chain;
+    });
+
+    const role = await manager.create({ name: 'admin', isSystem: true }, 't1');
+
+    expect(capturedValues[0]).toEqual(expect.objectContaining({ name: 'admin', isSystem: true }));
+    expect(role.isSystem).toBe(true);
+  });
+
+  it('update on a system role throws ROLE_PROTECTED-prefixed error', async () => {
+    db.select.mockReturnValueOnce(makeChain([{ ...dbRole('r-admin'), isSystem: true }]));
+    await expect(manager.update('r-admin', { name: 'hijack' }, 't1')).rejects.toThrow(/^ROLE_PROTECTED:/);
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('delete on a system role throws ROLE_PROTECTED-prefixed error', async () => {
+    db.select.mockReturnValueOnce(makeChain([{ ...dbRole('r-admin'), isSystem: true }]));
+    await expect(manager.delete('r-admin', 't1')).rejects.toThrow(/^ROLE_PROTECTED:/);
+  });
+
+  it('delete on a non-system role still reaches the delete statement', async () => {
+    db.select
+      .mockReturnValueOnce(makeChain([dbRole('r1')])) // exists check
+      .mockReturnValueOnce(makeChain([{ count: 0 }])); // assigned-users count
+    db.delete.mockReturnValue(makeChain(undefined));
+    await expect(manager.delete('r1', 't1')).resolves.toBeUndefined();
+    expect(db.delete).toHaveBeenCalled();
+  });
+
+  it('setUserRoles removing the admin role from the sole active admin throws LAST_ADMIN_GUARD', async () => {
+    // select #1: held system roles (userRoles⨝roles); select #2: holder census
+    db.select
+      .mockReturnValueOnce(makeChain([{ userId: 'u1', roleId: 'r-admin', isSystem: true }]))
+      .mockReturnValueOnce(makeChain([holderRow('u1')]));
+
+    await expect(manager.setUserRoles('u1', [], 't1')).rejects.toThrow(/^LAST_ADMIN_GUARD:/);
+    expect(db.delete).not.toHaveBeenCalled();
+  });
+
+  it('setUserRoles keeping the admin role passes the guard', async () => {
+    db.select.mockReturnValueOnce(makeChain([{ userId: 'u1', roleId: 'r-admin', isSystem: true }]));
+    db.delete.mockReturnValue(makeChain(undefined));
+    db.insert.mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) });
+
+    await expect(manager.setUserRoles('u1', ['r-admin'], 't1')).resolves.toBeUndefined();
+    // no holder census queried — the removal set holds no system role
+    expect(db.select).toHaveBeenCalledTimes(1);
+    expect(db.delete).toHaveBeenCalled();
+  });
+
+  it('setUserRoles with two active admins passes even when admin role is dropped', async () => {
+    db.select
+      .mockReturnValueOnce(makeChain([{ userId: 'u1', roleId: 'r-admin', isSystem: true }]))
+      .mockReturnValueOnce(makeChain([holderRow('u1'), holderRow('u2')]));
+    db.delete.mockReturnValue(makeChain(undefined));
+    db.insert.mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) });
+
+    await expect(manager.setUserRoles('u1', [], 't1')).resolves.toBeUndefined();
+    expect(db.delete).toHaveBeenCalled();
+  });
+
+  it('revokeFromUser of a system admin role from the sole active admin throws LAST_ADMIN_GUARD', async () => {
+    db.select
+      // R7: revokeFromUser checks the revoked role first, then the census.
+      .mockReturnValueOnce(makeChain([{ isSystem: true }]))
+      .mockReturnValueOnce(makeChain([holderRow('u1')]));
+
+    await expect(manager.revokeFromUser('u1', 'r-admin', 't1')).rejects.toThrow(/^LAST_ADMIN_GUARD:/);
+    expect(db.delete).not.toHaveBeenCalled();
+  });
+
+  it('revokeFromUser of a non-system role proceeds without the census', async () => {
+    db.select.mockReturnValueOnce(makeChain([{ isSystem: false }]));
+    db.delete.mockReturnValue(makeChain(undefined));
+
+    await expect(manager.revokeFromUser('u1', 'r-plain', 't1')).resolves.toBeUndefined();
+    expect(db.select).toHaveBeenCalledTimes(1);
+    expect(db.delete).toHaveBeenCalled();
   });
 });

@@ -3,6 +3,7 @@ import { UserManager, RoleManager, SessionManager } from '@accessbase/identity';
 import { assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { requirePermission } from '../utils/permission.js';
+import { sendConflictError } from '../utils/conflict-mapper.js';
 import { toCsv } from '../utils/csv.js';
 import { getOptionsManager } from './options.js';
 
@@ -247,7 +248,9 @@ export async function userRoutes(app: FastifyInstance) {
         }
         return reply.status(201).send({ success: true, data: user });
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
+        const conflict = sendConflictError(reply, err);
+        if (conflict) return conflict;
+const error = err instanceof Error ? err : new Error(String(err));
         if (error.message.includes('duplicate') || error.message.includes('unique')) {
           return reply.status(409).send({
             success: false,
@@ -408,7 +411,9 @@ export async function userRoutes(app: FastifyInstance) {
         }
         return { success: true, data: user };
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
+        const conflict = sendConflictError(reply, err);
+        if (conflict) return conflict;
+const error = err instanceof Error ? err : new Error(String(err));
         if (error.message.includes('not found')) {
           return reply.status(404).send({
             success: false,
@@ -454,7 +459,9 @@ export async function userRoutes(app: FastifyInstance) {
         }
         return { success: true, data: user };
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
+        const conflict = sendConflictError(reply, err);
+        if (conflict) return conflict;
+const error = err instanceof Error ? err : new Error(String(err));
         if (error.message.includes('not found')) {
           return reply.status(404).send({
             success: false,
@@ -487,7 +494,9 @@ export async function userRoutes(app: FastifyInstance) {
         await userManager.delete(id, request.tenantId ?? DEFAULT_TENANT);
         return { success: true };
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
+        const conflict = sendConflictError(reply, err);
+        if (conflict) return conflict;
+const error = err instanceof Error ? err : new Error(String(err));
         if (error.message.includes('not found')) {
           return reply.status(404).send({
             success: false,

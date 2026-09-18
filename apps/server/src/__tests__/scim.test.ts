@@ -1116,4 +1116,32 @@ describe('SCIM user provisioning (T2)', () => {
       expect(res.json().filter).toEqual({ supported: true, maxResults: 200 });
     });
   });
+
+  // K-T2 R2: suspend guard funnelled through UserManager.changeStatus — the
+  // SCIM surface must surface the refusal as an RFC 7644 Error envelope
+  // via the scoped error handler, never a raw-text 500.
+  describe('last-admin guard surface (K-T2)', () => {
+    it('PATCH active=false on sole admin → SCIM-shaped error with LAST_ADMIN_GUARD detail', async () => {
+      const u = makeUser({ email: 'last-admin@x.io' });
+      userStore.set(u.email, u);
+      userManagerMock.changeStatus.mockRejectedValueOnce(
+        new Error('LAST_ADMIN_GUARD: cannot suspend the last active administrator of the tenant'),
+      );
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `${SCIM_BASE}/Users/${u.id}`,
+        headers: AUTH,
+        payload: JSON.stringify({
+          schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+          Operations: [{ op: 'replace', path: 'active', value: false }],
+        }),
+      });
+      expect(res.headers['content-type']).toContain('application/scim+json');
+      expect(res.statusCode).toBe(500);
+      const body = res.json();
+      expect(body.schemas).toEqual(['urn:ietf:params:scim:api:messages:2.0:Error']);
+      expect(body.detail).toContain('LAST_ADMIN_GUARD');
+    });
+  });
+
 });

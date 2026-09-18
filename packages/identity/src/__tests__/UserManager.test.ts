@@ -342,3 +342,79 @@ describe('findAll emailExact (Batch J Task 1, structural tripwire)', () => {
     expect(pageChain.where).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('K-T2 last-admin guard (UserManager funnel)', () => {
+  function makeMockDb() {
+    return { select: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn() };
+  }
+  function makeChain(result: unknown) {
+    const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+    chain.from = vi.fn(() => chain);
+    chain.where = vi.fn(() => chain);
+    chain.innerJoin = vi.fn(() => chain);
+    chain.limit = vi.fn(() => chain);
+    chain.set = vi.fn(() => chain);
+    chain.returning = vi.fn(() => chain);
+    chain.then = vi.fn(
+      (resolve?: ((v: unknown) => unknown) | null, reject?: ((e: unknown) => unknown) | null) =>
+        Promise.resolve(result).then(resolve, reject),
+    );
+    return chain;
+  }
+  const userRow = { id: 'u1', email: 'a@b.c', name: 'A', status: 'active', tenantId: 't1' };
+
+  it('delete throws LAST_ADMIN_GUARD when target is the sole active admin', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    // holder census returns only the target as an active admin
+    db.select.mockReturnValue(makeChain([{ userId: 'u1' }]));
+    const mgr = new UserManager();
+    await expect(mgr.delete('u1', 't1')).rejects.toThrow(/^LAST_ADMIN_GUARD:/);
+    expect(db.delete).not.toHaveBeenCalled();
+  });
+
+  it('delete proceeds when another active admin remains', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.select.mockReturnValue(makeChain([{ userId: 'u1' }, { userId: 'u2' }]));
+    db.delete.mockReturnValue(makeChain(undefined));
+    const mgr = new UserManager();
+    await expect(mgr.delete('u1', 't1')).resolves.toBeUndefined();
+    expect(db.delete).toHaveBeenCalled();
+  });
+
+  it('changeStatus to suspended throws LAST_ADMIN_GUARD for the sole active admin', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.select.mockReturnValue(makeChain([{ userId: 'u1' }]));
+    const mgr = new UserManager();
+    await expect(mgr.changeStatus('u1', 'suspended', 't1')).rejects.toThrow(/^LAST_ADMIN_GUARD:/);
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('changeStatus to pending does NOT run the guard (auth.ts registration path)', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.update.mockReturnValue(makeChain([{ ...userRow, status: 'pending' }]));
+    const mgr = new UserManager();
+    const user = await mgr.changeStatus('u1', 'pending', 't1');
+    expect(user.status).toBe('pending');
+    // guard skipped entirely → no holder census select
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
+  it('changeStatus to active does NOT run the guard', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.update.mockReturnValue(makeChain([{ ...userRow, status: 'active' }]));
+    const mgr = new UserManager();
+    const user = await mgr.changeStatus('u1', 'active', 't1');
+    expect(user.status).toBe('active');
+    expect(db.select).not.toHaveBeenCalled();
+  });
+});

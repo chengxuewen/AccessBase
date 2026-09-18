@@ -214,3 +214,46 @@ describe('DELETE /api/v1/roles/:id', () => {
     expect(body.success).toBe(true);
   });
 });
+
+
+// K-T2: manager guard tags (ROLE_PROTECTED:) must map to a 409 envelope via the
+// shared conflict mapper — never a 500.
+describe('system role protection mapping (K-T2)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const roleManagerInstance = () => (identity as any).RoleManager.mock.results[0].value as {
+    update: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+  };
+
+  it('PUT maps ROLE_PROTECTED manager error to 409 {code: ROLE_PROTECTED}', async () => {
+    roleManagerInstance().update.mockRejectedValueOnce(
+      new Error('ROLE_PROTECTED: cannot modify the built-in administrator role'),
+    );
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/roles/11111111-1111-1111-1111-111111111111',
+      headers: AUTH(token),
+      payload: { name: 'hijack' },
+    });
+
+    expect(res.statusCode).toBe(409);
+    const body = res.json();
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('ROLE_PROTECTED');
+    expect(body.error.message).toBeTruthy();
+  });
+
+  it('DELETE maps ROLE_PROTECTED manager error to 409 {code: ROLE_PROTECTED}', async () => {
+    roleManagerInstance().delete.mockRejectedValueOnce(
+      new Error('ROLE_PROTECTED: cannot delete the built-in administrator role'),
+    );
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/roles/11111111-1111-1111-1111-111111111111',
+      headers: AUTH(token),
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe('ROLE_PROTECTED');
+  });
+});

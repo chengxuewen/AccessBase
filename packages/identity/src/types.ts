@@ -96,6 +96,7 @@ export interface CreateRoleInput {
   description?: string;
   parentId?: string; // Parent role ID (RBAC1 inheritance)
   permissionIds?: string[]; // Initial permission list
+  isSystem?: boolean; // K-T2: mark built-in protected roles (admin seed/bootstrap)
 }
 
 export interface UpdateRoleInput {

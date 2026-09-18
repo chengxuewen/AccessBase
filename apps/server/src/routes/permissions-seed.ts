@@ -110,6 +110,17 @@ export async function ensureSeedForAdmin(db: DrizzleDB): Promise<void> {
     // return below: self-heal backfills the row even with no admin role.
     await ensureDefaultTenantRow(db);
 
+    // K-T2: stamp every built-in admin role as system-protected (immutable).
+    // Direct SQL, deliberately NO tenant filter (addendum R4: every tenant's
+    // admin gets the moat) and never via RoleManager.update (input would
+    // refuse isSystem and the guard would make re-stamping non-idempotent).
+    // Own swallow: a legacy table without is_system must not block seeding.
+    try {
+      await db.update(roles).set({ isSystem: true }).where(eq(roles.name, 'admin'));
+    } catch (stampErr: unknown) {
+      logger.warn({ err: stampErr }, 'system-role stamp skipped — continuing');
+    }
+
     const [adminRole] = await db
       .select({ id: roles.id })
       .from(roles)

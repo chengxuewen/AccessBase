@@ -262,10 +262,11 @@ export async function setupRoutes(app: FastifyInstance) {
         let adminRole;
         try {
           adminRole = await roleManager.create(
-            {
-              name: 'admin',
+{
+name: 'admin',
               description: 'System administrator with full access',
-            },
+              isSystem: true,
+},
             DEFAULT_TENANT,
           );
         } catch (roleErr: unknown) {

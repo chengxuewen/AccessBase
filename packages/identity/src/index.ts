@@ -20,6 +20,11 @@ export { getRedisClient, type RedisLike } from './services/redis.js';
 export { Mailer, type SmtpConfig } from './services/mailer.js';
 export { SmsProviderImpl, AliyunSmsAdapter, TwilioSmsAdapter, type SmsProvider, type SmsConfig, type SmsSendParams } from './services/SmsProvider.js';
 export { assertPasswordPolicy, readPasswordPolicy, type PasswordPolicy, type PasswordPolicyCallsite } from './services/password-policy.js';
+export {
+  wouldOrphanLastAdmin,
+  ROLE_PROTECTED,
+  LAST_ADMIN_GUARD,
+} from './services/last-admin-guard.js';
 export { PasswordProvider } from './providers/PasswordProvider.js';
 export { OAuthProvider } from './providers/OAuthProvider.js';
 export { WebAuthnProvider } from './providers/WebAuthnProvider.js';

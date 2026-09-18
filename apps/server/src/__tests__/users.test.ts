@@ -421,3 +421,55 @@ describe('GET /api/v1/users (search)', () => {
     );
   });
 });
+
+// K-T2: manager guard tags (LAST_ADMIN_GUARD:) must map to a 409 envelope via
+// the shared conflict mapper — never a 500, on every mutating user route.
+describe('last-admin guard mapping (K-T2)', () => {
+  const guardErr = () =>
+    new Error('LAST_ADMIN_GUARD: cannot remove the last active administrator of the tenant');
+
+  it('PUT roleIds demotion maps LAST_ADMIN_GUARD to 409 {code: LAST_ADMIN_GUARD}', async () => {
+    mockSetUserRoles.mockRejectedValueOnce(guardErr());
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${mockUser.id}`,
+      headers: authHeaders(),
+      payload: { roleIds: [] },
+    });
+
+    expect(res.statusCode).toBe(409);
+    const body = res.json();
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('LAST_ADMIN_GUARD');
+    expect(body.error.message).toBeTruthy();
+  });
+
+  it('DELETE maps LAST_ADMIN_GUARD to 409', async () => {
+    mockDelete.mockRejectedValueOnce(
+      new Error('LAST_ADMIN_GUARD: cannot delete the last active administrator of the tenant'),
+    );
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/users/${mockUser.id}`,
+      headers: authHeaders(),
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe('LAST_ADMIN_GUARD');
+  });
+
+  it('PATCH status suspend maps LAST_ADMIN_GUARD to 409', async () => {
+    mockChangeStatus.mockRejectedValueOnce(
+      new Error('LAST_ADMIN_GUARD: cannot suspend the last active administrator of the tenant'),
+    );
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/users/${mockUser.id}/status`,
+      headers: authHeaders(),
+      payload: { status: 'suspended' },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe('LAST_ADMIN_GUARD');
+  });
+});

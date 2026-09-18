@@ -5,6 +5,7 @@ import { eq, and, like, sql, count, desc, notInArray } from 'drizzle-orm';
 import { createDb, type DrizzleDB } from '../db/index.js';
 import { users, passwordHistory, type User as DbUser, type NewUser } from '../db/schema.js';
 import { invalidatePermissionCache } from './permission-cache.js';
+import { wouldOrphanLastAdmin, LAST_ADMIN_GUARD } from '../services/last-admin-guard.js';
 import { logger } from '@accessbase/logging';
 import type {
   User,
@@ -206,6 +207,14 @@ export class UserManager {
   async delete(id: string, tenantId: string): Promise<void> {
     logger.info(`Deleting user: ${id} in tenant: ${tenantId}`);
 
+    // K-T2: deleting the tenant's last active admin is a lockout vector —
+    // refuse before any write (manager funnel, addendum R2).
+    if (await wouldOrphanLastAdmin(this.db, tenantId, id)) {
+      throw new Error(
+        `${LAST_ADMIN_GUARD}: cannot delete the last active administrator of the tenant`,
+      );
+    }
+
     await this.db.delete(users).where(and(eq(users.id, id), eq(users.tenantId, tenantId)));
   }
 
@@ -215,6 +224,15 @@ export class UserManager {
   async changeStatus(id: string, status: UserStatus, tenantId: string): Promise<User> {
     logger.info(`Changing user ${id} status to ${status} in tenant: ${tenantId}`);
 
+    // K-T2: suspending the last active admin is a lockout vector. The guard is
+    // fanned in here (not in the route) so the SCIM surface (PATCH active=false
+    // → changeStatus directly) is gated too; only the →suspended transition
+    // consults it — registration 'pending' and reactivation never do (R2).
+    if (status === 'suspended' && (await wouldOrphanLastAdmin(this.db, tenantId, id))) {
+      throw new Error(
+        `${LAST_ADMIN_GUARD}: cannot suspend the last active administrator of the tenant`,
+      );
+    }
     const [updated] = await this.db
       .update(users)
       .set({ status, updatedAt: new Date() })

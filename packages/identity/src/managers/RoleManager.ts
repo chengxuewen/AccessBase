@@ -14,6 +14,11 @@ import {
   type Permission as DbPermission,
 } from '../db/schema.js';
 import { invalidatePermissionCache } from './permission-cache.js';
+import {
+  wouldOrphanLastAdmin,
+  ROLE_PROTECTED,
+  LAST_ADMIN_GUARD,
+} from '../services/last-admin-guard.js';
 import { logger } from '@accessbase/logging';
 import type {
   Role,
@@ -73,7 +78,7 @@ export class RoleManager {
       description: data.description ?? null,
       tenantId,
       parentId: data.parentId ?? null,
-      isSystem: false,
+      isSystem: data.isSystem ?? false,
     };
 
     const [inserted] = await this.db.insert(roles).values(newRole).returning();
@@ -203,9 +208,9 @@ export class RoleManager {
 
     const role = existing[0]!;
 
-    // Check if system role (prevent modification)
+    // K-T2: system roles are immutable (tag mapped to 409 by routes).
     if (role.isSystem) {
-      throw new Error('Cannot modify system role');
+      throw new Error(`${ROLE_PROTECTED}: cannot modify the built-in administrator role`);
     }
 
     const updateData: Partial<NewRole> = {
@@ -255,9 +260,9 @@ export class RoleManager {
 
     const role = existing[0]!;
 
-    // Check if system role (prevent deletion)
+    // K-T2: system roles cannot be deleted (tag mapped to 409 by routes).
     if (role.isSystem) {
-      throw new Error('Cannot delete system role');
+      throw new Error(`${ROLE_PROTECTED}: cannot delete the built-in administrator role`);
     }
 
     // Check if role has users assigned
@@ -386,6 +391,19 @@ export class RoleManager {
   async revokeFromUser(userId: string, roleId: string, tenantId: string): Promise<void> {
     logger.info(`Revoking role ${roleId} from user ${userId} in tenant: ${tenantId}`);
 
+    // K-T2: revoking an isSystem role from the tenant's last active admin is
+    // a lockout vector — refuse before any write (manager funnel per addendum R2).
+    const [targetRole] = await this.db
+      .select({ isSystem: roles.isSystem })
+      .from(roles)
+      .where(eq(roles.id, roleId))
+      .limit(1);
+    if (targetRole?.isSystem && (await wouldOrphanLastAdmin(this.db, tenantId, userId))) {
+      throw new Error(
+        `${LAST_ADMIN_GUARD}: cannot revoke the last active administrator of the tenant`,
+      );
+    }
+
     await this.db
       .delete(userRoles)
       .where(
@@ -403,6 +421,20 @@ export class RoleManager {
    */
   async setUserRoles(userId: string, roleIds: string[], tenantId: string): Promise<void> {
     logger.info(`Setting roles [${roleIds.join(', ')}] for user ${userId} in tenant: ${tenantId}`);
+
+    // K-T2: when the replacement set drops an isSystem role the user currently
+    // holds, check the last-admin census before deleting anything (R2).
+    const held = await this.db
+      .select({ userId: userRoles.userId, roleId: userRoles.roleId, isSystem: roles.isSystem })
+      .from(userRoles)
+      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .where(and(eq(userRoles.userId, userId), eq(userRoles.tenantId, tenantId)));
+    const dropsSystemRole = held.some((row) => row.isSystem && !roleIds.includes(row.roleId));
+    if (dropsSystemRole && (await wouldOrphanLastAdmin(this.db, tenantId, userId))) {
+      throw new Error(
+        `${LAST_ADMIN_GUARD}: cannot remove the last active administrator of the tenant`,
+      );
+    }
 
     // Remove existing assignments
     await this.db
@@ -531,6 +563,7 @@ export class RoleManager {
       name: dbRole.name,
       description: dbRole.description ?? undefined,
       tenantId: dbRole.tenantId,
+      isSystem: dbRole.isSystem ?? false,
       permissions: perms,
       createdAt: dbRole.createdAt,
       updatedAt: dbRole.updatedAt,

@@ -190,6 +190,8 @@ describe('cache invalidation on write paths', () => {
 
   it('RoleManager.revokeFromUser clears only that userId', async () => {
     await primeTwoUsers();
+    // K-T2: guard reads the revoked role — non-system → census skipped.
+    db.select.mockReturnValueOnce(makeChain([{ isSystem: false }]));
     db.delete.mockReturnValue(makeChain(undefined));
 
     await roleManager.revokeFromUser('u1', 'r1', 't1');
@@ -202,6 +204,8 @@ describe('cache invalidation on write paths', () => {
 
   it('RoleManager.setUserRoles clears only that userId', async () => {
     await primeTwoUsers();
+    // K-T2: guard reads held roles — user holds none → census skipped.
+    db.select.mockReturnValueOnce(makeChain([]));
     db.delete.mockReturnValue(makeChain(undefined));
 
     await roleManager.setUserRoles('u1', [], 't1');
@@ -232,6 +236,9 @@ describe('cache invalidation on write paths', () => {
     await primeTwoUsers();
     const updated = { ...dbUser, status: 'suspended' };
     db.update.mockReturnValue(makeChain([updated]));
+    // K-T2: suspended transition consults the guard — no active admin holders
+    // for this synthetic user → census false, update proceeds.
+    db.select.mockReturnValueOnce(makeChain([]));
 
     const user: User = await userManager.changeStatus('u1', 'suspended', 't1');
 

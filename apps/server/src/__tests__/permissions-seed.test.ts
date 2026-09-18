@@ -87,3 +87,64 @@ describe('seedBuiltinPermissions', () => {
     await expect(seedBuiltinPermissions(db, 'admin-role-id')).resolves.toBeUndefined();
   });
 });
+
+// ---------- K-T2: system-role stamp idempotency ----------
+
+describe('ensureSeedForAdmin system-role stamp (K-T2)', () => {
+  function stampDb() {
+    const setCalls: unknown[] = [];
+    const db = {
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({ onConflictDoNothing: vi.fn().mockResolvedValue(undefined) }),
+      }),
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
+        }),
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockImplementation((v: unknown) => {
+          setCalls.push(v);
+          return { where: vi.fn().mockResolvedValue(undefined) };
+        }),
+      }),
+      _setCalls: setCalls,
+    };
+    return db as unknown as ReturnType<typeof import('@accessbase/identity/db').createDb> & {
+      _setCalls: unknown[];
+    };
+  }
+
+  it('stamps admin roles with isSystem=true and is idempotent across runs (no throw)', async () => {
+    const { ensureSeedForAdmin } = await import('../routes/permissions-seed.js');
+    const db = stampDb();
+
+    await expect(ensureSeedForAdmin(db)).resolves.toBeUndefined();
+    await expect(ensureSeedForAdmin(db)).resolves.toBeUndefined();
+
+    // One stamp per run, both with the same set payload.
+    expect(db._setCalls).toHaveLength(2);
+    expect(db._setCalls[0]).toEqual({ isSystem: true });
+    expect(db._setCalls[1]).toEqual({ isSystem: true });
+  });
+
+  it('stamp failure does not block permission seeding (best-effort)', async () => {
+    const { ensureSeedForAdmin } = await import('../routes/permissions-seed.js');
+    const db = {
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({ onConflictDoNothing: vi.fn().mockResolvedValue(undefined) }),
+      }),
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
+        }),
+      }),
+      update: vi.fn().mockImplementation(() => {
+        throw new Error('column is_system does not exist');
+      }),
+    } as unknown as ReturnType<typeof import('@accessbase/identity/db').createDb>;
+
+    // Must not throw — a legacy table without is_system must not break self-heal.
+    await expect(ensureSeedForAdmin(db)).resolves.toBeUndefined();
+  });
+});

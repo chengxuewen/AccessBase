@@ -37,7 +37,7 @@ export async function initializeAdmin(_app: FastifyInstance): Promise<void> {
       // env bypass for automated deployments (Docker/CI) — D113
       const roleManager = new RoleManager();
       const adminRole = await roleManager.create(
-        { name: 'admin', description: 'System administrator with full access' },
+        { name: 'admin', description: 'System administrator with full access', isSystem: true },
         DEFAULT_TENANT,
       );
       const adminUser = await userManager.create(

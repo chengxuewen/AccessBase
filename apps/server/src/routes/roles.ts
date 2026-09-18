@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { RoleManager } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { requirePermission } from '../utils/permission.js';
+import { sendConflictError } from '../utils/conflict-mapper.js';
 
 
 export async function roleRoutes(app: FastifyInstance) {
@@ -129,15 +130,26 @@ export async function roleRoutes(app: FastifyInstance) {
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const { id } = request.params;
       const { name, description, permissionIds } = request.body as {
         name?: string;
         description?: string;
         permissionIds?: string[];
       };
-      const role = await roleManager.update(id, { name, description, permissionIds }, request.tenantId ?? DEFAULT_TENANT);
-      return { success: true, data: role };
+      try {
+        const role = await roleManager.update(
+          id,
+          { name, description, permissionIds },
+          request.tenantId ?? DEFAULT_TENANT,
+        );
+        return { success: true, data: role };
+      } catch (err) {
+        // K-T2: ROLE_PROTECTED/LAST_ADMIN_GUARD manager tags → 409 envelope.
+        const conflict = sendConflictError(reply, err);
+        if (conflict) return conflict;
+        throw err;
+      }
     },
   );
 
@@ -156,10 +168,17 @@ export async function roleRoutes(app: FastifyInstance) {
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const { id } = request.params;
-      await roleManager.delete(id, request.tenantId ?? DEFAULT_TENANT);
-      return { success: true };
+      try {
+        await roleManager.delete(id, request.tenantId ?? DEFAULT_TENANT);
+        return { success: true };
+      } catch (err) {
+        // K-T2: ROLE_PROTECTED manager tag → 409 envelope (never a raw 500).
+        const conflict = sendConflictError(reply, err);
+        if (conflict) return conflict;
+        throw err;
+      }
     },
   );
 }

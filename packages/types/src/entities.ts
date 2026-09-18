@@ -32,6 +32,7 @@ export interface Role {
   description?: string;
   permissions: Permission[];
   tenantId: string;
+  isSystem: boolean; // K-T2: built-in roles (admin) are immutable — UI locks them
   createdAt: Date;
   updatedAt: Date;
 }
