@@ -60,9 +60,18 @@ export const useAuthStore = create<AuthState>()(
             password,
           });
           const payload = data.data;
-          // MFA step-up: no tokens yet — hold the flow token, Login.tsx renders the TOTP step
+          // MFA step-up: wipe any stale persisted session so Login.tsx's OIDC
+          // auto-approve effect gate (token || isAuthenticated) cannot fire with
+          // a stale session while MFA is pending.
           if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
-            set({ mfaFlowToken: payload.flowToken, isLoading: false });
+            set({
+              mfaFlowToken: payload.flowToken,
+              isAuthenticated: false,
+              token: null,
+              refreshToken: null,
+              user: null,
+              isLoading: false,
+            });
             return false;
           }
           const { accessToken, refreshToken, user } = payload as {

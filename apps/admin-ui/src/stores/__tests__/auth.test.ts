@@ -67,6 +67,28 @@ describe('auth store — MFA branch hygiene', () => {
     expect(state.isAuthenticated).toBe(false);
   });
 
+  it('login: mfaRequired wipes stale session (token/refresh/user/isAuthenticated) and sets flowToken', async () => {
+    // Seed a stale authenticated session before calling login()
+    useAuthStore.setState({
+      user: { id: 'stale-u', email: 'stale@test.local', name: 'Stale', roles: [{ id: 'r1', name: 'admin' }] },
+      token: 'old-token',
+      refreshToken: 'old-refresh',
+      isAuthenticated: true,
+    });
+    mockedPost.mockResolvedValueOnce(mfaPayload('ft-login-789'));
+
+    const result = await useAuthStore.getState().login('user@test.local', 'pass');
+
+    expect(result).toBe(false);
+    const state = useAuthStore.getState();
+    expect(state.mfaFlowToken).toBe('ft-login-789');
+    expect(state.token).toBeNull();
+    expect(state.refreshToken).toBeNull();
+    expect(state.user).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.isLoading).toBe(false);
+  });
+
   it('exchangeOAuthCode: non-MFA path sets session tokens', async () => {
     mockedPost.mockResolvedValueOnce(sessionPayload('new-token', 'new-refresh'));
 
