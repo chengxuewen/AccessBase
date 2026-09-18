@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy, TenantManager } from '@accessbase/identity';
+import { randomInt } from 'node:crypto';
+import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy, TenantManager, SmsProviderImpl } from '@accessbase/identity';
+import type { SmsConfig, SmsProvider } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
@@ -56,6 +58,28 @@ export async function authRoutes(app: FastifyInstance) {
   function getTenantManager(): TenantManager {
     if (!tenantManager) tenantManager = new TenantManager();
     return tenantManager;
+  }
+
+  /**
+   * SMS OTP delivery config (options key → env fallback, mailer precedent).
+   * Credentials are env-only: secrets never enter the options table.
+   * Returns null when no provider is selected (SMS disabled).
+   */
+  async function readSmsConfig(options: { get<T>(key: string, envValue: T | undefined, defaultValue: T): Promise<T> }): Promise<SmsConfig | null> {
+    const provider = await options.get('sms_provider', process.env['SMS_PROVIDER'], '');
+    if (!provider) return null;
+    const signName = await options.get('sms_sign_name', process.env['SMS_SIGN_NAME'], '');
+    const templateCode = await options.get('sms_template_code', process.env['SMS_TEMPLATE_CODE'], '');
+    return {
+      provider: provider as SmsConfig['provider'],
+      signName: signName || undefined,
+      templateCode: templateCode || undefined,
+      accessKeyId: process.env['ALIBABA_CLOUD_ACCESS_KEY_ID'] || undefined,
+      accessKeySecret: process.env['ALIBABA_CLOUD_ACCESS_KEY_SECRET'] || undefined,
+      accountSid: process.env['TWILIO_ACCOUNT_SID'] || undefined,
+      authToken: process.env['TWILIO_AUTH_TOKEN'] || undefined,
+      fromNumber: process.env['TWILIO_FROM_NUMBER'] || undefined,
+    };
   }
 
   /**
@@ -874,6 +898,194 @@ return { success: true };
       }
       const { accessToken, refreshToken } = await issueTokenPair(request, user);
       request.log.info({ userId: user.id }, 'Magic link sign-in successful');
+      return {
+        success: true,
+        data: {
+          accessToken,
+          refreshToken,
+          expiresIn: 900,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            roles: await rolesOf(user.id),
+          },
+        },
+      };
+    },
+  );
+
+  // POST /api/v1/auth/sms-otp/request — passwordless OTP delivery (Batch I).
+  // Enumeration-safe: identical 202 body regardless of account/config state.
+  // R2: no lockout anywhere in the SMS flow (burn-first FlowToken + rate limit
+  // carry brute-force protection; phone lockout would be a cross-user DoS).
+  app.post<{ Body: { phone: string } }>(
+    '/sms-otp/request',
+    {
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+      schema: {
+        description: 'Request an SMS OTP sign-in code. Always succeeds regardless of account existence.',
+        tags: ['auth'],
+        body: {
+          type: 'object',
+          required: ['phone'],
+          // R6: double-escaped in TS source ('\\+' === backslash-plus in the regex).
+          properties: { phone: { type: 'string', pattern: '^\\+[1-9]\\d{1,14}$' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { phone } = request.body;
+      const options = getOptionsManager();
+      const smsConfig = await readSmsConfig(options);
+      const smsProvider: SmsProvider | null = smsConfig ? SmsProviderImpl.fromConfig(smsConfig) : null;
+      if (!smsProvider) {
+        logger.warn('sms-otp request: SMS provider not configured, code not sent');
+        return reply.status(202).send({
+          success: true,
+          data: { message: 'If an account exists, a verification code has been sent.' },
+        });
+      }
+      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const user = await userManager.findByPhone(phone);
+      if (user && user.status === 'active') {
+        const code = randomInt(100000, 1000000).toString();
+        await flowTokens.issue('sms_otp', { userId: user.id, phone, code }, 300);
+        // Async: response returns immediately — gateway RTT is an enumeration timing side-channel (magic-link precedent)
+        smsProvider.send({ to: phone, code }).catch((err: unknown) => {
+          logger.warn({ err }, 'SMS delivery failed (degraded to log)');
+        });
+      }
+      return reply.status(202).send({
+        success: true,
+        data: { message: 'If an account exists, a verification code has been sent.' },
+      });
+    },
+  );
+
+  // POST /api/v1/auth/sms-otp/verify — exchange an OTP for a session.
+  // R3 exact mirror of magic consume with two corrections: findByIdAny (public
+  // route has no tenant context — refresh-gate precedent) and phone-match
+  // re-validation. R2: zero lockout — failures only 401/403, never 423.
+  app.post<{ Body: { token: string; code: string } }>(
+    '/sms-otp/verify',
+    {
+      config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
+      schema: {
+        description: 'Verify an SMS OTP code (or receive an MFA step-up).',
+        tags: ['auth'],
+        body: {
+          type: 'object',
+          required: ['token', 'code'],
+          properties: {
+            token: { type: 'string', minLength: 1 },
+            code: { type: 'string', pattern: '^\\d{6}$' },
+          },
+        },
+        response: {
+          // R2 batch-E lesson: declare the FULL union or fast-json-stringify strips fields.
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  // mfa step-up arm
+                  mfaRequired: { type: 'boolean' },
+                  flowToken: { type: 'string' },
+                  // token-pair arm
+                  accessToken: { type: 'string' },
+                  refreshToken: { type: 'string' },
+                  expiresIn: { type: 'number' },
+                  user: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      email: { type: 'string' },
+                      name: { type: 'string' },
+                      roles: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string' },
+                            name: { type: 'string' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' },
+                },
+              },
+            },
+          },
+          403: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const payload = await flowTokens.consume<{ userId: string; phone: string; code: string }>(
+        request.body.token,
+        'sms_otp',
+      );
+      if (!payload) {
+        return reply.status(401).send({
+          success: false,
+          error: { code: 'AUTH_SMS_001', message: 'Invalid or expired verification code' },
+        });
+      }
+      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const user = await userManager.findByIdAny(payload.userId);
+      if (!user || user.phone !== payload.phone || payload.code !== request.body.code) {
+        // Token already burned above — same generic 401 (magic R13 order).
+        return reply.status(401).send({
+          success: false,
+          error: { code: 'AUTH_SMS_001', message: 'Invalid or expired verification code' },
+        });
+      }
+      if (user.status !== 'active') {
+        request.log.warn({ userId: user.id }, 'SMS OTP verify rejected: account suspended');
+        return reply.status(403).send({
+          success: false,
+          error: { code: 'AUTH_004', message: 'Account suspended' },
+        });
+      }
+      // MFA step-up: uniform {userId}/300s/mfa_verify (magic consume mirror).
+      if (user.totpEnabled) {
+        const flowToken = await flowTokens.issue('mfa_verify', { userId: user.id }, 300);
+        return {
+          success: true,
+          data: { mfaRequired: true, flowToken },
+        };
+      }
+      const { accessToken, refreshToken } = await issueTokenPair(request, user);
+      request.log.info({ userId: user.id }, 'SMS OTP sign-in successful');
       return {
         success: true,
         data: {

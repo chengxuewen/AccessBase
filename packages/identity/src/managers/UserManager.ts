@@ -334,6 +334,7 @@ export class UserManager {
       id: dbUser.id,
       email: dbUser.email,
       name: dbUser.name,
+      phone: dbUser.phone,
       isActive: dbUser.status === 'active',
       totpEnabled: dbUser.totpEnabled,
       // DB status is a varchar; narrow to the claim's enum. Invalid values →

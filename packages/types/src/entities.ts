@@ -6,6 +6,12 @@ export interface User {
   email: string;
   name: string;
   avatar?: string;
+  /**
+   * E.164 phone (Batch I, R1). Nullable + partial-unique (migration 0004);
+   * global lookup key for SMS OTP login.
+   */
+  phone?: string | null;
+
   isActive: boolean;
   /** Raw account status; JWT status claim source for disabled-user enforcement (P0) */
   status?: 'active' | 'suspended' | 'pending';
