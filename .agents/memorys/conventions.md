@@ -144,6 +144,8 @@ logger.error('Operation failed', error); // ❌
 - Playwright 配置用 `webServer.reuseExistingServer: true` 避免 Vite 进程冲突
 - 操作反馈用页面内 inline `<Alert data-testid="...">` 或 toast：toast 必须经 `src/api/feedback.ts` 的 bridge（`App.useApp()` 由 `<AppBridge>` 注入）取实例
 - 禁止从 `'antd'` 直接导入静态 `message`/`notification`（React 19 渲染器下不挂载，见 PIT-023；R11 E2E 验证 bridge 渲染）
+- 断言 mount effect 触发的硬导航（window.location.assign on load）用 `expect(page).toHaveURL(/re/, { timeout })` 轮询，不用 `waitForURL`：StrictMode 双发 effect 会连续两次 assign 使首次导航 ERR_ABORTED、waitForURL 的 load/commit 事件竞态报假失败（J-T3 实测；waitForURL 仅适用于用户手势后页面已稳定的 assign）；同理 mount effect 里的 POST 次数断言用 `>=1` 不用 `===1`
+
 
 ## Setup 状态语义约束（D113，2026-09-02）
 

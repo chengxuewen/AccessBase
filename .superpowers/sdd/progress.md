@@ -35,3 +35,4 @@
 
 None — no ambiguities required rulings during execution.
 Batch I: ALL TASKS COMPLETE. T0 (SmsProvider+findByPhone+migration 0004), T1 (endpoints, review APPROVED), T2 (PIT-052 matrix 8 points + full regression 433/262 + root tsc). Controller ruling: TWILIO_FROM_NUMBER 1-line .env.example addition pending → fold into next batch or standalone commit.
+Batch J: ALL TASKS COMPLETE. T1 (SCIM emailExact three-point wiring, commits d0a4572), T2 (login MFA wipe fourth triplet, f469332), T3 (void-unwrap guard defect fix + e2e lock, 00b0b5d — RED captured then GREEN). Controller regressions: vitest 796/796, root+admin tsc exit 0, eslint changed-files 0 error (2 pre-existing warnings, verified at parent commit), e2e 125+3skip 0 failed (workers=1, 5101 pre-flight 000). Memory: PIT-058/059 + E2E toHaveURL convention + status record.

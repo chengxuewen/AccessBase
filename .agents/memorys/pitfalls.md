@@ -434,3 +434,19 @@
 | magic-consume (auth.ts:~875) | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify |
 | **sms-otp-verify (auth.ts:~1010)** | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify (R2 零 lockout) |
 | mfa/verify (auth.ts:~1029) | ✅ (会话签发) | ✅ issueTokenPair | ✅ | — (本身是 step-up) |
+
+## PIT-058: 对 Promise<void> 解包值做 !== undefined 判据 = 恒假断链 (2026-09-18)
+
+- **症状**: OIDC auto-approve effect 在 GET interaction 返回 login prompt 后 POST approve 成功，但页面永不停留在预期跳转——用户卡死在 /login，无任何报错；vitest/e2e 全绿存活。
+- **根因**: `postInteractionDecision` 签名 `Promise<void>`，`.then(details => { if (login) return postInteractionDecision(...) })` 解包后值恒为 `undefined`，下游 `if (approved !== undefined) assign(...)` 判据恒假。既有 e2e「login with valid redirect」走表单提交后的 `navigateAfterAuth` 直跳路径，完全不经过该 mount effect——测试路径与缺陷路径不相交。
+- **解法**: 需要下游判据时显式携带值：`return postInteractionDecision(uid, 'approve').then(() => true)`；或将副作用直接放进已 resolve 的回调内不做二段 `.then`。
+- **验证**: 双审静态读码可抓（本例即 Momus critic 1 发现）；e2e 锁必须从真实入口（mount effect：seedSession 后直接 goto /login?redirect=…）进入，不能只用 submit 路径替代。
+- **禁止**: 对 `Promise<void>` 调用的 await/then 解包结果做 `!== undefined` / truthy 判据；TypeScript 不报错（undefined 可赋 void），只有运行期断裂。
+
+## PIT-059: pixi node 版本切换后 pnpm store 变体目录失配，vite 陈旧 symlink 断 e2e webServer (2026-09-18)
+
+- **症状**: `pixi run npx playwright test` 的 webServer（`pnpm run dev`）起不来，报 vite 不可用；`.bin/vite` 存在但 `apps/admin-ui/node_modules/vite` 指向已不存在的 `.pnpm/vite@…@types+node@20…` 变体目录。
+- **根因**: pixi 环境 node 版本变更（@types+node 变体后缀随之变化）后，pnpm 虚拟 store 里的包目录名换代，但 workspace 内的 symlink 未重新链接，成为悬空链接。
+- **解法**: 仓库根执行 `pnpm install --frozen-lockfile` 重链（不改 lockfile、不改源码）；勿手动删改 node_modules 内部结构。
+- **验证**: `node -e "require.resolve('vite/bin/vite.js', { paths: ['apps/admin-ui'] })"` 能解析成功；playwright webServer 正常探活。
+- **禁止**: 误判为代码回归去回滚前端改动——这是环境安装态问题，与源码无关。
