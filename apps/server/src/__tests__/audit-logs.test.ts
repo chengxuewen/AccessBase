@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import type { IdentityService } from '@accessbase/identity';
+import { DEFAULT_TENANT } from '../utils/constants.js';
+import { filterByTenant } from './helpers/tenant-where.js';
 
 // Set env before importing config-dependent modules
 process.env.NODE_ENV = 'test';
@@ -22,9 +24,11 @@ const dbMock = {
   select: vi.fn(),
 };
 
-vi.mock('@accessbase/identity/db', () => ({
+vi.mock('@accessbase/identity/db', async (importOriginal) => ({
+  // Real table defs so tenant predicates render to inspectable SQL; only the
+  // connection factory is mocked.
+  ...(await importOriginal<typeof import('@accessbase/identity/db')>()),
   createDb: vi.fn(() => dbMock),
-  auditLogs: {},
 }));
 
 // identity is imported by app.ts (auth/users/roles routes); spread actual, mock managers
@@ -58,25 +62,48 @@ type App = Awaited<ReturnType<typeof buildApp>>;
 
 let app: App;
 
-// Per-test query results consumed by the drizzle chain mock
+// Per-test fixture rows consumed by the drizzle chain mock (tenant-filtered
+// from the captured WHERE SQL).
 let rows: Record<string, unknown>[] = [];
-let total = 0;
 
-function authedInject(options: { method: 'GET'; url: string }) {
-  const token = app.jwt.sign({ sub: '550e8400-e29b-41d4-a716-446655440000' });
+const TENANT_A = '11111111-1111-1111-1111-111111111111';
+const TENANT_B = '22222222-2222-2222-2222-222222222222';
+
+function scopedFixture() {
+  const base = {
+    action: 'TEST act',
+    userId: 'u-x',
+    resourceType: null,
+    resourceId: null,
+    ip: null,
+    responseStatus: 200,
+    createdAt: new Date('2026-09-18T00:00:00Z'),
+  };
+  return [
+    { id: 'r-def', tenantId: DEFAULT_TENANT, ...base },
+    { id: 'r-a', tenantId: TENANT_A, ...base },
+    { id: 'r-b', tenantId: TENANT_B, ...base },
+    { id: 'r-sys', tenantId: 'system', ...base },
+  ];
+}
+
+function authedInject(options: { method: 'GET'; url: string }, claims: Record<string, unknown> = {}) {
+  const token = app.jwt.sign({ sub: '550e8400-e29b-41d4-a716-446655440000', ...claims });
   return app.inject({ ...options, headers: { authorization: `Bearer ${token}` } });
 }
 
 beforeAll(async () => {
-  dbMock.select.mockImplementation(() => {
-    // where() result: awaitable for count, chainable for data
-    const whereNode = Object.assign(Promise.resolve([{ total }]), {
-      orderBy: () => ({
-        limit: () => ({ offset: () => Promise.resolve(rows) }),
-      }),
-    });
-    return { from: () => ({ where: () => whereNode }) };
-  });
+  dbMock.select.mockImplementation(() => ({
+    from: () => ({
+      // where() node: awaitable count path + chainable data path.
+      where: (sql: unknown) => {
+        const filtered = filterByTenant(rows, sql);
+        return Object.assign(Promise.resolve([{ total: filtered.length }]), {
+          orderBy: () => ({ limit: () => ({ offset: () => Promise.resolve(filtered) }) }),
+        });
+      },
+    }),
+  }));
   app = await buildApp();
 });
 
@@ -98,6 +125,7 @@ describe('GET /api/v1/audit-logs', () => {
     rows = [
       {
         id: 'a-1',
+        tenantId: DEFAULT_TENANT,
         action: 'POST /api/v1/users',
         userId: 'u-1',
         resourceType: 'user',
@@ -108,6 +136,7 @@ describe('GET /api/v1/audit-logs', () => {
       },
       {
         id: 'a-2',
+        tenantId: DEFAULT_TENANT,
         action: 'DELETE /api/v1/roles/1',
         userId: 'u-2',
         resourceType: 'role',
@@ -117,7 +146,6 @@ describe('GET /api/v1/audit-logs', () => {
         createdAt: new Date('2026-08-31T00:01:00Z'),
       },
     ];
-    total = 2;
 
     const res = await authedInject({ method: 'GET', url: '/api/v1/audit-logs?page=1&pageSize=10' });
 
@@ -141,6 +169,7 @@ describe('GET /api/v1/audit-logs', () => {
     rows = [
       {
         id: 'a-3',
+        tenantId: DEFAULT_TENANT,
         action: 'POST /api/v1/users',
         userId: 'u-1',
         resourceType: 'user',
@@ -150,7 +179,6 @@ describe('GET /api/v1/audit-logs', () => {
         createdAt: new Date('2026-08-31T00:00:00Z'),
       },
     ];
-    total = 1;
 
     const res = await authedInject({ method: 'GET', url: '/api/v1/audit-logs?action=users' });
 
@@ -159,5 +187,29 @@ describe('GET /api/v1/audit-logs', () => {
     expect(body.total).toBe(1);
     expect(body.data).toHaveLength(1);
     expect(body.data[0].action).toContain('users');
+  });
+
+  it('scopes the list to the requester tenant (K-T1)', async () => {
+    rows = scopedFixture();
+
+    const res = await authedInject(
+      { method: 'GET', url: '/api/v1/audit-logs' },
+      { tenantId: TENANT_A },
+    );
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.total).toBe(1);
+    expect(body.data.map((r: { id: string }) => r.id)).toEqual(['r-a']);
+  });
+
+  it('default tenant sees own + system rows only (K-T1)', async () => {
+    rows = scopedFixture();
+
+    // No tenantId claim -> request.tenantId falls back to DEFAULT_TENANT.
+    const res = await authedInject({ method: 'GET', url: '/api/v1/audit-logs' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.total).toBe(2);
+    expect(body.data.map((r: { id: string }) => r.id)).toEqual(['r-def', 'r-sys']);
   });
 });

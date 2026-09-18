@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { and, count, desc, eq, gte, ilike, lte, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, inArray, lte, type SQL } from 'drizzle-orm';
 import { createDb, auditLogs } from '@accessbase/identity/db';
 import { config } from '../config.js';
+import { DEFAULT_TENANT } from '../utils/constants.js';
 import { requirePermission } from '../utils/permission.js';
 import { toCsv } from '../utils/csv.js';
 
@@ -27,8 +28,19 @@ export async function auditRoutes(app: FastifyInstance) {
   app.addHook('preHandler', requirePermission());
 
   /** Shared list/export filter builder (action/actor/startDate/endDate). */
-  function buildWhere(query: { action?: string; actor?: string; startDate?: string; endDate?: string }) {
-    const conditions: SQL[] = [];
+  function buildWhere(
+    query: { action?: string; actor?: string; startDate?: string; endDate?: string },
+    tenantId: string,
+  ): SQL {
+    // K-T1 read isolation: non-default tenants see only their own rows; the
+    // default tenant additionally sees the 'system' bucket written by the
+    // audit middleware for auth events with no resolvable tenant (addendum:
+    // packages/audit/src/middleware.ts `tenantId || 'system'`).
+    const conditions: SQL[] = [
+      ...(tenantId === DEFAULT_TENANT
+        ? [inArray(auditLogs.tenantId, [tenantId, 'system'])]
+        : [eq(auditLogs.tenantId, tenantId)]),
+    ];
     if (query.action) conditions.push(ilike(auditLogs.action, `%${query.action}%`));
     if (query.actor) conditions.push(ilike(auditLogs.userId, `%${query.actor}%`));
     if (query.startDate && ISO_DATE.test(query.startDate)) {
@@ -37,7 +49,7 @@ export async function auditRoutes(app: FastifyInstance) {
     if (query.endDate && ISO_DATE.test(query.endDate)) {
       conditions.push(lte(auditLogs.createdAt, new Date(`${query.endDate}T23:59:59.999Z`)));
     }
-    return conditions.length > 0 ? and(...conditions) : undefined;
+    return and(...conditions) as SQL;
   }
   // GET /api/v1/audit-logs?page=&pageSize=&action=&actor=&startDate=&endDate=
   app.get(
@@ -71,7 +83,10 @@ export async function auditRoutes(app: FastifyInstance) {
           endDate?: string;
         };
 
-      const where = buildWhere({ action, actor, startDate, endDate });
+      const where = buildWhere(
+        { action, actor, startDate, endDate },
+        request.tenantId ?? DEFAULT_TENANT,
+      );
 
       const database = getDb();
       const [countRow] = await database
@@ -131,7 +146,10 @@ export async function auditRoutes(app: FastifyInstance) {
         startDate?: string;
         endDate?: string;
       };
-      const where = buildWhere({ action, actor, startDate, endDate });
+      const where = buildWhere(
+        { action, actor, startDate, endDate },
+        request.tenantId ?? DEFAULT_TENANT,
+      );
       const database = getDb();
 
       // ponytail: 50k-row safety cap on the OFFSET loop — raise if real exports hit it

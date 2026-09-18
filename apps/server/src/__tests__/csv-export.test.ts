@@ -8,6 +8,8 @@
  * previously missing requirePermission gate.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { DEFAULT_TENANT } from '../utils/constants.js';
+import { filterByTenant } from './helpers/tenant-where.js';
 
 // Set env before importing config-dependent modules
 process.env.NODE_ENV = 'test';
@@ -21,27 +23,28 @@ vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 
-// Audit db seam (same shape as audit-logs.test.ts): awaiting where() yields a
-// count row (setup-guard seam), chaining orderBy/limit/offset yields data rows.
+// Audit db seam (same shape as audit-logs.test.ts): real table defs so tenant
+// predicates render to inspectable SQL; awaiting where() yields a count row
+// (setup-guard seam), chaining orderBy/limit/offset yields tenant-filtered data.
 const auditRows: Record<string, unknown>[] = [];
 const dbMock = {
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockResolvedValue(undefined),
   select: vi.fn(() => ({
     from: () => ({
-      where: () =>
-        Object.assign(Promise.resolve([{ total: 1 }]), {
-          orderBy: () => ({
-            limit: () => ({ offset: () => Promise.resolve(auditRows) }),
-          }),
-        }),
+      where: (sql: unknown) => {
+        const filtered = filterByTenant(auditRows, sql);
+        return Object.assign(Promise.resolve([{ total: filtered.length }]), {
+          orderBy: () => ({ limit: () => ({ offset: () => Promise.resolve(filtered) }) }),
+        });
+      },
     }),
   })),
 };
 
-vi.mock('@accessbase/identity/db', () => ({
+vi.mock('@accessbase/identity/db', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@accessbase/identity/db')>()),
   createDb: vi.fn(() => dbMock),
-  auditLogs: {},
 }));
 
 // Mutable permission verdict + manager mocks
@@ -73,8 +76,8 @@ type App = Awaited<ReturnType<typeof buildApp>>;
 
 let app: App;
 
-function authedGet(url: string) {
-  const token = app.jwt.sign({ sub: '550e8400-e29b-41d4-a716-446655440000', email: 'admin@test.local' });
+function authedGet(url: string, claims: Record<string, unknown> = {}) {
+  const token = app.jwt.sign({ sub: '550e8400-e29b-41d4-a716-446655440000', email: 'admin@test.local', ...claims });
   return app.inject({ method: 'GET', url, headers: { authorization: `Bearer ${token}` } });
 }
 
@@ -121,6 +124,7 @@ describe('GET /api/v1/audit-logs/export', () => {
     auditRows.push(
       {
         id: 'a-1',
+        tenantId: DEFAULT_TENANT,
         action: 'POST /api/v1/users',
         userId: 'u-1',
         resourceType: 'user',
@@ -139,6 +143,48 @@ describe('GET /api/v1/audit-logs/export', () => {
     const lines = res.body.split('\r\n');
     expect(lines[0]).toBe('id,action,actor,resource,status,ipAddress,createdAt');
     expect(lines[1]).toBe('a-1,POST /api/v1/users,u-1,user u-9,201,10.0.0.1,2026-08-31T00:00:00.000Z');
+  });
+
+});
+
+
+describe('GET /api/v1/audit-logs/export tenant scoping (K-T1)', () => {
+  const TENANT_A = '11111111-1111-1111-1111-111111111111';
+
+  function scopedFixture() {
+    const base = {
+      action: 'TEST act',
+      userId: 'u-x',
+      resourceType: null,
+      resourceId: null,
+      ip: null,
+      responseStatus: 200,
+      createdAt: new Date('2026-09-18T00:00:00Z'),
+    };
+    auditRows.length = 0;
+    auditRows.push(
+      { id: 'r-def', tenantId: DEFAULT_TENANT, ...base },
+      { id: 'r-a', tenantId: TENANT_A, ...base },
+      { id: 'r-sys', tenantId: 'system', ...base },
+    );
+  }
+
+  it('exports only the requester tenant rows for a tenant-A JWT', async () => {
+    scopedFixture();
+    const res = await authedGet('/api/v1/audit-logs/export', { tenantId: TENANT_A });
+    expect(res.statusCode).toBe(200);
+    const ids = res.body.split('\r\n').slice(1).map((line) => line.split(',')[0]);
+    expect(ids).toEqual(['r-a']);
+  });
+
+  it('default tenant export sees own + system rows, not tenant A', async () => {
+    scopedFixture();
+    // No tenantId claim -> request.tenantId falls back to DEFAULT_TENANT.
+    const res = await authedGet('/api/v1/audit-logs/export');
+    expect(res.statusCode).toBe(200);
+    const ids = res.body.split('\r\n').slice(1).map((line) => line.split(',')[0]);
+    expect(ids).toEqual(expect.arrayContaining(['r-def', 'r-sys']));
+    expect(ids).not.toContain('r-a');
   });
 });
 
