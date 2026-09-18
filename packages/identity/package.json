@@ -27,6 +27,8 @@
   "dependencies": {
     "@accessbase/logging": "workspace:*",
     "@accessbase/types": "workspace:*",
+    "@alicloud/dysmsapi20170525": "^4.6.0",
+    "@alicloud/openapi-client": "^0.4.15",
     "@node-saml/node-saml": "^5.1.0",
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.29.0",

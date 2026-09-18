@@ -37,6 +37,8 @@ export const users = pgTable(
     status: varchar('status', { length: 20 }).default('active').notNull(),
     tenantId: uuid('tenant_id').notNull(),
     tokenVersion: integer('token_version').default(1).notNull(),
+    // Batch I: E.164 SMS OTP; nullable until registered via SCIM/admin; partial unique index in migration 0004 (R1/R9)
+    phone: varchar('phone', { length: 20 }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
     // SCIM correlation-only (per-tenant, best-effort) — no unique constraint (R6).

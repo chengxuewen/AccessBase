@@ -101,6 +101,25 @@ export class UserManager {
   }
 
   /**
+   * Find user by phone (Batch I, R1). Global lookup for SMS OTP login.
+   * LIMIT 2 detects duplicates: 1 row returns the user; 2+ rows means the
+   * auth-path account mapping is ambiguous, so treat as no-match + warn
+   * (DB layer additionally enforces the partial unique index from migration 0004).
+   */
+  async findByPhone(phone: string): Promise<User | null> {
+    logger.debug(`Finding user by phone: ${phone}`);
+
+    const result = await this.db.select().from(users).where(eq(users.phone, phone)).limit(2);
+
+    if (result.length > 1) {
+      logger.warn({ phone }, 'duplicate phone registrations');
+      return null;
+    }
+    const user = result[0];
+    return user ? this.mapToUser(user) : null;
+  }
+
+  /**
    * Paginated user list query
    */
   async findAll(params: UserQueryParams, tenantId: string): Promise<PaginatedResult<User>> {

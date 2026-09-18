@@ -203,3 +203,102 @@ describe('verifyPassword status enforcement', () => {
     expect(user).toBeNull();
   });
 });
+
+describe('findByPhone (Batch I Task 0, R1)', () => {
+  function makeMockDb() {
+    return {
+      select: vi.fn(),
+      insert: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    };
+  }
+
+  function makeChain(result: unknown) {
+    const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+    chain.from = vi.fn(() => chain);
+    chain.where = vi.fn(() => chain);
+    chain.limit = vi.fn(() => chain);
+    chain.then = vi.fn(
+      (resolve?: ((v: unknown) => unknown) | null, reject?: ((e: unknown) => unknown) | null) =>
+        Promise.resolve(result).then(resolve, reject),
+    );
+    return chain;
+  }
+
+  const userRow = (phone: string) => ({
+    id: 'u1',
+    email: 'a@b.c',
+    name: 'A',
+    phone,
+    status: 'active',
+    passwordHash: null,
+    tokenVersion: 1,
+    totpEnabled: false,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('resolves a single matching row to the mapped user', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.select.mockReturnValue(makeChain([userRow('+8613800000001')]));
+
+    const mgr = new UserManager();
+    const user = await mgr.findByPhone('+8613800000001');
+
+    expect(user).not.toBeNull();
+    expect(user?.email).toBe('a@b.c');
+  });
+
+  it('queries with LIMIT 2 so a duplicate can be detected', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.select.mockReturnValue(makeChain([userRow('+8613800000001')]));
+
+    const mgr = new UserManager();
+    await mgr.findByPhone('+8613800000001');
+
+    // The last limit() call in the chain receives the cap.
+    const limitCall = db.select.mock.results[0]!.value.limit.mock.calls.at(-1);
+    expect(limitCall![0]).toBe(2);
+  });
+
+  it('returns null and warns when multiple rows match (R1 ambiguity refusal)', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.select.mockReturnValue(
+      makeChain([userRow('+8613800000001'), userRow('+8613800000001')]),
+    );
+
+    const mgr = new UserManager();
+    const user = await mgr.findByPhone('+8613800000001');
+
+    expect(user).toBeNull();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: '+8613800000001' }),
+      'duplicate phone registrations',
+    );
+  });
+
+  it('returns null silently when no rows match', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = makeMockDb();
+    vi.mocked(createDb).mockReturnValue(db as never);
+    db.select.mockReturnValue(makeChain([]));
+
+    const mgr = new UserManager();
+    const user = await mgr.findByPhone('+999missing');
+
+    expect(user).toBeNull();
+    expect(logger.warn).not.toHaveBeenCalledWith(
+      expect.objectContaining({ phone: '+999missing' }),
+      'duplicate phone registrations',
+    );
+  });
+});

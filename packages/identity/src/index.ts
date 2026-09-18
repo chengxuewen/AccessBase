@@ -18,6 +18,7 @@ export { FlowTokenService } from './services/FlowTokenService.js';
 export { LockoutService, MAX_FAILURES, WINDOW_SECONDS, type LockoutOptions } from './services/LockoutService.js';
 export { getRedisClient, type RedisLike } from './services/redis.js';
 export { Mailer, type SmtpConfig } from './services/mailer.js';
+export { SmsProviderImpl, AliyunSmsAdapter, TwilioSmsAdapter, type SmsProvider, type SmsConfig, type SmsSendParams } from './services/SmsProvider.js';
 export { assertPasswordPolicy, readPasswordPolicy, type PasswordPolicy, type PasswordPolicyCallsite } from './services/password-policy.js';
 export { PasswordProvider } from './providers/PasswordProvider.js';
 export { OAuthProvider } from './providers/OAuthProvider.js';
