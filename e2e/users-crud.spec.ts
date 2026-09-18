@@ -427,9 +427,12 @@ test.describe('Users CRUD (dedicated routes)', () => {
     // AntD renders CJK 2-char labels with a space ("查 询") — allow optional whitespace
     await page.locator('button').filter({ hasText: /search|查\s*询|submit/i }).first().click();
 
-    // Search param reached the API and table still renders
+    // Search param reached the API and table still renders.
+    // expect.poll (not sync expect): the click → request dispatch is async —
+    // a synchronous assert races ahead of the in-flight request (flake seen
+    // loading-spinner in failure snapshot; R2 poll discipline precedent).
+    await expect.poll(() => searched, { timeout: 5000 }).toBe(true);
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
-    expect(searched, 'search param was sent to API').toBe(true);
   });
 
   test('delete user from list removes row', async ({ page }) => {

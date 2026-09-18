@@ -212,7 +212,7 @@
     },
     "background_task": {
       "defaultConcurrency": 8,
-      "staleTimeoutMs": 600000
+      "staleTimeoutMs": 1800000
     },
     "runtime_fallback": {
       "enabled": true,
