@@ -225,3 +225,56 @@ test.describe('OIDC consent page + login redirect glue', () => {
     expect(page.url()).not.toContain('evil.example.com');
   });
 });
+
+test.describe('login-prompt auto-approve effect', () => {
+  let consoleErrors: string[];
+
+  test.beforeEach(async ({ page }) => {
+    consoleErrors = await trackConsoleErrors(page);
+    mockSetupAndStats(page);
+  });
+
+  test.afterEach(async () => {
+    expect(consoleErrors, 'console errors should be empty').toEqual([]);
+  });
+
+  test('auto-approves a login prompt and resumes /oidc/auth/:uid once approve resolves', async ({ page }) => {
+    await seedSession(page);
+    let postCount = 0;
+    await page.route('**/api/v1/oidc/interaction/uid-123', async (route) => {
+      if (route.request().method() === 'POST') {
+        postCount += 1;
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {} }) });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { ...INTERACTION, promptName: 'login' } }),
+      });
+    });
+    await page.goto('/login?redirect=%2Foidc%2Fauth%2Fuid-123');
+    await expect(page).toHaveURL(/\/oidc\/auth\/uid-123$/, { timeout: 10_000 });
+    expect(postCount).toBeGreaterThanOrEqual(1);
+  });
+
+  test('consent prompt is never auto-approved — hands off to /consent with zero POST', async ({ page }) => {
+    await seedSession(page);
+    let postCount = 0;
+    await page.route('**/api/v1/oidc/interaction/uid-123', async (route) => {
+      if (route.request().method() === 'POST') {
+        postCount += 1;
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {} }) });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: INTERACTION }),
+      });
+    });
+    await page.goto('/login?redirect=%2Foidc%2Fauth%2Fuid-123');
+    await expect(page).toHaveURL(/\/consent\?uid=uid-123$/, { timeout: 10_000 });
+    expect(postCount).toBe(0);
+  });
+});

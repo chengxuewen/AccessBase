@@ -121,7 +121,8 @@ export default function Login() {
 
   // OIDC flow: already-authenticated user landing on /login?redirect=/oidc/auth/:uid
   // auto-approves the LOGIN prompt so the provider flow resumes without retyping
-  // credentials. Consent prompts are never auto-approved — hand off to /consent.
+  // credentials; the resume hop to oidcRedirect runs once the approve call resolves.
+  // Consent prompts are never auto-approved — hand off to /consent.
   useEffect(() => {
     const { token, isAuthenticated } = useAuthStore.getState();
     if (!(token || isAuthenticated) || !oidcRedirect) return;
@@ -130,7 +131,7 @@ export default function Login() {
     let cancelled = false;
     getInteraction(uid)
       .then((details) => {
-        if (details.promptName === 'login') return postInteractionDecision(uid, 'approve');
+        if (details.promptName === 'login') return postInteractionDecision(uid, 'approve').then(() => true);
         // Consent (or unknown prompt) must never be auto-granted — render the consent page
         window.location.assign(`/consent?uid=${encodeURIComponent(uid)}`);
         return undefined;
