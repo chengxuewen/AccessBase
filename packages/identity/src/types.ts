@@ -83,6 +83,7 @@ export interface UserQueryParams {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   search?: string; // Search by email/name
+  emailExact?: string; // Exact case-insensitive email equality (SCIM userName eq, Batch J T1)
   status?: UserStatus;
   roleId?: string;
 }

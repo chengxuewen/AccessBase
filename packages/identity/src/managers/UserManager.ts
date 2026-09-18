@@ -132,7 +132,14 @@ export class UserManager {
     // Build where conditions
     const conditions = [eq(users.tenantId, tenantId)];
 
-    if (params.search) {
+    // ponytail: lower(email)= is an un-indexed full scan; the upgrade path is
+    // a functional index on lower(email) plus write-side email normalization
+    // (unique on lower). Note the pre-existing asymmetry: write-side
+    // uniqueness (findByEmail) is exact-case eq, so case-variant twin rows
+    // can exist and this read matches both.
+    if (params.emailExact) {
+      conditions.push(sql`lower(${users.email}) = ${params.emailExact.toLowerCase()}`);
+    } else if (params.search) {
       conditions.push(
         sql`(${users.email} ILIKE ${'%' + params.search + '%'} OR ${users.name} ILIKE ${'%' + params.search + '%'})`,
       );

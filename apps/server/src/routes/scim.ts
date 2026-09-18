@@ -87,9 +87,9 @@ function toScimUser(user: User): Record<string, unknown> {
  * SCIM filter AST → manager query. Only single-clause `userName eq` /
  * `id eq` push down to SQL; any other shape is rejected (400 invalidFilter)
  * rather than silently broadening the match.
- * Returns search (email/name ILIKE for userName) or id filter.
+ * Returns emailExact (userName, exact lowercase email match) or id filter.
  */
-function filterToQuery(filterStr: string): { search?: string; id?: string } | null {
+function filterToQuery(filterStr: string): { search?: string; id?: string; emailExact?: string } | null {
   let ast: ReturnType<typeof parseFilter>;
   try {
     ast = parseFilter(filterStr);
@@ -101,7 +101,7 @@ function filterToQuery(filterStr: string): { search?: string; id?: string } | nu
   if (value === undefined) return null;
   if (ast.attrPath.toLowerCase() === 'username') {
     const normalized = normalizeUserName(value);
-    return normalized ? { search: normalized } : null;
+    return normalized ? { emailExact: normalized } : null;
   }
   if (ast.attrPath.toLowerCase() === 'id') return { id: value };
   return null;
@@ -268,11 +268,13 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
 
     let search: string | undefined;
     let id: string | undefined;
+    let emailExact: string | undefined;
     if (query.filter) {
       const mapped = filterToQuery(query.filter);
       if (!mapped) return scimError(reply, 400, 'invalidFilter', 'Unsupported or malformed filter');
       search = mapped.search;
       id = mapped.id;
+      emailExact = mapped.emailExact;
     }
 
     const startIndex = Math.max(1, Number.parseInt(query.startIndex ?? '1', 10) || 1);
@@ -294,7 +296,7 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     // H2: SCIM startIndex is a 1-based ROW OFFSET; findAll's page is 1-based
     // PAGES. startIndex=11&count=10 → page 2, not page 11.
     const page = Math.max(1, Math.ceil(startIndex / count));
-    const result = await userManager.findAll({ page, pageSize: count, search }, tenantId);
+    const result = await userManager.findAll({ page, pageSize: count, search, emailExact }, tenantId);
     return scimSend(reply, 200, {
       schemas: [LIST_RESPONSE_SCHEMA],
       totalResults: result.total,

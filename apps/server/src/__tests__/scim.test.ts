@@ -103,9 +103,22 @@ const userManagerMock = {
     return stored ? { ...stored } : null;
   }),
   findAll: vi.fn(
-    async (params: { page?: number; pageSize?: number; search?: string }, tenantId: string) => {
+    async (
+      params: { page?: number; pageSize?: number; search?: string; emailExact?: string },
+      tenantId: string,
+    ) => {
       let rows = [...userStore.values()].filter((u) => u.tenantId === tenantId);
-      if (params.search) rows = rows.filter((u) => u.email.toLowerCase().includes(params.search as string));
+      // J-T1 two-key faithful model of the real findAll (PIT-055):
+      // emailExact wins over search (else-if in UserManager); the substring
+      // branch mirrors `email ILIKE %s% OR name ILIKE %s%`.
+      if (params.emailExact) {
+        rows = rows.filter((u) => u.email.toLowerCase() === params.emailExact);
+      } else if (params.search) {
+        const needle = params.search.toLowerCase();
+        rows = rows.filter(
+          (u) => u.email.toLowerCase().includes(needle) || u.name.toLowerCase().includes(needle),
+        );
+      }
       const total = rows.length;
       const page = params.page ?? 1;
       const pageSize = params.pageSize ?? 20;
@@ -408,9 +421,29 @@ describe('SCIM user provisioning (T2)', () => {
       expect(body.Resources[0].userName).toBe('hit@x.io');
       // R8 probe: the normalized value reached the manager layer.
       expect(userManagerMock.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({ search: 'hit@x.io' }),
+        expect.objectContaining({ emailExact: 'hit@x.io' }),
         DEFAULT_TENANT,
       );
+    });
+
+    it('J-T1: userName eq kills substring over-match and name false-hit (exact email only)', async () => {
+      // Row 1: the true match. Row 2: email contains the needle as a
+      // substring AND name equals the queried userName verbatim — the old
+      // ILIKE push-down matched both; exact-email equality matches only row 1.
+      userStore.set('hit@x.io', makeUser({ email: 'hit@x.io' }));
+      userStore.set(
+        'partial-hit@x.io-in-name',
+        makeUser({ email: 'partial-hit@x.io-in-name', name: 'HIT@X.IO' }),
+      );
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users?filter=${encodeURIComponent('userName eq "HIT@X.IO"')}`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.totalResults).toBe(1);
+      expect(body.Resources[0].userName).toBe('hit@x.io');
     });
 
     it('filter id eq → direct lookup by id', async () => {

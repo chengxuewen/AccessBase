@@ -302,3 +302,43 @@ describe('findByPhone (Batch I Task 0, R1)', () => {
     );
   });
 });
+
+describe('findAll emailExact (Batch J Task 1, structural tripwire)', () => {
+  it('resolves through the mocked db chain; each query calls where() once', async () => {
+    // The mock chain never evaluates SQL (R3), so no semantic assertion is
+    // possible here: this locks that findAll({ emailExact }) plumbs through
+    // without throwing and still builds a where-filtered count + page query.
+    const { createDb } = await import('../db/index.js');
+    const db = {
+      select: vi.fn(),
+      insert: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    };
+    vi.mocked(createDb).mockReturnValue(db as never);
+    const makeChain = (result: unknown) => {
+      const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+      chain.from = vi.fn(() => chain);
+      chain.where = vi.fn(() => chain);
+      chain.limit = vi.fn(() => chain);
+      chain.offset = vi.fn(() => chain);
+      chain.orderBy = vi.fn(() => chain);
+      chain.then = vi.fn(
+        (resolve?: ((v: unknown) => unknown) | null, reject?: ((e: unknown) => unknown) | null) =>
+          Promise.resolve(result).then(resolve, reject),
+      );
+      return chain;
+    };
+    const countChain = makeChain([{ count: 0 }]);
+    const pageChain = makeChain([]);
+    db.select.mockReturnValueOnce(countChain).mockReturnValueOnce(pageChain);
+
+    const mgr = new UserManager();
+    const result = await mgr.findAll({ emailExact: 'A@B.com' }, 'tenant-1');
+
+    expect(result.total).toBe(0);
+    expect(result.data).toEqual([]);
+    expect(countChain.where).toHaveBeenCalledTimes(1);
+    expect(pageChain.where).toHaveBeenCalledTimes(1);
+  });
+});
