@@ -421,3 +421,16 @@
 - **根因**: 外部协议（SCIM startIndex=1-based 行偏移）映射到内部 manager（1-based 页号）时凭直觉直传而非从 manager 源码的 offset 公式反推；单点测试值恰好是公式不动点掩盖分歧
 - **解法**: 协议字段映射必须从内部实现的实际 offset/limit 公式反推换算式（此处 page=ceil(startIndex/count)），并加非不动点测试值（如 startIndex=11&count=10→page=2）锁死
 - **验证**: scim.test.ts 含 `startIndex=11&count=10 → findAll({page:2,pageSize:10})` probe 断言
+
+## PIT-052 矩阵更新（Batch I，2026-09-16）：八签发点
+
+| 签发路径 | status 门 | tenantId claim | 限流 | MFA step-up |
+|---|---|---|---|---|
+| login (auth.ts:163) | ✅ verifyPassword 前置 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify |
+| ldap (auth.ts:~1245) | ✅ changeStatus 前置 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify |
+| webauthn (webauthn.ts:~313) | ✅ suspended 门 | ✅ issueTokenPair | — | ✅ mfa_verify |
+| oauth callback→exchange (oauth.ts:~482) | ✅ suspended 门 | ✅ issueTokenPair | — | ✅ mfa_verify (exchange 时) |
+| saml ACS→exchange (saml.ts:~198) | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify (exchange 时) |
+| magic-consume (auth.ts:~875) | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify |
+| **sms-otp-verify (auth.ts:~1010)** | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify (R2 零 lockout) |
+| mfa/verify (auth.ts:~1029) | ✅ (会话签发) | ✅ issueTokenPair | ✅ | — (本身是 step-up) |
