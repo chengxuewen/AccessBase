@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, Form, Input, Modal, Popconfirm, Transfer } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, LoadingOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, LoadingOutlined, ReloadOutlined, LockOutlined } from '@ant-design/icons';
 import EmptyState from '../components/EmptyState';
 import {
   listRoles,
@@ -134,11 +134,19 @@ export default function Roles() {
       valueType: 'option',
       width: 140,
       render: (_, record) => [
-        <Button type="link" size="small" key="edit" onClick={() => void openEdit(record)}>
-          {editLoadingId === record.id ? <LoadingOutlined /> : <EditOutlined />} {t('common.edit')}
+        <Button type="link" size="small" key="edit" disabled={record.isSystem} onClick={() => void openEdit(record)}>
+          {editLoadingId === record.id ? (
+            <LoadingOutlined />
+          ) : record.isSystem ? (
+            <LockOutlined />
+          ) : (
+            <EditOutlined />
+          )}{" "}
+          {t('common.edit')}
         </Button>,
         <Popconfirm
           key="delete"
+          disabled={record.isSystem}
           title={t('roles.deleteConfirm')}
           onConfirm={async () => {
             try {
@@ -152,7 +160,7 @@ export default function Roles() {
           okText={t('common.confirm')}
           cancelText={t('common.cancel')}
         >
-          <Button type="link" size="small" danger>
+          <Button type="link" size="small" danger disabled={record.isSystem}>
             <DeleteOutlined /> {t('common.delete')}
           </Button>
         </Popconfirm>,

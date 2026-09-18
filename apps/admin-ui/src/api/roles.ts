@@ -10,7 +10,10 @@ export interface Role {
   description?: string;
   parentId?: string;
   tenantId?: string;
-  permissions?: Permission[];
+  /** K-T2: built-in admin role is immutable — server rejects edits with 409
+   * ROLE_PROTECTED; the table locks its row controls when true. */
+  isSystem?: boolean;
+permissions?: Permission[];
   createdAt: string;
   updatedAt: string;
 }

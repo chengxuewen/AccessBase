@@ -377,4 +377,39 @@ test.describe('Roles CRUD', () => {
     // Saved payload must retain the detail's permissions (current bug sends [] → wipes them)
     expect(putBody?.permissionIds).toEqual(['perm-2']);
   });
+
+  // K-T2: built-in admin role rows must lock their edit/delete controls
+  // (server-side 409 ROLE_PROTECTED is the moat; the UI never offers the foot-gun).
+  test('K-T2: isSystem role row has edit/delete disabled; normal row unaffected', async ({ page }) => {
+    await page.route('**/api/v1/roles**', async (route) => {
+      const req = route.request();
+      if (req.method() === 'GET' && new URL(req.url()).pathname === '/api/v1/roles') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              { id: 'role-sys', name: 'admin', description: 'Built-in', isSystem: true, createdAt: nowIso(), updatedAt: nowIso() },
+              { id: 'role-plain', name: 'Editor', description: 'Custom', isSystem: false, createdAt: nowIso(), updatedAt: nowIso() },
+            ],
+            total: 2,
+          }),
+        });
+        return;
+      }
+      await route.fallback();
+    });
+
+    await page.goto('/roles');
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
+
+    const sysRow = page.locator('tbody tr.ant-table-row', { hasText: 'admin' }).first();
+    await expect(sysRow.locator('button:has-text("Edit"), button:has-text("编辑")')).toBeDisabled();
+    await expect(sysRow.locator('button:has-text("Delete"), button:has-text("删除")')).toBeDisabled();
+
+    const plainRow = page.locator('tbody tr.ant-table-row', { hasText: 'Editor' }).first();
+    await expect(plainRow.locator('button:has-text("Edit"), button:has-text("编辑")')).toBeEnabled();
+    await expect(plainRow.locator('button:has-text("Delete"), button:has-text("删除")')).toBeEnabled();
+  });
 });
