@@ -46,6 +46,13 @@ function requireJwtSecret(env: NodeJS.ProcessEnv): string {
   return env['JWT_SECRET'] ?? 'dev-secret-do-not-use-in-production';
 }
 
+function requireCorsOrigins(env: NodeJS.ProcessEnv): string {
+  if (env['NODE_ENV'] === 'production' && !env['CORS_ORIGINS']) {
+    throw new Error('CORS_ORIGINS must be set in production. Provide a comma-separated allowlist, e.g. https://admin.example.com');
+  }
+  return env['CORS_ORIGINS'] ?? '';
+}
+
 export const config: AppConfig = {
   port: Number(env('PORT', '5101')),
   host: env('HOST', '0.0.0.0'),
@@ -61,7 +68,7 @@ export const config: AppConfig = {
   adminPassword: process.env['ADMIN_PASSWORD'] || '',
   staticDir: env('STATIC_DIR', 'out/admin-ui'),
   adminEmail: process.env['ADMIN_EMAIL'] || '',
-  corsOrigins: process.env['CORS_ORIGINS'] || '',
+  corsOrigins: requireCorsOrigins(process.env),
   mfaEncryptionKey: process.env['MFA_ENCRYPTION_KEY'] || '',
   lockoutMaxFailures: Number(process.env['LOCKOUT_MAX_FAILURES'] || '5'),
   lockoutWindowSeconds: Number(process.env['LOCKOUT_WINDOW_SECONDS'] || '900'),

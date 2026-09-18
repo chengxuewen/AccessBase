@@ -10,6 +10,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://accessbase:accessbase@localhost:5432/accessbase}
       REDIS_URL: ${REDIS_URL:-redis://localhost:6379}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required}
+      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS required in production}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     deploy:
       resources:
