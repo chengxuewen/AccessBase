@@ -450,3 +450,10 @@
 - **解法**: 仓库根执行 `pnpm install --frozen-lockfile` 重链（不改 lockfile、不改源码）；勿手动删改 node_modules 内部结构。
 - **验证**: `node -e "require.resolve('vite/bin/vite.js', { paths: ['apps/admin-ui'] })"` 能解析成功；playwright webServer 正常探活。
 - **禁止**: 误判为代码回归去回滚前端改动——这是环境安装态问题，与源码无关。
+
+## PIT-060: resume 到已终结（completed/cancelled）bg 任务 = 假续跑，静默零进展 (2026-09-18)
+
+- **症状**: `task(task_id=ses_...)` 恢复一个系统通知已报 COMPLETED 的后台任务，工具返回 "Background task continued / Status: running"，但会话 transcript 停在原处、git 树零变化、无新通知——等待 80 分钟后确认死通道。
+- **根因**: bg 任务状态机在 completed/cancelled 后不可复活；resume 调用创建了指向旧 session 的空引用而非真正排队执行。quota 墙时代码重试链（attempt N fallback）只对「尚未终结」的任务生效。
+- **解法**: 判活三查——`session_info` 的 Date Range 末端是否推进、`git status` 是否变化、`background_output(block=false)` 是否返回 "(No new output since last check)"。三者全停 = 死，直接新派发（新 category task，prompt 带树态断点地图）或控制器亲做（H-T4c/K-T2 先例：连续 abort 后控制器直接实现）。
+- **验证**: 派发后 `sleep` 窗口内 git log/status 至少一处前进；不前进即按上述三查判死，勿无限 sleep。

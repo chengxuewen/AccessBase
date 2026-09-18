@@ -224,3 +224,11 @@ logger.error('Operation failed', error); // ❌
 
 - **迁移链仅面向全新数据库**：drizzle 链（packages/migration/drizzle/）不含 ALTER ADD COLUMN 守卫，对存量 db:push 管理的库手动跑 migrate 会 duplicate column 报错——存量开发库一律继续 `accessbase.sh db:push`；迁移链服务全新部署（commit 0001_violet_butterfly 起与 schema 同步）
 - **API Key 明文契约**：`ab_` + 32 位小写字母数字（35 总长，api.md §23.10）；明文仅 create 响应出现一次，存储 sha256 hex；认证层凭 revokedAt/isExpired 判定失效（findByHash 不过滤）
+
+## Phase K 防线约束（2026-09-18）
+
+- **审计/stats 读侧租户谓词**：`buildWhere(query, tenantId)` 规则 = DEFAULT_TENANT 请求见 `inArray([t,'system'])`、非默认租户严格 `eq(t)`（auth 事件写侧归 'system' 无租户可归，仅平台侧可见——写侧归属是 L 批 backlog，勿在路由层私自放宽）。检查：`grep -c "tenantId" apps/server/src/routes/audit.ts` 应 ≥4；stats 五查询（4 计数+recent）每个都带租户谓词，sessions 计数必须经 `innerJoin(users)` 归租户（sessions 表无 tenant 列）。
+- **RBAC 守卫落点 = manager 漏斗，非 route**：`changeStatus`(→suspended)/`delete`/`setUserRoles`/`revokeFromUser` 的 last-admin 闸在 UserManager/RoleManager 内（SCIM 直调 changeStatus 同闸——route 级预查被双 Momus 审否）；谓词唯一源 `packages/identity/src/services/last-admin-guard.ts`（wouldOrphanLastAdmin 非私有）。新增任何写 status/角色归属的路径都自动过闸，勿在 route 复制谓词。
+- **409 契约**：manager 拒绝以 `ROLE_PROTECTED:` / `LAST_ADMIN_GUARD:` message 前缀 throw → 经 `apps/server/src/utils/conflict-mapper.ts` sendConflictError 统一 409 envelope（tag 字面量在 mapper 与 identity 常量两处定义，route 测试 mock identity 模块故 mapper 刻意不 import——改 tag 名两处同步）。
+- **isSystem stamp**：自愈 `UPDATE roles SET is_system=true WHERE name='admin'` 必须 direct SQL 无租户过滤且不走 RoleManager.update（幂等性）。admin 角色自此不可经 UI/API 改名/清空权限——新增权限码到 admin 走 seedBuiltinPermissions 直插路径（不过守卫），勿改道。
+- **e2e route 标志断言用 `expect.poll(() => flag).toBe(true)` 不用同步 expect**：click→request 派发异步，route handler 置标志在请求到达时——同步断言抢跑（users-crud search flake 根因，b34d986 清偿）；初始 mock 数据使行数断言零屏障时尤其致命。
