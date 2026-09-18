@@ -34,3 +34,4 @@
 ## Rulings made
 
 None — no ambiguities required rulings during execution.
+Batch I: ALL TASKS COMPLETE. T0 (SmsProvider+findByPhone+migration 0004), T1 (endpoints, review APPROVED), T2 (PIT-052 matrix 8 points + full regression 433/262 + root tsc). Controller ruling: TWILIO_FROM_NUMBER 1-line .env.example addition pending → fold into next batch or standalone commit.
