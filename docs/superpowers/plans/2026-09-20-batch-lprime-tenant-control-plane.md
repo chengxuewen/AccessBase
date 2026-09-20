@@ -42,8 +42,8 @@
 - **（G-3）**`password-policy.ts`：`PasswordPolicyCallsite` 闭集 union + DEFAULTS 扩 `'user_create'`（register 档默认；五 `password_*` options 键跨调用点共享，**无新 options 码、无双注册面**——附录原「注记」句作废）。
 - 测试：分区不变量（disjoint+union=21）、漏斗 RED×2、环 RED×2、严格内核失败面、包壳吞错回归锁、assignToUser 重复插入不抛、'user_create' 策略档可读。
 - `apps/server`：permissions-seed.ts 改 import 分区清单（删本地重定义）；conflict-mapper 加 `PERMISSION_NOT_BINDABLE` tag → 409（两处字面量同步纪律承 K）。
-- 测试：分区不变量（disjoint+union=21）、漏斗 RED×2、环 RED×2、严格内核失败面、包壳吞错回归锁。
 - 出口：`pnpm --filter @accessbase/identity build`（dist 同步纪律）。
+- （rev.3.1 / G-5 前端零字面量裁决）`TenantManager.mapToTenant` 投影加 `isDefault: row.id === DEFAULT_TENANT_ID`（常量已在位 :20）；Tenant 接口同步——/me 的 tenantIsDefault 与 Tenants 页行锁共用此源。
 - 文件面：packages/identity/src/{services,managers}/ + 测试 + apps/server/src/routes/permissions-seed.ts + utils/conflict-mapper.ts + 测试。
 
 **T2 —（组二，吃 T1）bootstrap 端点 + belt 扩面 + force-logout 修**
@@ -54,12 +54,13 @@
 - 文件面：apps/server/src/routes/{tenants,users}.ts + 两测试文件。
 
 **T3 — /auth/me 租户暴露 + 顶栏 Tag**
-- auth.ts /me：tenantId（user 行）+ tenantName（**getTenantManager() 单例**，findById 失败短路 undefined）；路由 test 三支 + 容错支。
+- auth.ts /me：tenantId（user 行）+ tenantName + tenantIsDefault（**getTenantManager() 单例**；findById 失败短路 `tenantName: undefined, tenantIsDefault: true`＝视觉 fail-closed 隐 Tag）；路由 test 三支 + 容错支。
+- admin-ui：MeResponse 三字段；AdminLayout Tag 仅当 `tenantIsDefault === false && tenantName` 渲染——**零前端 UUID 字面量、零新 locale key**（TenantCell 先例同纪律；locales 全归 T4）；e2e GlobalGuard mock 族全扫补字段（grep -l "auth/me" e2e/，形状从路由实际返回拷贝 PIT-033）。
 - admin-ui：MeResponse 两字段；AppLayout Tag 按 `tenantId !== DEFAULT_TENANT_FRONT`（新前端常量）显隐（**零新 locale key**——Tag 内容是数据；locales 全归 T4，消除并行冲突）；e2e GlobalGuard mock 族全扫补字段（grep -l "auth/me" e2e/）。
 - 文件面：auth.ts + 其测试 + admin-ui api/types + AppLayout + e2e mock 族。
 
 **T4 — Tenants 管理页（mock-first，契约抄 spec D2 错误码表）**
-- api/tenants.ts 四函数；pages/Tenants.tsx 五件套 + 默认租户行锁（id 常量判）+ Init admin 模态（200 replay / 409 inline）；App.tsx 路由+菜单（tenants:read，TeamOutlined）；locales en/zh 全集（含 T3 无需之注记）。
+- api/tenants.ts 四函数 + Tenant 接口 `isDefault: boolean`；pages/Tenants.tsx 五件套 + 默认租户行锁（`record.isDefault` 判，**无前端字面量**）+ Init admin 模态（200 replay / 409 inline）；App.tsx 路由+菜单（tenants:read，TeamOutlined）；locales en/zh 全集。
 - 行动作门 `useAuthStore(s=>s.hasPermission)`（实名）。**无 users-hint 列**。
 - e2e `tenants-crud.spec.ts` 六例（expect.poll 纪律）+ visual-qa 一轮。
 - 文件面：admin-ui pages/App.tsx/api/tenants/locales + 新 e2e spec。

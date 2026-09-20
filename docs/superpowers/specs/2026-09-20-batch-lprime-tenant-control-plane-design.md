@@ -163,18 +163,26 @@ selfHealSeed binds the 21-code seed ONLY to the DEFAULT-tenant admin role
 isSystem stamp is deliberately global. Tenant admin roles = moat + 9-code ceiling.
 Pin test: bootstrap-bound role holds exactly 9 codes even after a selfHealSeed run.
 
-### D4: `/auth/me` tenant exposure
+### D4: `/auth/me` tenant exposure — data-driven, ZERO frontend literals
 
-Add `tenantId` (user row; findById already tenant-scoped) and `tenantName` via the
-EXISTING lazy `getTenantManager()` singleton in auth.ts (B7b — never per-request
-`new TenantManager()`: pool accumulation precedent documented in permission.ts).
+Add `tenantId` (user row; findById already tenant-scoped) and `tenantName` +
+`tenantIsDefault` via the EXISTING lazy `getTenantManager()` singleton in auth.ts
+(B7b — never per-request `new TenantManager()`: pool accumulation precedent
+documented in permission.ts). Default-tenant detection is BACKEND-COMPUTED
+(`isDefault` on the Tenant projection — see D5), so neither /me nor the Tenants
+page ever embeds the UUID literal in admin-ui (mirrors TenantCell's data-only
+design; DEFAULT_TENANT stays single-source in server/identity constants).
 `TenantManager.findById` is an UNCACHED PK SELECT: cost = +1 SELECT per /me —
 acceptable, no cache added (ponytail: add tenant cache if /me ever shows up in a
-slow query). Lookup failure short-circuits `tenantName: undefined` (batch G readonly
-pattern; /me must never 500 on tenant row absence). No response schema on /me →
-no fast-json-stringify strip risk (verified; batch E trap not applicable).
-Frontend: MeResponse gains both; top-bar Tag renders when `tenantId !== DEFAULT_TENANT`
-(new frontend constant, NOT a name-string compare); locales one key.
+slow query). Lookup failure short-circuits `tenantName: undefined,
+tenantIsDefault: true` (batch G readonly pattern — degrades to platform default,
+which hides the Tag = fail-closed visually; /me must never 500 on tenant row
+absence). No response schema on /me → no fast-json-stringify strip risk (verified;
+batch E trap not applicable).
+Frontend: MeResponse gains the fields; top-bar Tag renders only when
+`tenantIsDefault === false && tenantName`; Tag text is the tenantName DATA —
+no new locale key, no label (label strings would be the real i18n burden).
+
 
 ### D5: Tenants page + api layer
 
@@ -184,8 +192,13 @@ backing endpoint, R9a). Actions: Init admin modal (email/name/password + policy 
 200-replay and 409 EMAIL_EXISTS surfaced inline per UserCreate precedent), Edit
 name/slug, Suspend/Activate, soft Delete (confirm states suspend semantics). Row-action
 gates via `useAuthStore((s) => s.hasPermission)` (R9c — the real hook; no usePermission
-exists). Default-row detection: id literal constant mirroring backend keep-list.
-api/tenants.ts: createTenant/updateTenant/deleteTenant/bootstrapTenant.
+exists). Default-row detection: `isDefault: id === DEFAULT_TENANT_ID` on the Tenant
+projection — one line in `TenantManager.mapToTenant` (identity, T1 owns; the constant
+already lives at TenantManager.ts:20) — flows through routes/tenants.ts automatically,
+consumed as `record.isDefault` by the page. ZERO frontend UUID literals (T3/T4 consume
+only).
+api/tenants.ts: createTenant/updateTenant/deleteTenant/bootstrapTenant; Tenant
+interface gains `isDefault: boolean`.
 Route/menu: `tenants` under `PrivateRoute permission="tenants:read"`, TeamOutlined.
 
 ### D6: RBAC tails — on a FIXED primitive (X3)
