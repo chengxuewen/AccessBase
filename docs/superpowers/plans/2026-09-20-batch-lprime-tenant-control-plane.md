@@ -106,3 +106,12 @@ T1 无阻塞（X2 修正即本文 + G-1/G-3 新入）；T2 brief 含 X1/X4/B5/B6
 ## 完成判据
 
 spec §5 八条全过 + T6 execution-log 追加本文件尾部 + scoped re-review（附录吸收核对，flows 裁定：无需全量复审）+ 记忆四件套。
+
+## 执行记录（2026-09-20）
+
+- **通道事故**：quota 墙屠灭派发面——T1/T2/T3 控制器直接实现（H-T4c/K 先例）；T4/T5 attempt-3 会话死前真提交（c7b67d1/15272ca/c53e040），控制器 salvage 审计全通过并补报告（PIT-065 入册）。
+- **提交链**（9 + memory）：c7b67d1(T4) → 15272ca+c53e040(T5) → cb79df5(T1) → b89e7fc+dc794f7(T2) → 63c4497(T3) → 915fdf0(实弹 fix：POST create 漏斗拒绝映射 409，PIT-066)。
+- **门禁终数**：vitest 914（913→+roles 测试，PG-down 态 11 skip）· 双 tsc+根闸 0 · eslint 改动面 0 error · e2e **137 passed + 3 skipped + 0 failed**（workers=1 权威）· coverage 门 PASS（51.14/77.56/77.35/51.14，地板较 L 升）。
+- **真后端验真 V1-V9 = 11/11 PASS**（独立库 accessbase_lprime + drizzle push + env-admin 旁路，验后销毁）：V1/V2 登录+建租户(isDefault=false 投影) · V3 bootstrap 201 · V4 租 admin /me 恰 9 码+tenantName+isDefault=false · V5 三写拒 403（route 闸 PERM_001 先响应=belt 为二层预期）· **V6 升级链 RED：create 绑 tenants:write → 409 PERMISSION_NOT_BINDABLE**（首轮 500→915fdf0 修复）· V7a/b/c 重放 200/默认 409/幽灵 404 · V8 互环 PUT → 409 ROLE_INHERITANCE_CYCLE · V9 跨租 force-logout → 404 零吊销。
+- **偏差注记**：① V5 的 belt 码 TENANT_PLATFORM_ONLY 在 JWT 无码场景被外层 PERM_001 遮蔽（分层正确，belt 真实场景=apikey '*'，T2 路由测试已钉）；② T4 visual-qa 未跑（e2e 已过，遗留）；③ 租户 admin 自助改密路径审计=backlog。
+- **记忆收口**：status L′ 行 + conventions Phase L′ + PIT-065~067 + D118（`16a1103`）。

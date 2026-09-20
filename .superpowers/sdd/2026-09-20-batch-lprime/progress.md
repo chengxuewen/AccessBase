@@ -26,3 +26,4 @@
 - T2 controller-direct (dispatch channel quota-dead, H-T4c precedent): bootstrap+belt+force-logout. apps/server 518/0. Commit next.
 - Group-1 reality: T1/T3/T5/T4 dispatches quota-walled; controller implemented T1+T2+T3 directly (cb79df5/b89e7fc/dc794f7/63c4497); attempt-3 sessions for T4/T5 completed+committed BEFORE dying (c7b67d1/15272ca/c53e040) — controller audited both, reports reconstructed, salvage accepted with notes.
 - T6 controller: full vitest + double tsc + eslint + e2e workers=1 (incl. tenants-crud 7 + T3 tags 2 + T5 2) + curl battery V1-V8.
+- FINAL: all 5 tasks complete + live-fire V1-V9 11/11 + gates green (914 vitest / 137+3 e2e 0 fail / double tsc / eslint 0 err / coverage PASS). Batch closed at 16a1103. Deferred: Tenants visual-qa, tenant-admin self-change-password audit.
