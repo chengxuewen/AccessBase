@@ -56,7 +56,7 @@ describe('warnDegradedChecks (L-T4 / spec D5: pure, env-only, options qualifiers
   it('production with empty env reports all five degrade lines with options-table qualifiers', () => {
     const lines = warnDegradedChecks({}, true);
     expect(lines).toHaveLength(5);
-    expect(lines.some((l) => /MFA_ENCRYPTION_KEY/.test(l) && /options-configured/.test(l))).toBe(true);
+    expect(lines.some((l) => /MFA_ENCRYPTION_KEY/.test(l) && /env-only/.test(l))).toBe(true);
     expect(lines.some((l) => /SMTP_HOST/.test(l) && /options-configured/.test(l))).toBe(true);
     expect(
       lines.some((l) => /OAuth|SAML/.test(l) && /options-table config not visible at boot/.test(l)),

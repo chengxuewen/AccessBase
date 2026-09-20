@@ -107,7 +107,7 @@ export function warnDegradedChecks(env: NodeJS.ProcessEnv, isProd: boolean): str
   const lines: string[] = [];
 
   if (!env['MFA_ENCRYPTION_KEY']) {
-    lines.push('MFA_ENCRYPTION_KEY not set — MFA enrollment unavailable unless options-configured');
+    lines.push('MFA_ENCRYPTION_KEY not set — MFA enrollment unavailable (env-only; no options-table fallback)');
   }
 
   if (!env['SMTP_HOST']) {

@@ -141,13 +141,22 @@ export async function ensureSeedForAdmin(db: DrizzleDB): Promise<void> {
  * ensureSeedForAdmin keeps its never-throws contract (init/setup share it).
  */
 export async function runSelfHealOnce(databaseUrl: string): Promise<void> {
-  const { createDb } = await import('@accessbase/identity/db');
+  const { createDb, closeDb } = await import('@accessbase/identity/db');
   const db = createDb(databaseUrl);
-  // Probe: verify connectivity + core schema exist. This is the one point that
-  // must throw so the retry loop can observe failure — unlike ensureSeedForAdmin
-  // which swallows everything internally (three-layer swallow, flows R1).
-  await db.execute(sql`SELECT 1 FROM permissions`);
-  await ensureSeedForAdmin(db);
+  try {
+    // Probe: verify connectivity + core schema exist. This is the one point that
+    // must throw so the retry loop can observe failure — unlike ensureSeedForAdmin
+    // which swallows everything internally (three-layer swallow, flows R1).
+    await db.execute(sql`SELECT 1 FROM permissions`);
+    await ensureSeedForAdmin(db);
+  } finally {
+    // Dial a fresh pool per attempt and always end it — a leaked idle-client
+    // 'error' event on a never-ended pool can surface as an uncaughtException
+    // (exit 1) between retries (final-review F2).
+    await closeDb(db).catch((err: unknown) => {
+      logger.warn({ err }, 'failed to close self-heal dial pool');
+    });
+  }
 }
 
 /**

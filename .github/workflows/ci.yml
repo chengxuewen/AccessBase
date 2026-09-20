@@ -90,6 +90,38 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+  migrate:
+    name: Migration chain (ops-migrate)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: accessbase
+          POSTGRES_PASSWORD: accessbase
+          POSTGRES_DB: accessbase
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U accessbase
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://accessbase:accessbase@localhost:5432/postgres
+      no_proxy: localhost,127.0.0.1
+      NO_PROXY: localhost,127.0.0.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: npx vitest run apps/server/src/__tests__/ops-migrate.test.ts
 
   build:
     name: Build

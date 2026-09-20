@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { permissions, rolePermissions } from '@accessbase/identity/db';
-import { selfHealSeed, runSelfHealOnce, ensureSeedForAdmin } from '../routes/permissions-seed.js';
 import { logger } from '@accessbase/logging';
 import { seedBuiltinPermissions } from '../routes/permissions-seed.js';
 
@@ -220,4 +219,30 @@ describe('runSelfHealOnce real probe (L-T2 anti-swallow lock / D2)', () => {
       runSelfHealOnce('postgresql://selfheal:probe@127.0.0.1:1/nonexistent'),
     ).rejects.toThrow();
   }, 10000);
+});
+
+describe('runSelfHealOnce pool cleanup (final-review F2)', () => {
+  it('ends the dial pool when the probe fails — no leaked pools per retry', async () => {
+    const endSpy = vi.fn().mockResolvedValue(undefined);
+    const fakeDb = {
+      execute: vi.fn().mockRejectedValue(new Error('probe dial failed')),
+    };
+
+    await vi.doMock('@accessbase/identity/db', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('@accessbase/identity/db')>();
+      return {
+        ...actual,
+        createDb: vi.fn().mockReturnValue(fakeDb),
+        closeDb: vi.fn(async () => { await endSpy(); }),
+      };
+    });
+
+    try {
+      const { runSelfHealOnce } = await import('../routes/permissions-seed.js');
+      await expect(runSelfHealOnce('postgresql://fake')).rejects.toThrow('probe dial failed');
+      expect(endSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.doUnmock('@accessbase/identity/db');
+    }
+  });
 });

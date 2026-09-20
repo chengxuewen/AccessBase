@@ -43,6 +43,10 @@ if [ "${NODE_ENV:-}" = "production" ]; then
     log_error "ADMIN_PASSWORD must be set in production"
     exit 1
   fi
+  if [ -z "${CORS_ORIGINS:-}" ]; then
+    log_error "CORS_ORIGINS must be set in production (config.ts requires it; comma-separated allowlist)"
+    exit 1
+  fi
 fi
 
 # === Initialize ===
