@@ -412,4 +412,72 @@ test.describe('Roles CRUD', () => {
     await expect(plainRow.locator('button:has-text("Edit"), button:has-text("编辑")')).toBeEnabled();
     await expect(plainRow.locator('button:has-text("Delete"), button:has-text("删除")')).toBeEnabled();
   });
+
+  // L'-T5: the modal's parent-role Select must persist the choice as parentId on the
+  // PUT payload (route forwards it to RoleManager.setParent), and the list must show
+  // a per-row permissions count (findAll batch-resolves permissions[] server-side).
+  test('L-prime T5: parent role select sends parentId in PUT payload', async ({ page }) => {
+    let putBody: Record<string, unknown> | undefined;
+    // Faithful detail for the Admin row (has 1 permission, so the empty-permissions
+    // confirm dialog path is not triggered) and a capturing PUT arm.
+    const adminDetail = {
+      id: 'role-1',
+      name: 'Admin',
+      description: 'Full access',
+      permissions: [MOCK_PERMISSIONS[0]],
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+    };
+    await page.route('**/api/v1/roles/role-1', async (route) => {
+      const method = route.request().method();
+      if (method === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: adminDetail }),
+        });
+        return;
+      }
+      if (method === 'PUT') {
+        putBody = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: { ...adminDetail, ...(putBody as object) } }),
+        });
+        return;
+      }
+      await route.fallback();
+    });
+
+    await page.goto('/roles');
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
+
+    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
+    await expect(page.locator('.ant-modal input#name')).toHaveValue('Admin');
+
+    // Open the parent Select (the only Select in the modal) and pick Viewer — exact label.
+    await page.locator('.ant-modal .ant-select').click();
+    await page
+      .locator('.ant-select-dropdown:visible .ant-select-item-option-content', { hasText: /^Viewer$/ })
+      .click();
+
+    await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")').first().click();
+
+    await expect.poll(() => putBody, { timeout: 10000 }).toBeDefined();
+    expect(putBody?.parentId).toBe('role-2');
+    // Untouched fields must still ride along in the same PUT
+    expect(putBody?.name).toBe('Admin');
+  });
+
+  test('L-prime T5: permissions count column renders per-row counts', async ({ page }) => {
+    await page.goto('/roles');
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
+
+    // Mock truth: Admin has 1 permission, Viewer 0. Assert the count cells exactly.
+    const adminRow = page.locator('tbody tr.ant-table-row', { hasText: 'Admin' }).first();
+    await expect(adminRow.locator('td', { hasText: /^1$/ })).toBeVisible();
+    const viewerRow = page.locator('tbody tr.ant-table-row', { hasText: 'Viewer' }).first();
+    await expect(viewerRow.locator('td', { hasText: /^0$/ })).toBeVisible();
+  });
 });

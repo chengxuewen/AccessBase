@@ -61,10 +61,11 @@ export async function createRole(payload: {
   return data.data;
 }
 
-/** Update a role */
+/** Update a role. L'-T5: parentId present calls RoleManager.setParent server-side
+ * before any field write; explicit null unlinks the parent. */
 export async function updateRole(
   id: string,
-  payload: { name?: string; description?: string; permissionIds?: string[] },
+  payload: { name?: string; description?: string; permissionIds?: string[]; parentId?: string | null },
 ): Promise<Role> {
   const { data } = await client.put<ApiEnvelope<Role>>(`/v1/roles/${id}`, payload);
   return data.data;

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import type { IdentityService } from '@accessbase/identity';
 
 // Set env before importing config-dependent modules
@@ -31,7 +31,10 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     ...overrides,
   });
+  // L'-T5: ordered call log so route tests can assert setParent-before-update.
+  const callLog: string[] = [];
   const instance = {
+    callLog,
     findAll: vi.fn().mockResolvedValue({
       data: [Role({ name: 'admin' })],
       total: 1,
@@ -49,10 +52,17 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     ),
     update: vi
       .fn()
-      .mockImplementation((id: string, data: { name?: string; description?: string }) =>
-        Promise.resolve(Role({ id, name: data.name ?? 'seed', description: data.description })),
-      ),
+      .mockImplementation((id: string, data: { name?: string; description?: string }) => {
+        callLog.push('update');
+        return Promise.resolve(Role({ id, name: data.name ?? 'seed', description: data.description }));
+      }),
     delete: vi.fn().mockResolvedValue(undefined),
+    setParent: vi
+      .fn()
+      .mockImplementation((id: string, parentId: string | null) => {
+        callLog.push(`setParent:${String(parentId)}`);
+        return Promise.resolve(Role({ id, parentId: parentId ?? undefined }));
+      }),
   };
   return {
     ...actual,
@@ -255,5 +265,110 @@ describe('system role protection mapping (K-T2)', () => {
 
     expect(res.statusCode).toBe(409);
     expect(res.json().error.code).toBe('ROLE_PROTECTED');
+  });
+});
+
+// L'-T5: PUT body parentId must route through RoleManager.setParent (cycle +
+// same-tenant + isSystem guards live there) BEFORE any field write, so a rejected
+// parent leaves name/description/permissions untouched.
+describe('PUT /api/v1/roles/:id — parentId wiring (L\'-T5)', () => {
+  const ROLE_ID = '11111111-1111-1111-1111-111111111111';
+  const PARENT_ID = '22222222-2222-2222-2222-222222222222';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rm = () => (identity as any).RoleManager.mock.results[0].value as {
+    setParent: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    callLog: string[];
+  };
+  beforeEach(() => {
+    rm().callLog.length = 0;
+    rm().setParent.mockClear();
+    rm().update.mockClear();
+  });
+
+  it('calls setParent before update and forwards the tenant scope', async () => {
+    rm().callLog.length = 0;
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+      payload: { name: 'renamed', parentId: PARENT_ID },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(rm().callLog).toEqual([`setParent:${PARENT_ID}`, 'update']);
+    expect(rm().setParent).toHaveBeenCalledWith(ROLE_ID, PARENT_ID, '00000000-0000-0000-0000-000000000001');
+  });
+
+  it('explicit null clears the parent (setParent receives null)', async () => {
+    rm().callLog.length = 0;
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+      payload: { parentId: null },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(rm().setParent).toHaveBeenCalledWith(ROLE_ID, null, '00000000-0000-0000-0000-000000000001');
+  });
+
+  it('leaves the parent untouched when the key is absent', async () => {
+    rm().callLog.length = 0;
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+      payload: { name: 'renamed-only' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(rm().setParent).not.toHaveBeenCalled();
+    expect(rm().callLog).toEqual(['update']);
+  });
+
+  it('maps a ROLE_PROTECTED setParent refusal to the 409 envelope', async () => {
+    rm().setParent.mockRejectedValueOnce(
+      new Error('ROLE_PROTECTED: cannot modify the built-in administrator role'),
+    );
+    rm().callLog.length = 0;
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+      payload: { parentId: PARENT_ID },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe('ROLE_PROTECTED');
+    // setParent threw before any field write — update() never reached.
+    expect(rm().callLog).toEqual([]);
+    expect(rm().setParent).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps an unknown parent role to the NOT_FOUND 404 envelope', async () => {
+    rm().setParent.mockRejectedValueOnce(new Error('Parent role not found'));
+    rm().callLog.length = 0;
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+      payload: { parentId: '33333333-3333-3333-3333-333333333333' },
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error.code).toBe('NOT_FOUND');
+    expect(rm().callLog).toEqual([]);
+  });
+
+  it('rejects a malformed parent id at the schema boundary', async () => {
+    rm().callLog.length = 0;
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+      payload: { parentId: 'not-a-uuid' },
+    });
+    expect(res.statusCode).toBe(400);
   });
 });

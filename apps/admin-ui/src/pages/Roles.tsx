@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Alert, Button, Form, Input, Modal, Popconfirm, Transfer } from 'antd';
+import { Alert, Button, Form, Input, Modal, Popconfirm, Select, Transfer } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, LoadingOutlined, ReloadOutlined, LockOutlined } from '@ant-design/icons';
 import EmptyState from '../components/EmptyState';
 import {
@@ -28,6 +28,10 @@ export default function Roles() {
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [targetPermissionIds, setTargetPermissionIds] = useState<string[]>([]);
   const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
+  // L'-T5: latest page of roles captured from the table request — feeds the
+  // parent-role Select with zero extra endpoints.
+  // ponytail: page-scoped options; fetch-all via utils/fetchAll if tenants exceed page size.
+  const [roleRows, setRoleRows] = useState<Role[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [permLoadError, setPermLoadError] = useState(false);
 
@@ -57,7 +61,7 @@ export default function Roles() {
     try {
       const detail = await getRole(role.id);
       setEditingRole(detail);
-      form.setFieldsValue({ name: detail.name, description: detail.description });
+      form.setFieldsValue({ name: detail.name, description: detail.description, parentId: detail.parentId });
       setTargetPermissionIds((detail.permissions ?? []).map((p) => p.id));
       setModalOpen(true);
     } catch {
@@ -67,15 +71,24 @@ export default function Roles() {
     }
   };
 
-  const doSave = async (values: { name: string; description?: string }) => {
+  const doSave = async (values: { name: string; description?: string; parentId?: string }) => {
     setSaving(true);
     try {
-      const payload = { ...values, permissionIds: targetPermissionIds };
       if (editingRole) {
+        const payload: {
+          name: string;
+          description?: string;
+          permissionIds: string[];
+          parentId?: string | null;
+        } = { ...values, permissionIds: targetPermissionIds };
+        // Only send parentId when the user actually touched the Select: an untouched
+        // edit must not rewrite the parent, and a touched+cleared one sends explicit
+        // null (route maps it to setParent(id, null) = unlink).
+        if (form.isFieldTouched('parentId')) payload.parentId = values.parentId ?? null;
         await updateRole(editingRole.id, payload);
         message.success(t('roles.updateSuccess'));
       } else {
-        await createRole(payload);
+        await createRole({ ...values, permissionIds: targetPermissionIds });
         message.success(t('roles.createSuccess'));
       }
       setModalOpen(false);
@@ -90,7 +103,7 @@ export default function Roles() {
   };
 
   const handleSave = async () => {
-    let values: { name: string; description?: string };
+    let values: { name: string; description?: string; parentId?: string };
     try {
       values = await form.validateFields();
     } catch (err: unknown) {
@@ -116,6 +129,13 @@ export default function Roles() {
   const columns: ProColumns<Role>[] = [
     { title: t('roles.name'), dataIndex: 'name' },
     { title: t('roles.description'), dataIndex: 'description', search: false },
+    {
+      // L'-T5: findAll batch-resolves permissions[] server-side — pure client count.
+      title: t('roles.permissions'),
+      dataIndex: 'permissions',
+      search: false,
+      render: (_, record) => record.permissions?.length ?? 0,
+    },
     {
       // Batch G5: read-only tenant column — slug via cached lookup, '—' on failure
       title: t('roles.tenant'),
@@ -197,6 +217,7 @@ export default function Roles() {
               search: name,
             });
             setLoadError(false);
+            setRoleRows(result.data);
             return {
               data: result.data,
               total: result.total,
@@ -241,6 +262,16 @@ export default function Roles() {
           </Form.Item>
           <Form.Item name="description" label={t('roles.description')}>
             <Input.TextArea rows={2} />
+          </Form.Item>
+          <Form.Item name="parentId" label={t('roles.parent')}>
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              options={roleRows
+                .filter((r) => r.id !== editingRole?.id)
+                .map((r) => ({ label: r.name, value: r.id }))}
+            />
           </Form.Item>
           {permLoadError && (
             <Alert

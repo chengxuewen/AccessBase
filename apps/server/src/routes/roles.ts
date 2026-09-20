@@ -125,6 +125,9 @@ export async function roleRoutes(app: FastifyInstance) {
           properties: {
             name: { type: 'string' },
             description: { type: 'string' },
+            // L'-T5: nullable parent — explicit null clears inheritance, an absent
+            // key leaves the parent untouched.
+            parentId: { type: ['string', 'null'], format: 'uuid' },
             permissionIds: { type: 'array', items: { type: 'string' } },
           },
         },
@@ -132,22 +135,39 @@ export async function roleRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { name, description, permissionIds } = request.body as {
+      const body = request.body as {
         name?: string;
         description?: string;
+        parentId?: string | null;
         permissionIds?: string[];
       };
+      const tenantId = request.tenantId ?? DEFAULT_TENANT;
       try {
+        // Inheritance changes go through setParent (same-tenant + cycle + isSystem
+        // guards live in the manager funnel) BEFORE any field write, so a rejected
+        // parent cannot leave a half-applied update behind.
+        if ('parentId' in body) {
+          await roleManager.setParent(id, body.parentId ?? null, tenantId);
+        }
         const role = await roleManager.update(
           id,
-          { name, description, permissionIds },
-          request.tenantId ?? DEFAULT_TENANT,
+          { name: body.name, description: body.description, permissionIds: body.permissionIds },
+          tenantId,
         );
         return { success: true, data: role };
       } catch (err) {
         // K-T2: ROLE_PROTECTED/LAST_ADMIN_GUARD manager tags → 409 envelope.
         const conflict = sendConflictError(reply, err);
         if (conflict) return conflict;
+        // Manager funnel "not found" refusals (missing role / missing parent role)
+        // surface as the same NOT_FOUND envelope GET /:id uses.
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.toLowerCase().includes('not found')) {
+          return reply.status(404).send({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Role not found' },
+          });
+        }
         throw err;
       }
     },
