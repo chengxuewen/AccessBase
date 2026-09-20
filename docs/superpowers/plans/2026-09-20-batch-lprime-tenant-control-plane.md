@@ -1,4 +1,9 @@
-# 批次 L′ 实施计划 — 多租户控制面（rev.2，双 Momus 吸收后）
+# 批次 L′ 实施计划 — 多租户控制面（rev.3，双 Momus + scoped re-review 吸收后）
+
+**日期**: 2026-09-20
+**依据**: spec rev.3 + 附录 REVIEW-ADDENDUM.md + re-review（bg_b0b51d2a）GAPS×4 → 本 rev.3 全钉，裁定即派发
+**前版**: v1 FLOWS-REJECT；rev.2 吸 X1-X4/B/R 系；re-review 确认 20 行吸收全 ADDRESSED、无重开攻击面，余 4 文本钉（G-1 假「幂等」前提 / G-2 误归因被控制器实测定驳 / G-3 'user_create' 编辑无归属 / G-4「唯一汇聚」过声 + T6 双模式前置注）
+**执行方式**: subagent-driven；组内并行（文件面互斥矩阵见 §任务表），组间串行
 
 **日期**: 2026-09-20
 **依据**: spec rev.2（X1-X4/R/B 全吸收）+ 附录 REVIEW-ADDENDUM.md
@@ -10,7 +15,9 @@
 | 事实 | 修订后 |
 |---|---|
 | 分区终数 | **9 bindable + 12 platform-only = 21**（apikeys×3 → platform-only，X2 裁决）；「11 码」全废 |
-| setRolePermissions | RoleManager 唯一权限写汇聚（create 撞名早返回 = find-or-create / update 拒 isSystem）——X1 校验落此 |
+| setRolePermissions | RoleManager 私有汇聚 = **可达**写者唯一（create 撞名早返回 = find-or-create / update 拒 isSystem）——X1 校验落此；PermissionManager 同名公共孪生（:221-240）HEAD 零调用者 = 休眠，入 §3 backlog 注（G-4） |
+| checkInheritanceCycle | **不收 roleId = 假原语**（自环/互环漏检）——本批修复，X3 |
+| 密码策略 | 路由层 readPasswordPolicy/assertPasswordPolicy per-call-site；UserManager.create 仅 bcrypt；**users POST（users.ts:204）仅 minLength:8 无策略调用——G-2 实测定驳 re-review 误归因（其引用的 :292/:309 属 :270 '/import' 路由）**；策略函数是 register/import 在用——R2 维持原钉 |
 | checkInheritanceCycle | **不收 roleId = 假原语**（自环/互环漏检）——本批修复，X3 |
 | 密码策略 | 路由层 readPasswordPolicy/assertPasswordPolicy per-call-site；UserManager.create 仅 bcrypt；users POST 仅 minLength:8——R2 改钉 |
 | seedBuiltinPermissions | 永不 throw（best-effort）——bootstrap 用新严格内核 bindPermissions，X4 |
@@ -31,13 +38,16 @@
 - `RoleManager.setRolePermissions` 漏斗校验（tenantId≠DEFAULT → permissionIds 名 ⊆ bindable，越界 throw `PERMISSION_NOT_BINDABLE:<name>`）——X1。
 - `checkInheritanceCycle` 重写（收 roleId；自环直拒 + 祖先链达 roleId 即环）+ `setParent` 补 isSystem→ROLE_PROTECTED——X3/R6。RED：self、mutual 两支。
 - 严格内核 `bindPermissions(db, roleId, names)`（insert 全局码 conflict-do-nothing → 绑 → count===names.length 断言 → throw on fail）；`seedBuiltinPermissions` 改薄包壳（吞错语义逐字保留——向导/init 零破坏）。
+- **（G-1）**`assignToUser` 补 `.onConflictDoNothing()`（user_roles 复合主键 schema.ts:118-130；bare insert 重放即 duplicate-key 500——bootstrap 重放臂的前提由本条制造为真）。
+- **（G-3）**`password-policy.ts`：`PasswordPolicyCallsite` 闭集 union + DEFAULTS 扩 `'user_create'`（register 档默认；五 `password_*` options 键跨调用点共享，**无新 options 码、无双注册面**——附录原「注记」句作废）。
+- 测试：分区不变量（disjoint+union=21）、漏斗 RED×2、环 RED×2、严格内核失败面、包壳吞错回归锁、assignToUser 重复插入不抛、'user_create' 策略档可读。
 - `apps/server`：permissions-seed.ts 改 import 分区清单（删本地重定义）；conflict-mapper 加 `PERMISSION_NOT_BINDABLE` tag → 409（两处字面量同步纪律承 K）。
 - 测试：分区不变量（disjoint+union=21）、漏斗 RED×2、环 RED×2、严格内核失败面、包壳吞错回归锁。
 - 出口：`pnpm --filter @accessbase/identity build`（dist 同步纪律）。
 - 文件面：packages/identity/src/{services,managers}/ + 测试 + apps/server/src/routes/permissions-seed.ts + utils/conflict-mapper.ts + 测试。
 
 **T2 —（组二，吃 T1）bootstrap 端点 + belt 扩面 + force-logout 修**
-- `POST /v1/tenants/:id/bootstrap` 按 spec D2 九步序（**belt 首查**；step4 幂等重放臂「user ∈ 目标租户即 re-assign + 200」；step5 策略 site 键 `'user_create'` 新增入 policy 调用点集——C2 零破坏默认；step6 `roleManager.create` 直用 + 无条件直 UPDATE 幂等 stamp；step7 严格 bindPermissions）。
+- `POST /v1/tenants/:id/bootstrap` 按 spec D2 九步序（**belt 首查**；step4 重放臂条件 = 「user ∈ 目标租户」，不要求已持 admin，重跑 step7+step9 后 200（assignToUser 冲突安全由 T1 制造）；step5 用 T1 已扩的 `'user_create'` 策略档；step6 `roleManager.create` 直用 + 无条件直 UPDATE 幂等 stamp；step7 严格 bindPermissions）。
 - tenants.ts POST/PUT/DELETE 三处理器各加 platform belt（B3，~3 行）。
 - users.ts force-logout：吊销前 `findById(id, request.tenantId)` → 404（B5）。
 - 测试：矩阵全守卫 + 幂等三径 + apikey '*' 构造行（直插 key 行）→ belt 403 + selfHeal 后仍 9 码钉（D3）+ force-logout 跨租 404。
@@ -66,6 +76,7 @@
 - `export no_proxy=...`（PIT-031，R9d）前置一切测试命令。
 - reset:native → 向导 → curl V1-V8：建租户→bootstrap 201→租 admin 登录→/me 9 码 + tenantId/Name→打 tenants 三写 403→**升级 RED 实战**（GET permissions → POST roles 绑平台码 → 409）→ force-logout 跨租 404→同 email 重放 200→default 行三锁。
 - vitest / 双 tsc（identity 先 build）/ eslint / e2e workers=1 / coverage。
+- **双模式互斥前置**（re-review f 注）：curl 验真弹结束后、跑 mock e2e 前——停后端 + `curl 5101 探活应 000`（2026-09-12 conventions 硬约束，health.spec 除外）。
 - 记忆收口四件套（含 conventions：分区双注册 +「新增权限码必须归入两清单之一，union=21 不变量测试即门禁」检查命令）。
 
 ## 并行矩阵（文件互斥核查）
@@ -87,7 +98,9 @@ vitest 857 起 +~35；e2e 126+3 起 +9~12（workers=1 权威）；21 码期望�
 
 ## 派发门禁（承 blockers 尾部映射，rev.2 已全数前置闭合）
 
-T1 无阻塞（X2 修正即本文）；T2 brief 含 X1/X4/B5/B6/B7a/R2/R4；T3 含 B7b；T4 含错误码表/R9a/R9c；T5 含 X3 次序注记（identity 面在 T1）。
+T1 无阻塞（X2 修正即本文 + G-1/G-3 新入）；T2 brief 含 X1/X4/B5/B6/B7a/R2/R4/G-1 依赖注；T3 含 B7b；T4 含错误码表/R9a/R9c；T5 含 X3 次序注记（identity 面在 T1）。
+
+**Re-review 轮记录**（bg_b0b51d2a，HEAD 4a95883）：20 行吸收逐条 ADDRESSED（源证齐全）；GAPS×4——G-1 assignToUser 假幂等 / G-2 事实行异议（**控制器实测反证：users.ts:204 POST 体内无策略调用，re-reviewer 行归属错**，维持原文）/ G-3 'user_create' identity 编辑无归属→T1 / G-4 过声→§3 注 + T6 停后端前置。除 G-2 驳回外全吸收 = 视同 ALL-ADDRESSED，派发解除。
 
 ## 完成判据
 

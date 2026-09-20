@@ -46,3 +46,18 @@
 - T6：R9d no_proxy
 
 **吸收量级**（oracle 原话）：identity 分区常量迁移 + 1 校验函数 + 3 处 belt + setParent 3 行 + force-logout 1 行 + 若干测试与文案——无架构变更。
+
+---
+
+## 附：Scoped re-review 轮（bg_b0b51d2a，Momus-FLOWS，HEAD 4a95883）
+
+逐行吸收核对：X1-X4 / B3 / B5 / B6 / B7a / B7b / R6 / R7 / R8 / R9a-d / R10 / 错误码钉 / 次序 / 派发映射 / Deferred = **全 ADDRESSED**（源证齐全，含 app.ts:276-285 审计排除表实核：bootstrap 不在排除列 = D2 声称成立）。
+
+**GAPS×4 处置**：
+- **G-1（采納）** spec D2 step4/9 之「idempotent insert」在 HEAD 为假（assignToUser 裸 insert vs user_roles 复合主键 → 重放 500）→ T1 增 `.onConflictDoNothing()` 把前提制造为真。
+- **G-2（驳回，附反证）** re-reviewer 称 users POST 已在 :292/:309 应用 'register' 策略——控制器实测：`:292/:309` 属 `:270 '/import'` 路由，POST（:204）体仅 minLength:8。plan 行 15 原文维持。
+- **G-3（采纳）** 'user_create' 需动 identity `PasswordPolicyCallsite` 闭集 union + DEFAULTS → 划归 T1；options 五键跨调用点共享 → 附录原「双注册面注记」句作废。
+- **G-4（采纳）** 「唯一汇聚点」过声：PermissionManager.setRolePermissions 公共孪生（零调用者，休眠）→ §3 backlog 注 + 事实行改「可达写者唯一」。
+- 非阻断注采纳：T6 增「mock e2e 前停后端 + 5101 探活 000」双模式前置。
+
+**终态**：除 G-2 外全钉 → 视同 ALL-ADDRESSED，派发解除。

@@ -1,4 +1,7 @@
-# Batch L′ — Multi-Tenant Control Plane (Design) — rev.2
+# Batch L′ — Multi-Tenant Control Plane (Design) — rev.3
+
+**Date**: 2026-09-20 (rev.2 absorbed dual-Momus addendum; rev.3 absorbed scoped re-review GAPS×4 — see plan header)
+**Status**: ABSORBED-ALL-ROUNDS (FLOWS-REJECT + BLOCKERS-APPROVE-WITH-FIXES + re-review; G-2 rejected with counter-evidence) — dispatch-clear
 
 **Date**: 2026-09-20 (rev.2 absorbs dual-Momus addendum `2026-09-20-batch-lprime-tenant-control-plane-REVIEW-ADDENDUM.md`)
 **Status**: REVISED after FLOWS-REJECT + BLOCKERS-APPROVE-WITH-FIXES; awaiting scoped re-review
@@ -33,6 +36,12 @@ else — no roles, no users, nobody can ever be provisioned. There is no Tenants
   (login/refresh gates already cover; batch G design).
 - Manager-level role.tenantId validation in setUserRoles/assignToUser (route-level
   unknownRoleId already blocks the reachable path; defense-in-depth → backlog).
+- `PermissionManager.setRolePermissions` (PermissionManager.ts:221-240) — a PUBLIC
+  unvalidated twin-writer to rolePermissions with ZERO route callers at HEAD (dormant).
+  D1a's funnel covers every REACHABLE writer (RoleManager private choke + server-
+  controlled seed SQL). Delete/delegate the twin → backlog; nobody wires it to a route
+  until then (re-review G-4 pin).
+  unknownRoleId already blocks the reachable path; defense-in-depth → backlog).
 
 ## 4. Design
 
@@ -59,6 +68,8 @@ what X2 caught as unpassable-as-written; it must pass as-written now.
 ### D1a: Binding validation funnel (X1 — the escalation killer)
 
 Permission rows are global; bindings (rolePermissions) are the enforcement point.
+`RoleManager.setRolePermissions` — the sole REACHABLE choke through which both
+`create()` and `update()` route permissionIds (dormant twin: §3) — gains:
 `RoleManager.setRolePermissions` — the sole choke through which both `create()` and
 `update()` route permissionIds — gains:
 
@@ -95,16 +106,21 @@ tenant existence/state to non-platform callers):
    `TENANT_PROTECTED`.
 3. Target `=== DEFAULT_TENANT` → 409 `TENANT_PROTECTED` (wizard owns platform admins).
 4. Email check (`UserManager.findByEmail` — global, email is globally unique in schema):
-   - taken AND that user ∈ target tenant AND holds target tenant's admin role →
-     **200 idempotent replay** `{ userId, roleId, tenantId, alreadyBootstrapped: true }`
-     (R4 convergence arm — post-step-6 crashes recover by same-email retry).
+   - taken AND that user ∈ target tenant → **200 idempotent replay**
+     `{ userId, roleId, tenantId, alreadyBootstrapped: true }`, RE-RUNNING step 7
+     (strict re-bind) + step 9 (now-conflict-safe assign) before responding — the
+     "user ∈ tenant" match intentionally does NOT require the admin membership to
+     exist yet, so a crash between steps 8 and 9 converges on retry (R4 arm).
    - taken otherwise → 409 `EMAIL_EXISTS`.
-5. Password policy AT ROUTE LAYER (R2 — corrected fact: UserManager.create only hashes;
-   users POST only enforces schema minLength:8): before create, call
-   `readPasswordPolicy` + `assertPasswordPolicy` with a dedicated call-site key
-   (`'user_create'`, added to the options-driven policy call sites — C2 precedent,
-   zero-break defaults). Failure → 400 in the register-family envelope (AUTH_REG_002
-   pattern; exact code string copied from that call site).
+5. Password policy AT ROUTE LAYER (R2 — verified at HEAD: UserManager.create only
+   hashes; users POST enforces ONLY schema minLength:8; the options-driven policy is
+   the register/import route callsites): before create, call `readPasswordPolicy` +
+   `assertPasswordPolicy` with a dedicated `'user_create'` callsite — T1 extends the
+   closed `PasswordPolicyCallsite` union + DEFAULTS in
+   packages/identity/src/services/password-policy.ts (register profile defaults; the
+   five `password_*` option keys are callsite-SHARED — no new options codes, no
+   dual-registration surface; re-review G-3 pin). Failure → 400 register-family
+   envelope (AUTH_REG_002 pattern, code string copied from the register callsite).
 6. Role find-or-create: `roleManager.create({ name:'admin', description, isSystem:true },
    tenantId)` — create() is ALREADY find-or-create on (name,tenantId) (RoleManager:42-54;
    X7/B6 — the findAll/ILIKE substring approach is RETRACTED). Then UNCONDITIONALLY
@@ -117,13 +133,17 @@ tenant existence/state to non-platform callers):
    usable here; wizard keeps the wrapper, bootstrap calls the strict core).
 8. `userManager.create({email, name, password}, tenantId)` → 201
    `{ userId, roleId, tenantId, alreadyBootstrapped: false }`.
-9. `roleManager.assignToUser(userId, roleId, tenantId)`.
+9. `roleManager.assignToUser(userId, roleId, tenantId)` — T1 makes this
+   `.onConflictDoNothing()` (identity edit + dist note; user_roles composite PK per
+   schema.ts:118-130, a bare insert would duplicate-key 500 on the step-4 replay arm —
+   re-review G-1 pin: the "idempotent insert" premise is created by THIS batch).
 
 Partial-failure matrix (post-fix): any failure before step 8 leaves role(+bindings)
 — retried by find-or-create + strict re-bind (both idempotent). Failure between 8 and 9
 → same-email retry converges via step 4 replay arm ONLY IF assignment succeeded;
 if assignment failed, user exists WITHOUT role → step 4 falls to 409 EMAIL_EXISTS.
-Absorbed: step 4's replay arm therefore matches on "user ∈ tenant" (NOT "holds admin
+Absorbed: the replay-arm condition is precisely "user ∈ tenant", re-running steps 7+9
+(both conflict-safe post-T1) before the 200. Pinned verbatim in the T2 brief; test locks it.
 role") and RE-RUNS assignToUser (idempotent insert) before 200. One sentence in the
 implementation brief pins this; test locks it.
 
