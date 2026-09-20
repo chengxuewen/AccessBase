@@ -89,3 +89,15 @@ T0 →（T1 ∥ T2 ∥ T3 ∥ T4 文件面互不相交：T1=shell+新测试，T2
 4. 链 SQL 事务安全：0000-0004 无 CONCURRENTLY；`--> statement-breakpoint` 行 psql 按 `--` 注释安全；CREATE INDEX 均 IF NOT EXISTS → **`-1` 单事务保留可行**。
 5. psql 连接：容器 trust+socket（$PGUSER/$PGDATABASE 现成）；deploy pixi PG listen localhost:$PG_PORT trust（DATABASE_URL 默认已按 $PG_PORT 拼好，start.sh:106）——两路均 `psql "$DATABASE_URL"` 可连；migrate.sh 需处理 DATABASE_URL 未设回退。
 6. **审核期追加实锤（Momus-blockers）**：链 0 DROP/TRUNCATE（误 stamp 可恢复）；`/health/ready` db 检查=SELECT 1 兜不住 schema-behind；stop.sh 只杀 server PID（B2 击穿路径）；health 0% 归因不成立（src 相对导入，M3 重测定夺）；admin-ui 零运行时 @accessbase import（e2e job 去服务化）；chromium 项目 testIgnore setup-real 在位（CI 无毁库风险）；deploy 首启时序无竞态（pg_ctl -w→createdb→stop→条件再启→migrate）。
+
+---
+
+## 执行记录（T6 终验证据，2026-09-20）
+
+- **Task 1** `b9e25b5`：migrate.sh 61 行 + 11 测试（RED 11-fail→GREEN）；review APPROVED（spec ✅ 全项）。
+- **Task 2** `47d8aac`：runSelfHealOnce 探针 `SELECT 1 FROM permissions` + 6×5s 环；9/9；review APPROVED。
+- **Task 4/CI** `8fa4aa7`+`57f876a`：e2e 去服务化 job + webServer CI 分支 + junit 透传 + coverage 修配置实测 51.01/76.19/75.05/51.01（drift 0.00×2）→ 阈值 46/71/70/46；review APPROVED。
+- **Task 3** `47bfaaf`+`bb9f729`：双 handler + warnDegradedChecks(env,isProd) 纯函数（5 判项，prod-gate 2）+ 重启环四硬事实 + stop.sh wrapper-first + NODE_ENV 前移（_common.sh 零引用核实）；RED 18→GREEN 24；apps/server 474/0/11；review APPROVED（四事实逐条 ✅）。
+- **T6 实弹全过**：fresh deploy 5/5→16 表+5 记→ready→**RS256 真登录 200**；幂等重放 0/5；kill -9→复活 PG 存活；复活后 stop→全栈归零无孤儿；legacy 裸表→stamped+chain-head ERROR 行+exit 0（表数=1 证 stamp≠apply）；坏 env→pre-flight 干净 exit 1；**crash-cap 实战触发**（缺 RS256 键三次即停）；容器 fresh 16+5/restart 0/5/ready/migrate.sh 在镜像可执行。
+- **实弹抓到并修复出厂缺陷** `5ab6c7b`：oidc provider.ts `require('node:crypto')` 在编译后 ESM dist 生产 RS256 路径崩溃（dev/vitest 有 require shim 掩盖、且该路径仅生产可达）→ 静态 import + 全仓 eslint `no-require-imports` error 门禁。
+- 终态门禁：vitest **856/0/11**（PG-down）· coverage 门 **PASS**（51.05≥46 / 76.37≥71 / 75.10≥70）· 双 tsc 净 · eslint 0 error（+2 warning=延迟项 (d)）· e2e **126+3 workers=1**（并行首跑的 oauth flake 单测+workers=1 双验通过，非回归）。
