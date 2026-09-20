@@ -110,7 +110,7 @@ export NODE_ENV="${NODE_ENV:-production}"
 
 # === Run migrations ===
 log_info "Running migrations..."
-node "${OUT_DIR}/packages/migration/dist/cli.js" up 2>/dev/null || log_warn "Migration skipped"
+bash "${PROJECT_ROOT}/scripts/migrate.sh" "${PROJECT_ROOT}/packages/migration/drizzle" || { log_error "Migrations failed — aborting"; exit 1; }
 
 # === Start server ===
 log_info "Starting server on port $SERVER_PORT..."

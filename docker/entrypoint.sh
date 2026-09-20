@@ -29,7 +29,7 @@ done
 # Run migrations
 echo "Running migrations..."
 cd /app
-node packages/migration/dist/cli.js up || true
+bash /app/scripts/migrate.sh /app/packages/migration/drizzle
 
 # Start server
 echo "Starting AccessBase server..."
