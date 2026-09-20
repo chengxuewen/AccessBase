@@ -94,3 +94,47 @@ export const config: AppConfig = {
   // MUST set SITE_URL regardless (magic-link Host poisoning mitigation).
   trustProxy: process.env['TRUST_PROXY'] === 'true',
 };
+
+/**
+ * L-T4 (spec D5): boot degrade-warning checklist. PURE — no logger import, no
+ * side effects, never throws, reads only the passed-in `env` (never ambient
+ * process.env). Env-only judgements: options-table config is warmed after
+ * `listen()` and is invisible at boot, so every "feature off" line carries the
+ * options-configured qualifier. Warn-only by design — fail-fast for optional
+ * features is rejected per K-T4 R3; the JWT/CORS prod fail-fast above stays.
+ */
+export function warnDegradedChecks(env: NodeJS.ProcessEnv, isProd: boolean): string[] {
+  const lines: string[] = [];
+
+  if (!env['MFA_ENCRYPTION_KEY']) {
+    lines.push('MFA_ENCRYPTION_KEY not set — MFA enrollment unavailable unless options-configured');
+  }
+
+  if (!env['SMTP_HOST']) {
+    lines.push('SMTP_HOST not set — outbound email disabled unless options-configured');
+  }
+
+  const hasEnvOAuth = Boolean(
+    env['OAUTH_PROVIDERS'] || env['GITHUB_CLIENT_ID'] || env['GOOGLE_CLIENT_ID'],
+  );
+  const hasEnvSaml = env['SAML_ENABLED'] === 'true';
+  if (!hasEnvOAuth && !hasEnvSaml) {
+    lines.push(
+      'No env-level OAuth/SAML provider config (options-table config not visible at boot)',
+    );
+  }
+
+  if (isProd && (!env['WEBAUTHN_ORIGIN'] || env['WEBAUTHN_ORIGIN'].includes('localhost'))) {
+    lines.push(
+      'WEBAUTHN_ORIGIN unset or localhost in production — passkey login will fail for real origins',
+    );
+  }
+
+  if (isProd && !env['SITE_URL']) {
+    lines.push(
+      'SITE_URL not set in production — magic-link origin falls back to request host (Host-poisoning risk)',
+    );
+  }
+
+  return lines;
+}

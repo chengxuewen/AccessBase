@@ -1,5 +1,5 @@
 import { buildApp } from './app.js';
-import { config } from './config.js';
+import { config, warnDegradedChecks } from './config.js';
 import { initializeAdmin } from './init.js';
 import { selfHealSeed } from './routes/permissions-seed.js';
 import { getOptionsManager } from './routes/options.js';
@@ -22,6 +22,24 @@ async function main() {
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
+
+  // Process defenses (D4): deterministic exit on an unhandled crash — the
+  // container restart policy / deploy restart loop recovers the process,
+  // the fault is logged either way. No logger import: entry logs via app.log.
+  process.on('uncaughtException', (err) => {
+    app.log.fatal({ err }, 'uncaught exception');
+    process.exit(1);
+  });
+  process.on('unhandledRejection', (err) => {
+    app.log.fatal({ err }, 'unhandled rejection');
+    process.exit(1);
+  });
+
+  // Boot degrade sweep (D5): warn once per silently-disabled optional feature,
+  // no fail-fast (K-T4 R3). Env-only — options-table config is invisible here.
+  for (const line of warnDegradedChecks(process.env, config.nodeEnv === 'production')) {
+    app.log.warn(line);
+  }
 
   try {
     await app.listen({ port: config.port, host: config.host });
