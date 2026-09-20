@@ -359,8 +359,17 @@ const error = err instanceof Error ? err : new Error(String(err));
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const { id } = request.params;
+      // L′ B5: tenant-scoped existence gate — a tenant admin must not even learn
+      // whether some other tenant's user id exists, let alone revoke its sessions.
+      const scoped = await userManager.findById(id, request.tenantId ?? DEFAULT_TENANT);
+      if (!scoped) {
+        return reply.status(404).send({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'User not found' },
+        });
+      }
       await getSessionManager().revokeAllUserSessions(id);
       return { success: true, data: { revoked: true } };
     },

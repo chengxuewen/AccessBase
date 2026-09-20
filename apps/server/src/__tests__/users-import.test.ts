@@ -54,6 +54,8 @@ const mockFindByEmail = vi.fn().mockImplementation((email: string) =>
 
 // revokeAllUserSessions spy — force-logout assertions read calls off this
 const mockRevokeAll = vi.fn().mockResolvedValue(undefined);
+// L′ B5: force-logout gates on a tenant-scoped findById before revoking
+const mockFindById = vi.fn().mockResolvedValue(mockUser);
 
 vi.mock('@accessbase/identity', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@accessbase/identity')>()),
@@ -61,6 +63,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
     findAll: mockFindAll,
     findByEmail: mockFindByEmail,
     create: mockCreate,
+    findById: mockFindById,
   })),
   // requirePermission resolves PermissionManager off app.identity — mock allow
   PermissionManager: vi.fn().mockImplementation(() => ({
@@ -245,6 +248,33 @@ describe('POST /api/v1/users/:id/force-logout', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().data.revoked).toBe(true);
+  });
+
+  it('cross-tenant id → 404 and NOTHING is revoked (L′ B5 scoping gate)', async () => {
+    mockRevokeAll.mockClear();
+    mockFindById.mockResolvedValueOnce(null);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/550e8400-e29b-41d4-a716-446655440003/force-logout',
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error.code).toBe('NOT_FOUND');
+    expect(mockRevokeAll).not.toHaveBeenCalled();
+  });
+
+  it('tenant lookup happens BEFORE session revocation (B5 order)', async () => {
+    mockRevokeAll.mockClear();
+    mockFindById.mockClear().mockResolvedValue(mockUser);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/550e8400-e29b-41d4-a716-446655440002/force-logout',
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mockFindById.mock.invocationCallOrder[0]).toBeLessThan(
+      mockRevokeAll.mock.invocationCallOrder[0],
+    );
   });
 
   it('rides users:write permission gate via prefix trimming (addendum #3)', async () => {
