@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { permissions, rolePermissions } from '@accessbase/identity/db';
+import { selfHealSeed, runSelfHealOnce, ensureSeedForAdmin } from '../routes/permissions-seed.js';
+import { logger } from '@accessbase/logging';
 import { seedBuiltinPermissions } from '../routes/permissions-seed.js';
 
 // ---------- mock drizzle chainable builder ----------
@@ -147,4 +149,75 @@ describe('ensureSeedForAdmin system-role stamp (K-T2)', () => {
     // Must not throw — a legacy table without is_system must not break self-heal.
     await expect(ensureSeedForAdmin(db)).resolves.toBeUndefined();
   });
+});
+
+// ---------- L-T2: selfHealSeed bounded retry (D2) ----------
+
+describe('selfHealSeed bounded retry (L-T2 / D2)', () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => ({} as never));
+    errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => ({} as never));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('failing runOnce then success -> attempts=2, warn between, no final error', async () => {
+    const { selfHealSeed } = await import('../routes/permissions-seed.js');
+    const runOnce = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('dial failed'))
+      .mockResolvedValueOnce(undefined);
+
+    const promise = selfHealSeed('postgresql://x', { attempts: 6, delayMs: 5000, runOnce });
+    await vi.advanceTimersByTimeAsync(5000);
+    await promise;
+
+    expect(runOnce).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('always-failing runOnce -> attempts=6, exactly one final error line', async () => {
+    const { selfHealSeed } = await import('../routes/permissions-seed.js');
+    const runOnce = vi.fn().mockRejectedValue(new Error('dial failed'));
+
+    const promise = selfHealSeed('postgresql://x', { attempts: 6, delayMs: 5000, runOnce });
+    for (let i = 0; i < 5; i++) await vi.advanceTimersByTimeAsync(5000);
+    await promise;
+
+    expect(runOnce).toHaveBeenCalledTimes(6);
+    expect(warnSpy).toHaveBeenCalledTimes(5);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('success-first runOnce -> attempts=1, exits normally', async () => {
+    const { selfHealSeed } = await import('../routes/permissions-seed.js');
+    const runOnce = vi.fn().mockResolvedValue(undefined);
+
+    await selfHealSeed('postgresql://x', { attempts: 6, delayMs: 5000, runOnce });
+
+    expect(runOnce).toHaveBeenCalledTimes(1);
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('runSelfHealOnce real probe (L-T2 anti-swallow lock / D2)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('rejects when DATABASE_URL points at an unreachable database (probe observes failure)', async () => {
+    const { runSelfHealOnce } = await import('../routes/permissions-seed.js');
+    await expect(
+      runSelfHealOnce('postgresql://selfheal:probe@127.0.0.1:1/nonexistent'),
+    ).rejects.toThrow();
+  }, 10000);
 });

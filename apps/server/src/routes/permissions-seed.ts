@@ -2,7 +2,7 @@
  * Builtin permission seeding — idempotent, best-effort.
  * Seeds 21 {resource, action} permissions and binds all to the admin role.
  */
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { DrizzleDB } from '@accessbase/identity/db';
 import { permissions, rolePermissions, roles, tenants } from '@accessbase/identity/db';
 import { logger } from '@accessbase/logging';
@@ -136,18 +136,45 @@ export async function ensureSeedForAdmin(db: DrizzleDB): Promise<void> {
 }
 
 /**
- * Startup-entry self-heal: dials DATABASE_URL and re-seeds builtin permissions
- * onto an existing admin role. Fire-and-forget from the process entry point only —
- * buildApp() must stay side-effect-free (factory dialing real PG in tests raced
- * with teardown: 'role test does not exist' FATAL noise, flaky audit tests).
- * All layers swallow: never rejects, never crashes startup.
+ * Single self-heal attempt: dial DB, probe `SELECT 1 FROM permissions` (throws on
+ * connection failure or missing core schema), then run the existing swallowing body.
+ * ensureSeedForAdmin keeps its never-throws contract (init/setup share it).
  */
-export async function selfHealSeed(databaseUrl: string): Promise<void> {
-  try {
-    // lazy import keeps pg Pool out of the module graph (same pattern as app.ts audit)
-    const { createDb } = await import('@accessbase/identity/db');
-    await ensureSeedForAdmin(createDb(databaseUrl));
-  } catch (err) {
-    logger.error({ err }, 'permission seed self-heal failed');
+export async function runSelfHealOnce(databaseUrl: string): Promise<void> {
+  const { createDb } = await import('@accessbase/identity/db');
+  const db = createDb(databaseUrl);
+  // Probe: verify connectivity + core schema exist. This is the one point that
+  // must throw so the retry loop can observe failure — unlike ensureSeedForAdmin
+  // which swallows everything internally (three-layer swallow, flows R1).
+  await db.execute(sql`SELECT 1 FROM permissions`);
+  await ensureSeedForAdmin(db);
+}
+
+/**
+ * Startup-entry self-heal: dials DATABASE_URL and re-seeds builtin permissions
+ * onto an existing admin role. Bounded retry with fixed delay (attempts=6,
+ * delayMs=5000 by default). Fire-and-forget from index.ts only — buildApp()
+ * must stay side-effect-free. Never rejects.
+ */
+export async function selfHealSeed(
+  databaseUrl: string,
+  opts: { attempts?: number; delayMs?: number; runOnce?: (url: string) => Promise<void> } = {},
+): Promise<void> {
+  const attempts = opts.attempts ?? 6;
+  const delayMs = opts.delayMs ?? 5000;
+  const runOnce = opts.runOnce ?? runSelfHealOnce;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      await runOnce(databaseUrl);
+      return;
+    } catch (err) {
+      if (attempt === attempts) {
+        logger.error({ err }, 'permission seed self-heal failed — seed missing — guarded routes 403');
+        return;
+      }
+      logger.warn({ err, attempt, attempts }, 'permission seed self-heal attempt failed — retrying');
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
 }
