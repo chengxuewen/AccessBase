@@ -457,3 +457,31 @@
 - **根因**: bg 任务状态机在 completed/cancelled 后不可复活；resume 调用创建了指向旧 session 的空引用而非真正排队执行。quota 墙时代码重试链（attempt N fallback）只对「尚未终结」的任务生效。
 - **解法**: 判活三查——`session_info` 的 Date Range 末端是否推进、`git status` 是否变化、`background_output(block=false)` 是否返回 "(No new output since last check)"。三者全停 = 死，直接新派发（新 category task，prompt 带树态断点地图）或控制器亲做（H-T4c/K-T2 先例：连续 abort 后控制器直接实现）。
 - **验证**: 派发后 `sleep` 窗口内 git log/status 至少一处前进；不前进即按上述三查判死，勿无限 sleep。
+
+## PIT-061: ESM 源码里的 require() 过 tsc/dev/测试三连，只在编译后 dist 崩（生产专属路径套件不可达） (2026-09-20)
+
+- **症状**: deploy/container 实弹 start:deploy 每次秒退：`ReferenceError: require is not defined`（out/server/oidc/provider.js）。同一代码 tsc 零错、vitest 全绿、dev(tsx) 正常。
+- **根因**: @types/node 把 require 声明为 ambient 全局，tsc 不报；tsx/vitest 的 SSR 变换提供 require shim 掩盖；编译后纯 ESM dist 无 require。且该分支（RS256 键加载）仅生产配置可达，dev/test 走早期 return 永不执行——三重掩护叠加。
+- **解法**: 改顶部静态 import（node:crypto 本已 import createHash，加一词即修）；全仓 eslint 加 `@typescript-eslint/no-require-imports: error` 根除复发。
+- **验证**: `grep -rnE "=[[:space:]]*require\(|[^a-zA-Z.]require\('" apps/server/src packages/*/src --include='*.ts' | grep -v createRequire` 零命中；eslint 规则已 error 级。生产专属代码路径（密钥加载/fail-fast）必须 live-fire 编译产物，「测试绿」不构成外推资格。
+
+## PIT-062: `pnpm run dev`（=pnpm -r run dev）在 CI 永不启动 vite——递归 watch 任务饿死 webServer (2026-09-20)
+
+- **症状**: 若 playwright CI 直接沿用 webServer command，e2e job 必超时全灭；本地永远复现不出。
+- **根因**: 根 dev = 递归跑全部 workspace 的 dev（8×tsc --watch + tsx watch 永不退出），pnpm 递归并发默认 4，拓扑序 apps/admin-ui 垫底 → vite 永不被拉起；本地被 `reuseExistingServer: true`（人工先 accessbase.sh dev）完全掩盖。
+- **解法**: webServer command CI 三元分支：CI 下只拉 `pnpm --filter @accessbase/admin-ui dev`（mock 套件本就浏览器层拦截，不需要后端）。
+- **验证**: playwright.config.ts:31 CI 分支在位；「本地复用掩盖 CI 独占故障」家族第三例（jsonb seam/stub shim/此）——CI-only 行为面须专门审视。
+
+## PIT-063: 重启环两连坑——set -e 杀裸 wait、stop 脚本被环击穿（杀子=复活） (2026-09-20)
+
+- **症状**: (a) server 崩溃时 `wait $PID` 非零返回，全局 set -eo pipefail 在到达重拉分支前直接卒脚本——环成死代码；(b) 环加好后 stop:deploy 语义反转：stop.sh 只 TERM 旧 server PID → 环 3s 重拉 → PG 被关、僵尸 node 占 5101。
+- **根因**: bash wait 透传子退出码+errexit 无豁免；「今天能停」恰因无环（wait 返回即脚本退出走 trap），环改变了 stop 的隐含契约而 stop.sh 不知情。
+- **解法**: 环体固定 `code=0; wait "$SERVER_PID" || code=$?`；wrapper 自身 `$$` 落 `.startpid`，stop.sh 先 TERM wrapper（trap 置 DEPLOY_STOPPING=1 → 环检标志退出走 cleanup）再 backstop；server PID 每轮重写 PIDFILE。
+- **验证**: process-defenses.test.ts 静态锁全模式（wait||code、.startpid、loop 内 PIDFILE 写、stop 次序、crash 帽）；实弹 kill -9 复活 + 复活后 stop 全栈归零双场景。
+
+## PIT-064: vitest coverage exclude 前缀字符串不匹配 .pnpm 布局——假分母 + 从未执行的门（80% 僵尸配置） (2026-09-20)
+
+- **症状**: 首跑 `pnpm test:coverage` 报 55.46% 未达标；表格分母含 tinycolor2/zustand 等第三方包。
+- **根因**: coverage.exclude 写成 `'node_modules/'`/`'dist/'` 前缀字符串（非 glob），.pnpm 软链布局不命中；且 CI 从没用 --coverage 跑过——阈值配置自设以来零执行，「≥80% 覆盖」承诺从未被机器检验。
+- **解法**: exclude 改 `['**/node_modules/**','**/dist/**','**/*.test.ts','**/*.spec.ts']` + include src 白名单 + all:true（未触文件 0% 正是地板本意）；阈值按实测 PG-down 地板 51.01/76.19/75.05/51.01 → 46/71/70/46，ponytail ratchet 只升不降。
+- **验证**: 两遍重测 drift 0.00pt；`grep -n "node_modules" vitest.config.ts` 必须 `**/` 包裹形。凡「配置存在但从未执行」的门（阈值/规则/脚本），启用前先本地实跑一次拿真数。

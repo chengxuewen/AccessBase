@@ -150,3 +150,17 @@ $ pixi run npx eslint apps/server/src/__tests__/permissions-seed.test.ts 2>&1 | 
 - The finding's "8 warnings" baseline for permissions-seed.test.ts matched the post-fix count exactly (10 before − 3 unused = 7 pre-existing + my new F2 test's `import()` type-annotation warning = 8).
 
 <!-- Commit: 646f561 fix(ops,server): final-review wave — CORS pre-flight, self-heal pool leak, migrate CI job, MFA warning -->
+
+## F2 test strengthening
+
+Follow-up review flagged that the F2 pool-cleanup test fully mocked `@accessbase/identity/db` (vi.doMock replacing both createDb and closeDb), so it would stay green even if the REAL WeakMap wiring in packages/identity/src/db/index.ts silently no-op'd. Replaced with a real-path lock:
+
+- `import pg from 'pg'` (repo idiom, matches mfa-integration.test.ts); vi.spyOn(pg.Pool.prototype, 'end').mockResolvedValue(undefined).
+- Real module import (await import of '../routes/permissions-seed.js', no doMock) → runSelfHealOnce('postgresql://f2:f2@127.0.0.1:1/nonexistent-db') rejects, then expect(endSpy).toHaveBeenCalledTimes(1).
+- Timeout 10s (matches neighboring real-probe test). Fails if createDb → dbPoolMap.set → closeDb → pool.end() wiring regresses.
+- Dropped: the old mocked test's 'probe dial failed' message propagation assertion (that message came from the fake db mock, not the real module — real failure message is a connection error; rejects.toThrow() still proves failure). Skipped per brief the separate closeDb-called-even-on-end-reject test (YAGNI).
+- Removed the now-unneeded vi.doMock/vi.doUnmock scaffolding from that block. Other tests untouched. eslint 8→7 warnings (the discarded importOriginal type annotation was one of the 8).
+
+**Regression proof** (mandatory): temporarily commented out dbPoolMap.set(db, pool) in packages/identity/src/db/index.ts → rebuilt identity → vitest: **1 failed | 9 passed** (F2 test red, endSpy 0 calls) → restored the line → rebuilt → **10 passed**. Root `tsc --noEmit` clean.
+
+Commit: 0315494 test(server): real-path pool-end lock for self-heal dial (F2 review follow-up) (branch master verified post-commit).
