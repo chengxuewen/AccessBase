@@ -371,4 +371,21 @@ describe('PUT /api/v1/roles/:id — parentId wiring (L\'-T5)', () => {
     });
     expect(res.statusCode).toBe(400);
   });
+
+  it('maps an inheritance cycle refusal to 409 ROLE_INHERITANCE_CYCLE without field write', async () => {
+    // Text-level contract with the manager funnel (HEAD and T1's X3 rewrite both
+    // throw 'Inheritance cycle detected'); the route maps it to the documented
+    // identifier with conflict status per spec criterion 6.
+    rm().setParent.mockRejectedValueOnce(new Error('Inheritance cycle detected'));
+    rm().callLog.length = 0;
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+      payload: { name: 'renamed', parentId: PARENT_ID },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe('ROLE_INHERITANCE_CYCLE');
+    expect(rm().callLog).toEqual([]);
+  });
 });

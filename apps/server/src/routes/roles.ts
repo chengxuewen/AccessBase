@@ -168,6 +168,15 @@ export async function roleRoutes(app: FastifyInstance) {
             error: { code: 'NOT_FOUND', message: 'Role not found' },
           });
         }
+        // Cycle refusals from the setParent funnel (X3): untagged at the manager,
+        // mapped here to the documented ROLE_INHERITANCE_CYCLE identifier, 409 per
+        // batch L' criterion 6 (conflict-mapper is tag-prefix-only and T1-owned).
+        if (message.toLowerCase().includes('cycle')) {
+          return reply.status(409).send({
+            success: false,
+            error: { code: 'ROLE_INHERITANCE_CYCLE', message: 'Role inheritance forms a cycle' },
+          });
+        }
         throw err;
       }
     },
