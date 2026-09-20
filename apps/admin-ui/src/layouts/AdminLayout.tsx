@@ -11,6 +11,7 @@ import {
   SafetyOutlined,
   FileSearchOutlined,
   SolutionOutlined,
+  TeamOutlined,
   ApiOutlined,
   MoonOutlined,
   KeyOutlined,
@@ -40,6 +41,7 @@ export default function AdminLayout() {
       '/audit': 'audit:read',
       '/clients': 'clients:read',
       '/api-keys': 'apikeys:read',
+      '/tenants': 'tenants:read',
     };
     const routes = [
       { path: '/dashboard', name: t('menu.dashboard'), icon: <DashboardOutlined /> },
@@ -48,6 +50,7 @@ export default function AdminLayout() {
       { path: '/audit', name: t('menu.audit'), icon: <FileSearchOutlined /> },
       { path: '/clients', name: t('menu.clients'), icon: <ApiOutlined /> },
       { path: '/api-keys', name: t('menu.apiKeys'), icon: <KeyOutlined /> },
+      { path: '/tenants', name: t('menu.tenants'), icon: <TeamOutlined /> },
       { path: '/profile', name: t('menu.profile'), icon: <SolutionOutlined /> },
       { path: '/settings', name: t('menu.settings'), icon: <SettingOutlined /> },
     ].filter((r) => {
