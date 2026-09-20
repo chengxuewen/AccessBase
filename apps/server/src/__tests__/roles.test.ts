@@ -193,6 +193,24 @@ describe('POST /api/v1/roles', () => {
     expect(body.success).toBe(true);
     expect(body.data.name).toBe(name);
   });
+
+  // L′ X1 live-fire follow-up: the binding funnel refuses on the CREATE path
+  // too (pre-fix the route surfaced 500 — only the PUT handler had the 409 map).
+  it('maps PERMISSION_NOT_BINDABLE from create to a 409 envelope (X1)', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rm = (identity as any).RoleManager.mock.results[0].value as {
+      create: ReturnType<typeof vi.fn>;
+    };
+    rm.create.mockRejectedValueOnce(new Error('PERMISSION_NOT_BINDABLE: tenants:write'));
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/roles',
+      headers: AUTH(token),
+      payload: { name: 'esc-' + Date.now(), permissionIds: ['p-plat'] },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe('PERMISSION_NOT_BINDABLE');
+  });
 });
 
 describe('PUT /api/v1/roles/:id', () => {

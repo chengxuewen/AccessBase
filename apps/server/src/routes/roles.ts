@@ -99,11 +99,32 @@ export async function roleRoutes(app: FastifyInstance) {
         parentId?: string;
         permissionIds?: string[];
       };
-      const role = await roleManager.create(
-        { name, description, parentId, permissionIds },
-        request.tenantId ?? DEFAULT_TENANT,
-      );
-      return reply.status(201).send({ success: true, data: role });
+      try {
+        const role = await roleManager.create(
+          { name, description, parentId, permissionIds },
+          request.tenantId ?? DEFAULT_TENANT,
+        );
+        return reply.status(201).send({ success: true, data: role });
+      } catch (err) {
+        // L′ X1: funnel refusals from the create path (PERMISSION_NOT_BINDABLE /
+        // ROLE_PROTECTED / cycle) share the PUT handler's 409/404 mapping.
+        const conflict = sendConflictError(reply, err);
+        if (conflict) return conflict;
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.toLowerCase().includes('not found')) {
+          return reply.status(404).send({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Role not found' },
+          });
+        }
+        if (message.toLowerCase().includes('cycle')) {
+          return reply.status(409).send({
+            success: false,
+            error: { code: 'ROLE_INHERITANCE_CYCLE', message: 'Role inheritance forms a cycle' },
+          });
+        }
+        throw err;
+      }
     },
   );
 
