@@ -485,3 +485,24 @@
 - **根因**: coverage.exclude 写成 `'node_modules/'`/`'dist/'` 前缀字符串（非 glob），.pnpm 软链布局不命中；且 CI 从没用 --coverage 跑过——阈值配置自设以来零执行，「≥80% 覆盖」承诺从未被机器检验。
 - **解法**: exclude 改 `['**/node_modules/**','**/dist/**','**/*.test.ts','**/*.spec.ts']` + include src 白名单 + all:true（未触文件 0% 正是地板本意）；阈值按实测 PG-down 地板 51.01/76.19/75.05/51.01 → 46/71/70/46，ponytail ratchet 只升不降。
 - **验证**: 两遍重测 drift 0.00pt；`grep -n "node_modules" vitest.config.ts` 必须 `**/` 包裹形。凡「配置存在但从未执行」的门（阈值/规则/脚本），启用前先本地实跑一次拿真数。
+
+## PIT-065: 配额墙「死会话」可能死前已完工提交——重派/亲做前先 git 现场核查 (2026-09-20)
+
+- **症状**: 批次 L′ 派发 4 路后台，quota 墙判死 3 路；scoped 输出仅见半截思考+duration 11s/1m59s，控制器判定零产出并计划全线直接实现。实际 T4/T5 的 attempt-3 会话在死亡通知前已把页面+e2e 与 roles 接线**提交进 master**（c7b67d1/15272ca/c53e040）——控制器若照单全做=整批重复劳动+冲突。
+- **根因**: fallback 重试链的 attempt-N「仍在跑」通知与 quota 错误交错；background_output 截断只回中段子集；任务终态与 git 事实解耦。
+- **解法**: 每次收到派发死讯，第一步 `git log --oneline -8` + `git status` + 目标文件 grep——工作树是唯一真相，通知不是。有工件则转为 salvage 审计模式（本批：464 行页面审计通过，仅补报告）。
+- **验证**: 本批 salvage 省约一整任务量；纪律并入 Subagent Dispatch Safety（PIT-047 家族）。
+
+## PIT-066: 守卫落 manager 漏斗后，每个调用路由都要接 409 映射——PUT 接了 POST 没接=实弹 500 (2026-09-20)
+
+- **症状**: V6 升级 RED 真后端首跑 500（HTTP_500），单元/路由 mock 测试全绿。
+- **根因**: X1 漏斗在 RoleManager.setRolePermissions throw（正确），roles.ts 仅 PUT 处理器有 sendConflictError+cycle/not-found 映射，POST create 路径裸调用 → 未映射 tag 落通用 500。既有测试 mock 掉 manager 故永不触真 throw。
+- **解法**: 修 roles.ts POST 加同款 try/catch（915fdf0）+测试以真 Error 拒绝锁 409。通用纪律：manager 加守卫时 grep 全部调用点路由，逐个补映射（承 K 漏斗路线的最后一公里）。
+- **验证**: `grep -c sendConflictError apps/server/src/routes/roles.ts` ≥2；V6 复跑 PASS；实弹电池（真后端真 DB）与 mock 套件互补不可相替。
+
+## PIT-067: vi.mock('@accessbase/identity/db') 换 createDb 会全局外溢——setup-guard 的 setupDb 同源被换→整套件 503 (2026-09-20)
+
+- **症状**: tenants-bootstrap 路由测试 14 例全 503，错误日志指 queryAdminExists。
+- **根因**: createDb 是全应用共享工厂（setup.ts/权限 seed/新 getSeedDb 同源）；测试把它换成只含 update 的 fake → setup-guard 每次请求的 admin 普查 `.select` 缺失 throw → fail-closed 503。
+- **解法**: fake 必须补齐被换工厂的全部方法面（select/update 链形 makeChain），且 UserManager.findByEmail 给 admin 邮箱 truthy 短路 fast-path；或直接 spread 真 db+定点 spy。
+- **验证**: 14/14 绿；同族教训=「替换共享单例 mock 的爆炸半径=所有隐式消费者」。

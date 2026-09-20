@@ -240,3 +240,12 @@ logger.error('Operation failed', error); // ❌
 - **CI 拓扑**：`e2e` job 无服务（无 PG/Redis/build/DATABASE_URL）——5101 必须无监听（vite-only webServer CI 分支），验收措辞不得声称「真后端 e2e 已入 CI」（health.spec CI 必跳、setup-real 被 testIgnore）；`migrate` job = postgres:16 service（accessbase/accessbase 匹配 MAINT_URL）+ 单文件 vitest；test job junit 透传参数不得丢（`pnpm test:coverage -- --reporter=junit --outputFile=test-results.xml`）。coverage 阈值 = 实测逐维 floor−5，只升不降（ponytail 注释 ratchet）；include/exclude 必须 `**/node_modules/**` glob 形（前缀字符串漏 .pnpm 布局 = 假分母根因）。
 - **warnDegradedChecks = 纯函数 env-only**（无 logger import、无 process.env 读取、不抛）；options 表 listen 后才预热 boot 不可见，判项文案必须带限定语；MFA_ENCRYPTION_KEY 无 options 回退（env-only 真相）。禁新增 prod fail-fast 除非该键在全部生产路径都必需（K-T4 R3 砖机教训）。
 - **ESM 源内禁 `require()`**：@types/node ambient 使 tsc 放行、tsx/vitest shim 掩盖，唯编译后 dist（生产）崩——eslint `@typescript-eslint/no-require-imports: error` 已全仓把关；生产专属代码路径（如 RS256 键加载）必须 live-fire 编译产物验，不接受「测试绿」外推。
+
+## Phase L′ 多租户控制面约束（2026-09-20）
+
+- **权限分区是门禁**：新权限码必须同时进 `packages/identity/src/services/permission-partition.ts` 两清单之一（TENANT_BINDABLE 9 / PLATFORM_ONLY 12，union=BUILTIN 21），不变量测试（permissions-seed-lprime.test.ts）即闸——route gate 与 seed 都吃它，漏放=永久 403 或越权可绑。绑定动作唯一漏斗=RoleManager.setRolePermissions（非 DEFAULT 租户越界 throw PERMISSION_NOT_BINDABLE:<name>）；勿在路由层复制谓词（承 K 漏斗纪律）。
+- **platform belt**：tenants 面全部 mutation 处理器（POST/PUT/DELETE/bootstrap）首查 `request.tenantId === DEFAULT_TENANT` → 403 TENANT_PLATFORM_ONLY，先于任何租户状态读取（防 '*'-scope apikey 骨架键+枚举 oracle）。route code 闸（PERM_001）在外层先响——belt 是二层，勿撤。
+- **bootstrap 契约**：fresh=201、同租户 email 重放=200 alreadyBootstrapped:true（users.email 全局 unique 故跨租户占用 409 EMAIL_EXISTS）；严格 bindPermissions 先于建用户（判据 2 次序锁）；isSystem 直 UPDATE 无条件补（create 撞名早返回不带 stamp=B6 孤儿租户窗）；错误码表 TENANT_PLATFORM_ONLY/TENANT_PROTECTED/EMAIL_EXISTS/PERMISSION_NOT_BINDABLE/ROLE_INHERITANCE_CYCLE/WEAK_PASSWORD 与 spec D2 一致，e2e mock 逐字拷贝（PIT-033）。
+- **前端零租户字面量**：默认租户判定走后端投影（Tenant.isDefault / me.tenantIsDefault），admin-ui 不出 UUID、不比租户名字符串；顶栏 Tag 数据驱动 fail-closed。检查：`grep -c "00000000-0000" apps/admin-ui/src/pages/Tenants.tsx` 应 0。
+- **manager 守卫须逐路由映射**：守卫在 manager 漏斗 throw，每个调用路由（POST+PUT）都要 sendConflictError+cycle/not-found 映射——单侧接线=另一侧 500（PIT-065 实弹）。
+- **seed 语义分层**：seedBuiltinPermissions=永不 throw 包壳（向导/init/selfHeal 用）；bootstrap 直调严格内核 bindPermissions（shortfall throw）；新调用点按需求选层，勿把吞错语义带进必须失败的路径。
