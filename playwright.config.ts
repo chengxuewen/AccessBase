@@ -26,7 +26,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm run dev',
+    // CI: recursive `pnpm -r run dev` never exits (tsc --watch) and starves vite —
+    // serve the admin-ui dev server only (mock e2e needs no backend). Flows R2.
+    command: process.env['CI'] ? 'pnpm --filter @accessbase/admin-ui dev' : 'pnpm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env['CI'],
   },
