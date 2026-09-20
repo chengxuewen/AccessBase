@@ -23,6 +23,11 @@ PG_PORT="${PG_PORT:-5432}"
 REDIS_PORT="${REDIS_PORT:-6379}"
 SERVER_PORT="${PORT:-5101}"
 
+# L-T3 (addendum LOW-1): default NODE_ENV BEFORE the production pre-flight so
+# the JWT/ADMIN checks actually fire under a default deploy (clean exit 1
+# instead of a crash loop). _common.sh does not key off NODE_ENV (verified).
+export NODE_ENV="${NODE_ENV:-production}"
+
 # === Pre-flight checks ===
 if [ ! -d "$OUT_DIR/server" ]; then
   log_error "out/server/ not found. Run 'bash accessbase.sh build:deploy' first."
@@ -76,6 +81,7 @@ EOF
 
 # === Graceful shutdown ===
 cleanup() {
+  DEPLOY_STOPPING=1
   log_info "Shutting down..."
   if [ -f "$PIDFILE" ]; then
     while IFS= read -r pid; do
@@ -83,11 +89,18 @@ cleanup() {
     done < "$PIDFILE"
     rm -f "$PIDFILE"
   fi
+  rm -f "${DATA_DIR}/.startpid"
   pg_ctl -D "$PG_DATA" stop -m fast 2>/dev/null || true
   redis-cli -p "$REDIS_PORT" shutdown nosave 2>/dev/null || true
   log_ok "All services stopped"
 }
 trap cleanup EXIT INT TERM
+
+# B2: stop.sh TERMs this wrapper via .startpid → trap sets DEPLOY_STOPPING →
+# the restart loop breaks → EXIT cleanup reaps the stack. Written early so a
+# stop during init/migrate is handled too.
+DEPLOY_STOPPING=0
+echo $$ > "${DATA_DIR}/.startpid"
 
 # === Start PostgreSQL ===
 if ! pg_isready -h localhost -p "$PG_PORT" -q 2>/dev/null; then
@@ -106,7 +119,6 @@ fi
 export DATABASE_URL="${DATABASE_URL:-postgresql://accessbase:accessbase_dev@localhost:${PG_PORT}/accessbase}"
 export REDIS_URL="${REDIS_URL:-redis://localhost:${REDIS_PORT}}"
 export STATIC_DIR="${STATIC_DIR:-${OUT_DIR}/admin-ui}"
-export NODE_ENV="${NODE_ENV:-production}"
 
 # === Run migrations ===
 log_info "Running migrations..."
@@ -144,4 +156,30 @@ log_info "  API:  http://localhost:${SERVER_PORT}/api/v1"
 log_info "  Docs: http://localhost:${SERVER_PORT}/docs"
 log_info "  UI:   http://localhost:${SERVER_PORT}"
 
-wait $SERVER_PID
+# === Server restart loop (D4 / B1 B2 L-1) ===
+# B1: under global `set -eo pipefail` a bare non-zero `wait` would kill the
+# script before any restart branch — capture the status and branch on $code.
+RESET_TIMES=()
+while [ "$DEPLOY_STOPPING" != "1" ]; do
+  code=0; wait "$SERVER_PID" || code=$?
+  # B2: stop.sh TERMs this wrapper → trap ran cleanup (kills server, sets the
+  # flag, stops PG/Redis) → break instead of reviving onto a dead stack.
+  if [ "$DEPLOY_STOPPING" = "1" ]; then
+    break
+  fi
+  # L-1: 3 exits inside a 15s window = crash loop (bad env) → abort to the
+  # EXIT trap instead of spamming a restart every 3s forever.
+  RESET_TIMES+=("$SECONDS")
+  while [ "${#RESET_TIMES[@]}" -gt 0 ] && [ $(( SECONDS - ${RESET_TIMES[0]} )) -ge 15 ]; do
+    RESET_TIMES=(${RESET_TIMES[@]:1})
+  done
+  if [ "${#RESET_TIMES[@]}" -ge 3 ]; then
+    log_error "crash loop — aborting"
+    break
+  fi
+  log_warn "Server exited (code $code) — restarting in 3s..."
+  sleep 3
+  node "${OUT_DIR}/server/index.js" &
+  SERVER_PID=$!
+  echo "$SERVER_PID" > "$PIDFILE"
+done

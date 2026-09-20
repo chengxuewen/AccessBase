@@ -14,6 +14,24 @@ PIDFILE="${DATA_DIR}/.pids"
 PG_DATA="${DATA_DIR}/pg"
 REDIS_PORT="${REDIS_PORT:-6379}"
 PG_PORT="${PG_PORT:-5432}"
+STARTPID="${DATA_DIR}/.startpid"
+
+# B2: TERM the start.sh wrapper FIRST. Its trap kills the server, stops
+# PG/Redis and breaks the restart loop. Without this, stop:deploy would
+# be "kill server → 3s revive → DB closed underneath it" = orphan node
+# on 5101 with no PIDFILE. The direct kills below stay as the backstop
+# for the wrapper-already-gone case (all idempotent).
+if [ -f "$STARTPID" ]; then
+  WRAPPER_PID="$(cat "$STARTPID")"
+  if [ -n "$WRAPPER_PID" ] && kill -0 "$WRAPPER_PID" 2>/dev/null; then
+    kill -15 "$WRAPPER_PID" 2>/dev/null || true
+    for _ in $(seq 1 10); do
+      kill -0 "$WRAPPER_PID" 2>/dev/null || break
+      sleep 1
+    done
+  fi
+  rm -f "$STARTPID"
+fi
 
 # Kill server via PID file
 if [ -f "$PIDFILE" ]; then
