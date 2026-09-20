@@ -370,4 +370,52 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     expect(parsed.state?.token ?? null).toBeNull();
     expect(parsed.state?.isAuthenticated ?? false).toBe(false);
   });
+
+  // L′ T3 (D4): the top-bar tenant Tag is data-driven — visible only when /me
+  // reports a non-default tenant with a resolved name; legacy payloads
+  // (fields absent) and default-tenant admins stay uncluttered.
+  test('D4: tenant admin sees the top-bar tenant Tag with the tenant name', async ({ page }) => {
+    await page.route('**/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            ...MOCK_ME_USER,
+            tenantId: '550e8400-e29b-41d4-a716-446655440010',
+            tenantName: 'Acme Corp',
+            tenantIsDefault: false,
+          },
+        }),
+      });
+    });
+    await seedSession(page, 'tok-t3', 'rt-t3');
+    await page.goto('/dashboard');
+    const tag = page.getByTestId('tenant-tag');
+    await expect(tag).toBeVisible({ timeout: 10000 });
+    await expect(tag).toHaveText('Acme Corp');
+  });
+
+  test('D4: default-tenant admin sees no tenant Tag', async ({ page }) => {
+    await page.route('**/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            ...MOCK_ME_USER,
+            tenantId: '00000000-0000-0000-0000-000000000001',
+            tenantName: 'Default',
+            tenantIsDefault: true,
+          },
+        }),
+      });
+    });
+    await seedSession(page, 'tok-t3b', 'rt-t3b');
+    await page.goto('/dashboard');
+    await expect(page.getByTestId('user-dropdown')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('tenant-tag')).toHaveCount(0);
+  });
 });

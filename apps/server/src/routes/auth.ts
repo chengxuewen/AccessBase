@@ -378,6 +378,24 @@ export async function authRoutes(app: FastifyInstance) {
       if (!user) {
         throw new Error('User not found');
       }
+      // L' D4: session tenant exposure for the top-bar Tag. Uncached PK
+      // SELECT (+1 per /me — accepted in the design). Any lookup error or
+      // absent row degrades to { tenantName: undefined, tenantIsDefault: true }
+      // so the Tag hides (fail-closed); /me must never 500 on the tenant row.
+      // Note: Tenant.isDefault projection lands in T1 (parallel) — backend
+      // equality against DEFAULT_TENANT is the stand-in (zero frontend literals).
+      const tenantId = user.tenantId ?? DEFAULT_TENANT;
+      let tenantName: string | undefined;
+      let tenantIsDefault = true;
+      try {
+        const tenant = await getTenantManager().findById(tenantId);
+        if (tenant) {
+          tenantName = tenant.name;
+          tenantIsDefault = tenantId === DEFAULT_TENANT;
+        }
+      } catch (err) {
+        request.log.warn({ err }, 'auth/me tenant label lookup failed — defaulting');
+      }
       return {
         success: true,
         data: {
@@ -388,6 +406,9 @@ export async function authRoutes(app: FastifyInstance) {
           permissions: await permissionsOf(user.id, request.tenantId),
           // users.mfaEnabled column is dead; totpEnabled is the live MFA state (MfaManager writes it)
           mfaEnabled: user.totpEnabled ?? false,
+          tenantId,
+          tenantName,
+          tenantIsDefault,
         },
       };
     },

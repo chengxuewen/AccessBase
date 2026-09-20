@@ -44,6 +44,14 @@ const permissionManagerMock = {
   getUserEffectivePermissions: vi.fn().mockResolvedValue([]),
 };
 
+// L' T3 (D4): /me resolves the tenant label through TenantManager.findById.
+// Default null = fail-closed shape (no row → hide Tag).
+const tenantManagerMock = {
+  findById: vi.fn().mockResolvedValue(null),
+  create: vi.fn(),
+  update: vi.fn(),
+  findAll: vi.fn(),
+};
 describe('GET /api/v1/auth/sessions (Settings — active sessions list)', () => {
   it('returns 401 without a token', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/auth/sessions' });
@@ -117,6 +125,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     RoleManager: vi.fn().mockImplementation(() => roleManagerMock),
     SessionManager: vi.fn().mockImplementation(() => sessionManagerMock),
     PermissionManager: vi.fn().mockImplementation(() => permissionManagerMock),
+    TenantManager: vi.fn().mockImplementation(() => tenantManagerMock),
   };
 });
 
@@ -169,6 +178,9 @@ describe('GET /api/v1/auth/me', () => {
         roles: [{ id: 'r-1', name: 'admin' }],
         permissions: ['users:read', 'roles:read'],
         mfaEnabled: false,
+        tenantId: '00000000-0000-0000-0000-000000000001',
+        tenantIsDefault: true,
+        mfaEnabled: false,
       },
     });
     expect(roleManagerMock.getUserRoles).toHaveBeenCalledWith(
@@ -212,6 +224,106 @@ describe('GET /api/v1/auth/me', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json().data.mfaEnabled).toBe(true);
+  });
+
+  // L' T3 (D4): /me exposes the session tenant so the top-bar Tag can render
+  // the tenant name. tenantIsDefault is backend-computed; lookup failures
+  // must degrade to { tenantName: undefined, tenantIsDefault: true } (200).
+  it('exposes tenantId/tenantName with tenantIsDefault:false for a non-default tenant user', async () => {
+    userManagerMock.findById.mockResolvedValueOnce({
+      id: 'u-9',
+      email: 'a@acme.test',
+      name: 'Acme',
+      isActive: true,
+      tenantId: 't-acme-0000',
+    });
+    roleManagerMock.getUserRoles.mockResolvedValueOnce([]);
+    permissionManagerMock.getUserEffectivePermissions.mockResolvedValueOnce([]);
+    tenantManagerMock.findById.mockResolvedValueOnce({
+      id: 't-acme-0000',
+      name: 'Acme Corp',
+      slug: 'acme',
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await authedInject({ method: 'GET', url: '/api/v1/auth/me' });
+
+    expect(res.statusCode).toBe(200);
+    const data = res.json().data;
+    expect(data.tenantId).toBe('t-acme-0000');
+    expect(data.tenantName).toBe('Acme Corp');
+    expect(data.tenantIsDefault).toBe(false);
+    expect(tenantManagerMock.findById).toHaveBeenCalledWith('t-acme-0000');
+  });
+
+  it('marks default-tenant users tenantIsDefault:true', async () => {
+    userManagerMock.findById.mockResolvedValueOnce({
+      id: 'u-1',
+      email: 'admin@test.local',
+      name: 'Adm',
+      isActive: true,
+      tenantId: '00000000-0000-0000-0000-000000000001',
+    });
+    roleManagerMock.getUserRoles.mockResolvedValueOnce([]);
+    permissionManagerMock.getUserEffectivePermissions.mockResolvedValueOnce([]);
+    tenantManagerMock.findById.mockResolvedValueOnce({
+      id: '00000000-0000-0000-0000-000000000001',
+      name: 'Default',
+      slug: 'default',
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await authedInject({ method: 'GET', url: '/api/v1/auth/me' });
+
+    expect(res.statusCode).toBe(200);
+    const data = res.json().data;
+    expect(data.tenantIsDefault).toBe(true);
+    expect(data.tenantName).toBe('Default');
+  });
+
+  it('fails closed (200, name undefined, isDefault true) when the tenant lookup throws', async () => {
+    userManagerMock.findById.mockResolvedValueOnce({
+      id: 'u-9',
+      email: 'a@acme.test',
+      name: 'Acme',
+      isActive: true,
+      tenantId: 't-acme-0000',
+    });
+    roleManagerMock.getUserRoles.mockResolvedValueOnce([]);
+    permissionManagerMock.getUserEffectivePermissions.mockResolvedValueOnce([]);
+    tenantManagerMock.findById.mockRejectedValueOnce(new Error('db down'));
+
+    const res = await authedInject({ method: 'GET', url: '/api/v1/auth/me' });
+
+    expect(res.statusCode).toBe(200);
+    const data = res.json().data;
+    expect(data.tenantId).toBe('t-acme-0000');
+    expect(data.tenantName).toBeUndefined();
+    expect(data.tenantIsDefault).toBe(true);
+  });
+
+  it('fails closed when the tenant row is absent', async () => {
+    userManagerMock.findById.mockResolvedValueOnce({
+      id: 'u-9',
+      email: 'a@acme.test',
+      name: 'Acme',
+      isActive: true,
+      tenantId: 't-acme-0000',
+    });
+    roleManagerMock.getUserRoles.mockResolvedValueOnce([]);
+    permissionManagerMock.getUserEffectivePermissions.mockResolvedValueOnce([]);
+    tenantManagerMock.findById.mockResolvedValueOnce(null);
+
+    const res = await authedInject({ method: 'GET', url: '/api/v1/auth/me' });
+
+    expect(res.statusCode).toBe(200);
+    const data = res.json().data;
+    expect(data.tenantName).toBeUndefined();
+    expect(data.tenantIsDefault).toBe(true);
   });
 });
 

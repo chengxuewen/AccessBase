@@ -17,7 +17,7 @@ import {
   KeyOutlined,
   SunOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Dropdown, Typography } from 'antd';
+import { Alert, Button, Dropdown, Tag, Typography } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import { useUiStore } from '../stores/ui';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -119,7 +119,20 @@ export default function AdminLayout() {
       )}
       avatarProps={{
         src: undefined,
-        title: user?.name || 'Admin',
+        // L′ D4: tenant identity is data-driven — Tag renders only for a
+        // non-default tenant whose name resolved (fields absent on legacy /me
+        // payloads = hidden, fail-closed). No UUID literals, no new locale key:
+        // the tag content is the tenant NAME data.
+        title: (
+          <>
+            {user?.name || 'Admin'}
+            {user?.tenantIsDefault === false && user?.tenantName ? (
+              <Tag data-testid="tenant-tag" style={{ marginInlineStart: 8 }}>
+                {user.tenantName}
+              </Tag>
+            ) : null}
+          </>
+        ),
         size: 'small',
         render: (_, defaultDom) => (
           <Dropdown

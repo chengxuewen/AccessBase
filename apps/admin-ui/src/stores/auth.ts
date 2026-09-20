@@ -12,6 +12,11 @@ interface User {
   /** Effective 'resource:action' codes from /auth/me; undefined = old backend → no gating */
   permissions?: string[];
   mfaEnabled?: boolean;
+  /** L' D4: session tenant exposure from /auth/me. Optional = old backend /
+   * login-payload user → top-bar tenant Tag stays hidden (fail-closed). */
+  tenantId?: string;
+  tenantName?: string;
+  tenantIsDefault?: boolean;
 }
 
 interface AuthState {
