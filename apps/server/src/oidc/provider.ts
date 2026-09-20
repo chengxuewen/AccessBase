@@ -7,7 +7,7 @@
  * keystore from JWT_*_KEY_PATH files with production fail-fast and a dev
  * ephemeral fallback. Adapter is the Task 4a OidcAdapter class.
  */
-import { createHash } from 'node:crypto';
+import { createHash, createPrivateKey } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import Provider from 'oidc-provider';
 import type { Configuration, JWKS } from 'oidc-provider';
@@ -54,7 +54,6 @@ function loadJwks(opts: BuildOidcProviderOptions): JwkSet | undefined {
   }
   const privateKeyPem = readFileSync(opts.privateKeyPath, 'utf-8');
   // createPrivateKey accepts PKCS8 PEM; export as private JWK (n/e/d/p/q/dp/dq/qi)
-  const { createPrivateKey } = require('node:crypto') as typeof import('node:crypto');
   const jwk = createPrivateKey(privateKeyPem).export({ format: 'jwk' }) as Record<string, unknown>;
   return { keys: [{ ...jwk, use: 'sig', alg: 'RS256' }] };
 }

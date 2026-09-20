@@ -39,6 +39,9 @@ export default tseslint.config(
       ],
       "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
       "@typescript-eslint/no-non-null-assertion": "error",
+      // ESM runtime: a stray require() type-checks under @types/node but crashes
+      // compiled dist (batch L live-fire: oidc/provider prod-only path).
+      "@typescript-eslint/no-require-imports": "error",
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "prefer-const": "error",
       "no-var": "error",
