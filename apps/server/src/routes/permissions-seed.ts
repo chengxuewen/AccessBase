@@ -2,7 +2,7 @@
  * Builtin permission seeding — idempotent, best-effort.
  * Seeds 21 {resource, action} permissions and binds all to the admin role.
  */
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import type { DrizzleDB } from '@accessbase/identity/db';
 import { permissions, rolePermissions, roles, tenants } from '@accessbase/identity/db';
 import { logger } from '@accessbase/logging';
@@ -36,8 +36,6 @@ export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: stri
   { name: 'tenants:delete', resource: 'tenants', action: 'delete', description: 'Delete tenants' },
 ];
 
-const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats', 'options', 'clients', 'apikeys', 'tenants'];
-const ACTIONS = ['read', 'write', 'delete'];
 
 /**
  * First-writer insert of the default tenant row (R6). Idempotent via the slug
@@ -61,38 +59,62 @@ export async function ensureDefaultTenantRow(db: DrizzleDB): Promise<void> {
   }
 }
 
+/**
+ * STRICT kernel (L-prime X4): ensure the 21 builtin permission rows exist, bind the
+ * given permission NAMES to a role, then ASSERT the role holds exactly that many
+ * bindings — throws on any shortfall so a caller (tenant bootstrap) can never
+ * report 201 with a silently unbound admin role. Binding is additive with ON
+ * CONFLICT DO NOTHING, so repeated calls converge on the same state.
+ */
+export async function bindPermissions(
+  db: DrizzleDB,
+  roleId: string,
+  names: ReadonlyArray<string>,
+): Promise<void> {
+  await db.insert(permissions).values(BUILTIN_PERMISSIONS).onConflictDoNothing();
+
+  const rows = await db
+    .select({ id: permissions.id, name: permissions.name })
+    .from(permissions)
+    .where(inArray(permissions.name, [...names]));
+
+  const found = new Set(rows.map((row) => row.name));
+  const missing = names.filter((name) => !found.has(name));
+  if (missing.length > 0) {
+    throw new Error(`bindPermissions: missing builtin rows after insert: ${missing.join(', ')}`);
+  }
+
+  await db
+    .insert(rolePermissions)
+    .values(rows.map((row) => ({ roleId, permissionId: row.id })))
+    .onConflictDoNothing();
+
+  const [bound] = await db
+    .select({ count: count() })
+    .from(rolePermissions)
+    .where(eq(rolePermissions.roleId, roleId));
+  const boundCount = bound?.count ?? 0;
+  if (boundCount !== names.length) {
+    throw new Error(
+      `bindPermissions: role ${roleId} holds ${boundCount} bindings, expected ${names.length}`,
+    );
+  }
+  logger.info({ roleId, count: boundCount }, 'Bound permissions to role');
+}
 
 /**
- * Insert the 21 builtin permissions (ON CONFLICT DO NOTHING), read back their
- * IDs by resource+action, then bind all to the given role (idempotent).
- * Never throws — failures are logged and swallowed (best-effort, seed must not
- * block admin creation).
+ * Best-effort seed of ALL 21 builtin permissions onto a role. NEVER throws —
+ * failures are logged and swallowed (admin creation must not be blocked by a
+ * transient seed error; startup self-heal retries). Wizard/init keep calling
+ * this; bootstrap uses the strict kernel directly with the tenant partition.
  */
 export async function seedBuiltinPermissions(db: DrizzleDB, roleId: string): Promise<void> {
   try {
-    await db.insert(permissions).values(BUILTIN_PERMISSIONS).onConflictDoNothing();
-
-    const rows = await db
-      .select({ id: permissions.id, resource: permissions.resource, action: permissions.action })
-      .from(permissions)
-      .where(
-        and(
-          inArray(permissions.resource, RESOURCES),
-          inArray(permissions.action, ACTIONS),
-        ),
-      );
-
-    if (rows.length === 0) {
-      logger.error('seedBuiltinPermissions: no permissions found after insert — skipping role binding');
-      return;
-    }
-
-    await db
-      .insert(rolePermissions)
-      .values(rows.map((row) => ({ roleId, permissionId: row.id })))
-      .onConflictDoNothing();
-
-    logger.info({ roleId, count: rows.length }, 'Seeded builtin permissions and bound to role');
+    await bindPermissions(
+      db,
+      roleId,
+      BUILTIN_PERMISSIONS.map((permission) => permission.name),
+    );
   } catch (err) {
     logger.error({ err, roleId }, 'Failed to seed builtin permissions — admin creation continues');
   }

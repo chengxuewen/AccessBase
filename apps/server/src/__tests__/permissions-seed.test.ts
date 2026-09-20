@@ -2,19 +2,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { permissions, rolePermissions } from '@accessbase/identity/db';
 import { logger } from '@accessbase/logging';
 import pg from 'pg';
-import { seedBuiltinPermissions } from '../routes/permissions-seed.js';
+import { BUILTIN_PERMISSIONS, seedBuiltinPermissions } from '../routes/permissions-seed.js';
 
 // ---------- mock drizzle chainable builder ----------
 
-function mockDb(selectRows: Array<{ id: string }> = []) {
+function mockDb() {
   const insertedPermissions: unknown[][] = [];
   const insertedRolePerms: unknown[][] = [];
-
-  const selectChain = {
-    from: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue(selectRows),
-    }),
-  };
+  // bindPermissions query shape: select#1 (name readback) then select#2 (count
+  // assert) - alternate per call so repeated seeds keep working (idempotency).
+  const nameRows = BUILTIN_PERMISSIONS.map((p, i) => ({ id: `perm-${i}`, name: p.name }));
+  let selectCount = 0;
 
   const db = {
     insert: vi.fn().mockImplementation((table: unknown) => {
@@ -30,7 +28,16 @@ function mockDb(selectRows: Array<{ id: string }> = []) {
         }),
       };
     }),
-    select: vi.fn().mockReturnValue(selectChain),
+    select: vi.fn().mockImplementation(() => {
+      const isCount = selectCount % 2 === 1;
+      selectCount += 1;
+      const rows = isCount ? [{ count: BUILTIN_PERMISSIONS.length }] : nameRows;
+      return {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(rows),
+        }),
+      };
+    }),
     // expose captured data for assertions
     _captured: { insertedPermissions, insertedRolePerms },
   };
@@ -41,9 +48,6 @@ function mockDb(selectRows: Array<{ id: string }> = []) {
 // ---------- constants ----------
 
 const EXPECTED_PERMISSION_COUNT = 21;
-const RESOURCES = ['users', 'roles', 'permissions', 'audit', 'stats', 'options', 'clients', 'apikeys', 'tenants'] as const;
-const ACTIONS = ['read', 'write', 'delete'] as const;
-
 // ---------- tests ----------
 
 describe('seedBuiltinPermissions', () => {
@@ -52,11 +56,7 @@ describe('seedBuiltinPermissions', () => {
   });
 
   it(`inserts ${EXPECTED_PERMISSION_COUNT} permissions and binds all to admin role on first run`, async () => {
-    const fakeIds = Array.from({ length: EXPECTED_PERMISSION_COUNT }, (_, i) => `perm-${i}`);
-    // select returns EXPECTED_PERMISSION_COUNT rows matching the inserted permissions
-    const selectRows = Array.from({ length: EXPECTED_PERMISSION_COUNT }, (_, i) => ({ id: fakeIds[i] }));
-    const db = mockDb(selectRows) as unknown as ReturnType<typeof import('@accessbase/identity/db').createDb>;
-
+    const db = mockDb() as unknown as ReturnType<typeof import('@accessbase/identity/db').createDb>;
     await seedBuiltinPermissions(db, 'admin-role-id');
 
     // 1 insert call for permissions, 1 for role_permissions
@@ -68,13 +68,14 @@ describe('seedBuiltinPermissions', () => {
   });
 
   it('is idempotent — second call does not throw (onConflictDoNothing)', async () => {
-    const selectRows = Array.from({ length: EXPECTED_PERMISSION_COUNT }, (_, i) => ({ id: `id-${i}` }));
-    const db = mockDb(selectRows) as unknown as ReturnType<typeof import('@accessbase/identity/db').createDb>;
+    const db = mockDb() as unknown as ReturnType<typeof import('@accessbase/identity/db').createDb>;
 
     // First seed
     await seedBuiltinPermissions(db, 'admin-role-id');
-    // Second seed — must not throw
+    // Second seed - must not throw
     await expect(seedBuiltinPermissions(db, 'admin-role-id')).resolves.toBeUndefined();
+    // both runs completed their full insert sequence (2 role-permission inserts)
+    expect(db._captured.insertedRolePerms).toHaveLength(2);
   });
 
   it('does not throw when insert itself fails (best-effort)', async () => {

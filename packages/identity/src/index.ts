@@ -25,6 +25,12 @@ export {
   ROLE_PROTECTED,
   LAST_ADMIN_GUARD,
 } from './services/last-admin-guard.js';
+export {
+  TENANT_BINDABLE_PERMISSIONS,
+  PLATFORM_ONLY_PERMISSIONS,
+  TENANT_BINDABLE_SET,
+  PERMISSION_NOT_BINDABLE,
+} from './services/permission-partition.js';
 export { PasswordProvider } from './providers/PasswordProvider.js';
 export { OAuthProvider } from './providers/OAuthProvider.js';
 export { WebAuthnProvider } from './providers/WebAuthnProvider.js';

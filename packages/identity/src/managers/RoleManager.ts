@@ -19,6 +19,11 @@ import {
   ROLE_PROTECTED,
   LAST_ADMIN_GUARD,
 } from '../services/last-admin-guard.js';
+import {
+  TENANT_BINDABLE_SET,
+  DEFAULT_TENANT_ID,
+  PERMISSION_NOT_BINDABLE,
+} from '../services/permission-partition.js';
 import { logger } from '@accessbase/logging';
 import type {
   Role,
@@ -89,7 +94,7 @@ export class RoleManager {
 
     // Assign permissions if provided
     if (data.permissionIds && data.permissionIds.length > 0) {
-      await this.setRolePermissions(inserted.id, data.permissionIds);
+      await this.setRolePermissions(inserted.id, data.permissionIds, tenantId);
     }
 
     return this.mapToRole(inserted, []);
@@ -232,7 +237,7 @@ export class RoleManager {
 
     // Replace permissions if provided
     if (data.permissionIds !== undefined) {
-      await this.setRolePermissions(id, data.permissionIds);
+      await this.setRolePermissions(id, data.permissionIds, tenantId);
     }
 
     const perms = await this.getRolePermissions(id);
@@ -297,6 +302,14 @@ export class RoleManager {
       throw new Error('Role not found');
     }
 
+    // K-T2 immutability extended: system roles are locked on the parent path too
+    // (L-prime R6 funnel guard — setParent was the one funnel entry missing it).
+    if (role.isSystem) {
+      throw new Error(
+        `${ROLE_PROTECTED}: cannot change the parent of the built-in administrator role`,
+      );
+    }
+
     if (parentId) {
       const [parent] = await this.db
         .select()
@@ -308,8 +321,10 @@ export class RoleManager {
         throw new Error('Parent role not found');
       }
 
-      // Check for inheritance cycles (A→B→A)
-      const hasCycle = await this.checkInheritanceCycle(parentId, tenantId);
+      // Check for inheritance cycles closing at THIS role (L-prime X3: the walk
+      // must receive roleId — self-parent and newly-closed mutual loops are
+      // invisible to an ancestors-only traversal).
+      const hasCycle = await this.checkInheritanceCycle(parentId, tenantId, roleId);
       if (hasCycle) {
         throw new Error('Inheritance cycle detected');
       }
@@ -377,11 +392,12 @@ export class RoleManager {
   async assignToUser(userId: string, roleId: string, tenantId: string): Promise<void> {
     logger.info(`Assigning role ${roleId} to user ${userId} in tenant: ${tenantId}`);
 
-    await this.db.insert(userRoles).values({
-      userId,
-      roleId,
-      tenantId,
-    });
+    await this.db
+      .insert(userRoles)
+      .values({ userId, roleId, tenantId })
+      // L-prime G-1: user_roles has a composite PK — replay paths (bootstrap
+      // step-4 convergence arm) re-assign the same triple, must not duplicate-key.
+      .onConflictDoNothing();
     invalidatePermissionCache(tenantId, userId);
   }
 
@@ -514,9 +530,33 @@ export class RoleManager {
   }
 
   /**
-   * Set role permissions (full replacement)
+   * Set role permissions (full replacement).
+   *
+   * L-prime X1 binding funnel: permission rows are GLOBAL; a non-default tenant
+   * may only bind the TENANT_BINDABLE names. Without this guard a tenant admin
+   * with roles:write could enumerate the global catalog (permissions:read) and
+   * bind tenants:write / options:write to a fresh role — full platform takeover.
    */
-  private async setRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
+  private async setRolePermissions(
+    roleId: string,
+    permissionIds: string[],
+    tenantId: string,
+  ): Promise<void> {
+    if (tenantId !== DEFAULT_TENANT_ID && permissionIds.length > 0) {
+      const rows = await this.db
+        .select({ id: permissions.id, name: permissions.name })
+        .from(permissions)
+        .where(inArray(permissions.id, permissionIds));
+      const nameById = new Map(rows.map((row) => [row.id, row.name]));
+      for (const permissionId of permissionIds) {
+        const name = nameById.get(permissionId);
+        // Unknown ids fall through to the FK constraint below (unchanged behavior).
+        if (name && !TENANT_BINDABLE_SET.has(name)) {
+          throw new Error(`${PERMISSION_NOT_BINDABLE}: ${name}`);
+        }
+      }
+    }
+
     // Remove existing permissions
     await this.db.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
 
@@ -532,12 +572,20 @@ export class RoleManager {
   }
 
   /**
-   * Check for inheritance cycles
+   * Check for inheritance cycles. roleId (when present) is the role the new edge
+   * attaches to: reaching it while walking the proposed parent's ancestors means
+   * the edge CLOSES a cycle (self-parent A-A and mutual A-B-A were undetectable
+   * before — re-review X3).
    */
-  private async checkInheritanceCycle(parentId: string, tenantId: string): Promise<boolean> {
+  private async checkInheritanceCycle(
+    parentId: string,
+    tenantId: string,
+    roleId?: string,
+  ): Promise<boolean> {
     const visited = new Set<string>();
 
     const check = async (currentId: string): Promise<boolean> => {
+      if (roleId !== undefined && currentId === roleId) return true;
       if (visited.has(currentId)) return true;
       visited.add(currentId);
 

@@ -32,6 +32,7 @@ function makeChain(result: unknown) {
   chain.set = vi.fn(() => chain);
   chain.returning = vi.fn(() => chain);
   chain.values = vi.fn(() => chain);
+  chain.onConflictDoNothing = vi.fn(() => chain);
   chain.limit = vi.fn(() => chain);
   chain.then = vi.fn(
     (resolve?: ((v: unknown) => unknown) | null, reject?: ((e: unknown) => unknown) | null) =>

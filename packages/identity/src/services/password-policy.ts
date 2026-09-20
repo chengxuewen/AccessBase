@@ -18,7 +18,7 @@ export interface PasswordPolicy {
   requireSpecial: boolean;
 }
 
-export type PasswordPolicyCallsite = 'register' | 'password-change';
+export type PasswordPolicyCallsite = 'register' | 'password-change' | 'user_create';
 
 const DEFAULTS: Record<PasswordPolicyCallsite, PasswordPolicy> = {
   register: {
@@ -34,6 +34,16 @@ const DEFAULTS: Record<PasswordPolicyCallsite, PasswordPolicy> = {
     requireLower: true,
     requireDigit: true,
     requireSpecial: true,
+  },
+  // L-prime G-3: tenant-admin bootstrap provisions credentials through the same
+  // policy surface as self-registration (register profile; the five password_*
+  // option keys are callsite-shared — no new options codes).
+  user_create: {
+    minLength: 8,
+    requireUpper: true,
+    requireLower: true,
+    requireDigit: true,
+    requireSpecial: false,
   },
 };
 

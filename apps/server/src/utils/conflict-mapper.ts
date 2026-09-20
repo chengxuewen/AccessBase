@@ -8,7 +8,8 @@
  * tags would surface as raw 500s.
  *
  * The tag strings mirror ROLE_PROTECTED / LAST_ADMIN_GUARD exported from
- * @accessbase/identity (packages/identity/src/services/last-admin-guard.ts).
+ * @accessbase/identity (packages/identity/src/services/last-admin-guard.ts)
+ * and PERMISSION_NOT_BINDABLE (services/permission-partition.ts).
  * Duplicated as literals on purpose: the route tests module-mock
  * '@accessbase/identity' and must not depend on the mock exposing the consts.
  */
@@ -19,6 +20,10 @@ const CONFLICT_TAGS: ReadonlyArray<{ tag: string; message: string }> = [
   {
     tag: 'LAST_ADMIN_GUARD',
     message: 'Operation would leave the tenant with no active administrator',
+  },
+  {
+    tag: 'PERMISSION_NOT_BINDABLE',
+    message: 'Permission cannot be bound to a role outside the default tenant',
   },
 ];
 

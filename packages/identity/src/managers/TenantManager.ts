@@ -23,6 +23,8 @@ export interface Tenant {
   name: string;
   slug: string;
   status: string;
+  /** L-prime G-5: data-driven default-tenant flag — frontend never embeds the UUID. */
+  isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -196,6 +198,7 @@ export class TenantManager {
       name: row.name,
       slug: row.slug,
       status: row.status,
+      isDefault: row.id === DEFAULT_TENANT_ID,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };

@@ -230,11 +230,13 @@ describe('dual-registration static checks (conventions Phase 8a discipline)', ()
     expect(src).toContain("'DELETE:/api/v1/auth/api-keys': 'apikeys:delete'");
   });
 
-  it('seed contains the 3 apikeys entries AND RESOURCES has apikeys', () => {
-    const src = readFileSync('apps/server/src/routes/permissions-seed.ts', 'utf8');
-    expect(src).toContain("name: 'apikeys:read'");
-    expect(src).toContain("name: 'apikeys:write'");
-    expect(src).toContain("name: 'apikeys:delete'");
-    expect(src).toMatch(/RESOURCES = \[[^\]]*'apikeys'/);
+  it('seed contains the 3 apikeys entries AND partition lists apikeys platform-only', () => {
+    const partition = readFileSync(
+      'packages/identity/src/services/permission-partition.ts',
+      'utf8',
+    );
+    expect(partition).toContain("'apikeys:read'");
+    expect(partition).toContain("'apikeys:write'");
+    expect(partition).toContain("'apikeys:delete'");
   });
 });

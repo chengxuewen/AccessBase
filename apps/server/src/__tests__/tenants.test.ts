@@ -271,9 +271,14 @@ describe('seed / routePermissions static assertions', () => {
     expect(src).toContain("resource: 'tenants'");
   });
 
-  it('RESOURCES array includes tenants (admin role binding readback)', () => {
-    const src = readFileSync(resolveSeedPath(), 'utf8');
-    expect(src).toMatch(/const RESOURCES = \[[^\]]*'tenants'/);
+  it('partition lists cover tenants codes (bindPermissions name readback supersedes RESOURCES filter)', () => {
+    const src = readFileSync(
+      new URL('../../../../packages/identity/src/services/permission-partition.ts', import.meta.url).pathname,
+      'utf8',
+    );
+    expect(src).toContain("'tenants:read'");
+    expect(src).toContain("'tenants:write'");
+    expect(src).toContain("'tenants:delete'");
   });
 });
 
