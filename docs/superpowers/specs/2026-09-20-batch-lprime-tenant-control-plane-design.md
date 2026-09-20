@@ -1,214 +1,226 @@
-# Batch L′ — Multi-Tenant Control Plane (Design)
+# Batch L′ — Multi-Tenant Control Plane (Design) — rev.2
 
-**Date**: 2026-09-20
-**Status**: DRAFT for dual-Momus review
-**Depends on**: Batch G (tenants schema/claim/injection/isolation), Batch K (RBAC moat), Batch C (Clients/ApiKeys page precedents)
+**Date**: 2026-09-20 (rev.2 absorbs dual-Momus addendum `2026-09-20-batch-lprime-tenant-control-plane-REVIEW-ADDENDUM.md`)
+**Status**: REVISED after FLOWS-REJECT + BLOCKERS-APPROVE-WITH-FIXES; awaiting scoped re-review
+**Depends on**: Batch G (tenants data plane), Batch K (RBAC moat), Batch C (page precedents)
 
 ## 1. Problem
 
-Batch G shipped the multi-tenant *data plane* (tenant columns, JWT tenantId claims,
-request.tenantId injection, manager-level scoping, read-side isolation) but left the
-*control plane* missing. A freshly created tenant is a dead island:
-
-- `POST /v1/tenants` inserts a row and nothing else — there are no roles and no users
-  inside the tenant, so nobody can ever be provisioned there.
-- There is no Tenants management UI (api/tenants.ts has only a list helper; no route,
-  no menu entry, despite `tenants:read/write/delete` being seeded + dual-registered).
-- `/auth/me` does not expose the caller's tenantId/tenantName, so the UI cannot show
-  which tenant a session belongs to.
-- The RBAC config surface has three small tails: roles PUT ignores `parentId`
-  (RoleManager.setParent exists, unwired), the Roles form has no parent-role selector,
-  and the roles list shows no permission count (Role.findAll already returns the full
-  `permissions[]` — frontend-only change).
+Batch G shipped the multi-tenant *data plane* but left the *control plane* missing.
+A freshly created tenant is a dead island: `POST /v1/tenants` inserts a row and nothing
+else — no roles, no users, nobody can ever be provisioned. There is no Tenants UI
+(api/tenants.ts is list-only; no route/menu despite tenants:* dual-registration).
+`/auth/me` hides the session's tenant. Three RBAC config-surface tails remain
+(PUT parentId unwired, no parent selector, no permission count column).
 
 ## 2. Goals
 
-- G1: A platform admin can create a tenant AND its first administrator end-to-end
-  from the UI (bootstrap flow), with no manual SQL.
-- G2: The tenant administrator can log in and see ONLY tenant-scoped capabilities —
-  critically, NOT `tenants:*`, NOT `options:*`, NOT `clients:*`, NOT
-  `permissions:write/delete` (the permissions table is global; letting a tenant
-  define new permissions pollutes every tenant).
-- G3: The session's tenant is visible in the admin UI (`/auth/me` + top bar).
-- G4: The three RBAC tails close (PUT parentId via existing setParent, parent selector,
-  count column) — same page surface as G1, batched for review-net economy.
-- G5: Pre-existing dead-island tenants (created before this batch) are repaired by the
-  same bootstrap action (row action, no data migration).
+- G1: Platform admin creates a tenant AND its first administrator end-to-end from the UI.
+- G2: The tenant administrator holds EXACTLY the 9 tenant-bindable codes and CANNOT
+  self-elevate to any of the 12 platform-only codes — including through the
+  roles:write → permissionIds binding path (D1a).
+- G3: Session tenant visible in UI (/auth/me + top bar).
+- G4: RBAC tails close, on top of a REAL cycle-check primitive (X3).
+- G5: Pre-existing dead-island tenants repaired by the same bootstrap action.
 
-## 3. Non-goals (explicit)
+## 3. Non-goals
 
-- Cross-tenant user creation/listing by platform admins (`POST /v1/users` keeps
-  stripping tenantId from the body; `request.tenantId` remains the single source).
-  Bootstrap + the tenant admin's own user page cover provisioning; anything beyond is
-  YAGNI until a real operator complains.
-- Permission-definition CRUD (seed-only stays; value questionable).
-- Audit write-side tenant attribution (Batch K backlog item, separate batch).
-- Per-tenant OIDC clients (oidcClients is a global table by design today).
-- Tenant-scoped options (options table is global; `options:*` becomes platform-only).
+- Cross-tenant user management by platform admins (users POST keeps request.tenantId).
+- Permission-definition CRUD (seed-only).
+- Audit write-side tenant attribution (Batch K backlog).
+- Per-tenant OIDC clients; tenant-scoped options.
+- Closing the pre-existing 15-min access-token residual after tenant suspend
+  (login/refresh gates already cover; batch G design).
+- Manager-level role.tenantId validation in setUserRoles/assignToUser (route-level
+  unknownRoleId already blocks the reachable path; defense-in-depth → backlog).
 
 ## 4. Design
 
-### D1: Platform-only vs tenant-bindable permission sets
+### D1: Permission partition (X2 — final counts)
 
-`BUILTIN_PERMISSIONS` (21 codes) is partitioned into two exported lists:
+`BUILTIN_PERMISSIONS` (21) partitions EXHAUSTIVELY into (exported from the identity
+package, see D1a for why):
 
 ```
-PLATFORM_ONLY_PERMISSIONS (10): tenants:read/write/delete, options:read/write,
-                                clients:read/write, permissions:write/delete
-TENANT_BINDABLE_PERMISSIONS (11): users:read/write/delete, roles:read/write/delete,
-                                  permissions:read, audit:read, stats:read
+TENANT_BINDABLE_PERMISSIONS (9): users:read/write/delete, roles:read/write/delete,
+                                 permissions:read, audit:read, stats:read
+PLATFORM_ONLY_PERMISSIONS  (12): tenants:read/write/delete, options:read/write,
+                                 clients:read/write, permissions:write/delete,
+                                 apikeys:read/write/delete
 ```
 
-`seedBuiltinPermissions(db, roleId)` behavior is UNCHANGED (binds all 21 to the
-default-tenant admin role — platform admin keeps everything). A new optional third
-parameter `bindNames?: string[]` restricts which permission rows are bound to the
-role; the global insert-21-on-conflict-do-nothing step always runs. Rationale:
-one function, one truth list, no copy-paste drift between the 21-code table and a
-second seed path.
+Rationale for apikeys platform-only: API keys are created with `request.tenantId`
+(= DEFAULT for every reachable creator), SCIM keys likewise platform-issued; a tenant
+holding a `'*'`-scope key would pass every requirePermission gate (apikey branch
+short-circuits on `scopes.includes('*')` — verified at HEAD) = skeleton key past the
+partition. Invariant unit test: disjoint + union == BUILTIN names (21) — this test is
+what X2 caught as unpassable-as-written; it must pass as-written now.
 
-Enforcement model: permission rows are global; role→permission binding
-(rolePermissions) is tenant-scoped. requirePermission checks effective permissions,
-so a tenant admin WITHOUT the tenants:* binding cannot pass the `tenants:write`
-route gate even though the route only keys off the code. No authorize.ts change.
+### D1a: Binding validation funnel (X1 — the escalation killer)
 
-### D2: `POST /v1/tenants/:id/bootstrap` (the cold-start endpoint)
+Permission rows are global; bindings (rolePermissions) are the enforcement point.
+`RoleManager.setRolePermissions` — the sole choke through which both `create()` and
+`update()` route permissionIds — gains:
 
-- Gate: `tenants:write` via routePermissions longest-prefix (already covers sub-paths;
-  no mapping change). Caller identity check inside the handler:
-  **`request.tenantId === DEFAULT_TENANT` required** — a non-default-tenant caller
-  403 (they cannot pass tenants:write per D1 anyway; belt + braces, because API keys
-  or future grants could change the code surface without changing this rule).
-- Body: `{ email, name?, password }` (additionalProperties false; password policy
-  validated by the SAME options-driven policy used by user creation — batch C call
-  site; weak password → 400 WEAK-PASSWORD-family error envelope as users POST emits).
-- Steps (transactional expectations below):
-  1. Tenant exists (404 NOT_FOUND via existing sendTenantError shape) and
-     `status === 'active'` (suspended → 409 TENANT_PROTECTED-tagged shape).
-  2. `tenantId === DEFAULT_TENANT` → 409 (default tenant is bootstrapped by the
-     wizard; prevents a second platform admin via this path).
-  3. Email globally free (`userManager.findByEmail` → 409 EMAIL_EXISTS style, mirrors
-     wizard ADMIN_EXISTS).
-  4. Find-or-create role `admin` (isSystem:true) in tenant — same catch-'Role already
-     exists in this tenant' fallback shape as setup.ts, BUT via
-     `roleManager.findAll({search:'admin'}, tenantId)` exact-name match (no fixed
-     UUID trick — tenant role ids are random).
-  5. `seedBuiltinPermissions(db, roleId, TENANT_BINDABLE_PERMISSIONS)` — idempotent.
-  6. `userManager.create({email, name, password}, tenantId)` — password policy +
-     history run inside UserManager.
-  7. `roleManager.assignToUser(userId, roleId, tenantId)`.
-  8. 201 `{ success, data: { userId, roleId, tenantId } }`; audit via the standard
-     middleware (POST route, body contains password → verify audit redact covers it —
-     login password redaction precedent, PIT: add `password` redact path if absent).
-- **Idempotency / retry semantics**: the endpoint is safe to re-invoke after a
-  mid-way failure: step 4 find-or-create, step 5 conflict-do-nothing bindings,
-  step 6 email-exists → 409 (operator fixes password and retries with different
-  email; no automatic rollback). No explicit transaction wrapper (manager-level
-  operations, matches setup wizard precedent). A `ponytail:` note names the
-  upgrade path (single-tx service method) if partial-state incidents appear.
-- Self-lockout analysis: bootstrap cannot suspend/lock itself; the tenant admin's
-  11 codes contain no path back to tenants/options/clients. The LAST_ADMIN guard
-  (batch K) operates per-tenant via the shared predicate — a bootstrapped tenant
-  admin becomes that tenant's last-admin and gains the same 409 protection.
+```
+if (tenantId !== DEFAULT_TENANT_ID) {
+  resolve names of permissionIds; any name ∉ TENANT_BINDABLE_PERMISSIONS
+  → throw `PERMISSION_NOT_BINDABLE: <name>`
+}
+```
 
-### D3: isSystem stamping interaction (documented behavior, no code)
+- Lists + `DEFAULT_TENANT_ID` live in `packages/identity/src/services/permission-partition.ts`
+  (identity cannot import apps/server; permissions-seed.ts re-exports/imports instead
+  of redefining — single source).
+- Routes/roles.ts POST+PUT map the tag to 409 via conflict-mapper (third tag alongside
+  ROLE_PROTECTED / LAST_ADMIN_GUARD; tag literal duplicated by design per K convention).
+- Bootstrap's seed path is server-controlled direct SQL and BYPASSES this funnel
+  (it can only bind TENANT_BINDABLE by construction; D2 step 5 pins the list).
+- RED: tenant-context `POST /v1/roles {permissionIds:[<tenants:write uuid>]}` → 409
+  PERMISSION_NOT_BINDABLE; `PUT` replacing bindings with a platform code → 409;
+  default-tenant context unaffected.
+- Platform admin editing a TENANT's role is unreachable (update is tenant-scoped by
+  request.tenantId → 404) — stated so nobody adds a bypass.
 
-Batch K `selfHealSeed` stamps `roles SET is_system WHERE name='admin'` with NO
-tenant filter. After bootstrap, the tenant's admin role is therefore also stamped
-→ immutable + protected by the RBAC moat. This is intended: the tenant admin role
-must not be editable into a permission-less shell by its own admin. The 11-bound
-set is the ceiling. Spec records it so implementers don't "fix" it.
+### D2: `POST /v1/tenants/:id/bootstrap`
+
+Gate: route-level `tenants:write` via longest-prefix trim (verified: segments trim to
+`POST:/api/v1/tenants`). Handler checks IN THIS ORDER (B7a — belt first, never leak
+tenant existence/state to non-platform callers):
+
+1. **Platform belt**: `request.tenantId !== DEFAULT_TENANT` → 403
+   `TENANT_PLATFORM_ONLY`. (Also belt on POST/PUT/DELETE `/v1/tenants` mutations —
+   B3: closes the `'*'`-scope-key class in ~3 lines.)
+2. Target tenant exists → 404 `NOT_FOUND`; `status === 'active'` → else 409
+   `TENANT_PROTECTED`.
+3. Target `=== DEFAULT_TENANT` → 409 `TENANT_PROTECTED` (wizard owns platform admins).
+4. Email check (`UserManager.findByEmail` — global, email is globally unique in schema):
+   - taken AND that user ∈ target tenant AND holds target tenant's admin role →
+     **200 idempotent replay** `{ userId, roleId, tenantId, alreadyBootstrapped: true }`
+     (R4 convergence arm — post-step-6 crashes recover by same-email retry).
+   - taken otherwise → 409 `EMAIL_EXISTS`.
+5. Password policy AT ROUTE LAYER (R2 — corrected fact: UserManager.create only hashes;
+   users POST only enforces schema minLength:8): before create, call
+   `readPasswordPolicy` + `assertPasswordPolicy` with a dedicated call-site key
+   (`'user_create'`, added to the options-driven policy call sites — C2 precedent,
+   zero-break defaults). Failure → 400 in the register-family envelope (AUTH_REG_002
+   pattern; exact code string copied from that call site).
+6. Role find-or-create: `roleManager.create({ name:'admin', description, isSystem:true },
+   tenantId)` — create() is ALREADY find-or-create on (name,tenantId) (RoleManager:42-54;
+   X7/B6 — the findAll/ILIKE substring approach is RETRACTED). Then UNCONDITIONALLY
+   stamp: `UPDATE roles SET is_system=true WHERE id=?` direct SQL (idempotent; closes
+   the early-return-non-system window where the last-admin guard (keys on isSystem)
+   would let a sole tenant admin self-suspend into an unrecoverable orphan tenant).
+7. Strict bind: new exported `bindPermissions(db, roleId, TENANT_BINDABLE_PERMISSIONS)`
+   — inserts global rows (conflict-do-nothing), binds, then ASSERTS bound count == 9,
+   throws on any failure (X4 — the best-effort `seedBuiltinPermissions` swallow is NOT
+   usable here; wizard keeps the wrapper, bootstrap calls the strict core).
+8. `userManager.create({email, name, password}, tenantId)` → 201
+   `{ userId, roleId, tenantId, alreadyBootstrapped: false }`.
+9. `roleManager.assignToUser(userId, roleId, tenantId)`.
+
+Partial-failure matrix (post-fix): any failure before step 8 leaves role(+bindings)
+— retried by find-or-create + strict re-bind (both idempotent). Failure between 8 and 9
+→ same-email retry converges via step 4 replay arm ONLY IF assignment succeeded;
+if assignment failed, user exists WITHOUT role → step 4 falls to 409 EMAIL_EXISTS.
+Absorbed: step 4's replay arm therefore matches on "user ∈ tenant" (NOT "holds admin
+role") and RE-RUNS assignToUser (idempotent insert) before 200. One sentence in the
+implementation brief pins this; test locks it.
+
+Audit: route is NOT in the audit exclusion list (verified); `password` recursive
+redaction holds (audit/types.ts sanitize fields). Actor = sub-first (batch D).
+
+Error-code table (PINNED for T4 mock-first — PIT-033): 403 `TENANT_PLATFORM_ONLY` ·
+404 `NOT_FOUND` · 409 `TENANT_PROTECTED` · 409 `EMAIL_EXISTS` · 409
+`PERMISSION_NOT_BINDABLE` (roles routes) · 400 policy-family envelope. Frontend passes
+server messages through (K-R6 apiErrorMessage), but mock envelopes MUST copy these
+codes verbatim from this table.
+
+### D3: isSystem stamping interaction (unchanged, verified)
+
+selfHealSeed binds the 21-code seed ONLY to the DEFAULT-tenant admin role
+(`permissions-seed.ts` and(name='admin', tenantId=DEFAULT) — verified at HEAD); its
+isSystem stamp is deliberately global. Tenant admin roles = moat + 9-code ceiling.
+Pin test: bootstrap-bound role holds exactly 9 codes even after a selfHealSeed run.
 
 ### D4: `/auth/me` tenant exposure
 
-Add `tenantId` (from the user row / request.tenantId) and `tenantName` (single
-`tenantManager.findById` lookup, cached-path negligible) to the /me data payload.
-Frontend `MeResponse` type gains both; `<AppLayout>` top-bar renders tenant name
-as a small Tag next to the user dropdown only when `tenantName` differs from
-'Default' (platform admins stay visually uncluttered; tenant admins always know
-where they are). i18n: reuse existing common keys if present, else one new key.
+Add `tenantId` (user row; findById already tenant-scoped) and `tenantName` via the
+EXISTING lazy `getTenantManager()` singleton in auth.ts (B7b — never per-request
+`new TenantManager()`: pool accumulation precedent documented in permission.ts).
+`TenantManager.findById` is an UNCACHED PK SELECT: cost = +1 SELECT per /me —
+acceptable, no cache added (ponytail: add tenant cache if /me ever shows up in a
+slow query). Lookup failure short-circuits `tenantName: undefined` (batch G readonly
+pattern; /me must never 500 on tenant row absence). No response schema on /me →
+no fast-json-stringify strip risk (verified; batch E trap not applicable).
+Frontend: MeResponse gains both; top-bar Tag renders when `tenantId !== DEFAULT_TENANT`
+(new frontend constant, NOT a name-string compare); locales one key.
 
-### D5: Tenants page (`pages/Tenants.tsx`) + api layer
+### D5: Tenants page + api layer
 
-Clients.tsx/ApiKeys.tsx five-piece precedent (list + search + create modal +
-row actions + delete-confirm). Columns: name / slug / status Tag / users hint /
-created / actions. Row actions:
+Five-piece precedent (Clients/ApiKeys) + K-T3 LockOutlined for the default-tenant row.
+Columns: name / slug / status Tag / createdAt / actions (NO users-hint column — no
+backing endpoint, R9a). Actions: Init admin modal (email/name/password + policy hints,
+200-replay and 409 EMAIL_EXISTS surfaced inline per UserCreate precedent), Edit
+name/slug, Suspend/Activate, soft Delete (confirm states suspend semantics). Row-action
+gates via `useAuthStore((s) => s.hasPermission)` (R9c — the real hook; no usePermission
+exists). Default-row detection: id literal constant mirroring backend keep-list.
+api/tenants.ts: createTenant/updateTenant/deleteTenant/bootstrapTenant.
+Route/menu: `tenants` under `PrivateRoute permission="tenants:read"`, TeamOutlined.
 
-- **Init admin** (bootstrap modal: email/name/password + policy hints — reuse the
-  UserCreate password-hint component pattern): shown for all non-default active
-  tenants; after success → success toast + action becomes hidden-on-next-load? No
-  state tracking: always show (re-invoke is a clean 409 EMAIL_EXISTS if already
-  done; the modal makes retrying cheap and G5 dead-island repair explicit).
-- **Edit name/slug** (PUT; default-tenant row renders edit/delete DISABLED —
-  TENANT_PROTECTED 409 already backend-side, mirror batch K Lock precedent).
-- **Suspend / Activate** (PUT status). Suspend of a tenant with users = allowed
-  (login-side pending/suspended gates were wired in batch A/G).
-- **Delete** (soft = suspend; keep both? ONE action row: Delete → confirm →
-  DELETE endpoint (suspends). Suspend/Activate is the status control; Delete is
-  kept as-is from API but UI shows only non-default rows. ponytail: same
-  semantics today, drop Delete button if it confuses — keep, zero extra cost).
+### D6: RBAC tails — on a FIXED primitive (X3)
 
-Default tenant row: visible, all destructive actions locked (isDefault detection =
-id === '00000000-0000-0000-0000-000000000001' literal via new frontend constant,
-mirrors backend keep-list; comment links conventions).
-
-Routes/menu: `<Route path="tenants" element={<PrivateRoute permission="tenants:read">...` +
-menu item with TeamOutlined (batch C menu pattern). api/tenants.ts gains
-createTenant/updateTenant/deleteTenant/bootstrapTenant.
-
-### D6: RBAC tails (G4)
-
-- roles PUT schema adds `parentId: { type: 'string', format: 'uuid', nullable }`;
-  handler: when `parentId !== undefined` call `roleManager.setParent(id, parentId,
-  tenant)` AFTER the field update (setParent already validates same-tenant + cycle;
-  ROLE_PROTECTED/LAST_ADMIN tags flow through sendConflictError unchanged).
-  K-T2 immutability: setParent on an isSystem role throws ROLE_PROTECTED — parent
-  selector therefore disabled for admin rows (matches batch K T3 UI lock precedent).
-- Roles.tsx create/edit modal: parent Select (options = current tenant roles minus
-  self; fetch reuse of existing roles list state — zero new endpoint).
-- Roles.tsx list: permissions count column = `record.permissions?.length ?? 0`
-  (findAll already batch-resolves `permissions[]` — batch B achievement). No
-  backend change.
+- **identity RoleManager cycle check is broken and gets fixed IN THIS BATCH**:
+  `checkInheritanceCycle` never receives roleId → neither self-parent (A→A) nor
+  mutual (A→B→A after A→B exists) cycles are detected; it only detects pre-existing
+  cycles in the ancestor chain. Rewrite: walk ancestors from proposed parent; if
+  `current === roleId` → cycle; direct `parentId === roleId` → reject; keep the
+  same-tenant parent check. Tests: self RED, mutual RED, deep-chain green.
+- setParent gains the isSystem guard → `ROLE_PROTECTED` (manager-funnel discipline;
+  today only update() has it — spec v1's claim was wrong at the manager level).
+- roles PUT wiring: body `parentId?: string | null`; when present call setParent
+  FIRST (all validation before any write — v1's update-then-setParent ordered a
+  partial-write on cycle rejection), then update() for field changes.
+- Roles.tsx: parent Select (current tenant roles minus self, reuses list state —
+  zero new endpoint); isSystem rows already UI-locked (K-T3) and now manager-locked.
+- Count column: `record.permissions?.length ?? 0` (findAll batch-resolves
+  `permissions[]` — verified). Zero backend change.
+- T5 owns `packages/identity` + dist-rebuild note (`pnpm --filter @accessbase/identity
+  build` before server typecheck — dist-sync convention).
 
 ## 5. Success criteria
 
-1. `POST /v1/tenants/:id/bootstrap` happy path: 201; tenant now has role admin
-   (isSystem stamped at next selfHeal, or immediately via direct bind) + 1 user +
-   11 rolePermissions rows; that user can log in and `/auth/me` shows tenantId +
-   tenantName + exactly the 11 tenant codes (NOT tenants:*/options:*/clients:*/
-   permissions:write/delete).
-2. Bootstrap guards: default tenant → 409; suspended tenant → 409; duplicate email
-   → 409; weak password → 400 policy envelope; non-default-tenant caller → 403
-   (route-level 403 via missing code + handler-level belt).
-3. Tenants page: platform admin (tenants:read) sees list; create → init-admin modal
-   → login as new tenant admin → tenants/options/clients menu entries + routes
-   absent (no codes); /403 reachable on direct URL.
-4. Tenant admin can manage their own users/roles end-to-end (users list scoped to
-   their tenant via claim — batch G path, assert no regression).
-5. Roles list shows permission count; parent selector persists parentId; PUT with
-   parentId cycle/self → 409; ROLE_PROTECTED admin row cannot get a parent.
-6. `/me` shape change is additive (old consumers unaffected); frontend
-   auth-store/e2e mocks updated accordingly.
-7. Gates: vitest (new: bootstrap route suite + seed partition unit + me fields +
-   roles PUT parentId), root+admin tsc, eslint changed-surface 0 error,
-   e2e +6..8 mock-route tests green at workers=1, no regression on the 126.
+1. Bootstrap happy path: 201; tenant has admin role (isSystem=true immediately,
+   asserted), exactly **9** rolePermissions rows, one user holding it; that user
+   logs in; `/auth/me` shows tenantId + tenantName + the 9 codes and none of the 12.
+2. Guards: belt-first ordering (non-platform caller cannot distinguish 404/409 —
+   always 403); default target → 409; suspended → 409; email taken-elsewhere → 409;
+   weak password → 400 policy envelope; strict-bind failure → NOT a 201 (test seam:
+   bind throws → route surfaces 5xx and creates NO user? — user creation happens
+   AFTER bind, so nothing to roll back; assert order); same-email post-assign retry →
+   200 `alreadyBootstrapped`.
+3. **Escalation RED (X1)**: as tenant admin — GET /permissions → POST /roles binding
+   any platform code → 409; PUT /roles replacing bindings with platform code → 409;
+   assigned-role path unaffected. As tenant `'*'`-scope API key (constructed via
+   direct row insert in test): tenants POST/PUT/DELETE + bootstrap → 403 despite
+   gate pass.
+4. force-logout tenant scoping: tenant admin revoking a DEFAULT-tenant user id → 404
+   (B5); same-tenant id → works.
+5. Tenants page E2E (mock): list/create/init-admin modal 201+replay-200/suspend/
+   default-row locked/409 inline; platform admin sees menu, tenant admin doesn't;
+   /403 reachable.
+6. Roles: count column renders; parent Select persists parentId; self-parent → 409;
+   mutual A→B then B→A → 409; isSystem row parent edit → 409 (manager guard) AND
+   UI-locked.
+7. `/me` additive; e2e GlobalGuard mock families updated in-T3; tenant singleton used.
+8. Gates: vitest (+~30: partition invariant, funnel RED×2, bootstrap matrix,
+   cycle self/mutual, me fields, roles wiring), root+admin tsc, identity rebuild,
+   eslint changed-surface 0 error, e2e workers=1 +8~10 green atop 126, coverage PASS,
+   `no_proxy` export per PIT-031 in all test invocations.
 
-## 6. Risk ledger (for reviewers)
+## 6. Absorption status of review findings
 
-- R-A: 21→(11+10) partition drift — both lists must always union to BUILTIN_PERMISSIONS;
-  unit test asserts partition invariant (no overlap, union = 21).
-- R-B (RESOLVED at spec time; pin with a test): ensureSeedForAdmin binds the 21-code seed ONLY to
-  the default-tenant admin role (`and(name='admin', tenantId=DEFAULT_TENANT)` — verified at HEAD),
-  while the isSystem stamp is deliberately global (moat for every tenant's admin). Tenant admin
-  roles never receive platform codes. Pin: test that a bootstrap-bound tenant role holds exactly 11
-  codes even after a selfHealSeed run.
-- R-C (RESOLVED at spec time): audit logger redactFields recursively redacts `password`
-  (packages/audit/types.ts redact field list) — bootstrap request bodies never persist secrets.
-- R-D: e2e GlobalGuard/auth mocks need the extended /me fields; batch-G precedent
-  "readonly column + failure-cache short-circuit" for tenant lookup in /me must not
-  crash when tenants row absent (tenant deleted? soft-delete only; row exists).
-- R-E: apikey-authenticated callers on tenant routes — requirePermission apikey
-  branch + scopes (batch H): bootstrap via API key requires tenants:write scope AND
-  now also request.tenantId from the key row — a tenant-scoped key must be default
-  tenant to bootstrap. Assert both branches in tests.
-- R-F: password policy function call site parity with users POST (batch C 5-dim,
-  options-driven) — reuse exactly; no inline literal copy.
+X1 D1a · X2 D1 · X3 D6 · X4 D2/7 · R2 D2/5 · R4 D2/4 · R6 D6 · R7 D2/6 · R8 D1/R-E note ·
+B3 D2 belt extension · B5 criterion 4 · B6 D2/6 · B7a D2 order · B7b D4 · R9a-d D5/T6/plan ·
+R10 plan citations · error-code pin D2 table. Deferred (documented, non-blocking):
+§3 manager-level setUserRoles validation; 15-min token residual; SCIM per-tenant keys.
