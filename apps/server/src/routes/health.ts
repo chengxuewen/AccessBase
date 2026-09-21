@@ -1,8 +1,33 @@
 import type { FastifyInstance } from 'fastify';
+import { sql } from 'drizzle-orm';
+import { createDb, closeDb, type DrizzleDB } from '@accessbase/identity/db';
 import { config } from '../config.js';
 import { getRedis } from '../utils/redis.js';
 
+/**
+ * L-M D1: ONE readiness pool per process, memoized through a promise so two
+ * concurrent first probes cannot double-createDb (the async-import race the
+ * per-request createDb had). onClose ENDS the pool and RESETS both refs so a
+ * later buildApp() (vitest same-file rebuild) gets a fresh pool instead of an
+ * ended one. Creation/connection failures keep the historical 'down' shape.
+ */
+let readyDb: DrizzleDB | undefined;
+let readyDbP: Promise<DrizzleDB> | undefined;
+function getReadyDb(): Promise<DrizzleDB> {
+  readyDbP ??= Promise.resolve(createDb(config.databaseUrl)).then((db) => {
+    readyDb = db;
+    return db;
+  });
+  return readyDbP;
+}
+
 export async function healthRoutes(app: FastifyInstance) {
+  app.addHook('onClose', async () => {
+    if (readyDb) await closeDb(readyDb);
+    readyDb = undefined;
+    readyDbP = undefined;
+  });
+
   // GET /health/live — Liveness probe (is the process alive?)
   app.get(
     '/live',
@@ -62,16 +87,13 @@ export async function healthRoutes(app: FastifyInstance) {
         }
       }
 
-      const dbStatus = await (async () => {
-        try {
-          const { createDb } = await import('@accessbase/identity/db');
-          const { sql } = await import('drizzle-orm');
-          await createDb(config.databaseUrl).execute(sql`SELECT 1`);
-          return 'ok';
-        } catch {
-          return 'down';
-        }
-      })();
+      let dbStatus = 'down';
+      try {
+        await (await getReadyDb()).execute(sql`SELECT 1`);
+        dbStatus = 'ok';
+      } catch {
+        dbStatus = 'down';
+      }
 
       const checks = {
         database: dbStatus,

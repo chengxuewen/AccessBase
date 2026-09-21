@@ -46,6 +46,7 @@ vi.mock('@accessbase/identity/db', () => ({
       }),
     })),
   })),
+  closeDb: vi.fn().mockResolvedValue(undefined),
   users: {},
   userRoles: {},
   roles: {},
