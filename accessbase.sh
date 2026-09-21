@@ -19,6 +19,8 @@ Development:
   dev:native       Native dev (Pixi-managed PG + Redis + backend + frontend)
   start:native     Start native infra only (PG + Redis)
   stop:native      Stop all native services
+  backup             Back up the database (pg_dump -Fc, retention; see backup --help)
+  restore <file>     Restore a dump (identity-echo + confirmation guards; --force live-target)
   reset:native     Reset native data and reinitialize
   status:native    Show native service status
   start:compose    Start compose infrastructure only
@@ -288,6 +290,15 @@ cmd_stop_native() {
     bash "${SCRIPT_DIR}/scripts/native/pg-stop.sh"
     bash "${SCRIPT_DIR}/scripts/native/redis-stop.sh"
     log_ok "Native services stopped"
+}
+
+# --- Ops backup/restore (batch M D3) ---
+cmd_backup() {
+    bash "${SCRIPT_DIR}/scripts/backup.sh" "$@"
+}
+
+cmd_restore() {
+    bash "${SCRIPT_DIR}/scripts/restore.sh" "$@"
 }
 
 cmd_reset_native() {
@@ -797,6 +808,8 @@ case "${1:-}" in
     start:native)   cmd_start_native ;;
     stop:native)    cmd_stop_native ;;
     reset:native)   cmd_reset_native ;;
+    backup)         shift; cmd_backup "$@" ;;
+    restore)        shift; cmd_restore "$@" ;;
     status:native)  cmd_status_native ;;
     # Compose commands
     start:compose)  cmd_start_compose ;;
