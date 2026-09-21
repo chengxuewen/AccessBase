@@ -53,7 +53,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 - **Testing**: Vitest (unit) + Playwright (E2E), ≥80% coverage
 - **E2E**: Mock API by default; real backend for setup/init tests; each test independent data
 - **Migration**: Drizzle ORM, 3-phase (preload/postsync/postload)
-- **Language**: English for commit messages, code comments and design/decision docs; Chinese for plans and AI conversation
+- **Language**: English for EVERYTHING persisted (commits, comments, all docs incl. plans, memory, skills, rules); Chinese only in live AI-agent conversation (2026-09-21 policy, conventions.md)
 
 ## ANTI-PATTERNS (THIS PROJECT)
 

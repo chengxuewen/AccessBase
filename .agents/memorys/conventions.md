@@ -186,13 +186,16 @@ logger.error('Operation failed', error); // ❌
 - dev 环境跑 MFA 端点需 `MFA_ENCRYPTION_KEY`（32-byte hex）：现仓库脚本/accessbase.sh/.env.example 均未透传此变量，缺失时 mfa/setup 返回 400 AUTH_MFA_002（批三 TOTP 面板接线前需补运维配置）
 - `buildApp()` 工厂**禁止启动副作用**（DB 拨号/seed/定时器）：自愈 seed 只挂 `index.ts` 入口（`selfHealSeed` fire-and-forget，双层吞）。带 auditStorage 注入的测试曾因工厂内自愈向真 PG 拨号产生 FATAL 噪声与 flake（回归锁：route-guard.test 静态断言）。检查：`grep -n "permissions-seed\|ensureSeedForAdmin\|selfHealSeed" apps/server/src/app.ts` 应零命中
 
-## 语言约束（2026-09-10 用户指令，硬约束）
+## Language policy (2026-09-21 user directive, HARD CONSTRAINT — supersedes 2026-09-10)
 
-- 提交信息 / 代码注释 / 架构与设计文档（docs/modules、decisions.md 新增条目）：英文
-- 计划（docs/superpowers/plans、.omo/plans）与 AI 对话/报告：中文
-- 既有中文记忆文件（status/pitfalls/conventions）追加沿用中文体例；decisions.md 自 D116 起英文
-- 检查命令：提交后 `git log -1 --format='%s %b' | grep -P '[\x{4e00}-\x{9fa5}]'` 应无输出（新规后适用；历史中文提交不回改）
-- 新增代码注释扫描：`grep -rnP '^\s*//.*[\x{4e00}-\x{9fa5}]' apps/admin-ui/src packages/*/src --include='*.ts' --include='*.tsx' | grep -v locales` 应零新增
+- **English is mandatory for everything persisted**: commit messages, code comments, all markdown documents (architecture docs, specs, PLANS, execution records, reports), memory files (status/pitfalls/conventions/decisions), skills (.agents/skills/**/SKILL.md), and rules (.agents/rules/**).
+- **Chinese is allowed ONLY in live AI-agent conversation** (chat replies, clarification questions, interactive reports to the user). Anything written to disk is English.
+- **No back-translation**: pre-existing Chinese content (history commits, older memory entries, Chinese sections of skills/rules) stays as-is; the policy governs NEW writes only. Do not "clean up" legacy files into English unless the user explicitly asks.
+- New memory entries after this line are written in English.
+- Checks (run on every commit):
+  - `git log -1 --format='%s %b' | grep -P '[\x{4e00}-\x{9fa5}]'` → empty (CJK-free commits)
+  - `grep -rnP '^\s*//.*[\x{4e00}-\x{9fa5}]' apps packages --include='*.ts' --include='*.tsx' | grep -v locales | grep -v __tests__` → zero NEW lines vs baseline
+  - New-file CJK scan (docs/skills/rules): `git diff HEAD~1 --name-only HEAD | xargs grep -lP '[\x{4e00}-\x{9fa5}]' 2>/dev/null` → empty for files created after 2026-09-21 (legacy edits exempted by touch-lines, not by file)
 
 ## R3 收敛 keep-list 记录（2026-09-16）
 
