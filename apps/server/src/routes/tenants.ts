@@ -296,20 +296,36 @@ export async function tenantRoutes(app: FastifyInstance) {
             },
           });
         }
-        // 4. email is globally unique; same-tenant holder = R4 convergence arm
+        // 4. email is globally unique. Same-tenant holder converges ONLY when it
+        // already HOLDS the tenant admin role (L″ D1: a plain same-tenant user
+        // must not be silently promoted); otherwise ordinary conflict.
         const existingUser = await userManager.findByEmail(email);
-        if (existingUser && existingUser.tenantId !== id) {
-          return reply.status(409).send({
-            success: false,
-            error: {
-              code: 'EMAIL_EXISTS',
-              message: 'Email already registered in another tenant',
-            },
-          });
+        let replayArm = false;
+        if (existingUser) {
+          if (existingUser.tenantId !== id) {
+            return reply.status(409).send({
+              success: false,
+              error: {
+                code: 'EMAIL_EXISTS',
+                message: 'Email already registered in another tenant',
+              },
+            });
+          }
+          const held = await roleManager.getUserRoles(existingUser.id, id);
+          replayArm = held.some((r) => r.name === 'admin');
+          if (!replayArm) {
+            return reply.status(409).send({
+              success: false,
+              error: {
+                code: 'EMAIL_EXISTS',
+                message: 'Email already registered in this tenant without admin role',
+              },
+            });
+          }
         }
         // 5. password policy at the ROUTE layer via the dedicated user_create
         // callsite (R2/G-3); the replay arm mints no credential and skips it.
-        if (!existingUser) {
+        if (!replayArm) {
           const om = getOptionsManager();
           const policy = await readPasswordPolicy(om.get.bind(om), 'user_create');
           const pw = assertPasswordPolicy(password, policy);
@@ -321,9 +337,8 @@ export async function tenantRoutes(app: FastifyInstance) {
           }
         }
         // 6. role find-or-create (create() IS find-or-create on (name,tenantId))
-        // + UNCONDITIONAL idempotent isSystem stamp: create() carries isSystem
-        // only for NEW rows; a pre-existing non-system 'admin' must still enter
-        // the moat before its sole holder can self-lockout (B6).
+        // + UNCONDITIONAL idempotent isSystem stamp (B6 window) — replay converges
+        // a half-failed first attempt through these same idempotent steps.
         const adminRole = await roleManager.create(
           { name: 'admin', description: 'Tenant administrator', isSystem: true },
           id,
@@ -335,20 +350,21 @@ export async function tenantRoutes(app: FastifyInstance) {
         // 7. STRICT bind — shortfall throws (never a 201 with silent 0 bindings, X4)
         await bindPermissions(getSeedDb(), adminRole.id, TENANT_BINDABLE_PERMISSIONS);
         // 8. fresh-path user create AFTER the bind can no longer fail
-        const userId = existingUser
+        const userId = replayArm && existingUser
           ? existingUser.id
           : (await userManager.create({ email, name: name ?? email, password }, id)).id;
         // 9. membership (conflict-safe since T1 onConflictDoNothing — replays converge)
         await roleManager.assignToUser(userId, adminRole.id, id);
-        return reply.status(existingUser ? 200 : 201).send({
+        return reply.status(replayArm ? 200 : 201).send({
           success: true,
           data: {
             userId,
             roleId: adminRole.id,
             tenantId: id,
-            alreadyBootstrapped: Boolean(existingUser),
+            alreadyBootstrapped: replayArm,
           },
         });
+
       } catch (err) {
         return sendTenantError(reply, err);
       }

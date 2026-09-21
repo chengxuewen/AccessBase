@@ -35,6 +35,7 @@ const mockAssign = vi.fn().mockResolvedValue(undefined);
 const mockUserCreate = vi.fn().mockResolvedValue({ id: 'user-1', email: 'root@acme.test' });
 const mockHasPermission = vi.fn().mockResolvedValue(true);
 const mockBindPermissions = vi.fn().mockResolvedValue(undefined);
+const mockGetUserRoles = vi.fn().mockResolvedValue([{ id: 'role-admin-1', name: 'admin' }]);
 
 // The setup-guard fast-path looks up the configured platform admin on EVERY
 // request (queryAdminExists). Route that email to a truthy user so the guard
@@ -98,7 +99,11 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
   RoleManager: vi.fn().mockImplementation(() => ({
     create: mockRoleCreate,
     assignToUser: mockAssign,
+    // L″ D1: replay arm hinges on admin membership; default = holder HAS the
+    // admin role (the replay cases below). Plain-user test overrides once.
+    getUserRoles: mockGetUserRoles,
   })),
+  
   PermissionManager: vi.fn().mockImplementation(() => ({
     hasPermission: mockHasPermission,
   })),
@@ -145,6 +150,8 @@ function resetMocks() {
   mockAssign.mockClear();
   mockUserCreate.mockClear().mockResolvedValue({ id: 'user-1', email: 'root@acme.test' });
   mockBindPermissions.mockClear().mockResolvedValue(undefined);
+  fakeSeedDb.update.mockClear();
+  mockGetUserRoles.mockClear().mockResolvedValue([{ id: 'role-admin-1', name: 'admin' }]);
   fakeSeedDb.update.mockClear();
 }
 
@@ -319,6 +326,28 @@ describe('POST bootstrap — idempotent replay arm (R4)', () => {
       payload: { email: 'root@acme.test', password: 'x' },
     });
     expect(res.statusCode).toBe(200);
+  });
+});
+
+// L″ D1: same-tenant email that does NOT hold the admin role is an ordinary
+// conflict — the bootstrap must never silently promote a plain user.
+describe('POST bootstrap — plain same-tenant user is not promoted (L″ D1)', () => {
+  it('same-tenant email WITHOUT admin membership → 409 EMAIL_EXISTS, zero writes', async () => {
+    resetMocks();
+    emailLookup = () =>
+      Promise.resolve({ id: 'u-plain', email: 'root@acme.test', tenantId: ACME_ID });
+    mockGetUserRoles.mockResolvedValue([]);
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/tenants/${ACME_ID}/bootstrap`,
+      headers: auth(platformToken),
+      payload: { email: 'root@acme.test', password: GOOD_PW },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe('EMAIL_EXISTS');
+    expect(mockBindPermissions).not.toHaveBeenCalled();
+    expect(mockAssign).not.toHaveBeenCalled();
+    expect(mockUserCreate).not.toHaveBeenCalled();
   });
 });
 
