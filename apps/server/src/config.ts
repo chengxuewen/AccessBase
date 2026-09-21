@@ -13,6 +13,8 @@ export interface AppConfig {
   adminEmail: string;
   corsOrigins: string;
   mfaEncryptionKey: string;
+  /** L-M D2: optional Bearer token guarding GET /metrics (empty = open scrape; prod-without-token gets a boot WARN). */
+  metricsToken: string;
   lockoutMaxFailures: number;
   lockoutWindowSeconds: number;
   oauth: {
@@ -70,6 +72,7 @@ export const config: AppConfig = {
   adminEmail: process.env['ADMIN_EMAIL'] || '',
   corsOrigins: requireCorsOrigins(process.env),
   mfaEncryptionKey: process.env['MFA_ENCRYPTION_KEY'] || '',
+  metricsToken: process.env['METRICS_TOKEN'] || '',
   lockoutMaxFailures: Number(process.env['LOCKOUT_MAX_FAILURES'] || '5'),
   lockoutWindowSeconds: Number(process.env['LOCKOUT_WINDOW_SECONDS'] || '900'),
   oauth: {
@@ -127,6 +130,12 @@ export function warnDegradedChecks(env: NodeJS.ProcessEnv, isProd: boolean): str
   if (isProd && (!env['WEBAUTHN_ORIGIN'] || env['WEBAUTHN_ORIGIN'].includes('localhost'))) {
     lines.push(
       'WEBAUTHN_ORIGIN unset or localhost in production — passkey login will fail for real origins',
+    );
+  }
+
+  if (isProd && !env['METRICS_TOKEN']) {
+    lines.push(
+      'METRICS_TOKEN not set in production — /metrics exposes process + route-pattern metrics unauthenticated (intranet-only placement or set a token)',
     );
   }
 

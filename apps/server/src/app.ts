@@ -15,6 +15,7 @@ import { permissionRoutes } from './routes/permissions.js';
 import { auditRoutes } from './routes/audit.js';
 import { statsRoutes } from './routes/stats.js';
 import { healthRoutes } from './routes/health.js';
+import { metricsRoutes } from './routes/metrics.js';
 import { setupRoutes } from './routes/setup.js';
 import { setupGuard } from './middleware/setup-guard.js';
 import { oauthRoutes } from './routes/oauth.js';
@@ -289,6 +290,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
 
   // --- Routes ---
   await app.register(healthRoutes, { prefix: '/health' });
+  // L-M D2: root-level /metrics. Registered AFTER the OIDC hijack hook so
+  // hijacked /oidc replies (which skip onResponse) never touch in-flight
+  // accounting — documented blind spot, see routes/metrics.ts.
+  await app.register(metricsRoutes);
   await app.register(setupRoutes, { prefix: '/api/v1/setup' });
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
   await app.register(userRoutes, { prefix: '/api/v1/users' });

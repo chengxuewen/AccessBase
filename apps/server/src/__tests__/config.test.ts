@@ -55,7 +55,7 @@ describe('config corsOrigins', () => {
 describe('warnDegradedChecks (L-T4 / spec D5: pure, env-only, options qualifiers)', () => {
   it('production with empty env reports all five degrade lines with options-table qualifiers', () => {
     const lines = warnDegradedChecks({}, true);
-    expect(lines).toHaveLength(5);
+    expect(lines).toHaveLength(6);
     expect(lines.some((l) => /MFA_ENCRYPTION_KEY/.test(l) && /env-only/.test(l))).toBe(true);
     expect(lines.some((l) => /SMTP_HOST/.test(l) && /options-configured/.test(l))).toBe(true);
     expect(
@@ -63,6 +63,16 @@ describe('warnDegradedChecks (L-T4 / spec D5: pure, env-only, options qualifiers
     ).toBe(true);
     expect(lines.some((l) => /WEBAUTHN_ORIGIN/.test(l))).toBe(true);
     expect(lines.some((l) => /SITE_URL/.test(l) && /request host/.test(l))).toBe(true);
+    expect(lines.some((l) => /METRICS_TOKEN/.test(l) && /route-pattern/.test(l))).toBe(true);
+  });
+
+  it('METRICS_TOKEN warn is prod-only and disappears with a token set (L-M D2)', () => {
+    const prodOpen = warnDegradedChecks({ METRICS_TOKEN: '' }, true);
+    expect(prodOpen.some((l) => /METRICS_TOKEN/.test(l))).toBe(true);
+    const prodGated = warnDegradedChecks({ METRICS_TOKEN: 't' }, true);
+    expect(prodGated.some((l) => /METRICS_TOKEN/.test(l))).toBe(false);
+    const dev = warnDegradedChecks({}, false);
+    expect(dev.some((l) => /METRICS_TOKEN/.test(l))).toBe(false);
   });
 
   it('production fully configured via env reports nothing', () => {
@@ -73,6 +83,7 @@ describe('warnDegradedChecks (L-T4 / spec D5: pure, env-only, options qualifiers
         GITHUB_CLIENT_ID: 'client-id',
         GITHUB_CLIENT_SECRET: 'client-secret',
         WEBAUTHN_ORIGIN: 'https://app.example.com',
+        METRICS_TOKEN: 'a-token',
         SITE_URL: 'https://app.example.com',
       },
       true,

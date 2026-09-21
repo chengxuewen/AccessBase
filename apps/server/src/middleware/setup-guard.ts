@@ -14,6 +14,7 @@ const ALLOWED_PATHS = [
   '/api/v1/setup/status',
   '/api/v1/setup/checks',
   '/health',
+  '/metrics', // L-M D2: scrape must not pay the admin-census DB roundtrip (nor be gated pre-setup)
   '/docs',
   '/',           // Frontend entry point (exact match only)
   '/index.html', // Direct index access
