@@ -61,6 +61,7 @@ function loadJwks(opts: BuildOidcProviderOptions): JwkSet | undefined {
 export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise<{
   provider: Provider;
   oidcHandler: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void>;
+  stopSweeper: () => void;
 }> {
   const jwks = loadJwks(opts);
 
@@ -81,7 +82,7 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
     findByUserCode: (userCode: string) => adapterInstance.findByUserCode(kind, userCode),
     destroy: (id: string) => adapterInstance.destroy(kind, id),
     consume: (id: string) => adapterInstance.consume(kind, id),
-    revokeByGrantId: (grantId: string) => adapterInstance.revokeByGrantId(grantId),
+    revokeByGrantId: (grantId: string) => adapterInstance.revokeByGrantId(kind, grantId),
   });
   const frontendOrigin = opts.frontendOrigin ?? 'http://localhost:5173';
 
@@ -138,5 +139,14 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
   // B1/B2: callback() is a Koa factory — build the http handler ONCE.
   const oidcHandler = provider.callback();
 
-  return { provider, oidcHandler };
+  // Batch N D2: expired-state sweeper. unref() so an idle process still exits
+  // (tests build apps freely); sweepExpired swallows its own errors — a DB
+  // blip must never reach the L-T3 uncaughtException exit path. stop() is
+  // wired to app.onClose by the caller.
+  const sweepTimer = setInterval(() => {
+    void adapterInstance.sweepExpired();
+  }, 5 * 60 * 1000);
+  sweepTimer.unref();
+
+  return { provider, oidcHandler, stopSweeper: () => clearInterval(sweepTimer) };
 }

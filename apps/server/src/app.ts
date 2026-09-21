@@ -206,7 +206,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // DB round-trip entirely (the provider's adapter dials PG only when a
   // flow actually needs a Client/Grant lookup).
   const { createDb } = await import('@accessbase/identity/db');
-  const { provider: oidcProvider, oidcHandler } = await buildOidcProvider({
+  const { provider: oidcProvider, oidcHandler, stopSweeper } = await buildOidcProvider({
     issuer: `${config.oauthRedirectBase}/oidc`,
     jwtSecret: config.jwtSecret,
     nodeEnv: config.nodeEnv,
@@ -215,6 +215,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
     adapterCtorArgs: [createDb(config.databaseUrl)],
     frontendOrigin: config.frontendOrigin,
   });
+  // Batch N: stop the adapter sweeper on graceful close.
+  app.addHook('onClose', async () => stopSweeper());
   app.addHook('onRequest', (req, reply, done) => {
     // Interaction contract endpoints (Task 4c) are real Fastify routes — they
     // need body parsing + bearer auth, so they bypass the provider hijack.

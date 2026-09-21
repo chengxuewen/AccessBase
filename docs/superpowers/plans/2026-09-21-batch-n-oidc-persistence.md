@@ -11,7 +11,7 @@
 - 出口：db:push 到 scratch 验证 + migrate.sh 链可应用（本地 PG）。
 
 ### N-T2 — adapter 重写（spec D2）
-- PG 全 kind（除 Client）；memory Map 删除；派生列计算（userCode lower）；upsert ON CONFLICT；find/consume TTL；consume=DELETE RETURNING；findByUid/ByUserCode/destroy/revokeByGrantId；5min sweep（unref + app.onClose clearInterval——sweep 注册移到 app 装配处或 adapter 暴露 start/stop）。
+- PG 全 kind（除 Client）；memory Map 删除；派生列计算（userCode lower；uid 仅 Session）；upsert ON CONFLICT；find 不做 TTL 读过滤（B6 记录 lazy 清理偏差）；consume=UPDATE jsonb_set 标记（非删除，v9 内存适配器对等=重放检测保命）；findByUid/ByUserCode 带 kind；revokeByGrantId(kind,grantId)（B1：kind-blind 会杀在飞 Interaction）；5min sweep（unref + stopSweeper→app.onClose）。
 - jsonb 往返陷阱双保：读侧 `typeof payload === 'string' ? JSON.parse : payload` 防御（PIT jsonb 家族）+ 测试钉对象形。
 - 文件面：apps/server/src/oidc/adapter.ts + app.ts（sweep 生命周期）+ provider.ts（若 sweep 装配在 provider 构建处）。
 

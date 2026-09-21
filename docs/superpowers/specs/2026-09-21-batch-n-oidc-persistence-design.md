@@ -57,15 +57,18 @@ payload     jsonb       NOT NULL
 uid         text NULL                        -- derived payload.uid
 user_code   text NULL                        -- derived payload.userCode (lower-cased)
 grant_id    text NULL                        -- derived payload.grantId
-not_after   timestamp(tz) NULL               -- NULL = provider gave no expiry (rare)
+not_after   timestamp(tz) NULL               -- NULL = no expiresIn passed. Only DISABLED-feature
+  kinds (PAR/InitialAccessToken) lack one; every ENABLED kind passes a number
+  (Interaction.save throws otherwise — B8). 0 must store now(), NOT NULL.
 created_at / updated_at defaults
 PK (kind, id)
 ```
 Indexes: `(kind, user_code)` partial WHERE user_code IS NOT NULL;
 `(kind, uid)` partial; `grant_id` plain; `not_after` plain (sweep).
-`payload` stores the EXACT object oidc-provider passed (it self-describes with
-`$i`/`$j` marker fields when referencing other models — find() must return it
-verbatim; provider does the re-hydration). No field re-mapping at all —
+`payload` stores the EXACT object oidc-provider passed (cross-model refs are plain
+string fields — grantId/sid/uid; the earlier `$i`/`$j` marker claim was FICTION,
+grep of oidc-provider@9.12.2 finds none — B8). find() must return it
+verbatim; provider does the re-hydration. No field re-mapping at all —
 the whole round-trip problem reduces to: store JSON, return JSON, honor TTL.
 
 ### D2: adapter rewrite (apps/server/src/oidc/adapter.ts)
@@ -73,7 +76,7 @@ the whole round-trip problem reduces to: store JSON, return JSON, honor TTL.
 - upsert(kind,id,payload,expiresInSeconds): derive columns from payload
   (uid/userCode.toLowerCase()/grantId), `INSERT … ON CONFLICT (kind,id) DO
   UPDATE SET payload/excluded…, not_after = now() + make_interval(secs => n)`;
-  expiresInSeconds absent/0 ⇒ not_after NULL. n = expiresIn + clockTolerance
+  expiresInSeconds absent ⇒ not_after NULL; 0 ⇒ now() (expired, NOT immortal). n = expiresIn + clockTolerance
   (official storageOptions formula; provider clockTolerance unset ⇒ 0 — if a
   future config sets it, the shim must pass it through).
 - find / consume: `SELECT` filter `not_after > now() OR is null`; **consume =
@@ -109,15 +112,15 @@ endpoints* unchanged.
 ### D4: test matrix (vitest, fake-db chain fidelity per PIT lesson: mocks must
 honor both keys kind+id)
 
-1. upsert→find round-trip verbatim payload (incl. `$i`-style refs untouched).
+1. upsert→find round-trip verbatim payload (key-order/case untouched).
 2. TTL: not_after past ⇒ find undefined + row deleted; consume returns-then-
    deletes; consume-after-expiry → undefined.
-3. consume atomicity: single statement shape (assert SQL text contains
-   'delete' + 'returning' via query-capture mock).
+3. consume = UPDATE-mark via jsonb_set (assert UPDATE ran, DELETE did not —
+   memory-adapter parity; replay defense reads the marker).
 4. findByUserCode case-insensitive (stored lowered, lookup lowered).
-5. revokeByGrantId kills Session+AccessToken+RefreshToken rows across kinds,
-   leaves Grant row? (provider deletes Grant itself; revokeByGrantId targets
-   tokens — mirror official adapter behavior).
+5. revokeByGrantId is KIND-SCOPED (review B1; official grantable set excludes
+   Session/Interaction): kills only (kind, grant_id) rows; in-flight Interaction
+   and the Grant row survive. 'across kinds' v1 wording retracted.
 6. Client upsert still throws; Client find still manager-path.
 7. sweep clears expired (fake timers) + unref + onClose clears interval.
 8. restart-simulation: NEW OidcAdapter instance over the SAME fake db store →
@@ -141,9 +144,9 @@ honor both keys kind+id)
 
 ## Risk ledger (reviewers)
 
-- jsonb key-order loss — provider markers `$i`/`$j` are plain keys; verify
-  oidc-provider v7 (installed version — CONFIRM) re-hydration tolerates key
-  reordering (jsonb normalizes). If it doesn't: json (text) payload column.
+- Installed version **9.12.2** (v1's 'v7' was wrong — B8). jsonb normalizes key
+  order; rehydration uses plain string fields, ordering irrelevant. Numbers stay
+  numeric; undefined filtered by provider pre-write.
 - `consume` must atomically return payload BEFORE deleting: DELETE RETURNING.
 - Interaction payloads contain `params` with nested ctx? provider serializes
   its own — verbatim store is still correct.

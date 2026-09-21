@@ -1,9 +1,8 @@
 /**
- * OidcAdapter tests (Task 4a) — RED first.
- *
- * vi.mock db fixture per OidcClientManager.test.ts / OptionsManager.test.ts pattern:
- * chainable drizzle-style mock; real encryptSecret/decryptSecret for the
- * client-secret roundtrip; JWT_SECRET pinned with env save/restore.
+ * OidcAdapter unit tests — batch N rewrite (was: batch-5 memory-Map suite).
+ * Parameter-capture style over the oidc_adapter_state ops; end-to-end PG
+ * semantics (consume marks, cross-instance visibility, revoke cascade) live
+ * in oidc-persistence.test.ts (real PG, skipIf down).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -22,9 +21,6 @@ import { OidcAdapter } from '../oidc/adapter.js';
 import { encryptSecret } from '@accessbase/identity';
 import type { DrizzleDB } from '@accessbase/identity';
 
-/**
- * Chainable drizzle-style mock — same shape as OptionsManager.test.ts.
- */
 function makeChain(result: unknown) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
   chain.from = vi.fn(() => chain);
@@ -41,172 +37,170 @@ function makeChain(result: unknown) {
   return chain;
 }
 
-function makeMockDb() {
-  return {
-    select: vi.fn(),
-    insert: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-  };
+interface MockDb {
+  select: ReturnType<typeof vi.fn>;
+  insert: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+  capturedValues: Record<string, unknown>[];
 }
 
-interface ClientPayload {
-  clientId: string;
-  client_secret?: string;
-  redirect_uris?: string[];
-  grant_types?: string[];
-  token_endpoint_auth_method?: string;
+function makeMockDb(selectResults: unknown[] = []): MockDb {
+  const select = vi.fn();
+  for (const r of selectResults) select.mockReturnValueOnce(makeChain(r));
+  select.mockReturnValue(makeChain([]));
+  const capturedValues: Record<string, unknown>[] = [];
+  const insert = vi.fn(() => {
+    const chain = makeChain(undefined);
+    chain.values = vi.fn((v: Record<string, unknown>) => {
+      capturedValues.push(v);
+      return chain;
+    });
+    return chain;
+  });
+  return { select, insert, update: vi.fn(() => makeChain(undefined)), delete: vi.fn(() => makeChain([])), capturedValues };
 }
 
-describe('OidcAdapter', () => {
-  beforeEach(() => {
-    savedJwt = process.env['JWT_SECRET'];
-    process.env['JWT_SECRET'] = TEST_JWT_SECRET;
+const asDb = (db: MockDb) => db as unknown as DrizzleDB;
+
+beforeEach(() => {
+  savedJwt = process.env['JWT_SECRET'];
+  process.env['JWT_SECRET'] = TEST_JWT_SECRET;
+});
+afterEach(() => {
+  if (savedJwt === undefined) delete process.env['JWT_SECRET'];
+  else process.env['JWT_SECRET'] = savedJwt;
+});
+
+describe('upsert — derived columns + TTL (oidc_adapter_state contract)', () => {
+  it('Session row: uid derived, notAfter = now + expiresIn seconds, conflict target (kind,id)', async () => {
+    const db = makeMockDb();
+    const adapter = new OidcAdapter(asDb(db));
+    const before = Date.now();
+    await adapter.upsert('Session', 's-1', { uid: 'uid-42', lastAuthAt: 'x' }, 120);
+    const row = db.capturedValues[0] as Record<string, unknown>;
+    expect(row).toMatchObject({ kind: 'Session', id: 's-1', uid: 'uid-42', userCode: null, grantId: null });
+    const notAfter = row.notAfter as Date;
+    expect(notAfter.getTime() - before).toBeGreaterThanOrEqual(115_000);
+    expect(notAfter.getTime() - before).toBeLessThan(125_000);
   });
 
-  afterEach(() => {
-    if (savedJwt === undefined) {
-      delete process.env['JWT_SECRET'];
-    } else {
-      process.env['JWT_SECRET'] = savedJwt;
-    }
+  it('Grant row: grantId never derived on Grant itself (payload jti is the id); userCode lowered for Interaction', async () => {
+    const db = makeMockDb();
+    const adapter = new OidcAdapter(asDb(db));
+    await adapter.upsert('Interaction', 'i-1', { userCode: 'AbC-DeF' }, undefined);
+    await adapter.upsert('RefreshToken', 'rt-1', { grantId: 'g-9' }, 60);
+    const [interaction, refresh] = db.capturedValues as Record<string, unknown>[];
+    expect(interaction.userCode).toBe('abc-def');
+    expect(interaction.notAfter).toBeNull();
+    expect(refresh.grantId).toBe('g-9');
+    expect(refresh.uid).toBeNull();
   });
 
-  describe('Client kind (drizzle-backed)', () => {
-    it('find maps OidcClientRow to oidc-provider client shape with decrypted secret', async () => {
-      const db = makeMockDb();
-      const secret = 'plaintext-client-secret-xyz';
-      const row = {
-        id: '00000000-0000-0000-0000-00000000000a',
-        clientId: 'ab_testclient',
-        name: 'Test RP',
-        secretEncrypted: encryptSecret(secret),
-        redirectUris: ['https://rp.example/cb'],
-        postLogoutRedirectUris: ['https://rp.example/bye'],
-        grantTypes: ['authorization_code', 'refresh_token'],
-        scope: 'openid profile email',
-        tokenAuthMethod: 'client_secret_basic',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      const chain = makeChain([row]);
-      db.select.mockReturnValue(chain);
-
-      const adapter = new OidcAdapter(db as unknown as DrizzleDB);
-      const client = (await adapter.find('Client', 'ab_testclient')) as ClientPayload | undefined;
-
-      expect(client).toBeDefined();
-      expect(client?.client_id).toBe('ab_testclient');
-      expect(client?.client_secret).toBe(secret);
-      expect(client?.redirect_uris).toEqual(['https://rp.example/cb']);
-      expect(client?.grant_types).toEqual(['authorization_code', 'refresh_token']);
-      expect(client?.token_endpoint_auth_method).toBe('client_secret_basic');
-    });
-
-    it('find returns undefined for unknown client', async () => {
-      const db = makeMockDb();
-      const chain = makeChain([]);
-      db.select.mockReturnValue(chain);
-
-      const adapter = new OidcAdapter(db as unknown as DrizzleDB);
-      expect(await adapter.find('Client', 'ab_missing')).toBeUndefined();
-    });
-
-    it('upsert throws for Client (clients managed via OidcClientManager)', async () => {
-      const adapter = new OidcAdapter(makeMockDb() as unknown as DrizzleDB);
-      await expect(
-        adapter.upsert('Client', 'ab_x', { clientId: 'ab_x' }),
-      ).rejects.toThrow(/OidcClientManager/);
-    });
+  it('uid indexed ONLY for Session (official memory-adapter parity)', async () => {
+    const db = makeMockDb();
+    const adapter = new OidcAdapter(asDb(db));
+    await adapter.upsert('Grant', 'g-1', { uid: 'should-be-ignored' }, undefined);
+    expect(db.capturedValues[0]).toMatchObject({ uid: null });
   });
 
-  describe('Grant kind (drizzle-backed)', () => {
-    it('upsert/find for Grant round-trips through the in-memory catch-all', async () => {
-      const adapter = new OidcAdapter(makeMockDb() as unknown as DrizzleDB);
-      const payload = {
-        jti: 'grant-jti-1',
-        kind: 'Grant',
-        accountId: 'user-1',
-        clientId: 'ab_testclient',
-        scope: 'openid profile email',
-        openid: { scope: 'openid profile email' },
-      };
+  it('Client upsert throws (manager owns clients)', async () => {
+    const adapter = new OidcAdapter(asDb(makeMockDb()));
+    await expect(adapter.upsert('Client', 'ab_x', { clientId: 'ab_x' })).rejects.toThrow(
+      /OidcClientManager/,
+    );
+  });
+});
 
-      await adapter.upsert('Grant', 'grant-jti-1', payload, undefined);
-
-      const found = await adapter.find('Grant', 'grant-jti-1');
-      expect(found).toEqual(payload);
-    });
-
-    it('find returns undefined for unknown grant', async () => {
-      const db = makeMockDb();
-      db.select.mockReturnValue(makeChain([]));
-
-      const adapter = new OidcAdapter(db as unknown as DrizzleDB);
-      expect(await adapter.find('Grant', 'nope')).toBeUndefined();
-    });
+describe('find / consume / destroy / revoke — parameter contracts', () => {
+  it('find returns parsed payload for live row (object jsonb)', async () => {
+    const payload = { grantId: 'g', scopes: ['openid'] };
+    const db = makeMockDb([[{ payload, notAfter: new Date(Date.now() + 60_000) }]]);
+    const adapter = new OidcAdapter(asDb(db));
+    expect(await adapter.find('Grant', 'g-1')).toEqual(payload);
   });
 
-  describe('catch-all in-memory kinds', () => {
-    it('unknown kind upsert then find returns payload', async () => {
-      const db = makeMockDb();
-      const adapter = new OidcAdapter(db as unknown as DrizzleDB);
-
-      const payload = { jti: 'ac-1', accountId: 'user-1', clientId: 'ab_1' };
-      await adapter.upsert('AuthorizationCode', 'ac-1', payload, undefined);
-      expect(await adapter.find('AuthorizationCode', 'ac-1')).toEqual(payload);
-      // No DB touched for transient kinds
-      expect(db.select).not.toHaveBeenCalled();
-      expect(db.insert).not.toHaveBeenCalled();
-    });
-
-    it('destroy removes the in-memory record', async () => {
-      const adapter = new OidcAdapter(makeMockDb() as unknown as DrizzleDB);
-      await adapter.upsert('Session', 's-1', { uid: 'u-1' }, undefined);
-      await adapter.destroy('Session', 's-1');
-      expect(await adapter.find('Session', 's-1')).toBeUndefined();
-    });
-
-    it('findByUid returns session with matching uid', async () => {
-      const adapter = new OidcAdapter(makeMockDb() as unknown as DrizzleDB);
-      const session = { uid: 'uid-42', login: true };
-      await adapter.upsert('Session', 's-1', session, undefined);
-      const found = await adapter.findByUid('Session', 'uid-42');
-      expect(found).toEqual(session);
-    });
-
-    it('findByUserCode finds interaction payload with userCode', async () => {
-      const adapter = new OidcAdapter(makeMockDb() as unknown as DrizzleDB);
-      await adapter.upsert('Interaction', 'i-1', { userCode: 'XYZ' }, undefined);
-      const found = await adapter.findByUserCode('Interaction', 'xyz');
-      expect(found).toEqual({ userCode: 'XYZ' });
-    });
-
-    it('consume marks record consumed and find returns undefined', async () => {
-      const adapter = new OidcAdapter(makeMockDb() as unknown as DrizzleDB);
-      await adapter.upsert('AuthorizationCode', 'ac-2', { jti: 'ac-2' }, undefined);
-      await adapter.consume('AuthorizationCode', 'ac-2');
-      expect(await adapter.find('AuthorizationCode', 'ac-2')).toBeUndefined();
-    });
+  it('find tolerates STRING jsonb (PIT jsonb-family seam)', async () => {
+    const db = makeMockDb([[{ payload: '{"a":1}', notAfter: null }]]);
+    const adapter = new OidcAdapter(asDb(db));
+    expect(await adapter.find('Session', 's')).toEqual({ a: 1 });
   });
 
-  describe('findAccount claims mapping (review M2)', () => {
-    it('returns sub/name/email/email_verified claims', async () => {
-      const adapter = new OidcAdapter(makeMockDb() as unknown as DrizzleDB, {
-        getUser: async (id: string) =>
-          id === 'user-1' ? { id: 'user-1', name: 'Ada', email: 'ada@example.com' } : null,
-      });
+  it('find on expired row deletes it and returns undefined', async () => {
+    const db = makeMockDb([[{ payload: {}, notAfter: new Date(Date.now() - 1000) }]]);
+    const adapter = new OidcAdapter(asDb(db));
+    expect(await adapter.find('Grant', 'gone')).toBeUndefined();
+    expect(db.delete).toHaveBeenCalledTimes(1);
+  });
 
-      const account = await adapter.findAccount(undefined, 'user-1');
-      const claims = await account.claims('openid', 'ab_client');
+  it('consume MARKS via UPDATE (never DELETE) — provider reads the marker later', async () => {
+    const db = makeMockDb();
+    const adapter = new OidcAdapter(asDb(db));
+    await adapter.consume('AuthorizationCode', 'ac-2');
+    expect(db.update).toHaveBeenCalledTimes(1);
+    expect(db.delete).not.toHaveBeenCalled();
+  });
 
-      expect(account.accountId).toBe('user-1');
-      expect(claims).toEqual({
-        sub: 'user-1',
-        name: 'Ada',
-        email: 'ada@example.com',
-        email_verified: false,
-      });
+  it('destroy deletes by kind+id; revokeByGrantId is KIND-SCOPED (B1: kind-blind sweeps would kill in-flight Interaction rows)', async () => {
+    const db = makeMockDb();
+    const adapter = new OidcAdapter(asDb(db));
+    await adapter.destroy('Session', 's-9');
+    await adapter.revokeByGrantId('RefreshToken', 'g-9');
+    expect(db.delete).toHaveBeenCalledTimes(2);
+  });
+
+  it('Client find still maps the decrypted manager row', async () => {
+    const secret = 'plaintext-client-secret-xyz';
+    const row = {
+      clientId: 'ab_testclient',
+      name: 'Test RP',
+      secretEncrypted: encryptSecret(secret),
+      redirectUris: ['https://rp.example/cb'],
+      postLogoutRedirectUris: ['https://rp.example/bye'],
+      grantTypes: ['authorization_code', 'refresh_token'],
+      scope: 'openid profile email',
+      tokenAuthMethod: 'client_secret_basic',
+    };
+    const db = makeMockDb([[row]]);
+    const adapter = new OidcAdapter(asDb(db));
+    const client = await adapter.find('Client', 'ab_testclient');
+    expect(client).toMatchObject({
+      client_id: 'ab_testclient',
+      client_secret: secret,
+      redirect_uris: ['https://rp.example/cb'],
+      grant_types: ['authorization_code', 'refresh_token'],
+      token_endpoint_auth_method: 'client_secret_basic',
     });
+  });
+});
+
+describe('findAccount claims mapping (unchanged from batch 5)', () => {
+  it('returns sub/name/email/email_verified claims', async () => {
+    const adapter = new OidcAdapter(asDb(makeMockDb()), {
+      getUser: async (id: string) =>
+        id === 'user-1' ? { id: 'user-1', name: 'Ada', email: 'ada@example.com' } : null,
+    });
+    const account = await adapter.findAccount(undefined, 'user-1');
+    const claims = await account.claims();
+    expect(claims).toEqual({
+      sub: 'user-1',
+      name: 'Ada',
+      email: 'ada@example.com',
+      email_verified: false,
+    });
+  });
+});
+
+describe('sweepExpired', () => {
+  it('deletes expired rows and reports the count; errors are swallowed', async () => {
+    const db = makeMockDb();
+    db.delete.mockReturnValue(makeChain([{ kind: 'Grant', id: 'a' }, { kind: 'Session', id: 'b' }]));
+    const adapter = new OidcAdapter(asDb(db));
+    expect(await adapter.sweepExpired()).toBe(2);
+
+    db.delete.mockImplementation(() => {
+      throw new Error('db down');
+    });
+    expect(await adapter.sweepExpired()).toBe(0); // swallowed, next tick retries
   });
 });

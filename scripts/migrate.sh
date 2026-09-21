@@ -39,11 +39,22 @@ if [ "$(sql 'SELECT count(*) FROM schema_migrations')" = "0" ] \
     sql "INSERT INTO schema_migrations (id, note) VALUES ('$(basename "$f")', 'stamped')" >/dev/null
   done
   echo "migrate: baseline stamped ${#FILES[@]} files into schema_migrations (note=stamped)"
-  # Chain-head sentinel: /health/ready's SELECT 1 never surfaces a behind-head
-  # legacy volume. Loud error line, warn-not-fail (K-T4 R3 precedent).
-  if ! sql "SELECT phone FROM users LIMIT 1" >/dev/null 2>&1; then
-    echo "migrate: ERROR: legacy DB behind chain head (0004) — run db:push to reconcile" >&2
-  fi
+  # Chain-head sentinels: /health/ready's SELECT 1 never surfaces a
+  # behind-head legacy volume — probe one cheap schema fact per chain file
+  # (DISCIPLINE: append an entry here whenever a migration is added; batch N
+  # review B1 caught the staleness this list prevents). Loud lines,
+  # warn-not-fail (K-T4 R3 precedent).
+  SENTINELS=(
+    "0004|SELECT phone FROM users LIMIT 1"
+    "0005|SELECT 1 FROM oidc_adapter_state LIMIT 1"
+  )
+  for entry in "${SENTINELS[@]}"; do
+    ver="${entry%%|*}"
+    probe="${entry#*|}"
+    if ! sql "$probe" >/dev/null 2>&1; then
+      echo "migrate: ERROR: legacy DB behind chain head (${ver}) — run db:push to reconcile" >&2
+    fi
+  done
   exit 0
 fi
 

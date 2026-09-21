@@ -143,7 +143,7 @@ describe('migrate.sh argument contract', () => {
 // ---------------------------------------------------------------------------
 
 describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
-  it('fresh DB: applies full chain — 16 chain tables + 5 tracking rows', async () => {
+  it('fresh DB: applies full chain — 17 chain tables + 6 tracking rows', async () => {
     const url = await tmpDbUrl();
     const r = migrate(CHAIN, url);
     expect(r.stderr).toBe('');
@@ -151,11 +151,11 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
 
     const tables = await query(url,
       "SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema='public' AND table_name <> 'schema_migrations'");
-    expect((tables[0] as { n: number }).n).toBe(16);
+    expect((tables[0] as { n: number }).n).toBe(17);
 
     const tracked = await query(url,
       "SELECT id FROM schema_migrations ORDER BY id");
-    expect(tracked).toHaveLength(5);
+    expect(tracked).toHaveLength(6);
     expect((tracked[0] as { id: string }).id).toMatch(/^0000_/);
   });
 
@@ -169,11 +169,13 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     const out = `${r.stdout}\n${r.stderr}`;
     expect(out).toContain('stamped');
     expect(out).toContain('legacy DB behind chain head (0004) — run db:push to reconcile');
+    // batch N review B2: per-file sentinels — the 0005 table probe fires too
+    expect(out).toContain('legacy DB behind chain head (0005) — run db:push to reconcile');
 
-    // Stamped, NOT applied: tracking holds 5 note='stamped' rows and the
+    // Stamped, NOT applied: tracking holds 6 note='stamped' rows and the
     // users table is still the legacy ad-hoc one (no phone column, no chain tables).
     const rows = await query(url, "SELECT note FROM schema_migrations");
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(6);
     expect(rows.every((x) => (x as { note: string }).note === 'stamped')).toBe(true);
     const cols = await query(url,
       "SELECT count(*)::int AS n FROM information_schema.columns WHERE table_name='users' AND column_name='phone'");
@@ -196,13 +198,13 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     }
   });
 
-  it('idempotent: three consecutive runs exit 0, tracking stays 5 rows', async () => {
+  it('idempotent: three consecutive runs exit 0, tracking stays 6 rows', async () => {
     const url = await tmpDbUrl();
     for (let i = 0; i < 3; i += 1) {
       const r = migrate(CHAIN, url);
       expect(r.status).toBe(0);
     }
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(5);
+    expect((rows[0] as { n: number }).n).toBe(6);
   });
 });
