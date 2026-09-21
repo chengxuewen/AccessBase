@@ -190,7 +190,7 @@ logger.error('Operation failed', error); // ❌
 
 - **English is mandatory for everything persisted**: commit messages, code comments, all markdown documents (architecture docs, specs, PLANS, execution records, reports), memory files (status/pitfalls/conventions/decisions), skills (.agents/skills/**/SKILL.md), and rules (.agents/rules/**).
 - **Chinese is allowed ONLY in live AI-agent conversation** (chat replies, clarification questions, interactive reports to the user). Anything written to disk is English.
-- **AI-agent replies to the user in live conversation MUST be Chinese** (2026-09-21 user directive): all chat output — answers, status reports, review tables, questions — is Chinese regardless of the language of the material being discussed (code, English docs, logs). Quoted artifacts (commands, code, commit messages, file content) keep their original language.
+- **AI-agent conversation language mirrors the user's input language** (2026-09-21 user directive, refined): when the user writes in Chinese, all subsequent AI chat output (answers, status reports, review tables, questions) is Chinese for that thread until the user switches languages; English input → English replies. Quoted artifacts (commands, code, commit messages, file content) always keep their original language regardless.
 - **No back-translation**: pre-existing Chinese content (history commits, older memory entries, Chinese sections of skills/rules) stays as-is; the policy governs NEW writes only. Do not "clean up" legacy files into English unless the user explicitly asks.
 - New memory entries after this line are written in English.
 - Checks (run on every commit):
