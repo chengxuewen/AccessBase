@@ -263,16 +263,16 @@ test.describe('Tenants admin page', () => {
     await seedSessionWithMe(page, FULL_PERMS_ME);
     await page.goto('/tenants');
     await expect(page.getByTestId('tenants-page')).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'Acme Corp' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Acme Corp', exact: true })).toBeVisible();
   }
 
   test('list renders rows; search sends the term to the API and filters', async ({ page }) => {
     await gotoTenants(page);
-    await expect(page.getByRole('cell', { name: 'Globex' })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'Platform Home' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Globex', exact: true })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Platform Home', exact: true })).toBeVisible();
     // status Tags from the projection
-    await expect(page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp' }) }).getByText('正常', { exact: true })).toBeVisible();
-    await expect(page.locator('tr', { has: page.getByRole('cell', { name: 'Platform Home' }) }).getByText('已停用', { exact: true })).toHaveCount(0);
+    await expect(page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) }).getByText('正常', { exact: true })).toBeVisible();
+    await expect(page.locator('tr', { has: page.getByRole('cell', { name: 'Platform Home', exact: true }) }).getByText('已停用', { exact: true })).toHaveCount(0);
 
     const searchInput = page.locator('input[placeholder]').first();
     await searchInput.fill('Acme');
@@ -281,8 +281,8 @@ test.describe('Tenants admin page', () => {
 
     // expect.poll (not sync expect): click → request dispatch is async (K convention)
     await expect.poll(() => stats.searchTerm, { timeout: 5000 }).toBe('Acme');
-    await expect(page.getByRole('cell', { name: 'Acme Corp' })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'Globex' })).toBeHidden();
+    await expect(page.getByRole('cell', { name: 'Acme Corp', exact: true })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Globex', exact: true })).toBeHidden();
   });
 
   test('create tenant: modal → POST 201 → row appears', async ({ page }) => {
@@ -291,39 +291,41 @@ test.describe('Tenants admin page', () => {
     await page.getByTestId('tenants-create').click();
     await page.getByTestId('tenants-name-input').fill(unique);
     await page.getByTestId('tenants-slug-input').fill(`tenant-${Date.now()}`);
-    await page.locator('.ant-modal-footer .ant-btn-primary').click();
+    await page.getByTestId('tenants-form-modal').locator('.ant-modal-footer .ant-btn-primary').click();
 
     await expect.poll(() => stats.created, { timeout: 5000 }).not.toBeNull();
     await expect(page.locator('.ant-message')).toContainText('租户已创建');
-    await expect(page.getByRole('cell', { name: unique })).toBeVisible();
+    await expect(page.getByRole('cell', { name: unique, exact: true })).toBeVisible();
   });
 
   test('init admin happy path: 201 → inline success alert', async ({ page }) => {
     await gotoTenants(page, 'success');
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp' }) });
+    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) });
     await row.getByRole('button', { name: /初始化管理员/ }).click();
-    await expect(page.getByTestId('tenants-init-modal')).toBeVisible();
+    // Assert the FORM field, not the ant-modal-root wrapper (root divs can stay
+    // computed-hidden while the dialog body is fully interactive).
+    await expect(page.getByTestId('init-admin-email')).toBeVisible();
     await page.getByTestId('init-admin-email').fill(`init-${Date.now()}@acme.test`);
     await page.getByTestId('init-admin-name').fill('Acme Admin');
     await page.getByTestId('init-admin-password').fill('Passw0rd123');
-    await page.locator('.ant-modal-footer .ant-btn-primary').click();
+    await page.getByTestId('tenants-init-modal').locator('.ant-modal-footer .ant-btn-primary').click();
 
     await expect.poll(() => stats.bootstrapAttempts, { timeout: 5000 }).toBeGreaterThan(0);
     await expect(page.getByTestId('init-admin-success')).toBeVisible();
     await expect(page.getByTestId('init-admin-success')).toContainText('租户管理员已创建');
     // Done closes the modal (200-replay and 201 share the same dismiss path)
-    await page.locator('.ant-modal-footer .ant-btn-primary').click();
+    await page.getByTestId('tenants-init-modal').locator('.ant-modal-footer .ant-btn-primary').click();
     await expect(page.getByTestId('tenants-init-modal')).toBeHidden();
   });
 
   test('init admin replay: 200 alreadyBootstrapped → inline replay alert', async ({ page }) => {
     await gotoTenants(page, 'replay');
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp' }) });
+    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) });
     await row.getByRole('button', { name: /初始化管理员/ }).click();
     await page.getByTestId('init-admin-email').fill(`dup-${Date.now()}@acme.test`);
     await page.getByTestId('init-admin-name').fill('Acme Admin');
     await page.getByTestId('init-admin-password').fill('Passw0rd123');
-    await page.locator('.ant-modal-footer .ant-btn-primary').click();
+    await page.getByTestId('tenants-init-modal').locator('.ant-modal-footer .ant-btn-primary').click();
 
     await expect.poll(() => stats.bootstrapAttempts, { timeout: 5000 }).toBeGreaterThan(0);
     await expect(page.getByTestId('init-admin-success')).toBeVisible();
@@ -332,12 +334,12 @@ test.describe('Tenants admin page', () => {
 
   test('init admin 409 EMAIL_EXISTS → server message inline on the email field', async ({ page }) => {
     await gotoTenants(page, 'email-exists');
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp' }) });
+    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) });
     await row.getByRole('button', { name: /初始化管理员/ }).click();
     await page.getByTestId('init-admin-email').fill(`taken-${Date.now()}@acme.test`);
     await page.getByTestId('init-admin-name').fill('Acme Admin');
     await page.getByTestId('init-admin-password').fill('Passw0rd123');
-    await page.locator('.ant-modal-footer .ant-btn-primary').click();
+    await page.getByTestId('tenants-init-modal').locator('.ant-modal-footer .ant-btn-primary').click();
 
     await expect.poll(() => stats.bootstrapAttempts, { timeout: 5000 }).toBeGreaterThan(0);
     // Mock body copies the spec D2 409 EMAIL_EXISTS envelope; frontend passes
@@ -348,7 +350,7 @@ test.describe('Tenants admin page', () => {
 
   test('suspend toggle: PUT status suspended → tag flips → activate restores', async ({ page }) => {
     await gotoTenants(page);
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp' }) });
+    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) });
     await row.getByRole('button', { name: '停用', exact: true }).click();
     await page.locator('.ant-popconfirm .ant-btn-primary').click();
 
@@ -364,14 +366,14 @@ test.describe('Tenants admin page', () => {
 
   test('default-tenant row: mutating actions disabled with lock icon', async ({ page }) => {
     await gotoTenants(page);
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Platform Home' }) });
+    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Platform Home', exact: true }) });
     await expect(row.getByRole('button', { name: /初始化管理员/ })).toBeDisabled();
     await expect(row.getByRole('button', { name: /编辑/ })).toBeDisabled();
     await expect(row.getByRole('button', { name: '停用', exact: true })).toBeDisabled();
     await expect(row.getByRole('button', { name: /删除/ })).toBeDisabled();
     await expect(row.locator('.anticon-lock').first()).toBeVisible();
     // Non-default rows keep the same actions enabled
-    const other = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp' }) });
+    const other = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) });
     await expect(other.getByRole('button', { name: /编辑/ })).toBeEnabled();
   });
 });

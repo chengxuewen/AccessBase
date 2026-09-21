@@ -352,6 +352,7 @@ export default function Tenants() {
       />
 
       <Modal
+        data-testid="tenants-form-modal"
         title={editingTenant ? t('tenants.editTitle') : t('tenants.createTitle')}
         open={modalOpen}
         onOk={handleSaveTenant}
