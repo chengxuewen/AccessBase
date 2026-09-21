@@ -73,13 +73,21 @@ the whole round-trip problem reduces to: store JSON, return JSON, honor TTL.
 - upsert(kind,id,payload,expiresInSeconds): derive columns from payload
   (uid/userCode.toLowerCase()/grantId), `INSERT … ON CONFLICT (kind,id) DO
   UPDATE SET payload/excluded…, not_after = now() + make_interval(secs => n)`;
-  expiresInSeconds absent/0 ⇒ not_after NULL.
-- find / consume: `SELECT` filter `not_after > now() OR is null`; consume =
-  **DELETE … RETURNING** in one statement (atomic; expired ⇒ return undefined
-  without resurrecting); find on expired row = delete + undefined.
-- findByUid/findByUserCode(kind, v): WHERE kind AND uid/user_code (+TTL).
-  (Current memory impl ignores `kind` and scans buckets — keep exact behavior
-  minus the scan: kind filter IS the provider contract for these lookups.)
+  expiresInSeconds absent/0 ⇒ not_after NULL. n = expiresIn + clockTolerance
+  (official storageOptions formula; provider clockTolerance unset ⇒ 0 — if a
+  future config sets it, the shim must pass it through).
+- find / consume: `SELECT` filter `not_after > now() OR is null`; **consume =
+  UPDATE payload SET consumed = epoch RETURNING payload** (v9 memory adapter
+  marks `consumed` rather than deleting — verified in
+  lib/adapters/memory_adapter.js; the provider's replay logic reads the
+  marker, so deletion would CHANGE semantics. UPDATE…RETURNING keeps it
+  atomic); find on expired row = delete + undefined.
+- findByUid(kind, uid): the official adapter indexes uid ONLY for Session
+  (verified: memory_adapter sets sessionUid key only when model==='Session')
+  ⇒ uid derived column is populated for Session rows only; lookup
+  WHERE kind AND uid (+TTL). findByUserCode: user_code derived generically
+  (any payload carrying userCode, lower-cased both sides) WHERE kind AND
+  user_code — matches the official userCodeKey index.
 - destroy(kind,id): DELETE by kind+id. revokeByGrantId(grantId):
   DELETE WHERE grant_id = $1 across kinds (Grant destroy cascades tokens).
 - Non-Client kinds ONLY go to PG; 'Client' find stays the existing manager-
