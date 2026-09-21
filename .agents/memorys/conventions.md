@@ -258,3 +258,11 @@ logger.error('Operation failed', error); // ❌
 - **health/ready 池单例形制**：模块级 memoized promise（并发首探只 createDb 一次）+ onClose closeDb+双复位（测试多次 buildApp 防复封毒池）。新代码禁每请求 createDb（L 批 WeakMap 只救 selfHeal 路径）。
 - **entrypoint 响亮化**：dev 容器 schema push 失败=重试3+exit 1；`|| echo skipped` 吞败形状禁再引入（compose dev 死向导根因）。
 - **e2e 断言层级**：antd Modal 断言瞄准可交互子元素（init-admin-email 之流），禁断 ant-modal-root（root 可在打开态仍 computed-hidden）；多模态页 footer 按钮必须 testid 域内定位（forceRender 隐藏兄弟全局选择必撞）；cell 名含复制按钮拼接（`globex 复制`）→ getByRole cell 一律 exact:true。
+
+## Phase N OIDC 持久化约束（2026-09-21）
+
+- **adapter 状态=活令牌**：oidc_adapter_state 行 `id` 即 opaque bearer token value（formats/opaque.js `value=jti`）——adapter 日志/错误**永不带 id 或 payload**（pino redact 不覆盖顶层 `id`）；该表转储与批 M dump 同级机密。
+- **consume=标记非删除**：UPDATE jsonb_set consumed（v9 内存适配器对等）——重放检测（consumeGrantSource→revoke 全 grant）依赖读回 consumed 标记，DELETE 会静默解除 OAuth BCP 防御。find 对过期行 lazy-delete 是已记录偏差（B6：error-class 等价 invalid_grant）。
+- **revokeByGrantId 必带 kind**（B1）：provider 按 grantable model 各自调用；kind-blind DELETE 会杀在飞 Interaction（payload 亦带 grantId）。官方 grantable 集=AT/AC/RT/DeviceCode/BCAuthReq/PreAuthorizedCode。
+- **新链文件必配哨兵**：scripts/migrate.sh SENTINELS 数组每条链文件一行廉价 schema 探针（0004=phone、0005=oidc_adapter_state）——漏加=legacy push 卷静默缺表（B2 实锤：stamp 通过而表不存在→OIDC 全 500）。ops-migrate.test 的 legacy 用例同步断言。
+- **partial index 超出 drizzle-kit 0.20 generate 词汇表**：链+snapshot 手工写（I 批先例），snapshot 的索引条目必须带 where（防下次 generate 误重建）；升级 drizzle-kit 时复核此形制。
