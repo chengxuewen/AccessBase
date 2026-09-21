@@ -44,10 +44,24 @@ done
 export DATABASE_URL="postgresql://${PGUSER}:${PGPASSWORD}@localhost:5432/${PGDATABASE}"
 export REDIS_URL="redis://localhost:6379"
 
-# Push schema
+# Push schema — loud (batch M D4 / flows R3): failures must NOT be swallowed;
+# a broken schema on a fresh volume would otherwise boot the server against an
+# empty DB and the setup wizard dies with no signal. Retries cover PG-ready races.
 echo "[entrypoint] Pushing database schema..."
 cd /app
-pnpm db:push 2>/dev/null || echo "[entrypoint] Schema push skipped"
+push_ok=0
+for attempt in 1 2 3; do
+    if pnpm db:push; then
+        push_ok=1
+        break
+    fi
+    echo "[entrypoint] Schema push attempt ${attempt}/3 failed - retrying in 3s..."
+    sleep 3
+done
+if [ "${push_ok}" -ne 1 ]; then
+    echo "[entrypoint] FATAL: schema push failed after 3 attempts - refusing to start server against an unsynced database" >&2
+    exit 1
+fi
 
 # Start application
 echo "[entrypoint] Starting application..."
