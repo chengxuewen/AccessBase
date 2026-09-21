@@ -1,32 +1,39 @@
-# 批次 M 实施计划 — 运维剩余
+# 批次 M 实施计划 — 运维剩余（rev.2，双 Momus 吸收后）
 
-**日期**: 2026-09-20 | **依据**: spec `2026-09-20-batch-m-ops-remainder-design.md`（de87a23）+ 双 Momus 附录（回后修订）
-**执行**: 组一 {M-T1 ∥ M-T2 ∥ M-T4}（quota 墙存活则派发，死则控制器直做）→ M-T3（脚本面，控制器直做）→ M-T5 收口
+**日期**: 2026-09-20 | **依据**: spec rev.2 + 附录 REVIEW-ADDENDUM（FLOWS APPROVE-WITH-FIXES×3MAJOR + BLOCKERS APPROVE-WITH-FIXES 含 1 BLOCKER，全吸收）
+**执行**: 组一 {M-T1 ∥ M-T2 ∥ M-T3 ∥ M-T4}（文件面互斥；派发死则控制器直做，PIT-065 纪律先查树）→ M-T5 收口
 
 ## 任务
 
 ### T1 — health 池单例（spec D1）
-- routes/health.ts：模块级 lazy readyDb + onClose closeDb；测试两支（两次 ready createDb=1；onClose end）。
-- 文件面：apps/server/src/routes/health.ts + __tests__/health*.test.ts。
+- routes/health.ts：memoized promise 单例（并发首探只 createDb 一次）；onClose = closeDb+**双双复位 undefined**（测试多 buildApp 复封毒池）；null 守卫。
+- 测试三支：连续探一次；Promise.all 并发一次；close→重建→200。
+- 文件面：apps/server/src/routes/health.ts + health 测试文件（先 find 确认既有测试所在）。
 
-### T2 — /metrics（spec D2）
-- prom-client dep（apps/server/package.json + lockfile 同提交）；config.metricsToken；app 级 onRequest/onResponse 直方图（route-pattern label）+ 默认指标；/metrics 路由（token timing-safe 403 METRICS_AUTH；unset=open）；限流豁免核对；.env.example + compose prod 透传注记。
-- 测试：200 形状 / 403×2 / 200-with-token。文件面：app.ts + routes/metrics.ts(新) + config.ts + utils/limiter 处 + 测试 + package.json + pnpm-lock。
+### T2 — /metrics（spec D2，契约面全在同一任务）
+- prom-client 入 apps/server（lockfile 同提交）；config.metricsToken；**request**.routeOptions.url ?? 'unmatched'；默认指标 accessbase_ 前缀；hooks 注册于 OIDC hijack **之后**（/oidc 不计=文档化盲区，防表只增不减）；403 METRICS_AUTH（sha256→timingSafeEqual）；路由 cors:false；**setup-guard ALLOWED_PATHS += '/metrics'**；**app.ts 限流注册处新建 skip fn**（/health+/metrics——rev.1 伪前提修正）；warnDegradedChecks prod&无token 告警行；.env.example。
+- 测试：200 形状 / 403×2 / 200-token / 无 ACAO / PG-down 绿（信号归零门）/ warn 纯函数支。
+- 文件面：app.ts + routes/metrics.ts(新) + config.ts + middleware/setup-guard.ts + warnDegradedChecks 处 + .env.example + package.json/pnpm-lock + 测试。
 
 ### T3 — backup/restore（spec D3）
-- scripts/backup.sh + scripts/restore.sh + accessbase.sh 子命令 + _common.sh 解析复用；.gitignore data/backups；bash -n + shellcheck（若有）；真库 round-trip 于 T5。
-- 裁决预置：RESTORE 确认用独立 ACCESSBASE_RESTORE_CONFIRM=yes（不复用 RESET 名）。
+- **umask 077 首行** + 600 产物 + 头注 dump=机密（sessions.token 明文实锤）。
+- restore：**先回显 target user@host:port/db** → 服务停机探测（deploy PIDFILE / native 5101 端口探测）或 --force → tty **键入库名**确认（非 localhost 或外部 DATABASE_URL 必打）→ ACCESSBASE_RESTORE_CONFIRM=yes 独立旁路。
+- URL 拆分 + **%XX 解码** → PGPASSWORD env + -h/-p/-U/-d flags（conninfo 上 argv=ps 泄密）；retention `find -maxdepth 1 -type f -name 'accessbase-*.dump'`；OUT 校验 mkdir -p。
+- accessbase.sh 子命令 backup/restore；.gitignore **不动**（data/ 已覆盖，rev.1 no-op 步骤删）。
+- bash -n 全过 + shellcheck（若有）。
 
-### T4 — compose dev schema（spec D4）
-- docker-compose.dev.yml server command → `sh -c "pnpm db:push && pnpm --filter @accessbase/server dev"`。若 docker 可用实测 down -v/up；不可用则记录 NOT VERIFIED（G5-4 豁免注记）。
+### T4 — entrypoint-dev 响亮 push（spec D4，flows R3 改写后）
+- docker/entrypoint-dev.sh:50：`2>/dev/null || echo skipped` → 重试 3 次、失败**显错退出**。compose 文件**不动**（command: 被 ENTRYPOINT 吞为 $@——机制修正）。
+- docker 可用则 G5-4 实弹仲裁；不可用记录 NOT VERIFIED 注记。
+- 文件面：docker/entrypoint-dev.sh（仅此）。
 
 ### T5 — 控制器收口
-- 全门禁：vitest 全量 · 双 tsc · eslint 改动面 · e2e workers=1 无回归（基线 137+3）。
-- 实弹：deploy 构建产物 curl /metrics（PIT-061 纪律）+ token 401；throwaway DB backup→drop→restore round-trip；health 两次探针 spy 已在单测。
-- 记忆四件套（D119 + Phase M 约束 + status 行 + PIT 按需）。
+- 全门禁：vitest 全量 · 双 tsc · eslint 改动面 · e2e workers=1（基线 137+3）· coverage。
+- 实弹：deploy 构建产物 curl /metrics 200 + token 403（**统一 403，rev.1「401」废**）；throwaway DB backup→drop→restore round-trip（含错误库名 abort 零写）；entrypoint/compose live 或 NOT VERIFIED。
+- 记忆四件套（D119 + Phase M 约束 + status + PIT 按需：entrypoint 吞败类、URL 百分号解码陷阱）。
 
 ## 并行矩阵
-T1=health.ts(+测试)；T2=app.ts/metrics.ts/config/limiter/package；T3=scripts/+accessbase.sh；T4=docker-compose.dev.yml——零交集。T2 与 T1 同文件风险=无（metrics hooks 在 app.ts，health.ts 独立）。
+T1=health.ts+测试 · T2=app.ts/metrics.ts/config/setup-guard/warn/env/package · T3=scripts/+accessbase.sh · T4=entrypoint-dev.sh——零交集（T2 与 T1 文件不同；T3 与 T2 的 .env.example 无涉）。
 
 ## 完成判据
-spec §5 六条 + execution-log 追加本文件尾。
+spec §5 六条全过 + execution-log 追加本文尾部 + scoped re-review 免除（附录即一轮修，flows 裁定无复审必要）。

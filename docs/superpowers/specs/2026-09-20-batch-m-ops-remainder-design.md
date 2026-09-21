@@ -1,121 +1,140 @@
-# Batch M — Ops Remainder (Design)
+# Batch M — Ops Remainder (Design) — rev.2
 
-**Date**: 2026-09-20 | **Status**: DRAFT for dual-Momus
-**Depends on**: Batch L (migrate.sh/selfHeal/process defenses), Batch G (redis fail-open)
+**Date**: 2026-09-20 | **Status**: ABSORBED dual-Momus (FLOWS APPROVE-WITH-FIXES + BLOCKERS APPROVE-WITH-FIXES, see REVIEW-ADDENDUM) — dispatch-clear
+**Depends on**: Batch L (migrate.sh/process defenses), Batch G (redis fail-open), H′ (PG-down signal-zero gate)
 
 ## Problem
 
-1. **/health/ready leaks a pg.Pool per probe** — `createDb()` (identity db/index.ts:16-29)
-   builds a FRESH `new Pool` on every call; the ready handler awaits it per request and
-   never ends it. Kubernetes/docker healthchecks at 10-30s intervals = 120-360 orphaned
-   pools/hour. (L-batch F2 fixed the self-heal dial; health never got the same discipline.)
-2. **No /metrics** — monitoring.md §13 designed Prometheus exposure; app.ts already
-   excludes `/metrics` from audit (line 278) but the route does not exist.
-3. **No backup/restore tooling** — zero pg_dump scripts; a real deployment today has no
-   first-party way to snapshot or move data (deploy/container/native modes).
-4. **compose dev has no schema bootstrap** — `docker-compose.dev.yml` server command is
-   bare `pnpm --filter @accessbase/server dev`; after `down -v` the DB is empty and the
-   setup wizard fails (the class entrypoint-dev.sh:50 already handles for container mode).
+1. **/health/ready leaks a pg.Pool per probe** — `createDb()` builds a fresh Pool per
+   call (identity db/index.ts:16-29); handler awaits it and never ends. 10-30s probes
+   = 120-360 orphaned pools/hour.
+2. **No /metrics** — monitoring.md §13 designed it; app.ts:278 pre-exists audit exclusion; route absent.
+3. **No backup/restore tooling** — zero pg_dump scripts across modes.
+4. **compose dev schema bootstrap swallows failure** — the dev image's ENTRYPOINT runs
+   entrypoint-dev.sh which DOES `pnpm db:push` (line 50) but pipes failures into
+   `|| echo skipped` — on a fresh volume with a broken push the server boots against
+   an empty DB and the wizard dies with no loud signal. (rev.1's premise "no push in
+   dev path" was WRONG — flows R3.)
 
 ## Goals
 
-- G1: /health/ready probes with ONE reused pool for process lifetime; behavior unchanged
-  (200 ok / 503 degraded shape).
-- G2: GET /metrics — Prometheus text format: process+event-loop defaults + HTTP request
-  duration histogram + in-flight gauge. Optional `METRICS_TOKEN` gate.
-- G3: `accessbase.sh backup` / `accessbase.sh restore <file>` covering native & deploy
-  modes (custom-format pg_dump, retention, restore confirmation guard); container/compose
-  modes documented one-liners (docker exec path).
-- G4: compose dev boots to wizard-ready on a fresh volume (db:push precedes server).
-- G5: live-fire each: metrics curl + token 401, backup→drop→restore round-trip on a
-  throwaway DB, compose down -v → up → /setup/status 200.
+- G1: /health/ready probes with ONE reused pool per process (memoized, close-resets);
+  response shape unchanged; PG-down test signal stays zero.
+- G2: GET /metrics — prom-client defaults (`accessbase_` prefix) + HTTP duration
+  histogram (method × **request**.routeOptions.url pattern, 404 → 'unmatched') +
+  in-flight gauge; optional METRICS_TOKEN Bearer gate (403 `METRICS_AUTH`,
+  sha256-then-timingSafeEqual); route-level `cors:false`; setup-guard exemption;
+  rate-limit skip (new — none exists); prod-without-token WARN (not fail-fast, K-T4).
+- G3: `accessbase.sh backup` / `restore <file>` — custom-format dumps with
+  **umask 077 / chmod 600** (dumps contain PLAINTEXT sessions.token + oauth tokens +
+  passwordHash — crown jewels), retention keep-N via whitelist find, restore with
+  **target-identity echo + typed-db-name confirmation** (B1 blocker class).
+- G4: compose dev fresh volume reaches wizard-ready with a LOUD push failure
+  (entrypoint-dev.sh fix; live-fire arbitrates final mechanism).
+- G5: live-fire: metrics 200/403-on-token, backup→drop→restore round-trip, compose
+  down -v → up → /setup/status 200.
 
 ## Non-goals
 
-- OTel tracing (no consumer yet; metrics first rung). Node-sdk install deferred.
-- Push-gateway/federation, alert rules, dashboards (out of repo scope).
-- Real-backend e2e into CI (blocked by the F3 Gitee decision — untouched).
-- Point-in-time recovery (WAL archiving): custom-format dumps + cron is the contract.
+OTel tracing; push-gateway/dashboards; CI e2e (blocked by Gitee F3 open item);
+PITR/WAL archiving; fail-fast for METRICS_TOKEN (K-T4 brick lesson — WARN only).
 
 ## Design
 
-### D1: health pool singleton
+### D1: health pool singleton (test-hazard aware)
 
-`routes/health.ts`: module-scope `let readyDb` (lazy `createDb(config.databaseUrl)`),
-registered for teardown via `app.addHook('onClose')` → `closeDb(readyDb)` (identity
-exports closeDb since L/F2). Redis check already getRedis() singleton-cached ✓.
-Test: two sequential /health/ready calls → createDb spy called ONCE; onClose ends pool
-(mock spy).
+`routes/health.ts`: module-scope `let readyDbP: Promise<DrizzleDB> | undefined` —
+memoized on first probe (kills the async-import double-create race); handler awaits it
+inside the existing try (creation/connection failure ⇒ 'down' as today). `onClose` hook:
+`if (readyDb) await closeDb(readyDb)` then **`readyDbP = undefined; readyDb = undefined`**
+so a later buildApp() (vitest same-file re-build) recreates cleanly instead of touching
+an ended pool. closeDb lives on the '@accessbase/identity/db' SUBPATH (not package root).
+Tests: sequential probes → createDb spy once; concurrent Promise.all probes → once;
+close→rebuild→probe → 200 again (mocked).
 
-### D2: /metrics via prom-client
+### D2: /metrics — every surface named in the same task
 
-- New dep `prom-client` (apps/server). Single `register` default registry.
-- `collectDefaultMetrics({ prefix: 'accessbase_' })` (process/event-loop/memory) +
-  onRequest/onResponse hooks: histogram `accessbase_http_request_duration_seconds`
-  (labels: method, route — the FASTIFY route pattern, NOT raw url: cardinality),
-  in-flight gauge via onRequest pre-send.
-- Route `GET /metrics`: if `config.metricsToken` set → require
-  `Authorization: Bearer <token>` (timing-safe compare), 403 `METRICS_AUTH` else;
-  **unset = open** (intranet scrape default; dev/compose/deploy unchanged). Rationale:
-  mirrors JWT-secret philosophy; documented in .env.example.
-- Audit already excludes /metrics (app.ts:278 pre-existed) ✓; rate-limit exempt
-  (add to the limiter's existing skip list for /health — verify where).
-- Config: `metricsToken: process.env['METRICS_TOKEN'] || ''` (config.ts + .env.example
-  + compose prod env passthrough optional + warnDegradedChecks UNTOUCHED — open
-  metrics is not a degradation).
+- Dep `prom-client` (apps/server; lockfile same commit — constraints rule).
+- `collectDefaultMetrics({ prefix: 'accessbase_' })`; histogram
+  `accessbase_http_request_duration_seconds` {method, route} with
+  **`request.routeOptions.url ?? 'unmatched'`** (fastify 4.29: reply has NO
+  routeOptions — verified; 404s bucket to 'unmatched' — cardinality ceiling).
+- Hooks registered AFTER the OIDC hijack hook (hijacked /oidc replies skip onResponse;
+  registering after = oidc traffic unmeasured — documented blind spot, zero gauge leak;
+  registering before = in-flight leaks upward forever. Choose blind spot.)
+- Gate: `config.metricsToken` set ⇒ require `Authorization: Bearer <token>`;
+  compare = sha256 both sides then `timingSafeEqual` (length-leak neutralized);
+  failure ⇒ **403 {code:'METRICS_AUTH'}** (unified across all docs). Unset ⇒ open +
+  **`warnDegradedChecks` new line when NODE_ENV=production && !metricsToken**
+  (env-only pure function, L-T4 discipline; NOT fail-fast — K-T4 R3 brick rule).
+- Route options: `cors: false` (@fastify/cors per-route opt-out — server-to-server
+  scrape needs no CORS; kills drive-by reflected-origin reads in dev).
+- Rate-limit: app.ts registration (96-104) gains
+  `skip: (req) => req.url.startsWith('/health') || req.url === '/metrics'`
+  (no pre-existing skip list — rev.1 claim corrected).
+- setup-guard ALLOWED_PATHS += '/metrics' (else 403 SETUP_REQUIRED pre-init, DB
+  roundtrip per scrape post-init, PG-down vitest 503 → H′-T1 gate violation).
+- Audit: already excluded (app.ts:278) ✓. .env.example += METRICS_TOKEN.
 
-### D3: backup/restore scripts
+### D3: backup/restore (data-at-rest hardened)
 
-`scripts/backup.sh` (+ `scripts/restore.sh`), wired to `accessbase.sh backup [--dir]` /
-`accessbase.sh restore <file> [--force]`:
-- Resolve target DB from the SAME discovery the start scripts use (native:
-  .pixi/data pg port/env; deploy: data/ dir env; DATABASE_URL override wins).
-- `pg_dump -Fc -f "$OUT/accessbase-$(date -u +%Y%m%dT%H%M%SZ).dump"` via pixi-native
-  psql toolchain; print FILE + sha256 + size; retention `--keep N` default 7 (delete
-  oldest own-prefix files only).
-- restore: refuses unless (a) server stopped for the mode in question OR
-  `--force`, and echoes confirmation prompt on tty (ACCESSBASE_RESET_CONFIRM=yes
-  bypass mirroring reset's guard); `pg_restore -c --clean --if-exists --no-owner`.
-  NO destructive action before the guard.
-- Output dir default `data/backups/` (native) / `$PROJECT_ROOT/data/backups` — add
-  .gitignore entry; scripts are the sole writers.
-- Failure semantics: set -euo pipefail; nonzero on any pg_dump/restore failure; never
-  echo passwords (connection via PGPASSWORD env or .pgpass-less URL parsing — parse
-  DATABASE_URL into pg_dump flags, keep the URL out of logs).
+`scripts/backup.sh` + `scripts/restore.sh` ↔ `accessbase.sh backup [--dir D] [--keep N]`
+/ `accessbase.sh restore FILE [--force]`:
+- Target resolution reuses **`configure_native_urls`** (_common.sh:51) for native,
+  deploy-mode .env sourcing pattern (start.sh), `DATABASE_URL` override wins. URL →
+  host/port/user/db split + **percent-decode** password into `PGPASSWORD` env;
+  pg_dump invoked with `-h -p -U -d` flags (conninfo URI never on argv — ps-safe);
+  nothing echoes the URL/password.
+- **`umask 077` first line**; resulting .dump + .sha256 chmod 600; header comment +
+  report state: dumps contain plaintext session/oauth tokens — secrets handling.
+- Name `accessbase-<UTC-timestamp>.dump` + sidecar sha256; retention
+  `find "$OUT" -maxdepth 1 -type f -name 'accessbase-*.dump'` sorted, delete oldest
+  beyond --keep (default 7); validate OUT is a real dir (mkdir -p), never follow user
+  globs.
+- restore: BEFORE any prompt — echo `target: <user>@<host>:<port>/<db>`; refuse unless
+  server for that mode is down (deploy: `data/.pids`/PIDFILE probe; native: port probe
+  5101) OR `--force`; tty confirm requires **typing the database name** when
+  host≠localhost or DATABASE_URL was externally set; `ACCESSBASE_RESTORE_CONFIRM=yes`
+  = non-interactive bypass (SEPARATE variable from RESET — rev.1 body fixed).
+  `pg_restore -c --clean --if-exists --no-owner`; nonzero + loud half-restored warning.
+- Default OUT `data/backups/` — .gitignore ALREADY covers data/ (rev.1's "add entry"
+  was a no-op, dropped).
+- compose/container modes: documented `docker exec` one-liners in the script header
+  (not automated).
 
-### D4: compose dev schema bootstrap
+### D4: compose dev — loud schema bootstrap in the REAL boot path (flows R3)
 
-`docker-compose.dev.yml` server command becomes
-`sh -c "pnpm db:push && pnpm --filter @accessbase/server dev"` (cwd /app has root
-package + mounted volumes; idempotent push on existing schema). depends_on healthy
-postgres already guarantees reachability. Container all-in-one untouched (entrypoint
-already pushes); deploy/compose-prod untouched (migrate.sh owns those since L).
+The compose dev server runs entrypoint-dev.sh (image ENTRYPOINT; compose `command:`
+is swallowed as $@). Fix **`docker/entrypoint-dev.sh:50`**: replace
+`pnpm db:push 2>/dev/null || echo skipped` with push + retry(3) + **fatal exit on
+failure with the real error echoed** (dev containers SHOULD fail loudly; fresh-volume
+push has no interactive-prompt surface, and `sh -c` compose rewrite is dead — the
+earlier failure-hang risk evaporates). Live-fire G5-4 arbitrates; if the mechanism
+turns out different, fix per evidence and note it in the execution log.
 
 ## Success criteria
 
-1. /health/ready twice → createDb called once; body unchanged shape; graceful close ends pool.
+1. /health/ready: sequential + concurrent probes → createDb spy ==1; close→rebuild
+   probe green; body shape identical.
 2. GET /metrics → 200 Prometheus text (`accessbase_process_cpu_seconds_total`,
-   `accessbase_http_request_duration_seconds_count` present); with METRICS_TOKEN set,
-   no/ wrong token → 403 {code:METRICS_AUTH}, right token → 200.
-3. backup on throwaway DB → .dump + sha256; drop table → restore → data back; retention
-   keeps N newest; tty confirmation refusal aborts restore with zero writes.
-4. compose dev: `down -v && up` → /setup/status 200 within boot (wizard reachable).
-5. Gates: vitest root (1 new health + ~4 metrics route tests) · double tsc · eslint
-   changed 0 err · e2e 137+3 no-regression (metrics/health not UI-surfaced) · live-fire
-   per G5 on throwaway DB · .env.example + docker notes.
-6. Memory: status M row, conventions Phase M (pool-singleton discipline, metrics token
-   semantics, backup guard contract), pitfalls as discovered, D119 (metrics exposure
-   philosophy + backup sole-writer).
+   `accessbase_http_request_duration_seconds_count`); token set: missing/wrong →
+   403 METRICS_AUTH, right → 200; no ACAO header on /metrics; pre-setup → 200/403
+   (guard-exempt); **PG-down vitest green** (no DB touch on /metrics path);
+   prod&no-token → warnDegradedChecks line (unit).
+3. backup: .dump+.sha256 mode 600, password never in ps/argv/stdout; retention keeps
+   N newest own-prefix files only. restore: echo identity; wrong typed name aborts
+   zero-writes; happy path drop→restore→data back; --force + CONFIRM bypass works.
+4. entrypoint-dev.sh: push failure ⇒ container exits nonzero with visible error;
+   fresh volume ⇒ /setup/status 200 (live-fire or NOT VERIFIED note if docker absent).
+5. Gates: vitest root (T1 ~3 + T2 ~5 new) · double tsc · eslint changed 0 err ·
+   e2e 137+3 no-regression · coverage PASS · .env.example line.
+6. Memory: status M row · conventions Phase M (metrics-surface checklist, dump-secrets
+   rule, restore identity-echo contract, health singleton pattern) · D119 · PITs as
+   discovered (PG-URL percent-decode trap, entrypoint-swallow-failure class).
 
-## Risk ledger (reviewers)
+## Risk ledger closure
 
-- route-label cardinality: `reply.routeOptions.url` usage — verify fastify version API.
-- prom-client + our pino ESM interplay; tsx dev vs compiled dist (PIT-061 lesson:
-  live-fire the COMBINED build path at least once — T5 does deploy build + curl).
-- pg_dump version vs PG16 (pixi native postgres tooling version alignment).
-- restore guard bypass env var name collision with reset (ACCESSBASE_RESET_CONFIRM —
-  reuse or separate ACCESSBASE_RESTORE_CONFIRM — reviewer call; spec lean: separate).
-- compose dev `sh -c` string: pnpm workspace cwd correctness inside image.
-- backup of a LIVE db (server up): -Fc handles consistent snapshot per-connection;
-  document best-practice (stop or replica).
-- metrics route must not leak through CORS wildcard (app CORS allows only site origins — verify).
+route-pattern label = request.routeOptions.url ✓ · prom-client ESM/tsc fine ·
+pg_dump = pixi native postgresql 16 client (same package as server tools) ·
+restore env = ACCESSBASE_RESTORE_CONFIRM ✓ · CORS per-route off ✓ · live-server dump
+= snapshot-consistent (document best practice).
