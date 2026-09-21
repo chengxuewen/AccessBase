@@ -527,3 +527,24 @@
 - **根因**: Fastify 插件封装作用域：metricsRoutes 内 addHook 的 onRequest/onResponse 只覆盖该 encapsulated context 的路由（=只有 /metrics）；spec「注册于 hijack 之后」不解决作用域问题。
 - **解法**: fastify-plugin 包裹提升根作用域（保留注册顺序=仍不测 hijacked /oidc）+ 对称守卫（onResponse 先查 startedAt.has 再 dec——rate-limit 短路的 429 从未经过我们的 onRequest，盲 dec 会负漂）。路由级测试断真实路由标签存在作锁。
 - **验证**: fp 版 dist 冒烟 `route="/health/live"` 命中；e2e/单测双绿。
+
+## PIT-071: 链尾哨兵只盯上一版——新迁移落地后 legacy 卷静默缺表（staleness 家族） (2026-09-21)
+
+- **症状**: 批 N 加 0005（oidc_adapter_state）后，legacy push 卷跑 migrate.sh：baseline stamp 把 0005 一并记为 stamped 但从不执行——表不存在而追踪表显示已应用，OIDC 运行时全 500（relation does not exist），sweeper 每 5 分钟静默 warn。双 Momus B2 抓出；ops-migrate.test 甚至把 (0004) 旧消息钉成期望。
+- **根因**: 哨兵设计与链演进解耦——单点 phone 探针是 0004 时代写死的，追加迁移的人不会想起改 20 行外的脚本。
+- **解法**: migrate.sh 改 SENTINELS 数组（每链文件一行 `ver|probe SQL`），conventions Phase N 入册「新链文件必配哨兵」+ops-migrate legacy 用例双断言（0004+0005 都在 = 探针缺失即红）。中期根治（升级 drizzle-kit ≥0.44 用 `generate --custom` 原生 partial index）见 PIT-072。
+- **验证**: 双消息断言在 test；`bash -n` + 三文件实跑（fresh 7/7、legacy 双行、幂等）。
+
+## PIT-072: partial index 超出 drizzle-kit 0.20 generate 词汇表→手工 snapshot 毒化后续 generate（连环雷） (2026-09-21)
+
+- **症状**: I 批手工往 snapshot 写 `where`/`concurrently` 后，N 批 `drizzle-kit generate` 直接 `0004_snapshot.json data is malformed`——diff 阶段读 snapshot 即崩，任何后续 generate 全灭。
+- **根因**: drizzle-kit 0.20 的 snapshot parser 只认它自己的 index 词汇（columns/isUnique），`index().where()` 只能手进 SQL+snapshot → snapshot 成为「解析不了的自己人」。
+- **解法**: 短期手工三件套继续走（0005 本轮：SQL+journal+snapshot，snapshot 索引条目**必须**带 where 否则下次 generate 误重建丢 partial——本轮已带，explore 复核过）；中期升级 drizzle-kit（根 package.json:230 + migration devDep 两处同步）后整链 snapshot 重生。手工文件与 generate 文件混链时以「升级日重基线」为计划性节点。
+- **验证**: N 批 journal 6 entries + 快照 where 在位 + `migrate.sh` fresh/legacy/idempotent 三态实测。
+
+## PIT-073: 「consume=DELETE RETURNING」直觉实现会静默解除 OAuth 重放防御（规范对等盲区） (2026-09-21)
+
+- **症状**: spec 风险账/计划一度写 consume=DELETE+RETURNING（以为=原子防双花）；真 v9 语义=UPDATE 标记 `consumed`（memory_adapter.js 实证），consumeGrantSource 靠**读回标记**触发 revoke 整个 grant（授权 BCP §4.13.2 防御）。删除=find 返空→走 unknown-token 分支→攻击者重放旧 refresh token 不再牵连吊销。
+- **根因**: 把 consume 当通用「一次性凭据核销」直觉设计，没有对照 provider 的重放检测路径逐行核语义；且项目此前内存 Map 实现 consume 本来就是 delete（对等债务一直没暴雷=测试从不重放链路）。
+- **解法**: consume 统一 UPDATE jsonb_set 标记；实现+测试+conventions Phase N 三处钉死「标记非删除」；grantable/kind 作用域同轮修正（revokeByGrantId(kind,...)）。
+- **验证**: oidc-persistence 集成用例断言 consume 后行存活且带数字 consumed 标记；Interaction 在 revoke 中幸存用例（B1）。

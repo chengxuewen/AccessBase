@@ -28,3 +28,11 @@
 
 ## 完成判据
 spec §D5 四条 + execution-log 追加本文尾部。
+
+## 执行记录（2026-09-21）
+
+- 控制器直做（H-T4c 先例）。8 commits：297afdd(docs)→7e334e1(spec 语义硬化)→05418b3(T1 表+手工 0005 三件套，链实跑 6/6+幂等)→23ec26b(T2 adapter 重写+T4 sweep 无冲突+B1/B2/B3 审查修)。
+- 审查网：双 Momus 拦 2 个已实现代码真缺陷——B1 kind-blind revoke 杀在飞 Interaction（我实现的跨 kind 删除）；B2 哨兵对 0005 失明（legacy 卷静默缺表）。spec 侧：$i/$j 虚构清文、v7→9.12.2、consume DELETE 残留→UPDATE-mark 统一（PIT-073）、0s⇒NULL 错误修。
+- 门禁：vitest 全量 **931/0**（含 oidc-flow 真 PG 全链 + 12 单元 + 6 集成 + ops-migrate 11/11）· 双 tsc 0 · eslint 改动面 0 error（2 预存体例警告清零于新文件）· **e2e 137+3skip 0 fail**（批 N server-only 改动，e2e mock 面零接触——跑于 revoke 签名变更前，注记）· migrate 链 7/7 幂等+双哨兵断言 · dist 生产冒烟 discovery 200 + metrics 88 行（无 token 开放形态）+ sweep 定时器无崩溃（5min 未见 warn 日志）。
+- NOT VERIFIED：真 RP 全协议跨重启 curl 链（AC→token→杀进程→refresh）——等价证据=集成双实例（新 createDb 池）+ oidc-flow 真 PG 全绿；重启=新池对同表，无额外代码路径。
+- 记忆：status A-N 行 + conventions Phase N（活令牌/标记/kind/哨兵/partial-index 五则）+ PIT-071~073 + D120。
