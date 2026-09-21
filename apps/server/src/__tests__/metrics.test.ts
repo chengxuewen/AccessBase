@@ -65,6 +65,9 @@ describe('GET /metrics with METRICS_TOKEN set (L-M D2)', () => {
     expect(res.body).toContain('accessbase_process_cpu_seconds_total');
     expect(res.body).toContain('accessbase_http_request_duration_seconds');
     expect(res.body).toContain('accessbase_http_requests_in_flight');
+    // fp-lifted scope: the earlier /health/live probe must be visible under its
+    // ROUTE PATTERN label (if this fails, hooks are encapsulated again).
+    expect(res.body).toContain('route="/health/live"');
   });
 
   it('browser drive-by (Origin header) gets 404 — surface unconfirmed', async () => {

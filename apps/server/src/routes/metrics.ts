@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { register, collectDefaultMetrics, Histogram, Gauge } from 'prom-client';
+import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { config } from '../config.js';
 
@@ -46,22 +47,30 @@ function tokenMatches(presented: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-export async function metricsRoutes(app: FastifyInstance) {
+// fastify-plugin: WITHOUT this the hooks encapsulate to the plugin's own routes
+// and the histogram would observe only /metrics itself — fp lifts scope so every
+// non-hijacked request is measured (register AFTER the OIDC hijack hook at app.ts
+// to keep the documented /oidc blind spot).
+export const metricsRoutes = fp(metricsRoutesImpl);
+
+async function metricsRoutesImpl(app: FastifyInstance): Promise<void> {
   app.addHook('onRequest', async (request) => {
     startedAt.set(request, performance.now());
     httpInFlight.inc();
   });
 
   app.addHook('onResponse', async (request) => {
-    httpInFlight.dec();
+    // Symmetry guard: a request short-circuited BEFORE our onRequest (e.g. the
+    // rate-limit plugin's 429 — registered earlier at root) never incremented;
+    // dec only what we own or the gauge drifts negative.
     const start = startedAt.get(request);
-    if (start !== undefined) {
-      const route = request.routeOptions.url || 'unmatched';
-      httpDuration.observe(
-        { method: request.method, route },
-        (performance.now() - start) / 1000,
-      );
-    }
+    if (start === undefined) return;
+    httpInFlight.dec();
+    const route = request.routeOptions.url || 'unmatched';
+    httpDuration.observe(
+      { method: request.method, route },
+      (performance.now() - start) / 1000,
+    );
   });
 
   // GET /metrics — Prometheus text scrape endpoint.
