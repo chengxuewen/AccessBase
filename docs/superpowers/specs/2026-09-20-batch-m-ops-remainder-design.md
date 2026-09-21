@@ -1,6 +1,6 @@
 # Batch M — Ops Remainder (Design) — rev.2
 
-**Date**: 2026-09-20 | **Status**: ABSORBED dual-Momus (FLOWS APPROVE-WITH-FIXES + BLOCKERS APPROVE-WITH-FIXES, see REVIEW-ADDENDUM) — dispatch-clear
+**Date**: 2026-09-20 | **Status**: SHIPPED (rev.2 absorbed dual-Momus; rev.3 post-impl: fp scope lift + Origin-404 substitution + rateLimit route-config — see PIT-069/070) (FLOWS APPROVE-WITH-FIXES + BLOCKERS APPROVE-WITH-FIXES, see REVIEW-ADDENDUM) — dispatch-clear
 **Depends on**: Batch L (migrate.sh/process defenses), Batch G (redis fail-open), H′ (PG-down signal-zero gate)
 
 ## Problem

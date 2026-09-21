@@ -506,3 +506,24 @@
 - **根因**: createDb 是全应用共享工厂（setup.ts/权限 seed/新 getSeedDb 同源）；测试把它换成只含 update 的 fake → setup-guard 每次请求的 admin 普查 `.select` 缺失 throw → fail-closed 503。
 - **解法**: fake 必须补齐被换工厂的全部方法面（select/update 链形 makeChain），且 UserManager.findByEmail 给 admin 邮箱 truthy 短路 fast-path；或直接 spread 真 db+定点 spy。
 - **验证**: 14/14 绿；同族教训=「替换共享单例 mock 的爆炸半径=所有隐式消费者」。
+
+## PIT-068: pkill/pgrep 模式命中派发 shell 自身=自杀式挂死（两次踩坑） (2026-09-21)
+
+- **症状**: bash 工具命令超时 60-300s 无输出；`pkill -f "node apps/server/dist/index.js"` 与后续 `pgrep -f "dist/index"` 两次把正在执行该命令的持久 shell 自己干掉（命令行本身含模式字符串 → -f 全命令行匹配命中自己）。
+- **根因**: pkill/pgrep -f 按完整 cmdline 匹配；wrapper `bash -c '<包含模式的命令>'` 的 cmdline 含该字面串。
+- **解法**: ①模式加 bracket 自避（`"dist/[i]ndex.js"`——模式串本身不匹配自身）；②或先 `pgrep` 拿 pid 存变量再 `kill $pid`（分开两句，第二句不含旧模式）；③fuser -k <port>/tcp 按端口收最稳。
+- **验证**: 本批三次收尾清理全部改用 bracket/fuser 后零挂死；凡后台 smoke 残留清理一律端口定向（fuser -k 5199/tcp）。
+
+## PIT-069: @fastify/cors v9 无路由级 cors 类型 + 全局注册 skip 伪前提——Prometheus 面三坑 (2026-09-21)
+
+- **症状**: rev.2 spec 写「路由 cors:false + limiter skip fn」，实现时 tsc TS2353（RouteShorthandOptions 无 cors）；@fastify/rate-limit v9 全局注册 options 亦无 skip 键（TS2769）。
+- **根因**: v9 时代类型面只暴露 per-route `config:{rateLimit:false}`（v10+ 才有 skip）；cors 的 per-route 开关在该版本类型里不存在（运行时忽略未知键=静默无效，比报错更险）。
+- **解法**: 浏览器顺路读用「Origin 头存在→404」守卫替代（Prometheus 不发 Origin，等价且更强=连 surface 都不确认）；限流豁免用路由级 `config:{rateLimit:false}`。教训入 conventions Phase M 五件套契约。
+- **验证**: dist 冒烟 origin=404/notok=403/withtoken=89 指标行；metrics.test 断 route="/health/live" 标签存在防封装回归。
+
+## PIT-070: prom-client 钩子写在封装插件内=只测自己（histogram 静默空表） (2026-09-21)
+
+- **症状**: dist 实弹 grep `route="/health/live"` 零命中——/metrics 能出默认进程指标但 duration 直方图只有自身路由。
+- **根因**: Fastify 插件封装作用域：metricsRoutes 内 addHook 的 onRequest/onResponse 只覆盖该 encapsulated context 的路由（=只有 /metrics）；spec「注册于 hijack 之后」不解决作用域问题。
+- **解法**: fastify-plugin 包裹提升根作用域（保留注册顺序=仍不测 hijacked /oidc）+ 对称守卫（onResponse 先查 startedAt.has 再 dec——rate-limit 短路的 429 从未经过我们的 onRequest，盲 dec 会负漂）。路由级测试断真实路由标签存在作锁。
+- **验证**: fp 版 dist 冒烟 `route="/health/live"` 命中；e2e/单测双绿。

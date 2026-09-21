@@ -37,3 +37,11 @@ T1=health.ts+测试 · T2=app.ts/metrics.ts/config/setup-guard/warn/env/package 
 
 ## 完成判据
 spec §5 六条全过 + execution-log 追加本文尾部 + scoped re-review 免除（附录即一轮修，flows 裁定无复审必要）。
+
+## 执行记录（2026-09-21）
+
+- 通道：配额墙整批控制器直做（H-T4c 先例）。6 commits：9ce47ae(T4 entrypoint) bf3a39d(T1) 9a1a341(T1-T2 主体) 97a2348(T3) 43e5768(T2 fp 修正) c5e22e0(T5 e2e 断言层)。
+- 审查网实绩：dist 实弹抓 histogram 封装作用域空表（PIT-070，fp 修正+标签断言锁）；e2e 首跑 5 败全定性=T4 spec 断言层三坑（modal-root/footer 全局选择撞 forceRender/strict cell 撞复制按钮），scoped 修复 7/7；401/403 漂移全文统一 403。
+- 门禁终数（实跑）：vitest 全量 924/0（PG-down 全绿）· 双 tsc 0 · eslint 改动面 0 err · **e2e 137+3skip 0 fail（6.6m workers=1）** · coverage PASS 51.45/77.9/77.49 地板升 · 真后端：backup→drop→restore round-trip（16 表+checksum+错误名零写 abort+非 tty 拒）、/metrics 双形态冒烟（dev inject + prod dist：route 标签/403/404/89 指标行）。
+- NOT VERIFIED：docker compose down -v→up 全链路（环境无 docker daemon——entrypoint-dev 改动为单点机制替换，bash -n+读码核对；有 docker 的机器跑 G5-4 即闭环）。
+- 记忆：status 行 + conventions Phase M（五件套契约/备份机密/restore 三重闸/池单例形制/entrypoint 响亮化/e2e 断言层级）+ PIT-068~070 + D119。

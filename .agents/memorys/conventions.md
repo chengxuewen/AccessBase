@@ -249,3 +249,12 @@ logger.error('Operation failed', error); // ❌
 - **前端零租户字面量**：默认租户判定走后端投影（Tenant.isDefault / me.tenantIsDefault），admin-ui 不出 UUID、不比租户名字符串；顶栏 Tag 数据驱动 fail-closed。检查：`grep -c "00000000-0000" apps/admin-ui/src/pages/Tenants.tsx` 应 0。
 - **manager 守卫须逐路由映射**：守卫在 manager 漏斗 throw，每个调用路由（POST+PUT）都要 sendConflictError+cycle/not-found 映射——单侧接线=另一侧 500（PIT-065 实弹）。
 - **seed 语义分层**：seedBuiltinPermissions=永不 throw 包壳（向导/init/selfHeal 用）；bootstrap 直调严格内核 bindPermissions（shortfall throw）；新调用点按需求选层，勿把吞错语义带进必须失败的路径。
+
+## Phase M 运维面约束（2026-09-21）
+
+- **/metrics 五件套契约**（新端点同类必照）：fastify-plugin 提根作用域（封装=只测自身，路由测试断 `route="/health/live"` 标签即闸）+ onEntry/onExit 对称（onResponse 先查 startedAt.has 再 dec，防 rate-limit 短路请求负漂）+ setup-guard ALLOWED_PATHS 豁免（否则每请求拨 DB+PG-down 门炸）+ 路由级 `config:{rateLimit:false}`（v9 无全局 skip 列表——伪前提已纠）+ 无浏览器面：Origin 头 404（@fastify/cors v9 无路由级 cors 类型）。METRICS_TOKEN=prod 无 token 只 WARN 不 fail-fast（K-T4 砖机纪律）；403 码 METRICS_AUTH 全文档统一（实弹曾 401/403 漂移）。
+- **备份=机密**：pg_dump 产物含明文 sessions.token/oauth 令牌/passwordHash——脚本首行 umask 077、产物 600、目录 700、禁 symlink OUT；连接信息走 PG* env 绝不 argv（ps 泄漏）；URL 密码 %XX 解码后赋 PGPASSWORD。
+- **restore 三重闸**：先回显 `user@host:port/db` 再谈确认；非 localhost 或外部 DATABASE_URL → 键入目标库名（错名=零写 abort）或独立 ACCESSBASE_RESTORE_CONFIRM=yes（**禁与 RESET 变量混用**）；server 端口探测活=拒，--force 显式越权。
+- **health/ready 池单例形制**：模块级 memoized promise（并发首探只 createDb 一次）+ onClose closeDb+双复位（测试多次 buildApp 防复封毒池）。新代码禁每请求 createDb（L 批 WeakMap 只救 selfHeal 路径）。
+- **entrypoint 响亮化**：dev 容器 schema push 失败=重试3+exit 1；`|| echo skipped` 吞败形状禁再引入（compose dev 死向导根因）。
+- **e2e 断言层级**：antd Modal 断言瞄准可交互子元素（init-admin-email 之流），禁断 ant-modal-root（root 可在打开态仍 computed-hidden）；多模态页 footer 按钮必须 testid 域内定位（forceRender 隐藏兄弟全局选择必撞）；cell 名含复制按钮拼接（`globex 复制`）→ getByRole cell 一律 exact:true。
