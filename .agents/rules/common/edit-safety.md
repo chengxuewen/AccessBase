@@ -149,3 +149,12 @@ curl -sf http://localhost:5173 && echo "Frontend OK" || echo "Frontend DOWN"
 - **Continuation gated ("skipped by gate: active")**: the child session is still mid-turn — wait with bounded sleep loops; do not force-inject.
 
 - **NEVER run bare `npx tsc` inside package dirs** (PIT-048): misdirected outDir scatters .js/.map into src/. Use `pnpm --filter @accessbase/identity build` for identity; `pixi run npx tsc --noEmit` for checks only (--noEmit never writes).
+
+## Hashline 编辑三律（PIT-074 沉淀，本会话 4+ 次半应用后固化）
+
+1. **范围替换 pos+end 成对**。replace 只给 pos = 消费单行；多行 lines 即产生重复/吞行残留。编辑后 `pixi run npx tsc --noEmit -p <project>` 必跑——语法腐坏全被它接住，零例外。
+   检查：编辑批完成后 `grep -c "function \|=> {" <file>` 与编辑前行数差对得上意图；最稳=直接跑 tsc。
+2. **一文件一批 ops，filePath 逐 op 核对**。跨文件混 ops 曾把 test 文件的 ops 配进 route 文件。报错（hash mismatch）后**必须 read 相关区域看真相**——前序 op 是否半应用不可假设；结构损坏 >20 行时 `git checkout -- <file>` 回净基线 + 整文件 Write（tenants.ts 两次复活路径）。
+3. **批量 patch 脚本 two-pass**：先 assert 全部 pattern 存在，再统一 write——单 pass 边查边写 = 半新半旧。
+
+阻塞条件：任何一条违犯且 tsc 未跑 → 不得声称该文件完成。

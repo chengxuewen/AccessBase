@@ -266,3 +266,7 @@ logger.error('Operation failed', error); // ❌
 - **revokeByGrantId 必带 kind**（B1）：provider 按 grantable model 各自调用；kind-blind DELETE 会杀在飞 Interaction（payload 亦带 grantId）。官方 grantable 集=AT/AC/RT/DeviceCode/BCAuthReq/PreAuthorizedCode。
 - **新链文件必配哨兵**：scripts/migrate.sh SENTINELS 数组每条链文件一行廉价 schema 探针（0004=phone、0005=oidc_adapter_state）——漏加=legacy push 卷静默缺表（B2 实锤：stamp 通过而表不存在→OIDC 全 500）。ops-migrate.test 的 legacy 用例同步断言。
 - **partial index 超出 drizzle-kit 0.20 generate 词汇表**：链+snapshot 手工写（I 批先例），snapshot 的索引条目必须带 where（防下次 generate 误重建）；升级 drizzle-kit 时复核此形制。
+
+## 设计文档事实纪律（2026-09-21，PIT-076 沉淀）
+
+- spec 里每条**外部接口/代码现状**断言（库版本、adapter 契约、"既有 X 列表/事件/写者"）必须旁附 `file:line` 或验证 grep 命令——落笔前核实，不凭记忆。检查：`grep -cE '\.(ts|js):[0-9]+|grep ' docs/superpowers/specs/<新spec>.md` 应 >0；双 Momus 前控制器自跑事实清单（本会话 9 例假事实全数在此网前或网中被捕，零逃逸到实现）。

@@ -548,3 +548,24 @@
 - **根因**: 把 consume 当通用「一次性凭据核销」直觉设计，没有对照 provider 的重放检测路径逐行核语义；且项目此前内存 Map 实现 consume 本来就是 delete（对等债务一直没暴雷=测试从不重放链路）。
 - **解法**: consume 统一 UPDATE jsonb_set 标记；实现+测试+conventions Phase N 三处钉死「标记非删除」；grantable/kind 作用域同轮修正（revokeByGrantId(kind,...)）。
 - **验证**: oidc-persistence 集成用例断言 consume 后行存活且带数字 consumed 标记；Interaction 在 revoke 中幸存用例（B1）。
+
+## PIT-074: hashline 编辑 pos-only 多行替换=残留半应用（本会话 4+ 次，每次拖出语法腐坏） (2026-09-21)
+
+- **症状**: ①platformBelt 替换吞掉 `avatarProps={{` 行（AdminLayout 语法断）；②tenants.ts bootstrap 插入只消费首行 → 427 行双函数体并存（tsc 1128 雪崩）；③一次多 op 编辑把 A 文件的 ops 配到 B 文件路径（tenants.ts 收到 test 文件 ops）；④python 批量 patch 脚本部分成功部分 assert 失败 → 文件半新半旧未落盘（JUNK 未删成功）。共性：报错后凭记忆续改，残留/半应用状态不可见。
+- **根因**: edit 工具 replace 无 end = 只消费 pos 单行，lines 多行即插入重复；hash mismatch 拒绝整批但前序 bash/python 写可能已半应用；跨文件 ops 极易错配。
+- **解法**: ①范围替换永远 pos+end 成对；②每 op 的 filePath 单独核对（一文件一批，禁跨文件混 ops）；③工具报错/半疑状态立即 read 全区域看真相，禁凭记忆；④结构大改（>30 行新函数）优先 git checkout 回净基线 + Write 整文件（tenants.ts 两次复活皆靠此径）；⑤python 批量 patch 用 two-pass（先全 pattern assert，再全 write）。
+- **验证**: 双 tsc 门每次编辑批后必跑（本会话每次残留全被 tsc 抓住，零漏网入提交）；纪律固化见 edit-safety.md「Hashline 编辑三律」。
+
+## PIT-075: 控制器 shell 无 pixi native bin——psql not found 且 `pixi run psql` 把二进制当 task 名（L′/N 两批各烧 2-4 轮） (2026-09-21)
+
+- **症状**: 直接 `psql ...` 报 command not found；改 `pixi run psql "..."` 输出 "Available tasks: dev reset start status stop" 的迷惑「成功」；drizzle-kit `./node_modules/.bin/` 亦不存在（pnpm strict 布局）。后续管道 `| tail -1` 把这些错误当输出吞掉，误判命令已执行（建库看似成功实际未跑）。
+- **根因**: native PG 工具链住在 `.pixi/envs/native/bin/`（accessbase.sh 内部 export PATH 后才可用）；`pixi run <binary>` 语义是跑 task 而非任意二进制；root node_modules/.bin 不 hoist 子包 bin。
+- **解法**: 控制器用 psql/pg_ctl/dropdb 一律全路径 `.pixi/envs/native/bin/psql`；跑项目脚本（migrate.sh/db:push/accessbase.sh）经 bash 前缀 `export PATH="$PWD/.pixi/envs/native/bin:$PATH"`；npx 工具用 `pixi run npx <tool>`（npx 是合法 task 形）或包内 `node_modules/.bin/`（apps/server/node_modules/.bin/tsx 形）。
+- **验证**: 本会话终态全部 PG 操作走全路径后零再犯；`ls .pixi/envs/native/bin/ | grep -c psql` = 1。
+
+## PIT-076: spec 凭记忆写外部接口细节=批量假事实（本会话 5 例，三批连续被审查抓） (2026-09-21)
+
+- **症状**: 批 L′ Momus 抓 2（分区算术 9+9≠21、users POST 策略调用点假事实）；批 M 抓 3（限流「既有 /health skip 列表」伪前提、compose dev「无 push」假事实——实际有且被吞、`reply.routeOptions` 不存在应为 request）；批 N 自抓+审查 4（`$i/$j` 标记 grep 零命中纯虚构、oidc-provider v7 实装 9.12.2、consume=DELETE RETURNING 直觉实现毁 OAuth 重放防御、oidcGrants「provider events 写入」实际零写者）。每个假事实都需 tsc/测试/实弹二次埋单。
+- **根因**: 设计文档写作时对外部库契约（adapter 语义、fastify 类型、插件版本）与自家代码现状（谁写这张表、有没有 skip 列表）凭旧记忆/类比外推，未做「落笔前 grep 一次」。
+- **解法**: spec 中每条可验证事实句旁必附 file:line 或 grep 命令（本批后期 D120/rev.2 已按此执行，v9.12.2/grantable 集/ttl 均带实证）；「设计事实清单」在双 Momus 前由控制器自跑一遍（L′ 后三次实质做到）。入 conventions 纪律条。
+- **验证**: `grep -c "file:line\|grep -" docs/superpowers/specs/2026-09-21-batch-n-*.md` 非零（新 spec 带实证密度）；遗留假事实由审查网兜底率=100%（本会话 9/9 被抓出，零逃逸到实现）。
