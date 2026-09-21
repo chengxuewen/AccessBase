@@ -16,6 +16,7 @@ primaryKey,
 index,
 unique,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 /**
  * Users table (database.md §22.1)
@@ -342,6 +343,43 @@ export const oidcGrants = pgTable('oidc_grants', {
 });
 
 export type OidcGrantRow = typeof oidcGrants.$inferSelect;
+
+/**
+ * OIDC provider adapter state (batch N). Generic KV mirroring the
+ * oidc-provider Adapter contract for EVERY non-Client kind: verbatim jsonb
+ * payload plus derived index columns (Session uid, interaction userCode,
+ * grantId) and TTL. Replaces the module-level memory Map whose ponytail
+ * comment admitted restart wipes all RP refresh tokens.
+ */
+export const oidcAdapterState = pgTable(
+  'oidc_adapter_state',
+  {
+    kind: text('kind').notNull(),
+    id: text('id').notNull(),
+    payload: jsonb('payload').notNull(),
+    /** Derived payload.uid — indexed for Session (official memory adapter
+     * only indexes Session uid; we populate only kind='Session'). */
+    uid: text('uid'),
+    /** Derived payload.userCode, lower-cased (interaction resumption). */
+    userCode: text('user_code'),
+    /** Derived payload.grantId — cross-kind token revocation. */
+    grantId: text('grant_id'),
+    /** NULL = provider passed no expiry (rare). Relative expiresIn was
+     * converted at write time: now() + expiresIn + clockTolerance seconds. */
+    notAfter: timestamp('not_after', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.kind, t.id] }),
+    uidIdx: index('oidc_adapter_state_uid_idx').on(t.kind, t.uid).where(sql`${t.uid} IS NOT NULL`),
+    userCodeIdx: index('oidc_adapter_state_user_code_idx').on(t.kind, t.userCode).where(sql`${t.userCode} IS NOT NULL`),
+    grantIdx: index('oidc_adapter_state_grant_idx').on(t.grantId),
+    ttlIdx: index('oidc_adapter_state_ttl_idx').on(t.notAfter),
+  }),
+);
+
+export type OidcAdapterStateRow = typeof oidcAdapterState.$inferSelect;
 
 /**
  * API keys table (Batch C Task 1). Plaintext is shown exactly once at create
