@@ -28,9 +28,10 @@ while [ $# -gt 0 ]; do
 done
 
 umask 077
+# W3-4 (F15g): symlink refusal must precede any effect on the target path.
+if [ -L "$OUT" ]; then log_error "backup: refusing symlinked output dir $OUT"; exit 1; fi
 mkdir -p "$OUT"
 chmod 700 "$OUT"
-if [ -L "$OUT" ]; then log_error "backup: refusing symlinked output dir $OUT"; exit 1; fi
 
 # --- target from DATABASE_URL (override wins) else native/deploy defaults ---
 URL="${DATABASE_URL:-postgresql://accessbase:accessbase_dev@localhost:${PG_PORT:-5432}/accessbase}"
@@ -57,7 +58,8 @@ log_info "sha256: ${HASH}"
 log_warn "This file contains password hashes AND plaintext session tokens — store it as a secret."
 
 # --- retention: own-prefix regular files only, newest KEEP kept ---
-mapfile -t all < <(find "$OUT" -maxdepth 1 -type f -name 'accessbase-*.dump' -printf '%T@ %p\n' | sort -rn | awk '{print $2}')
+# W3-4 (F15e): NUL-delimited newest-first list — filenames with spaces survive.
+mapfile -d '' -t all < <(find "$OUT" -maxdepth 1 -type f -name 'accessbase-*.dump' -printf '%T@\t%p\0' | sort -z -t $'\t' -k1,1nr | cut -z -f2-)
 if [ "${#all[@]}" -gt "$KEEP" ]; then
     for victim in "${all[@]:$KEEP}"; do
         rm -f -- "$victim" "${victim}.sha256"

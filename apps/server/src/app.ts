@@ -73,7 +73,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
     credentials: true,
   });
 
-  await app.register(fastifySwagger, {
+  // W3-4 (F15a): unauthenticated /docs ships the entire API map — dev/test only.
+  if (config.nodeEnv !== 'production') await app.register(fastifySwagger, {
     openapi: {
       info: {
         title: 'AccessBase API',
@@ -93,7 +94,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     },
   });
 
-  await app.register(fastifySwaggerUi, {
+  if (config.nodeEnv !== 'production') await app.register(fastifySwaggerUi, {
     routePrefix: '/docs',
   });
 

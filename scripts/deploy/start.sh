@@ -147,9 +147,10 @@ if [ -n "${ADMIN_EMAIL:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
   SETUP_STATUS=$(curl -sf --noproxy localhost "http://localhost:${SERVER_PORT}/api/v1/setup/status" 2>/dev/null || echo '{}')
   if echo "$SETUP_STATUS" | grep -q '"adminExists":false'; then
     log_info "Creating admin user from environment variables..."
-    curl -sf --noproxy localhost -X POST "http://localhost:${SERVER_PORT}/api/v1/setup/admin" \
-      -H 'Content-Type: application/json' \
-      -d "{\"name\":\"Administrator\",\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\"}" || log_warn "Admin creation failed"
+    # W3-4 (F15b): JSON via stdin through node (no argv password, real escaping).
+    node -e 'process.stdout.write(JSON.stringify({ name: "Administrator", email: process.env.ADMIN_EMAIL ?? "", password: process.env.ADMIN_PASSWORD ?? "" }))' \
+      | curl -sf --noproxy localhost -X POST "http://localhost:${SERVER_PORT}/api/v1/setup/admin" \
+          -H 'Content-Type: application/json' --data @- || log_warn "Admin creation failed"
     curl -sf --noproxy localhost -X POST "http://localhost:${SERVER_PORT}/api/v1/setup/complete" || true
     log_ok "Admin user created: ${ADMIN_EMAIL}"
   fi

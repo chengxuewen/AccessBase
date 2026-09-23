@@ -10,7 +10,7 @@
  * be gone and the migrate invocation must not be swallowed by `|| true`.
  */
 import { describe, it, expect, afterAll } from 'vitest';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -308,5 +308,68 @@ describe('network exposure hardening (W2-4/F11)', () => {
     expect(ep).toMatch(/listen_addresses='localhost'/);
     expect(ep).not.toMatch(/0\.0\.0\.0\/0 trust/);
     expect(ep).toMatch(/redis-server[^&]*--bind 127\.0\.0\.1/);
+  });
+});
+
+// Batch P W3-4 hygiene locks (F12-F15 remainders). Static per-file assertions
+// + one live retention-pipeline probe (same expression form as backup.sh).
+describe('hygiene locks (W3-4)', () => {
+  it('/docs swagger is dev-only (production registration skipped)', () => {
+    const src = readFileSync(path.join(ROOT, 'apps/server/src/app.ts'), 'utf-8');
+    expect(src).toMatch(/if \(config\.nodeEnv !== 'production'\) await app\.register\(fastifySwagger,/);
+    expect(src).toMatch(/if \(config\.nodeEnv !== 'production'\) await app\.register\(fastifySwaggerUi,/);
+  });
+
+  it('admin bootstrap never puts the password in curl argv (JSON via stdin)', () => {
+    for (const f of ['accessbase.sh', 'scripts/deploy/start.sh']) {
+      const src = readFileSync(path.join(ROOT, f), 'utf-8');
+      expect(src, f).not.toMatch(/-d "\{[^"]*ADMIN_PASSWORD/);
+      expect(src, f).toMatch(/--data @-/);
+    }
+  });
+
+  it('backup.sh: symlink check precedes mkdir; retention pipeline is null-safe', () => {
+    const src = readFileSync(path.join(ROOT, 'scripts/backup.sh'), 'utf-8');
+    expect(src.indexOf('-L "$OUT"')).toBeLessThan(src.indexOf('mkdir -p "$OUT"'));
+    expect(src).toMatch(/-printf '%T@\\t%p\\0'/);
+    expect(src).toMatch(/cut -z -f2-/);
+    expect(src).not.toMatch(/awk '\{print \$2\}'/);
+  });
+
+  it('restore.sh: checksum verifies BEFORE pg_restore and aborts; dead PG probe gone', () => {
+    const src = readFileSync(path.join(ROOT, 'scripts/restore.sh'), 'utf-8');
+    // needle = the actual command line (file header comment also mentions pg_restore)
+    expect(src.indexOf('sha256sum -c')).toBeLessThan(src.indexOf('if ! pg_restore --clean'));
+    expect(src).toMatch(/refusing to restore/);
+    expect(src).not.toMatch(/\/dev\/tcp\/\$\{PGHOST\}/);
+  });
+
+  it('Dockerfile installs with the lockfile honored; dockerignore covers nested .env', () => {
+    const df = readFileSync(path.join(ROOT, 'Dockerfile'), 'utf-8');
+    expect(df).not.toMatch(/--no-frozen-lockfile/);
+    const di = readFileSync(path.join(ROOT, '.dockerignore'), 'utf-8');
+    expect(di).toMatch(/\*\*\/.env/);
+  });
+
+  it('retention expression keeps newest KEEP, deletes older INCLUDING spaced filenames (live probe)', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'ab-ret-'));
+    try {
+      const oldSpaced = path.join(dir, 'accessbase-old with space.dump');
+      const newer = path.join(dir, 'accessbase-newer.dump');
+      writeFileSync(oldSpaced, 'x');
+      writeFileSync(newer, 'y');
+      execFileSync('touch', ['-d', '2020-01-01', oldSpaced]);
+      const script = [
+        `mapfile -d '' -t all < <(find ${JSON.stringify(dir)} -maxdepth 1 -type f -name 'accessbase-*.dump' -printf '%T@\\t%p\\0' | sort -z -t $'\t' -k1,1nr | cut -z -f2-)`,
+        'KEEP=1',
+        'if [ "${#all[@]}" -gt "$KEEP" ]; then for victim in "${all[@]:$KEEP}"; do rm -f "$victim"; done; fi',
+        `ls ${JSON.stringify(dir)}`,
+      ].join('; ');
+      const out = execFileSync('bash', ['-c', script], { encoding: 'utf8' });
+      expect(out).toContain('accessbase-newer.dump');
+      expect(out).not.toContain('old with space');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

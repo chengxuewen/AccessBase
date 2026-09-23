@@ -163,9 +163,11 @@ cmd_dev_native() {
       setup_status=$(curl -sf --noproxy localhost "http://localhost:${server_port}/api/v1/setup/status" 2>/dev/null || echo '{}')
       if echo "$setup_status" | grep -q '"adminExists":false'; then
         log_info "Auto-creating admin user: ${ADMIN_EMAIL}"
-        curl -sf --noproxy localhost -X POST "http://localhost:${server_port}/api/v1/setup/admin" \
-          -H 'Content-Type: application/json' \
-          -d "{\"name\":\"Administrator\",\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\"}" > /dev/null 2>&1 || log_warn "Admin auto-create failed (server may not be ready yet)"
+        # W3-4 (F15b): password never on argv (ps leak) and JSON escaped by
+        # node, not shell interpolation (quotes/backslashes broke the old -d).
+        node -e 'process.stdout.write(JSON.stringify({ name: "Administrator", email: process.env.ADMIN_EMAIL ?? "", password: process.env.ADMIN_PASSWORD ?? "" }))' \
+          | curl -sf --noproxy localhost -X POST "http://localhost:${server_port}/api/v1/setup/admin" \
+              -H 'Content-Type: application/json' --data @- > /dev/null 2>&1 || log_warn "Admin auto-create failed (server may not be ready yet)" 
       fi
     fi
 
