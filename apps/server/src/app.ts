@@ -234,7 +234,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
     // need body parsing + bearer auth, so they bypass the provider hijack.
     if (req.url.startsWith('/oidc/interaction/')) return done();
     if (!req.url.startsWith('/oidc/')) return done();
-    if (req.url.startsWith('/oidc/.well-known')) return done();
+    // Discovery + JWKS are anonymous RP polls: hand off UNCOUNTED (they stay
+    // with the provider — this is a guard exemption, not a hijack exemption).
     const handoff = (): void => {
       reply.hijack();
       // Provider routes are registered WITHOUT the /oidc prefix (issuer path =
@@ -245,6 +246,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
       raw.url = (raw.url ?? '').slice('/oidc'.length);
       oidcHandler(raw, reply.raw).then(() => done(), done);
     };
+    if (req.url.startsWith('/oidc/.well-known')) return handoff();
     const denied = (): void => {
       void reply
         .code(429)
