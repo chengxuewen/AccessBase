@@ -275,3 +275,12 @@ logger.error('Operation failed', error); // ❌
 ## 设计文档事实纪律（2026-09-21，PIT-076 沉淀）
 
 - spec 里每条**外部接口/代码现状**断言（库版本、adapter 契约、"既有 X 列表/事件/写者"）必须旁附 `file:line` 或验证 grep 命令——落笔前核实，不凭记忆。检查：`grep -cE '\.(ts|js):[0-9]+|grep ' docs/superpowers/specs/<新spec>.md` 应 >0；双 Momus 前控制器自跑事实清单（本会话 9 例假事实全数在此网前或网中被捕，零逃逸到实现）。
+
+## Phase O drizzle toolchain constraints (2026-09-23, batch O, D124)
+
+- **Snapshots are canonical v7 from now on**: new chain files go through `pnpm db:generate` — the hand-written SQL+journal+snapshot trio is RETIRED (0004/0005 remain as rebuilt historical artifacts; do not hand-edit any snapshot again). Check: `grep -l '"version": "5"' packages/migration/drizzle/meta/*_snapshot.json` → zero files.
+- **journal stays version "5"** — `up` doesn't touch it, generate reads it fine, v7 snapshots + v5 journal coexist (probe-verified). Do not hand-bump the journal.
+- **Partial-index `where` canonical form is table-qualified** (`"users"."phone" IS NOT NULL`) — matches both the writer's serialization of `sql`${t.col} IS NOT NULL`` and pg's own `indexdef` normalization. Schema-side `.where(sql...)` declarations and snapshot entries must ship in the same commit (splitting them phantoms the next generate).
+- **`drizzle-kit generate --out <dir>` switches the CLI to pure-flag mode and IGNORES drizzle.config.ts** (errors demanding schema/dialect) — to redirect output temporarily, edit the config `out:` field and revert (or use a scratch dir copy).
+- **`db:migrate` semantics changed**: was inert (`up:pg` no-op at v5); now `drizzle-kit up` = snapshot upgrader, idempotent at v7. It is STILL not a runtime migrator — scripts/migrate.sh remains the sole runtime writer (Phase L rule untouched; migrate.sh reads only `[0-9]_*.sql` filenames + DATABASE_URL, never journal/snapshots — batch O flows-review corrected the older "parses journal tags" wording, which was never true).
+- **`up:pg`-era command names are gone**: scripts are `drizzle-kit push|generate|up`; npm-script layer (`db:push` etc., ~50 textual refs) unchanged by design.

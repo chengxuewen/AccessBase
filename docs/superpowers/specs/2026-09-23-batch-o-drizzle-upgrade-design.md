@@ -107,3 +107,20 @@ The hand-written 0004/0005 snapshots are malformed-by-construction against 0.20'
 - **T2 (controller-direct)**: tsc/vitest fallout per R7/R8 → 949/0.
 - **T3 (controller-direct)**: migrate.sh three-state live-fire (17 tables/6 tracked per R2), eslint, e2e 137+3, memory close-out (4.1 item 9, incl. reworded db:migrate note).
 Rationale for no delegation: single strictly-sequential shell-ritual chain with a mid-flight pivot decision (R1) and exact-text alignment work (R5); precedent H-T4c/L-prime controller-direct for up-critical rituals.
+
+## T0 VERDICT (2026-09-23, executed probe in /tmp/opencode/drizzle-probe — pivots R1 into a proven recipe)
+
+1. kit 0.31.11 `up` does NOT fix the hand-written pair: it converts 0000-0003 (v5→v7, leaves journal untouched) and **silently skips 0004/0005**; subsequent `generate` still dies `data is malformed` on both. PIT-072's failure mode survives to 0.31.11 — F4's "up handles everything" is false; the pivot branch is the only path.
+2. Root cause anatomy (two compounding defects in our hand-written v5 files): non-canonical index entries (bare/unquoted `where`, and 0004's object-columns predated any kit vocabulary) AND the v7 validator's requirement of `id`/`prevId` (stripping them recreates malformed — verified both directions; up-converted files keep an id chain).
+3. PROVEN RECIPE (dry-run green): fresh-generate a full-state v7 snapshot from the patched schema in an empty out dir = authoritative shape — `where` is TABLE-QUALIFIED (`"users"."phone" IS NOT NULL`, `"oidc_adapter_state"."uid" IS NOT NULL`); rebuild 0005 = authoritative head, 0004 = head minus `public.oidc_adapter_state` (+ its relations entry); re-hang a fresh uuid chain 0003.id → 0004 → 0005. Full-chain `generate` then reports zero new files (idempotent).
+4. schema.ts gains the two phone declarations (`.where(sql...)`, `uniqueIndex` import) in the same commit as the rebuild — snapshot and declarations must ship together or the next generate phantoms.
+5. Journal needs NO change (probe ran generate fine against journal version "5" — up itself left it at 5).
+
+## Execution record (2026-09-23, controller-direct per R-plan)
+
+- T0 probe: /tmp scratch, kit 0.31.11+orm 0.45.3 — up converts canonical/skips hand-written (V1), generate rejects (V2), malformed = index vocab + missing id/prevId (V3), authoritative-rebuild recipe dry-ran to idempotent zero files (V4/V5). See T0 VERDICT above; pivot executed as designed by R1.
+- T1a (`chore(deps)`): 3 package.json bumps + lockfile + migration scripts/`push|generate|up` + config dialect/url. Root package.json untouched (no drizzle-kit there — R4 census correction).
+- T1b (`fix(migration)`): up in-repo (0000-0003→v7, journal left at v5 per T0-V5), 0004/0005 rebuilt from fresh-generate authority (temp `out:` config flip — `--out` flag flag-only-mode discovery, Phase O convention), uuid chain re-hung, schema.ts phone pair + uniqueIndex import. Idempotency: "No schema changes, nothing to migrate" zero new SQL; chain SQL zero drift (git diff).
+- T2: compile fallout = ZERO (identity/server/root tsc clean first try; R7/R8 risk list not triggered — node-postgres unaffected by 0.30 date change at our usage shapes; adapter.ts `now` is numeric).
+- T3 live-fire: db:push clean on dev DB (R6 window closed); migrate.sh fresh 6/6 → 17 tables/6 tracked (R2 numbers exact), idempotent 0/6, real indexdef carries partial WHERE; e2e 137+3 (authoritative second run; first-run 136 display artifact); vitest 931/0.
+- Deviations: none. Baseline note: historical "949" in status N-line was a rollup artifact — pre-batch authoritative full run is 931/0 (proven by this batch: zero test-file changes, 931 all-pass after).

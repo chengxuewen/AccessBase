@@ -542,6 +542,8 @@
 - **解法**: 短期手工三件套继续走（0005 本轮：SQL+journal+snapshot，snapshot 索引条目**必须**带 where 否则下次 generate 误重建丢 partial——本轮已带，explore 复核过）；中期升级 drizzle-kit（根 package.json:230 + migration devDep 两处同步）后整链 snapshot 重生。手工文件与 generate 文件混链时以「升级日重基线」为计划性节点。
 - **验证**: N 批 journal 6 entries + 快照 where 在位 + `migrate.sh` fresh/legacy/idempotent 三态实测。
 
+> **RESOLVED (2026-09-23, batch O)**: upgraded drizzle-kit 0.31.11 + drizzle-orm 0.45.3. Verified by scratch probe: 0.31's `up` converts the four canonical snapshots (v5→v7) but **silently skips the hand-written 0004/0005**, and `generate` still rejects them `data is malformed` — the failure mode SURVIVED the upgrade; F4-style "up fixes everything" assumption killed in T0. The hand-written pair was rebuilt from the authoritative writer output (fresh-generate full-state v7 snapshot = head; 0004 = head minus the batch-N table; fresh uuid chain re-hung; `id/prevId` REQUIRED by the v7 validator — stripping them re-creates malformed). Post-ritual: generate idempotent (zero files), migrate.sh three-state green (17 tables / 6 tracked), `where` texts now table-qualified matching pg's own normalization. False-fact correction: devDep lives ONLY in packages/migration/package.json — the old "root package.json:230" pointer was actually `@iflow-mcp/defrex-drizzle-mcp` at root package.json:36. See D124 + conventions Phase O.
+
 ## PIT-073: 「consume=DELETE RETURNING」直觉实现会静默解除 OAuth 重放防御（规范对等盲区） (2026-09-21)
 
 - **症状**: spec 风险账/计划一度写 consume=DELETE+RETURNING（以为=原子防双花）；真 v9 语义=UPDATE 标记 `consumed`（memory_adapter.js 实证），consumeGrantSource 靠**读回标记**触发 revoke 整个 grant（授权 BCP §4.13.2 防御）。删除=find 返空→走 unknown-token 分支→攻击者重放旧 refresh token 不再牵连吊销。
