@@ -193,7 +193,9 @@ export class AuditLogger {
       return entry;
     }
 
-    const sanitizedRequestBody = this.redactFields(entry.requestBody);
+    // Request side carries OTP/TOTP `code` (secret); response envelopes carry a
+    // legitimate non-secret `code` — extras apply to the request body only (batch P W1-2).
+    const sanitizedRequestBody = this.redactFields(entry.requestBody, ['code']);
     const sanitizedResponseBody = entry.responseBody
       ? this.redactFields(entry.responseBody)
       : undefined;
@@ -206,16 +208,21 @@ export class AuditLogger {
   }
 
   /**
-   * Redact sensitive fields from an object
+   * Redact sensitive fields from an object. `extras` extends the base field
+   * list for this call only (and threads through recursion).
    */
-  private redactFields(obj: Record<string, unknown>): Record<string, unknown> {
+  private redactFields(
+    obj: Record<string, unknown>,
+    extras: readonly string[] = [],
+  ): Record<string, unknown> {
     const result: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(obj)) {
-      if (this.config.sanitize.fields.includes(key.toLowerCase())) {
+      const normalized = key.toLowerCase();
+      if (this.config.sanitize.fields.includes(normalized) || extras.includes(normalized)) {
         result[key] = this.config.sanitize.replacement;
       } else if (typeof value === 'object' && value !== null) {
-        result[key] = this.redactFields(value as Record<string, unknown>);
+        result[key] = this.redactFields(value as Record<string, unknown>, extras);
       } else {
         result[key] = value;
       }

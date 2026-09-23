@@ -146,7 +146,9 @@ export const defaultAuditConfig: AuditConfig = {
   },
   sanitize: {
     enabled: true,
-    fields: ['password', 'token', 'secret', 'api_key', 'credit_card', 'plaintext', 'accesstoken', 'refreshtoken'],
+    // lowercased compare against these (batch P W1-2/F3: oldPassword/newPassword/
+    // flowToken camelCase bodies previously leaked to audit_logs in cleartext).
+    fields: ['password', 'token', 'secret', 'api_key', 'credit_card', 'plaintext', 'accesstoken', 'refreshtoken', 'oldpassword', 'newpassword', 'flowtoken'],
     replacement: '[REDACTED]',
   },
   integrity: {

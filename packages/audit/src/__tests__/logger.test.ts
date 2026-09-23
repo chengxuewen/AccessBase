@@ -344,6 +344,61 @@ describe('AuditLogger', () => {
       expect(written[0]?.responseBody?.['id']).toBe('key123');
     });
 
+    // P-fix W1-2 (batch P F3): auth-route bodies carry camelCase secrets that
+    // the lowercased compare missed (oldPassword/newPassword/flowToken), and the
+    // OTP/TOTP `code` field is request-side-only (response error envelopes carry
+    // a legitimate non-secret `code`).
+    it('P-fix W1-2: redacts oldPassword/newPassword/flowToken and request-side code; response error code survives', async () => {
+      const written: AuditLog[] = [];
+      const storage: AuditStorage = {
+        write: async (entries) => {
+          written.push(...entries);
+        },
+      };
+      const defaultLogger = new AuditLogger(
+        { ...defaultAuditConfig, async: { ...defaultAuditConfig.async, enabled: false } },
+        { storage },
+      );
+
+      const entry: AuditLogEntry = {
+        userId: 'user1',
+        username: 'testuser',
+        userIp: '127.0.0.1',
+        userAgent: 'test-agent',
+        action: 'UPDATE',
+        resourceType: 'auth',
+        resourceId: 'user1',
+        requestBody: {
+          oldPassword: 'OldPass123!',
+          newPassword: 'NewPass123!',
+          flowToken: 'ft_live_token',
+          code: '123456',
+          remember: true,
+        },
+        responseBody: {
+          success: false,
+          error: { code: 'AUTH_002', message: 'Invalid credentials' },
+        },
+        timestamp: new Date(),
+        tenantId: 'tenant1',
+        requestId: 'req-redact',
+        success: false,
+      };
+
+      await defaultLogger.log(entry);
+
+      expect(written).toHaveLength(1);
+      const req = written[0]?.requestBody as Record<string, unknown>;
+      expect(req['oldPassword']).toBe('[REDACTED]');
+      expect(req['newPassword']).toBe('[REDACTED]');
+      expect(req['flowToken']).toBe('[REDACTED]');
+      expect(req['code']).toBe('[REDACTED]');
+      expect(req['remember']).toBe(true);
+      const res = written[0]?.responseBody as Record<string, unknown>;
+      const err = res['error'] as Record<string, unknown>;
+      expect(err['code']).toBe('AUTH_002'); // response side untouched
+    });
+
     it('default config redacts accessToken/refreshToken from responseBody (token-pair envelopes)', async () => {
       const written: AuditLog[] = [];
       const storage: AuditStorage = {
