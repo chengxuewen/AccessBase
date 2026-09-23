@@ -40,7 +40,7 @@
     "@simplewebauthn/server": "^13.3.3",
     "arctic": "^3.7.0",
     "bcryptjs": "^2.4.3",
-    "drizzle-orm": "^0.29.0",
+    "drizzle-orm": "^0.45.3",
     "fastify": "^4.25.0",
     "fastify-plugin": "^6.0.0",
     "oidc-provider": "9",
