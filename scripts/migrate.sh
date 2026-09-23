@@ -15,12 +15,16 @@ if [ ! -d "$CHAIN_DIR" ]; then
   exit 1
 fi
 
-# DATABASE_URL wins; otherwise bare psql over PG* socket env (container trust).
+# W2-3 (F10): translate DATABASE_URL into PG* env — the conninfo (password
+# included) must never ride a psql argv where ps can read it. Unset URL keeps
+# the bare-socket path (container trust, local all all trust).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+# shellcheck source=pg-url.sh
+source "${SCRIPT_DIR}/pg-url.sh"
 if [ -n "${DATABASE_URL:-}" ]; then
-  PSQL=(psql "$DATABASE_URL")
-else
-  PSQL=(psql)
+  ab_pgurl_export "$DATABASE_URL"
 fi
+PSQL=(psql)
 sql() { "${PSQL[@]}" -v ON_ERROR_STOP=1 -tA -c "$1"; }
 
 mapfile -t FILES < <(find "$CHAIN_DIR" -maxdepth 1 -name '[0-9][0-9][0-9][0-9]_*.sql' | sort)

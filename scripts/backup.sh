@@ -36,25 +36,11 @@ if [ -L "$OUT" ]; then log_error "backup: refusing symlinked output dir $OUT"; e
 URL="${DATABASE_URL:-postgresql://accessbase:accessbase_dev@localhost:${PG_PORT:-5432}/accessbase}"
 log_info "Target: ${URL%%@*}@<redacted>"
 
-# Split without ever exporting the raw URI. userinfo=PASS@USER part, then host/db.
-_noscheme="${URL#*://}"
-_userinfo="${_noscheme%%@*}"
-_hostpart="${_noscheme#*@}"
-export PGUSER="${_userinfo%%:*}"
-_rawpw="${_userinfo#*:}"
-export PGHOST="${_hostpart%%[/:]*}"
-_rest="${_hostpart#"$PGHOST"}"
-export PGPORT="$(printf '%s' "$_rest" | sed -n 's|^[:]\([0-9]*\).*|\1|p')"
-[ -n "$PGPORT" ] || PGPORT=5432; export PGPORT
-export PGDATABASE="${_hostpart#*/}"
-export PGDATABASE="${PGDATABASE%%\?*}"
-# Percent-decode the password (libpq env vars want the DECODED value).
-if [ "$_rawpw" != "${_rawpw%%%*}" ]; then
-    _decoded="$(node -e 'console.log(decodeURIComponent(process.argv[1]))' "$_rawpw")"
-    export PGPASSWORD="$_decoded"
-else
-    export PGPASSWORD="$_rawpw"
-fi
+# shellcheck source=pg-url.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "${SCRIPT_DIR}/pg-url.sh"
+# Split without ever exporting the raw URI (shared parser, W2-3 dedupe).
+ab_pgurl_export "$URL"
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 FILE="${OUT%/}/accessbase-${STAMP}.dump"

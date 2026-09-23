@@ -240,3 +240,42 @@ describe('container boot design (W2-2/F9)', () => {
     }
   });
 });
+
+// Batch P W2-3 (report F10): DATABASE_URL must never ride on a psql argv
+// (process table leak at every container/deploy boot). A shared parser exports
+// PG* env once; all three scripts source it.
+describe('pg-url env parser (W2-3/F10)', () => {
+  const LIB = path.join(ROOT, 'scripts/pg-url.sh');
+
+  it('exports decoded PG* vars from a credential URL without touching argv', () => {
+    const r = spawnSync('bash', ['-c', [
+      `source ${JSON.stringify(LIB)}`,
+      `ab_pgurl_export 'postgresql://u:p%40ss@db.example:6000/mydb?sslmode=require'`,
+      'printf "%s\n" "$PGUSER" "$PGPASSWORD" "$PGHOST" "$PGPORT" "$PGDATABASE"',
+    ].join('; ')], { encoding: 'utf8' });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout.trim().split('\n')).toEqual(['u', 'p@ss', 'db.example', '6000', 'mydb']);
+  });
+
+  it('defaults port and keeps unencoded passwords verbatim', () => {
+    const r = spawnSync('bash', ['-c', [
+      `source ${JSON.stringify(LIB)}`,
+      `ab_pgurl_export 'postgresql://accessbase:accessbase@localhost/accessbase'`,
+      'printf "%s\n" "$PGHOST" "$PGPORT" "$PGDATABASE" "$PGPASSWORD"',
+    ].join('; ')], { encoding: 'utf8' });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout.trim().split('\n')).toEqual(['localhost', '5432', 'accessbase', 'accessbase']);
+  });
+
+  it('migrate.sh never passes the raw URL as a psql argument', () => {
+    const src = readFileSync(path.join(ROOT, 'scripts/migrate.sh'), 'utf-8');
+    expect(src).not.toMatch(/psql "[^"]*\$DATABASE_URL/);
+    expect(src).toMatch(/ab_pgurl_export/);
+  });
+
+  it('Dockerfile ships BOTH migrate.sh and pg-url.sh (R1: image-absent lib bricks boot)', () => {
+    const df = readFileSync(path.join(ROOT, 'Dockerfile'), 'utf-8');
+    expect(df).toMatch(/COPY[^&]*scripts\/migrate\.sh/);
+    expect(df).toMatch(/COPY[^&]*scripts\/pg-url\.sh/);
+  });
+});

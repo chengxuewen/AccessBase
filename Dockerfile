@@ -105,6 +105,8 @@ RUN chmod +x /entrypoint.sh
 
 # Migration runner (scripts/ is otherwise absent from the image — R4)
 COPY --chmod=755 --chown=accessbase:accessbase scripts/migrate.sh /app/scripts/migrate.sh
+# W2-3 R1: migrate.sh sources the shared pg-url lib — it MUST ship together.
+COPY --chmod=644 --chown=accessbase:accessbase scripts/pg-url.sh /app/scripts/pg-url.sh
 
 EXPOSE 5101 5173 5432 6379
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s CMD curl -f http://localhost:5101/health/live || exit 1

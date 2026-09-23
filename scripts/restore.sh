@@ -33,22 +33,10 @@ URL="${DATABASE_URL:-postgresql://accessbase:accessbase_dev@localhost:${PG_PORT:
 _exterior_url=0
 [ -n "${DATABASE_URL:-}" ] && _exterior_url=1
 
-_noscheme="${URL#*://}"
-_userinfo="${_noscheme%%@*}"
-_hostpart="${_noscheme#*@}"
-export PGUSER="${_userinfo%%:*}"
-_rawpw="${_userinfo#*:}"
-export PGHOST="${_hostpart%%[/:]*}"
-_rest="${_hostpart#"$PGHOST"}"
-export PGPORT="$(printf '%s' "$_rest" | sed -n 's|^[:]\([0-9]*\).*|\1|p')"
-[ -n "$PGPORT" ] || PGPORT=5432; export PGPORT
-export PGDATABASE="${_hostpart#*/}"
-export PGDATABASE="${PGDATABASE%%\?*}"
-if [ "$_rawpw" != "${_rawpw%%%*}" ]; then
-    export PGPASSWORD="$(node -e 'console.log(decodeURIComponent(process.argv[1]))' "$_rawpw")"
-else
-    export PGPASSWORD="$_rawpw"
-fi
+# shellcheck source=pg-url.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "${SCRIPT_DIR}/pg-url.sh"
+ab_pgurl_export "$URL"
 
 echo "=================================================="
 echo " RESTORE TARGET: ${PGUSER}@${PGHOST}:${PGPORT}/${PGDATABASE}"
