@@ -13,7 +13,8 @@ integer,
   timestamp,
   jsonb,
 primaryKey,
-index,
+index,uniqueIndex,
+
 unique,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
@@ -49,6 +50,9 @@ export const users = pgTable(
     emailIdx: index('idx_users_email').on(table.email),
     tenantIdx: index('idx_users_tenant').on(table.tenantId),
     statusIdx: index('idx_users_status').on(table.status),
+    // Batch O: canonical declarations for the batch-I partial indexes (migration 0004) — snapshot & schema must match
+    phoneIdx: index('idx_users_phone').on(table.phone).where(sql`${table.phone} IS NOT NULL`),
+    phoneUniqueIdx: uniqueIndex('idx_users_phone_unique').on(table.phone).where(sql`${table.phone} IS NOT NULL`),
   }),
 );
 
