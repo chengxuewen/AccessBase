@@ -77,6 +77,10 @@ ENV PGUSER=accessbase
 ENV PGPASSWORD=accessbase
 ENV PGDATABASE=accessbase
 ENV PATH="/usr/lib/postgresql/16/bin:$PATH"
+# W1-6 (N1): this image IS the production single-container artifact — without
+# this, config defaults NODE_ENV to development and every prod pre-flight gate
+# silently disarms (full-token logs, dev secrets, no CORS/ADMIN checks).
+ENV NODE_ENV=production
 RUN mkdir -p /var/run/postgresql && \
     chown -R accessbase:accessbase /var/run/postgresql /var/lib/postgresql/data
 USER accessbase

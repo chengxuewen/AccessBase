@@ -713,11 +713,13 @@ return { success: true };
             logger.warn({ err }, 'Reset email delivery failed (degraded to log)');
           });
         } else {
-          // Credential-in-log rule: the full reset token authorizes a password
-          // change, so it may only hit logs in development. Outside development
-          // log an 8-char prefix — enough to correlate, useless to an attacker.
-          const loggedToken =
-            config.nodeEnv === 'development' ? token : token.slice(0, 8) + '…';
+          // Credential-in-log rule (W1-6/N1): full reset tokens NEVER hit logs,
+          // on any env — the former development branch made stdout a credential
+          // store on deployments that forgot NODE_ENV (default: development).
+          // 8-char prefix correlates with the request, useless to an attacker;
+          // dev workflows needing the raw token read it from redis (flow:*) or
+          // tests, not from logs.
+          const loggedToken = token.slice(0, 8) + '…';
           request.log.info({ email, token: loggedToken }, 'Password reset URL: /reset-password?token=' + loggedToken);
         }
       }

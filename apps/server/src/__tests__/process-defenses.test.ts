@@ -106,3 +106,19 @@ describe('stop.sh wrapper-first (B2)', () => {
     expect(stopSrc).toMatch(/rm -f "\$STARTPID"/);
   });
 });
+
+// Batch P W1-6 (N1): the single-container production path must not silently
+// run with dev-mode config, and reset tokens must never hit logs in full.
+const authRoutesSrc = readFileSync(resolve(__dirname, '../routes/auth.ts'), 'utf-8');
+const dockerfileSrc = readFileSync(resolve(__dirname, '../../../../Dockerfile'), 'utf-8');
+
+describe('token-log + NODE_ENV hardening locks (P-fix W1-6)', () => {
+  it('forgot-password never logs the full token even in development (8-char prefix only)', () => {
+    expect(authRoutesSrc).not.toMatch(/nodeEnv === 'development' \? token/);
+    expect(authRoutesSrc).toMatch(/token\.slice\(0, 8\)/);
+  });
+
+  it('Dockerfile runtime stage pins NODE_ENV=production', () => {
+    expect(dockerfileSrc).toMatch(/ENV NODE_ENV=production/);
+  });
+});

@@ -53,9 +53,9 @@ describe('config corsOrigins', () => {
 });
 
 describe('warnDegradedChecks (L-T4 / spec D5: pure, env-only, options qualifiers)', () => {
-  it('production with empty env reports all five degrade lines with options-table qualifiers', () => {
+  it('production with empty env reports all degrade lines with options-table qualifiers', () => {
     const lines = warnDegradedChecks({}, true);
-    expect(lines).toHaveLength(6);
+    expect(lines).toHaveLength(7);
     expect(lines.some((l) => /MFA_ENCRYPTION_KEY/.test(l) && /env-only/.test(l))).toBe(true);
     expect(lines.some((l) => /SMTP_HOST/.test(l) && /options-configured/.test(l))).toBe(true);
     expect(
@@ -64,6 +64,15 @@ describe('warnDegradedChecks (L-T4 / spec D5: pure, env-only, options qualifiers
     expect(lines.some((l) => /WEBAUTHN_ORIGIN/.test(l))).toBe(true);
     expect(lines.some((l) => /SITE_URL/.test(l) && /request host/.test(l))).toBe(true);
     expect(lines.some((l) => /METRICS_TOKEN/.test(l) && /route-pattern/.test(l))).toBe(true);
+    // W1-6/N1: NODE_ENV unset silently defaults to development (gates off).
+    expect(lines.some((l) => /NODE_ENV unset/.test(l))).toBe(true);
+  });
+
+  it('NODE_ENV line only fires when unset — explicit development is respected (W1-6)', () => {
+    const dev = warnDegradedChecks({ NODE_ENV: 'development' }, false);
+    expect(dev.some((l) => /NODE_ENV/.test(l))).toBe(false);
+    const prod = warnDegradedChecks({ NODE_ENV: 'production' }, true);
+    expect(prod.some((l) => /NODE_ENV/.test(l))).toBe(false);
   });
 
   it('METRICS_TOKEN warn is prod-only and disappears with a token set (L-M D2)', () => {
@@ -79,6 +88,7 @@ describe('warnDegradedChecks (L-T4 / spec D5: pure, env-only, options qualifiers
     const lines = warnDegradedChecks(
       {
         MFA_ENCRYPTION_KEY: 'ab'.repeat(32),
+        NODE_ENV: 'production',
         SMTP_HOST: 'smtp.example.com',
         GITHUB_CLIENT_ID: 'client-id',
         GITHUB_CLIENT_SECRET: 'client-secret',
@@ -92,7 +102,8 @@ describe('warnDegradedChecks (L-T4 / spec D5: pure, env-only, options qualifiers
   });
 
   it('dev suppresses the prod-only subjective checks (WEBAUTHN localhost default, SITE_URL)', () => {
-    const lines = warnDegradedChecks({}, false);
+    // W1-6: explicit development — NODE_ENV line must not fire (only unset does).
+    const lines = warnDegradedChecks({ NODE_ENV: 'development' }, false);
     expect(lines).toHaveLength(3);
     expect(lines.some((l) => /WEBAUTHN_ORIGIN/.test(l))).toBe(false);
     expect(lines.some((l) => /SITE_URL/.test(l))).toBe(false);

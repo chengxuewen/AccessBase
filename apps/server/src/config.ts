@@ -109,6 +109,14 @@ export const config: AppConfig = {
 export function warnDegradedChecks(env: NodeJS.ProcessEnv, isProd: boolean): string[] {
   const lines: string[] = [];
 
+  // W1-6 (N1): an unset NODE_ENV silently defaults to development, disarming
+  // every production pre-flight gate; explicit development is respected.
+  if (!env['NODE_ENV']) {
+    lines.push(
+      'NODE_ENV unset — defaulting to development: production pre-flight gates off (JWT/CORS/ADMIN), dev fallback secrets possible (set NODE_ENV=production for real deployments)',
+    );
+  }
+
   if (!env['MFA_ENCRYPTION_KEY']) {
     lines.push('MFA_ENCRYPTION_KEY not set — MFA enrollment unavailable (env-only; no options-table fallback)');
   }
