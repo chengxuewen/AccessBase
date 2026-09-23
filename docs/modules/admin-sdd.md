@@ -1,5 +1,7 @@
 # @accessbase/admin 软件设计文档（SDD）
 
+> **Implementation status (2026-09-23 gap audit):** `superseded` — package never wired into apps (A6); real admin surface = apps/admin-ui; ADMIN_* codes unused. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档为 `@accessbase/admin` 包的详细软件设计文档。
 > 基于 [`core-packages.md`](./core-packages.md) §10.2 和 [`ui.md`](./ui.md) §14 生成。
 

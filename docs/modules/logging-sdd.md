@@ -1,5 +1,7 @@
 # @accessbase/logging — 结构化日志包 SDD
 
+> **Implementation status (2026-09-23 gap audit):** `implemented` — pino wrapper wired in identity/audit/server. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档为 `@accessbase/logging` 包的软件设计文档（SDD）。
 
 ---

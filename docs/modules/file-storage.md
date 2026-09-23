@@ -1,5 +1,7 @@
 # 文件存储管理
 
+> **Implementation status (2026-09-23 gap audit):** `design-only (deferred)` — zero code (A8). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§41 文件存储管理
 

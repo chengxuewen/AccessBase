@@ -1,5 +1,7 @@
 # 数据库 Schema 设计
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — §22.1 SQL illustrative — canonical = drizzle/schema.ts (A11); §22.4 retention/archival unimplemented. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§22 数据库 Schema 设计
 

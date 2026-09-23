@@ -1,5 +1,7 @@
 # 设置向导 UI 设计
 
+> **Implementation status (2026-09-23 gap audit):** `implemented` — wizard shipped and e2e-locked. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档描述 AccessBase 初始化设置向导的前端实现方案。
 >
 > **更新日期**: 2026-08-25

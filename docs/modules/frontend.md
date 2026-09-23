@@ -1,5 +1,7 @@
 # 前端架构补充
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — SPA shipped; i18n detection chain (A7) and branding injection (L5) unimplemented. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§24 前端架构补充
 

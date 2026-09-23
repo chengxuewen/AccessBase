@@ -1,5 +1,7 @@
 # 邮件/短信服务
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — Mailer + SMS providers shipped; sendTemplate/per-recipient localization absent (L6). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§40 邮件/短信服务
 

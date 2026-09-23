@@ -1,5 +1,7 @@
 # @accessbase/audit — 审计日志包 SDD
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — hash chain computed then discarded — no columns (A2); retention config dead; verifyIntegrity absent. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档为 `@accessbase/audit` 包的软件设计文档（SDD）。
 
 ---

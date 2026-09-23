@@ -1,5 +1,7 @@
 # 概述
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — describes a pre-repo "15-package" migration that never existed; §5.6 migration pipeline unwired. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§1-§7 概述/需求/参考/定义/功能/架构/迁移映射
 

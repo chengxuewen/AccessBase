@@ -1,5 +1,7 @@
 # 用户自助服务
 
+> **Implementation status (2026-09-23 gap audit):** `design-only (deferred)` — no standalone portal; Profile/Settings live inside admin chrome (gap-audit C). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§32 用户自助服务
 

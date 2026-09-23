@@ -1,5 +1,7 @@
 # P3 补充
 
+> **Implementation status (2026-09-23 gap audit):** `design-only (deferred)` — APM/cost/reporting/gateway/DNS unimplemented; §42.8 partially realized by the options management center. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§42 P3 补充
 

@@ -1,12 +1,12 @@
 # PROJECT KNOWLEDGE BASE
 
 **Generated:** 2026-08-21 · **Updated:** 2026-09-23
-**Status:** Phase 9 + enhancement batches A-O complete (RBAC enforcement, MFA, OIDC IdP+RP, SAML/magic-link/SMS OTP, multi-tenant control plane, SCIM, API keys, audit, ops hardening, drizzle-kit v7 toolchain)
+**Status:** Phase 9 + enhancement batches A-P complete (incl. security batch P fix waves 1-3); 2026-09-23 five-lane gap audit landed -> Q0 doc-honesty applied (status headers on all 43 module docs) (RBAC enforcement, MFA, OIDC IdP+RP, SAML/magic-link/SMS OTP, multi-tenant control plane, SCIM, API keys, audit, ops hardening, drizzle-kit v7 toolchain)
 **Stack:** TypeScript / Fastify / React / Ant Design / Drizzle ORM / PostgreSQL / Redis
 
 ## OVERVIEW
 
-AccessBase is an enterprise access control foundation (IAM) providing authentication, authorization, and audit capabilities. Currently past Phase 9 — full IAM surface: RBAC enforcement with tenant partition (21-code seed, requirePermission guards), MFA self-service, OIDC Provider + generic RP, SAML SP, magic link, SMS OTP, WebAuthn, OAuth, LDAP, SCIM 2.0, API keys, multi-tenant control plane, audit + metrics + backup ops line; vitest 931 + e2e chromium 137 (+3 conditional skip) all green.
+AccessBase is an enterprise access control foundation (IAM) providing authentication, authorization, and audit capabilities. Currently past Phase 9 — full IAM surface: RBAC enforcement with tenant partition (21-code seed, requirePermission guards), MFA self-service, OIDC Provider + generic RP, SAML SP, magic link, SMS OTP, WebAuthn, OAuth, LDAP, SCIM 2.0, API keys, multi-tenant control plane, audit + metrics + backup ops line; vitest 972 + e2e chromium 138 (+3 conditional skip) all green.
 
 ## STRUCTURE
 
@@ -14,10 +14,10 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 .
 ├── docs/                    # Design documentation
 │   ├── architecture.md      # Stub index → modules/
-│   ├── modules/             # 35 modular design docs + 8 SDD docs (split from architecture.md)
+│   ├── modules/             # 43 docs (35 modular + 8 SDD), each with an Implementation status header (mandatory, D126)
 ├── .agents/                 # AI agent configuration
 │   ├── skills/              # 12 project-specific skills (graphify, test-harness, etc.)
-│   ├── rules/               # Coding rules by language (15 dirs)
+│   ├── rules/               # Coding rules by language (14 language dirs)
 │   └── memorys/             # Project memory (status, decisions, pitfalls, conventions)
 ├── .refinfo/new-api/        # Reference implementation (new-api) — READ ONLY, not our code
 ├── scripts/                 # Utility scripts
@@ -117,12 +117,12 @@ pixi run dev                        # Same as bash accessbase.sh dev:native
 
 ## NOTES
 
-- 122 design decisions documented in `.agents/memorys/decisions.md` (D1-D124; D107/D108 never used)
-- 76 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~076)
-- Architecture doc split into 31 modules under `docs/modules/`
+- 124 design decisions documented in `.agents/memorys/decisions.md` (D1-D126; D107/D108 never used)
+- 79 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~079)
+- Architecture doc split into 43 module files under `docs/modules/` — each carries an `Implementation status` line (gate: `grep -L 'Implementation status' docs/modules/*.md` -> empty)
 - Each module has back-link to `architecture.md` stub
 - Reference implementation (new-api) in `.refinfo/` for studying patterns
-- L0 packages fully implemented (8 packages)
+- L0 packages: 8 implemented — 4 wired into apps (types/logging/identity/audit), 4 standalone libraries without consumers (admin/migration/health/i18n) — gap-audit A6
 - Three build modes: native (Pixi), container (Docker), compose (Docker Compose)
 - Deploy mode: build to `out/`, single-port serve (API + UI)
 - Auth endpoints: login/me/logout/refresh (wired to UserManager)

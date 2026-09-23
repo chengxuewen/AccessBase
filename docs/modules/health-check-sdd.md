@@ -1,5 +1,7 @@
 # @accessbase/health-check 软件设计文档 (SDD)
 
+> **Implementation status (2026-09-23 gap audit):** `superseded` — shipped form is apps/server/src/routes/health.ts; package unused; CacheHealthChecker absent. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档基于 [`monitoring.md`](./monitoring.md) §13 和 [`error-handling.md`](./error-handling.md) §21 生成。
 
 ---

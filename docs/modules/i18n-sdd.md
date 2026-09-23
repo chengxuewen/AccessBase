@@ -1,5 +1,7 @@
 # @accessbase/i18n 软件设计文档 (SDD)
 
+> **Implementation status (2026-09-23 gap audit):** `superseded` — package has zero consumers; frontend runs bare i18next single namespace (A7). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档基于 [`core-packages.md`](./core-packages.md) §10.5 和 [`frontend.md`](./frontend.md) §35 生成。
 
 ---

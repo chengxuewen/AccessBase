@@ -1,5 +1,7 @@
 # 监控与告警系统
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — /metrics + /health shipped (batch M); §13.3-13.6 alerting/tracing/log-shipping unimplemented. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§13 监控与告警系统
 

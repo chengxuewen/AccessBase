@@ -1,5 +1,7 @@
 # 合规与数据隐私（GDPR）
 
+> **Implementation status (2026-09-23 gap audit):** `design-only (deferred)` — data-export absent; user delete hard-cascades (A8). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§39 合规与数据隐私（GDPR）
 

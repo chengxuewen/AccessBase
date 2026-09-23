@@ -1,5 +1,7 @@
 # 核心包详细设计
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — 6 of 8 packages wired into apps; §10.5 i18n and §10.6 migration runtime unused (gap-audit A6/A7). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§10 核心包详细设计
 

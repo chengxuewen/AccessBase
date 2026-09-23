@@ -1,5 +1,7 @@
 # 变更记录
 
+> **Implementation status (2026-09-23 gap audit):** `informational` — historical design change log, not a spec. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§8 变更记录
 

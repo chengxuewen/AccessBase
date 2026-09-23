@@ -1,5 +1,7 @@
 # AccessBase 三种构建模式设计文档
 
+> **Implementation status (2026-09-23 gap audit):** `implemented` — 4 modes shipped; docker-boot live-fire pending integration day (status.md residue). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 **日期**: 2026-08-26
 **状态**: 设计中
 **影响范围**: accessbase.sh, pixi.toml, docker-compose.*, Dockerfile.*, scripts/native/

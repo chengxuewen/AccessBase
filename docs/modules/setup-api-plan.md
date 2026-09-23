@@ -1,5 +1,7 @@
 # 设置向导后端 API 实现计划
 
+> **Implementation status (2026-09-23 gap audit):** `superseded` — setupToken/X-Setup-Token contract replaced by D113 DB-derivation; endpoints live in routes/setup.ts. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > **对于 AI 代理工作者：** 必须使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 来逐任务实施此计划。步骤使用复选框（`- [ ]`）语法进行跟踪。
 
 **目标：** 为 AccessBase 实现设置向导后端 API，支持系统初始化、管理员创建和基本配置保存。

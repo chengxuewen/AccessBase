@@ -1,5 +1,7 @@
 # 架构基础设施
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — health/rate-limit/cache shipped; §17.4 message queue unimplemented (outbox = gap-audit Q backlog). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§17 架构基础设施
 

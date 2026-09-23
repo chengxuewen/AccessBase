@@ -1,5 +1,7 @@
 # 授权许可证
 
+> **Implementation status (2026-09-23 gap audit):** `design-only (deferred)` — no enforcement surface; /api/v1/license routes absent (A8). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§20 授权许可证
 

@@ -300,3 +300,9 @@ logger.error('Operation failed', error); // ❌
 - **Published infra ports bind 127.0.0.1** in every compose/run line (`grep -n '"5432:5432"\|"-p 5432' docker-compose*.yml accessbase.sh` → only 127.0.0.1-prefixed forms). Prod image EXPOSE carries 5101 only.
 - **Prod container PG = local trust + host scram(pwfile from PGPASSWORD)** per W2-4 recipe in docker/entrypoint.sh; deploy-mode local trust (start.sh:58) stays on the backlog until the integration day.
 - **DATABASE_URL never reaches argv**: any new script talking to PG sources scripts/pg-url.sh and calls ab_pgurl_export (static lock in ops-migrate.test; `psql "$DATABASE_URL"` must stay 0-hits).
+
+## Gap-audit Q0 doc-honesty constraints (2026-09-23, D126)
+
+- Every file under `docs/modules/*.md` must carry `> **Implementation status (2026-09-23 gap audit):**` within the first lines (vocabulary: implemented | partial | superseded | design-only (deferred) | informational). New module docs must add one too. Check: `grep -L 'Implementation status' docs/modules/*.md` -> empty.
+- **Error codes single source = emitters.** New wire code => same-commit update of `docs/modules/error-codes-reality.md` (regeneration commands at its head). Do NOT re-add rows to identity-sdd §5.2 / admin-sdd §5.2 tables — frozen historical specs. Check: `grep -rhoE "code: '[A-Z0-9_]+'" apps/server/src packages/identity/src --include='*.ts' | sort -u` vs catalog.
+- **AGENTS.md headline counts** (decisions/pitfalls/vitest/e2e/skills/dirs) change in the SAME commit as the counted artifact (extends the batch-G expectation-flip lesson). Quick parity: `grep -c '^## PIT-' .agents/memorys/pitfalls.md` == AGENTS claim; `grep -cE '^## D[0-9]+' .agents/memorys/decisions.md` == AGENTS claim.

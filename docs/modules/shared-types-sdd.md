@@ -1,5 +1,7 @@
 # @accessbase/shared-types 软件设计文档 (SDD)
 
+> **Implementation status (2026-09-23 gap audit):** `implemented` — wired and used repo-wide. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档基于 [`error-handling.md`](./error-handling.md) §21 和 [`core-packages.md`](./core-packages.md) §10 生成。
 
 ---

@@ -1,5 +1,7 @@
 # Webhook 系统
 
+> **Implementation status (2026-09-23 gap audit):** `design-only (deferred)` — zero code (A8); needs the events substrate (A9) first. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§33 Webhook 系统
 

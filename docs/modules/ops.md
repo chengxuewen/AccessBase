@@ -1,5 +1,7 @@
 # 运维补充
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — backup/restore/migrate/selfHeal shipped; scheduler/Helm/upgrade-policy absent (D7). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§31 运维补充 P1 + §38 运维补充 P2
 

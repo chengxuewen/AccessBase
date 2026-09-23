@@ -1,5 +1,7 @@
 # 认证提供商架构
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — providers shipped; domain allow/block never invoked from HTTP paths (A12); WebAuthn TTL 300s vs §36.4 60s (A13). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§12 认证提供商架构
 

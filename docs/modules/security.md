@@ -1,5 +1,7 @@
 # 网络信息安全
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — auth core shipped; permission-change propagation (A1), persisted audit chain (A2), auth policy engine absent. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§19 网络信息安全 + §25 安全加固 + §29 安全加固 P1 + §36 安全补充 P2
 

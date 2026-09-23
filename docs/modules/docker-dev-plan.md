@@ -1,5 +1,7 @@
 # AccessBase Docker 开发模式实施方案
 
+> **Implementation status (2026-09-23 gap audit):** `implemented` — dev container path shipped. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 **日期**: 2026-08-25
 **状态**: 待实施
 

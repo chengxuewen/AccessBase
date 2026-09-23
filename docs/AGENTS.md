@@ -2,14 +2,14 @@
 
 ## OVERVIEW
 
-AccessBase architecture design documentation. 42 chapters covering IAM system design, split into 31 modular files.
+AccessBase architecture design documentation. 42 chapters covering IAM system design, split into 43 module files (35 topics + 8 SDDs). Every file carries an `Implementation status` header (D126); error-code truth lives in modules/error-codes-reality.md.
 
 ## STRUCTURE
 
 ```
 docs/
 ├── architecture.md      # Stub index (links to modules/)
-└── modules/             # 31 modular design documents
+└── modules/             # 43 design documents, each with an implementation-status header
     ├── overview.md      # §1-§7 概述/需求/定义/架构 (217 lines)
     ├── tech-stack.md    # §9 技术栈选型
     ├── core-packages.md # §10 核心包详细设计 (382 lines)

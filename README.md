@@ -95,13 +95,13 @@ bash accessbase.sh clean             # Clean artifacts
 ```
 .
 ├── packages/              # L0 packages
-│   ├── shared-types/      # Shared TypeScript types
+│   ├── types/             # Shared TypeScript types
 │   ├── logging/           # Logging utilities
 │   ├── i18n/              # Internationalization
 │   ├── migration/         # Database migrations
 │   ├── identity/          # Authentication & authorization
 │   ├── audit/             # Audit logging
-│   ├── health-check/      # Health check endpoints
+│   ├── health/            # Health check endpoints
 │   └── admin/             # Admin UI framework
 ├── apps/
 │   └── admin-ui/          # Admin web application

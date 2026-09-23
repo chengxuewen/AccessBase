@@ -1,5 +1,7 @@
 # 品牌定制机制
 
+> **Implementation status (2026-09-23 gap audit):** `partial` — site.name/logo shipped; three-method injection model unimplemented; branding not on login surface. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§16 品牌定制机制
 

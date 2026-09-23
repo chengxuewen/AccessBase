@@ -1,5 +1,7 @@
 # @accessbase/migration 软件设计文档 (SDD)
 
+> **Implementation status (2026-09-23 gap audit):** `superseded` — runtime writer = scripts/migrate.sh (Phase L/O); TS pipeline unused; down/rollback unreachable. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+
 > 本文档基于 [`core-packages.md`](./core-packages.md) §10.6 和 [`database.md`](./database.md) §22 生成。
 
 ---
