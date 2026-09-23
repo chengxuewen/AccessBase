@@ -71,7 +71,23 @@ audit as-any→fastify.d.ts (Q2), bulk ops, global search/notifications, SSO/tru
 
 ## Fact appendix (verified 2026-09-23)
 
-- forgot-password auth.ts:681 · reset-password auth.ts:1131 (body {token,newPassword}) · link form `FRONTEND_ORIGIN + /reset-password?token=` auth.ts:710
+- forgot-password auth.ts:681 returns 200 {success:true} NO message (rev.2 F2) · reset-password auth.ts:1131 (body {token,newPassword}) · link form `FRONTEND_ORIGIN + /reset-password?token=` auth.ts:710
 - register auth.ts:301 → 201 {id,email,name,status:'pending'} · users.ts:54 status param · Audit.tsx:61-79 current client-side export · api/users.ts:111-118 blob precedent
 - sms request auth.ts:946 (no token in 202 body — the bug) · verify auth.ts:994-1127 (payload {userId,phone,code}; token+code required) · saml gate saml.ts:53-61 · Login.tsx:47-49+84-96 fetchSamlStatus pattern, :373-379 saml button, :381-433 magicOpen pattern, :223/:275 bg hexes
 - Consent.tsx:89 raw key · App.tsx public routes area :124-139 · flow token purposes free-form (FlowTokenService.ts:35-108) · /auth/verify-email already whitelisted authorize.ts:14+authenticate.ts:15 · me projection auth.ts:365+
+
+---
+
+## rev.2 — dual-Momus absorbed (flows bg_5e58eb75 + blockers bg_a281374e, both APPROVE-WITH-FIXES)
+
+- **F1 (R1/B1, MAJOR)**: the authorize.ts/authenticate.ts PUBLIC_ROUTES hooks are DEAD in the running server (identityPlugin never registered; sole reference app.ts:353 comment). Item 7's "close the half-wired hole via the existing whitelist" claim is deleted. Actual mechanism: consume endpoint registered WITHOUT preHandler (public by default), request endpoint WITH `preHandler: [app.authenticate]` (app.ts:136 decorator, populates request.user). Do NOT edit the dead PUBLIC_ROUTES arrays.
+- **F2 (R4/B2, MAJOR)**: forgot-password actually returns **200 `{success:true}` with NO data.message** (auth.ts:726) — not "202 + message". ForgotPassword.tsx renders a STATIC i18n success string; spec fact appendix corrected.
+- **F3 (B3, MED)**: "mailer absent → 503 exactly like forgot-password" — false precedent (forgot is log-only 200). Design kept as NEW behavior: verify-email request returns 503 `AUTH_EMAIL_002` 'SMTP not configured' when mailer unavailable; consume unknown/burned → 400 `AUTH_EMAIL_001`. Both codes land in error-codes-reality.md same commit.
+- **F4 (R2/B4, MAJOR)**: User interface + mapToUser (UserManager.ts:357-383) lack `emailVerified` → /me change won't compile as written. Same commit extends identity User type + mapToUser; rebuild identity dist before server tests (PIT-039).
+- **F5 (R3/B5, MAJOR)**: sms-otp.test.ts exact-body assertions break loudly: :229/:259/:270/:288 toEqual (add token key) + :294 not-configured `not.toHaveBeenCalled(issue)` FLIPS (not-configured arm now also issues a dummy userId:null token — constant shape in ALL arms). Verify: explicit `if (!payload.userId)` 401 BEFORE findByIdAny (TS null-safety + no `id = NULL` query roundtrip).
+- **F6 (R5, MAJOR)**: execution order — items 1/3/4/5 all touch Login.tsx; controller-direct sequential (no parallel lanes over the same file). Order: backend b1(sms)+b2(verify-email)+b3(sort)+b4(hygiene) → frontend f1(i18n+parity test)→f2(api)→f3(pages)→f4(Login single pass)→f5(bg sweep)→f6(audit export)→f7(Users filter)→f8(Profile banner)→f9(routes) → e2e → gates.
+- **F7 (R6/B8)**: no locale key-parity test exists anywhere → ADD `apps/admin-ui/src/i18n/__tests__/parity.test.ts` (flatten both JSON trees, assert identical key sets — locks the sync-round 474/474 measurement permanently).
+- **F8 (R7)**: WelcomeStep path = `pages/setup/steps/WelcomeStep.tsx`.
+- **F9 (B6, LOW accepted)**: register-time verify email may outlive its 24h TTL before approval — harmless (no enforcement; self re-request post-activation). Documented in page copy ("check your inbox after activation" not claimed).
+- **F10 (B7, LOW)**: audit export adds the small `blob.type.includes('json')` error sniff → generic i18n error Alert (users-export precedent wart NOT propagated).
+- **F11 (R9, note)**: email stays in the sortBy whitelist (not UI-sortable today — future-proofing zero-cost).
