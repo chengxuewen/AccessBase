@@ -1,0 +1,30 @@
+# Sample Prometheus alert rules for AccessBase (gap-audit D4). NOT WIRED —
+# mount into your Prometheus with rule_files: ["/etc/prometheus/rules.yml"].
+# Metric names match apps/server/src/routes/metrics.ts (accessbase_ prefix).
+groups:
+  - name: accessbase
+    rules:
+      - alert: AccessBaseAuthFailureSpike
+        expr: sum(rate(accessbase_auth_failures_total[5m])) * 60 > 30
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Auth failures above 30/min for 5m (credential stuffing?)"
+      - alert: AccessBaseNotReady
+        expr: up{job="accessbase"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "AccessBase /metrics scrape failing (process down or draining)"
+      - alert: AccessBaseDegraded
+        expr: max(accessbase_degraded_mode) > 0
+        for: 3m
+        labels: { severity: warning }
+        annotations:
+          summary: "A dependency (redis) has been degraded >3m — throttles/step-up tokens are per-node while this persists"
+      - alert: AccessBasePoolWaiting
+        expr: max(accessbase_pg_pool{state="waiting"}) > 5
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "pg-pool acquire queue above 5 — consider PG_POOL_MAX / DB capacity"

@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { randomInt } from 'node:crypto';
-import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy, TenantManager, SmsProviderImpl } from '@accessbase/identity';
+import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy, SmsProviderImpl } from '@accessbase/identity';
 import type { SmsConfig, SmsProvider } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
+import { getTenantManager, getUserManager } from '../utils/managers.js';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
@@ -88,13 +89,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
   }
 
-  // Tenant suspension gate: lazily constructed (DB touch only at issuance,
-  // +1 query per login — acceptable per R8).
-  let tenantManager: TenantManager | undefined;
-  function getTenantManager(): TenantManager {
-    if (!tenantManager) tenantManager = new TenantManager();
-    return tenantManager;
-  }
+  // Tenant suspension gate: shared process singleton (Q2a — was a closure-local holder).
 
   /**
    * SMS OTP delivery config (options key → env fallback, mailer precedent).
@@ -132,7 +127,7 @@ export async function authRoutes(app: FastifyInstance) {
     // blip must not 403/500 every login. DB-down already fails login earlier.
     let tenant;
     try {
-      tenant = await getTenantManager().findById(tenantId);
+      tenant = await (await getTenantManager()).findById(tenantId);
     } catch (err) {
       logger.warn({ err }, 'Tenant status lookup failed — allowing (fail-open)');
       tenant = null;
@@ -272,7 +267,7 @@ export async function authRoutes(app: FastifyInstance) {
       }
 
       try {
-        const userManager = new (await import('@accessbase/identity')).UserManager();
+        const userManager = await getUserManager();
         const user = await userManager.verifyPassword(email, password);
 
         // MFA step-up: user with TOTP enabled gets a flow token, not a session
@@ -355,7 +350,7 @@ export async function authRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { email, name, password } = request.body;
 
-      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const userManager = await getUserManager();
 
       if (await userManager.findByEmail(email)) {
         return reply.status(409).send({
@@ -431,7 +426,7 @@ export async function authRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const payload = request.user as { sub: string };
-      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const userManager = await getUserManager();
       const user = await userManager.findById(payload.sub, request.tenantId ?? DEFAULT_TENANT);
       if (!user) {
         return reply.status(401).send({
@@ -490,7 +485,7 @@ export async function authRoutes(app: FastifyInstance) {
           error: { code: 'AUTH_EMAIL_001', message: 'Invalid or expired verification link' },
         });
       }
-      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const userManager = await getUserManager();
       await userManager.markEmailVerified(consumed.userId);
       return { success: true, data: { verified: true } };
     },
@@ -509,7 +504,7 @@ export async function authRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const payload = request.user as { sub: string; email: string };
-      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const userManager = await getUserManager();
       const user = await userManager.findById(payload.sub, request.tenantId ?? DEFAULT_TENANT);
       if (!user) {
         throw new Error('User not found');
@@ -524,7 +519,7 @@ export async function authRoutes(app: FastifyInstance) {
       let tenantName: string | undefined;
       let tenantIsDefault = true;
       try {
-        const tenant = await getTenantManager().findById(tenantId);
+        const tenant = await (await getTenantManager()).findById(tenantId);
         if (tenant) {
           tenantName = tenant.name;
           tenantIsDefault = tenantId === DEFAULT_TENANT;
@@ -779,7 +774,7 @@ return { success: true };
         });
       }
       try {
-        const userManager = new (await import('@accessbase/identity')).UserManager();
+        const userManager = await getUserManager();
         await userManager.changePassword(payload.sub, request.body.oldPassword, request.body.newPassword);
         // Force re-auth everywhere, then hand the current client a fresh session
         await sessionManager.revokeAllUserSessions(payload.sub);
@@ -831,7 +826,7 @@ return { success: true };
     async (request, reply) => {
       const { email } = request.body;
       const options = getOptionsManager();
-      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const userManager = await getUserManager();
       const user = await userManager.findByEmail(email);
       if (user) {
         const token = await flowTokens.issue('password_reset', { userId: user.id }, 1800);
@@ -884,7 +879,7 @@ return { success: true };
     async (request, reply) => {
       const { email } = request.body;
       const options = getOptionsManager();
-      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const userManager = await getUserManager();
       const user = await userManager.findByEmail(email);
       if (user && user.status === 'active') {
         const token = await flowTokens.issue('magic_login', { userId: user.id, email: user.email }, 900);
@@ -1032,7 +1027,7 @@ return { success: true };
           error: { code: 'AUTH_MAGIC_001', message: 'Invalid or expired sign-in link' },
         });
       }
-      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const userManager = await getUserManager();
       const user = await userManager.findById(payload.userId, request.tenantId ?? DEFAULT_TENANT);
       if (!user || user.email !== payload.email) {
         // Token already burned above — same generic 401 (R13).
@@ -1125,7 +1120,7 @@ return { success: true };
       if (!smsProvider) {
         logger.warn('sms-otp request: SMS provider not configured, code not sent');
       } else {
-        const userManager = new (await import('@accessbase/identity')).UserManager();
+        const userManager = await getUserManager();
         const user = await userManager.findByPhone(phone);
         if (user && user.status === 'active') {
           userId = user.id;
@@ -1273,7 +1268,7 @@ return { success: true };
           error: { code: 'AUTH_SMS_001', message: 'Invalid or expired verification code' },
         });
       }
-      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const userManager = await getUserManager();
       const user = await userManager.findByIdAny(payload.userId);
       if (!user || user.phone !== payload.phone || payload.code !== request.body.code) {
         // Token already burned above — same generic 401 (magic R13 order).
@@ -1351,7 +1346,7 @@ return { success: true };
         });
       }
       try {
-        const userManager = new (await import('@accessbase/identity')).UserManager();
+        const userManager = await getUserManager();
         await userManager.resetPassword(payload.userId, request.body.newPassword);
         await sessionManager.revokeAllUserSessions(payload.userId);
         return { success: true };
@@ -1485,7 +1480,7 @@ return { success: true };
 
       try {
         // userId round-trips through flow token payload (never trust client identity)
-        const userManager = new (await import('@accessbase/identity')).UserManager();
+        const userManager = await getUserManager();
         const user = await userManager.findById(
           payload.userId,
           request.tenantId ?? DEFAULT_TENANT,
@@ -1541,7 +1536,7 @@ return { success: true };
     async (request, reply) => {
       const payload = request.user as { sub: string; email: string };
       try {
-        const userManager = new (await import('@accessbase/identity')).UserManager();
+        const userManager = await getUserManager();
         await userManager.verifyPassword(payload.email, request.body.password);
         await getMfaManager().disable(payload.sub);
         return { success: true };
@@ -1684,7 +1679,7 @@ return { success: true };
       }
 
       try {
-        const userManager = new (await import('@accessbase/identity')).UserManager();
+        const userManager = await getUserManager();
         // Find-or-provision: email is globally unique; existing rows are
         // reused (link semantics), absent ones provisioned into the default
         // tenant with a null passwordHash (local login stays impossible).

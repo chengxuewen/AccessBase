@@ -16,6 +16,7 @@ import { SessionManager, RoleManager, FlowTokenService, getRedisClient, TenantMa
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
+import { getTenantManager, getUserManager } from '../utils/managers.js';
 import { logger } from '@accessbase/logging';
 
 const EXCHANGE_TTL_SECONDS = 60;
@@ -96,7 +97,7 @@ export async function samlRoutes(app: FastifyInstance) {
     // suspended row blocks.
     let tenant;
     try {
-      tenant = await new TenantManager().findById(tenantId);
+      tenant = await (await getTenantManager()).findById(tenantId);
     } catch (err) {
       logger.warn({ err }, 'Tenant status lookup failed — allowing (fail-open)');
       tenant = null;
@@ -193,8 +194,7 @@ export async function samlRoutes(app: FastifyInstance) {
       }
 
       try {
-        const { UserManager } = await import('@accessbase/identity');
-        const userManager = new UserManager();
+        const userManager = await getUserManager();
         // Find-or-provision (LDAP auth.ts:960-976 parity): reuse the row by
         // globally-unique email; provision into the default tenant.
         const existing = await userManager.findByEmail(identity.email);

@@ -382,6 +382,14 @@ describe('SessionManager session lifecycle', () => {
       expect(mockDb.select).toHaveBeenCalledTimes(1);
     });
 
+    it('cache write carries an EX backstop (Q2a D — missed invalidation self-heals)', async () => {
+      store.rows = [sessionRow({ id: 'z' })];
+      const setSpy = vi.spyOn(redis, 'set');
+      await manager.getUserSessions('u-7');
+      expect(setSpy).toHaveBeenCalledWith('session:u-7', expect.any(String), 'EX', 3600);
+      setSpy.mockRestore();
+    });
+
     it('invalidates cache on revokeSession', async () => {
       store.rows = [sessionRow({ id: 'a' })];
       await manager.getUserSessions('u-1');

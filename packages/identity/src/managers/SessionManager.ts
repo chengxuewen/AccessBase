@@ -54,7 +54,10 @@ export class SessionManager {
   private async cacheSetList(userId: string, list: SafeSession[]): Promise<void> {
     if (!this.redis) return;
     try {
-      await this.redis.set(`session:${userId}`, JSON.stringify(list));
+      // Q2a(D): EX backstop — invalidation is the correctness mechanism, but a
+      // missed invalidation (Redis flap between del/set) must self-heal, not
+      // haunt the user list forever (the W3 residue; TTL = refresh-lifetime order).
+      await this.redis.set(`session:${userId}`, JSON.stringify(list), 'EX', 3600);
     } catch (err) {
       logger.warn({ err }, 'Session cache write failed');
     }

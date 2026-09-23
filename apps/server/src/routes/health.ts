@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { sql } from 'drizzle-orm';
 import { createDb, closeDb, type DrizzleDB } from '@accessbase/identity/db';
 import { config } from '../config.js';
+import { isDraining } from '../utils/drain.js';
 import { getRedis } from '../utils/redis.js';
 
 /**
@@ -76,6 +77,10 @@ export async function healthRoutes(app: FastifyInstance) {
       },
     },
     async (_request, reply) => {
+      // Q2a(F): shed traffic while the shutdown close-chain runs (drain.ts).
+      if (isDraining()) {
+        return reply.status(503).send({ status: 'draining' });
+      }
       const redis = await getRedis();
       let redisStatus = 'down';
       if (redis) {

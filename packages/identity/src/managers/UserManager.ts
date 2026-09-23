@@ -2,7 +2,7 @@
  * UserManager - User management with Drizzle ORM (SDD 2.2)
  */
 import { eq, and, like, sql, count, asc, desc, notInArray } from 'drizzle-orm';
-import { createDb, type DrizzleDB } from '../db/index.js';
+import { closeDb, createDb, type DrizzleDB } from '../db/index.js';
 import { users, passwordHistory, type User as DbUser, type NewUser } from '../db/schema.js';
 import { invalidatePermissionCache } from './permission-cache.js';
 import { wouldOrphanLastAdmin, LAST_ADMIN_GUARD } from '../services/last-admin-guard.js';
@@ -373,6 +373,11 @@ export class UserManager {
   /**
    * Map database user to application user type
    */
+  /** Release the internally-created pool (singleton reset / graceful shutdown). */
+  async close(): Promise<void> {
+    await closeDb(this.db);
+  }
+
   private mapToUser(dbUser: DbUser): User {
     return {
       id: dbUser.id,

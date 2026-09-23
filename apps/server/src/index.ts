@@ -1,4 +1,5 @@
 import { buildApp } from './app.js';
+import { setDraining } from './utils/drain.js';
 import { config, warnDegradedChecks } from './config.js';
 import { initializeAdmin } from './init.js';
 import { selfHealSeed } from './routes/permissions-seed.js';
@@ -10,6 +11,9 @@ async function main() {
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, 'Received shutdown signal, closing server...');
+    // Q2a(F): fail readiness FIRST so LB/proxies shed traffic for the
+    // duration of the close chain (the k8s preStop window is the ops story).
+    setDraining();
     try {
       await app.close();
       app.log.info('Server closed gracefully');

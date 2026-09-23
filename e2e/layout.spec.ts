@@ -61,6 +61,14 @@ async function mockCommonApis(page: Page): Promise<void> {
             'roles:read', 'roles:write', 'roles:delete',
             'permissions:read', 'permissions:write', 'permissions:delete',
             'audit:read', 'stats:read',
+            // 'Full admin permission set' per the comment above — the breadcrumb
+            // cases below land on tenants/clients/api-keys; without these codes
+            // AdminLayout's fetchUser re-hydration 403s those pages (Q1 timing
+            // exposed the mock's own inconsistency).
+            'tenants:read', 'tenants:write', 'tenants:delete',
+            'clients:read', 'clients:write', 'clients:delete',
+            'apikeys:read', 'apikeys:write', 'apikeys:delete',
+            'options:read', 'options:write',
           ],
         },
       }),

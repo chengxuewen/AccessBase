@@ -10,7 +10,7 @@
  * be gone and the migrate invocation must not be swallowed by `|| true`.
  */
 import { describe, it, expect, afterAll } from 'vitest';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -101,6 +101,18 @@ describe('migrate wiring static locks', () => {
     expect(line).toContain('packages/migration/drizzle');
     expect(line).not.toContain('|| true');
     expect(line).toContain('exit 1');
+  });
+
+  it('migrate.sh is a single advisory-locked session (Q2a-C structure lock)', () => {
+    const script = readFileSync(SCRIPT, 'utf8');
+    expect(script).toContain('pg_advisory_lock');
+    expect(script).toContain('pg_advisory_unlock');
+    expect(script).toContain('\\gset');
+    expect(script).toContain('lock_timeout');
+    // the old per-file psql loop is gone (single -f session script instead)
+    expect(script).not.toMatch(/-1 -q -f "\$f"/);
+    // stamp folded into the locked session, atomic upsert
+    expect(script).toContain('ON CONFLICT DO NOTHING');
   });
 
   it('Dockerfile copies migrate.sh into /app/scripts and HEALTHCHECK has start-period', () => {
@@ -206,6 +218,25 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     }
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
     expect((rows[0] as { n: number }).n).toBe(6);
+  });
+
+  it('concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 6', async () => {
+    const url = await tmpDbUrl();
+    const run = () =>
+      new Promise<number>((resolve, reject) => {
+        const p = spawn('bash', [SCRIPT, CHAIN], {
+          env: { ...process.env, PATH: PATH_WITH_PSQL, DATABASE_URL: url },
+        });
+        p.on('error', reject);
+        p.on('exit', (code) => resolve(code ?? -1));
+      });
+    const codes = await Promise.all([run(), run(), run()]);
+    expect(codes).toEqual([0, 0, 0]);
+    const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
+    expect((rows[0] as { n: number }).n).toBe(6);
+    // no duplicate-application evidence: each id appears exactly once
+    const ids = await query(url, 'SELECT id, count(*)::int AS n FROM schema_migrations GROUP BY id HAVING count(*) > 1');
+    expect(ids).toEqual([]);
   });
 });
 

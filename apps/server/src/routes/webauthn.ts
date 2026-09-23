@@ -33,6 +33,7 @@ import { SessionManager, FlowTokenService, getRedisClient, TenantManager } from 
 import { config } from '../config.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { logger } from '@accessbase/logging';
+import { getTenantManager } from '../utils/managers.js';
 import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
 
 const CHALLENGE_TTL_SECONDS = 300;
@@ -96,7 +97,7 @@ export async function webauthnRoutes(app: FastifyInstance) {
     // suspended row blocks.
     let tenant;
     try {
-      tenant = await new TenantManager().findById(tenantId);
+      tenant = await (await getTenantManager()).findById(tenantId);
     } catch (err) {
       logger.warn({ err }, 'Tenant status lookup failed — allowing (fail-open)');
       tenant = null;

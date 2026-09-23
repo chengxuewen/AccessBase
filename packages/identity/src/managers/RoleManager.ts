@@ -3,7 +3,7 @@
  * Drizzle ORM implementation
  */
 import { eq, and, sql, count, inArray } from 'drizzle-orm';
-import { createDb, type DrizzleDB } from '../db/index.js';
+import { closeDb, createDb, type DrizzleDB } from '../db/index.js';
 import {
   roles,
   permissions,
@@ -617,4 +617,10 @@ export class RoleManager {
       updatedAt: dbRole.updatedAt,
     };
   }
+
+  /** Release the internally-created pool (singleton reset / graceful shutdown). */
+  async close(): Promise<void> {
+    await closeDb(this.db);
+  }
+
 }

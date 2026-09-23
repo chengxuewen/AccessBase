@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { IdentityService, OptionsManager } from '@accessbase/identity';
 
 process.env.NODE_ENV = 'test';
@@ -93,11 +93,18 @@ setOptionsManager({
 } as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');
+const { resetManagers } = await import('../utils/managers.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
 
 let app: App;
+
+beforeEach(async () => {
+  // Q2a test seam: singleton managers — fresh construction per test (instance
+  // probes below depend on per-test ctor results).
+  await resetManagers();
+});
 
 beforeAll(async () => {
   app = await buildApp();

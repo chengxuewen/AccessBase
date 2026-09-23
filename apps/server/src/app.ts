@@ -225,6 +225,27 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
   // Batch N: stop the adapter sweeper on graceful close.
   app.addHook('onClose', async () => stopSweeper());
+
+  // Q2a(E): retention sweeper on its OWN pool (rev.2 R7: first pass boot+60s,
+  // then every 24h — deploy cycles faster than a day must still sweep). The
+  // audit archive config finally gets a consumer; AUDIT_RETENTION_DAYS overrides, 0 disables.
+  const { startRetentionSweeper, resolveRetentionDays } = await import('./utils/retention-sweeper.js');
+  const { resetManagers } = await import('./utils/managers.js');
+  // Lazy pool: created on the first tick (boot+60s), closed by stop() — keeps
+  // buildApp createDb-count at zero (health-pool.test premise).
+  const retention = startRetentionSweeper(
+    () => createDb(config.databaseUrl),
+    resolveRetentionDays(
+      process.env['AUDIT_RETENTION_DAYS'],
+      defaultAuditConfig.storage.archive.retentionDays,
+    ),
+    app.log,
+  );
+  // Q2a(B): graceful close ends the singleton managers' pools + the sweeper's pool.
+  app.addHook('onClose', async () => {
+    await retention.stop();
+    await resetManagers();
+  });
   // Batch P W2-1: the hijacked /oidc/* space lives in Fastify's route-less
   // (404) region where @fastify/rate-limit provably never engages — coarse
   // per-IP guard for it. Exempt: interaction routes (real, globally limited)

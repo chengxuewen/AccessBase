@@ -3,11 +3,12 @@
  * Handles system initialization, admin creation, and configuration
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { UserManager, RoleManager } from '@accessbase/identity';
+
 import { createDb, users, userRoles, roles } from '@accessbase/identity/db';
 import { eq } from 'drizzle-orm';
 import { logger } from '@accessbase/logging';
 import { config } from '../config.js';
+import { getRoleManager, getUserManager } from '../utils/managers.js';
 import { getOptionsManager } from './options.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { seedBuiltinPermissions, ensureDefaultTenantRow } from './permissions-seed.js';
@@ -32,7 +33,7 @@ function setupDb() {
 //   2. ANY user holds the 'admin' role (users ⋈ user_roles ⋈ roles) — closes the
 //      custom-email blind spot for wizard-created admins (Task 2 carried ruling).
 async function queryAdminExists(): Promise<SetupStatus> {
-  const userManager = new UserManager();
+  const userManager = await getUserManager();
   const admin = await userManager.findByEmail(config.adminEmail || 'admin@accessbase.local');
   if (admin) return { isInitialized: true, adminExists: true, configComplete: true };
 
@@ -239,8 +240,8 @@ export async function setupRoutes(app: FastifyInstance) {
       setupInProgress = true;
 
       try {
-        const userManager = new UserManager();
-        const roleManager = new RoleManager();
+        const userManager = await getUserManager();
+        const roleManager = await getRoleManager();
 
         // Default tenant first-writer (R6): the row must exist BEFORE any user
         // is created with tenant_id = DEFAULT_TENANT. Idempotent (onConflictDoNothing).
@@ -478,7 +479,7 @@ name: 'admin',
       }
 
       // Generate JWT tokens for admin login
-      const userManager = new UserManager();
+      const userManager = await getUserManager();
       const { data: users } = await userManager.findAll({ page: 1, pageSize: 1 }, DEFAULT_TENANT);
       const adminUser = users[0];
 

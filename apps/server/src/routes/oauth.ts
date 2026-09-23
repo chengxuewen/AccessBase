@@ -20,6 +20,7 @@ import { DEFAULT_TENANT } from '../utils/constants.js';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
 import { logger } from '@accessbase/logging';
+import { getTenantManager } from '../utils/managers.js';
 
 const SUPPORTED_PROVIDERS = ['github', 'google'] as const;
 type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
@@ -281,7 +282,7 @@ export async function oauthRoutes(app: FastifyInstance) {
     // suspended row blocks.
     let tenant;
     try {
-      tenant = await new TenantManager().findById(tenantId);
+      tenant = await (await getTenantManager()).findById(tenantId);
     } catch (err) {
       logger.warn({ err }, 'Tenant status lookup failed — allowing (fail-open)');
       tenant = null;

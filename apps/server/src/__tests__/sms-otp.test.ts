@@ -143,6 +143,7 @@ setOptionsManager({
 } as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');
+const { resetManagers } = await import('../utils/managers.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -157,7 +158,11 @@ afterAll(async () => {
   await app.close();
 });
 
-beforeEach(() => {
+beforeEach(async () => {
+  // Q2a test seam: the route managers are process singletons now — reset so
+  // each test's ctor-mock + mock.results premises hold like the old
+  // per-request construction.
+  await resetManagers();
   smsSend.mockClear();
   smsFromConfig.mockClear();
   flowTokenMock.issue.mockClear();
@@ -341,10 +346,10 @@ describe('POST /api/v1/auth/sms-otp/request', () => {
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('AUTH_SMS_001');
     const um = (await import('@accessbase/identity')).UserManager as unknown as {
-      mock: { results: Array<{ value: { findByIdAny: ReturnType<typeof vi.fn> } }> };
+      mock: { results: Array<{ value: { findByIdAny?: { mock: { calls: unknown[][] } } } }> };
     };
-    const inst = um.mock.results[um.mock.results.length - 1]?.value;
-    expect(inst?.findByIdAny).not.toHaveBeenCalled();
+    const calls = um.mock.results.flatMap((r) => r.value.findByIdAny?.mock.calls ?? []);
+    expect(calls).toEqual([]);
   });
 });
 
@@ -378,12 +383,16 @@ describe('POST /api/v1/auth/sms-otp/verify', () => {
       payload: { token, code: payload.code },
     });
     expect(res.statusCode).toBe(200);
-    // Spy-level probe: the route must resolve the user via findByIdAny
+    // Spy-level probe: the route must resolve the user via findByIdAny.
+    // Q2a: singleton managers make instance-count probes brittle — aggregate
+    // calls ACROSS constructed instances instead (strictly stronger).
     const um = (await import('@accessbase/identity')).UserManager as unknown as {
-      mock: { results: Array<{ value: { findByIdAny: ReturnType<typeof vi.fn> } }> };
+      mock: { results: Array<{ value: { findByIdAny?: { mock: { calls: unknown[][] } } } }> };
     };
-    const inst = um.mock.results[um.mock.results.length - 1]?.value;
-    expect(inst?.findByIdAny).toHaveBeenCalledWith(payload.userId);
+    const calls = um.mock.results.flatMap((r) => r.value.findByIdAny?.mock.calls ?? []);
+    // ctor-mock accumulates across the file (no per-test mockClear on classes) —
+    // assert THIS test's exact call is present, not exclusivity.
+    expect(calls).toContainEqual([payload.userId]);
   });
 
   it('totp user: {mfaRequired, flowToken} + issue(mfa_verify,{userId},300) + NO accessToken/refreshToken (R8)', async () => {

@@ -1,5 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { register, collectDefaultMetrics, Histogram, Gauge } from 'prom-client';
+import { register, collectDefaultMetrics, Histogram, Gauge, Counter } from 'prom-client';
 import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { config } from '../config.js';
@@ -36,6 +36,31 @@ const httpInFlight = new Gauge({
   help: 'In-flight HTTP requests handled by Fastify.',
 });
 
+// Q2a(F): pg-pool totals refreshed just before render from identity's live
+// pool registry (getLivePoolStats may be absent when tests mock the db module
+// — guarded). Null-safe by construction.
+const pgPoolGauge = new Gauge({
+  name: 'accessbase_pg_pool',
+  help: 'pg-pool connection counts by state (all live pools summed).',
+  labelNames: ['state'] as const,
+});
+
+const authFailures = new Counter({
+  name: 'accessbase_auth_failures_total',
+  help: 'Login failures by outcome class (derived from /auth/login response codes at scrape scope).',
+  labelNames: ['reason'] as const,
+});
+
+// Redis-down is the dominant degraded mode; a scrape-time ping (every 15s+)
+// replaces set-true-never-reset latching (rev.2 B7).
+// ponytail: lockout/flowtoken in-memory fallbacks ride under this same dep —
+// add per-dep labels only when someone actually alerts on them separately.
+const degradedGauge = new Gauge({
+  name: 'accessbase_degraded_mode',
+  help: '1 while a dependency is degraded (computed on scrape, decays naturally).',
+  labelNames: ['dep'] as const,
+});
+
 const startedAt = new WeakMap<FastifyRequest, number>();
 
 /** sha256 BOTH sides before timingSafeEqual ⇒ equal-length compare, no length oracle. */
@@ -59,7 +84,7 @@ async function metricsRoutesImpl(app: FastifyInstance): Promise<void> {
     httpInFlight.inc();
   });
 
-  app.addHook('onResponse', async (request) => {
+  app.addHook('onResponse', async (request, reply) => {
     // Symmetry guard: a request short-circuited BEFORE our onRequest (e.g. the
     // rate-limit plugin's 429 — registered earlier at root) never incremented;
     // dec only what we own or the gauge drifts negative.
@@ -71,6 +96,16 @@ async function metricsRoutesImpl(app: FastifyInstance): Promise<void> {
       { method: request.method, route },
       (performance.now() - start) / 1000,
     );
+    // Q2a(F): auth-failure telemetry derived from the response code — no
+    // handler-site instrumentation (single source, no cardinality risk:
+    // reason is a closed enum).
+    if (route === '/api/v1/auth/login' || route === '/api/v1/auth/ldap/login' || route === '/api/v1/auth/sms-otp/verify') {
+      const code = reply.statusCode;
+      if (code === 401) authFailures.inc({ reason: 'bad_credentials' });
+      else if (code === 403) authFailures.inc({ reason: 'suspended' });
+      else if (code === 423) authFailures.inc({ reason: 'lockout' });
+      else if (code === 429) authFailures.inc({ reason: 'rate_limited' });
+    }
   });
 
   // GET /metrics — Prometheus text scrape endpoint.
@@ -104,6 +139,36 @@ async function metricsRoutesImpl(app: FastifyInstance): Promise<void> {
             error: { code: 'METRICS_AUTH', message: 'Missing or invalid metrics token' },
           });
         }
+      }
+      // Q2a(F): refresh pull-based gauges right before render.
+      try {
+        const dbMod = await import('@accessbase/identity/db');
+        const stats =
+          typeof dbMod.getLivePoolStats === 'function' ? dbMod.getLivePoolStats() : null;
+        if (stats) {
+          pgPoolGauge.set({ state: 'total' }, stats.total);
+          pgPoolGauge.set({ state: 'idle' }, stats.idle);
+          pgPoolGauge.set({ state: 'waiting' }, stats.waiting);
+        }
+      } catch {
+        // mocked db module in tests — gauge simply stays at last value
+      }
+      try {
+        const { getRedis } = await import('../utils/redis.js');
+        const redis = await getRedis();
+        let up = false;
+        if (redis) {
+          try {
+            await redis.ping();
+            up = true;
+          } catch {
+            up = false;
+          }
+        }
+        // dep reported only when a redis was configured; 'down' when configured-but-failing
+        degradedGauge.set({ dep: redis ? 'redis' : 'redis-unconfigured' }, up ? 0 : 1);
+      } catch {
+        degradedGauge.set({ dep: 'redis' }, 1);
       }
       reply.header('content-type', register.contentType);
       return register.metrics();
