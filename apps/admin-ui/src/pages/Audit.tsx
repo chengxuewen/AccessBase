@@ -6,7 +6,7 @@ import { Alert, Button, DatePicker, Input, Select, Tag, Tooltip } from 'antd';
 import { DownloadOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 // ponytail: derive date types from antd instead of importing dayjs types directly
 type RangeDayjs = NonNullable<NonNullable<Parameters<NonNullable<React.ComponentProps<typeof DatePicker.RangePicker>['onChange']>>[0]>[number]>;
-import { listAuditLogs, type AuditLog } from '../api/audit';
+import { listAuditLogs, exportAuditLogs, type AuditLog } from '../api/audit';
 
 // Static action filter list — audit actions follow the METHOD /path convention from the middleware
 const ACTION_OPTIONS = ['POST', 'PUT', 'PATCH', 'DELETE'].map((a) => ({ label: a, value: a }));
@@ -29,7 +29,6 @@ export default function Audit() {
   const { t } = useTranslation();
   const actionRef = useRef<ActionType>(null);
   const [filters, setFilters] = useState<FilterState>({});
-  const [currentRows, setCurrentRows] = useState<AuditLog[]>([]);
   const [loadError, setLoadError] = useState(false);
 
   const columns: ProColumns<AuditLog>[] = [
@@ -58,25 +57,27 @@ export default function Audit() {
     },
   ];
 
-  const handleExport = () => {
-    // ponytail: client-side export of the CURRENT PAGE only — server-side full export when volume demands it
-    const header = ['id', 'action', 'actor', 'resource', 'ipAddress', 'status', 'createdAt'];
-    // CSV formula injection guard (OWASP): cells starting with = + - @ get a leading ' inside the quoting
-    const escape = (v: string) => `"${((/^[=+\-@]/.test(v) ? "'" : '') + v).replaceAll('"', '""')}"`;
-    const csv = [
-      header.join(','),
-      ...currentRows.map((r) =>
-        [r.id, r.action, r.actor ?? '', r.resource ?? '', r.ipAddress ?? '', r.status ?? '', r.createdAt]
-          .map((v) => escape(String(v)))
-          .join(','),
-      ),
-    ].join('\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `audit-logs-${new Date().toISOString().replaceAll(':', '-').slice(0, 19)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState(false);
+
+  // Q1-f6: server-side FULL export (all rows matching the filters, tenant-safe;
+  // the CSV injection guard lives in the route). Replaces the old current-page-only
+  // client-side builder. Errors surface as an inline Alert (no blob ever lands).
+  const handleExport = async () => {
+    setExportBusy(true);
+    setExportError(false);
+    try {
+      await exportAuditLogs({
+        action: filters.action,
+        actor: filters.actor,
+        startDate: filters.startDate?.format('YYYY-MM-DD'),
+        endDate: filters.endDate?.format('YYYY-MM-DD'),
+      });
+    } catch {
+      setExportError(true);
+    } finally {
+      setExportBusy(false);
+    }
   };
 
   return (
@@ -88,6 +89,15 @@ export default function Audit() {
           message={t('audit.loadError')}
           style={{ marginBottom: 16 }}
           className="audit-load-error"
+        />
+      )}
+      {exportError && (
+        <Alert
+          type="error"
+          showIcon
+          message={t('audit.exportError')}
+          style={{ marginBottom: 16 }}
+          data-testid="audit-export-error"
         />
       )}
       <div style={{ marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -128,7 +138,7 @@ export default function Audit() {
           />
         </Tooltip>
         <Tooltip title={t('audit.exportTooltip')}>
-          <Button icon={<DownloadOutlined />} onClick={handleExport} className="audit-export">
+          <Button icon={<DownloadOutlined />} onClick={handleExport} loading={exportBusy} className="audit-export">
             {t('audit.export')}
           </Button>
         </Tooltip>
@@ -149,7 +159,6 @@ export default function Audit() {
               startDate: filters.startDate?.format('YYYY-MM-DD'),
               endDate: filters.endDate?.format('YYYY-MM-DD'),
             });
-            setCurrentRows(result.data);
             setLoadError(false);
             return { data: result.data, total: result.total, success: true };
           } catch {

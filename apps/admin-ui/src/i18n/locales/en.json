@@ -72,7 +72,18 @@
     "magicInvalid": "This sign-in link is invalid or has expired.",
     "magicBackToLogin": "Back to sign in",
     "accountSuspended": "This account has been suspended.",
-    "magicError": "Failed to send the sign-in link."
+    "magicError": "Failed to send the sign-in link.",
+    "forgotPassword": "Forgot password?",
+    "register": "Create an account",
+    "smsTrigger": "Sign in with SMS code",
+    "smsPhonePlaceholder": "Phone number (e.g. +15551234567)",
+    "smsPhoneRequired": "Phone number is required",
+    "smsSend": "Send code",
+    "smsSent": "Code sent. Check your messages.",
+    "smsCodePlaceholder": "6-digit code",
+    "smsCodeRequired": "Enter the 6-digit code",
+    "smsSubmit": "Verify",
+    "smsInvalid": "Invalid or expired verification code"
   },
   "consent": {
     "title": "Authorization Request",
@@ -80,7 +91,8 @@
     "requestedScopes": "Requested permissions",
     "approve": "Approve",
     "deny": "Deny",
-    "error": "Failed to load the authorization request"
+    "error": "Failed to load the authorization request",
+    "redirecting": "Redirecting…"
   },
   "scope": {
     "openid": "Verify your identity (openid)",
@@ -315,7 +327,8 @@
     "filterActor": "Filter by actor",
     "search": "Search",
     "resetFilters": "Reset filters",
-    "loadError": "Failed to load audit logs"
+    "loadError": "Failed to load audit logs",
+    "exportError": "The export could not be completed. Please retry."
   },
   "profile": {
     "title": "Profile",
@@ -345,7 +358,11 @@
     "logoutOtherDevicesConfirm": "Revoke all other sessions?",
     "logoutOtherDevicesSuccess": "Other sessions revoked",
     "logoutOtherDevicesError": "Failed to revoke other sessions",
-    "loadError": "Failed to load profile"
+    "loadError": "Failed to load profile",
+    "emailUnverified": "Your email address is not verified yet.",
+    "sendVerification": "Send verification email",
+    "verifySent": "Verification email sent. Check your inbox.",
+    "verifyFailed": "Could not send the verification email."
   },
   "settings": {
     "general": "General",
@@ -532,5 +549,41 @@
     "createError": "Failed to create the API key",
     "loadError": "Failed to load API keys",
     "ok": "Done"
+  },
+  "forgot": {
+    "title": "Reset password",
+    "desc": "Enter your account email and we'll send a reset link.",
+    "emailPlaceholder": "Email address",
+    "submit": "Send reset link",
+    "success": "If an account exists for that email, a reset link has been sent.",
+    "back": "Back to sign in"
+  },
+  "reset": {
+    "title": "Choose a new password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "submit": "Set new password",
+    "success": "Password updated. You can sign in now.",
+    "back": "Go to sign in",
+    "mismatch": "Passwords do not match",
+    "missing": "This reset link is incomplete."
+  },
+  "register": {
+    "title": "Create account",
+    "name": "Full name",
+    "email": "Email",
+    "password": "Password",
+    "confirm": "Confirm password",
+    "submit": "Register",
+    "pendingTitle": "Account created",
+    "pending": "Your registration was received and is pending approval. Sign in once an administrator activates your account.",
+    "back": "Back to sign in",
+    "mismatch": "Passwords do not match"
+  },
+  "verifyEmail": {
+    "title": "Verify email",
+    "success": "Your email address has been verified.",
+    "fail": "This verification link is invalid or has expired.",
+    "goLogin": "Go to sign in"
   }
 }

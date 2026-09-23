@@ -8,6 +8,8 @@ export interface User {
   name: string;
   avatar?: string;
   isActive: boolean;
+  status?: 'active' | 'suspended' | 'pending';
+  emailVerified?: boolean;
   tenantId: string;
   tokenVersion: number;
   createdAt: string;

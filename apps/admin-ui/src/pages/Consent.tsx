@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Card, Checkbox, Space, Spin } from 'antd';
+import { Alert, Button, Card, Checkbox, Space, Spin, theme } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import { getInteraction, postInteractionDecision } from '../api/oidc';
 import type { OidcInteraction } from '../api/oidc';
@@ -128,6 +128,7 @@ export default function Consent() {
 
 
 function CenteredCard({ title, children }: { title: string; children: React.ReactNode }) {
+  const { token: themeToken } = theme.useToken();
   return (
     <div
       style={{
@@ -135,7 +136,7 @@ function CenteredCard({ title, children }: { title: string; children: React.Reac
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: '#f0f2f5',
+        background: themeToken.colorBgLayout,
       }}
     >
       <Card title={title} style={{ width: '100%', maxWidth: 400 }} styles={{ header: { textAlign: 'center' } }}>

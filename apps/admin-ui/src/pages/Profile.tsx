@@ -16,7 +16,14 @@ import {
 } from 'antd';
 import { EditOutlined, LogoutOutlined, CheckOutlined, CloseOutlined, LinkOutlined, GithubOutlined, GoogleOutlined } from '@ant-design/icons';
 import { getCurrentUser, updateUser } from '../api/users';
-import { changePassword, revokeOtherSessions, getOAuthLinks, unlinkOAuthProvider, type OAuthLink } from '../api/auth';
+import {
+  changePassword,
+  revokeOtherSessions,
+  getOAuthLinks,
+  unlinkOAuthProvider,
+  requestEmailVerify,
+  type OAuthLink,
+} from '../api/auth';
 import { useAuthStore } from '../stores/auth';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
@@ -25,7 +32,13 @@ import EmptyState from '../components/EmptyState';
 export default function Profile() {
   const { t } = useTranslation();
   const { refreshToken } = useAuthStore();
-  const [user, setUser] = useState<{ id: string; email: string; name: string; isActive: boolean } | null>(null);
+  const [user, setUser] = useState<{
+    id: string;
+    email: string;
+    name: string;
+    isActive: boolean;
+    emailVerified?: boolean;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [savingName, setSavingName] = useState(false);
@@ -37,13 +50,28 @@ export default function Profile() {
   const [linksLoading, setLinksLoading] = useState(false);
   const [linksError, setLinksError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
+  // Q1-f8: email-verification banner state
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifyMsg, setVerifyMsg] = useState<string | null>(null);
+
+  const handleSendVerify = async () => {
+    setVerifyBusy(true);
+    try {
+      await requestEmailVerify();
+      setVerifyMsg(t('profile.verifySent'));
+    } catch {
+      setVerifyMsg(t('profile.verifyFailed'));
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
 
   const refetch = useCallback(() => {
     setLoading(true);
     setLoadError(false);
     getCurrentUser()
       .then((u) => {
-        setUser({ id: u.id, email: u.email, name: u.name, isActive: u.isActive });
+        setUser({ id: u.id, email: u.email, name: u.name, isActive: u.isActive, emailVerified: u.emailVerified });
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
@@ -141,6 +169,25 @@ export default function Profile() {
   return (
     <Spin spinning={loading}>
     <Space direction="vertical" size="large" style={{ display: 'flex', width: '100%' }}>
+      {!loading && user && !user.emailVerified && (
+        <Alert
+          type="warning"
+          showIcon
+          message={t('profile.emailUnverified')}
+          description={verifyMsg ?? undefined}
+          action={
+            <Button
+              size="small"
+              loading={verifyBusy}
+              onClick={handleSendVerify}
+              data-testid="profile-send-verify"
+            >
+              {t('profile.sendVerification')}
+            </Button>
+          }
+          data-testid="profile-verify-banner"
+        />
+      )}
       <Card
         title={t('profile.personalInfo')}
         extra={

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Card, Alert, Spin, Button } from 'antd';
+import { Card, Alert, Spin, Button, theme } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import { landingPath } from '../utils/landing';
 
@@ -12,6 +12,7 @@ import { landingPath } from '../utils/landing';
  */
 export default function MagicLogin() {
   const { t } = useTranslation();
+  const { token: themeToken } = theme.useToken();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +54,7 @@ export default function MagicLogin() {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: '#f0f2f5',
+        background: themeToken.colorBgLayout,
       }}
     >
       <Card title={t('login.magicTitle')} style={{ width: '100%', maxWidth: 400 }}>

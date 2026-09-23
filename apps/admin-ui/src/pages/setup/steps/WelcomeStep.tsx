@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Space, Spin } from 'antd';
+import { Button, Space, Spin, theme } from 'antd';
 import { useTranslation } from 'react-i18next';
 import {
   CheckCircleOutlined,
@@ -26,6 +26,7 @@ interface StepProps {
 
 export default function WelcomeStep({ next, stepTitleRef }: StepProps) {
   const { t } = useTranslation();
+  const { token: themeToken } = theme.useToken();
   const { systemChecks, setSystemChecks } = useSetupStore();
   const [checks, setChecks] = useState<CheckItem[]>(
     systemChecks.length > 0
@@ -102,7 +103,7 @@ export default function WelcomeStep({ next, stepTitleRef }: StepProps) {
       <h2 id="welcome-title" ref={stepTitleRef} tabIndex={-1}>
         {t('setup.welcome.title')}
       </h2>
-      <p style={{ color: '#666', marginBottom: 24 }}>{t('setup.welcome.subtitle')}</p>
+      <p style={{ color: themeToken.colorTextSecondary, marginBottom: 24 }}>{t('setup.welcome.subtitle')}</p>
 
       <div role="list" aria-label={t('setup.checks.title')} style={{ marginBottom: 24 }}>
         {checks.map((check) => (
@@ -115,7 +116,7 @@ export default function WelcomeStep({ next, stepTitleRef }: StepProps) {
               {check.status === 'success' && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
               {check.status === 'error' && <CloseCircleOutlined style={{ color: '#cf1322' }} />}
               {check.status === 'checking' && <Spin size="small" />}
-              {check.status === 'pending' && <ClockCircleOutlined style={{ color: '#999' }} />}
+              {check.status === 'pending' && <ClockCircleOutlined style={{ color: themeToken.colorTextTertiary }} />}
             </span>
             <span>{checkLabelMap[check.name] ?? check.label}</span>
             <span className="sr-only">
@@ -130,7 +131,7 @@ export default function WelcomeStep({ next, stepTitleRef }: StepProps) {
             {check.status === 'error' && (
               <div role="alert" style={{ marginLeft: 'auto', textAlign: 'right' }}>
                 <span style={{ color: '#cf1322', fontSize: 12 }}>{check.message}</span>
-                <p style={{ color: '#666', fontSize: 12, margin: '4px 0' }}>
+                <p style={{ color: themeToken.colorTextSecondary, fontSize: 12, margin: '4px 0' }}>
                   {recoveryMap[check.name]}
                 </p>
                 <Button

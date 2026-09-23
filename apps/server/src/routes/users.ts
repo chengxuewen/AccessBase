@@ -150,7 +150,14 @@ export async function userRoutes(app: FastifyInstance) {
       }
       return {
         success: true,
-        data: { id: user.id, email: user.email, name: user.name, isActive: user.isActive },
+        data: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          isActive: user.isActive,
+          // Q1-f8: drives the Profile verification banner
+          emailVerified: user.emailVerified ?? false,
+        },
       };
     },
   );

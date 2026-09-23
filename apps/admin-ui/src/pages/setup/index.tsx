@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Steps, Card, Grid } from 'antd';
+import { Steps, Card, Grid, theme } from 'antd';
 import {
   SmileOutlined,
   UserOutlined,
@@ -22,6 +22,7 @@ const stepIcons = [
 
 export default function SetupWizard() {
   const { t } = useTranslation();
+  const { token: themeToken } = theme.useToken();
   const { md } = Grid.useBreakpoint();
   const current = useSetupStore((s) => s.currentStep);
   const setCurrentStep = useSetupStore((s) => s.setCurrentStep);
@@ -65,7 +66,7 @@ export default function SetupWizard() {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: '#f0f2f5',
+        background: themeToken.colorBgLayout,
         padding: md ? 0 : 16,
       }}
     >

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Alert, Button, Popconfirm, Tag } from 'antd';
+import { Alert, Button, Popconfirm, Select, Tag } from 'antd';
 import { PlusOutlined, DeleteOutlined, ReloadOutlined, ImportOutlined, ExportOutlined, LogoutOutlined } from '@ant-design/icons';
 import { listUsers, deleteUser, forceLogoutUser, exportUsersCsv, type User } from '../api/users';
 import ImportUsersModal from './users/ImportUsersModal';
@@ -18,6 +18,7 @@ export default function Users() {
   const actionRef = useRef<ActionType>(null);
   const [loadError, setLoadError] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'suspended' | 'pending' | undefined>();
 
   const columns: ProColumns<User>[] = [
     {
@@ -33,19 +34,23 @@ export default function Users() {
       dataIndex: 'email',
     },
     {
+      // Q1-f7: the old client-side onFilter only saw the loaded page (half-wired).
+      // Filtering now runs server-side via the toolbar Select (users-status-filter);
+      // this column just renders the tri-state.
       title: t('users.status'),
       dataIndex: 'isActive',
       search: false,
-      filters: [
-        { text: t('users.statusActive'), value: 'active' },
-        { text: t('users.statusSuspended'), value: 'suspended' },
-      ],
-      onFilter: (value, record) => (value === 'active' ? record.isActive : !record.isActive),
-      render: (_, record) => (
-        <Tag color={record.isActive ? 'green' : 'red'}>
-          {record.isActive ? t('users.statusActive') : t('users.statusSuspended')}
-        </Tag>
-      ),
+      render: (_, record) => {
+        const status = record.status ?? (record.isActive ? 'active' : 'suspended');
+        const color = status === 'active' ? 'green' : status === 'pending' ? 'orange' : 'red';
+        const label =
+          status === 'active'
+            ? t('users.statusActive')
+            : status === 'pending'
+              ? t('users.statusPending')
+              : t('users.statusSuspended');
+        return <Tag color={color}>{label}</Tag>;
+      },
     },
     {
       title: t('users.tenant'),
@@ -146,6 +151,7 @@ export default function Users() {
               page: current,
               pageSize,
               search: name,
+              ...(statusFilter ? { status: statusFilter } : {}),
               ...mapSort(sort as Record<string, 'ascend' | 'descend' | undefined>),
               ...rest,
             });
@@ -164,6 +170,23 @@ export default function Users() {
         search={{ labelWidth: 'auto' }}
         locale={{ emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} /> }}
         toolBarRender={() => [
+          <Select
+            key="status-filter"
+            allowClear
+            placeholder={t('users.status')}
+            style={{ width: 160 }}
+            value={statusFilter}
+            onChange={(v) => {
+              setStatusFilter(v);
+              actionRef.current?.reload();
+            }}
+            options={[
+              { value: 'active', label: t('users.statusActive') },
+              { value: 'pending', label: t('users.statusPending') },
+              { value: 'suspended', label: t('users.statusSuspended') },
+            ]}
+            data-testid="users-status-filter"
+          />,
           <Button
             key="import"
             icon={<ImportOutlined />}

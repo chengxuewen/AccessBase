@@ -8,6 +8,10 @@ import { i18nReady as i18nReadyPromise } from './i18n';
 import AdminLayout from './layouts/AdminLayout';
 import Login from './pages/Login';
 import MagicLogin from './pages/MagicLogin';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import Consent from './pages/Consent';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
@@ -110,6 +114,11 @@ export default function App() {
           </GlobalGuard>
         }
       />
+      {/* Q1 public self-service surface (GlobalGuard = same setup-status contract as /login) */}
+      <Route path="/forgot-password" element={<GlobalGuard><ForgotPassword /></GlobalGuard>} />
+      <Route path="/reset-password" element={<GlobalGuard><ResetPassword /></GlobalGuard>} />
+      <Route path="/register" element={<GlobalGuard><Register /></GlobalGuard>} />
+      <Route path="/verify-email" element={<GlobalGuard><VerifyEmail /></GlobalGuard>} />
       <Route
         path="/"
         element={

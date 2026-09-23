@@ -168,3 +168,72 @@ export async function verifyWebAuthnLogin(
   const { data } = await client.post<ApiEnvelope<{ accessToken: string; refreshToken: string; user: unknown }>>('/v1/auth/webauthn/login/verify', { flowToken, response });
   return data.data;
 }
+
+/** Q1-f2: forgot-password request. Enumeration-safe server arm returns no
+message body (rev.2 F2) — the page renders its own static success text. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await client.post('/v1/auth/forgot-password', { email });
+}
+
+/** Q1-f2: consume a /reset-password link token with the new password. */
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await client.post('/v1/auth/reset-password', { token, newPassword });
+}
+
+export interface RegisterResult {
+  id: string;
+  email: string;
+  name: string;
+  status: string;
+}
+
+/** Q1-f2: self-service registration — server creates a PENDING account. */
+export async function registerUser(payload: {
+  email: string;
+  name: string;
+  password: string;
+}): Promise<RegisterResult> {
+  const { data } = await client.post<ApiEnvelope<RegisterResult>>('/v1/auth/register', payload);
+  return data.data;
+}
+
+/** Q1-f2: SMS OTP login-page probe (strict gate, saml/status pattern). */
+export async function fetchSmsStatus(): Promise<boolean> {
+  const { data } = await client.get<ApiEnvelope<{ enabled: boolean }>>('/v1/auth/sms/status');
+  return data.data.enabled === true;
+}
+
+/** Q1-f2: request an OTP; resolves with the flow token the verify step needs
+ * (wire-chain fix — the token only exists in the response since Q1-b1). */
+export async function requestSmsOtp(phone: string): Promise<string> {
+  const { data } = await client.post<ApiEnvelope<{ message: string; token: string }>>(
+    '/v1/auth/sms-otp/request',
+    { phone },
+  );
+  return data.data.token;
+}
+
+export interface SmsVerifyResult {
+  accessToken?: string;
+  refreshToken?: string;
+  mfaRequired?: boolean;
+  flowToken?: string;
+}
+
+export async function verifySmsOtp(token: string, code: string): Promise<SmsVerifyResult> {
+  const { data } = await client.post<ApiEnvelope<SmsVerifyResult>>('/v1/auth/sms-otp/verify', {
+    token,
+    code,
+  });
+  return data.data;
+}
+
+/** Q1-f2: send a verification email to the authenticated user's own address. */
+export async function requestEmailVerify(): Promise<void> {
+  await client.post('/v1/auth/verify-email/request');
+}
+
+/** Q1-f2: public consume of an email-verification link token. */
+export async function verifyEmailToken(token: string): Promise<void> {
+  await client.post('/v1/auth/verify-email', { token });
+}

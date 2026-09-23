@@ -86,7 +86,7 @@ const suspendedTenantUser = {
 
 // Mutable knobs: which user login resolves for which email, and tenant rows.
 let userByEmail: Record<string, typeof defaultTenantUser | typeof suspendedTenantUser> = {};
-let tenantRows: Array<{ id: string; status: string }> = [
+const tenantRows: Array<{ id: string; status: string }> = [
   { id: DEFAULT_TENANT_ID, status: 'active' },
   { id: SUSPENDED_TENANT_ID, status: 'suspended' },
 ];

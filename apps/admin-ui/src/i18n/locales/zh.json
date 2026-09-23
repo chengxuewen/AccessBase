@@ -72,7 +72,18 @@
     "magicInvalid": "此登录链接无效或已过期。",
     "magicBackToLogin": "返回登录",
     "accountSuspended": "该账号已被停用。",
-    "magicError": "登录链接发送失败。"
+    "magicError": "登录链接发送失败。",
+    "forgotPassword": "忘记密码？",
+    "register": "创建账号",
+    "smsTrigger": "短信验证码登录",
+    "smsPhonePlaceholder": "手机号（如 +15551234567）",
+    "smsPhoneRequired": "请输入手机号",
+    "smsSend": "发送验证码",
+    "smsSent": "验证码已发送，请查收短信。",
+    "smsCodePlaceholder": "6 位验证码",
+    "smsCodeRequired": "请输入 6 位验证码",
+    "smsSubmit": "验证",
+    "smsInvalid": "验证码无效或已过期"
   },
   "consent": {
     "title": "授权请求",
@@ -80,7 +91,8 @@
     "requestedScopes": "请求的权限",
     "approve": "同意",
     "deny": "拒绝",
-    "error": "加载授权请求失败"
+    "error": "加载授权请求失败",
+    "redirecting": "正在跳转…"
   },
   "scope": {
     "openid": "验证您的身份（openid）",
@@ -127,7 +139,7 @@
     "status": "状态",
     "statusActive": "活跃",
     "statusSuspended": "已停用",
-    "statusPending": "待审核",
+    "statusPending": "待批准",
     "roles": "角色",
     "createdAt": "创建时间",
     "actions": "操作",
@@ -315,7 +327,8 @@
     "filterActor": "按操作者筛选",
     "search": "查询",
     "resetFilters": "重置筛选",
-    "loadError": "加载审计日志失败"
+    "loadError": "加载审计日志失败",
+    "exportError": "导出未能完成，请重试。"
   },
   "profile": {
     "title": "个人资料",
@@ -345,7 +358,11 @@
     "logoutOtherDevicesConfirm": "确定撤销所有其他会话？",
     "logoutOtherDevicesSuccess": "其他会话已撤销",
     "logoutOtherDevicesError": "撤销其他会话失败",
-    "loadError": "加载个人资料失败"
+    "loadError": "加载个人资料失败",
+    "emailUnverified": "邮箱地址尚未验证。",
+    "sendVerification": "发送验证邮件",
+    "verifySent": "验证邮件已发送，请查收邮箱。",
+    "verifyFailed": "验证邮件发送失败。"
   },
   "settings": {
     "general": "通用",
@@ -532,5 +549,41 @@
     "createError": "创建 API 密钥失败",
     "loadError": "加载 API 密钥失败",
     "ok": "完成"
+  },
+  "forgot": {
+    "title": "重置密码",
+    "desc": "输入账号邮箱，我们将发送重置链接。",
+    "emailPlaceholder": "邮箱地址",
+    "submit": "发送重置链接",
+    "success": "若该邮箱存在账号，重置链接已发送。",
+    "back": "返回登录"
+  },
+  "reset": {
+    "title": "设置新密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认密码",
+    "submit": "设置新密码",
+    "success": "密码已更新，请登录。",
+    "back": "去登录",
+    "mismatch": "两次输入的密码不一致",
+    "missing": "重置链接不完整。"
+  },
+  "register": {
+    "title": "创建账号",
+    "name": "姓名",
+    "email": "邮箱",
+    "password": "密码",
+    "confirm": "确认密码",
+    "submit": "注册",
+    "pendingTitle": "账号已创建",
+    "pending": "注册信息已提交，等待管理员批准后即可登录。",
+    "back": "返回登录",
+    "mismatch": "两次输入的密码不一致"
+  },
+  "verifyEmail": {
+    "title": "邮箱验证",
+    "success": "邮箱地址已验证。",
+    "fail": "验证链接无效或已过期。",
+    "goLogin": "去登录"
   }
 }

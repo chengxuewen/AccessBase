@@ -1,8 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Button, Card, Alert, Spin } from 'antd';
-import { MailOutlined, LockOutlined, KeyOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Card, Alert, Spin, theme } from 'antd';
+import {
+  MailOutlined,
+  LockOutlined,
+  KeyOutlined,
+  SafetyCertificateOutlined,
+  MobileOutlined,
+} from '@ant-design/icons';
+import { fetchSmsStatus, requestSmsOtp, verifySmsOtp } from '../api/auth';
 import { useAuthStore } from '../stores/auth';
 import { OAuthButtons } from '../components/OAuthButtons';
 import {
@@ -37,6 +44,7 @@ export default function Login() {
     }
     navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true });
   }, [oidcRedirect, navigate]);
+  const { token: themeToken } = theme.useToken();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
@@ -49,6 +57,12 @@ export default function Login() {
   const [magicOpen, setMagicOpen] = useState(false);
   const [magicBusy, setMagicBusy] = useState(false);
   const [magicMessage, setMagicMessage] = useState<string | null>(null);
+  // SMS OTP (Q1-f4): strict enabled gate mirroring SAML + two-step form state.
+  const [smsEnabled, setSmsEnabled] = useState(false);
+  const [smsOpen, setSmsOpen] = useState(false);
+  const [smsBusy, setSmsBusy] = useState(false);
+  const [smsToken, setSmsToken] = useState('');
+  const [smsMessage, setSmsMessage] = useState<string | null>(null);
 
   // Restore MFA flow token from sessionStorage (set before oidcRedirect navigation).
   // Must run before the oauthCode effect to avoid stale re-exchange on mount.
@@ -91,6 +105,21 @@ export default function Login() {
       })
       .catch(() => {
         // Unreachable backend → keep the button hidden (strict gate)
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // SMS OTP: strict enabled gate mirroring the SAML probe (Q1-f4).
+  useEffect(() => {
+    let cancelled = false;
+    fetchSmsStatus()
+      .then((enabled) => {
+        if (!cancelled) setSmsEnabled(enabled);
+      })
+      .catch(() => {
+        // Unreachable backend → keep the trigger hidden (strict gate)
       });
     return () => {
       cancelled = true;
@@ -197,6 +226,47 @@ export default function Login() {
       setMagicBusy(false);
     }
   };
+
+  const handleSmsRequest = async (values: { phone: string }) => {
+    setSmsBusy(true);
+    setSmsMessage(null);
+    try {
+      const tok = await requestSmsOtp(values.phone);
+      setSmsToken(tok);
+    } catch (err) {
+      setSmsMessage(apiErrorMessage(err, t('login.smsInvalid')));
+    } finally {
+      setSmsBusy(false);
+    }
+  };
+
+  const handleSmsVerify = async (values: { code: string }) => {
+    if (!smsToken) return;
+    setSmsBusy(true);
+    setSmsMessage(null);
+    try {
+      const result = await verifySmsOtp(smsToken, values.code);
+      if (result.mfaRequired && result.flowToken) {
+        // Step-up arm: setting mfaFlowToken makes this page render the TOTP
+        // card above everything else (PIT-052 uniform shape across issuers).
+        useAuthStore.setState({ mfaFlowToken: result.flowToken });
+        setSmsToken('');
+        setSmsOpen(false);
+        return;
+      }
+      if (!result.accessToken || !result.refreshToken) {
+        throw new Error('missing token pair');
+      }
+      useAuthStore.getState().setTokens(result.accessToken, result.refreshToken);
+      await useAuthStore.getState().fetchUser();
+      navigateAfterAuth();
+    } catch (err) {
+      setSmsMessage(apiErrorMessage(err, t('login.smsInvalid')));
+      setSmsToken(''); // burned token — force a fresh request (magic R13 semantics)
+    } finally {
+      setSmsBusy(false);
+    }
+  };
   const handleSubmit = async (values: { email: string; password: string }) => {
     try {
       const sessionEstablished = await login(values.email, values.password);
@@ -220,7 +290,7 @@ export default function Login() {
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: '100vh',
-          background: '#f0f2f5',
+          background: themeToken.colorBgLayout,
         }}
       >
         <Card
@@ -272,7 +342,7 @@ export default function Login() {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: '#f0f2f5',
+        background: themeToken.colorBgLayout,
       }}
     >
       <Card
@@ -431,6 +501,101 @@ export default function Login() {
             data-testid="magic-success"
           />
         )}
+
+        {smsEnabled && !smsOpen && !smsToken && (
+          <Button
+            block
+            size="large"
+            type="text"
+            icon={<MobileOutlined />}
+            onClick={() => setSmsOpen(true)}
+            style={{ marginTop: 8 }}
+            data-testid="sms-trigger"
+          >
+            {t('login.smsTrigger')}
+          </Button>
+        )}
+
+        {smsEnabled && smsOpen && !smsToken && (
+          <Form layout="vertical" onFinish={handleSmsRequest} style={{ marginTop: 16 }}>
+            <Form.Item
+              name="phone"
+              rules={[{ required: true, message: t('login.smsPhoneRequired') }]}
+            >
+              <Input
+                prefix={<MobileOutlined />}
+                placeholder={t('login.smsPhonePlaceholder')}
+                size="large"
+                autoComplete="tel"
+                data-testid="sms-phone"
+              />
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={smsBusy}
+              block
+              size="large"
+              data-testid="sms-send"
+            >
+              {t('login.smsSend')}
+            </Button>
+          </Form>
+        )}
+
+        {smsToken && (
+          <Form layout="vertical" onFinish={handleSmsVerify} style={{ marginTop: 16 }}>
+            <Alert
+              type="info"
+              showIcon
+              message={t('login.smsSent')}
+              style={{ marginBottom: 12 }}
+              data-testid="sms-sent"
+            />
+            <Form.Item
+              name="code"
+              rules={[{ required: true, message: t('login.smsCodeRequired') }]}
+            >
+              <Input
+                prefix={<KeyOutlined />}
+                placeholder={t('login.smsCodePlaceholder')}
+                size="large"
+                maxLength={6}
+                autoComplete="one-time-code"
+                data-testid="sms-code"
+              />
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={smsBusy}
+              block
+              size="large"
+              data-testid="sms-submit"
+            >
+              {t('login.smsSubmit')}
+            </Button>
+          </Form>
+        )}
+
+        {smsMessage && (
+          <Alert
+            type="error"
+            showIcon
+            message={smsMessage}
+            style={{ marginTop: 16 }}
+            data-testid="sms-error"
+          />
+        )}
+
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between' }}>
+          <Link to="/forgot-password" data-testid="forgot-link">
+            {t('login.forgotPassword')}
+          </Link>
+          <Link to="/register" data-testid="register-link">
+            {t('login.register')}
+          </Link>
+        </div>
       </Card>
     </div>
   );
