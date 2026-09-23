@@ -60,11 +60,29 @@ function makeMockDb(store: { rows: Record<string, unknown>[] }) {
 
   db.update.mockReturnValue({
     set: vi.fn((patch: Record<string, unknown>) => ({
-      where: vi.fn(async () => {
-        // Patch is applied to matching rows only when predicate inspects rows;
-        // tests assert via explicit expectations on set() payload instead.
+      where: vi.fn(() => {
+        // Legacy terminals (revoke paths) await where() directly → record only.
         store.lastUpdatePatch = patch;
-        return [];
+        const q: Record<string, unknown> = {
+          // W1-4 faithful double: UPDATE ... WHERE guard RETURNING applies the
+          // patch only to rows passing the rotate guard predicate (unused,
+          // unrevoked, unexpired) and returns matched ids like PostgreSQL does.
+          // Concurrency truth is locked by the real-PG suite (session-rotate-race).
+          returning: vi.fn(async () => {
+            // rotate's UPDATE targets exactly the row its prior select
+            // .limit(1) resolved — evaluate the guard on that row only.
+            const matched = store.rows.slice(0, 1).filter((r) => {
+              const exp = r['expiresAt'];
+              const expMs = exp instanceof Date ? exp.getTime() : Number(exp);
+              return r['usedAt'] == null && r['revokedAt'] == null && expMs > Date.now();
+            });
+            for (const r of matched) Object.assign(r, patch);
+            return matched.map((r) => ({ id: r['id'] }));
+          }),
+          then: (resolve: (v: unknown[]) => unknown, reject?: unknown) =>
+            Promise.resolve([]).then(resolve, reject),
+        };
+        return q;
       }),
     })),
   });
@@ -190,7 +208,9 @@ describe('SessionManager', () => {
           id: 'sess-1',
           userId: 'u-1',
           refreshTokenHash: hash(old.refreshToken),
-          usedAt: new Date(), // already rotated once
+          // rotated once, OUTSIDE the W1-4 concurrent-grace window (10s) —
+          // a genuine replay, not a benign double-fire sibling
+          usedAt: new Date(Date.now() - 60_000),
         }),
       ];
 
