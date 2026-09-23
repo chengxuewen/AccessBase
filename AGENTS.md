@@ -16,7 +16,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 │   ├── architecture.md      # Stub index → modules/
 │   ├── modules/             # 31 modular design docs + 8 SDD docs (split from architecture.md)
 ├── .agents/                 # AI agent configuration
-│   ├── skills/              # 20 project-specific skills (openspec, graphify, etc.)
+│   ├── skills/              # 12 project-specific skills (graphify, test-harness, etc.)
 │   ├── rules/               # Coding rules by language (15 dirs)
 │   └── memorys/             # Project memory (status, decisions, pitfalls, conventions)
 ├── .refinfo/new-api/        # Reference implementation (new-api) — READ ONLY, not our code
@@ -38,7 +38,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 | Design decisions      | `.agents/memorys/decisions.md`  | D1-D116 with rationale                         |
 | Project status        | `.agents/memorys/status.md`     | Current phase, blockers                        |
 | Coding rules          | `.agents/rules/`                | Per-language rules                             |
-| Skills                | `.agents/skills/`               | openspec, graphify, test-harness, etc.         |
+| Skills                | `.agents/skills/`               | graphify, test-harness, design-system, etc.         |         |
 | Reference impl        | `.refinfo/new-api/`             | Go/React reference (AGENTS.md has conventions) |
 
 ## CONVENTIONS

@@ -8,8 +8,7 @@ Project-specific AI agent configuration: skills, coding rules, and project memor
 
 ```
 .agents/
-├── skills/              # 20 project skills (openspec, graphify, test-harness, etc.)
-│   ├── openspec-*/      # OpenSpec workflow (propose/apply/verify/archive)
+├── skills/              # 12 project skills (graphify, test-harness, design-system, etc.)
 │   ├── graphify/        # Codebase knowledge graph
 │   ├── test-harness/    # TDD test generation from SDD
 │   ├── design-system/   # UI consistency enforcement

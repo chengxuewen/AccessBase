@@ -15,7 +15,7 @@
 IF 用户开始新任务:
   ├─ 多步实现 → 💡 /test-driven-development + /think-before-act
   ├─ Bug 修复 → 💡 /systematic-debugging
-  ├─ 架构变更 → 💡 /think-before-act + /openspec-propose
+  ├─ 架构变更 → 💡 /think-before-act + /writing-plans
   ├─ UI/前端 → 💡 /design-system + /think-before-act
   ├─ 安全相关(auth/rbac/权限) → 💡 /security-review
   ├─ 外部库不熟 → 💡 librarian agent
