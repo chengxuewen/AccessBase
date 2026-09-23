@@ -43,15 +43,41 @@ function env(key: string, fallback?: string): string {
   return value;
 }
 
+const NODE_ENV_VALUES = ['development', 'production', 'test'] as const;
+export type NodeEnv = (typeof NODE_ENV_VALUES)[number];
+
+/** W3-1 (F12): a typo'd NODE_ENV must never silently run production gates off. */
+export function resolveNodeEnv(env: NodeJS.ProcessEnv): NodeEnv {
+  const raw = (env['NODE_ENV'] ?? 'development').trim().toLowerCase();
+  if (!(NODE_ENV_VALUES as readonly string[]).includes(raw)) {
+    throw new Error(
+      `NODE_ENV='${env['NODE_ENV']}' is not recognized — accepted values: development | production | test`,
+    );
+  }
+  return raw as NodeEnv;
+}
+
+/** W3-1 (F12): exactly one RS256 key path set ⇒ silent HMAC fallback — a config bug, not a mode. */
+export function requireKeyPair(env: NodeJS.ProcessEnv): void {
+  const priv = Boolean(env['JWT_PRIVATE_KEY_PATH']);
+  const pub = Boolean(env['JWT_PUBLIC_KEY_PATH']);
+  if (priv !== pub) {
+    throw new Error(
+      'JWT key pair misconfigured: set BOTH JWT_PRIVATE_KEY_PATH and JWT_PUBLIC_KEY_PATH, or neither (HMAC fallback).',
+    );
+  }
+}
+requireKeyPair(process.env);
+
 function requireJwtSecret(env: NodeJS.ProcessEnv): string {
-  if (env['NODE_ENV'] === 'production' && !env['JWT_SECRET']) {
+  if (resolveNodeEnv(env) === 'production' && !env['JWT_SECRET']) {
     throw new Error('JWT_SECRET must be set in production. Generate: openssl rand -hex 32');
   }
   return env['JWT_SECRET'] ?? 'dev-secret-do-not-use-in-production';
 }
 
 function requireCorsOrigins(env: NodeJS.ProcessEnv): string {
-  if (env['NODE_ENV'] === 'production' && !env['CORS_ORIGINS']) {
+  if (resolveNodeEnv(env) === 'production' && !env['CORS_ORIGINS']) {
     throw new Error('CORS_ORIGINS must be set in production. Provide a comma-separated allowlist, e.g. https://admin.example.com');
   }
   return env['CORS_ORIGINS'] ?? '';
@@ -65,8 +91,8 @@ export const config: AppConfig = {
   jwtSecret: requireJwtSecret(process.env),
   jwtPrivateKeyPath: process.env['JWT_PRIVATE_KEY_PATH'] || '',
   jwtPublicKeyPath: process.env['JWT_PUBLIC_KEY_PATH'] || '',
-  nodeEnv: env('NODE_ENV', 'development') as AppConfig['nodeEnv'],
-  logLevel: (env('NODE_ENV', 'development') === 'production'
+  nodeEnv: resolveNodeEnv(process.env),
+  logLevel: (resolveNodeEnv(process.env) === 'production'
     ? 'info'
     : 'debug') as AppConfig['logLevel'],
   adminPassword: process.env['ADMIN_PASSWORD'] || '',

@@ -129,3 +129,29 @@ describe('warnDegradedChecks (L-T4 / spec D5: pure, env-only, options qualifiers
     }
   });
 });
+
+// Batch P W3-1 (F12 remainder): config must defend its own env surface.
+describe('config self-defense (W3-1)', () => {
+  it('resolveNodeEnv normalizes case/whitespace, defaults unset to development', async () => {
+    const { resolveNodeEnv } = await import('../config.js');
+    expect(resolveNodeEnv({ NODE_ENV: 'Production' })).toBe('production');
+    expect(resolveNodeEnv({ NODE_ENV: '  TEST  ' })).toBe('test');
+    expect(resolveNodeEnv({})).toBe('development');
+  });
+
+  it('resolveNodeEnv throws on unknown values (typo never silently runs prod as dev)', async () => {
+    const { resolveNodeEnv } = await import('../config.js');
+    expect(() => resolveNodeEnv({ NODE_ENV: 'prod' })).toThrow(/NODE_ENV/);
+    expect(() => resolveNodeEnv({ NODE_ENV: 'staging' })).toThrow(/development.*production.*test/);
+  });
+
+  it('requireKeyPair rejects half-configured RS256, accepts both or neither', async () => {
+    const { requireKeyPair } = await import('../config.js');
+    expect(() => requireKeyPair({ JWT_PRIVATE_KEY_PATH: '/k' })).toThrow(/BOTH.*or neither/);
+    expect(() => requireKeyPair({ JWT_PUBLIC_KEY_PATH: '/k' })).toThrow(/BOTH.*or neither/);
+    expect(() => requireKeyPair({})).not.toThrow();
+    expect(() =>
+      requireKeyPair({ JWT_PRIVATE_KEY_PATH: '/a', JWT_PUBLIC_KEY_PATH: '/b' }),
+    ).not.toThrow();
+  });
+});
