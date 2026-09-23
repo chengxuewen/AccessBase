@@ -76,6 +76,7 @@ Describe the solution architecture:
 - **Files to modify**: List specific files with brief notes
 - **Dependencies**: Any new pixi/npm/ROS2 dependencies
 - **Migration**: If changing existing code, what's the upgrade path?
+- **Interface facts**: every claim about external APIs, library versions, or existing code state must carry a `file:line` reference or a verification grep command — verify before writing, never from memory (see step 3.5, PIT-076)
 
 #### c. `tasks.md` — Implementation steps
 
@@ -94,6 +95,17 @@ Each task should be:
 - Small enough to implement in one session
 - Independently testable (build, lint, or unit test)
 - Ordered by dependency (do task 1 before task 2)
+
+### 3.5 Fact checklist — mandatory before review
+
+Collect every verifiable factual claim made in proposal.md/design.md (library versions, API/adapter contracts, "existing X list/handler/writer" statements, config keys) and prove each one with a grep/read BEFORE presenting the proposal to the user:
+
+```bash
+# one line per claim: the claim -> the command that proves it
+grep -n "routePermissions" apps/server/src/hooks/authorize.ts   # proves the mapping table exists as described
+```
+
+Any claim without a passing verification command: fix it or delete it. Rationale: memory-based interface facts shipped 9 fabricated statements across three batches before this discipline was codified (PIT-076 / conventions design-doc fact discipline).
 
 ### 4. Review and confirm
 
@@ -168,4 +180,5 @@ When a change affects specific MSRCS packages, always reference the actual sourc
 - If a proposal with that name already exists, ask if user wants to continue it or create a new one
 - Do NOT propose changes to `version.txt` — versioning is user-managed
 - Do NOT propose changes to QExt or OpenCTK submodules — those are separate repositories
+- Never ship a proposal containing an unverified interface fact — run the step 3.5 fact checklist first (PIT-076)
 - Verify each artifact file exists after writing before proceeding
