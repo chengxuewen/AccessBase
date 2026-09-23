@@ -31,6 +31,8 @@ export interface AppConfig {
   frontendOrigin: string;
   /** Trust x-forwarded-host for magic-link origin derivation (H′3). */
   trustProxy: boolean;
+  /** W2-1: per-IP req/min cap for the route-less /oidc hijack space. */
+  oidcIpRatePerMin: number;
 }
 
 function env(key: string, fallback?: string): string {
@@ -96,6 +98,10 @@ export const config: AppConfig = {
   // true when running behind a TLS-terminating proxy you control; production
   // MUST set SITE_URL regardless (magic-link Host poisoning mitigation).
   trustProxy: process.env['TRUST_PROXY'] === 'true',
+  // Batch P W2-1 (F6): per-IP cap for the /oidc provider hijack space, which
+  // lives in Fastify's route-less (404) region and therefore escapes
+  // @fastify/rate-limit entirely (verified: matched routes 429, route-less never).
+  oidcIpRatePerMin: Number(process.env['OIDC_IP_RATE_PER_MIN'] ?? 120),
 };
 
 /**

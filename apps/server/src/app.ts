@@ -31,6 +31,7 @@ import { OidcClientManager, ApiKeyManager, hashApiKey } from '@accessbase/identi
 import { apiKeysRoutes, getApiKeyManager } from './routes/api-keys.js';
 import { DEFAULT_TENANT } from './utils/constants.js';
 import { registerInteractionRoutes } from './oidc/interaction.js';
+import { createOidcRateGuard } from './oidc/rate-guard.js';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { IncomingMessage } from 'node:http';
@@ -223,19 +224,38 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
   // Batch N: stop the adapter sweeper on graceful close.
   app.addHook('onClose', async () => stopSweeper());
+  // Batch P W2-1: the hijacked /oidc/* space lives in Fastify's route-less
+  // (404) region where @fastify/rate-limit provably never engages — coarse
+  // per-IP guard for it. Exempt: interaction routes (real, globally limited)
+  // and discovery/jwks (anonymous RP polls).
+  const oidcGuard = createOidcRateGuard(config.oidcIpRatePerMin, redis);
   app.addHook('onRequest', (req, reply, done) => {
     // Interaction contract endpoints (Task 4c) are real Fastify routes — they
     // need body parsing + bearer auth, so they bypass the provider hijack.
     if (req.url.startsWith('/oidc/interaction/')) return done();
     if (!req.url.startsWith('/oidc/')) return done();
-    reply.hijack();
-    // Provider routes are registered WITHOUT the /oidc prefix (issuer path =
-    // mountPath); per panva's official mount docs, strip the prefix and keep
-    // originalUrl so urlFor recomposes absolute URLs with the prefix.
-    const raw = req.raw as IncomingMessage & { originalUrl?: string };
-    raw.originalUrl = raw.url;
-    raw.url = (raw.url ?? '').slice('/oidc'.length);
-    oidcHandler(raw, reply.raw).then(() => done(), done);
+    if (req.url.startsWith('/oidc/.well-known')) return done();
+    const handoff = (): void => {
+      reply.hijack();
+      // Provider routes are registered WITHOUT the /oidc prefix (issuer path =
+      // mountPath); per panva's official mount docs, strip the prefix and keep
+      // originalUrl so urlFor recomposes absolute URLs with the prefix.
+      const raw = req.raw as IncomingMessage & { originalUrl?: string };
+      raw.originalUrl = raw.url;
+      raw.url = (raw.url ?? '').slice('/oidc'.length);
+      oidcHandler(raw, reply.raw).then(() => done(), done);
+    };
+    const denied = (): void => {
+      void reply
+        .code(429)
+        .header('retry-after', '60')
+        .type('application/json')
+        .send({ error: 'invalid_request', error_description: 'rate limited' });
+    };
+    // The guard self-degrades to local counting on redis errors; a rejection
+    // here is a programmer error — hand off uncounted rather than 500 the
+    // protocol surface (skipOnError parity with the global limiter).
+    void oidcGuard(req.ip).then((ok) => (ok ? handoff() : denied()), handoff);
   });
 
   // --- Setup Guard Middleware (must be registered before other routes) ---
