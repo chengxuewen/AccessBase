@@ -18,6 +18,53 @@ import { requirePermission } from '../utils/permission.js';
 export const SENSITIVE_KEY_PATTERN = /secret|password|token|key/i;
 
 const KEY_FORMAT = /^[a-z][a-zA-Z0-9_.-]{1,63}$/;
+
+// W3-2 (report F13): upsert accepts ONLY keys the runtime actually reads —
+// arbitrary-key writes were the finding (typo'd config, junk sprawl, phishing
+// site.url). This set is the single source; adding an options.get('<key>')
+// call site REQUIRES adding the key here (conventions Phase P' check).
+const KNOWN_OPTION_KEYS = new Set([
+  'site.name',
+  'site.url',
+  'smtp_host',
+  'smtp_port',
+  'smtp_user',
+  'smtp_password',
+  'smtp_from',
+  'sms_provider',
+  'sms_sign_name',
+  'sms_template_code',
+  'oauth_providers',
+  'password_min_length',
+  'password_require_upper',
+  'password_require_lower',
+  'password_require_digit',
+  'password_require_special',
+]);
+// Batch B dynamic provider secrets: oauth_<name>_client_secret (names are
+// lowercase/hyphen by convention — KEY_FORMAT-legal dots/uppercase in a
+// provider name would 400 here and the reader would miss it; documented).
+const OAUTH_SECRET_KEY = /^oauth_[a-z0-9][a-z0-9_-]{0,40}_client_secret$/;
+
+/** W3-2: site.url is consumed as an ORIGIN (magic-link/reset links). */
+export function validateSiteUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return 'site.url must be a string';
+  let u: URL;
+  try {
+    u = new URL(value);
+  } catch {
+    return 'site.url must be an absolute URL';
+  }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return 'site.url must use http(s)';
+  if (u.username || u.password) return 'site.url must not embed credentials';
+  if (u.pathname !== '' && u.pathname !== '/') return 'site.url must be an origin without path';
+  if (u.search || u.hash) return 'site.url must be an origin without query or fragment';
+  return null;
+}
+
+function isKnownOptionKey(key: string): boolean {
+  return KNOWN_OPTION_KEYS.has(key) || OAUTH_SECRET_KEY.test(key);
+}
 const MASK = '******';
 
 // Same lazy-singleton + test seam pattern as stats.ts (review M9).
@@ -82,6 +129,22 @@ export async function optionsRoutes(app: FastifyInstance): Promise<void> {
             message: 'Invalid key format (expected /^[a-z][a-zA-Z0-9_.-]{1,63}$/)',
           },
         });
+      }
+      if (!isKnownOptionKey(key)) {
+        // Generic message: the allowlist is not enumerable through errors.
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'OPT_001', message: 'Unknown option key' },
+        });
+      }
+      if (key === 'site.url') {
+        const urlErr = validateSiteUrl(value);
+        if (urlErr) {
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'OPT_001', message: urlErr },
+          });
+        }
       }
       try {
         JSON.stringify(value ?? null);

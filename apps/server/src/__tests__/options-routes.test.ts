@@ -155,13 +155,13 @@ describe('PUT /api/v1/options', () => {
       method: 'PUT',
       url: '/api/v1/options',
       headers: { ...AUTH(), 'content-type': 'application/json' },
-      payload: { key: 'site_title', value: 'Hello' },
+      payload: { key: 'site.name', value: 'Hello' },
     });
     expect(put.statusCode).toBe(200);
 
     const get = await app.inject({ method: 'GET', url: '/api/v1/options', headers: AUTH() });
     const body = get.json();
-    const entry = body.data.find((e: { key: string }) => e.key === 'site_title');
+    const entry = body.data.find((e: { key: string }) => e.key === 'site.name');
     expect(entry.value).toBe('Hello');
   });
 
@@ -238,3 +238,57 @@ describe('DELETE /api/v1/options/:key', () => {
     expect(res.statusCode).toBe(403);
   });
 });
+
+  // Batch P W3-2 (F13): allowlist + site.url origin rule.
+  describe('option key allowlist and value validation (W3-2)', () => {
+    it('rejects an unknown-but-format-legal key with a generic 400', async () => {
+      allow.value = true;
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/options',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { key: 'evil.anything', value: 'x' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json<{ error: { message: string } }>().error.message).toBe('Unknown option key');
+    });
+
+    it('accepts the password-policy keys batch C reads at runtime', async () => {
+      allow.value = true;
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/options',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { key: 'password_min_length', value: 12 },
+      });
+      expect(res.statusCode).toBe(200);
+    });
+
+    it('site.url must be a bare http(s) origin', async () => {
+      allow.value = true;
+      const bad = [
+        { v: 'not a url', why: 'absolute URL' },
+        { v: 'ftp://host.example', why: 'http(s)' },
+        { v: 'https://host.example/steal', why: 'without path' },
+        { v: 'https://user:***@host.example', why: 'credentials' },
+        { v: 'https://host.example?x=1', why: 'query' },
+      ];
+      for (const { v, why } of bad) {
+        const res = await app.inject({
+          method: 'PUT',
+          url: '/api/v1/options',
+          headers: { authorization: `Bearer ${token}` },
+          payload: { key: 'site.url', value: v },
+        });
+        expect(res.statusCode, `value ${v} must be rejected (${why})`).toBe(400);
+        expect(res.json<{ error: { message: string } }>().error.message).toContain(why);
+      }
+      const ok = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/options',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { key: 'site.url', value: 'https://app.example.com' },
+      });
+      expect(ok.statusCode).toBe(200);
+    });
+  });
