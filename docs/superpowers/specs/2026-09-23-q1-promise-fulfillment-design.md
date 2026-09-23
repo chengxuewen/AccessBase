@@ -91,3 +91,15 @@ audit as-any→fastify.d.ts (Q2), bulk ops, global search/notifications, SSO/tru
 - **F9 (B6, LOW accepted)**: register-time verify email may outlive its 24h TTL before approval — harmless (no enforcement; self re-request post-activation). Documented in page copy ("check your inbox after activation" not claimed).
 - **F10 (B7, LOW)**: audit export adds the small `blob.type.includes('json')` error sniff → generic i18n error Alert (users-export precedent wart NOT propagated).
 - **F11 (R9, note)**: email stays in the sortBy whitelist (not UI-sortable today — future-proofing zero-cost).
+
+## Execution record (2026-09-23, controller-direct, backend lane then frontend lane)
+
+- Commits: 490ec25 (backend b1-b4) + this record's implementation commit (frontend f1-f9 + e2e mock sweep).
+- b1 sms: wire-chain fix proven RED-first (14 red -> 20 green in sms-otp.test.ts); dummy userId:null arms + pre-lookup 401 guard; public GET /auth/sms/status (saml mirror).
+- b2 verify-email: request (auth preHandler, 202, 503 AUTH_EMAIL_002 w/o SMTP) + public consume (400 AUTH_EMAIL_001, burn-first) + register fire-and-forget + /me + /users/me emailVerified; identity User type + mapToUser extended (F4); reality catalog updated (F3).
+- b3 sortBy: schema enum 400 + findAll real asc/desc; PgDialect sqlToQuery locks x2 (incl. default createdAt-ASC regression).
+- b4: CACHE_TTL_SECONDS deleted + TenantManager comment tense; eslint --fix sweep (0 errors repo-wide; src warnings 70->51, remainder pre-existing families).
+- Frontend: ForgotPassword/ResetPassword/Register/VerifyEmail pages (theme.useToken shells), Login single-pass edit (probe+2-step form+footer links, F6 honored), Consent/MagicLogin/setup/WelcomeStep dark sweep (zero f0f2f5 left in pages), audit server export + inline error Alert, Users tri-state toolbar Select, Profile verify banner.
+- E2E: new e2e/q1-self-service.spec.ts (7 tests incl. wire-chain token propagation proof + single-fire consume guard); FULL-SUITE HAZARD discovered: every spec mounting /login needs the new sms/status mock (17 specs patched; PIT-080).
+- Gates: vitest 987/987 (90 files), 4x tsc 0, e2e 145 passed + 3 skipped 0 failed (baseline 138->145), eslint touched-files 0 errors (4 warnings = pre-existing).
+- Not verified: real-SMS/SMTP wire behavior (credential-blocked as before); mock-parity only.

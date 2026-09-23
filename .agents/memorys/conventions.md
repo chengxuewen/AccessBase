@@ -306,3 +306,8 @@ logger.error('Operation failed', error); // ❌
 - Every file under `docs/modules/*.md` must carry `> **Implementation status (2026-09-23 gap audit):**` within the first lines (vocabulary: implemented | partial | superseded | design-only (deferred) | informational). New module docs must add one too. Check: `grep -L 'Implementation status' docs/modules/*.md` -> empty.
 - **Error codes single source = emitters.** New wire code => same-commit update of `docs/modules/error-codes-reality.md` (regeneration commands at its head). Do NOT re-add rows to identity-sdd §5.2 / admin-sdd §5.2 tables — frozen historical specs. Check: `grep -rhoE "code: '[A-Z0-9_]+'" apps/server/src packages/identity/src --include='*.ts' | sort -u` vs catalog.
 - **AGENTS.md headline counts** (decisions/pitfalls/vitest/e2e/skills/dirs) change in the SAME commit as the counted artifact (extends the batch-G expectation-flip lesson). Quick parity: `grep -c '^## PIT-' .agents/memorys/pitfalls.md` == AGENTS claim; `grep -cE '^## D[0-9]+' .agents/memorys/decisions.md` == AGENTS claim.
+
+## Gap-audit Q1 e2e probe-mock rule (2026-09-23, PIT-080)
+
+- Any endpoint fetched by the /login page shell (status probes etc.) must be mocked in EVERY mock-API e2e spec that mounts /login (17 files today, greppable via `page.route('**/api/v1/auth/saml/status'` as the roster proxy) — unmocked it leaks to the vite proxy -> 500 console error -> unrelated specs' console nets fail in a burst. Check after adding such a probe: `grep -L "sms/status" e2e/*.spec.ts` minus the no-login-files list should be empty.
+- Current full-suite baselines (flip in same commit as any count change): vitest `987 passed (90 files)`, e2e chromium `145 passed + 3 skipped 0 failed`.

@@ -590,3 +590,11 @@
 ## PIT-076 addendum (2026-09-23, batch P): 审计报告与 PoC 交付物同属 claims——派修复前逐行 grep
 
 批 P 双 PoC 工程师对 F1/F4/F8 引用的 `mfa.ts:372-403`、`magic-link.ts:172-229`、`user.ts:263-266 注释` 在仓库中**不存在**；F7「重用检测是死码」与代码事实相反（检测在用，真缺陷是同 token 并发 race）。控制器开修前对 Wave-1 全部四项做代码首读：3/4 机制被纠偏（F1 降级重述为 N1 日志面、F7 改写 race、F8 整项证伪），并顺带挖出报告外的真洞 PIT-077（审计写路径全死）。**判据：schedule 任何修复前，报告里每个 file:line 先 `test -f`/`grep`；每个机制断言先读涉事函数全文。**（验证：本报告 §Errata 三条误报全部有代码反证。） 追加（Wave 3）：证伪判决同样是 claims——wave-1 杀的 C-A2 依据（route revoke / PERM_005）两处引用皆幻影，Wave-3 re-open 并修复。判据：证实/证伪一视同仁，引用先 grep 存在性。
+
+## PIT-080: 给 /login 页壳新增公开探针端点后未同步 e2e mock，17 个 spec 连锁红（2026-09-23）
+
+- **症状**: Q1 加 GET /auth/sms/status 探针后，全量 e2e 突发 9 败（roles-crud×8 + layout×1），错误只有一行 `Failed to load resource: 500`，与被改功能表面无关。
+- **根因**: 这些 spec 的 login() 会挂载 Login 页；探针请求未被 page.route 拦截 → vite 代理 → 后端未启 → 500 → afterEach 的 console-error 网炸掉整个 spec。B2 时期 saml/providers 探针已有一次同型事故（options.spec 里有注释先例），sms 探针复发。
+- **解法**: 给所有含 `page.route('**/api/v1/auth/saml/status'` 的 17 个 mock-API spec 同步插入 sms/status mock（enabled:false）。
+- **验证**: `grep -L "sms/status" e2e/*.spec.ts` 仅剩不挂 /login 的文件（dashboard/setup*/health/oidc-consent/error-pages 等）；全量 e2e 145+3 绿。
+- **禁止**: 新增登录页壳级请求后直接跑单文件 e2e 就收工——必须全量 e2e 验证 mock 面完整。
