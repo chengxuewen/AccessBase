@@ -45,6 +45,12 @@ interface BuildAppOptions {
 
 export async function buildApp(options: BuildAppOptions = {}) {
   const app = Fastify({
+    // Batch P W1-5: TRUST_PROXY must actually reach Fastify — without this
+    // option every IP-keyed defense (rate limit, lockout blacklist, audit ip)
+    // collapses onto the proxy address in containerized deployments. Opt-in
+    // (default false): enabling it REQUIRES a sanitizing reverse proxy —
+    // a client-supplied X-Forwarded-For is then trusted as the socket peer.
+    trustProxy: config.trustProxy,
     logger: {
       level: config.logLevel,
       transport:
