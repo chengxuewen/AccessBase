@@ -75,8 +75,13 @@ export function createAuditMiddleware(auditLogger: AuditLogger) {
       return originalSend.call(this, payload);
     };
 
-    // Continue with request processing
-    reply.raw.on('finish', async () => {
+    // W1-7 (batch P): audit INLINE at hook time (the caller wires this into
+    // Fastify's onResponse — response already sent, statusCode/request.body set).
+    // The previous deferral to reply.raw 'finish' NEVER fires when registered
+    // from onResponse on a real socket (the event precedes the hook), so every
+    // request-level audit write was silently lost in production; only manual
+    // emit in unit tests and inject's deferred lifecycle masked it (PIT-050).
+    await (async () => {
       const duration = Date.now() - startTime;
 
       const user = (request as any).user;
@@ -108,7 +113,7 @@ export function createAuditMiddleware(auditLogger: AuditLogger) {
         // Don't let audit logging failures affect the request
         request.log.error({ err: error }, 'Failed to write audit log');
       }
-    });
+    })();
   };
 }
 

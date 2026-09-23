@@ -82,3 +82,35 @@ describe('audit middleware (integration, injected storage)', () => {
     expect(storage.entries.length).toBe(0);
   });
 });
+
+// W1-7 regression lock: inject's lifecycle differs from a real socket — the
+// 'finish'-deferral bug passed every inject/unit test while production wrote
+// ZERO request-level audit rows. This case goes through a real TCP listen().
+describe('audit middleware (real socket, W1-7)', () => {
+  let app: App;
+  const storage = new MemoryAuditStorage();
+
+  beforeAll(async () => {
+    app = await buildApp({ auditStorage: storage as never });
+    await app.listen({ port: 0, host: '127.0.0.1' });
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('persists a write-request audit entry over a real socket', async () => {
+    const address = app.server.address();
+    expect(typeof address).toBe('object');
+    const port = (address as { port: number }).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'nobody@example.com', password: 'wrong-password' }),
+    });
+    expect(res.status).toBeLessThan(500);
+    await expect.poll(() => storage.entries.length, { timeout: 2000 }).toBeGreaterThan(0);
+    const entry = storage.entries[0];
+    expect(entry?.requestBody?.['password']).toBe('[REDACTED]');
+  });
+});
