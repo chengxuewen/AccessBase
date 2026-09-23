@@ -572,3 +572,21 @@
 - **根因**: 设计文档写作时对外部库契约（adapter 语义、fastify 类型、插件版本）与自家代码现状（谁写这张表、有没有 skip 列表）凭旧记忆/类比外推，未做「落笔前 grep 一次」。
 - **解法**: spec 中每条可验证事实句旁必附 file:line 或 grep 命令（本批后期 D120/rev.2 已按此执行，v9.12.2/grantable 集/ttl 均带实证）；「设计事实清单」在双 Momus 前由控制器自跑一遍（L′ 后三次实质做到）。入 conventions 纪律条。
 - **验证**: `grep -c "file:line\|grep -" docs/superpowers/specs/2026-09-21-batch-n-*.md` 非零（新 spec 带实证密度）；遗留假事实由审查网兜底率=100%（本会话 9/9 被抓出，零逃逸到实现）。
+
+## PIT-077: reply.raw.on('finish') registered from onResponse never fires — request-level audit silently dead (2026-09-23)
+
+- **症状**: audit_logs 在生产路径零写入（PoC 回放 change-password 后 count=0，无任何错误日志）；LOGIN 行存在（显式 auditAuthEvent），CREATE/UPDATE/DELETE 行全缺。
+- **根因**: packages/audit middleware 把入口构造+log() 挂在 `reply.raw.on('finish')`，但 app.ts 在 **onResponse** 时机才调用它——真 socket 上 'finish' 事件先于 onResponse 发出，listener 永远错过。双重 seam 掩盖：单测手工 `emit('finish')` 叫醒死码；集成测试走 inject（LMR 生命周期 finish 滞后）也过。测试全绿 ≠ 生产有写。
+- **解法**: hook 时机直接 inline await（onResponse 时 statusCode/body 均已就绪）；回归锁用真 TCP：`app.listen({port:0})` + fetch + poll storage（audit-middleware.test W1-7 用例）。
+- **验证**: `grep -c "reply.raw.on('finish'" packages/audit/src/middleware.ts` 应 0；real-socket 用例在绿。教训推广：凡依赖 node stream 事件生命周期的逻辑，inject/手工 emit 均不构成证据，测试必须走真 listen()。
+
+## PIT-078: env-pinned config 单例 × vitest import 提升——顶层赋值晚于求值；resetModules 多次 buildApp 触发 prom-client 双注册 (2026-09-23)
+
+- **症状**: trust-proxy 探针文件顶层 `process.env.TRUST_PROXY='true'` 写在 import 之前仍拿到 false（config 在 import 求值时被提升抢跑）；改 resetModules+动态 import 后，同文件第二个 buildApp 报 `A metric ... has already been registered`。
+- **根因**: config.ts:58 `export const config` 在模块求值时读 env；vitest SSR 变换下静态 import 相对顶层赋值仍可能先行。prom-client default registry 是模块级全局，resetModules 复制了模块图但 registry 落在更深全局/或首轮未复位，双 buildApp 双注册。
+- **解法**: `vi.stubEnv(...)` + **动态** `await import('../app.js')`，且**每文件只 buildApp 一次**（正/负行为各拆一个测试文件）。
+- **验证**: trust-proxy-{on,off}.test.ts 两文件形状即范式；新行为测试遇 config 不生效先想本条。
+
+## PIT-076 addendum (2026-09-23, batch P): 审计报告与 PoC 交付物同属 claims——派修复前逐行 grep
+
+批 P 双 PoC 工程师对 F1/F4/F8 引用的 `mfa.ts:372-403`、`magic-link.ts:172-229`、`user.ts:263-266 注释` 在仓库中**不存在**；F7「重用检测是死码」与代码事实相反（检测在用，真缺陷是同 token 并发 race）。控制器开修前对 Wave-1 全部四项做代码首读：3/4 机制被纠偏（F1 降级重述为 N1 日志面、F7 改写 race、F8 整项证伪），并顺带挖出报告外的真洞 PIT-077（审计写路径全死）。**判据：schedule 任何修复前，报告里每个 file:line 先 `test -f`/`grep`；每个机制断言先读涉事函数全文。**（验证：本报告 §Errata 三条误报全部有代码反证。）

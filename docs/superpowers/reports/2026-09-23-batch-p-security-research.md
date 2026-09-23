@@ -53,3 +53,20 @@ Two CRITICAL findings with live-server proof sit in the authentication core. The
 - Wave 3 (ops hardening): F9 (entrypoint init + key runtime + .gitignore out/), F11 (scram defaults), F12–F15 sweep.
 - Each with RED-first regression on the live server (the PoC scripts at /tmp/opencode/poc-{a,b}/ are the seed fixtures), then full-suite + e2e gates.
 - Doc honesty: status.md "Auth ✅ … refresh 重用检测" claim is currently FALSE for the route path (F7) — reword until Wave 1/2 land.
+
+---
+
+## ERRATA + Remediation Record (post-audit, 2026-09-23)
+
+Controller code-first re-verification (before any fix was scheduled) falsified or corrected three findings **as described** — the PoC evidence files/lines cited do not exist in the repo:
+
+- **F1 → corrected**: not "unauthenticated takeover". mfa/setup requires authentication and takes userId from the JWT sub (auth.ts:1186-1209); forgot-password never returns the token. Real residual = N1: NODE_ENV defaults to development while the single-container path never set it ⇒ dev-mode full-token logging + prod pre-flights disarmed. FIXED in W1-6 (log prefix always; Dockerfile pins NODE_ENV=production; warn line added).
+- **F7 → corrected**: reuse detection is NOT dead code (SessionManager.rotate implemented and used). Real defect = concurrent double-rotate race (check-then-UPDATE). FIXED in W1-4 (atomic guarded UPDATE + grace-window classifier, D125).
+- **F8 → FALSIFIED entirely**: change-password and reset both call revokeAllUserSessions (auth.ts:648,1164); 15-min access-token survival is by design. No fix needed.
+- **F4 → mechanism re-located**: race was in FlowTokenService redis GET→DEL (not the cited phantom file). FIXED in W1-3 (GETDEL atomic burn + narrow fallback + EX TTL).
+
+**New finding during PoC replay (W1-7, not in the original report)**: request-level audit middleware NEVER wrote rows on real sockets ('finish' listener registered from onResponse misses the event; unit/int seams masked it). Severity HIGH (security-relevant audit trail absent in production for all write requests). FIXED + real-TCP regression lock.
+
+**Wave 1 shipped** (commits b6b2c3a..5655518): W1-1 F2 key modes (0600/0700 + --out + idempotent chmod, real-script test) · W1-2 F3 redactor (oldpassword/newpassword/flowtoken shared + request-side code; live replay shows `[REDACTED]` bodies) · W1-3 F4 GETDEL + live 10-way race lock · W1-4 F7' atomic rotate + real-PG concurrency/expiry/replay locks · W1-5 F5 trustProxy wiring + both-direction behavior tests + env doc · W1-6 N1 · W1-7 audit-dead hook. Gates: 945 vitest / e2e 138+3 / tsc triple / eslint zero new.
+
+**Wave 2/3 queue unchanged** (F6 oidc limiter boundary, F9 compose.prod boot design, F10 migrate.sh argv, F11 trust-PG defaults, F12-F15 sweep). The Verdict BLOCK is **partially discharged**: auth-core CRITICAL/HIGH items (F2/F3/F4/F5/F7-family + W1-7) are fixed with proof; F1-as-stated retired; ops cluster (F9/F10/F11) still open — verdict stands at BLOCK until Wave 2-3 land.
