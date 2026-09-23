@@ -208,3 +208,35 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     expect((rows[0] as { n: number }).n).toBe(6);
   });
 });
+
+
+// Batch P W2-2 (report F9): the prod image must boot from EMPTY data dirs —
+// build-time initdb baked state that named volumes shadow (crash-loop on first
+// compose.prod boot). Static locks: bake gone, runtime guard in place, scripts
+// parse. Docker live behavior is NOT VERIFIED here (no daemon) — the entrypoint
+// init block mirrors the previously build-proven commands exactly.
+describe('container boot design (W2-2/F9)', () => {
+  const dockerfileSrc = readFileSync(path.join(ROOT, 'Dockerfile'), 'utf-8');
+  const entrypointSrc = readFileSync(path.join(ROOT, 'docker/entrypoint.sh'), 'utf-8');
+
+  it('Dockerfile no longer bakes initdb at build time', () => {
+    expect(dockerfileSrc).not.toMatch(/RUN initdb/);
+  });
+
+  it('entrypoint performs idempotent runtime init before pg_ctl start', () => {
+    const guard = entrypointSrc.indexOf('PG_VERSION');
+    const start = entrypointSrc.indexOf('pg_ctl');
+    expect(guard).toBeGreaterThan(-1);
+    expect(entrypointSrc).toMatch(/initdb -D "\$PGDATA"/);
+    expect(guard).toBeLessThan(start);
+    // R3: loud fresh-init signal (image-upgrade-without-volume data-loss guard)
+    expect(entrypointSrc).toMatch(/initializing EMPTY|fresh database/i);
+  });
+
+  it('entrypoint + migrate.sh + backup.sh + restore.sh pass bash -n', () => {
+    for (const f of ['docker/entrypoint.sh', 'scripts/migrate.sh', 'scripts/backup.sh', 'scripts/restore.sh']) {
+      const r = spawnSync('bash', ['-n', path.join(ROOT, f)], { encoding: 'utf8' });
+      expect(r.status, `${f}: ${r.stderr}`).toBe(0);
+    }
+  });
+});

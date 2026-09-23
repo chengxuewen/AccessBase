@@ -83,10 +83,9 @@ ENV PATH="/usr/lib/postgresql/16/bin:$PATH"
 ENV NODE_ENV=production
 RUN mkdir -p /var/run/postgresql && \
     chown -R accessbase:accessbase /var/run/postgresql /var/lib/postgresql/data
-USER accessbase
-RUN initdb -D $PGDATA --auth=trust --username=accessbase && \
-    echo "listen_addresses='*'" >> $PGDATA/postgresql.conf && \
-    echo "host all all 0.0.0.0/0 trust" >> $PGDATA/pg_hba.conf
+# Batch P W2-2 (report F9): NO build-time initdb — a baked cluster is shadowed
+# by compose named volumes, so first prod boot crashed on the empty mount.
+# docker/entrypoint.sh initializes idempotently at runtime instead.
 
 # Redis setup
 USER root
