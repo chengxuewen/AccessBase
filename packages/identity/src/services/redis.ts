@@ -15,6 +15,8 @@ export interface RedisLike {
   // ponytail: unknown[] rest swallows ioredis' callback overloads — we only ever pass (k, v) or (k, v, 'EX', ttl)
   set(key: string, value: string, ...args: unknown[]): Promise<unknown>;
   del(key: string): Promise<unknown>;
+  /** Optional so test doubles need not model it; ioredis 5 always has it. */
+  getdel?(key: string): Promise<string | null>;
 }
 
 let client: Redis | null = null;

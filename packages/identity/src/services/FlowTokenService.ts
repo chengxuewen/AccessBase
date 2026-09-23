@@ -46,7 +46,9 @@ export class FlowTokenService {
     let stored = false;
     if (this.redis) {
       try {
-        await this.redis.set(KEY_PREFIX + token, JSON.stringify(record));
+        // EX keeps the redis TTL aligned with the record's own expiry —
+        // expired flow tokens must not linger as live keys (W1-3 hygiene).
+        await this.redis.set(KEY_PREFIX + token, JSON.stringify(record), 'EX', ttlSeconds);
         stored = true;
       } catch (err) {
         logger.warn({ err }, 'FlowToken redis write failed, using in-memory fallback');
@@ -64,10 +66,29 @@ export class FlowTokenService {
     let fromRedis = false;
 
     if (this.redis) {
+      const key = KEY_PREFIX + token;
       try {
-        const raw = await this.redis.get(KEY_PREFIX + token);
+        let raw: string | null = null;
+        if (typeof this.redis.getdel === 'function') {
+          // Atomic single-use burn (batch P W1-3): GETDEL removes the GET→DEL
+          // window where two concurrent consumes both won the token.
+          try {
+            raw = await this.redis.getdel(key);
+          } catch (err) {
+            if (err instanceof Error && /unknown command/i.test(err.message)) {
+              // Server predates GETDEL (< 6.2): legacy non-atomic path.
+              logger.warn({ err }, 'FlowToken GETDEL unsupported, falling back to get+del');
+              raw = await this.redis.get(key);
+              if (raw !== null) await this.redis.del(key);
+            } else {
+              throw err; // failover-class error → outer catch → memory (fail-closed)
+            }
+          }
+        } else {
+          raw = await this.redis.get(key);
+          if (raw !== null) await this.redis.del(key); // single-use: burn first
+        }
         if (raw !== null) {
-          await this.redis.del(KEY_PREFIX + token); // single-use: burn first
           record = JSON.parse(raw) as FlowRecord;
           fromRedis = true;
         }

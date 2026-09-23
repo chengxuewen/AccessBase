@@ -5,8 +5,11 @@ vi.mock('@accessbase/logging', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
+import Redis from 'ioredis';
 import { FlowTokenService } from '../services/FlowTokenService.js';
 import type { RedisLike } from '../services/redis.js';
+
+const REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6379';
 
 /** Minimal redis double recording every call (for asserted interactions). */
 function makeMockRedis() {
@@ -24,6 +27,13 @@ function makeMockRedis() {
     del: vi.fn(async (key: string) => {
       calls.push({ cmd: 'del', key });
       kv.delete(key);
+    }),
+    // ioredis 5 always exposes getdel — the double mirrors production shape.
+    getdel: vi.fn(async (key: string) => {
+      calls.push({ cmd: 'getdel', key });
+      const v = kv.get(key) ?? null;
+      kv.delete(key);
+      return v;
     }),
   };
   return { redis, kv, calls };
@@ -108,11 +118,10 @@ describe('FlowTokenService', () => {
 
       const payload = await svc.consume<{ userId: string }>(token, 'mfa-challenge');
       expect(payload).toEqual({ userId: 'u-1' });
-      // issue=set, then consume=get+del (GETDEL not on RedisLike surface)
+      // issue=set, then consume=GETDEL — the atomic single-use burn (batch P W1-3)
       expect(calls.filter((c) => c.key === `flow:${token}`).map((c) => c.cmd)).toEqual([
         'set',
-        'get',
-        'del',
+        'getdel',
       ]);
     });
 
@@ -143,6 +152,53 @@ describe('FlowTokenService', () => {
 
       const payload = await svc.consume<{ userId: string }>(token, 'mfa-challenge');
       expect(payload).toEqual({ userId: 'u-1' });
+    });
+
+    it('falls back to get+del when the server rejects GETDEL as unknown command', async () => {
+      const { redis, kv, calls } = makeMockRedis();
+      redis.getdel = vi.fn(async () => {
+        throw new Error("ERR unknown command 'GETDEL'");
+      });
+      const svc = new FlowTokenService(redis);
+      const token = await svc.issue('mfa-challenge', { userId: 'u-1' }, 300);
+      const payload = await svc.consume<{ userId: string }>(token, 'mfa-challenge');
+      // still functional via the legacy path, key burned
+      expect(payload).toEqual({ userId: 'u-1' });
+      expect(kv.has(`flow:${token}`)).toBe(false);
+      expect(calls.map((c) => c.cmd)).toContain('get');
+      expect(calls.map((c) => c.cmd)).toContain('del');
+    });
+  });
+
+  // Live native redis: the GET→DEL race is only observable against a real
+  // server. Runtime ctx.skip() when redis is down (identity tsconfig target
+  // rejects top-level await, so no collect-time probe — H′ signal hygiene).
+  describe('live redis atomic consume (W1-3 race lock)', () => {
+    it('ten concurrent consumes of one token yield exactly one winner', async (ctx) => {
+      const client = new Redis(REDIS_URL, {
+        lazyConnect: true,
+        retryStrategy: () => null,
+        connectTimeout: 500,
+        maxRetriesPerRequest: 1,
+      });
+      try {
+        await client.connect();
+      } catch {
+        client.disconnect();
+        ctx.skip();
+        return;
+      }
+      try {
+        const svc = new FlowTokenService(client);
+        const token = await svc.issue('race-test', { userId: 'u-race' }, 60);
+        const results = await Promise.all(
+          Array.from({ length: 10 }, () => svc.consume(token, 'race-test')),
+        );
+        expect(results.filter((r) => r !== null)).toHaveLength(1);
+        expect(await client.get(`flow:${token}`)).toBeNull();
+      } finally {
+        client.disconnect();
+      }
     });
   });
 });
