@@ -598,3 +598,10 @@
 - **解法**: 给所有含 `page.route('**/api/v1/auth/saml/status'` 的 17 个 mock-API spec 同步插入 sms/status mock（enabled:false）。
 - **验证**: `grep -L "sms/status" e2e/*.spec.ts` 仅剩不挂 /login 的文件（dashboard/setup*/health/oidc-consent/error-pages 等）；全量 e2e 145+3 绿。
 - **禁止**: 新增登录页壳级请求后直接跑单文件 e2e 就收工——必须全量 e2e 验证 mock 面完整。
+
+## PIT-081: 值记忆化的异步构造函数在并发首波下退化为每请求实例（2026-09-23）
+
+- **症状**: Q2a 单例化后 live burst 与修复前逐位相同（50/76/100）；串行 after-2 +1 复用正常；同 pid 三连构造 DIAG。
+- **根因**: `if (!x) x = new (await resolveClass())` —— await 让出事件循环，一波并发全部穿过空检查，各造各的（各开一个 Pool）。值缓存对「构造过程含 await」的工厂函数不是并发安全的。
+- **解法**: promise-memo（缓存构造 Promise 本身，失败时回滚槽位）；同批修掉第二泄漏源（setup-guard queryAdminExists 每请求 new UserManager()——roster 只数了 handler 里的显式点，守卫链上的工厂漏了）。
+- **验证**: live 三连 24 并发封顶 30/32/31 恒定、静置归 1；manager-singletons.test 全过。判据：任何 `??=`/`if (!x)` 记忆化里若构造含 await，必须 memo Promise 而非值。

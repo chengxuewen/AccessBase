@@ -79,3 +79,13 @@ vitest full (987+N), 4× tsc, eslint touched 0-error, e2e 145+3, **live battery*
 - **F-X (B8 cleared, R8 folded above, session-EX/isolate/pg-getters CLEARED)**: confirmed non-issues per reviewers.
 
 Execution order: measure pre-fix burst -> A(+tests seam) -> C migrate rewrite -> D EX -> E sweeper -> F drain/metrics/rules -> gates + live battery -> memory close.
+
+## Execution record Q2a (2026-09-23, controller-direct)
+
+- Leak hunt arc (the instructive part): initial post-fix burst showed IDENTICAL 50/76/100 accumulation to pre-fix. Offline probe said singleton fine. console-trace on createDb localized it: setup-guard's queryAdminExists (setup.ts:35) constructed a fresh UserManager per REQUEST (second leak, untouched by the roster), AND the value-memo `if (!x) x = await make()` allowed every concurrent first-burst to construct its own (same-pid DIAG 3/3). Fixed: promise-memo + setup.ts to getters. Post-fix live: waves 30/32/31 capped, settled 1, SIGTERM graceful with pool teardown (conns->1, 'Server closed gracefully').
+- migrate.sh: single-session rewrite (advisory 727241 + lock_timeout 120s + per-file \gset/\if + BEGIN/\ir-abs/INSERT/COMMIT + folded atomic stamp). Ops suite 29/29 including NEW concurrent triple-run (all exit 0, ledger exactly 6) — the loser's in-session re-scan makes it a no-op, which is exactly why the pending-check had to move inside the lock (rev.2 F-C1 was right).
+- metrics: pg-pool gauges via strong Set<Pool> registry (getLivePoolStats), auth-failures counter derived from response codes in the existing onResponse hook (zero handler edits), degraded gauge computed on scrape (redis ping) — no latches to stick.
+- Drain: utils/drain.ts, ready 503-first, index setDraining pre-close. window honestly = close-chain duration (preStop is ops-doc story).
+- e2e: layout:204 breadcrumb failure diagnosed as a LYING mock (its /auth/me 'Full admin permission set' comment lacked tenants/clients/apikeys codes; pre-Q1 timing happened to assert before fetchUser re-hydration shrank permissions). Mock completed to its comment. Full suite 145+3.
+- Gates: vitest 997/997 (92 files), 4x tsc 0, eslint baseline-parity (setup.ts warning composition identical), live battery above.
+- Deferred to Q2b (explicit): transactions on multi-write funnels, Redis pub/sub cache coherence, pagination helper, openapi artifact, CHANGELOG, backup scheduler, audit-pool merge (one remaining 10-conn pool besides managers).

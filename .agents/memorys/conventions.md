@@ -311,3 +311,10 @@ logger.error('Operation failed', error); // ❌
 
 - Any endpoint fetched by the /login page shell (status probes etc.) must be mocked in EVERY mock-API e2e spec that mounts /login (17 files today, greppable via `page.route('**/api/v1/auth/saml/status'` as the roster proxy) — unmocked it leaks to the vite proxy -> 500 console error -> unrelated specs' console nets fail in a burst. Check after adding such a probe: `grep -L "sms/status" e2e/*.spec.ts` minus the no-login-files list should be empty.
 - Current full-suite baselines (flip in same commit as any count change): vitest `987 passed (90 files)`, e2e chromium `145 passed + 3 skipped 0 failed`.
+
+## Q2a route-manager singleton constraints (2026-09-23)
+
+- New route handlers get managers ONLY via `apps/server/src/utils/managers.ts` getters (`await getUserManager()` etc.) — never `new UserManager()` in a handler or guard (per-request pools = connection exhaustion; PIT-081 live-fired twice: handler roster + setup-guard queryAdminExists).
+- `resetManagers()` is the test seam: any spec asserting per-test constructor results (`mock.results`) on route-driven managers must `await resetManagers()` in `beforeEach`.
+- migrate.sh is ONE psql session: advisory key 727241, per-file `\gset`+`\if` pending probes INSIDE the lock (bash-side pre-computation is the race that this design kills), absolute `\ir`, stamp folded+atomic. New chain files still need the SENTINELS entry (unchanged discipline).
+- /login-shell mock roster: sms/status joined saml/status — same PIT-080 rule covers both (`grep -L "sms/status" e2e/*.spec.ts` = the no-login roster).
