@@ -293,3 +293,10 @@ logger.error('Operation failed', error); // ❌
 - **Concurrent-vs-replay semantics** (D125): sibling rotation within the 10s grace = benign double-fire → 401 WITHOUT family burn; usedAt older than grace = replay → revoke-all. Changing the grace constant requires updating both unit seeds and the real-PG test.
 - **Audit redactor list is lowercased-compare**: every new credential-bearing request field must be added to `packages/audit/src/types.ts` fields in normalized lowercase (oldpassword/newpassword/flowtoken precedent); request-only secrets go through the extras param of redactFields. New auth routes need a camelCase-body assertion in logger.test.
 - **test env with NODE_ENV unset warns** via warnDegradedChecks 'NODE_ENV unset' line; the single-container image pins NODE_ENV=production at Dockerfile runtime stage (W1-6) — do not remove without re-arming the prod gates elsewhere.
+
+### Wave 2 addendum (2026-09-23)
+
+- **Rate-guard exemptions skip counting, never routing** — discovery/jwks must still reach the provider hijack (W2-1 first cut 404'd /.well-known; oidc-provider-mount.test is the net). New /oidc-space throttles go through createOidcRateGuard only.
+- **Published infra ports bind 127.0.0.1** in every compose/run line (`grep -n '"5432:5432"\|"-p 5432' docker-compose*.yml accessbase.sh` → only 127.0.0.1-prefixed forms). Prod image EXPOSE carries 5101 only.
+- **Prod container PG = local trust + host scram(pwfile from PGPASSWORD)** per W2-4 recipe in docker/entrypoint.sh; deploy-mode local trust (start.sh:58) stays on the backlog until the integration day.
+- **DATABASE_URL never reaches argv**: any new script talking to PG sources scripts/pg-url.sh and calls ab_pgurl_export (static lock in ops-migrate.test; `psql "$DATABASE_URL"` must stay 0-hits).
