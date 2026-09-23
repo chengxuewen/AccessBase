@@ -27,6 +27,42 @@ export function _resetHostFallbackWarnForTest(): void {
   hostFallbackWarned = false;
 }
 
+/** Q1-b2: shared SMTP option set → Mailer (forgot/magic precedent, env>option>default). */
+async function getSmtpMailer(
+  options: ReturnType<typeof getOptionsManager>,
+): Promise<Mailer | null> {
+  const host = await options.get('smtp_host', process.env['SMTP_HOST'], '');
+  const port = Number(
+    await options.get('smtp_port', process.env['SMTP_PORT'] ? Number(process.env['SMTP_PORT']) : undefined, 587),
+  );
+  const smtpUser = await options.get('smtp_user', process.env['SMTP_USER'], '');
+  const pass = await options.get('smtp_password', process.env['SMTP_PASSWORD'], '');
+  const from = await options.get('smtp_from', process.env['SMTP_FROM'], '');
+  return host ? Mailer.fromConfig({ host, port, user: smtpUser, pass, from }) : null;
+}
+
+/** Q1-b2: magic-link R3 three-arm origin chain (site.url > forwarded host when
+ * TRUST_PROXY > request host with the module warn latch). */
+async function resolvePublicOrigin(
+  request: { headers: { [k: string]: string | string[] | undefined }; protocol: string },
+  options: ReturnType<typeof getOptionsManager>,
+): Promise<string> {
+  const siteUrl = await options.get('site.url', process.env['SITE_URL'], '');
+  if (siteUrl) return siteUrl;
+  const forwardedHost = config.trustProxy
+    ? (request.headers['x-forwarded-host'] as string | undefined)
+    : undefined;
+  const proto = request.headers['x-forwarded-proto'] ?? request.protocol;
+  if (forwardedHost) return `${proto}://${forwardedHost}`;
+  if (!hostFallbackWarned) {
+    hostFallbackWarned = true;
+    logger.warn(
+      'verify-email origin falling back to request Host — production MUST set SITE_URL',
+    );
+  }
+  return `${proto}://${request.headers['host'] ?? ''}`;
+}
+
 export async function authRoutes(app: FastifyInstance) {
   const sessionManager = new SessionManager(undefined, await getRedis());
   const roleManager = new RoleManager();
@@ -352,6 +388,24 @@ export async function authRoutes(app: FastifyInstance) {
       );
       await userManager.changeStatus(user.id, 'pending', request.tenantId ?? DEFAULT_TENANT);
 
+      // Q1-b2: best-effort verification email. SMTP is optional — silent failure
+      // here never fails registration; the user can self-request post-activation.
+      void getSmtpMailer(getOptionsManager())
+        .then(async (mailer) => {
+          if (!mailer) return;
+          const vtoken = await flowTokens.issue('email_verify', { userId: user.id }, 86400);
+          const origin = await resolvePublicOrigin(request, getOptionsManager());
+          const link = `${origin}/verify-email?token=${vtoken}`;
+          await mailer.send(
+            user.email,
+            'Verify your email',
+            `<p>Confirm your address: <a href="${link}">${link}</a></p>`,
+          );
+        })
+        .catch((err: unknown) => {
+          request.log.warn({ err }, 'verify-email send at register failed (best-effort)');
+        });
+
       request.log.info({ email }, 'Registration created pending user');
 
       return reply.status(201).send({
@@ -360,6 +414,88 @@ export async function authRoutes(app: FastifyInstance) {
       });
     },
   );
+  // POST /api/v1/auth/verify-email/request — authenticated self-service (Q1-b2,
+  // closes design A4). 503 when SMTP unconfigured: this route has an audience
+  // (the logged-in user) who needs to know delivery is impossible — unlike the
+  // silent log-only arms of forgot/magic which stay enumeration-shaped.
+  app.post(
+    '/verify-email/request',
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+      schema: {
+        description: 'Send an email-verification link to the authenticated user',
+        tags: ['auth'],
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    async (request, reply) => {
+      const payload = request.user as { sub: string };
+      const userManager = new (await import('@accessbase/identity')).UserManager();
+      const user = await userManager.findById(payload.sub, request.tenantId ?? DEFAULT_TENANT);
+      if (!user) {
+        return reply.status(401).send({
+          success: false,
+          error: { code: 'AUTH_002', message: 'Invalid session' },
+        });
+      }
+      const options = getOptionsManager();
+      const mailer = await getSmtpMailer(options);
+      if (!mailer) {
+        return reply.status(503).send({
+          success: false,
+          error: { code: 'AUTH_EMAIL_002', message: 'Email delivery not configured' },
+        });
+      }
+      const token = await flowTokens.issue('email_verify', { userId: user.id }, 86400);
+      const origin = await resolvePublicOrigin(request, options);
+      const link = `${origin}/verify-email?token=${token}`;
+      mailer
+        .send(user.email, 'Verify your email', `<p>Confirm your address: <a href="${link}">${link}</a></p>`)
+        .catch((err: unknown) => {
+          logger.warn({ err }, 'Verify-email delivery failed (degraded to log)');
+        });
+      return reply.status(202).send({
+        success: true,
+        data: { message: 'Verification email sent. Check your inbox.' },
+      });
+    },
+  );
+
+  // POST /api/v1/auth/verify-email — PUBLIC consume (token-only). Note rev.2 F1:
+  // publicity = ABSENCE of the per-route app.authenticate preHandler; the
+  // identity PUBLIC_ROUTES lists are dead code and deliberately NOT touched.
+  app.post<{ Body: { token: string } }>(
+    '/verify-email',
+    {
+      config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
+      schema: {
+        description: 'Consume an email-verification link token',
+        tags: ['auth'],
+        body: {
+          type: 'object',
+          required: ['token'],
+          properties: { token: { type: 'string', minLength: 1 } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const consumed = await flowTokens.consume<{ userId: string }>(
+        request.body.token,
+        'email_verify',
+      );
+      if (!consumed?.userId) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'AUTH_EMAIL_001', message: 'Invalid or expired verification link' },
+        });
+      }
+      const userManager = new (await import('@accessbase/identity')).UserManager();
+      await userManager.markEmailVerified(consumed.userId);
+      return { success: true, data: { verified: true } };
+    },
+  );
+
   // GET /api/v1/auth/me
   app.get(
     '/me',
@@ -406,6 +542,7 @@ export async function authRoutes(app: FastifyInstance) {
           permissions: await permissionsOf(user.id, request.tenantId),
           // users.mfaEnabled column is dead; totpEnabled is the live MFA state (MfaManager writes it)
           mfaEnabled: user.totpEnabled ?? false,
+          emailVerified: user.emailVerified ?? false,
           tenantId,
           tenantName,
           tenantIsDefault,
@@ -952,8 +1089,25 @@ return { success: true };
         body: {
           type: 'object',
           required: ['phone'],
-          // R6: double-escaped in TS source ('\\+' === backslash-plus in the regex).
+          // R6: double-escaped in TS source (backslash-plus in the regex).
           properties: { phone: { type: 'string', pattern: '^\\+[1-9]\\d{1,14}$' } },
+        },
+        // Q1-b1: declare the 202 shape incl. token (R2 batch-E lesson —
+        // fast-json-stringify strips undeclared fields once a schema exists).
+        response: {
+          202: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string' },
+                  token: { type: 'string' },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -962,27 +1116,55 @@ return { success: true };
       const options = getOptionsManager();
       const smsConfig = await readSmsConfig(options);
       const smsProvider: SmsProvider | null = smsConfig ? SmsProviderImpl.fromConfig(smsConfig) : null;
+      // Q1-b1 wire-chain fix: ALL arms issue a token and return it (the client
+      // needs it at verify time). Non-eligible arms carry userId:null (dummy;
+      // verify burns them to a generic 401 before any lookup). Constant-shape
+      // 202 = the same enumeration immunity as before, now with a usable token.
+      const code = randomInt(100000, 1000000).toString();
+      let userId: string | null = null;
       if (!smsProvider) {
         logger.warn('sms-otp request: SMS provider not configured, code not sent');
-        return reply.status(202).send({
-          success: true,
-          data: { message: 'If an account exists, a verification code has been sent.' },
-        });
+      } else {
+        const userManager = new (await import('@accessbase/identity')).UserManager();
+        const user = await userManager.findByPhone(phone);
+        if (user && user.status === 'active') {
+          userId = user.id;
+          // Async: response returns immediately — gateway RTT is an enumeration timing side-channel (magic-link precedent)
+          smsProvider.send({ to: phone, code }).catch((err: unknown) => {
+            logger.warn({ err }, 'SMS delivery failed (degraded to log)');
+          });
+        }
       }
-      const userManager = new (await import('@accessbase/identity')).UserManager();
-      const user = await userManager.findByPhone(phone);
-      if (user && user.status === 'active') {
-        const code = randomInt(100000, 1000000).toString();
-        await flowTokens.issue('sms_otp', { userId: user.id, phone, code }, 300);
-        // Async: response returns immediately — gateway RTT is an enumeration timing side-channel (magic-link precedent)
-        smsProvider.send({ to: phone, code }).catch((err: unknown) => {
-          logger.warn({ err }, 'SMS delivery failed (degraded to log)');
-        });
-      }
+      const token = await flowTokens.issue('sms_otp', { userId, phone, code }, 300);
       return reply.status(202).send({
         success: true,
-        data: { message: 'If an account exists, a verification code has been sent.' },
+        data: { message: 'If an account exists, a verification code has been sent.', token },
       });
+    },
+  );
+
+  // GET /api/v1/auth/sms/status — public enabled-gate probe for the login
+  // surface (saml/status pattern; strict gate hides the SMS UI when unconfigured).
+  app.get(
+    '/sms/status',
+    {
+      schema: {
+        description: 'Whether SMS OTP sign-in is configured (public gate probe).',
+        tags: ['auth'],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', properties: { enabled: { type: 'boolean' } } },
+            },
+          },
+        },
+      },
+    },
+    async (_request, reply) => {
+      const enabled = (await readSmsConfig(getOptionsManager())) !== null;
+      return reply.send({ success: true, data: { enabled } });
     },
   );
 
@@ -1073,11 +1255,19 @@ return { success: true };
       },
     },
     async (request, reply) => {
-      const payload = await flowTokens.consume<{ userId: string; phone: string; code: string }>(
+      const payload = await flowTokens.consume<{ userId: string | null; phone: string; code: string }>(
         request.body.token,
         'sms_otp',
       );
       if (!payload) {
+        return reply.status(401).send({
+          success: false,
+          error: { code: 'AUTH_SMS_001', message: 'Invalid or expired verification code' },
+        });
+      }
+      // Q1-b1/F5: dummy tokens (constant-shape arms) die here — burn happened
+      // above, no DB lookup, byte-identical generic 401.
+      if (!payload.userId) {
         return reply.status(401).send({
           success: false,
           error: { code: 'AUTH_SMS_001', message: 'Invalid or expired verification code' },

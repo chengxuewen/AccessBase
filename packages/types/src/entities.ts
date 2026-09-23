@@ -19,6 +19,8 @@ export interface User {
   tokenVersion: number;
   /** TOTP MFA enabled (Phase 6b) */
   totpEnabled?: boolean;
+  /** Email ownership verified via the /auth/verify-email flow (Q1-b2, closes design A4). */
+  emailVerified?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -196,12 +196,11 @@ async function requestOtp(phone: string) {
   });
 }
 
-/** Drive request→capture the issued token→verify with a code. */
+/** Drive request→capture the issued token (from the RESPONSE — wire fidelity, Q1-b1)→verify. */
 async function issueAndVerify(code: string) {
   const req = await requestOtp(SMS_PHONE);
   expect(req.statusCode).toBe(202);
-  // Grab the token issued inside the request route via the flow store
-  const token = [...flowStore.keys()][0];
+  const token = req.json().data.token as string;
   expect(token).toBeDefined();
   return app.inject({ method: 'POST', url: VERIFY_URL, payload: { token, code } });
 }
@@ -221,14 +220,18 @@ const TOKEN_PAIR_ENV = () => {
 };
 
 describe('POST /api/v1/auth/sms-otp/request', () => {
-  it('happy path: 202 fixed body + issue(sms_otp,{userId,phone,code},300) + send({to,code})', async () => {
+  it('happy path: 202 {message, token} + issue(sms_otp,{userId,phone,code},300) + send({to,code})', async () => {
     TOKEN_PAIR_ENV();
     const res = await requestOtp(SMS_PHONE);
 
     expect(res.statusCode).toBe(202);
+    // Q1-b1: constant-shape response carries the flow token (wire chain fix)
     expect(res.json()).toEqual({
       success: true,
-      data: { message: 'If an account exists, a verification code has been sent.' },
+      data: {
+        message: 'If an account exists, a verification code has been sent.',
+        token: expect.any(String),
+      },
     });
 
     // PIT-056 probe: issue payload carries userId/phone/code
@@ -248,31 +251,35 @@ describe('POST /api/v1/auth/sms-otp/request', () => {
     expect(smsFromConfig).toHaveBeenCalledTimes(1);
   });
 
-  it('unregistered phone: 202 body IDENTICAL to happy + no send + no issue (PIT-056 negative)', async () => {
+  it('unregistered phone: 202 IDENTICAL shape + DUMMY userId:null issue + no send (PIT-056 inverted by Q1-b1)', async () => {
     TOKEN_PAIR_ENV();
-    const happy = {
-      success: true,
-      data: { message: 'If an account exists, a verification code has been sent.' },
-    };
     const unknown = await requestOtp('+15550000000');
     expect(unknown.statusCode).toBe(202);
-    expect(unknown.json()).toEqual(happy);
+    expect(unknown.json().data.message).toBe('If an account exists, a verification code has been sent.');
+    expect(typeof unknown.json().data.token).toBe('string');
 
     expect(smsSend).not.toHaveBeenCalled();
-    expect(flowTokenMock.issue).not.toHaveBeenCalled();
+    // Constant-shape immunity: a token IS issued (userId null) so all arms look alike.
+    expect(flowTokenMock.issue).toHaveBeenCalledWith(
+      'sms_otp',
+      { userId: null, phone: '+15550000000', code: expect.any(String) },
+      300,
+    );
   });
 
-  it.each(['suspended', 'pending'] as const)('%s user: 202 identical + no send', async (status) => {
+  it.each(['suspended', 'pending'] as const)('%s user: 202 identical + no send + DUMMY issue', async (status) => {
     TOKEN_PAIR_ENV();
     userByPhone = { [SMS_PHONE]: { ...smsUser, status } };
     const res = await requestOtp(SMS_PHONE);
     expect(res.statusCode).toBe(202);
-    expect(res.json()).toEqual({
-      success: true,
-      data: { message: 'If an account exists, a verification code has been sent.' },
-    });
+    expect(res.json().data.message).toBe('If an account exists, a verification code has been sent.');
+    expect(typeof res.json().data.token).toBe('string');
     expect(smsSend).not.toHaveBeenCalled();
-    expect(flowTokenMock.issue).not.toHaveBeenCalled();
+    expect(flowTokenMock.issue).toHaveBeenCalledWith(
+      'sms_otp',
+      { userId: null, phone: SMS_PHONE, code: expect.any(String) },
+      300,
+    );
   });
 
   it('invalid phone format (missing +) → 400', async () => {
@@ -280,18 +287,20 @@ describe('POST /api/v1/auth/sms-otp/request', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('SmsProvider null (no config): 202 + warn logged + no send + NO issue', async () => {
+  it('SmsProvider null (no config): 202 + warn logged + no send + DUMMY issue (Q1-b1 constant shape)', async () => {
     delete process.env['SMS_PROVIDER'];
     const warnSpy = vi.spyOn(logger, 'warn');
     const res = await requestOtp(SMS_PHONE);
     expect(res.statusCode).toBe(202);
-    expect(res.json()).toEqual({
-      success: true,
-      data: { message: 'If an account exists, a verification code has been sent.' },
-    });
+    expect(res.json().data.message).toBe('If an account exists, a verification code has been sent.');
+    expect(typeof res.json().data.token).toBe('string');
     expect(warnSpy).toHaveBeenCalled();
     expect(smsSend).not.toHaveBeenCalled();
-    expect(flowTokenMock.issue).not.toHaveBeenCalled();
+    expect(flowTokenMock.issue).toHaveBeenCalledWith(
+      'sms_otp',
+      { userId: null, phone: SMS_PHONE, code: expect.any(String) },
+      300,
+    );
     warnSpy.mockRestore();
   });
 
@@ -307,14 +316,35 @@ describe('POST /api/v1/auth/sms-otp/request', () => {
     smsSend.mockResolvedValue(undefined);
   });
 
-  it('multi-match phone (duplicate registrations): 202 + no send + no issue (R1)', async () => {
+  it('multi-match phone (duplicate registrations): 202 + no send + DUMMY issue (R1)', async () => {
     TOKEN_PAIR_ENV();
-    // R1: findByPhone returns null on multi-match (route treats as no-match).
+    // R1: findByPhone returns null on multi-match (route treats as no-match → dummy).
     userByPhone = { [SMS_PHONE]: null };
     const res = await requestOtp(SMS_PHONE);
     expect(res.statusCode).toBe(202);
     expect(smsSend).not.toHaveBeenCalled();
-    expect(flowTokenMock.issue).not.toHaveBeenCalled();
+    expect(flowTokenMock.issue).toHaveBeenCalledWith(
+      'sms_otp',
+      { userId: null, phone: SMS_PHONE, code: expect.any(String) },
+      300,
+    );
+  });
+  it('Q1-b1: dummy token (userId null) verifies to 401 WITHOUT user lookup (explicit guard)', async () => {
+    delete process.env['SMS_PROVIDER']; // dummy arm
+    const req = await requestOtp(SMS_PHONE);
+    const token = req.json().data.token as string;
+    const res = await app.inject({
+      method: 'POST',
+      url: VERIFY_URL,
+      payload: { token, code: '123456' },
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.json().error.code).toBe('AUTH_SMS_001');
+    const um = (await import('@accessbase/identity')).UserManager as unknown as {
+      mock: { results: Array<{ value: { findByIdAny: ReturnType<typeof vi.fn> } }> };
+    };
+    const inst = um.mock.results[um.mock.results.length - 1]?.value;
+    expect(inst?.findByIdAny).not.toHaveBeenCalled();
   });
 });
 
@@ -473,8 +503,23 @@ describe('POST /api/v1/auth/sms-otp/verify', () => {
 async function issueCapture() {
   const req = await requestOtp(SMS_PHONE);
   expect(req.statusCode).toBe(202);
-  const token = [...flowStore.keys()][0];
+  const token = req.json().data.token as string; // Q1-b1 wire fidelity
   expect(token).toBeDefined();
   const payload = flowStore.get(token)?.payload as { userId: string; phone: string; code: string };
   return { token, payload };
 }
+
+describe('GET /api/v1/auth/sms/status', () => {
+  it('enabled: true when provider config present (saml/status gate pattern)', async () => {
+    TOKEN_PAIR_ENV();
+    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/sms/status' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true, data: { enabled: true } });
+  });
+  it('enabled: false when no provider configured', async () => {
+    delete process.env['SMS_PROVIDER'];
+    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/sms/status' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true, data: { enabled: false } });
+  });
+});

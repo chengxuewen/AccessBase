@@ -418,3 +418,99 @@ describe('K-T2 last-admin guard (UserManager funnel)', () => {
     expect(db.select).not.toHaveBeenCalled();
   });
 });
+
+describe('email verification plumbing (Q1-b2)', () => {
+  function makeChain(result: unknown) {
+    const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+    chain.limit = vi.fn(() => chain);
+    chain.then = vi.fn(
+      (resolve?: ((v: unknown) => unknown) | null, reject?: ((e: unknown) => unknown) | null) =>
+        Promise.resolve(result).then(resolve, reject),
+    );
+    return chain;
+  }
+
+  it('markEmailVerified issues UPDATE set email_verified=true by id', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = { select: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn() };
+    vi.mocked(createDb).mockReturnValue(db as never);
+    const setSpy = vi.fn(() => ({ where: vi.fn().mockResolvedValue([]) }));
+    db.update.mockReturnValue({ set: setSpy });
+
+    const mgr = new UserManager();
+    await mgr.markEmailVerified('u-42');
+
+    expect(setSpy).toHaveBeenCalledWith({ emailVerified: true });
+  });
+
+  it('findById maps emailVerified from the DB row (never silently false)', async () => {
+    const { createDb } = await import('../db/index.js');
+    const db = { select: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn() };
+    vi.mocked(createDb).mockReturnValue(db as never);
+    const chain = makeChain([
+      {
+        id: 'u1',
+        email: 'a@b.c',
+        name: 'A',
+        status: 'active',
+        tenantId: 't1',
+        tokenVersion: 1,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    db.select.mockReturnValue({ from: vi.fn(() => ({ where: vi.fn(() => chain) })) });
+
+    const mgr = new UserManager();
+    const user = await mgr.findById('u1', 't1');
+    expect(user?.emailVerified).toBe(true);
+  });
+});
+
+describe('findAll sorting (Q1-b3, gap-audit D6)', () => {
+  async function runFindAll(params: { sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<string> {
+    const { createDb } = await import('../db/index.js');
+    const db = { select: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn() };
+    vi.mocked(createDb).mockReturnValue(db as never);
+    let orderArg: unknown = null;
+    const countChain = { from: () => ({ where: () => [{ count: 0 }] }) };
+    const listChain = {
+      from: () => ({
+        where: () => ({
+          limit: () => ({
+            offset: () => ({
+              orderBy: (...a: unknown[]) => {
+                orderArg = a[0];
+                const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+                chain.then = vi.fn(
+                  (resolve?: ((v: unknown) => unknown) | null) => Promise.resolve([]).then(resolve),
+                );
+                return chain;
+              },
+            }),
+          }),
+        }),
+      }),
+    };
+    db.select.mockImplementation((proj?: unknown) => (proj ? countChain : listChain));
+
+    const mgr = new UserManager();
+    await mgr.findAll(params, 't1');
+    const { PgDialect } = await import('drizzle-orm/pg-core');
+    const { sql } = new PgDialect().sqlToQuery(orderArg as never);
+    return sql;
+  }
+
+  it('sortBy=email + desc renders ORDER BY "users"."email" desc', async () => {
+    const sql = await runFindAll({ sortBy: 'email', sortOrder: 'desc' });
+    expect(sql).toContain('"users"."email"');
+    expect(/desc/i.test(sql)).toBe(true);
+  });
+
+  it('no sortBy defaults to created_at ASC (zero behavior change for existing callers)', async () => {
+    const sql = await runFindAll({});
+    expect(sql).toContain('"users"."created_at"');
+    expect(/desc/i.test(sql)).toBe(false);
+  });
+});

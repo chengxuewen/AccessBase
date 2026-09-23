@@ -16,7 +16,6 @@ const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 // ponytail: fixed grace window separating a benign concurrent double-fire from
 // a true replay; adaptive per-client tuning only if false burns ever appear.
 const REPLAY_GRACE_MS = 10_000;
-const CACHE_TTL_SECONDS = 60;
 
 interface TokenMeta {
   ip: string;

@@ -52,7 +52,10 @@ export async function userRoutes(app: FastifyInstance) {
             pageSize: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
             search: { type: 'string' },
             status: { type: 'string', enum: ['active', 'suspended', 'pending'] },
-            sortBy: { type: 'string' },
+            // Q1-b3: schema-level whitelist (gap-audit D6) — invalid sortBy is a
+            // loud 400 (FST_ERR_VALIDATION → VALIDATION_001), never a silent no-op.
+            // Must stay in sync with the UserManager.findAll column map.
+            sortBy: { type: 'string', enum: ['createdAt', 'email', 'name', 'status'] },
             sortOrder: { type: 'string', enum: ['asc', 'desc'] },
           },
         },

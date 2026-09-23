@@ -178,9 +178,9 @@ describe('GET /api/v1/auth/me', () => {
         roles: [{ id: 'r-1', name: 'admin' }],
         permissions: ['users:read', 'roles:read'],
         mfaEnabled: false,
+        emailVerified: false,
         tenantId: '00000000-0000-0000-0000-000000000001',
         tenantIsDefault: true,
-        mfaEnabled: false,
       },
     });
     expect(roleManagerMock.getUserRoles).toHaveBeenCalledWith(

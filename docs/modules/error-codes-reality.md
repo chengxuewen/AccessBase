@@ -29,7 +29,7 @@ When adding a code: update this file in the same commit (conventions D126 gate).
 - **MFA**: AUTH_MFA_001..004 · **lockout**: AUTH_LOCKED_001 · **IP blacklist**: AUTH_IP_001
 - **OAuth RP**: AUTH_OAUTH_001..004 · provider visibility: AUTH_PROVIDER_DISABLED / AUTH_PROVIDER_NOT_FOUND
 - **WebAuthn**: AUTH_WEBAUTHN_001..005 · **SAML SP**: AUTH_SAML_001..003 · **magic link**: AUTH_MAGIC_001 · **SMS OTP**: AUTH_SMS_001
-- **register**: AUTH_REG_001..002 · **reset flow**: AUTH_RESET_001..002 · **tenant gate**: AUTH_TENANT_001
+- **register**: AUTH_REG_001..002 · **reset flow**: AUTH_RESET_001..002 · **tenant gate**: AUTH_TENANT_001 · **email verify (Q1-b2)**: AUTH_EMAIL_001 (bad/expired link, 400) / AUTH_EMAIL_002 (SMTP unconfigured, 503)
 
 ## Generic HTTP-family codes
 

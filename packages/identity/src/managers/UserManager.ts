@@ -1,7 +1,7 @@
 /**
  * UserManager - User management with Drizzle ORM (SDD 2.2)
  */
-import { eq, and, like, sql, count, desc, notInArray } from 'drizzle-orm';
+import { eq, and, like, sql, count, asc, desc, notInArray } from 'drizzle-orm';
 import { createDb, type DrizzleDB } from '../db/index.js';
 import { users, passwordHistory, type User as DbUser, type NewUser } from '../db/schema.js';
 import { invalidatePermissionCache } from './permission-cache.js';
@@ -157,14 +157,24 @@ export class UserManager {
 
     const total = totalResult?.count ?? 0;
 
-    // Get paginated results
+    // Get paginated results — Q1-b3: REAL sorting (gap-audit D6 — sortBy was
+    // advertised but silently dropped). Whitelist mirrors the route guard;
+    // unknown values never reach here (route 400s them). Default: createdAt ASC.
+    const sortCol =
+      params.sortBy === 'email'
+        ? users.email
+        : params.sortBy === 'name'
+          ? users.name
+          : params.sortBy === 'status'
+            ? users.status
+            : users.createdAt;
     const results = await this.db
       .select()
       .from(users)
       .where(where)
       .limit(pageSize)
       .offset(offset)
-      .orderBy(users.createdAt);
+      .orderBy(params.sortOrder === 'desc' ? desc(sortCol) : asc(sortCol));
 
     return {
       data: results.map((u) => this.mapToUser(u)),
@@ -350,6 +360,15 @@ export class UserManager {
     // 4. Invalidate token
     throw new Error('Not implemented - requires Redis integration');
   }
+  /**
+   * Mark the user's email as verified (Q1-b2 — consumes the email_verify flow
+   * token at the route layer; this is the write funnel). Id is globally unique
+   * so no tenant predicate applies.
+   */
+  async markEmailVerified(id: string): Promise<void> {
+    await this.db.update(users).set({ emailVerified: true }).where(eq(users.id, id));
+  }
+
 
   /**
    * Map database user to application user type
@@ -362,6 +381,7 @@ export class UserManager {
       phone: dbUser.phone,
       isActive: dbUser.status === 'active',
       totpEnabled: dbUser.totpEnabled,
+      emailVerified: dbUser.emailVerified ?? false,
       // DB status is a varchar; narrow to the claim's enum. Invalid values →
       // undefined = no claim = legacy-pass in authenticate.
       status: (['active', 'suspended', 'pending'] as const).includes(

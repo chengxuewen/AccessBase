@@ -190,8 +190,9 @@ export class TenantManager {
   /**
    * Revoke all live access for a tenant: un-revoked sessions of its users and
    * un-revoked api keys of the tenant, then drop the per-user session-list
-   * caches (they carry NO TTL — SessionManager's CACHE_TTL_SECONDS is dead —
-   * so deletion, not expiry, is the only correctness path; revocation itself
+   * caches (they carry NO TTL — the once-advertised CACHE_TTL_SECONDS was never
+   * wired and is now deleted (Q1-b4) — so deletion, not expiry, is the only
+   * correctness path; revocation itself
    * is auth-safe regardless: validateSession and the apikey branch read DB).
    */
   private async revokeTenantAccess(tenantId: string): Promise<void> {
