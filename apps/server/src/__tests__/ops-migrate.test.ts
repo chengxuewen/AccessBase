@@ -279,3 +279,34 @@ describe('pg-url env parser (W2-3/F10)', () => {
     expect(df).toMatch(/COPY[^&]*scripts\/pg-url\.sh/);
   });
 });
+
+// Batch P W2-4 (report F11): published database ports must bind the host
+// loopback only, the prod image must not advertise 5432/6379, its PG host
+// auth must be scram (password provisioned via --pwfile from PGPASSWORD)
+// with listen pinned to localhost, and its redis bound to loopback.
+describe('network exposure hardening (W2-4/F11)', () => {
+  it('compose files + dev:container publish loopback-bound db ports', () => {
+    for (const f of ['docker-compose.yml', 'docker-compose.dev.yml']) {
+      const src = readFileSync(path.join(ROOT, f), 'utf-8');
+      expect(src, f).toMatch(/- "127\.0\.0\.1:5432:5432"/);
+      expect(src, f).toMatch(/- "127\.0\.0\.1:6379:6379"/);
+    }
+    const sh = readFileSync(path.join(ROOT, 'accessbase.sh'), 'utf-8');
+    expect(sh).toMatch(/-p 127\.0\.0\.1:5432:5432/);
+    expect(sh).toMatch(/-p 127\.0\.0\.1:6379:6379/);
+  });
+
+  it('prod Dockerfile no longer advertises db/redis ports', () => {
+    const df = readFileSync(path.join(ROOT, 'Dockerfile'), 'utf-8');
+    expect(df).not.toMatch(/EXPOSE [^\n]*5432/);
+  });
+
+  it('entrypoint runtime init: scram host auth with pwfile, loopback-only listen, redis bound', () => {
+    const ep = readFileSync(path.join(ROOT, 'docker/entrypoint.sh'), 'utf-8');
+    expect(ep).toMatch(/--auth-local=trust --auth-host=scram-sha-256/);
+    expect(ep).toMatch(/--pwfile=/);
+    expect(ep).toMatch(/listen_addresses='localhost'/);
+    expect(ep).not.toMatch(/0\.0\.0\.0\/0 trust/);
+    expect(ep).toMatch(/redis-server[^&]*--bind 127\.0\.0\.1/);
+  });
+});

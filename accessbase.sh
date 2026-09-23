@@ -438,8 +438,8 @@ cmd_dev_container() {
         --init \
         -p 5101:5101 \
         -p 5173:5173 \
-        -p 5432:5432 \
-        -p 6379:6379 \
+        -p 127.0.0.1:5432:5432 \
+        -p 127.0.0.1:6379:6379 \
         -v "$(pwd):/app" \
         -v /app/node_modules \
         accessbase:dev

@@ -108,6 +108,7 @@ COPY --chmod=755 --chown=accessbase:accessbase scripts/migrate.sh /app/scripts/m
 # W2-3 R1: migrate.sh sources the shared pg-url lib — it MUST ship together.
 COPY --chmod=644 --chown=accessbase:accessbase scripts/pg-url.sh /app/scripts/pg-url.sh
 
-EXPOSE 5101 5173 5432 6379
+# W2-4: only the app port — PG/redis are loopback-internal (see entrypoint)
+EXPOSE 5101
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s CMD curl -f http://localhost:5101/health/live || exit 1
 ENTRYPOINT ["/entrypoint.sh"]
