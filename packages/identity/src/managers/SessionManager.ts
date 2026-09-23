@@ -7,12 +7,15 @@
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, gt, isNull, ne } from 'drizzle-orm';
-import { createDb, type DrizzleDB } from '../db/index.js';
+import { closeDb, createDb, type DrizzleDB } from '../db/index.js';
 import { sessions } from '../db/schema.js';
 import type { RedisLike } from '../services/redis.js';
 import { logger } from '@accessbase/logging';
 
 const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+// ponytail: fixed grace window separating a benign concurrent double-fire from
+// a true replay; adaptive per-client tuning only if false burns ever appear.
+const REPLAY_GRACE_MS = 10_000;
 const CACHE_TTL_SECONDS = 60;
 
 interface TokenMeta {
@@ -155,26 +158,48 @@ export class SessionManager {
     if (!session) {
       throw new Error('Session not found');
     }
-    if (session.revokedAt) {
-      throw new Error('Session revoked');
-    }
-    if (session.usedAt) {
-      // Reuse of a rotated token = replay attack: burn everything.
-      logger.warn(
-        { userId: session.userId, sessionId: session.id },
-        'Refresh token reuse detected, revoking all sessions',
-      );
-      await this.revokeAllUserSessions(session.userId);
-      throw new Error('Token reuse detected');
-    }
-    if (session.expiresAt.getTime() <= Date.now()) {
-      throw new Error('Session expired');
-    }
 
-    await this.db
+    // Atomic single-use burn (batch P W1-4): the UPDATE guard enforces
+    // unused+unrevoked+unexpired in one statement — a concurrent rotate of the
+    // same token cannot slip past a check-then-update gap, and expiry is
+    // enforced inside the guard (rev.2 R1: the old SELECT-then-UPDATE allowed both).
+    const burned = await this.db
       .update(sessions)
       .set({ usedAt: new Date() })
-      .where(eq(sessions.id, session.id));
+      .where(
+        and(
+          eq(sessions.id, session.id),
+          isNull(sessions.usedAt),
+          isNull(sessions.revokedAt),
+          gt(sessions.expiresAt, new Date()),
+        ),
+      )
+      .returning({ id: sessions.id });
+
+    if (burned.length === 0) {
+      // Classify the loss with a fresh read. A sibling that rotated within the
+      // grace window is a benign double-fire (two tabs / client retry) → plain
+      // 401 error with NO family burn (rev.2 R2); an older usedAt is true replay.
+      const [fresh] = await this.db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, session.id))
+        .limit(1);
+      if (!fresh) throw new Error('Session not found');
+      if (fresh.revokedAt) throw new Error('Session revoked');
+      if (fresh.usedAt) {
+        if (Date.now() - fresh.usedAt.getTime() > REPLAY_GRACE_MS) {
+          logger.warn(
+            { userId: fresh.userId, sessionId: fresh.id },
+            'Refresh token reuse detected, revoking all sessions',
+          );
+          await this.revokeAllUserSessions(fresh.userId);
+          throw new Error('Token reuse detected');
+        }
+        throw new Error('Invalid refresh token (concurrent rotation)');
+      }
+      throw new Error('Session expired');
+    }
 
     const newToken = randomBytes(40).toString('hex');
     const expiresAt = new Date(Date.now() + REFRESH_TTL_MS);
@@ -238,5 +263,10 @@ export class SessionManager {
 
   hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  /** Release the internally-created pool (test suites / graceful shutdown). */
+  async close(): Promise<void> {
+    await closeDb(this.db);
   }
 }
