@@ -228,7 +228,8 @@ describe('TenantManager', () => {
       const result = await manager.delete('t1');
 
       expect(result).toMatchObject({ id: 't1', status: 'suspended' });
-      expect(db.update).toHaveBeenCalledTimes(1);
+      // tenant row + sessions + api_keys revokes (W3-3 funnel) = 3 updates
+      expect(db.update).toHaveBeenCalledTimes(3);
       expect(db.delete).not.toHaveBeenCalled(); // soft — never a hard delete
       expect(mockInvalidate).toHaveBeenCalledWith('t1');
     });

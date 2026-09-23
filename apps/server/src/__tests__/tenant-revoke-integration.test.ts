@@ -29,6 +29,7 @@ const pgUp = await (async () => {
 })();
 
 let pool: pg.Pool;
+const managers: { close: () => Promise<void> }[] = [];
 
 beforeAll(async () => {
   execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`]);
@@ -44,6 +45,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  for (const m of managers) await m.close();
   await pool?.end();
   execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`]);
 });
@@ -97,6 +99,7 @@ describe.skipIf(!pgUp)('TenantManager.revokeTenantAccess (W3-3)', () => {
   it('suspend revokes the tenant sessions+keys, leaves other tenants untouched, is one-way', async () => {
     const { TenantManager } = await import('@accessbase/identity');
     const mgr = new TenantManager(URL);
+    managers.push(mgr);
     const t1 = await mkTenant('acme-susp');
     const t2 = await mkTenant('other-keep');
     const u1 = await mkUser(t1, 'u1');
@@ -123,6 +126,7 @@ describe.skipIf(!pgUp)('TenantManager.revokeTenantAccess (W3-3)', () => {
   it('delete() delegates through the same funnel; default tenant stays protected', async () => {
     const { TenantManager } = await import('@accessbase/identity');
     const mgr = new TenantManager(URL);
+    managers.push(mgr);
     const t = await mkTenant('via-delete');
     const u = await mkUser(t, 'ud');
     const s = await mkSession(u);

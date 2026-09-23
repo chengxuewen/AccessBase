@@ -230,6 +230,12 @@ export class TenantManager {
     return this.update(id, { status: 'suspended' });
   }
 
+  /** Release the internally-created pool (test suites / graceful shutdown). */
+  async close(): Promise<void> {
+    const { closeDb } = await import('../db/index.js');
+    await closeDb(this.db);
+  }
+
   /**
    * Map database row to application Tenant type.
    */
