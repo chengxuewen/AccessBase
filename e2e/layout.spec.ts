@@ -197,4 +197,23 @@ test.describe('Layout', () => {
     await expect(page.locator('.ant-breadcrumb')).toBeVisible();
     await expect(page.locator('.ant-breadcrumb')).toContainText('Users');
   });
+
+  // Sync-round regression lock: pages added after SEGMENT_KEYS' first edition
+  // (tenants/settings/clients/api-keys) must render translated breadcrumbs,
+  // not the raw URL segment.
+  test('breadcrumb translates tenants/settings/clients/api-keys segments', async ({ page }) => {
+    await login(page);
+    await mockCommonApis(page);
+    const cases: Array<[string, string]> = [
+      ['/tenants', 'Tenants'],
+      ['/settings', 'Settings'],
+      ['/clients', 'OIDC Clients'],
+      ['/api-keys', 'API Keys'],
+    ];
+    for (const [path, label] of cases) {
+      await page.goto(path);
+      await expect(page.locator('.ant-breadcrumb')).toContainText(label);
+      await expect(page.locator('.ant-breadcrumb')).not.toContainText(path.slice(1));
+    }
+  });
 });

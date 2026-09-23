@@ -65,42 +65,42 @@
 - **解法**: `pnpm add @fastify/static@^6.0.0`（Fastify 4.x）或升级到 Fastify 5
 - **验证**: `cat apps/server/node_modules/@fastify/static/package.json | grep version` 确认 v6.x
 
-## PIT-0010: setupGuard 拦截静态资源导致 403 (2026-08-27)
+## PIT-10: setupGuard 拦截静态资源导致 403 (2026-08-27)
 
 - **症状**: Deploy 模式下 `/` 返回 403 Forbidden，API 正常
 - **根因**: setupGuard 中间件对所有非 `/api/v1/setup` 路径返回 403（setup 未完成时）。`/`、`/assets/*`、`/index.html` 都被拦截
 - **解法**: `ALLOWED_PATHS` 数组添加 `'/'`, `'/index.html'`, `'/assets/'`, `'/favicon'`
 - **验证**: `curl http://localhost:5101/` 返回 `<!DOCTYPE html>`
 
-## PIT-0011: lsof | xargs kill 误杀 VS Code 进程 (2026-08-26)
+## PIT-11: lsof | xargs kill 误杀 VS Code 进程 (2026-08-26)
 
 - **症状**: `bash accessbase.sh reset` 后 VS Code SSH 远程连接断开
 - **根因**: `lsof -ti :PORT | xargs kill` 可能匹配到 VS Code 的 Node.js 子进程（extensionHost、language server）
 - **解法**: 用 PID 文件追踪（`dev` 写 PID，`stop` 读 PID 杀进程）。兜底用 `lsof` 但检查 `ps -p PID -o comm=` 是否含 `node`
 - **验证**: `bash accessbase.sh dev` → 另终端 `bash accessbase.sh stop` → VS Code 不断连
 
-## PIT-0012: bash set -u 与 $! 后台 PID 不兼容 (2026-08-27)
+## PIT-12: bash set -u 与 $! 后台 PID 不兼容 (2026-08-27)
 
 - **症状**: `start.sh` 报 `$!: unbound variable`，即使 node 正常后台启动
 - **根因**: `set -euo pipefail` 中的 `nounset` 对 `$!`（最近后台 PID）生效。如果 node 启动瞬间失败，`$!` 未设置
 - **解法**: `set -eo pipefail`（去掉 `u`），或 `set +u` 包裹 `$!` 使用处
 - **验证**: `bash -n scripts/deploy/start.sh` 通过
 
-## PIT-0013: initializeAdmin 不标记 setupState 导致 wizard 重复出现 (2026-08-27)
+## PIT-13: initializeAdmin 不标记 setupState 导致 wizard 重复出现 (2026-08-27)
 
 - **症状**: Server 启动自动创建 admin，但浏览器仍显示 setup wizard，尝试创建 admin 返回 400
 - **根因**: `initializeAdmin()` 创建 admin 后没调用 `setAdminExists(true)` + `setIsInitialized(true)` + `setSetupComplete(true)`
 - **解法**: admin 创建成功或已存在时，都标记三个状态为 true
 - **验证**: `curl /api/v1/setup/status` → `isInitialized: true, adminExists: true`
 
-## PIT-0014: 前端 API 路径缺 /v1 前缀 (2026-08-27)
+## PIT-14: 前端 API 路径缺 /v1 前缀 (2026-08-27)
 
 - **症状**: `POST /api/auth/login 404`，后端路由在 `/api/v1/auth/login`
 - **根因**: 前端 `client.post('/auth/login')` + `baseURL: '/api'` → 实际 `/api/auth/login`，缺 `/v1`
 - **解法**: `client.post('/v1/auth/login')`
 - **验证**: 浏览器 Network 面板确认请求路径包含 `/v1/`
 
-## PIT-0015: axios response.data 双层解构 (2026-08-27)
+## PIT-15: axios response.data 双层解构 (2026-08-27)
 
 - **症状**: `login()` 后 `token` 为 `undefined`，localStorage 只存了 `{isAuthenticated: true}`
 - **根因**: axios 的 `response.data` 已经是 `{success, data: {accessToken, ...}}`。代码 `const { data } = await client.post(...); const { accessToken } = data` 解构的是外层（得到 `success`），不是内层 `data.data`
@@ -111,28 +111,28 @@
 - **验证（新增）**: `e2e/auth-session.spec.ts` R1/R2 回归锁（refresh 轮换 + 重用检测）
 - **禁止**: 新 API 调用点不带 `ApiEnvelope` 泛型直接解构 `response.data`
 
-## PIT-0016: Zustand persist 不持久化 isAuthenticated 导致 PrivateRoute 误判 (2026-08-27)
+## PIT-16: Zustand persist 不持久化 isAuthenticated 导致 PrivateRoute 误判 (2026-08-27)
 
 - **症状**: 登录成功后刷新页面，跳回 `/login`。`PrivateRoute` 检查 `isAuthenticated` 为 `false`
 - **根因**: Zustand persist 的 `partialize` 没包含 `isAuthenticated`。页面刷新后 store 重置为默认值 `false`，localStorage 没存它
 - **解法**: `partialize` 加 `isAuthenticated: state.isAuthenticated`，同时 `PrivateRoute` 检查 `token || isAuthenticated`（token 总是被持久化）
 - **验证**: 登录后刷新页面，确认不跳回 `/login`
 
-## PIT-0017: E2E 测试中 Vite 进程被 bash timeout 杀掉 (2026-08-27)
+## PIT-17: E2E 测试中 Vite 进程被 bash timeout 杀掉 (2026-08-27)
 
 - **症状**: Playwright 测试报 `ERR_CONNECTION_REFUSED at http://localhost:5173`。Vite 进程在 bash 工具 timeout 后被 SIGTERM
 - **根因**: bash 工具 timeout 会杀掉所有子进程（包括后台 `&` 的 Vite）。`nohup`/`disown` 不够，`setsid` 也可能被杀
 - **解法**: Playwright 的 `webServer` 配置加 `reuseExistingServer: true`，让 Playwright 管理 Vite 生命周期。或在 CI 中用独立 shell 启动服务
 - **验证**: `npx playwright test` 不报 `ERR_CONNECTION_REFUSED`
 
-## PIT-0018: E2E beforeEach login 失败因 admin 用户被前一个测试删除 (2026-08-27)
+## PIT-18: E2E beforeEach login 失败因 admin 用户被前一个测试删除 (2026-08-27)
 
 - **症状**: 第 4 个 E2E 测试 `beforeEach` 登录失败 `401 Invalid credentials`
 - **根因**: 第 3 个测试 (delete) 删除了 admin 用户。后续测试的 `beforeEach` 尝试用已删除的用户登录
 - **解法**: `beforeEach` 中检测 401 → 通过 API 重新创建 admin → 重试登录。或用 mock 模式避免真实后端依赖
 - **验证**: 连续运行所有 E2E 测试，每个测试都能独立通过
 
-## PIT-0019: Ant Design Modal 按钮文本是 i18n 翻译值不是 "OK" (2026-08-27)
+## PIT-19: Ant Design Modal 按钮文本是 i18n 翻译值不是 "OK" (2026-08-27)
 
 - **症状**: E2E 测试 `button:has-text("OK")` 找不到 Modal 确认按钮
 - **根因**: `okText={t('common.confirm')}` → 英文环境显示 "Confirm"，中文环境显示 "确认"，不是 "OK"
@@ -387,6 +387,19 @@
 - **解法**: 维护签发路径清单（status.md 或 conventions）：每处列出 status 门/claim/限流/MFA step-up 四要素状态；新增路径的 plan 评审必须对照清单逐项打勾。
 - **验证**: conventions 或 status 维护"签发路径×安全要素"矩阵；新路径 PR 引用矩阵。
 
+### PIT-052 矩阵更新（Batch I，2026-09-16）：八签发点
+
+| 签发路径 | status 门 | tenantId claim | 限流 | MFA step-up |
+|---|---|---|---|---|
+| login (auth.ts:163) | ✅ verifyPassword 前置 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify |
+| ldap (auth.ts:~1245) | ✅ changeStatus 前置 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify |
+| webauthn (webauthn.ts:~313) | ✅ suspended 门 | ✅ issueTokenPair | — | ✅ mfa_verify |
+| oauth callback→exchange (oauth.ts:~482) | ✅ suspended 门 | ✅ issueTokenPair | — | ✅ mfa_verify (exchange 时) |
+| saml ACS→exchange (saml.ts:~198) | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify (exchange 时) |
+| magic-consume (auth.ts:~875) | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify |
+| **sms-otp-verify (auth.ts:~1010)** | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify (R2 零 lockout) |
+| mfa/verify (auth.ts:~1029) | ✅ (会话签发) | ✅ issueTokenPair | ✅ | — (本身是 step-up) |
+
 ## PIT-053: 远程 subagent 修复波提交落 detached HEAD (2026-09-16)
 
 - **症状**: 批次 F 终审修复波 commit b157edc 报告"分离头指针"，master 仍停在 e9dbfd4 前一位——后 2 个批次提交不在任何分支上
@@ -422,18 +435,6 @@
 - **解法**: 协议字段映射必须从内部实现的实际 offset/limit 公式反推换算式（此处 page=ceil(startIndex/count)），并加非不动点测试值（如 startIndex=11&count=10→page=2）锁死
 - **验证**: scim.test.ts 含 `startIndex=11&count=10 → findAll({page:2,pageSize:10})` probe 断言
 
-## PIT-052 矩阵更新（Batch I，2026-09-16）：八签发点
-
-| 签发路径 | status 门 | tenantId claim | 限流 | MFA step-up |
-|---|---|---|---|---|
-| login (auth.ts:163) | ✅ verifyPassword 前置 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify |
-| ldap (auth.ts:~1245) | ✅ changeStatus 前置 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify |
-| webauthn (webauthn.ts:~313) | ✅ suspended 门 | ✅ issueTokenPair | — | ✅ mfa_verify |
-| oauth callback→exchange (oauth.ts:~482) | ✅ suspended 门 | ✅ issueTokenPair | — | ✅ mfa_verify (exchange 时) |
-| saml ACS→exchange (saml.ts:~198) | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify (exchange 时) |
-| magic-consume (auth.ts:~875) | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify |
-| **sms-otp-verify (auth.ts:~1010)** | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify (R2 零 lockout) |
-| mfa/verify (auth.ts:~1029) | ✅ (会话签发) | ✅ issueTokenPair | ✅ | — (本身是 step-up) |
 
 ## PIT-058: 对 Promise<void> 解包值做 !== undefined 判据 = 恒假断链 (2026-09-18)
 

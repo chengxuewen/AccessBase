@@ -1,19 +1,19 @@
 # AccessBase 项目状态
 
-**更新日期**: 2026-09-20
-**当前阶段**: Phase 8a 完成 + 增强批次 A-N 全部落地（安全堵洞/性能/OIDC RP/API Key/审计+LDAP/MFA 对齐/SAML+Magic Link/多租户/SCIM/SMS OTP/清债/防线/运维P0/多租户控制面/运维剩余/OIDC持久化），详见近期工作尾部
+**更新日期**: 2026-09-23
+**当前阶段**: Phase 9 完成 + 增强批次 A-O 全部落地（安全堵洞/性能/OIDC RP/API Key/审计+LDAP/MFA 对齐/SAML+Magic Link/多租户/SCIM/SMS OTP/清债/防线/运维P0/多租户控制面/运维剩余/OIDC持久化），详见近期工作尾部
 
 ## 模块状态
 
 | 模块         | 状态      | 描述                               |
 | ------------ | --------- | ---------------------------------- |
 | 设计文档     | ✅ v3.0   | 42 章节 + 14 个补充 + 35+ 项目参考 |
-| 设计决策     | ✅ D1-D116 | 116 个设计决策                     |
+| 设计决策     | ✅ D1-D124 | 122 项决策（D107/D108 未用）                     |
 | 包 SDD       | ✅ 8 个   | 所有 L0 包详细设计                 |
 | L0 包实施    | ✅ 8 个   | 全部实施完成                       |
 | Fastify 服务 | ✅        | REST API + 中间件链                |
 | Admin UI     | ✅        | React + Ant Design Pro             |
-| 测试         | ✅ 364+80 个 | 364 vitest + 80 E2E chromium（全绿，test.fail 清零） |
+| 测试         | ✅ 931+137 个 | vitest 931（含 18 真 PG 集成）+ e2e chromium 137 passed + 3 条件 skip（全绿） |
 | Docker       | ✅        | 多阶段构建 + 3 种运行模式          |
 | CI/CD        | ✅        | GitHub Actions                     |
 | 构建模式     | ✅ 4 种   | native / container / compose / deploy |
@@ -53,7 +53,7 @@ docs/
 
 ## 设计决策汇总
 
-共 116 个设计决策（D1-D116）
+共 122 个设计决策（D1-D124，D107/D108 历史跳号未用）
 
 - D1-D80: 原始设计决策
 - D81-D95: 从 35+ 项目参考中提炼
@@ -71,7 +71,8 @@ docs/
 | health   | service.test.ts                     | 11         |
 | audit    | logger.test.ts                      | 10         |
 | server   | routes/auth/mfa/oauth/webauthn/stats 等 | 199    |
-| **合计** | **37 文件**                         | **364 ✅** |
+| **合计** | — | **931 ✅**（表行为 2026-09-03 快照；后续增量全部登记于近期工作批次行，权威数以 `pixi run npx vitest run` 实跑为准） |
+
 
 > 包行系 2026-09-03 快照；Phase 8a 增量在 identity（PermissionManager/authorize）、server（route-guard/seed/me）、admin-ui（errors/sortParams 新纳入）共 +43，见近期工作行。
 

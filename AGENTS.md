@@ -1,12 +1,12 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-08-21
-**Status:** Phase 8a 完成（RBAC 授权强制接线 + MFA 自助面板 + UI 速赢终审通过）
+**Generated:** 2026-08-21 · **Updated:** 2026-09-23
+**Status:** Phase 9 + enhancement batches A-O complete (RBAC enforcement, MFA, OIDC IdP+RP, SAML/magic-link/SMS OTP, multi-tenant control plane, SCIM, API keys, audit, ops hardening, drizzle-kit v7 toolchain)
 **Stack:** TypeScript / Fastify / React / Ant Design / Drizzle ORM / PostgreSQL / Redis
 
 ## OVERVIEW
 
-AccessBase is an enterprise access control foundation (IAM) providing authentication, authorization, and audit capabilities. Currently in Phase 8a — RBAC enforcement wired end-to-end (9-code permission seed + requirePermission route guards + frontend menu/route gates with /403 reachable), MFA self-service TOTP panel delivered, vitest 364 + e2e chromium 80 all green.
+AccessBase is an enterprise access control foundation (IAM) providing authentication, authorization, and audit capabilities. Currently past Phase 9 — full IAM surface: RBAC enforcement with tenant partition (21-code seed, requirePermission guards), MFA self-service, OIDC Provider + generic RP, SAML SP, magic link, SMS OTP, WebAuthn, OAuth, LDAP, SCIM 2.0, API keys, multi-tenant control plane, audit + metrics + backup ops line; vitest 931 + e2e chromium 137 (+3 conditional skip) all green.
 
 ## STRUCTURE
 
@@ -14,7 +14,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 .
 ├── docs/                    # Design documentation
 │   ├── architecture.md      # Stub index → modules/
-│   ├── modules/             # 31 modular design docs + 8 SDD docs (split from architecture.md)
+│   ├── modules/             # 35 modular design docs + 8 SDD docs (split from architecture.md)
 ├── .agents/                 # AI agent configuration
 │   ├── skills/              # 12 project-specific skills (graphify, test-harness, etc.)
 │   ├── rules/               # Coding rules by language (15 dirs)
@@ -35,7 +35,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 | UI design             | `docs/modules/ui.md`            | §14+§37 merged (2678 lines)                    |
 | Database schema       | `docs/modules/database.md`      | §22 core tables                                |
 | API spec              | `docs/modules/api.md`           | §23 RESTful conventions                        |
-| Design decisions      | `.agents/memorys/decisions.md`  | D1-D116 with rationale                         |
+| Design decisions      | `.agents/memorys/decisions.md`  | D1-D124 with rationale                         |
 | Project status        | `.agents/memorys/status.md`     | Current phase, blockers                        |
 | Coding rules          | `.agents/rules/`                | Per-language rules                             |
 | Skills                | `.agents/skills/`               | graphify, test-harness, design-system, etc.         |         |
@@ -117,8 +117,8 @@ pixi run dev                        # Same as bash accessbase.sh dev:native
 
 ## NOTES
 
-- 116 design decisions documented in `.agents/memorys/decisions.md` (D1-D116)
-- 52 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~052)
+- 122 design decisions documented in `.agents/memorys/decisions.md` (D1-D124; D107/D108 never used)
+- 76 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~076)
 - Architecture doc split into 31 modules under `docs/modules/`
 - Each module has back-link to `architecture.md` stub
 - Reference implementation (new-api) in `.refinfo/` for studying patterns

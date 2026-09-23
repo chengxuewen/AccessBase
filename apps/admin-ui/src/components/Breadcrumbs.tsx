@@ -11,6 +11,12 @@ const SEGMENT_KEYS: Record<string, string> = {
   profile: 'menu.profile',
   create: 'users.create',
   edit: 'common.edit',
+  // Batch sync round: pages added after this table's first edition rendered raw
+  // URL segments in breadcrumbs — map them to their menu.* keys.
+  tenants: 'menu.tenants',
+  settings: 'menu.settings',
+  clients: 'menu.clients',
+  'api-keys': 'menu.apiKeys',
 };
 
 export default function Breadcrumbs() {
