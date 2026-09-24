@@ -1,0 +1,12 @@
+# Q4a Helpdesk Trio — Design Spec
+
+**Driver**: gap-audit market H (admin holding plaintext passwords) · **Baseline**: `78cdbad` · **Facts**: `resetPassword(userId,newPassword)` UM:313; `revokeAllUserSessions` SM:240; force-logout route precedent users.ts:366-390; ResetPassword page + `/auth/reset-password` endpoint consume purpose 'password_reset' {token,newPassword}.
+
+## Items
+1. **Column** `users.must_change_password boolean notNull default false` — chain 0007 (drizzle generate) + SENTINELS entry (`0007|SELECT must_change_password FROM users LIMIT 1`) + dev db:push + ops counts 7→8.
+2. **Admin reset**: `POST /v1/users/:id/reset-password` (users:write, tenant-scoped findById first): policy(user_create profile) → routeTx{ UM.resetPassword + set mustChangePassword=true } → revokeAllUserSessions → 200. Plaintext never logged/returned (redactor already covers oldpassword/newpassword families — body field `newPassword` rides the existing rule).
+3. **Force change on next login**: /auth/login — AFTER active/suspended gates, BEFORE enroll/TOTP arms: `if (user.mustChangePassword) → flowTokens.issue('password_reset',{userId},1800) → 200 {passwordChangeRequired:true, flowToken}` (NO session). `/auth/reset-password` gains: after successful set → clear must_change_password (same update in resetPassword manager: passwordHash+mustChangePassword:false). Invited users have flag=false → same endpoint is plain set-password. Frontend: store login branch (passwordChangeRequired→ navigate `/reset-password?token=ft`) mirroring enroll handoff; Login.tsx guard like mfa card.
+4. **Invite email**: `POST /v1/users/:id/invite` (users:write): user exists + no password set OR mustChange true → issue 'password_reset' 72h + Mailer lane (best-effort, subject "Set your password", link `${origin}/reset-password?token=`; origin via resolvePublicOrigin; 202 constant-shape when SMTP missing mirrors forgot). UI: UserDetail action button (Popconfirm not needed — informational send) + create-user "send invite" checkbox posts invite after create when password left blank. Users.ts detail button row.
+5. **Reality catalog**: no new wire codes (shapes reuse). New login RESPONSE field only.
+6. **E2E**: admin-reset modal happy; force-change round trip (login mock returns passwordChangeRequired → URL /reset-password → submit → pair issued via existing mock); invite POST payload.
+**Order/gates**: RED unit first (login arm + endpoints), vitest/4×tsc/eslint, e2e targeted then full, close-out.
