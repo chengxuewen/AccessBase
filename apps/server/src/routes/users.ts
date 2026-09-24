@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { FlowTokenService, UserManager, RoleManager, SessionManager } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { getSmtpMailer, resolvePublicOrigin } from './auth.js';
+import { renderEmailFor } from '../utils/email-templates.js';
 import { assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { routeTx } from '../utils/tx.js';
@@ -432,8 +433,13 @@ const error = err instanceof Error ? err : new Error(String(err));
       }
       const origin = await resolvePublicOrigin(request, getOptionsManager());
       const link = `${origin}/reset-password?token=${token}`;
+      const rendered = await renderEmailFor(
+        'invite',
+        { link, invitee: target.email, inviter: 'An administrator' },
+        getOptionsManager(),
+      );
       mailer
-        .send(target.email, 'Set your password', `<p>Click to set your password (valid 72 hours): <a href="${link}">${link}</a></p>`)
+        .send(target.email, rendered.subject, rendered.html)
         .catch((err: unknown) => {
           request.log.warn({ err }, 'invite mail delivery failed (degraded to log)');
         });

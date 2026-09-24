@@ -47,7 +47,7 @@ function mockDb() {
 
 // ---------- constants ----------
 
-const EXPECTED_PERMISSION_COUNT = 24;
+const EXPECTED_PERMISSION_COUNT = 26;
 // ---------- tests ----------
 
 describe('seedBuiltinPermissions', () => {

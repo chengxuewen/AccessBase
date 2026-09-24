@@ -10,6 +10,7 @@ import { checkCaptcha, newCaptcha, storeCaptchaAnswer, captchaFeatureOn } from '
 import { routeTx } from '../utils/tx.js';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
+import { renderEmailFor } from '../utils/email-templates.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { logger } from '@accessbase/logging';
 
@@ -466,11 +467,8 @@ export async function authRoutes(app: FastifyInstance) {
           const vtoken = await flowTokens.issue('email_verify', { userId: user.id }, 86400);
           const origin = await resolvePublicOrigin(request, getOptionsManager());
           const link = `${origin}/verify-email?token=${vtoken}`;
-          await mailer.send(
-            user.email,
-            'Verify your email',
-            `<p>Confirm your address: <a href="${link}">${link}</a></p>`,
-          );
+          const rendered = await renderEmailFor('verify', { link, name: user.name }, getOptionsManager());
+          await mailer.send(user.email, rendered.subject, rendered.html);
         })
         .catch((err: unknown) => {
           request.log.warn({ err }, 'verify-email send at register failed (best-effort)');
@@ -925,7 +923,8 @@ return { success: true };
         if (mailer) {
           const link = `${process.env['FRONTEND_ORIGIN'] ?? ''}/reset-password?token=${token}`;
           // Async: response returns immediately — SMTP RTT is an enumeration timing side-channel (batch F review)
-          mailer.send(email, 'Reset your password', `<p>Click to reset: <a href="${link}">${link}</a></p>`).catch((err: unknown) => {
+          const rendered = await renderEmailFor('reset', { link, name: user.name }, options);
+          mailer.send(email, rendered.subject, rendered.html).catch((err: unknown) => {
             logger.warn({ err }, 'Reset email delivery failed (degraded to log)');
           });
         } else {
@@ -1011,7 +1010,8 @@ return { success: true };
           }
           const link = `${origin}/login/magic?token=${token}`;
           // Async: response returns immediately — SMTP RTT is an enumeration timing side-channel (batch F review)
-          mailer.send(email, 'Your sign-in link', `<p>Click to sign in: <a href="${link}">${link}</a></p>`).catch((err: unknown) => {
+          const rendered = await renderEmailFor('magic', { link, name: user.name }, options);
+          mailer.send(email, rendered.subject, rendered.html).catch((err: unknown) => {
             logger.warn({ err }, 'Magic link delivery failed (degraded to log)');
           });
         } else {

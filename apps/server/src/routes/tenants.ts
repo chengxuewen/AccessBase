@@ -223,8 +223,8 @@ export async function tenantRoutes(app: FastifyInstance) {
   );
 
   // POST /api/v1/tenants/:id/bootstrap — cold-start a tenant (L′ spec D2):
-  // find-or-create its 'admin' role (isSystem-stamped), STRICT-bind the 9
-  // tenant-bindable codes, then create + assign the first administrator.
+  // find-or-create its 'admin' role (isSystem-stamped), STRICT-bind the full
+  // dynamic TENANT_BINDABLE partition, then create + assign the first administrator.
   // Same-tenant email holder = idempotent replay (200); other-tenant email =
   // 409 (users.email is globally unique).
   app.post<{ Params: { id: string } }>(

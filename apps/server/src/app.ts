@@ -26,6 +26,8 @@ import { webauthnRoutes } from './routes/webauthn.js';
 import { optionsRoutes } from './routes/options.js';
 import { clientRoutes } from './routes/clients.js';
 import { resolveCorsOrigin } from './cors.js';
+import { webhookRoutes } from './routes/webhooks.js';
+import { emailTemplateRoutes } from './routes/email-templates.js';
 import { getRedis } from './utils/redis.js';
 import { buildOidcProvider } from './oidc/provider.js';
 import { OidcClientManager, ApiKeyManager, hashApiKey } from '@accessbase/identity';
@@ -268,10 +270,61 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // is absent or the identity lane is mocked — never a boot failure).
   const { setupCacheCoherence } = await import('./utils/cache-coherence.js');
   const coherence = await setupCacheCoherence(app.log);
+  // Q4c: webhook dispatcher — HARD test gate (§5.7/B3): the loop is never
+  // registered under NODE_ENV=test (no ticks, no pools, no outbound fetch in
+  // suites or against shared DEV PG). Production wiring only; every externality injected.
+  let webhookDispatcher: { stop: () => Promise<void> } | undefined;
+  if (config.nodeEnv !== 'test') {
+    const pg = (await import('pg')).default;
+    const { startWebhookDispatcher } = await import('./utils/webhook-dispatcher.js');
+    const { decryptSecret } = await import('@accessbase/identity');
+    const { getOptionsManager } = await import('./routes/options.js');
+    // Kill-switch snapshot: env > option > true. The option refresh is
+    // fire-and-forget (dep is sync) so staleness is bounded by one tick.
+    let whEnabled = process.env['WEBHOOKS_ENABLED'] !== 'false';
+    const webhooksEnabled = () => {
+      void getOptionsManager()
+        .get<string>('webhooks_enabled', process.env['WEBHOOKS_ENABLED'], 'true')
+        .then((v) => { whEnabled = String(v).toLowerCase() !== 'false'; })
+        .catch(() => undefined);
+      return whEnabled;
+    };
+    const retentionRaw = Number.parseInt(process.env['WEBHOOK_RETENTION_DAYS'] ?? '7', 10);
+    const intervalRaw = Number.parseInt(process.env['WEBHOOK_DISPATCH_INTERVAL_MS'] ?? '', 10);
+    webhookDispatcher = startWebhookDispatcher({
+      makeDb: () => {
+        // Raw pg pool, not drizzle: the seam is text+$n params (the §5.2 CTE is
+        // spec-locked SQL); same max-min pool posture as the sweeper's own handle.
+        const pool = new pg.Pool({
+          connectionString: config.databaseUrl,
+          max: Number.parseInt(process.env['PG_POOL_MAX'] ?? '10', 10) || 10,
+        });
+        return {
+          query: async <T>(text: string, params?: unknown[]) => {
+            const r = await pool.query(text, params as never[] | undefined);
+            return (r.rows ?? []) as T[];
+          },
+          close: async () => {
+            await pool.end();
+          },
+        };
+      },
+      webhooksEnabled,
+      retentionDays: Number.isNaN(retentionRaw) || retentionRaw <= 0 ? 7 : retentionRaw,
+      intervalMs: Number.isNaN(intervalRaw) || intervalRaw <= 0 ? undefined : intervalRaw,
+      decrypt: decryptSecret,
+      fetchImpl: async (url, init) => {
+        const res = await fetch(url, init as RequestInit);
+        return { status: res.status };
+      },
+      logger: app.log,
+    });
+  }
   // Q2a(B): graceful close ends the singleton managers' pools + the sweeper's pool.
   app.addHook('onClose', async () => {
     await coherence.teardown();
     await retention.stop();
+    await webhookDispatcher?.stop();
     await resetManagers();
     await closeAuthDb();
   });
@@ -381,6 +434,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(roleRoutes, { prefix: '/api/v1/roles' });
   await app.register(tenantRoutes, { prefix: '/api/v1/tenants' });
   await app.register(groupRoutes, { prefix: '/api/v1/groups' });
+  await app.register(webhookRoutes, { prefix: '/api/v1/webhooks' });
+  await app.register(emailTemplateRoutes, { prefix: '/api/v1/email-templates' });
   // SCIM 2.0 (Batch H) — own bearer preHandler inside the plugin; never app.authenticate.
   await app.register(scimRoutes, { prefix: '/api/v1/scim/v2' });
   await app.register(permissionRoutes, { prefix: '/api/v1/permissions' });

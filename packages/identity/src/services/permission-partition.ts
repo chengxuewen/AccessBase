@@ -1,7 +1,7 @@
 /**
  * Permission partition — batch L′ (X1/X2).
  *
- * The 24 builtin permissions are exhaustively partitioned into the set a
+ * The 26 builtin permissions are exhaustively partitioned into the set a
  * NON-DEFAULT tenant may bind to its roles and the set reserved for the
  * platform (default tenant). Permission rows are global; this split is the
  * ceiling enforced by RoleManager.setRolePermissions for tenant callers so a
@@ -16,15 +16,18 @@
  * the last-admin census guards the isSystem-binding vector from both sides,
  * and membership is validated against the group's tenant on add.
  *
- * INVARIANT (pinned by tests): disjoint + union == the 24 BUILTIN_PERMISSIONS
- * INVARIANT (pinned by tests): disjoint + union == the 21 BUILTIN_PERMISSIONS
+ * webhooks:* is tenant-bindable (Q4c): endpoints are strictly tenant-scoped rows
+ * (the dispatcher fan-out pins w.tenant_id) and each carries a tenant-scope
+ * HMAC secret — no cross-tenant delivery is structurally possible.
+ *
+ * INVARIANT (pinned by tests): disjoint + union == the 26 BUILTIN_PERMISSIONS
  * names in apps/server/src/routes/permissions-seed.ts. Any new permission code
  * MUST be placed into exactly one of these lists (server-side invariant test
  * fails otherwise).
  */
 import { DEFAULT_TENANT_ID } from '../managers/TenantManager.js';
 
-/** Names a non-default tenant may bind to its roles (12 codes; Q4b adds groups:*). */
+/** Names a non-default tenant may bind to its roles (14 codes; Q4b groups, Q4c webhooks). */
 export const TENANT_BINDABLE_PERMISSIONS: ReadonlyArray<string> = [
   'users:read',
   'users:write',
@@ -38,6 +41,8 @@ export const TENANT_BINDABLE_PERMISSIONS: ReadonlyArray<string> = [
   'groups:read',
   'groups:write',
   'groups:delete',
+  'webhooks:read',
+  'webhooks:write',
 ];
 
 /** Names reserved to the platform/default tenant (12 codes). */

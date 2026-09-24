@@ -60,6 +60,13 @@ const routePermissions: Record<string, string> = {
   'POST:/api/v1/groups': 'groups:write',
   'PUT:/api/v1/groups': 'groups:write',
   'DELETE:/api/v1/groups': 'groups:delete',
+  'GET:/api/v1/webhooks': 'webhooks:read',
+  'POST:/api/v1/webhooks': 'webhooks:write',
+  'PUT:/api/v1/webhooks': 'webhooks:write',
+  'DELETE:/api/v1/webhooks': 'webhooks:write',
+  'GET:/api/v1/email-templates': 'options:read',
+  'PUT:/api/v1/email-templates': 'options:write',
+  'POST:/api/v1/email-templates': 'options:write',
 };
 
 /**

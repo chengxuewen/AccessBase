@@ -13,6 +13,7 @@ import type { FastifyInstance } from 'fastify';
 import { OptionsManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { requirePermission } from '../utils/permission.js';
+import { validateEmailTemplate, validateEmailLocale } from '../utils/email-templates.js';
 
 /** Keys matching this pattern are masked in GET and reject '******' on PUT. */
 export const SENSITIVE_KEY_PATTERN = /secret|password|token|key/i;
@@ -45,6 +46,15 @@ const KNOWN_OPTION_KEYS = new Set([
   'captcha_enabled',
   'auth_cidr_allow',
   'auth_cidr_deny',
+  // Q4c-T4 email templates (spec §7): jsonb-object template overrides +
+  // default recipient language. Q4c dispatcher kill-switch (app.ts snapshot
+  // closure; 'true'/'false' strings tolerated either way).
+  'webhooks_enabled',
+  'email_tmpl_verify',
+  'email_tmpl_reset',
+  'email_tmpl_magic',
+  'email_tmpl_invite',
+  'email_locale_default',
 ]);
 // Batch B dynamic provider secrets: oauth_<name>_client_secret (names are
 // lowercase/hyphen by convention — KEY_FORMAT-legal dots/uppercase in a
@@ -148,6 +158,26 @@ export async function optionsRoutes(app: FastifyInstance): Promise<void> {
           return reply.status(400).send({
             success: false,
             error: { code: 'OPT_001', message: urlErr },
+          });
+        }
+      }
+      // Q4c-T4 R8 dual-write closure: the generic PUT path applies the SAME
+      // validators the /email-templates routes use.
+      if (key.startsWith('email_tmpl_')) {
+        const tmplErr = validateEmailTemplate(value);
+        if (tmplErr) {
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'OPT_001', message: tmplErr },
+          });
+        }
+      }
+      if (key === 'email_locale_default') {
+        const localeErr = validateEmailLocale(value);
+        if (localeErr) {
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'OPT_001', message: localeErr },
           });
         }
       }

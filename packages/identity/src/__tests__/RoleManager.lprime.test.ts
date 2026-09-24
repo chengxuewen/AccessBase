@@ -219,8 +219,8 @@ describe('G-1 assignToUser replay safety', () => {
 });
 
 describe('partition lists (G-2 counts)', () => {
-  it('12 bindable + 12 platform-only, disjoint (Q4b adds groups:*)', () => {
-    expect(TENANT_BINDABLE_PERMISSIONS).toHaveLength(12);
+  it('14 bindable + 12 platform-only, disjoint (Q4b groups, Q4c webhooks)', () => {
+    expect(TENANT_BINDABLE_PERMISSIONS).toHaveLength(14);
     expect(PLATFORM_ONLY_PERMISSIONS).toHaveLength(12);
     expect(
       TENANT_BINDABLE_PERMISSIONS.filter((n) => PLATFORM_ONLY_PERMISSIONS.includes(n)),

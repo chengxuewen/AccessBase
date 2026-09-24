@@ -44,13 +44,13 @@ function makeMockDb() {
 const NAMES_ALL = BUILTIN_PERMISSIONS.map((p) => p.name);
 
 describe('partition invariant (X2 gate: every new code MUST be placed)', () => {
-  it('disjoint + union == BUILTIN names (24; Q4b +groups:*)', () => {
+  it('disjoint + union == BUILTIN names (26; Q4c +webhooks:*)', () => {
     expect(
       TENANT_BINDABLE_PERMISSIONS.filter((n) => PLATFORM_ONLY_PERMISSIONS.includes(n)),
     ).toEqual([]);
     const union = [...TENANT_BINDABLE_PERMISSIONS, ...PLATFORM_ONLY_PERMISSIONS].sort();
     expect(union).toEqual([...NAMES_ALL].sort());
-    expect(NAMES_ALL).toHaveLength(24);
+    expect(NAMES_ALL).toHaveLength(26);
   });
 });
 
@@ -75,11 +75,11 @@ describe('X4 strict bindPermissions kernel', () => {
       .mockReturnValueOnce(
         makeChain(TENANT_BINDABLE_PERMISSIONS.map((n, i) => ({ id: `p${i}`, name: n }))),
       )
-      .mockReturnValueOnce(makeChain([{ count: 7 }])); // assert: expected 12
+      .mockReturnValueOnce(makeChain([{ count: 7 }])); // assert: expected 14
 
     await expect(
       bindPermissions(db as never, 'role-1', TENANT_BINDABLE_PERMISSIONS),
-    ).rejects.toThrow(/holds 7 bindings, expected 12/);
+    ).rejects.toThrow(/holds 7 bindings, expected 14/);
   });
 
   it('resolves when insert/read/count all line up', async () => {

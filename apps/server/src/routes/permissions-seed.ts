@@ -37,6 +37,8 @@ export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: stri
   { name: 'groups:read', resource: 'groups', action: 'read', description: 'View user groups' },
   { name: 'groups:write', resource: 'groups', action: 'write', description: 'Create or update user groups' },
   { name: 'groups:delete', resource: 'groups', action: 'delete', description: 'Delete user groups' },
+  { name: 'webhooks:read', resource: 'webhooks', action: 'read', description: 'View webhook endpoints' },
+  { name: 'webhooks:write', resource: 'webhooks', action: 'write', description: 'Create or update webhook endpoints' },
 ];
 
 
