@@ -19,7 +19,7 @@ import type { FastifyInstance } from 'fastify';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../../..');
 const ADMIN_URL = 'postgresql://accessbase:accessbase@localhost:5432/postgres';
-const SCRATCH = 'accessbase_revocation_stack';
+const SCRATCH = `accessbase_revstack_${Date.now().toString(36)}`; // run-unique: no cross-file DROP races
 const URL = `postgresql://accessbase:accessbase@localhost:5432/${SCRATCH}`;
 const PS = path.join(ROOT, '.pixi/envs/native/bin/psql');
 const MIGRATE = path.join(ROOT, 'scripts/migrate.sh');
@@ -30,7 +30,7 @@ let sub: FastifyInstance;
 let bearer = '';
 let refreshToken = '';
 let userId = '';
-const rds = new Redis('redis://localhost:6379');
+const rds = new Redis('redis://localhost:6379', { maxRetriesPerRequest: 2, retryStrategy: () => null });
 let redisUp = false;
 try {
   await rds.ping();
@@ -40,7 +40,21 @@ try {
 }
 
 beforeAll(async () => {
-  execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`]);
+  // buildApp opens several scratch pools (oidc adapter et al.) that may still
+  // hold backends at this instant; terminate-then-drop makes cleanup terminal.
+  try {
+    execFileSync(PS, [ADMIN_URL, '-qc', `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${SCRATCH}' AND pid <> pg_backend_pid()`], { stdio: 'ignore' });
+  } catch { /* best effort */ }
+  try {
+    try {
+    const { execSync } = await import('node:child_process');
+    const orphans = execSync(`"${PS}" "${ADMIN_URL}" -tAc "SELECT datname FROM pg_database WHERE datname LIKE 'accessbase_revstack_%'"`, { encoding: 'utf8' }).trim();
+    for (const name of orphans.split('\n').filter(Boolean)) {
+      execSync(`"${PS}" "${ADMIN_URL}" -qc "DROP DATABASE IF EXISTS ${name}"`, { stdio: 'ignore' });
+    }
+  } catch { /* fresh box or locked orphans — harmless */ }
+  execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`], { stdio: 'ignore' });
+  } catch { /* next-run beforeAll reclaims */ }
   execFileSync(PS, [ADMIN_URL, '-qc', `CREATE DATABASE ${SCRATCH}`]);
   execFileSync('bash', [MIGRATE, path.join(ROOT, 'packages/migration/drizzle')], {
     env: {
@@ -73,10 +87,17 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await sub?.close();
+  await pool?.end().catch(() => undefined);
   if (userId) await rds.del(`authst:${userId}`).catch(() => undefined);
   await rds.quit().catch(() => undefined);
-  await pool?.end().catch(() => undefined);
-  execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`], { stdio: 'ignore' });
+  // plugin-scope pools (setup.ts wizard managers, oidc adapter db) may still
+  // hold backends — terminate first, then a best-effort drop.
+  try {
+    execFileSync(PS, [ADMIN_URL, '-qc', `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${SCRATCH}' AND pid <> pg_backend_pid()`], { stdio: 'ignore' });
+    execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`], { stdio: 'ignore' });
+  } catch {
+    /* orphan scratch DBs are reclaimed by the next run's prefix sweep */
+  }
 });
 
 describe.skipIf(!redisUp)('bearer revocation end-to-end (live stack)', () => {
