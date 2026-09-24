@@ -107,7 +107,7 @@ describe.skipIf(!redisUp)('bearer revocation end-to-end (live stack)', () => {
     expect(await rds.exists(`authst:${userId}`)).toBe(1);
   });
 
-  it('authorization mutation → SAME bearer dies on next request (≤2s ≪ 30s), refresh rebuilds, legacy claim passes', async () => {
+  it('authorization mutation → SAME bearer dies on next request (≤2s ≪ 30s), refresh rebuilds, legacy claim passes', { timeout: 30_000 }, async () => {
     // mutate via the real RoleManager (production path: assign → bumpAuthState + DEL)
     const { RoleManager } = await import('@accessbase/identity');
     const rm = new RoleManager(URL);

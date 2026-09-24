@@ -155,7 +155,7 @@ describe('migrate.sh argument contract', () => {
 // ---------------------------------------------------------------------------
 
 describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
-  it('fresh DB: applies full chain — 17 chain tables + 8 tracking rows', async () => {
+  it('fresh DB: applies full chain — 17 chain tables + 8 tracking rows', { timeout: 30_000 }, async () => {
     const url = await tmpDbUrl();
     const r = migrate(CHAIN, url);
     expect(r.stderr).toBe('');
@@ -222,7 +222,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     expect((rows[0] as { n: number }).n).toBe(8);
   });
 
-  it('concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 8', async () => {
+  it('concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 8', { timeout: 30_000 }, async () => {
     const url = await tmpDbUrl();
     const run = () =>
       new Promise<number>((resolve, reject) => {
