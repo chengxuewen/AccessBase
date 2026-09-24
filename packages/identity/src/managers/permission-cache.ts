@@ -19,16 +19,35 @@ export function permissionCacheKey(tenantId: string, userId: string): string {
   return `perm:${tenantId}:${userId}`;
 }
 
-export function invalidatePermissionCache(tenantId?: string, userId?: string): void {
+export type CachePublishHook = (tenantId?: string, userId?: string) => void;
+let publishHook: CachePublishHook | undefined;
+/** Q2c: server boot registers a redis-publisher so OTHER nodes drop their
+ * per-process copies too (cross-node coherence without dropping the leaf
+ * module's zero-dependency shape). */
+export function setPermissionCachePublishHook(hook: CachePublishHook | undefined): void {
+  publishHook = hook;
+}
+
+export function invalidatePermissionCache(
+  tenantId?: string,
+  userId?: string,
+  opts?: { fromRemote?: boolean },
+): void {
+  const announce = (t?: string, u?: string) => {
+    if (!opts?.fromRemote) publishHook?.(t, u);
+  };
   if (!tenantId) {
     cache.clear();
+    announce();
     return;
   }
   if (!userId) {
     for (const k of cache.keys()) if (k.startsWith(`perm:${tenantId}:`)) cache.delete(k);
+    announce(tenantId);
     return;
   }
   cache.delete(permissionCacheKey(tenantId, userId));
+  announce(tenantId, userId);
 }
 
 export function resetPermissionCache(): void {

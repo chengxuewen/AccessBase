@@ -10,6 +10,13 @@ export { RoleManager } from './managers/RoleManager.js';
 export { TenantManager, DEFAULT_TENANT_ID, TENANT_PROTECTED, type Tenant } from './managers/TenantManager.js';
 export { PermissionManager } from './managers/PermissionManager.js';
 export { SessionManager } from './managers/SessionManager.js';
+export {
+  invalidatePermissionCache,
+  setPermissionCachePublishHook,
+  resetPermissionCache,
+  permissionCacheKey,
+  PERMISSION_CACHE_TTL_MS,
+} from './managers/permission-cache.js';
 export { MfaManager } from './managers/MfaManager.js';
 export { OptionsManager, type OptionEntry } from './managers/OptionsManager.js';
 export { OidcClientManager, encryptSecret, decryptSecret, type OidcClientListRow } from './managers/OidcClientManager.js';

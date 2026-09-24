@@ -3,7 +3,7 @@
  * Seeds 21 {resource, action} permissions and binds all to the admin role.
  */
 import { and, count, eq, inArray, sql } from 'drizzle-orm';
-import type { DrizzleDB } from '@accessbase/identity/db';
+import type { DbLike, DrizzleDB } from '@accessbase/identity/db';
 import { permissions, rolePermissions, roles, tenants } from '@accessbase/identity/db';
 import { logger } from '@accessbase/logging';
 import { DEFAULT_TENANT } from '../utils/constants.js';
@@ -67,7 +67,7 @@ export async function ensureDefaultTenantRow(db: DrizzleDB): Promise<void> {
  * CONFLICT DO NOTHING, so repeated calls converge on the same state.
  */
 export async function bindPermissions(
-  db: DrizzleDB,
+  db: DbLike,
   roleId: string,
   names: ReadonlyArray<string>,
 ): Promise<void> {

@@ -44,11 +44,16 @@ export class RoleManager {
   /**
    * Create role (tenant-level)
    */
-  async create(data: CreateRoleInput, tenantId: string): Promise<Role> {
+  async create(
+    data: CreateRoleInput,
+    tenantId: string,
+    db?: DbLike,
+  ): Promise<Role> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Creating role: ${data.name} in tenant: ${tenantId}`);
 
     // Check for duplicate role name in tenant
-    const existing = await this.db
+    const existing = await d
       .select()
       .from(roles)
       .where(and(eq(roles.name, data.name), eq(roles.tenantId, tenantId)))
@@ -61,7 +66,7 @@ export class RoleManager {
 
     // Validate parent role exists if provided
     if (data.parentId) {
-      const parent = await this.db
+      const parent = await d
         .select()
         .from(roles)
         .where(and(eq(roles.id, data.parentId), eq(roles.tenantId, tenantId)))
@@ -86,7 +91,7 @@ export class RoleManager {
       isSystem: data.isSystem ?? false,
     };
 
-    const [inserted] = await this.db.insert(roles).values(newRole).returning();
+    const [inserted] = await d.insert(roles).values(newRole).returning();
 
     if (!inserted) {
       throw new Error('Failed to create role');
@@ -94,7 +99,7 @@ export class RoleManager {
 
     // Assign permissions if provided
     if (data.permissionIds && data.permissionIds.length > 0) {
-      await this.setRolePermissions(inserted.id, data.permissionIds, tenantId);
+      await this.setRolePermissions(inserted.id, data.permissionIds, tenantId, db);
     }
 
     return this.mapToRole(inserted, []);
@@ -396,10 +401,11 @@ export class RoleManager {
   /**
    * Assign role to user
    */
-  async assignToUser(userId: string, roleId: string, tenantId: string): Promise<void> {
+  async assignToUser(userId: string, roleId: string, tenantId: string, db?: DbLike): Promise<void> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Assigning role ${roleId} to user ${userId} in tenant: ${tenantId}`);
 
-    await this.db
+    await d
       .insert(userRoles)
       .values({ userId, roleId, tenantId })
       // L-prime G-1: user_roles has a composite PK — replay paths (bootstrap

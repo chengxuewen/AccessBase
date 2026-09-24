@@ -250,3 +250,23 @@ describe('cache invalidation on write paths', () => {
     expect(refetchCount('u2')).toBe(1);
   });
 });
+
+describe('permission-cache publish hook (Q2c)', () => {
+  it('local invalidation announces through the hook; fromRemote suppresses it', async () => {
+    const { invalidatePermissionCache, setPermissionCachePublishHook } = await import(
+      '../managers/permission-cache.js'
+    );
+    const seen: Array<[string | undefined, string | undefined]> = [];
+    setPermissionCachePublishHook((t, u) => seen.push([t, u]));
+    invalidatePermissionCache('t1', 'u1');
+    invalidatePermissionCache('t1');
+    invalidatePermissionCache();
+    invalidatePermissionCache('t2', 'u2', { fromRemote: true });
+    setPermissionCachePublishHook(undefined);
+    expect(seen).toEqual([
+      ['t1', 'u1'],
+      ['t1', undefined],
+      [undefined, undefined],
+    ]);
+  });
+});

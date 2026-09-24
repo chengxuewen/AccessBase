@@ -241,8 +241,13 @@ export async function buildApp(options: BuildAppOptions = {}) {
     ),
     app.log,
   );
+  // Q2c: cross-node permission-cache coherence (silent single-node mode if Redis
+  // is absent or the identity lane is mocked — never a boot failure).
+  const { setupCacheCoherence } = await import('./utils/cache-coherence.js');
+  const coherence = await setupCacheCoherence(app.log);
   // Q2a(B): graceful close ends the singleton managers' pools + the sweeper's pool.
   app.addHook('onClose', async () => {
+    await coherence.teardown();
     await retention.stop();
     await resetManagers();
   });

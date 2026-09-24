@@ -10,6 +10,7 @@ import {
 } from '@accessbase/identity';
 import { createDb, roles as rolesTable } from '@accessbase/identity/db';
 import { DEFAULT_TENANT } from '../utils/constants.js';
+import { routeTx } from '../utils/tx.js';
 import { config } from '../config.js';
 import { requirePermission } from '../utils/permission.js';
 import { getOptionsManager } from './options.js';
@@ -34,14 +35,6 @@ export async function tenantRoutes(app: FastifyInstance) {
   const tenantManager = new TenantManager();
   const userManager = new UserManager();
   const roleManager = new RoleManager();
-
-  // Lazy dial for the two direct-SQL writes bootstrap needs (isSystem stamp +
-  // strict bind) — same setup.ts pattern; managers are typed APIs without those surfaces.
-  let seedDb: ReturnType<typeof createDb> | undefined;
-  function getSeedDb(): ReturnType<typeof createDb> {
-    if (!seedDb) seedDb = createDb(config.databaseUrl);
-    return seedDb;
-  }
 
   /** Belt check (see header). undefined = platform caller, proceed. */
   function platformBelt(request: { tenantId?: string }, reply: StatusSender) {
@@ -339,27 +332,35 @@ export async function tenantRoutes(app: FastifyInstance) {
         // 6. role find-or-create (create() IS find-or-create on (name,tenantId))
         // + UNCONDITIONAL idempotent isSystem stamp (B6 window) — replay converges
         // a half-failed first attempt through these same idempotent steps.
-        const adminRole = await roleManager.create(
-          { name: 'admin', description: 'Tenant administrator', isSystem: true },
-          id,
-        );
-        await getSeedDb()
-          .update(rolesTable)
-          .set({ isSystem: true })
-          .where(eq(rolesTable.id, adminRole.id));
-        // 7. STRICT bind — shortfall throws (never a 201 with silent 0 bindings, X4)
-        await bindPermissions(getSeedDb(), adminRole.id, TENANT_BINDABLE_PERMISSIONS);
-        // 8. fresh-path user create AFTER the bind can no longer fail
-        const userId = replayArm && existingUser
-          ? existingUser.id
-          : (await userManager.create({ email, name: name ?? email, password }, id)).id;
-        // 9. membership (conflict-safe since T1 onConflictDoNothing — replays converge)
-        await roleManager.assignToUser(userId, adminRole.id, id);
+        // Q2c: steps 6-9 are ONE transaction — a mid-sequence failure previously
+        // left half-provisioned tenants (role bound but no user, user without
+        // membership). Replays stay idempotent inside the tx.
+        const { userId, adminRoleId } = await routeTx(async (tx) => {
+          const adminRole = await roleManager.create(
+            { name: 'admin', description: 'Tenant administrator', isSystem: true },
+            id,
+            tx,
+          );
+          await tx
+            .update(rolesTable)
+            .set({ isSystem: true })
+            .where(eq(rolesTable.id, adminRole.id));
+          // 7. STRICT bind — shortfall throws (never a 201 with silent 0 bindings, X4)
+          await bindPermissions(tx, adminRole.id, TENANT_BINDABLE_PERMISSIONS);
+          // 8. fresh-path user create AFTER the bind can no longer fail
+          const uid =
+            replayArm && existingUser
+              ? existingUser.id
+              : (await userManager.create({ email, name: name ?? email, password }, id, tx)).id;
+          // 9. membership (conflict-safe since T1 onConflictDoNothing — replays converge)
+          await roleManager.assignToUser(uid, adminRole.id, id, tx);
+          return { userId: uid, adminRoleId: adminRole.id };
+        });
         return reply.status(replayArm ? 200 : 201).send({
           success: true,
           data: {
             userId,
-            roleId: adminRole.id,
+            roleId: adminRoleId,
             tenantId: id,
             alreadyBootstrapped: replayArm,
           },

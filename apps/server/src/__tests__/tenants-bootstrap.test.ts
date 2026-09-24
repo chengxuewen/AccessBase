@@ -92,6 +92,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
     delete: vi.fn(),
   })),
   UserManager: vi.fn().mockImplementation(() => ({
+    transaction: (fn: (d: unknown) => unknown) => fn(fakeSeedDb), // Q2c routeTx seam (direct tx.update in bootstrap)
     findByEmail: mockFindByEmail,
     create: mockUserCreate,
     findById: vi.fn().mockResolvedValue(null),
@@ -179,6 +180,7 @@ describe('POST /api/v1/tenants/:id/bootstrap — happy path (fresh tenant)', () 
     expect(mockRoleCreate).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'admin', isSystem: true }),
       ACME_ID,
+      expect.anything(), // Q2c tx handle
     );
     // unconditional idempotent stamp via direct SQL
     expect(fakeSeedDb.update).toHaveBeenCalledTimes(1);
@@ -192,8 +194,9 @@ describe('POST /api/v1/tenants/:id/bootstrap — happy path (fresh tenant)', () 
     expect(mockUserCreate).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'root@acme.test', name: 'Acme Root' }),
       ACME_ID,
+      expect.anything(), // Q2c tx handle
     );
-    expect(mockAssign).toHaveBeenCalledWith('user-1', 'role-admin-1', ACME_ID);
+    expect(mockAssign).toHaveBeenCalledWith('user-1', 'role-admin-1', ACME_ID, expect.anything());
   });
 
   it('strict-bind failure aborts BEFORE any user creation (X4 ordering)', async () => {
@@ -312,7 +315,7 @@ describe('POST bootstrap — idempotent replay arm (R4)', () => {
     });
     expect(mockUserCreate).not.toHaveBeenCalled();
     expect(mockBindPermissions).toHaveBeenCalledTimes(1);
-    expect(mockAssign).toHaveBeenCalledWith('u-exist', 'role-admin-1', ACME_ID);
+    expect(mockAssign).toHaveBeenCalledWith('u-exist', 'role-admin-1', ACME_ID, expect.anything());
   });
 
   it('replay mints no credential → password policy skipped (weak pw still 200)', async () => {
