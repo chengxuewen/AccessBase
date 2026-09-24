@@ -80,3 +80,7 @@ export async function closeDb(db: DrizzleDB): Promise<void> {
   }
 }
 
+/** Transaction-handler param type (what db.transaction(fn) hands to fn). */
+type DrizzleTx = Parameters<Parameters<DrizzleDB['transaction']>[0]>[0];
+/** Anything query-shaped both outside and inside a transaction. */
+export type DbLike = DrizzleDB | DrizzleTx;

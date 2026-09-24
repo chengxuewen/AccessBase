@@ -69,6 +69,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     // D113: the setup guard queries the users table via UserManager on every request —
     // mock admin as existing so guarded routes are reachable.
     UserManager: vi.fn().mockImplementation(() => ({
+    // Q2b routeTx seam: run the callback with a dummy handle (mocked
+    // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
+    transaction: (fn: (d: unknown) => unknown) => fn({}),
       findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
     })),
     RoleManager: vi.fn().mockImplementation(() => instance),
@@ -315,7 +318,7 @@ describe('PUT /api/v1/roles/:id — parentId wiring (L\'-T5)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(rm().callLog).toEqual([`setParent:${PARENT_ID}`, 'update']);
-    expect(rm().setParent).toHaveBeenCalledWith(ROLE_ID, PARENT_ID, '00000000-0000-0000-0000-000000000001');
+    expect(rm().setParent).toHaveBeenCalledWith(ROLE_ID, PARENT_ID, '00000000-0000-0000-0000-000000000001', expect.anything());
   });
 
   it('explicit null clears the parent (setParent receives null)', async () => {
@@ -328,7 +331,7 @@ describe('PUT /api/v1/roles/:id — parentId wiring (L\'-T5)', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(rm().setParent).toHaveBeenCalledWith(ROLE_ID, null, '00000000-0000-0000-0000-000000000001');
+    expect(rm().setParent).toHaveBeenCalledWith(ROLE_ID, null, '00000000-0000-0000-0000-000000000001', expect.anything());
   });
 
   it('leaves the parent untouched when the key is absent', async () => {

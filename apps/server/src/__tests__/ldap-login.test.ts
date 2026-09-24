@@ -46,6 +46,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
+    // Q2b routeTx seam: run the callback with a dummy handle (mocked
+    // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
+    transaction: (fn: (d: unknown) => unknown) => fn({}),
       findByEmail: vi.fn(async (email: string) => {
         // Guard fast path: queryAdminExists looks up the admin email first.
         if (email === 'admin@accessbase.local') return { ...testUser, email };

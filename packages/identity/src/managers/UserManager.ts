@@ -2,7 +2,7 @@
  * UserManager - User management with Drizzle ORM (SDD 2.2)
  */
 import { eq, and, like, sql, count, asc, desc, notInArray } from 'drizzle-orm';
-import { closeDb, createDb, type DrizzleDB } from '../db/index.js';
+import { closeDb, createDb, type DbLike, type DrizzleDB } from '../db/index.js';
 import { users, passwordHistory, type User as DbUser, type NewUser } from '../db/schema.js';
 import { invalidatePermissionCache } from './permission-cache.js';
 import { wouldOrphanLastAdmin, LAST_ADMIN_GUARD } from '../services/last-admin-guard.js';
@@ -28,7 +28,8 @@ export class UserManager {
   /**
    * Create user (auto-hash password, assign default role)
    */
-  async create(data: CreateUserInput, tenantId: string): Promise<User> {
+  async create(data: CreateUserInput, tenantId: string, db?: DbLike): Promise<User> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Creating user: ${data.email} in tenant: ${tenantId}`);
 
     // Hash password if provided
@@ -46,7 +47,7 @@ export class UserManager {
       status: data.isActive === false ? 'suspended' : 'active',
     };
 
-    const [inserted] = await this.db.insert(users).values(newUser).returning();
+    const [inserted] = await d.insert(users).values(newUser).returning();
 
     if (!inserted) {
       throw new Error('Failed to create user');
@@ -231,19 +232,25 @@ export class UserManager {
   /**
    * Change user status (active / suspended / pending)
    */
-  async changeStatus(id: string, status: UserStatus, tenantId: string): Promise<User> {
+  async changeStatus(
+    id: string,
+    status: UserStatus,
+    tenantId: string,
+    db?: DbLike,
+  ): Promise<User> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Changing user ${id} status to ${status} in tenant: ${tenantId}`);
 
     // K-T2: suspending the last active admin is a lockout vector. The guard is
     // fanned in here (not in the route) so the SCIM surface (PATCH active=false
     // → changeStatus directly) is gated too; only the →suspended transition
     // consults it — registration 'pending' and reactivation never do (R2).
-    if (status === 'suspended' && (await wouldOrphanLastAdmin(this.db, tenantId, id))) {
+    if (status === 'suspended' && (await wouldOrphanLastAdmin(d, tenantId, id))) {
       throw new Error(
         `${LAST_ADMIN_GUARD}: cannot suspend the last active administrator of the tenant`,
       );
     }
-    const [updated] = await this.db
+    const [updated] = await d
       .update(users)
       .set({ status, updatedAt: new Date() })
       .where(and(eq(users.id, id), eq(users.tenantId, tenantId)))
@@ -360,6 +367,16 @@ export class UserManager {
     // 4. Invalidate token
     throw new Error('Not implemented - requires Redis integration');
   }
+  /**
+   * Run fn inside one transaction on THIS manager's pool. Route funnels compose
+   * multi-manager writes by threading the received DbLike into every call
+   * (routeTx in apps/server hands the same tx to RoleManager et al. —
+   * singletons share the pool, PIT-081 discipline).
+   */
+  async transaction<T>(fn: (tx: DbLike) => Promise<T>): Promise<T> {
+    return this.db.transaction(async (tx) => fn(tx as DbLike));
+  }
+
   /**
    * Mark the user's email as verified (Q1-b2 — consumes the email_verify flow
    * token at the route layer; this is the write funnel). Id is globally unique

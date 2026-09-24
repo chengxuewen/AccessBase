@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { UserManager, RoleManager, SessionManager } from '@accessbase/identity';
 import { assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
+import { routeTx } from '../utils/tx.js';
 import { requirePermission } from '../utils/permission.js';
 import { sendConflictError } from '../utils/conflict-mapper.js';
 import { toCsv } from '../utils/csv.js';
@@ -249,13 +250,19 @@ export async function userRoutes(app: FastifyInstance) {
         });
       }
       try {
-        const user = await userManager.create(
-          { email, name, password, avatarUrl, isActive },
-          request.tenantId ?? DEFAULT_TENANT,
-        );
-        if (roleIds && roleIds.length > 0) {
-          await roleManager.setUserRoles(user.id, roleIds, request.tenantId ?? DEFAULT_TENANT);
-        }
+        // Q2b: create + role grant are ONE transaction (a failed grant must
+        // not leave an ungranted user behind — gap-audit D1).
+        const user = await routeTx(async (tx) => {
+          const created = await userManager.create(
+            { email, name, password, avatarUrl, isActive },
+            request.tenantId ?? DEFAULT_TENANT,
+            tx,
+          );
+          if (roleIds && roleIds.length > 0) {
+            await roleManager.setUserRoles(created.id, roleIds, request.tenantId ?? DEFAULT_TENANT, tx);
+          }
+          return created;
+        });
         return reply.status(201).send({ success: true, data: user });
       } catch (err) {
         const conflict = sendConflictError(reply, err);

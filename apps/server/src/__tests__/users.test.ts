@@ -108,6 +108,9 @@ const mockRoleFindById = vi.fn().mockImplementation((id: string) =>
 vi.mock('@accessbase/identity', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@accessbase/identity')>()),
   UserManager: vi.fn().mockImplementation(() => ({
+    // Q2b routeTx seam: run the callback with a dummy handle (mocked
+    // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
+    transaction: (fn: (d: unknown) => unknown) => fn({}),
     findAll: mockFindAll,
     findById: mockFindById,
     findByEmail: mockFindByEmail,
@@ -261,6 +264,7 @@ describe('POST /api/v1/users', () => {
       '550e8400-e29b-41d4-a716-446655440099',
       ['550e8400-e29b-41d4-a716-4466554400aa'],
       '00000000-0000-0000-0000-000000000001',
+      expect.anything(), // Q2b tx handle (routeTx)
     );
   });
 
@@ -299,6 +303,7 @@ describe('POST /api/v1/users', () => {
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'off@example.com', isActive: false }),
       '00000000-0000-0000-0000-000000000001',
+      expect.anything(), // Q2b tx handle
     );
   });
 

@@ -40,6 +40,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
+    // Q2b routeTx seam: run the callback with a dummy handle (mocked
+    // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
+    transaction: (fn: (d: unknown) => unknown) => fn({}),
       verifyPassword: mockVerifyPassword,
       findById: mockFindById,
       // Refresh path resolves the session owner tenant-blind (G fix H1/L1)

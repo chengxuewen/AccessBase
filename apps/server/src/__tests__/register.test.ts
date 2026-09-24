@@ -35,6 +35,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     // findByEmail non-null (admin fast path) short-circuits setup-guard's
     // queryAdminExists → guard passes non-setup routes (users.test precedent)
     UserManager: vi.fn().mockImplementation(() => ({
+      transaction: (fn: (d: unknown) => unknown) => fn({}), // Q2b routeTx seam
       findByEmail: findByEmailMock,
       create: createMock,
       changeStatus: changeStatusMock,
@@ -106,8 +107,9 @@ describe('POST /api/v1/auth/register', () => {
     expect(createMock).toHaveBeenCalledWith(
       { email: 'new@x.io', name: 'New', password: 'Passw0rd!' },
       expect.any(String),
+      expect.anything(), // Q2b tx handle
     );
-    expect(changeStatusMock).toHaveBeenCalledWith('u9', 'pending', expect.any(String));
+    expect(changeStatusMock).toHaveBeenCalledWith('u9', 'pending', expect.any(String), expect.anything());
   });
 
   it('409 AUTH_REG_001 on duplicate email', async () => {

@@ -3,7 +3,7 @@
  * Drizzle ORM implementation
  */
 import { eq, and, sql, count, inArray } from 'drizzle-orm';
-import { closeDb, createDb, type DrizzleDB } from '../db/index.js';
+import { closeDb, createDb, type DbLike, type DrizzleDB } from '../db/index.js';
 import {
   roles,
   permissions,
@@ -197,11 +197,12 @@ export class RoleManager {
   /**
    * Update role
    */
-  async update(id: string, data: UpdateRoleInput, tenantId: string): Promise<Role> {
+  async update(id: string, data: UpdateRoleInput, tenantId: string, db?: DbLike): Promise<Role> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Updating role: ${id} in tenant: ${tenantId}`);
 
     // Check role exists
-    const existing = await this.db
+    const existing = await d
       .select()
       .from(roles)
       .where(and(eq(roles.id, id), eq(roles.tenantId, tenantId)))
@@ -225,7 +226,7 @@ export class RoleManager {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
 
-    const [updated] = await this.db
+    const [updated] = await d
       .update(roles)
       .set(updateData)
       .where(and(eq(roles.id, id), eq(roles.tenantId, tenantId)))
@@ -237,7 +238,7 @@ export class RoleManager {
 
     // Replace permissions if provided
     if (data.permissionIds !== undefined) {
-      await this.setRolePermissions(id, data.permissionIds, tenantId);
+      await this.setRolePermissions(id, data.permissionIds, tenantId, db);
     }
 
     const perms = await this.getRolePermissions(id);
@@ -288,11 +289,17 @@ export class RoleManager {
   /**
    * Set role inheritance (parent role)
    */
-  async setParent(roleId: string, parentId: string | null, tenantId: string): Promise<Role> {
+  async setParent(
+    roleId: string,
+    parentId: string | null,
+    tenantId: string,
+    db?: DbLike,
+  ): Promise<Role> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Setting parent role for ${roleId} to ${parentId} in tenant: ${tenantId}`);
 
     // Validate both roles exist
-    const [role] = await this.db
+    const [role] = await d
       .select()
       .from(roles)
       .where(and(eq(roles.id, roleId), eq(roles.tenantId, tenantId)))
@@ -311,7 +318,7 @@ export class RoleManager {
     }
 
     if (parentId) {
-      const [parent] = await this.db
+      const [parent] = await d
         .select()
         .from(roles)
         .where(and(eq(roles.id, parentId), eq(roles.tenantId, tenantId)))
@@ -330,7 +337,7 @@ export class RoleManager {
       }
     }
 
-    const [updated] = await this.db
+    const [updated] = await d
       .update(roles)
       .set({ parentId, updatedAt: new Date() })
       .where(and(eq(roles.id, roleId), eq(roles.tenantId, tenantId)))
@@ -435,31 +442,37 @@ export class RoleManager {
   /**
    * Set user roles (full replacement, tenant-scoped)
    */
-  async setUserRoles(userId: string, roleIds: string[], tenantId: string): Promise<void> {
+  async setUserRoles(
+    userId: string,
+    roleIds: string[],
+    tenantId: string,
+    db?: DbLike,
+  ): Promise<void> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Setting roles [${roleIds.join(', ')}] for user ${userId} in tenant: ${tenantId}`);
 
     // K-T2: when the replacement set drops an isSystem role the user currently
     // holds, check the last-admin census before deleting anything (R2).
-    const held = await this.db
+    const held = await d
       .select({ userId: userRoles.userId, roleId: userRoles.roleId, isSystem: roles.isSystem })
       .from(userRoles)
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
       .where(and(eq(userRoles.userId, userId), eq(userRoles.tenantId, tenantId)));
     const dropsSystemRole = held.some((row) => row.isSystem && !roleIds.includes(row.roleId));
-    if (dropsSystemRole && (await wouldOrphanLastAdmin(this.db, tenantId, userId))) {
+    if (dropsSystemRole && (await wouldOrphanLastAdmin(d, tenantId, userId))) {
       throw new Error(
         `${LAST_ADMIN_GUARD}: cannot remove the last active administrator of the tenant`,
       );
     }
 
     // Remove existing assignments
-    await this.db
+    await d
       .delete(userRoles)
       .where(and(eq(userRoles.userId, userId), eq(userRoles.tenantId, tenantId)));
 
     // Add new assignments
     if (roleIds.length > 0) {
-      await this.db.insert(userRoles).values(
+      await d.insert(userRoles).values(
         roleIds.map((roleId) => ({ userId, roleId, tenantId })),
       );
     }
@@ -541,9 +554,11 @@ export class RoleManager {
     roleId: string,
     permissionIds: string[],
     tenantId: string,
+    db?: DbLike,
   ): Promise<void> {
+    const d: DbLike = db ?? this.db;
     if (tenantId !== DEFAULT_TENANT_ID && permissionIds.length > 0) {
-      const rows = await this.db
+      const rows = await d
         .select({ id: permissions.id, name: permissions.name })
         .from(permissions)
         .where(inArray(permissions.id, permissionIds));
@@ -558,11 +573,11 @@ export class RoleManager {
     }
 
     // Remove existing permissions
-    await this.db.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
+    await d.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
 
     // Add new permissions
     if (permissionIds.length > 0) {
-      await this.db.insert(rolePermissions).values(
+      await d.insert(rolePermissions).values(
         permissionIds.map((permissionId) => ({
           roleId,
           permissionId,

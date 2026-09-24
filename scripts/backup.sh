@@ -10,6 +10,12 @@
 # as an argument (ps would leak the password) — libpq PG* env vars only.
 #
 # Modes: works for native/deploy PG (local or URL-overridden). Container-mode
+#
+
+# Scheduling (Q2b note, gap-audit D7): sample systemd timer for daily 03:00:
+#   accessbase-backup.service : ExecStart=/usr/bin/env bash /opt/accessbase/scripts/backup.sh /var/backups/accessbase
+#   accessbase-backup.timer   : OnCalendar=*-*-* 03:00:00  Persistent=true
+# Offsite copy + quarterly restore-drill (restore.sh triple gate) stay ops policy.
 # one-liner: docker exec <pg> pg_dump -U accessbase -Fc accessbase > backup.dump
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

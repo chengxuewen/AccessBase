@@ -11,7 +11,7 @@
  * would bypass any route-level check.
  */
 import { and, eq } from 'drizzle-orm';
-import type { DrizzleDB } from '../db/index.js';
+import type { DbLike } from '../db/index.js';
 import { roles, userRoles, users } from '../db/schema.js';
 
 /** 409 mapper tag: operation against a protected (isSystem) role. */
@@ -27,7 +27,7 @@ export const LAST_ADMIN_GUARD = 'LAST_ADMIN_GUARD';
  * role, different tenant), or at least one other active holder exists.
  */
 export async function wouldOrphanLastAdmin(
-  db: DrizzleDB,
+  db: DbLike,
   tenantId: string,
   excludingUserId: string,
 ): Promise<boolean> {
@@ -40,7 +40,7 @@ export async function wouldOrphanLastAdmin(
       and(eq(userRoles.tenantId, tenantId), eq(roles.isSystem, true), eq(users.status, 'active')),
     );
 
-  const set = new Set(holders.map((row) => row.userId));
+  const set = new Set(holders.map((row: { userId: string }) => row.userId));
   if (!set.has(excludingUserId)) {
     return false;
   }

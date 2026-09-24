@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { RoleManager } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
+import { routeTx } from '../utils/tx.js';
 import { requirePermission } from '../utils/permission.js';
 import { sendConflictError } from '../utils/conflict-mapper.js';
 
@@ -167,14 +168,17 @@ export async function roleRoutes(app: FastifyInstance) {
         // Inheritance changes go through setParent (same-tenant + cycle + isSystem
         // guards live in the manager funnel) BEFORE any field write, so a rejected
         // parent cannot leave a half-applied update behind.
-        if ('parentId' in body) {
-          await roleManager.setParent(id, body.parentId ?? null, tenantId);
-        }
-        const role = await roleManager.update(
-          id,
-          { name: body.name, description: body.description, permissionIds: body.permissionIds },
-          tenantId,
-        );
+        const role = await routeTx(async (tx) => {
+          if ('parentId' in body) {
+            await roleManager.setParent(id, body.parentId ?? null, tenantId, tx);
+          }
+          return roleManager.update(
+            id,
+            { name: body.name, description: body.description, permissionIds: body.permissionIds },
+            tenantId,
+            tx,
+          );
+        });
         return { success: true, data: role };
       } catch (err) {
         // K-T2: ROLE_PROTECTED/LAST_ADMIN_GUARD manager tags → 409 envelope.

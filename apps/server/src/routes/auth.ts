@@ -4,6 +4,7 @@ import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClie
 import type { SmsConfig, SmsProvider } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { getTenantManager, getUserManager } from '../utils/managers.js';
+import { routeTx } from '../utils/tx.js';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
@@ -377,11 +378,18 @@ export async function authRoutes(app: FastifyInstance) {
       // create() derives status from isActive (default active); pending is
       // achieved by create-then-changeStatus — dropping changeStatus would
       // silently register ACTIVE users.
-      const user = await userManager.create(
-        { email, name, password },
-        request.tenantId ?? DEFAULT_TENANT,
-      );
-      await userManager.changeStatus(user.id, 'pending', request.tenantId ?? DEFAULT_TENANT);
+      // Q2b: create + pending transition are ONE transaction — a crash between
+      // them previously left a fully ACTIVE self-registered user (privilege arm
+      // by timing; gap-audit D1).
+      const user = await routeTx(async (tx) => {
+        const created = await userManager.create(
+          { email, name, password },
+          request.tenantId ?? DEFAULT_TENANT,
+          tx,
+        );
+        await userManager.changeStatus(created.id, 'pending', request.tenantId ?? DEFAULT_TENANT, tx);
+        return created;
+      });
 
       // Q1-b2: best-effort verification email. SMTP is optional — silent failure
       // here never fails registration; the user can self-request post-activation.
