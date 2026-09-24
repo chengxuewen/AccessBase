@@ -89,3 +89,10 @@ Execution order: measure pre-fix burst -> A(+tests seam) -> C migrate rewrite ->
 - e2e: layout:204 breadcrumb failure diagnosed as a LYING mock (its /auth/me 'Full admin permission set' comment lacked tenants/clients/apikeys codes; pre-Q1 timing happened to assert before fetchUser re-hydration shrank permissions). Mock completed to its comment. Full suite 145+3.
 - Gates: vitest 997/997 (92 files), 4x tsc 0, eslint baseline-parity (setup.ts warning composition identical), live battery above.
 - Deferred to Q2b (explicit): transactions on multi-write funnels, Redis pub/sub cache coherence, pagination helper, openapi artifact, CHANGELOG, backup scheduler, audit-pool merge (one remaining 10-conn pool besides managers).
+
+## Q2b-lite execution record (2026-09-23, controller-direct, context-capped)
+
+- Deviation recorded honestly: NO Momus pass on this sub-batch (context ceiling; scope narrowed to parameter-threading funnels whose failure modes are loud (500/spy-mismatch) and covered by a real-PG rollback suite written alongside; all six widened method bodies grep-audited for stray this.db).
+- Funnels wrapped: users POST create+setUserRoles; roles PUT setParent+update; auth register create+changeStatus (a crash between the two previously left a fully-ACTIVE self-registered user).
+- Unwrapped (queued Q2c): tenants bootstrap 9-step (crosses bindPermissions/getSeedDb direct SQL), SCIM find-or-create, role POST create+internal bind, TenantManager.update internals.
+- Mock factories patched: users/verify-email/roles/ldap-login/disabled-user/auth/register.
