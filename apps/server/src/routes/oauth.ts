@@ -273,7 +273,7 @@ export async function oauthRoutes(app: FastifyInstance) {
   /** Issue access JWT + refresh token (same claims/shape as login). */
   async function issueTokenPair(
     request: { ip: string; headers: Record<string, unknown> },
-    user: { id: string; email: string; status?: string; tenantId?: string },
+    user: { id: string; email: string; status?: string; tenantId?: string; tokenVersion?: number },
   ): Promise<{ accessToken: string; refreshToken: string }> {
     // Tenant suspension gate (G/R1) — inside the helper so every issuance call
     // site inherits it. Tagged error → global handler renders 403 AUTH_TENANT_001.
@@ -295,7 +295,7 @@ export async function oauthRoutes(app: FastifyInstance) {
     }
     // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
     const accessToken = app.jwt.sign(
-      { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT },
+      { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT, tokenVersion: user.tokenVersion },
       { expiresIn: '15m' },
     );
     const { refreshToken } = await sessionManager.issueRefreshToken(

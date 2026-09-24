@@ -201,7 +201,8 @@ describe('X3/R6 setParent — real cycle detection + system-role moat', () => {
     db.update.mockReturnValue(makeChain([roleRow({ id: 'C', parentId: 'P' })]));
 
     await expect(manager.setParent('C', 'P', TENANT)).resolves.toMatchObject({ id: 'C' });
-    expect(db.update).toHaveBeenCalledTimes(1);
+    // role write + Q3A tenant-wide bump (setParent changes effective subtree perms)
+    expect(db.update).toHaveBeenCalledTimes(2);
   });
 });
 

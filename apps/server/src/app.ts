@@ -179,6 +179,24 @@ export async function buildApp(options: BuildAppOptions = {}) {
       });
       return;
     }
+    // Q3A bearer-revocation gate (spec rev.2 B1 rule): compare ONLY when the
+    // token carries the claim — pre-Q3A tokens self-heal on their 15m TTL.
+    // getAuthState fail-opens (null -> skip) when Redis/DB are unavailable.
+    const gateClaims = request.user as { sub?: string; tokenVersion?: number; status?: string };
+    if (gateClaims.sub && typeof gateClaims.tokenVersion === 'number') {
+      const st = await getAuthState(gateClaims.sub);
+      if (
+        st &&
+        (st.tokenVersion !== gateClaims.tokenVersion ||
+          (gateClaims.status !== undefined && st.status !== gateClaims.status))
+      ) {
+        reply.status(401).send({
+          success: false,
+          error: { code: 'AUTH_005', message: 'Authorization state changed — re-authenticate' },
+        });
+        return;
+      }
+    }
     // G/R3: resolve tenant from the request context. JWT claim wins;
     // legacy claim-less tokens fall back to the default tenant.
     const jwtPayload = request.user as { tenantId?: string };
@@ -229,7 +247,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // Q2a(E): retention sweeper on its OWN pool (rev.2 R7: first pass boot+60s,
   // then every 24h — deploy cycles faster than a day must still sweep). The
   // audit archive config finally gets a consumer; AUDIT_RETENTION_DAYS overrides, 0 disables.
+  const { getAuthState } = await import('./utils/auth-state.js');
   const { startRetentionSweeper, resolveRetentionDays } = await import('./utils/retention-sweeper.js');
+  const { closeAuthDb } = await import('./utils/managers.js');
   const { resetManagers } = await import('./utils/managers.js');
   // Lazy pool: created on the first tick (boot+60s), closed by stop() — keeps
   // buildApp createDb-count at zero (health-pool.test premise).
@@ -250,6 +270,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     await coherence.teardown();
     await retention.stop();
     await resetManagers();
+    await closeAuthDb();
   });
   // Batch P W2-1: the hijacked /oidc/* space lives in Fastify's route-less
   // (404) region where @fastify/rate-limit provably never engages — coarse

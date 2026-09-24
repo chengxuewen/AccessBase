@@ -495,7 +495,7 @@ name: 'admin',
 
       // Generate tokens using Fastify JWT
       const accessToken = app.jwt.sign(
-        { sub: adminUser.id, email: adminUser.email },
+        { sub: adminUser.id, email: adminUser.email, status: 'active', tenantId: adminUser.tenantId, tokenVersion: adminUser.tokenVersion },
         { expiresIn: '15m' },
       );
 

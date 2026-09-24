@@ -86,7 +86,7 @@ export async function samlRoutes(app: FastifyInstance) {
   /** Issue access JWT + refresh token — same claims/shape as login (auth.ts:54-84). */
   async function issueTokenPair(
     request: { ip: string; headers: Record<string, unknown> },
-    user: { id: string; email: string; status?: string; tenantId?: string },
+    user: { id: string; email: string; status?: string; tenantId?: string; tokenVersion?: number },
   ): Promise<{ accessToken: string; refreshToken: string }> {
     // Tenant suspension gate (G/R1) — inside the helper so every issuance call
     // site inherits it. ACS's browser-channel invariant (never JSON) maps this
@@ -110,7 +110,7 @@ export async function samlRoutes(app: FastifyInstance) {
     }
     // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
     const accessToken = app.jwt.sign(
-      { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT },
+      { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT, tokenVersion: user.tokenVersion },
       { expiresIn: '15m' },
     );
     const { refreshToken } = await sessionManager.issueRefreshToken(

@@ -11,6 +11,7 @@ import { createDb, type DrizzleDB } from '../db/index.js';
 import { apiKeys, sessions, tenants, users, type TenantRow, type NewTenantRow } from '../db/schema.js';
 import { getRedisClient } from '../services/redis.js';
 import { invalidatePermissionCache } from './permission-cache.js';
+import { bumpAuthState, delAuthState } from '../services/token-version.js';
 import { logger } from '@accessbase/logging';
 import type { PaginatedResult } from '../types.js';
 
@@ -177,6 +178,8 @@ export class TenantManager {
 
     if (updated.status === 'suspended') {
       invalidatePermissionCache(id);
+      // Q3A: tenant-wide bearer revocation (sessions/keys already killed above)
+      await bumpAuthState(this.db, { tenantId: id, allTenantUsers: true }, delAuthState);
       // W3-3 (F14/C-A2 — revived after wave-1's phantom falsification):
       // suspend/delete must kill live access at the manager funnel so EVERY
       // caller (routes today, any future direct user) is covered. Reactivation

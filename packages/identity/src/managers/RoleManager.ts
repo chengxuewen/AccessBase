@@ -14,6 +14,7 @@ import {
   type Permission as DbPermission,
 } from '../db/schema.js';
 import { invalidatePermissionCache } from './permission-cache.js';
+import { bumpAuthState, delAuthState } from '../services/token-version.js';
 import {
   wouldOrphanLastAdmin,
   ROLE_PROTECTED,
@@ -248,6 +249,8 @@ export class RoleManager {
 
     const perms = await this.getRolePermissions(id);
     // update() may replace permissionIds → tenant-wide effect; always invalidate.
+    // Q3A: effective auth changed for the role's members -> bump + drop authst
+    await bumpAuthState(d, { tenantId, roleIds: [id] }, delAuthState);
     invalidatePermissionCache(tenantId);
     return this.mapToRole(updated, perms);
   }
@@ -288,6 +291,7 @@ export class RoleManager {
 
     // Delete role (cascade will handle role_permissions)
     await this.db.delete(roles).where(and(eq(roles.id, id), eq(roles.tenantId, tenantId)));
+    // (delete: guarded zero-member above -> no bearer can hold this role; no bump needed)
     invalidatePermissionCache(tenantId);
   }
 
@@ -353,6 +357,8 @@ export class RoleManager {
     }
 
     const perms = await this.getRolePermissions(roleId);
+    // Q3A: inheritance change alters effective perms across the subtree — tenant-wide bump
+    await bumpAuthState(d, { tenantId, allTenantUsers: true }, delAuthState);
     invalidatePermissionCache(tenantId);
     return this.mapToRole(updated, perms);
   }
@@ -412,6 +418,7 @@ export class RoleManager {
       // step-4 convergence arm) re-assign the same triple, must not duplicate-key.
       .onConflictDoNothing();
     invalidatePermissionCache(tenantId, userId);
+    await bumpAuthState(d, { tenantId, userIds: [userId] }, delAuthState);
   }
 
   /**
@@ -443,6 +450,7 @@ export class RoleManager {
         ),
       );
     invalidatePermissionCache(tenantId, userId);
+    await bumpAuthState(this.db, { tenantId, userIds: [userId] }, delAuthState);
   }
 
   /**
@@ -483,6 +491,7 @@ export class RoleManager {
       );
     }
     invalidatePermissionCache(tenantId, userId);
+    await bumpAuthState(d, { tenantId, userIds: [userId] }, delAuthState);
   }
 
   /**

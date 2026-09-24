@@ -19,6 +19,7 @@ When adding a code: update this file in the same commit (conventions D126 gate).
 | AUTH_002 | invalid credentials (login) | |
 | AUTH_003 | invalid/revoked refresh token | **collision**: spec slot = TOKEN_EXPIRED |
 | AUTH_004 | account suspended | gate on all 8 issue paths (PIT-052) |
+| AUTH_005 | bearer revocation (Q3A: token_version/status stale vs Redis-memoed auth state; refresh rebuilds) |
 | AUTH_007 | insufficient permission (route guard) | |
 | AUTH_032-035 | password policy family | spec-consistent |
 | AUTH_063/064/065 | LDAP bind/rejected/provision errors | batch D |

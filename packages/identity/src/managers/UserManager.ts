@@ -5,6 +5,7 @@ import { eq, and, like, sql, count, asc, desc, notInArray } from 'drizzle-orm';
 import { closeDb, createDb, type DbLike, type DrizzleDB } from '../db/index.js';
 import { users, passwordHistory, type User as DbUser, type NewUser } from '../db/schema.js';
 import { invalidatePermissionCache } from './permission-cache.js';
+import { bumpAuthState, delAuthState } from '../services/token-version.js';
 import { wouldOrphanLastAdmin, LAST_ADMIN_GUARD } from '../services/last-admin-guard.js';
 import { logger } from '@accessbase/logging';
 import type {
@@ -261,6 +262,8 @@ export class UserManager {
     }
 
     invalidatePermissionCache(tenantId, id);
+    // Q3A: status flips must reach bearers too (reader status arm compares DB truth)
+    await bumpAuthState(d, { tenantId, userIds: [id] }, delAuthState);
     return this.mapToUser(updated);
   }
 

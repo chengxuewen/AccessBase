@@ -19,6 +19,8 @@
  * every test gets a fresh construction and mock.results premises hold.
  */
 import type { RoleManager, TenantManager, UserManager } from '@accessbase/identity';
+import { closeDb, createDb, type DrizzleDB } from '@accessbase/identity/db';
+import { config } from '../config.js';
 
 let userManager: UserManager | undefined;
 let roleManager: RoleManager | undefined;
@@ -98,4 +100,23 @@ export async function resetManagers(): Promise<void> {
   userManager = undefined;
   roleManager = undefined;
   tenantManager = undefined;
+}
+
+// Q3A: ONE dedicated pool for the per-request authst SELECT (not a manager;
+// closed via closeAuthDb from the same onClose hook).
+let sharedAuthDb: DrizzleDB | undefined;
+export function authDb(): DrizzleDB {
+  if (!sharedAuthDb) sharedAuthDb = createDb(config.databaseUrl);
+  return sharedAuthDb;
+}
+
+export async function closeAuthDb(): Promise<void> {
+  if (!sharedAuthDb) return;
+  const db = sharedAuthDb;
+  sharedAuthDb = undefined;
+  try {
+    await closeDb(db);
+  } catch {
+    // best-effort teardown
+  }
 }
