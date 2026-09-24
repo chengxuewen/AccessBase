@@ -9,6 +9,8 @@ import {
   permissions,
   rolePermissions,
   userRoles,
+  groupRoles,
+  groupUsers,
   type Role as DbRole,
   type NewRole,
   type Permission as DbPermission,
@@ -17,6 +19,7 @@ import { invalidatePermissionCache } from './permission-cache.js';
 import { bumpAuthState, delAuthState } from '../services/token-version.js';
 import {
   wouldOrphanLastAdmin,
+  holdsSystemRoleViaGroup,
   ROLE_PROTECTED,
   LAST_ADMIN_GUARD,
 } from '../services/last-admin-guard.js';
@@ -279,13 +282,18 @@ export class RoleManager {
       throw new Error(`${ROLE_PROTECTED}: cannot delete the built-in administrator role`);
     }
 
-    // Check if role has users assigned
+    // Check if role has users assigned — Q4b R7: group bindings count too
+    // (otherwise a group-only-bound role silently vanishes under members).
     const [userCount] = await this.db
       .select({ count: count() })
       .from(userRoles)
       .where(eq(userRoles.roleId, id));
+    const [groupCount] = await this.db
+      .select({ count: count() })
+      .from(groupRoles)
+      .where(eq(groupRoles.roleId, id));
 
-    if ((userCount?.count ?? 0) > 0) {
+    if ((userCount?.count ?? 0) + (groupCount?.count ?? 0) > 0) {
       throw new Error('Cannot delete role with assigned users');
     }
 
@@ -434,7 +442,7 @@ export class RoleManager {
       .from(roles)
       .where(eq(roles.id, roleId))
       .limit(1);
-    if (targetRole?.isSystem && (await wouldOrphanLastAdmin(this.db, tenantId, userId))) {
+    if (targetRole?.isSystem && !(await holdsSystemRoleViaGroup(this.db, tenantId, userId)) && (await wouldOrphanLastAdmin(this.db, tenantId, userId))) {
       throw new Error(
         `${LAST_ADMIN_GUARD}: cannot revoke the last active administrator of the tenant`,
       );
@@ -473,7 +481,7 @@ export class RoleManager {
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
       .where(and(eq(userRoles.userId, userId), eq(userRoles.tenantId, tenantId)));
     const dropsSystemRole = held.some((row) => row.isSystem && !roleIds.includes(row.roleId));
-    if (dropsSystemRole && (await wouldOrphanLastAdmin(d, tenantId, userId))) {
+    if (dropsSystemRole && !(await holdsSystemRoleViaGroup(d, tenantId, userId)) && (await wouldOrphanLastAdmin(d, tenantId, userId))) {
       throw new Error(
         `${LAST_ADMIN_GUARD}: cannot remove the last active administrator of the tenant`,
       );
@@ -535,6 +543,45 @@ export class RoleManager {
       }
     }
 
+    return result;
+  }
+
+  /**
+   * Q4b (rev.2 R1): effective roles for PERMISSION purposes = direct (with
+   * inheritance) UNION group-granted (with inheritance). The ONLY consumers are
+   * PermissionManager + admin-identity gates + CSV export — the UserEdit
+   * prefill path keeps plain getUserRoles so a save can never materialize
+   * group roles as direct rows.
+   */
+  async getEffectiveRoles(userId: string, tenantId: string): Promise<Role[]> {
+    const result = await this.getUserRoles(userId, tenantId);
+    const seen = new Set(result.map((r) => r.id));
+    const groupRows = await this.db
+      .select()
+      .from(roles)
+      .innerJoin(groupRoles, eq(roles.id, groupRoles.roleId))
+      .innerJoin(groupUsers, eq(groupRoles.groupId, groupUsers.groupId))
+      .where(and(eq(groupUsers.userId, userId), eq(groupUsers.tenantId, tenantId)));
+    for (const row of groupRows as Array<{ roles: DbRole }>) {
+      const role = row.roles;
+      if (!seen.has(role.id)) {
+        seen.add(role.id);
+        const perms = await this.getRolePermissions(role.id);
+        result.push(this.mapToRole(role, perms));
+        if (role.parentId) {
+          const parentPerms = await this.resolveInheritedPermissions(role.parentId, tenantId);
+          const [parentRole] = await this.db
+            .select()
+            .from(roles)
+            .where(and(eq(roles.id, role.parentId), eq(roles.tenantId, tenantId)))
+            .limit(1);
+          if (parentRole && !seen.has(parentRole.id)) {
+            seen.add(parentRole.id);
+            result.push(this.mapToRole(parentRole as DbRole, parentPerms));
+          }
+        }
+      }
+    }
     return result;
   }
 

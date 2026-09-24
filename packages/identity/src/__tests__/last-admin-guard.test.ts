@@ -71,15 +71,15 @@ describe('wouldOrphanLastAdmin', () => {
     await expect(wouldOrphanLastAdmin(db as never, 't1', 'u1')).resolves.toBe(false);
   });
 
-  it('queries scoped to the tenant (where receives the tenant predicate)', async () => {
+  it('queries scoped to the tenant (both census legs: direct + group-via)', async () => {
     const db = makeMockDb([holder('u1')]);
     await wouldOrphanLastAdmin(db as never, 't1', 'u1');
-    expect(db.select).toHaveBeenCalledTimes(1);
+    // Q4b R2: two-query JS union (userRoles leg + groupUsers leg)
+    expect(db.select).toHaveBeenCalledTimes(2);
     const selectArg = db.select.mock.calls[0]![0];
     expect(selectArg).toMatchObject({ userId: expect.anything() });
-    // the where() call happened exactly once with a single combined condition
     const chain = db.select.mock.results[0]!.value;
-    expect(chain.where).toHaveBeenCalledTimes(1);
+    expect(chain.where).toHaveBeenCalledTimes(2); // one combined condition per leg
   });
 });
 

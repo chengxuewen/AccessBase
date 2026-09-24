@@ -161,7 +161,7 @@ export class PermissionManager {
 
     logger.debug(`Computing effective permissions for user ${userId} in tenant: ${tenantId}`);
 
-    const roles = await this.roleManager.getUserRoles(userId, tenantId);
+    const roles = await this.roleManager.getEffectiveRoles(userId, tenantId); // Q4b: direct+inheritance+groups
     const seen = new Map<string, Permission>();
     for (const role of roles) {
       for (const p of await this.roleManager.resolveInheritedPermissions(role.id, tenantId)) {

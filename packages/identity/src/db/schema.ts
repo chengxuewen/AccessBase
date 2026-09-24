@@ -335,6 +335,36 @@ export const oidcClients = pgTable('oidc_clients', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+/**
+ * Q4b user groups (gap-audit market H): groups grant roles via group_roles,
+ * memberships via group_users. All fks CASCADE (users/roles hard-delete paths;
+ * RoleManager.delete census counts group_roles before allowing).
+ */
+export const groups = pgTable('groups', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [unique().on(t.tenantId, t.name)]);
+
+export const groupUsers = pgTable('group_users', {
+  groupId: uuid('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tenantId: uuid('tenant_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.groupId, t.userId] })]);
+
+export const groupRoles = pgTable('group_roles', {
+  groupId: uuid('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
+  roleId: uuid('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
+  tenantId: uuid('tenant_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.groupId, t.roleId] })]);
+
+export type GroupRow = typeof groups.$inferSelect;
+
 export type OidcClientRow = typeof oidcClients.$inferSelect;
 
 /**

@@ -97,7 +97,7 @@ const roleFor = (id: string): Role => ({
 
 describe('cache invalidation on write paths', () => {
   let db: ReturnType<typeof makeMockDb>;
-  let rmStub: { getUserRoles: ReturnType<typeof vi.fn>; resolveInheritedPermissions: ReturnType<typeof vi.fn> };
+  let rmStub: { getUserRoles: ReturnType<typeof vi.fn>; getEffectiveRoles: ReturnType<typeof vi.fn>; resolveInheritedPermissions: ReturnType<typeof vi.fn> };
   let pm: PermissionManager;
   let roleManager: RoleManager;
   let userManager: UserManager;
@@ -110,6 +110,7 @@ describe('cache invalidation on write paths', () => {
     vi.mocked(createDb).mockReturnValue(db as never);
     rmStub = {
       getUserRoles: vi.fn(),
+      getEffectiveRoles: vi.fn((u: string, t: string) => rmStub.getUserRoles(u, t)), // Q4b R1
       resolveInheritedPermissions: vi.fn().mockResolvedValue([permission('p1')]),
     };
     pm = new PermissionManager(undefined, rmStub as unknown as RoleManager);
@@ -152,7 +153,8 @@ describe('cache invalidation on write paths', () => {
     await prime();
     db.select
       .mockReturnValueOnce(makeChain([dbRole('r1')])) // role lookup
-      .mockReturnValueOnce(makeChain([{ count: 0 }])); // assigned-users guard
+      .mockReturnValueOnce(makeChain([{ count: 0 }])) // assigned-users guard
+      .mockReturnValueOnce(makeChain([{ count: 0 }])); // R7: group-bindings guard
     db.delete.mockReturnValue(makeChain(undefined));
 
     await roleManager.delete('r1', 't1');
@@ -237,9 +239,11 @@ describe('cache invalidation on write paths', () => {
     await primeTwoUsers();
     const updated = { ...dbUser, status: 'suspended' };
     db.update.mockReturnValue(makeChain([updated]));
-    // K-T2: suspended transition consults the guard — no active admin holders
-    // for this synthetic user → census false, update proceeds.
-    db.select.mockReturnValueOnce(makeChain([]));
+    // K-T2: suspended transition consults the guard — two-leg census (Q4b R2)
+    // → no active admin holders for this synthetic user, update proceeds.
+    db.select
+      .mockReturnValueOnce(makeChain([])) // direct leg
+      .mockReturnValueOnce(makeChain([])); // group-via leg
 
     const user: User = await userManager.changeStatus('u1', 'suspended', 't1');
 

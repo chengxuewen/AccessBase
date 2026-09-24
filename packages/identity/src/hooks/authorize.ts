@@ -56,6 +56,10 @@ const routePermissions: Record<string, string> = {
   'POST:/api/v1/tenants': 'tenants:write',
   'PUT:/api/v1/tenants': 'tenants:write',
   'DELETE:/api/v1/tenants': 'tenants:delete',
+  'GET:/api/v1/groups': 'groups:read',
+  'POST:/api/v1/groups': 'groups:write',
+  'PUT:/api/v1/groups': 'groups:write',
+  'DELETE:/api/v1/groups': 'groups:delete',
 };
 
 /**

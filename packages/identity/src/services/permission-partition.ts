@@ -1,7 +1,7 @@
 /**
  * Permission partition — batch L′ (X1/X2).
  *
- * The 21 builtin permissions are exhaustively partitioned into the set a
+ * The 24 builtin permissions are exhaustively partitioned into the set a
  * NON-DEFAULT tenant may bind to its roles and the set reserved for the
  * platform (default tenant). Permission rows are global; this split is the
  * ceiling enforced by RoleManager.setRolePermissions for tenant callers so a
@@ -12,7 +12,11 @@
  * request.tenantId (always DEFAULT for reachable creators) and a '*'-scope key
  * short-circuits every requirePermission gate — binding one into a tenant role
  * would hand out a skeleton key past this partition.
+ * groups:* is tenant-bindable (Q4b): groups are strictly tenant-scoped rows,
+ * the last-admin census guards the isSystem-binding vector from both sides,
+ * and membership is validated against the group's tenant on add.
  *
+ * INVARIANT (pinned by tests): disjoint + union == the 24 BUILTIN_PERMISSIONS
  * INVARIANT (pinned by tests): disjoint + union == the 21 BUILTIN_PERMISSIONS
  * names in apps/server/src/routes/permissions-seed.ts. Any new permission code
  * MUST be placed into exactly one of these lists (server-side invariant test
@@ -20,7 +24,7 @@
  */
 import { DEFAULT_TENANT_ID } from '../managers/TenantManager.js';
 
-/** Names a non-default tenant may bind to its roles (9 codes). */
+/** Names a non-default tenant may bind to its roles (12 codes; Q4b adds groups:*). */
 export const TENANT_BINDABLE_PERMISSIONS: ReadonlyArray<string> = [
   'users:read',
   'users:write',
@@ -31,6 +35,9 @@ export const TENANT_BINDABLE_PERMISSIONS: ReadonlyArray<string> = [
   'permissions:read',
   'audit:read',
   'stats:read',
+  'groups:read',
+  'groups:write',
+  'groups:delete',
 ];
 
 /** Names reserved to the platform/default tenant (12 codes). */

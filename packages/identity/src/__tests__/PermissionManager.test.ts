@@ -64,6 +64,7 @@ describe('PermissionManager', () => {
   let db: ReturnType<typeof makeMockDb>;
   let roleManager: {
     getUserRoles: ReturnType<typeof vi.fn>;
+    getEffectiveRoles: ReturnType<typeof vi.fn>;
     resolveInheritedPermissions: ReturnType<typeof vi.fn>;
   };
   let manager: PermissionManager;
@@ -76,6 +77,9 @@ describe('PermissionManager', () => {
     vi.mocked(createDb).mockReturnValue(db as never);
     roleManager = {
       getUserRoles: vi.fn(),
+      // Q4b R1: PermissionManager now routes through getEffectiveRoles; delegate
+      // to the getUserRoles stub so existing assertions stay meaningful.
+      getEffectiveRoles: vi.fn((u: string, t: string) => roleManager.getUserRoles(u, t)),
       resolveInheritedPermissions: vi.fn(),
     };
     manager = new PermissionManager(undefined, roleManager as unknown as RoleManager);
@@ -218,6 +222,7 @@ describe('PermissionManager', () => {
 describe('permission cache', () => {
   let roleManager: {
     getUserRoles: ReturnType<typeof vi.fn>;
+    getEffectiveRoles: ReturnType<typeof vi.fn>;
     resolveInheritedPermissions: ReturnType<typeof vi.fn>;
   };
   let manager: PermissionManager;
@@ -230,6 +235,7 @@ describe('permission cache', () => {
     resetPermissionCache();
     roleManager = {
       getUserRoles: vi.fn(),
+      getEffectiveRoles: vi.fn((u: string, t: string) => roleManager.getUserRoles(u, t)),
       resolveInheritedPermissions: vi.fn(),
     };
   });

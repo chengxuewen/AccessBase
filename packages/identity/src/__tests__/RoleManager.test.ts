@@ -260,17 +260,20 @@ describe('K-T2 isSystem flag + guards', () => {
   it('delete on a non-system role still reaches the delete statement', async () => {
     db.select
       .mockReturnValueOnce(makeChain([dbRole('r1')])) // exists check
-      .mockReturnValueOnce(makeChain([{ count: 0 }])); // assigned-users count
+      .mockReturnValueOnce(makeChain([{ count: 0 }])) // assigned-users count
+      .mockReturnValueOnce(makeChain([{ count: 0 }])); // R7: group-bindings count
     db.delete.mockReturnValue(makeChain(undefined));
     await expect(manager.delete('r1', 't1')).resolves.toBeUndefined();
     expect(db.delete).toHaveBeenCalled();
   });
 
   it('setUserRoles removing the admin role from the sole active admin throws LAST_ADMIN_GUARD', async () => {
-    // select #1: held system roles (userRoles⨝roles); select #2: holder census
+    // #1 held system roles; #2 group-hold skip check (none); #3/#4 census direct+group legs
     db.select
       .mockReturnValueOnce(makeChain([{ userId: 'u1', roleId: 'r-admin', isSystem: true }]))
-      .mockReturnValueOnce(makeChain([holderRow('u1')]));
+      .mockReturnValueOnce(makeChain([]))
+      .mockReturnValueOnce(makeChain([holderRow('u1')]))
+      .mockReturnValueOnce(makeChain([]));
 
     await expect(manager.setUserRoles('u1', [], 't1')).rejects.toThrow(/^LAST_ADMIN_GUARD:/);
     expect(db.delete).not.toHaveBeenCalled();
@@ -290,7 +293,9 @@ describe('K-T2 isSystem flag + guards', () => {
   it('setUserRoles with two active admins passes even when admin role is dropped', async () => {
     db.select
       .mockReturnValueOnce(makeChain([{ userId: 'u1', roleId: 'r-admin', isSystem: true }]))
-      .mockReturnValueOnce(makeChain([holderRow('u1'), holderRow('u2')]));
+      .mockReturnValueOnce(makeChain([])) // no group-hold skip path
+      .mockReturnValueOnce(makeChain([holderRow('u1'), holderRow('u2')]))
+      .mockReturnValueOnce(makeChain([]));
     db.delete.mockReturnValue(makeChain(undefined));
     db.insert.mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) });
 
@@ -300,13 +305,16 @@ describe('K-T2 isSystem flag + guards', () => {
 
   it('revokeFromUser of a system admin role from the sole active admin throws LAST_ADMIN_GUARD', async () => {
     db.select
-      // R7: revokeFromUser checks the revoked role first, then the census.
+      // R7: role check (#1), group-hold skip (#2), then two-leg census (#3/#4).
       .mockReturnValueOnce(makeChain([{ isSystem: true }]))
-      .mockReturnValueOnce(makeChain([holderRow('u1')]));
+      .mockReturnValueOnce(makeChain([]))
+      .mockReturnValueOnce(makeChain([holderRow('u1')]))
+      .mockReturnValueOnce(makeChain([]));
 
     await expect(manager.revokeFromUser('u1', 'r-admin', 't1')).rejects.toThrow(/^LAST_ADMIN_GUARD:/);
     expect(db.delete).not.toHaveBeenCalled();
   });
+
 
   it('revokeFromUser of a non-system role proceeds without the census', async () => {
     db.select.mockReturnValueOnce(makeChain([{ isSystem: false }]));
@@ -315,5 +323,40 @@ describe('K-T2 isSystem flag + guards', () => {
     await expect(manager.revokeFromUser('u1', 'r-plain', 't1')).resolves.toBeUndefined();
     expect(db.select).toHaveBeenCalledTimes(1);
     expect(db.delete).toHaveBeenCalled();
+  });
+});
+
+describe('Q4b getEffectiveRoles (R1 union)', () => {
+  let db: ReturnType<typeof makeMockDb>;
+  let manager: RoleManager;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    db = makeMockDb();
+    const { createDb } = await import('../db/index.js');
+    vi.mocked(createDb).mockReturnValue(db as never);
+    manager = new RoleManager();
+  });
+
+  const directRole = {
+    id: 'r1', name: 'role-r1', tenantId: 't1', permissions: [],
+    createdAt: new Date(0), updatedAt: new Date(0),
+  };
+
+  it('unions group-granted roles with the direct set', async () => {
+    vi.spyOn(manager, 'getUserRoles').mockResolvedValue([directRole]);
+    db.select // group-join leg row + r2 permission lookup (empty)
+      .mockReturnValueOnce(makeChain([{ roles: dbRole('r2') }]))
+      .mockReturnValueOnce(makeChain([]));
+    const roles = await manager.getEffectiveRoles('u1', 't1');
+    expect(roles.map((r) => r.id)).toEqual(['r1', 'r2']);
+  });
+
+  it('deduplicates: a role held directly is not re-added from the group leg', async () => {
+    vi.spyOn(manager, 'getUserRoles').mockResolvedValue([directRole]);
+    db.select.mockReturnValueOnce(makeChain([{ roles: dbRole('r1') }]));
+    const roles = await manager.getEffectiveRoles('u1', 't1');
+    expect(roles.map((r) => r.id)).toEqual(['r1']);
+    expect(db.select).toHaveBeenCalledTimes(1); // seen-hit → no perms re-fetch
   });
 });
