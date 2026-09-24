@@ -68,6 +68,10 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
       const grantTypes = Array.isArray(body['grantTypes']) ? body['grantTypes'] : undefined;
       const scope = typeof body['scope'] === 'string' ? body['scope'] : undefined;
       const tokenAuthMethod = typeof body['tokenAuthMethod'] === 'string' ? body['tokenAuthMethod'] : undefined;
+      // Q3D: optional back-channel logout endpoint — http(s) only, else dropped.
+      const bcRaw = body['backchannelLogoutUri'];
+      const backchannelLogoutUri =
+        typeof bcRaw === 'string' && /^https?:\/\//.test(bcRaw) ? bcRaw : undefined;
 
       // Validate required fields
       if (!name || name.trim().length === 0) {
@@ -114,6 +118,7 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
         grantTypes,
         scope: scopeTokens.join(' '),
         tokenAuthMethod,
+        ...(backchannelLogoutUri ? { backchannelLogoutUri } : {}),
       });
 
       const { secretEncrypted: _secretEncrypted, ...safeClient } = result.client;

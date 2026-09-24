@@ -167,7 +167,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
 
     const tracked = await query(url,
       "SELECT id FROM schema_migrations ORDER BY id");
-    expect(tracked).toHaveLength(6);
+    expect(tracked).toHaveLength(7);
     expect((tracked[0] as { id: string }).id).toMatch(/^0000_/);
   });
 
@@ -187,7 +187,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     // Stamped, NOT applied: tracking holds 6 note='stamped' rows and the
     // users table is still the legacy ad-hoc one (no phone column, no chain tables).
     const rows = await query(url, "SELECT note FROM schema_migrations");
-    expect(rows).toHaveLength(6);
+    expect(rows).toHaveLength(7);
     expect(rows.every((x) => (x as { note: string }).note === 'stamped')).toBe(true);
     const cols = await query(url,
       "SELECT count(*)::int AS n FROM information_schema.columns WHERE table_name='users' AND column_name='phone'");
@@ -217,7 +217,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
       expect(r.status).toBe(0);
     }
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(6);
+    expect((rows[0] as { n: number }).n).toBe(7);
   });
 
   it('concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 6', async () => {
@@ -233,7 +233,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     const codes = await Promise.all([run(), run(), run()]);
     expect(codes).toEqual([0, 0, 0]);
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(6);
+    expect((rows[0] as { n: number }).n).toBe(7);
     // no duplicate-application evidence: each id appears exactly once
     const ids = await query(url, 'SELECT id, count(*)::int AS n FROM schema_migrations GROUP BY id HAVING count(*) > 1');
     expect(ids).toEqual([]);

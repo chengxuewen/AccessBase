@@ -7,7 +7,7 @@
  * keystore from JWT_*_KEY_PATH files with production fail-fast and a dev
  * ephemeral fallback. Adapter is the Task 4a OidcAdapter class.
  */
-import { createHash, createPrivateKey } from 'node:crypto';
+import { createHash, createPrivateKey, createPublicKey } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import Provider from 'oidc-provider';
 import type { Configuration, JWKS } from 'oidc-provider';
@@ -20,6 +20,10 @@ export interface BuildOidcProviderOptions {
   nodeEnv: string;
   privateKeyPath: string;
   publicKeyPath: string;
+  /** comma-separated extra PUBLIC key PEM paths (Q3C rotation overlap) */
+  extraPublicKeys?: string;
+  /** Q3D: RP-initiated back-channel logout (opt-in until the sid round-trip earns prod flag) */
+  backchannelLogoutEnabled?: boolean;
   /** Args for the OidcAdapter constructor (databaseUrl + injected deps). */
   adapterCtorArgs: ConstructorParameters<typeof OidcAdapter>;
   /** SPA origin for interaction redirects (dev topology, review B3). */
@@ -31,7 +35,7 @@ interface JwkSet {
 }
 
 /** RS256 JWK set from JWT key files; throws with a generation hint in production. */
-function loadJwks(opts: BuildOidcProviderOptions): JwkSet | undefined {
+export function loadJwks(opts: BuildOidcProviderOptions): JwkSet | undefined {
   if (!opts.privateKeyPath || !opts.publicKeyPath) {
     if (opts.nodeEnv === 'production') {
       throw new Error(
@@ -55,7 +59,31 @@ function loadJwks(opts: BuildOidcProviderOptions): JwkSet | undefined {
   const privateKeyPem = readFileSync(opts.privateKeyPath, 'utf-8');
   // createPrivateKey accepts PKCS8 PEM; export as private JWK (n/e/d/p/q/dp/dq/qi)
   const jwk = createPrivateKey(privateKeyPem).export({ format: 'jwk' }) as Record<string, unknown>;
-  return { keys: [{ ...jwk, use: 'sig', alg: 'RS256' }] };
+  const keys: Record<string, unknown>[] = [{ ...jwk, use: 'sig', alg: 'RS256' }];
+  // Q3C rotation overlap: extra PUBLIC keys are published alongside the signing
+  // key so RPs caching JWKS keep verifying OLD id_tokens during a key swap
+  // (oidc-provider signs with the first key carrying private material and
+  // derives kid per JWK). A malformed extra is a config bug -> loud fail with
+  // the path, matching the primary-key precedent.
+  const extras = (opts.extraPublicKeys ?? '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
+  for (const p of extras) {
+    let pem: string;
+    try {
+      pem = readFileSync(p, 'utf-8');
+    } catch {
+      throw new Error(`OIDC rotation extra key unreadable: ${p} (JWT_JWKS_EXTRA_PUBLIC_KEY_PATHS)`);
+    }
+    try {
+      const pub = createPublicKey(pem).export({ format: 'jwk' }) as Record<string, unknown>;
+      keys.push({ ...pub, use: 'sig', alg: 'RS256' });
+    } catch {
+      throw new Error(`OIDC rotation extra key is not a valid public PEM: ${p}`);
+    }
+  }
+  return { keys };
 }
 
 export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise<{
@@ -102,6 +130,9 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
       // Q3B (RFC 8628): Device Authorization Grant. Adapter already persists
       // DeviceCode rows (batch N) incl. findByUserCode — this is the switch.
       deviceFlow: { enabled: true },
+      // Q3D: revocation propagation to RPs (end_session delivers logout_token
+      // to clients registered with backchannel_logout_uri). FLAGGED.
+      backchannelLogout: { enabled: opts.backchannelLogoutEnabled === true },
     },
     // M2: scope + claims mapping — `openid profile email` must be declared or
     // authorize requests requesting those scopes fail with invalid_client_metadata

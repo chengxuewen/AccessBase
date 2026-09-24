@@ -78,6 +78,7 @@ const SAFE_COLUMNS = {
   grantTypes: oidcClients.grantTypes,
   scope: oidcClients.scope,
   tokenAuthMethod: oidcClients.tokenAuthMethod,
+  backchannelLogoutUri: oidcClients.backchannelLogoutUri, // URI is operator-visible config, not secret
   createdAt: oidcClients.createdAt,
   updatedAt: oidcClients.updatedAt,
 };
@@ -90,6 +91,8 @@ export interface OidcClientCreateInput {
   grantTypes: string[];
   scope: string;
   tokenAuthMethod?: string;
+  /** Q3D */
+  backchannelLogoutUri?: string | null;
 }
 
 export interface OidcClientCreateResult {
@@ -121,6 +124,7 @@ export class OidcClientManager {
       grantTypes: input.grantTypes,
       scope: input.scope,
       tokenAuthMethod: input.tokenAuthMethod ?? 'client_secret_basic',
+      backchannelLogoutUri: input.backchannelLogoutUri ?? null,
     };
 
     const [inserted] = await this.db.insert(oidcClients).values(row).returning();

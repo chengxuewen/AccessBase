@@ -327,6 +327,8 @@ export const oidcClients = pgTable('oidc_clients', {
   grantTypes: jsonb('grant_types').notNull(),
   scope: text('scope').notNull(),
   tokenAuthMethod: text('token_endpoint_auth_method').notNull().default('client_secret_basic'),
+  /** Q3D: RP back-channel logout endpoint (opt-in via OIDC_BACKCHANNEL_LOGOUT) */
+  backchannelLogoutUri: text('backchannel_logout_uri'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

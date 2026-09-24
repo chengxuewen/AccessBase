@@ -6,6 +6,8 @@ export interface AppConfig {
   jwtSecret: string;
   jwtPrivateKeyPath: string;
   jwtPublicKeyPath: string;
+  /** Q3C: comma-separated EXTRA public key PEMs published in /oidc/jwks (rotation overlap window). */
+  oidcJwksExtraPublicPaths: string;
   nodeEnv: 'development' | 'production' | 'test';
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   adminPassword: string;
@@ -33,6 +35,8 @@ export interface AppConfig {
   trustProxy: boolean;
   /** W2-1: per-IP req/min cap for the route-less /oidc hijack space. */
   oidcIpRatePerMin: number;
+  /** Q3D back-channel logout feature flag (OIDC_BACKCHANNEL_LOGOUT=1) */
+  oidcBackchannelLogout: boolean;
 }
 
 function env(key: string, fallback?: string): string {
@@ -91,6 +95,7 @@ export const config: AppConfig = {
   jwtSecret: requireJwtSecret(process.env),
   jwtPrivateKeyPath: process.env['JWT_PRIVATE_KEY_PATH'] || '',
   jwtPublicKeyPath: process.env['JWT_PUBLIC_KEY_PATH'] || '',
+  oidcJwksExtraPublicPaths: process.env['JWT_JWKS_EXTRA_PUBLIC_KEY_PATHS'] || '',
   nodeEnv: resolveNodeEnv(process.env),
   logLevel: (resolveNodeEnv(process.env) === 'production'
     ? 'info'
@@ -128,6 +133,7 @@ export const config: AppConfig = {
   // lives in Fastify's route-less (404) region and therefore escapes
   // @fastify/rate-limit entirely (verified: matched routes 429, route-less never).
   oidcIpRatePerMin: Number(process.env['OIDC_IP_RATE_PER_MIN'] ?? 120),
+  oidcBackchannelLogout: ['1', 'true'].includes(process.env['OIDC_BACKCHANNEL_LOGOUT'] ?? ''),
 };
 
 /**

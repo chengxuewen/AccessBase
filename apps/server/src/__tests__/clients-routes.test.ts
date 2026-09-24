@@ -44,7 +44,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     })),
     PermissionManager: vi.fn().mockImplementation(() => ({ hasPermission })),
     OidcClientManager: vi.fn().mockImplementation(() => ({
-      create: vi.fn(async (input: { name: string; redirectUris: string[]; grantTypes: string[]; scope: string; tokenAuthMethod?: string }) => {
+      create: vi.fn(async (input: { name: string; redirectUris: string[]; grantTypes: string[]; scope: string; tokenAuthMethod?: string; backchannelLogoutUri?: string | null }) => {
         const id = `id-${++counter}`;
         const clientId = `ab_test${counter}`;
         const plaintextSecret = `secret-${counter}-${Date.now()}`;
@@ -185,6 +185,45 @@ describe('POST /api/v1/clients', () => {
     expect(res.json().success).toBe(false);
   });
 });
+
+  it('Q3D: backchannelLogoutUri passes through when http(s); invalid schemes dropped', async () => {
+    const im = (await import('@accessbase/identity')).OidcClientManager as unknown as {
+      mock: { results: Array<{ value: { create: ReturnType<typeof vi.fn> } }> };
+    };
+    const inst = im.mock.results[im.mock.results.length - 1]?.value;
+    inst.create.mockClear();
+    const good = await app.inject({
+      method: 'POST',
+      url: '/api/v1/clients',
+      headers: { ...AUTH(), 'content-type': 'application/json' },
+      payload: {
+        name: 'BC App',
+        redirectUris: ['https://rp.example/cb'],
+        grantTypes: ['authorization_code'],
+        scope: 'openid',
+        backchannelLogoutUri: 'https://rp.example/bc-logout',
+      },
+    });
+    expect(good.statusCode).toBe(201);
+    expect(inst.create).toHaveBeenCalledWith(expect.objectContaining({ backchannelLogoutUri: 'https://rp.example/bc-logout' }));
+
+    inst.create.mockClear();
+    const bad = await app.inject({
+      method: 'POST',
+      url: '/api/v1/clients',
+      headers: { ...AUTH(), 'content-type': 'application/json' },
+      payload: {
+        name: 'BC Bad',
+        redirectUris: ['https://rp.example/cb'],
+        grantTypes: ['authorization_code'],
+        scope: 'openid',
+        backchannelLogoutUri: 'javascript://evil',
+      },
+    });
+    expect(bad.statusCode).toBe(201);
+    const passed = inst.create.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(passed.backchannelLogoutUri).toBeUndefined();
+  });
 
 describe('GET /api/v1/clients', () => {
   it('lists clients without secret material', async () => {

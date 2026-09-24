@@ -238,6 +238,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
     nodeEnv: config.nodeEnv,
     privateKeyPath: config.jwtPrivateKeyPath,
     publicKeyPath: config.jwtPublicKeyPath,
+    extraPublicKeys: config.oidcJwksExtraPublicPaths,
+    backchannelLogoutEnabled: config.oidcBackchannelLogout,
     adapterCtorArgs: [createDb(config.databaseUrl)],
     frontendOrigin: config.frontendOrigin,
   });

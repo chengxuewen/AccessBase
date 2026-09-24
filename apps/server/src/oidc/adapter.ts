@@ -243,6 +243,8 @@ export class OidcAdapter {
       grant_types: row.grantTypes,
       scope: row.scope,
       token_endpoint_auth_method: row.tokenAuthMethod,
+      // Q3D: provider Client schema reads backchannel_logout_uri (snake_case)
+      ...(row.backchannelLogoutUri ? { backchannel_logout_uri: row.backchannelLogoutUri } : {}),
     };
   }
 }

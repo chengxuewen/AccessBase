@@ -51,6 +51,17 @@ afterAll(() => {
 });
 
 describe('buildOidcProvider', () => {
+  it('Q3D flag chain static locks: env -> config -> app -> provider features (9.12 hides runtime features behind private fields)', () => {
+    const root = resolve(new URL('.', import.meta.url).pathname, '../../../..');
+    const cfg = readFileSync(root + '/apps/server/src/config.ts', 'utf-8');
+    const app = readFileSync(root + '/apps/server/src/app.ts', 'utf-8');
+    const prov = readFileSync(root + '/apps/server/src/oidc/provider.ts', 'utf-8');
+    expect(cfg).toContain("oidcBackchannelLogout: ['1', 'true'].includes(process.env['OIDC_BACKCHANNEL_LOGOUT'] ?? '')");
+    expect(app).toContain('backchannelLogoutEnabled: config.oidcBackchannelLogout');
+    expect(prov).toContain('backchannelLogout: { enabled: opts.backchannelLogoutEnabled === true }');
+  });
+
+
   it('constructs a provider with the adapter class and pkce required', async () => {
     const { provider, oidcHandler } = await buildOidcProvider({
       issuer: 'http://localhost:5101/oidc',
