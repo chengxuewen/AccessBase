@@ -54,3 +54,20 @@ Design docs: security.md/identity-sdd status note updated to ≤30s (not 'immedi
 ## Order & gates
 
 A → B → C → D; gates after each: RED-first units, vitest full, 4×tsc, eslint touched, e2e run once at batch end (A/B touch UI), live battery: role-revoke → bearer rejected ≤30s on the running server while old code returns 200 (before/after capture); device flow curl E2E against dev server (client_credentials of a device client → device_authorization → user_code page approve via playwright → token). Memory close + reality catalog + status headers of security.md/identity-sdd notes.
+
+---
+
+## rev.2 — dual-Momus absorbed (flows bg_32380a59 + blockers bg_ef375512; verdict REJECT → this revision)
+
+- **F-B1 (CRITICAL, both critics)**: ZERO of the six production sign sites (auth.ts:159 issueTokenPair, auth.ts:727 refresh, webauthn.ts:113, oauth.ts:298, saml.ts:113, setup.ts:498) include a tokenVersion claim. As written, the reader either 401-loops every live token (literal !==) or silently no-ops forever (missing=pass). **FIX (lands with A)**: stamp `tokenVersion: user.tokenVersion` into all six payloads (setup.ts gains status/tenantId too per the same table), AND the reader compares ONLY when the claim is present (`claims.tokenVersion !== undefined` else pass — deploy-era tokens self-heal in 15m, same rule as status at app.ts:175). The live battery (below) is the falsifier that proves the claim round-trips.
+- **F-B2**: publish-before-commit under routeTx = bounded ≤30s staleness (contract holds) but the "kills the 30s immediately" sentence is dropped; §A now says: bump publishes (DELs) AFTER the funnel statement; when threaded in a tx the DEL may fire pre-commit — repopulate reads old committed value, worst case = TTL. Accepted and documented, no afterCommit machinery (ponytail: the 30s contract is the promise).
+- **F-B3 (device flow rewritten)**: `interactions.deviceRoute` does not exist in oidc-provider 9.12.2 (unknown-key validation = boot brick). Real shape: routes.code_verification default '/device' is served BY THE PROVIDER under our /oidc mount; customization is `features.deviceFlow.userCodeInputSource`/`userCodeConfirmSource` (server-rendered HTML, zero-JS) — **NO React DeviceVerify page**. interactions.url MUST use `interaction.returnTo` path (device interactions resume at /oidc/device/:uid, not /oidc/auth/:uid — hardcoded path would break them), and frontend safeOidcRedirect guard widens to `/^\/oidc\/(auth|device)\//`.
+- **F-B4 (backchannel)**: §D ships behind `OIDC_BACKCHANNEL_LOGOUT=1` env opt-in until an integration test proves sid round-trips through our persisted Session payloads; enabling blind = silent no-op risk.
+- **F-B5**: JWKS extras parse failure = fail-fast WITH the offending path in the message (mirrors provider.ts:49 primary precedent); never silently skip a malformed extra.
+- **F-B6/cleared**: client.ts 401-interceptor is status-based (no per-code switch to update); revokeTenantAccess enumerates users tenant-wide (bump cannot miss no-session users); findByUserCode + userCode lower/upper symmetric; non-device client hitting /device_auth = 400 not 500.
+- **F-SIMPLIFY (controller)**: authst cache lives IN Redis (shared across nodes) — cross-node coherence needs NO pub/sub channel: writers DEL `authst:{userId}` best-effort via getRedisClient(). §A drops the setAuthStateInvalidateHook plan entirely.
+- **F-SCOPE**: remaining context forces this session to ship **A only** (+reality catalog + claim stamping). B/C/D/E are rev.2-ready and continue next session in order.
+
+## Execution carve-out (session boundary)
+
+A = bump service + 6 sign-site claims + decorator check + DEL-on-write + tests + live battery. B (device, HTML sources), C (jwks extras), D (flagged backchannel), E (captcha/enroll-wizard/CIDR) resume next session from this file.
