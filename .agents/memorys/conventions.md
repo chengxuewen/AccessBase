@@ -310,7 +310,7 @@ logger.error('Operation failed', error); // ❌
 ## Gap-audit Q1 e2e probe-mock rule (2026-09-23, PIT-080)
 
 - Any endpoint fetched by the /login page shell (status probes etc.) must be mocked in EVERY mock-API e2e spec that mounts /login (17 files today, greppable via `page.route('**/api/v1/auth/saml/status'` as the roster proxy) — unmocked it leaks to the vite proxy -> 500 console error -> unrelated specs' console nets fail in a burst. Check after adding such a probe: `grep -L "sms/status" e2e/*.spec.ts` minus the no-login-files list should be empty.
-- Current full-suite baselines (flip in same commit as any count change): vitest `1200 passed (110 files)`, e2e chromium `169 passed + 3 skipped 0 failed`. Re-run red on 429 after back-to-back full runs is bucket exhaustion, not code (PIT-083) — cool down ≥60s before A/B.
+- Current full-suite baselines (flip in same commit as any count change): vitest `1207 passed (111 files)`, e2e chromium `173 passed + 3 skipped 0 failed`. Re-run red on 429 after back-to-back full runs is bucket exhaustion, not code (PIT-083) — cool down ≥60s before A/B.
 
 ## Phase Q4c events/webhooks/email-templates constraints (2026-09-24)
 

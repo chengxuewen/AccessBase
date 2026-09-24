@@ -3,6 +3,8 @@
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
 ## [Unreleased] — 2026-09-24
+### Added (Q4d events history surface)
+- `GET /api/v1/events` + `/api/v1/events/:id` (tenant-isolated, type/date filters, paginated) reusing the `audit:read` code — zero new permission codes; Events admin page (family tags, fan-out status, payload detail modal) + e2e.
 ### Added (Q4c events outbox + webhooks + email templates, spec docs/superpowers/specs/2026-09-24-q4c-events-webhooks-templates-design.md)
 - Durable `events` outbox emitted at every manager mutation funnel (users/roles/tenants/apikeys/groups) atomically with the write; age-based retention prune (`WEBHOOK_RETENTION_DAYS`).
 - Per-tenant webhooks: `/api/v1/webhooks` CRUD + rotate + test-ping + deliveries ledger; HMAC-SHA256 signed dispatch with exponential backoff (dead@10), fail-closed SSRF guard (loopback/link-local/metadata + IPv4-mapped canonicalization), `webhooks_enabled` kill-switch, admin page with reveal-once secrets.

@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-AccessBase is an enterprise access control foundation (IAM) providing authentication, authorization, and audit capabilities. Currently past Phase 9 + gap-audit ladder Q0-Q4c landed — full IAM surface: RBAC enforcement with tenant partition (26-code seed, requirePermission guards), user groups + SCIM /ScimGroups, events outbox + webhooks + bilingual email templates, helpdesk self-service (forgot/reset/invite/force-change), enforced MFA + captcha + CIDR admission, OIDC Provider (device flow, rotating JWKS, persisted state) + generic RP, SAML SP, magic link, SMS OTP, OAuth, LDAP, API keys, multi-tenant control plane, audit + metrics + backup ops line; vitest 1200 + e2e chromium 169 (+3 conditional skip) all green.
+AccessBase is an enterprise access control foundation (IAM) providing authentication, authorization, and audit capabilities. Currently past Phase 9 + gap-audit ladder Q0-Q4c landed — full IAM surface: RBAC enforcement with tenant partition (26-code seed, requirePermission guards), user groups + SCIM /ScimGroups, events outbox + webhooks + bilingual email templates, helpdesk self-service (forgot/reset/invite/force-change), enforced MFA + captcha + CIDR admission, OIDC Provider (device flow, rotating JWKS, persisted state) + generic RP, SAML SP, magic link, SMS OTP, OAuth, LDAP, API keys, multi-tenant control plane, audit + metrics + backup ops line; vitest 1207 + e2e chromium 173 (+3 conditional skip) all green.
 
 ## STRUCTURE
 
