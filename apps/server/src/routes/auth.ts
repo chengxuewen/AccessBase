@@ -319,45 +319,6 @@ export async function authRoutes(app: FastifyInstance) {
   });
   if (enroll) return { success: true, data: enroll };
 }
-// Q3E-E3 enforced-MFA arm (rev.2: BEFORE step-up — unbound users never see a session)
-{
-  const enroll = await enrollGate({
-    getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
-    issueEnroll: async (uid) => flowTokens.issue('mfa_enroll', { userId: uid }, 300),
-    isSystemAdmin: async () =>
-      (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
-(r) => r.isSystem === true,
-      ),
-    user,
-  });
-  if (enroll) return { success: true, data: enroll };
-}
-// Q3E-E3 enforced-MFA arm (rev.2: BEFORE step-up — unbound users never see a session)
-{
-  const enroll = await enrollGate({
-    getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
-    issueEnroll: async (uid) => flowTokens.issue('mfa_enroll', { userId: uid }, 300),
-    isSystemAdmin: async () =>
-      (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
-(r) => r.isSystem === true,
-      ),
-    user,
-  });
-  if (enroll) return { success: true, data: enroll };
-}
-// Q3E-E3 enforced-MFA arm (rev.2: BEFORE step-up — unbound users never see a session)
-{
-  const enroll = await enrollGate({
-    getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
-    issueEnroll: async (uid) => flowTokens.issue('mfa_enroll', { userId: uid }, 300),
-    isSystemAdmin: async () =>
-      (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
-(r) => r.isSystem === true,
-      ),
-    user,
-  });
-  if (enroll) return { success: true, data: enroll };
-}
         if (user.totpEnabled) {
           const flowToken = await flowTokens.issue('mfa_verify', { userId: user.id }, 300);
           return {

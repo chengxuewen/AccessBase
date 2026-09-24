@@ -110,6 +110,7 @@ if printf '%s\n' "$OUT" | grep -qx 'STAMPED'; then
     "0004|SELECT phone FROM users LIMIT 1"
     "0005|SELECT 1 FROM oidc_adapter_state LIMIT 1"
     "0006|SELECT backchannel_logout_uri FROM oidc_clients LIMIT 1"
+    "0007|SELECT must_change_password FROM users LIMIT 1"
   )
   for entry in "${SENTINELS[@]}"; do
     ver="${entry%%|*}"

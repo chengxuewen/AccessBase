@@ -36,6 +36,8 @@ export const users = pgTable(
     // Phase 6b Task 3: TOTP MFA (encrypted at rest)
     totpSecret: text('totp_secret'),
     totpEnabled: boolean('totp_enabled').default(false).notNull(),
+    /** Q4a: admin reset / invite → must set a new password at next login */
+    mustChangePassword: boolean('must_change_password').default(false).notNull(),
     status: varchar('status', { length: 20 }).default('active').notNull(),
     tenantId: uuid('tenant_id').notNull(),
     tokenVersion: integer('token_version').default(1).notNull(),

@@ -310,17 +310,40 @@ export class UserManager {
    * Reset password (post flow-token): no old-password check, same reuse gate.
    * Throws Error('PASSWORD_REUSED') | Error('User not found').
    */
-  async resetPassword(userId: string, newPassword: string): Promise<void> {
-    const [row] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
-    if (!row?.passwordHash) {
+  async resetPassword(
+    userId: string,
+    newPassword: string,
+    opts?: { requireChange?: boolean },
+    db?: DbLike,
+  ): Promise<void> {
+    const d: DbLike = db ?? this.db;
+    const [row] = await d.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!row) {
       throw new Error('User not found');
     }
-    await this.rotatePassword(userId, row.passwordHash, newPassword);
+    if (!row.passwordHash) {
+      // Q4a invite/first-password lane (Momus B3): no prior credential → skip
+      // reuse gate + history row (passwordHistory.passwordHash is notNull).
+      const newHash = await hash(newPassword, 12);
+      await d
+        .update(users)
+        .set({ passwordHash: newHash, mustChangePassword: opts?.requireChange === true, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+      return;
+    }
+    await this.rotatePassword(userId, row.passwordHash, newPassword, opts, db);
   }
 
   /** Shared tail of change/reset: reuse gate vs last 5, hash+swap, history push+prune. */
-  private async rotatePassword(userId: string, currentHash: string, newPassword: string): Promise<void> {
-    const recent = await this.db.select()
+  private async rotatePassword(
+    userId: string,
+    currentHash: string,
+    newPassword: string,
+    opts?: { requireChange?: boolean },
+    db?: DbLike,
+  ): Promise<void> {
+    const d: DbLike = db ?? this.db;
+    const recent = await d.select()
       .from(passwordHistory)
       .where(eq(passwordHistory.userId, userId))
       .orderBy(desc(passwordHistory.createdAt))
@@ -331,16 +354,20 @@ export class UserManager {
       }
     }
     const newHash = await hash(newPassword, 12);
-    await this.db.update(users).set({ passwordHash: newHash, updatedAt: new Date() })
+    // Q4a invariant: ANY successful password set clears must_change_password;
+    // only the admin-reset lane passes requireChange:true to (re)arm it.
+    await d
+      .update(users)
+      .set({ passwordHash: newHash, mustChangePassword: opts?.requireChange === true, updatedAt: new Date() })
       .where(eq(users.id, userId));
-    await this.db.insert(passwordHistory).values({ userId, passwordHash: currentHash });
+    await d.insert(passwordHistory).values({ userId, passwordHash: currentHash });
     // Prune beyond last 5 (keep the just-inserted + 4 newest)
-    const keep = await this.db.select({ id: passwordHistory.id })
+    const keep = await d.select({ id: passwordHistory.id })
       .from(passwordHistory)
       .where(eq(passwordHistory.userId, userId))
       .orderBy(desc(passwordHistory.createdAt))
       .limit(5);
-    await this.db.delete(passwordHistory).where(
+    await d.delete(passwordHistory).where(
       and(eq(passwordHistory.userId, userId), notInArray(passwordHistory.id, keep.map((k) => k.id))),
     );
     logger.info({ userId }, 'Password rotated, history updated');
@@ -407,6 +434,7 @@ export class UserManager {
       isActive: dbUser.status === 'active',
       totpEnabled: dbUser.totpEnabled,
       emailVerified: dbUser.emailVerified ?? false,
+      mustChangePassword: dbUser.mustChangePassword,
       // DB status is a varchar; narrow to the claim's enum. Invalid values →
       // undefined = no claim = legacy-pass in authenticate.
       status: (['active', 'suspended', 'pending'] as const).includes(

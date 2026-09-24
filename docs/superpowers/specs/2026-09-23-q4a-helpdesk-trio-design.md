@@ -10,3 +10,12 @@
 5. **Reality catalog**: no new wire codes (shapes reuse). New login RESPONSE field only.
 6. **E2E**: admin-reset modal happy; force-change round trip (login mock returns passwordChangeRequired → URL /reset-password → submit → pair issued via existing mock); invite POST payload.
 **Order/gates**: RED unit first (login arm + endpoints), vitest/4×tsc/eslint, e2e targeted then full, close-out.
+
+## rev.2 — blockers-Momus absorbed (bg_d9f2e1ec). Fixed in-tree NOW: B3 (null-hash first-password lane in UM.resetPassword), B4 (login handler had 4x duplicated enrollGate arms — Q3E insertion-loop bug, deduped to 1), ops counts 7->8 (+stale titles). Verified: B2 forwarding was actually fine (line 324 threads opts+db).
+
+## Standing directives for the remaining implementation (B1/B5/B6/B7)
+- B1: the login 200 response schema (auth.ts ~:239-262) MUST declare `passwordChangeRequired: { type: 'boolean' }` alongside mfaRequired — fast-json-stringify strips undeclared; e2e page.route mocks CANNOT catch it (seam family 3rd instance). Lock with an app.inject wire assertion.
+- B5: stores/auth.ts login — check `passwordChangeRequired===true && typeof flowToken==='string'` BEFORE the mfaRequired branch; wipe token/refreshToken/user/isAuthenticated (mirror the mfa wipe); hand token via a store field (mfaFlowToken precedent) — navigation lives in Login.tsx, not the store.
+- B6: reset endpoint returns no pair (auth.ts:1517 `{success:true}`): force-change completion = ResetPassword.tsx success state + navigate '/login' (?mode=force from the handoff; forgot lane keeps its link copy). Spec item 6's 'pair issued' expectation deleted.
+- B7: admin-reset must ALSO bumpAuthState({tenantId,userIds:[id]}) beside revokeAllUserSessions — else target's bearer lives 15m (precedent UM.changeStatus:265-270); invite lane skips (no sessions possible pre-password).
+- Passkey/OAuth/SAML logins for mustChange users: accepted gap (flag is a password-credential gate; K-cited Keycloak parity), one line in security.md rotation section.

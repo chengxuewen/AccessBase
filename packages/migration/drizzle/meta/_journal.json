@@ -50,6 +50,13 @@
       "when": 1790216502065,
       "tag": "0006_q3d_backchannel_uri",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790226224562,
+      "tag": "0007_q4a_must_change_password",
+      "breakpoints": true
     }
   ]
 }

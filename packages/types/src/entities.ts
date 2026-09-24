@@ -21,6 +21,8 @@ export interface User {
   totpEnabled?: boolean;
   /** Email ownership verified via the /auth/verify-email flow (Q1-b2, closes design A4). */
   emailVerified?: boolean;
+  /** Q4a: admin armed — the next password login must set a fresh password. */
+  mustChangePassword?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
