@@ -22,6 +22,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Clients from './pages/Clients';
 import Tenants from './pages/Tenants';
+import Groups from './pages/Groups';
 import ApiKeys from './pages/ApiKeys';
 import UserCreate from './pages/users/UserCreate';
 import UserDetail from './pages/users/UserDetail';
@@ -138,6 +139,7 @@ export default function App() {
         <Route path="users/:id" element={<PrivateRoute permission="users:read"><UserDetail /></PrivateRoute>} />
         <Route path="users/:id/edit" element={<PrivateRoute permission="users:write"><UserEdit /></PrivateRoute>} />
         <Route path="roles" element={<PrivateRoute permission="roles:read"><Roles /></PrivateRoute>} />
+        <Route path="groups" element={<PrivateRoute permission="groups:read"><Groups /></PrivateRoute>} />
         <Route path="audit" element={<PrivateRoute permission="audit:read"><Audit /></PrivateRoute>} />
         <Route path="clients" element={<PrivateRoute permission="clients:read"><Clients /></PrivateRoute>} />
         <Route path="tenants" element={<PrivateRoute permission="tenants:read"><Tenants /></PrivateRoute>} />

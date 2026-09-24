@@ -7,6 +7,7 @@ const SEGMENT_KEYS: Record<string, string> = {
   dashboard: 'menu.dashboard',
   users: 'menu.users',
   roles: 'menu.roles',
+  groups: 'menu.groups',
   audit: 'menu.audit',
   profile: 'menu.profile',
   create: 'users.create',
