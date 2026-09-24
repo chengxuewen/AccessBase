@@ -24,6 +24,7 @@ import Clients from './pages/Clients';
 import Tenants from './pages/Tenants';
 import Groups from './pages/Groups';
 import ApiKeys from './pages/ApiKeys';
+import Webhooks from './pages/Webhooks';
 import UserCreate from './pages/users/UserCreate';
 import UserDetail from './pages/users/UserDetail';
 import UserEdit from './pages/users/UserEdit';
@@ -144,6 +145,7 @@ export default function App() {
         <Route path="clients" element={<PrivateRoute permission="clients:read"><Clients /></PrivateRoute>} />
         <Route path="tenants" element={<PrivateRoute permission="tenants:read"><Tenants /></PrivateRoute>} />
         <Route path="api-keys" element={<PrivateRoute permission="apikeys:read"><ApiKeys /></PrivateRoute>} />
+        <Route path="webhooks" element={<PrivateRoute permission="webhooks:read"><Webhooks /></PrivateRoute>} />
         <Route path="profile" element={<Profile />} />
         <Route path="settings" element={<Settings />} />
       </Route>

@@ -18,6 +18,7 @@ const SEGMENT_KEYS: Record<string, string> = {
   settings: 'menu.settings',
   clients: 'menu.clients',
   'api-keys': 'menu.apiKeys',
+  webhooks: 'menu.webhooks',
 };
 
 export default function Breadcrumbs() {

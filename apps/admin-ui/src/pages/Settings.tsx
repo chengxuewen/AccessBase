@@ -22,6 +22,7 @@ import {
   KeyOutlined,
   GlobalOutlined,
   SlidersOutlined,
+  MailOutlined,
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
@@ -51,6 +52,7 @@ import { resolveLang } from '../utils/locale';
 dayjs.extend(relativeTime);
 
 import MfaCard from './settings/MfaCard';
+import EmailTemplatesCard from './settings/EmailTemplatesCard';
 
 // Client-side mirror of server SENSITIVE_KEY_PATTERN (routes/options.ts) —
 // DISPLAY masking only; the server remains the authority on mask rejection.
@@ -532,6 +534,15 @@ export default function Settings() {
                   </span>
                 ),
                 children: optionsTab,
+              },
+              {
+                key: 'emailTemplates',
+                label: (
+                  <span>
+                    <MailOutlined /> {t('settings.emailTemplates.tab')}
+                  </span>
+                ),
+                children: <EmailTemplatesCard />,
               },
             ]
           : []),
