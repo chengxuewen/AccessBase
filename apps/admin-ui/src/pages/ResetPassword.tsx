@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Button, Card, Alert, theme } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
@@ -14,6 +14,8 @@ export default function ResetPassword() {
   const { t } = useTranslation();
   const { token: themeToken } = theme.useToken();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const force = searchParams.get('mode') === 'force';
   const token = searchParams.get('token') ?? '';
   const [form] = Form.useForm();
   const [busy, setBusy] = useState(false);
@@ -26,6 +28,11 @@ export default function ResetPassword() {
     try {
       await resetPassword(token, values.password);
       setDone(true);
+      if (force) {
+        // B6: no session is issued by the reset endpoint — a forced change
+        // lands back at /login where the (now cleared) credentials work.
+        window.setTimeout(() => navigate('/login', { replace: true }), 800);
+      }
     } catch (err) {
       setError(apiErrorMessage(err, t('login.error')));
     } finally {

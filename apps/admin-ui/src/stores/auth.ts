@@ -27,6 +27,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   mfaFlowToken: string | null;
+  passwordChangeToken: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   logoutWithServer: () => Promise<void>;
@@ -50,12 +51,14 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
       mfaFlowToken: null,
+      passwordChangeToken: null as string | null,
 
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
           const { data } = await client.post<ApiEnvelope<{
             mfaRequired?: boolean;
+            passwordChangeRequired?: boolean;
             flowToken?: string;
             accessToken?: string;
             refreshToken?: string;
@@ -68,6 +71,18 @@ export const useAuthStore = create<AuthState>()(
           // MFA step-up: wipe any stale persisted session so Login.tsx's OIDC
           // auto-approve effect gate (token || isAuthenticated) cannot fire with
           // a stale session while MFA is pending.
+          // Q4a (B5): forced password change FIRST — wipe the session surface
+          // and hand the flow token to Login.tsx for navigation (store cannot navigate).
+          if (payload.passwordChangeRequired === true && typeof payload.flowToken === 'string') {
+            set({
+              passwordChangeToken: payload.flowToken,
+              isAuthenticated: false,
+              token: null,
+              refreshToken: null,
+              user: null,
+            });
+            return false;
+          }
           if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
             // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
             // survives the redirect; J14 precedent)

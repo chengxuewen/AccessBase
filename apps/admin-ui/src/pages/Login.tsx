@@ -28,7 +28,7 @@ import { getInteraction, postInteractionDecision, safeOidcRedirect } from '../ap
 export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { login, isLoading, exchangeOAuthCode, exchangeSamlCode, fetchUser, mfaFlowToken, verifyMfa, cancelMfa } =
+  const { login, isLoading, exchangeOAuthCode, exchangeSamlCode, fetchUser, mfaFlowToken, verifyMfa, cancelMfa, passwordChangeToken } =
     useAuthStore();
   const [form] = Form.useForm();
   const [mfaForm] = Form.useForm();
@@ -299,6 +299,13 @@ export default function Login() {
       setLoginError(status === 429 ? t('login.tooManyRequests') : apiErrorMessage(err, t('login.error')));
     }
   };
+
+  // Q4a (B5): forced password change handoff — token arrives via the store.
+  useEffect(() => {
+    if (passwordChangeToken) {
+      navigate(`/reset-password?token=${encodeURIComponent(passwordChangeToken)}&mode=force`, { replace: true });
+    }
+  }, [passwordChangeToken, navigate]);
 
   // Q3E-E3: enrollment handoff (store branches set the sessionStorage token and
   // still clear session state here) — wizard takes over before any TOTP card.

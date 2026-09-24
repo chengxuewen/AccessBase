@@ -334,6 +334,25 @@ export class UserManager {
     await this.rotatePassword(userId, row.passwordHash, newPassword, opts, db);
   }
 
+  /** Q4a: password-set predicate for the invite gate (NEVER exposed on User). */
+  async hasPassword(userId: string, db?: DbLike): Promise<boolean> {
+    const d: DbLike = db ?? this.db;
+    const [row] = await d.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, userId)).limit(1);
+    return Boolean(row?.passwordHash);
+  }
+
+  /**
+   * Q4a admin lane: set password + ARM require-change + bump auth-state so
+   * in-flight bearer dies <=30s (B7; SessionManager revocation only kills
+   * refresh paths). Tenant read post-write for the bump predicate.
+   */
+  async adminResetPassword(userId: string, newPassword: string, db?: DbLike): Promise<void> {
+    const d: DbLike = db ?? this.db;
+    await this.resetPassword(userId, newPassword, { requireChange: true }, db);
+    const [row] = await d.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId)).limit(1);
+    if (row) await bumpAuthState(d, { tenantId: row.tenantId, userIds: [userId] }, delAuthState);
+  }
+
   /** Shared tail of change/reset: reuse gate vs last 5, hash+swap, history push+prune. */
   private async rotatePassword(
     userId: string,

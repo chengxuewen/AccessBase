@@ -33,7 +33,7 @@ export function _resetHostFallbackWarnForTest(): void {
 }
 
 /** Q1-b2: shared SMTP option set → Mailer (forgot/magic precedent, env>option>default). */
-async function getSmtpMailer(
+export async function getSmtpMailer(
   options: ReturnType<typeof getOptionsManager>,
 ): Promise<Mailer | null> {
   const host = await options.get('smtp_host', process.env['SMTP_HOST'], '');
@@ -48,7 +48,7 @@ async function getSmtpMailer(
 
 /** Q1-b2: magic-link R3 three-arm origin chain (site.url > forwarded host when
  * TRUST_PROXY > request host with the module warn latch). */
-async function resolvePublicOrigin(
+export async function resolvePublicOrigin(
   request: { headers: { [k: string]: string | string[] | undefined }; protocol: string },
   options: ReturnType<typeof getOptionsManager>,
 ): Promise<string> {
@@ -247,6 +247,7 @@ export async function authRoutes(app: FastifyInstance) {
                   refreshToken: { type: 'string' },
                   expiresIn: { type: 'number' },
                   // MFA step-up branch
+                  passwordChangeRequired: { type: 'boolean' },
                   mfaRequired: { type: 'boolean' },
                   enroll: { type: 'boolean' },
                   flowToken: { type: 'string' },
@@ -304,6 +305,16 @@ export async function authRoutes(app: FastifyInstance) {
       try {
         const userManager = await getUserManager();
         const user = await userManager.verifyPassword(email, password);
+
+        // Q4a (spec rev.2 B1): armed password change precedes EVERY other arm
+        // and issues no session. Field declared below (fast-json strips undeclared).
+        if (user.mustChangePassword === true) {
+          const flowToken = await flowTokens.issue('password_reset', { userId: user.id }, 1800);
+          return {
+            success: true,
+            data: { passwordChangeRequired: true, flowToken },
+          };
+        }
 
         // MFA step-up: user with TOTP enabled gets a flow token, not a session
 // Q3E-E3 enforced-MFA arm (rev.2: BEFORE step-up — unbound users never see a session)

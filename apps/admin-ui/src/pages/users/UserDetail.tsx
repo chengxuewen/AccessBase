@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Descriptions, Popconfirm, Space, Spin, Switch, Tag } from 'antd';
-import { deleteUser, changeUserStatus, getUser, type User } from '../../api/users';
+import { adminResetUserPassword, deleteUser, changeUserStatus, getUser, inviteUser, type User } from '../../api/users';
 import { message } from '../../api/feedback';
 import EmptyState from '../../components/EmptyState';
 
@@ -90,6 +90,23 @@ export default function UserDetail() {
           >
             <Button danger>{t('common.delete')}</Button>
           </Popconfirm>
+          <Button
+            size="small"
+            onClick={() => {
+              const pw = window.prompt('New temporary password for this user');
+              if (pw) void adminResetUserPassword(user.id, pw).then(() => message.success('Password reset — user must change at next login'));
+            }}
+            data-testid="user-admin-reset"
+          >
+            Reset password
+          </Button>
+          <Button
+            size="small"
+            onClick={() => void inviteUser(user.id).then((m) => message.success(m)).catch(() => message.error('Invite not eligible'))}
+            data-testid="user-invite"
+          >
+            Send invite
+          </Button>
         </Space>
       }
     >

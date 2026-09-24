@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import { UserManager, RoleManager, SessionManager } from '@accessbase/identity';
+import { FlowTokenService, UserManager, RoleManager, SessionManager } from '@accessbase/identity';
+import { getRedis } from '../utils/redis.js';
+import { getSmtpMailer, resolvePublicOrigin } from './auth.js';
 import { assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { routeTx } from '../utils/tx.js';
@@ -356,6 +358,85 @@ const error = err instanceof Error ? err : new Error(String(err));
       return commit
         ? { success: true, data: { created: rows.length - errors.length, errors } }
         : { success: true, data: { valid: valid.length, errors } };
+    },
+  );
+
+  // POST /api/v1/users/:id/reset-password — Q4a admin reset: sets a temp
+  // password, ARMS must-change (next password login routes through the force
+  // flow), revokes sessions AND bumps auth-state (B7, via the manager funnel).
+  app.post<{ Params: { id: string }; Body: { newPassword?: string } }>(
+    '/:id/reset-password',
+    {
+      schema: {
+        description: 'Admin password reset (arms force-change, revokes sessions)',
+        tags: ['users'],
+        security: [{ bearerAuth: [] }],
+        params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
+        body: { type: 'object', required: ['newPassword'], properties: { newPassword: { type: 'string', minLength: 1 } } },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = request.tenantId ?? DEFAULT_TENANT;
+      const target = await userManager.findById(request.params.id, tenantId);
+      if (!target) {
+        return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+      }
+      const newPassword = request.body.newPassword;
+      if (typeof newPassword !== 'string') {
+        return reply.status(400).send({ success: false, error: { code: 'VALIDATION_001', message: 'newPassword required' } });
+      }
+      const policy = await readPasswordPolicy(getOptionsManager().get.bind(getOptionsManager()), 'user_create');
+      const verdict = assertPasswordPolicy(newPassword, policy);
+      if (!verdict.ok) {
+        return reply.status(400).send({ success: false, error: { code: 'VALIDATION_001', message: verdict.message ?? 'Password rejected' } });
+      }
+      await routeTx(async (tx) => {
+        await userManager.adminResetPassword(target.id, newPassword, tx);
+      });
+      await getSessionManager().revokeAllUserSessions(target.id);
+      return { success: true };
+    },
+  );
+
+  // POST /api/v1/users/:id/invite — Q4a set-password email for users without
+  // a usable password (invited/SCIM/JIT) or armed by an admin reset.
+  app.post<{ Params: { id: string } }>(
+    '/:id/invite',
+    {
+      schema: {
+        description: 'Send a set-password invitation email (72h single-use link)',
+        tags: ['users'],
+        security: [{ bearerAuth: [] }],
+        params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = request.tenantId ?? DEFAULT_TENANT;
+      const target = await userManager.findById(request.params.id, tenantId);
+      if (!target) {
+        return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+      }
+      const armed = target.mustChangePassword === true;
+      if ((await userManager.hasPassword(target.id, undefined)) && !armed) {
+        return reply.status(409).send({
+          success: false,
+          error: { code: 'CONFLICT', message: 'User already has a password — use admin reset instead' },
+        });
+      }
+      const flowTokens = new FlowTokenService((await getRedis()) ?? undefined);
+      const token = await flowTokens.issue('password_reset', { userId: target.id }, 72 * 3600);
+      const mailer = await getSmtpMailer(getOptionsManager());
+      if (!mailer) {
+        return reply.status(202).send({ success: true, data: { message: 'Invitation recorded; email delivery is not configured' } });
+      }
+      const origin = await resolvePublicOrigin(request, getOptionsManager());
+      const link = `${origin}/reset-password?token=${token}`;
+      mailer
+        .send(target.email, 'Set your password', `<p>Click to set your password (valid 72 hours): <a href="${link}">${link}</a></p>`)
+        .catch((err: unknown) => {
+          request.log.warn({ err }, 'invite mail delivery failed (degraded to log)');
+        });
+      return reply.status(202).send({ success: true, data: { message: 'If the account is invitable, an email has been sent.' } });
     },
   );
 

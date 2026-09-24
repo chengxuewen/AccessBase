@@ -120,3 +120,14 @@ export async function exportUsersCsv(): Promise<void> {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/** Q4a: admin-set temp password (arms force-change + revokes sessions) */
+export async function adminResetUserPassword(id: string, newPassword: string): Promise<void> {
+  await client.post(`/v1/users/${id}/reset-password`, { newPassword });
+}
+
+/** Q4a: send set-password invitation (409 if the user already has a password) */
+export async function inviteUser(id: string): Promise<string> {
+  const { data } = await client.post<ApiEnvelope<{ message: string }>>(`/v1/users/${id}/invite`, {});
+  return data.data.message;
+}
