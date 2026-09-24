@@ -25,6 +25,7 @@ interface InteractionLike {
   params: Record<string, string>;
   prompt: { name: string; scopes?: string[] };
   session?: { accountId?: string } | undefined;
+  returnTo?: string;
 }
 
 function requestedScopes(interaction: InteractionLike): string[] {
@@ -65,6 +66,17 @@ export async function registerInteractionRoutes(
       // so the display name comes from the registry via clientNameLookup.
       const clientName = (await clientNameLookup(clientId)) ?? clientId;
       const scopes = requestedScopes(interaction);
+      // Q3B: device interactions resume at /oidc/device/:uid — the consent
+      // page must assign to the PROVIDER-declared path, never a guess.
+      let resumePath = `/oidc/auth/${interaction.uid}`;
+      try {
+        if (interaction.returnTo) {
+          const u = new URL(interaction.returnTo);
+          resumePath = `${u.pathname}${u.search}`;
+        }
+      } catch {
+        /* keep legacy fallback */
+      }
       return {
         success: true as const,
         data: {
@@ -72,6 +84,7 @@ export async function registerInteractionRoutes(
           requestedScopes: scopes,
           promptName: interaction.prompt['name'] ?? interaction.prompt.name,
           uid: interaction.uid,
+          resumePath,
         },
       };
     },

@@ -9,7 +9,12 @@ import { OidcClientManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { requirePermission } from '../utils/permission.js';
 
-const ALLOWED_GRANT_TYPES = new Set(['authorization_code', 'client_credentials']);
+const ALLOWED_GRANT_TYPES = new Set([
+  'authorization_code',
+  'client_credentials',
+  // Q3B (RFC 8628): device flow — provider feature enabled in oidc/provider.ts.
+  'urn:ietf:params:oauth:grant-type:device_code',
+]);
 const ALLOWED_SCOPES = new Set(['openid', 'profile', 'email', 'offline_access']);
 
 let clientManager: OidcClientManager | undefined;

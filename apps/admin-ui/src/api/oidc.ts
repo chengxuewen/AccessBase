@@ -6,6 +6,8 @@ export interface OidcInteraction {
   requestedScopes: string[];
   promptName: 'login' | 'consent';
   uid: string;
+  /** Q3B: provider-declared resume target (/oidc/auth/:uid or /oidc/device/:uid) */
+  resumePath?: string;
 }
 
 /** GET /v1/oidc/interaction/:uid — interaction details for the consent page (bearer auth) */
@@ -33,5 +35,5 @@ export function safeOidcRedirect(redirect: string | null): string | undefined {
     return undefined;
   }
   if (decoded.includes('\\') || decoded.includes('%2F%2F')) return undefined;
-  return /^\/oidc\/auth\//.test(decoded) ? decoded : undefined;
+  return /^\/oidc\/(auth|device)\//.test(decoded) ? decoded : undefined;
 }

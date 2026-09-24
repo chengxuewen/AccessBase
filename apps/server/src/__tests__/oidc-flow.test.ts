@@ -67,6 +67,7 @@ let userId = '';
 let bearer = '';
 let acClient = { clientId: '', plaintextSecret: '' };
 let ccClient = { clientId: '', plaintextSecret: '' };
+  let dvClient: { clientId: string; plaintextSecret: string | null };
 
 const userManager = new (UserManager as unknown as {
   new (): import('@accessbase/identity').UserManager;
@@ -202,6 +203,14 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
       tokenAuthMethod: 'client_secret_basic',
     });
     ccClient = { clientId: cc.client.clientId, plaintextSecret: cc.plaintextSecret };
+    const dv = await clientManager.create({
+      name: 'Flow Device',
+      redirectUris: ['http://localhost:3000/oidc/device/landing'],
+      grantTypes: ['urn:ietf:params:oauth:grant-type:device_code'],
+      scope: 'openid profile email',
+      tokenAuthMethod: 'client_secret_basic',
+    });
+    dvClient = { clientId: dv.client.clientId, plaintextSecret: dv.plaintextSecret };
 
     const login = await app.inject({
       method: 'POST',
@@ -255,6 +264,7 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
         requestedScopes: ['openid', 'profile', 'email'],
         promptName: 'login',
         uid,
+        resumePath: expect.stringContaining('/oidc/auth/'), // Q3B: provider-declared target
       },
     });
 
@@ -336,6 +346,38 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
     expect(claims.sub).toBe(userId);
     expect(claims.aud).toBe(acClient.clientId);
     expect(claims.nonce).toBe(nonce);
+  });
+
+  it('device flow (Q3B): discovery publishes endpoint, device_authorization + authorization_pending polling', async () => {
+    const disc = await app.inject({ method: 'GET', url: '/oidc/.well-known/openid-configuration' });
+    expect(disc.statusCode).toBe(200);
+    expect(String(disc.json().device_authorization_endpoint)).toContain('/oidc/device');
+
+    const basic = 'Basic ' + Buffer.from(`${dvClient.clientId}:${dvClient.plaintextSecret ?? ''}`).toString('base64');
+    const devPath = new URL(String(disc.json().device_authorization_endpoint)).pathname;
+    const dev = await app.inject({
+      method: 'POST',
+      url: devPath,
+      headers: { 'content-type': 'application/x-www-form-urlencoded', authorization: basic },
+      payload: new URLSearchParams({ client_id: dvClient.clientId, scope: 'openid profile' }).toString(),
+    });
+    expect(dev.statusCode).toBe(200);
+    const dc = dev.json() as { device_code?: string; user_code?: string; verification_uri?: string };
+    expect(typeof dc.device_code).toBe('string');
+    expect(String(dc.user_code)).toMatch(/[A-Z0-9]/);
+    expect(String(dc.verification_uri)).toContain('/oidc/device'); // code-verification page (interaction surface)
+
+    const poll = await app.inject({
+      method: 'POST',
+      url: '/oidc/token',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', authorization: basic },
+      payload: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+        device_code: String(dc.device_code),
+      }).toString(),
+    });
+    expect(poll.statusCode).toBe(400);
+    expect(poll.json().error).toBe('authorization_pending');
   });
 
   it('client_credentials machine client exchanges Basic auth for an access token', async () => {

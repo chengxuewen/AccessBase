@@ -99,6 +99,9 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
       revocation: { enabled: true },
       introspection: { enabled: true },
       clientCredentials: { enabled: true },
+      // Q3B (RFC 8628): Device Authorization Grant. Adapter already persists
+      // DeviceCode rows (batch N) incl. findByUserCode — this is the switch.
+      deviceFlow: { enabled: true },
     },
     // M2: scope + claims mapping — `openid profile email` must be declared or
     // authorize requests requesting those scopes fail with invalid_client_metadata
@@ -114,11 +117,23 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
     // the consent prompt (Task 6 renders both routes).
     interactions: {
       url: (_ctx, interaction) => {
+        // Q3B: resume target comes from the provider's own returnTo (auth
+        // interactions resume at /oidc/auth/:uid, DEVICE interactions at
+        // /oidc/device/:uid — hardcoding auth silently kills device login
+        // handoff, Momus rev.2 B3). Fallback keeps the legacy shape.
+        const resumePath = (() => {
+          try {
+            const u = new URL(interaction.returnTo);
+            return `${u.pathname}${u.search}`;
+          } catch {
+            return `/oidc/auth/${interaction.uid}`;
+          }
+        })();
         if (interaction.prompt.name === 'login') {
-          const target = `/login?redirect=${encodeURIComponent(`/oidc/auth/${interaction.uid}`)}`;
+          const target = `/login?redirect=${encodeURIComponent(resumePath)}`;
           return opts.nodeEnv === 'production' ? target : `${frontendOrigin}${target}`;
         }
-        return `/consent?uid=${interaction.uid}`;
+        return `/consent?uid=${interaction.uid}&resume=${encodeURIComponent(resumePath)}`;
       },
     },
     cookies: {

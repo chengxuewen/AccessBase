@@ -16,6 +16,13 @@ export default function Consent() {
   const [searchParams] = useSearchParams();
   const token = useAuthStore((s) => s.token);
   const uid = searchParams.get('uid');
+  // Q3B: resume target — server-declared (details.resumePath) wins, query param
+  // is the fallback; BOTH are re-validated against the same-origin /oidc allow
+  // list before assignment (open-redirect hygiene, J13 discipline).
+  const safeResume = (candidate: string | null | undefined): string | undefined =>
+    candidate && /^\/oidc\/(auth|device)\//.test(candidate) && !candidate.includes('\\')
+      ? candidate
+      : undefined;
   const [interaction, setInteraction] = useState<OidcInteraction | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [decisionError, setDecisionError] = useState<string | null>(null);
@@ -52,7 +59,9 @@ export default function Consent() {
       await postInteractionDecision(uid, decision);
       setDone(true);
       // Full page navigation so the provider's interaction cookies ride along
-      window.location.assign(`/oidc/auth/${uid}`);
+      // Q3B: prefer the provider-declared resume target (device interactions
+      // live at /oidc/device/:uid); the query param comes from interactions.url.
+      window.location.assign(safeResume(interaction?.resumePath) ?? safeResume(searchParams.get('resume')) ?? `/oidc/auth/${uid}`);
     } catch (err: unknown) {
       setDecisionError(apiErrorMessage(err, t('consent.error')));
     } finally {
