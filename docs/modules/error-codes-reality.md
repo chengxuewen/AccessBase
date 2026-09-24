@@ -42,6 +42,7 @@ Setup guard: SETUP_REQUIRED · SETUP_IN_PROGRESS · SETUP_ALREADY_COMPLETE · SE
 - authorization layer: PERM_001 (auth), PERM_002 (admin-only self), PERM_003 (scope)
 - options: OPT_001..003 · OIDC clients: CLIENT_001..007, OIDC_001..003 · API keys: APIKEY_001
 - metrics: METRICS_AUTH (403)
+- groups (Q4b): GROUP_NOT_FOUND (404), GROUP_NAME_EXISTS (409), GROUP_MEMBER_TENANT_MISMATCH (400), GROUP_ROLE_TENANT_MISMATCH (400); LAST_ADMIN_GUARD 409 on group funnels too (delete/removeMember/setGroupRoles)
 
 ## 409 conflict tags (manager throws with message prefix → conflict-mapper envelope)
 

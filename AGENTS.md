@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-AccessBase is an enterprise access control foundation (IAM) providing authentication, authorization, and audit capabilities. Currently past Phase 9 — full IAM surface: RBAC enforcement with tenant partition (21-code seed, requirePermission guards), MFA self-service, OIDC Provider + generic RP, SAML SP, magic link, SMS OTP, WebAuthn, OAuth, LDAP, SCIM 2.0, API keys, multi-tenant control plane, audit + metrics + backup ops line; vitest 972 + e2e chromium 138 (+3 conditional skip) all green.
+AccessBase is an enterprise access control foundation (IAM) providing authentication, authorization, and audit capabilities. Currently past Phase 9 + gap-audit ladder Q0-Q4b landed — full IAM surface: RBAC enforcement with tenant partition (24-code seed, requirePermission guards), user groups + SCIM /ScimGroups, helpdesk self-service (forgot/reset/invite/force-change), enforced MFA + captcha + CIDR admission, OIDC Provider (device flow, rotating JWKS, persisted state) + generic RP, SAML SP, magic link, SMS OTP, OAuth, LDAP, API keys, multi-tenant control plane, audit + metrics + backup ops line; vitest 1077 + e2e chromium 156 (+3 conditional skip) all green.
 
 ## STRUCTURE
 
@@ -118,7 +118,7 @@ pixi run dev                        # Same as bash accessbase.sh dev:native
 ## NOTES
 
 - 124 design decisions documented in `.agents/memorys/decisions.md` (D1-D126; D107/D108 never used)
-- 79 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~079)
+- 84 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~083; heading count includes addendum entries)
 - Architecture doc split into 43 module files under `docs/modules/` — each carries an `Implementation status` line (gate: `grep -L 'Implementation status' docs/modules/*.md` -> empty)
 - Each module has back-link to `architecture.md` stub
 - Reference implementation (new-api) in `.refinfo/` for studying patterns

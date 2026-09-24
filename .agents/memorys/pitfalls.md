@@ -618,3 +618,10 @@
 - 症状：定向跑 q3e-policy 全绿；全量 e2e roles-crud×8 红（500 console leak）。
 - 根因：CaptchaField hook 挂在 Login 主体，所有登录 spec 都会触发探针；只跑了新 spec 的定向验证漏掉名册同步。
 - 解法：新壳级端点落地当批就 grep -L 名单（saml/status 名单为代理）补 mock，并以【全量】e2e 收口——定向绿不算绿。
+
+## PIT-083: 连续重跑打爆共享 Redis rate 桶 → 跨文件 429 假回归 (2026-09-24, Q4b)
+
+- **症状**: 全量 apps/server 一次绿、下一次 revocation-stack `expected 429 to be 200` 且 tenants-bootstrap 5 个 mock 测试也 429；单独跑全绿。
+- **根因**: rate-limit 用共享 Redis storage（per-IP 127.0.0.1 inject 桶，60s 窗口）。同一 box 上连续多轮全量/定向跑把桶耗尽，波及任何限流端点的测试——与生产代码无关。
+- **解法**: 复现红时先等 ≥60s 冷却单跑定性；跨文件脆弱的登录型 live 测试内置 429 退避重试（revocation-stack 已加固，5×2s）；测间不做背靠背全量重跑。
+- **验证**: 冷却后 `vitest run` 102 文件 1077/1077 复跑绿。附带噪声：scratch DB `pg_terminate_backend` teardown 触发 idle 池 57P01 unhandled（revocation-stack 专报 "Errors N"，无断言失败）——已知残留，勿再 A/B。

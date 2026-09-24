@@ -180,7 +180,7 @@ logger.error('Operation failed', error); // ❌
 ## Phase 8a 授权接线约束（2026-09-04）
 
 - 新增路由的权限码必须**同时**进 authorize.ts `routePermissions` 映射表与 permissions-seed.ts `BUILTIN_PERMISSIONS`（只改其一 = 映射到了无种子码 或 种子码无人消费，均永久 403/死码。注：历史上的 RESOURCES 数组已于 cb79df5 移除——bindPermissions 按名字回读，无需它）
-- 检查命令 1：`grep -c "resource: '" apps/server/src/routes/permissions-seed.ts` 应 =21（码数变更时同步更新此期望值；2026-09-12 批 C Task 2 15→18：apikeys:read/write/delete + RESOURCES 数组同步加 'apikeys'；2026-09-16 batch G Task 2 升至 21：tenants:read/write/delete——该计数落地于 batch G Task 2，非 Task 1，届时更新此期望值）
+- 检查命令 1：`grep -c "resource: '" apps/server/src/routes/permissions-seed.ts` 应 =24（码数变更时同步更新此期望值；2026-09-12 批 C 15→18；2026-09-16 batch G 升至 21；2026-09-24 Q4b 升至 24：groups:read/write/delete——三注册点：seed + permission-partition（入 TENANT_BINDABLE）+ authorize routePermissions 映射，同 commit）
 - 检查命令 2（映射 unique 值 vs 种子清单 diff 应空）：`diff <(grep -oE "'[a-z]+:(read|write|delete)'" packages/identity/src/hooks/authorize.ts | sort -u | tr -d "'") <(grep -oE "name: '[a-z]+:(read|write|delete)'" apps/server/src/routes/permissions-seed.ts | grep -oE "[a-z]+:(read|write|delete)" | sort -u)`
 - DEFAULT_TENANT 单源 `apps/server/src/utils/constants.ts`，禁字面量散落；检查 `grep -rn "00000000-0000-0000-0000-000000000001" apps/server/src --include="*.ts" | grep -v __tests__ | grep -v constants.ts` 应零命中（2026-09-04 已收编 auth.ts 两处 + oauth.ts 一处，commit 8a987f2）
 - dev 环境跑 MFA 端点需 `MFA_ENCRYPTION_KEY`（32-byte hex）：现仓库脚本/accessbase.sh/.env.example 均未透传此变量，缺失时 mfa/setup 返回 400 AUTH_MFA_002（批三 TOTP 面板接线前需补运维配置）
@@ -248,7 +248,7 @@ logger.error('Operation failed', error); // ❌
 
 ## Phase L′ 多租户控制面约束（2026-09-20）
 
-- **权限分区是门禁**：新权限码必须同时进 `packages/identity/src/services/permission-partition.ts` 两清单之一（TENANT_BINDABLE 9 / PLATFORM_ONLY 12，union=BUILTIN 21），不变量测试（permissions-seed-lprime.test.ts）即闸——route gate 与 seed 都吃它，漏放=永久 403 或越权可绑。绑定动作唯一漏斗=RoleManager.setRolePermissions（非 DEFAULT 租户越界 throw PERMISSION_NOT_BINDABLE:<name>）；勿在路由层复制谓词（承 K 漏斗纪律）。
+- **权限分区是门禁**：新权限码必须同时进 `packages/identity/src/services/permission-partition.ts` 两清单之一（TENANT_BINDABLE 12 / PLATFORM_ONLY 12，union=BUILTIN 24，Q4b 起 groups:* 可绑），不变量测试（permissions-seed-lprime.test.ts）即闸——route gate 与 seed 都吃它，漏放=永久 403 或越权可绑。绑定动作唯一漏斗=RoleManager.setRolePermissions（非 DEFAULT 租户越界 throw PERMISSION_NOT_BINDABLE:<name>）；勿在路由层复制谓词（承 K 漏斗纪律）。
 - **platform belt**：tenants 面全部 mutation 处理器（POST/PUT/DELETE/bootstrap）首查 `request.tenantId === DEFAULT_TENANT` → 403 TENANT_PLATFORM_ONLY，先于任何租户状态读取（防 '*'-scope apikey 骨架键+枚举 oracle）。route code 闸（PERM_001）在外层先响——belt 是二层，勿撤。
 - **bootstrap 契约**：fresh=201、同租户 email 重放=200 alreadyBootstrapped:true（users.email 全局 unique 故跨租户占用 409 EMAIL_EXISTS）；严格 bindPermissions 先于建用户（判据 2 次序锁）；isSystem 直 UPDATE 无条件补（create 撞名早返回不带 stamp=B6 孤儿租户窗）；错误码表 TENANT_PLATFORM_ONLY/TENANT_PROTECTED/EMAIL_EXISTS/PERMISSION_NOT_BINDABLE/ROLE_INHERITANCE_CYCLE/WEAK_PASSWORD 与 spec D2 一致，e2e mock 逐字拷贝（PIT-033）。
 - **前端零租户字面量**：默认租户判定走后端投影（Tenant.isDefault / me.tenantIsDefault），admin-ui 不出 UUID、不比租户名字符串；顶栏 Tag 数据驱动 fail-closed。检查：`grep -c "00000000-0000" apps/admin-ui/src/pages/Tenants.tsx` 应 0。
@@ -310,7 +310,15 @@ logger.error('Operation failed', error); // ❌
 ## Gap-audit Q1 e2e probe-mock rule (2026-09-23, PIT-080)
 
 - Any endpoint fetched by the /login page shell (status probes etc.) must be mocked in EVERY mock-API e2e spec that mounts /login (17 files today, greppable via `page.route('**/api/v1/auth/saml/status'` as the roster proxy) — unmocked it leaks to the vite proxy -> 500 console error -> unrelated specs' console nets fail in a burst. Check after adding such a probe: `grep -L "sms/status" e2e/*.spec.ts` minus the no-login-files list should be empty.
-- Current full-suite baselines (flip in same commit as any count change): vitest `987 passed (90 files)`, e2e chromium `145 passed + 3 skipped 0 failed`.
+- Current full-suite baselines (flip in same commit as any count change): vitest `1077 passed (102 files)`, e2e chromium `156 passed + 3 skipped 0 failed`. Re-run red on 429 after back-to-back full runs is bucket exhaustion, not code (PIT-083) — cool down ≥60s before A/B.
+
+## Phase Q4b groups constraints (2026-09-24)
+
+- **effective-roles whitelist is closed**: `getEffectiveRoles` (direct UNION group, dedup by id) is consumed ONLY by PermissionManager.getUserEffectivePermissions, the 4 enrollGate isSystemAdmin arms (auth/saml/oauth/webauthn) and the users CSV export. `getUserRoles` stays for UserEdit prefill, /me+login rolesOf projections, and bootstrap replay — switching those would materialize group roles as direct rows on save (rev.2 R1). Check: `grep -rn "getEffectiveRoles" apps/server/src/routes packages/identity/src/managers | grep -v __tests__` counts 6 route sites + PermissionManager.
+- **last-admin census is two-directional**: direct funnels (setUserRoles/revokeFromUser) skip their guard when `holdsSystemRoleViaGroup` keeps standing (R3); group funnels (GroupManager delete/removeMember/setGroupRoles) compute post-state via `collectAdminHolders`/`holdersExcludingGroup` JS two-query unions — never re-add a single-query census. GroupManager.delete captures members BEFORE the cascade delete (invalidate-after-cascade was a silent zero-fan-out). Manager-funnel placement discipline (K) unchanged.
+- **SCIM group lock**: any /ScimGroups mutation (PUT/PATCH/DELETE) on a group bound to an isSystem role → 403 invalidValue (R4 `grantsSystemRole` gate); POST/PATCH member refs are pre-validated tenant-scoped BEFORE writes (no half-baked groups); role bindings are NOT a SCIM surface (admin-only).
+- **groups route codes triple-registered**: permissions-seed.ts + permission-partition TENANT_BINDABLE + authorize routePermissions (24-code counts in the checks above); bootstrap bind set consumes `TENANT_BINDABLE_PERMISSIONS` dynamically (never hardcode the count in tests).
+- **getGroupRoles takes tenant and MUST filter by it** — groupRoles rows carry tenant_id; the controller caught a post-delegation regression where the param was accepted but unused (cross-tenant role-id enumeration via GET /:id/roles).
 
 ## Q2a route-manager singleton constraints (2026-09-23)
 
