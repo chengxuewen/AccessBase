@@ -160,6 +160,108 @@ const userManagerMock = {
 const sessionManagerMock = {
   revokeAllUserSessions: vi.fn(async () => {}),
 };
+// --- Q4b ScimGroups backing store (tenant-keyed, faithful two-key model) ---
+interface MockGroup {
+  id: string;
+  tenantId: string;
+  name: string;
+  description: string | null;
+  memberIds: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+const groupStore = new Map<string, MockGroup>();
+const systemBoundGroups = new Set<string>();
+/** When set, the next delete/removeMember throws this message (guard tests). */
+let groupGuardThrow: string | null = null;
+
+function makeGroup(name: string, tenantId = DEFAULT_TENANT): MockGroup {
+  const g: MockGroup = {
+    id: `g-${Math.random().toString(36).slice(2, 10)}`,
+    tenantId,
+    name,
+    description: null,
+    memberIds: [],
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    updatedAt: new Date('2026-01-01T00:00:00Z'),
+  };
+  groupStore.set(g.id, g);
+  return g;
+}
+
+function findGroup(id: string, tenantId: string): MockGroup | undefined {
+  return [...groupStore.values()].find((g) => g.id === id && g.tenantId === tenantId);
+}
+
+const groupManagerMock = {
+  list: vi.fn(async (tenantId: string) =>
+    [...groupStore.values()]
+      .filter((g) => g.tenantId === tenantId)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((g) => ({ ...g, memberCount: g.memberIds.length, roleCount: 0 }))),
+  findById: vi.fn(async (id: string, tenantId: string) => {
+    const g = findGroup(id, tenantId);
+    return g ? { ...g } : null;
+  }),
+  create: vi.fn(async (input: { name: string; description?: string }, tenantId: string) => {
+    if ([...groupStore.values()].some((g) => g.tenantId === tenantId && g.name === input.name)) {
+      throw new Error('GROUP_NAME_EXISTS');
+    }
+    return { ...makeGroup(input.name, tenantId) };
+  }),
+  update: vi.fn(async (id: string, patch: { name?: string; description?: string }, tenantId: string) => {
+    const g = findGroup(id, tenantId);
+    if (!g) throw new Error('GROUP_NOT_FOUND');
+    if (
+      patch.name &&
+      patch.name !== g.name &&
+      [...groupStore.values()].some((o) => o.tenantId === tenantId && o.name === patch.name)
+    ) {
+      throw new Error('GROUP_NAME_EXISTS');
+    }
+    if (patch.name) g.name = patch.name;
+    if (patch.description !== undefined) g.description = patch.description;
+    g.updatedAt = new Date();
+    return { ...g };
+  }),
+  delete: vi.fn(async (id: string, tenantId: string) => {
+    const g = findGroup(id, tenantId);
+    if (!g) throw new Error('GROUP_NOT_FOUND');
+    if (groupGuardThrow) throw new Error(groupGuardThrow);
+    groupStore.delete(id);
+    systemBoundGroups.delete(id);
+  }),
+  listMembers: vi.fn(async (id: string, tenantId: string) => {
+    const g = findGroup(id, tenantId);
+    if (!g) throw new Error('GROUP_NOT_FOUND');
+    return g.memberIds.map((uid) => {
+      const u = [...userStore.values()].find((x) => x.id === uid);
+      return { userId: uid, email: u?.email ?? '', name: u?.name ?? '' };
+    });
+  }),
+  addMember: vi.fn(async (id: string, userId: string, tenantId: string) => {
+    const g = findGroup(id, tenantId);
+    if (!g) throw new Error('GROUP_NOT_FOUND');
+    const u = [...userStore.values()].find((x) => x.id === userId && x.tenantId === tenantId);
+    if (!u) throw new Error('GROUP_MEMBER_TENANT_MISMATCH');
+    if (!g.memberIds.includes(userId)) g.memberIds.push(userId);
+  }),
+  removeMember: vi.fn(async (id: string, userId: string, tenantId: string) => {
+    const g = findGroup(id, tenantId);
+    if (!g) throw new Error('GROUP_NOT_FOUND');
+    if (groupGuardThrow) throw new Error(groupGuardThrow);
+    g.memberIds = g.memberIds.filter((m) => m !== userId);
+  }),
+  getGroupRoles: vi.fn(async () => [] as string[]),
+  setGroupRoles: vi.fn(async () => {}),
+  grantsSystemRole: vi.fn(async (id: string) => systemBoundGroups.has(id)),
+};
+
+function resetGroupStore(): void {
+  groupStore.clear();
+  systemBoundGroups.clear();
+  groupGuardThrow = null;
+}
 
 vi.mock('@accessbase/identity', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@accessbase/identity')>();
@@ -169,6 +271,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     // resolve a stub admin or the guard 503s (saml.test.ts precedent).
     UserManager: vi.fn().mockImplementation(() => userManagerMock),
     SessionManager: vi.fn().mockImplementation(() => sessionManagerMock),
+    GroupManager: vi.fn().mockImplementation(() => groupManagerMock),
     ApiKeyManager: Object.assign(
       vi.fn().mockImplementation(() => ({ findByHash: findByHashSpy })),
       { isExpired: actual.ApiKeyManager.isExpired },
@@ -1144,4 +1247,227 @@ describe('SCIM user provisioning (T2)', () => {
     });
   });
 
+});
+
+// ---------------------------------------------------------------------------
+// Q4b: ScimGroups provisioning (RFC 7643 §4.3) — Users-resource parity
+// ---------------------------------------------------------------------------
+
+const G_AUTH = { authorization: `Bearer ${SCIM_KEY}`, 'content-type': 'application/scim+json' };
+
+function seedUser(email: string, tenantId = DEFAULT_TENANT) {
+  const u = makeUser({ email, tenantId });
+  userStore.set(u.email.toLowerCase(), u);
+  return u;
+}
+
+describe('SCIM group provisioning (Q4b)', () => {
+  beforeEach(() => resetGroupStore());
+
+  it('POST /ScimGroups creates with members; 201 + location + member refs', async () => {
+    const u = seedUser('gmember@q4b.local');
+    const res = await app.inject({
+      method: 'POST',
+      url: `${SCIM_BASE}/ScimGroups`,
+      headers: G_AUTH,
+      payload: JSON.stringify({
+        schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
+        displayName: 'Engineering',
+        members: [{ value: u.id }],
+      }),
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.headers['content-type']).toContain('application/scim+json');
+    expect(res.headers.location).toContain('/ScimGroups/');
+    const body = res.json();
+    expect(body.schemas).toEqual(['urn:ietf:params:scim:schemas:core:2.0:Group']);
+    expect(body.displayName).toBe('Engineering');
+    expect(body.members).toEqual([{ value: u.id, display: 'gmember@q4b.local' }]);
+  });
+
+  it('POST with unknown member ref → 400 invalidValue and NO half-baked group', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: `${SCIM_BASE}/ScimGroups`,
+      headers: G_AUTH,
+      payload: JSON.stringify({ displayName: 'Broken', members: [{ value: 'no-such-user' }] }),
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().scimType).toBe('invalidValue');
+    expect(groupStore.size).toBe(0);
+  });
+
+  it('POST duplicate displayName → 409 uniqueness', async () => {
+    makeGroup('Dupes');
+    const res = await app.inject({
+      method: 'POST',
+      url: `${SCIM_BASE}/ScimGroups`,
+      headers: G_AUTH,
+      payload: JSON.stringify({ displayName: 'Dupes' }),
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().scimType).toBe('uniqueness');
+  });
+
+  it('GET list: displayName eq filter + startIndex/count paging', async () => {
+    makeGroup('Alpha');
+    makeGroup('Beta');
+    makeGroup('Gamma');
+    const filtered = await app.inject({
+      method: 'GET',
+      url: `${SCIM_BASE}/ScimGroups?filter=${encodeURIComponent('displayName eq "Beta"')}`,
+      headers: G_AUTH,
+    });
+    expect(filtered.statusCode).toBe(200);
+    expect(filtered.json().totalResults).toBe(1);
+    expect(filtered.json().Resources[0].displayName).toBe('Beta');
+
+    const paged = await app.inject({
+      method: 'GET',
+      url: `${SCIM_BASE}/ScimGroups?startIndex=2&count=2`,
+      headers: G_AUTH,
+    });
+    const pj = paged.json();
+    expect(pj.totalResults).toBe(3);
+    expect(pj.itemsPerPage).toBe(2);
+    // sorted by name: Alpha,Beta,Gamma → offset 1 → Beta,Gamma
+    expect(pj.Resources.map((r: { displayName: string }) => r.displayName)).toEqual(['Beta', 'Gamma']);
+  });
+
+  it('GET /:id embeds members; unknown id 404; other-tenant group invisible', async () => {
+    const g = makeGroup('Squad');
+    const u = seedUser('squad@q4b.local');
+    g.memberIds.push(u.id);
+    const res = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ScimGroups/${g.id}`, headers: G_AUTH });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().members).toEqual([{ value: u.id, display: 'squad@q4b.local' }]);
+
+    const missing = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ScimGroups/g-none`, headers: G_AUTH });
+    expect(missing.statusCode).toBe(404);
+
+    const foreign = makeGroup('Foreign', 'tenant-B');
+    const f = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ScimGroups/${foreign.id}`, headers: G_AUTH });
+    expect(f.statusCode).toBe(404);
+  });
+
+  it('PUT replaces displayName and member set (diff apply)', async () => {
+    const g = makeGroup('Team');
+    const old = seedUser('old@q4b.local');
+    const fresh = seedUser('fresh@q4b.local');
+    g.memberIds.push(old.id);
+    const res = await app.inject({
+      method: 'PUT',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+      payload: JSON.stringify({ displayName: 'TeamRenamed', members: [{ value: fresh.id }] }),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().displayName).toBe('TeamRenamed');
+    expect(res.json().members).toEqual([{ value: fresh.id, display: 'fresh@q4b.local' }]);
+  });
+
+  it('PATCH add/remove members + displayName replace; member value shapes covered', async () => {
+    const g = makeGroup('Patchy');
+    const a = seedUser('pa@q4b.local');
+    const b = seedUser('pb@q4b.local');
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+      payload: JSON.stringify({
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+        Operations: [
+          { op: 'add', path: 'members', value: [{ value: a.id }, { value: b.id }] },
+          { op: 'remove', path: `members[value eq "${b.id}"]` },
+          { op: 'replace', path: 'displayName', value: 'Patched' },
+        ],
+      }),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().displayName).toBe('Patched');
+    expect(res.json().members.map((m: { value: string }) => m.value)).toEqual([a.id]);
+  });
+
+  it('PATCH without Operations → 400 invalidValue; unknown path → 400 invalidPath; unknown id → 404 pre-write', async () => {
+    const g = makeGroup('NoOps');
+    const noOps = await app.inject({
+      method: 'PATCH',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+      payload: JSON.stringify({ schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'] }),
+    });
+    expect(noOps.statusCode).toBe(400);
+
+    const badPath = await app.inject({
+      method: 'PATCH',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+      payload: JSON.stringify({ Operations: [{ op: 'replace', path: 'externalId', value: 'x' }] }),
+    });
+    expect(badPath.statusCode).toBe(400);
+    expect(badPath.json().scimType).toBe('invalidPath');
+
+    const noSuch = await app.inject({
+      method: 'PATCH',
+      url: `${SCIM_BASE}/ScimGroups/g-none`,
+      headers: G_AUTH,
+      payload: JSON.stringify({ Operations: [{ op: 'add', path: 'members', value: 'x' }] }),
+    });
+    expect(noSuch.statusCode).toBe(404);
+  });
+
+  it('R4 lock: isSystem-bound group rejects PUT/PATCH/DELETE with 403; GET still serves', async () => {
+    const g = makeGroup('AdminsOnly');
+    systemBoundGroups.add(g.id);
+    const put = await app.inject({
+      method: 'PUT',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+      payload: JSON.stringify({ displayName: 'Hijacked' }),
+    });
+    expect(put.statusCode).toBe(403);
+    expect(put.json().scimType).toBe('invalidValue');
+
+    const patch = await app.inject({
+      method: 'PATCH',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+      payload: JSON.stringify({ Operations: [{ op: 'add', path: 'members', value: 'someone' }] }),
+    });
+    expect(patch.statusCode).toBe(403);
+
+    const del = await app.inject({ method: 'DELETE', url: `${SCIM_BASE}/ScimGroups/${g.id}`, headers: G_AUTH });
+    expect(del.statusCode).toBe(403);
+
+    const get = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ScimGroups/${g.id}`, headers: G_AUTH });
+    expect(get.statusCode).toBe(200);
+  });
+
+  it('DELETE → 204 and gone; LAST_ADMIN_GUARD from manager maps to 403 invalidValue', async () => {
+    const g = makeGroup('Doomed');
+    const del = await app.inject({ method: 'DELETE', url: `${SCIM_BASE}/ScimGroups/${g.id}`, headers: G_AUTH });
+    expect(del.statusCode).toBe(204);
+    const gone = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ScimGroups/${g.id}`, headers: G_AUTH });
+    expect(gone.statusCode).toBe(404);
+
+    const g2 = makeGroup('Guarded');
+    groupGuardThrow = 'LAST_ADMIN_GUARD: group is the only admin source of the tenant';
+    const blocked = await app.inject({ method: 'DELETE', url: `${SCIM_BASE}/ScimGroups/${g2.id}`, headers: G_AUTH });
+    expect(blocked.statusCode).toBe(403);
+    expect(blocked.json().detail).toContain('no active administrator');
+  });
+
+  it('member from another tenant → 400 (R5 two-key mock: addMember validates user tenant)', async () => {
+    const g = makeGroup('TenantBound');
+    const foreign = seedUser('foreign@q4b.local', 'tenant-B');
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+      payload: JSON.stringify({ Operations: [{ op: 'add', path: 'members', value: foreign.id }] }),
+    });
+    // route pre-validates refs via tenant-scoped findById → not-found arm
+    expect(res.statusCode).toBe(400);
+    expect(res.json().detail).toContain('not found');
+  });
 });

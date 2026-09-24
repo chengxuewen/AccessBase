@@ -265,9 +265,9 @@ describe('DELETE /api/v1/tenants/:id', () => {
 });
 
 describe('seed / routePermissions static assertions', () => {
-  it('permissions-seed.ts declares exactly 21 resource entries (incl. tenants)', () => {
+  it('permissions-seed.ts declares exactly 24 resource entries (incl. tenants + groups)', () => {
     const src = readFileSync(resolveSeedPath(), 'utf8');
-    expect((src.match(/resource: '/g) ?? []).length).toBe(21);
+    expect((src.match(/resource: '/g) ?? []).length).toBe(24);
     expect(src).toContain("resource: 'tenants'");
   });
 

@@ -221,7 +221,7 @@ export async function samlRoutes(app: FastifyInstance) {
           const hit = await enforceHit({
             getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
             isSystemAdmin: async () =>
-              (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
+              (await (await getRoleManager()).getEffectiveRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
                 (r) => r.isSystem === true,
               ),
             user: { totpEnabled: false },

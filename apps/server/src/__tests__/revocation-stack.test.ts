@@ -124,11 +124,19 @@ describe.skipIf(!redisUp)('bearer revocation end-to-end (live stack)', () => {
     // refresh rebuild path via a REAL login (DB-backed session pair — the
     // wizard's /complete hands out a JWT-shaped dev refresh token that never
     // enters the sessions table, so it cannot rotate; login mints a real one)
-    const lg = await sub!.inject({
+    // Full-suite runs share the per-IP login rate bucket with parallel suites —
+    // back off and retry on 429 instead of failing on contention (K-batch
+    // users-crud poll-hardening precedent).
+    const loginAgain = () => sub!.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
       payload: { email: 'revoketest@it.local', password: 'RevokerPass-123' },
     });
+    let lg = await loginAgain();
+    for (let attempt = 0; lg.statusCode === 429 && attempt < 5; attempt++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      lg = await loginAgain();
+    }
     expect(lg.statusCode).toBe(200);
     const pair = (lg.json().data as { accessToken: string; refreshToken: string });
     const rf = await sub.inject({ method: 'POST', url: '/api/v1/auth/refresh', payload: { refreshToken: pair.refreshToken } });

@@ -157,7 +157,7 @@ function resetMocks() {
 }
 
 describe('POST /api/v1/tenants/:id/bootstrap — happy path (fresh tenant)', () => {
-  it('creates stamped admin role + strict-binds 9 codes + creates and assigns the user, in order', async () => {
+  it('creates stamped admin role + strict-binds the full bindable partition + creates and assigns the user, in order', async () => {
     resetMocks();
     const res = await app.inject({
       method: 'POST',

@@ -34,6 +34,9 @@ export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: stri
   { name: 'tenants:read', resource: 'tenants', action: 'read', description: 'View tenants' },
   { name: 'tenants:write', resource: 'tenants', action: 'write', description: 'Create or update tenants' },
   { name: 'tenants:delete', resource: 'tenants', action: 'delete', description: 'Delete tenants' },
+  { name: 'groups:read', resource: 'groups', action: 'read', description: 'View user groups' },
+  { name: 'groups:write', resource: 'groups', action: 'write', description: 'Create or update user groups' },
+  { name: 'groups:delete', resource: 'groups', action: 'delete', description: 'Delete user groups' },
 ];
 
 

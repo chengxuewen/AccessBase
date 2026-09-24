@@ -19,9 +19,9 @@
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { SafeApiKey } from '@accessbase/identity';
-import { ApiKeyManager, UserManager, SessionManager, hashApiKey } from '@accessbase/identity';
+import { ApiKeyManager, UserManager, SessionManager, GroupManager, hashApiKey } from '@accessbase/identity';
 import { assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
-import type { User } from '@accessbase/identity';
+import type { User, Group } from '@accessbase/identity';
 import { parse as parseFilter } from 'scim2-parse-filter';
 import { getApiKeyManager } from './api-keys.js';
 import { getOptionsManager } from './options.js';
@@ -31,6 +31,10 @@ const SCIM_MEDIA_TYPE = 'application/scim+json';
 const ERROR_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:Error';
 const LIST_RESPONSE_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:ListResponse';
 const USER_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:User';
+const GROUP_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:Group';
+// Mirror of the identity guard tag literal (conflict-mapper precedent: route
+// tests mock '@accessbase/identity' and must not depend on it exposing consts).
+const LAST_ADMIN_GUARD_TAG = 'LAST_ADMIN_GUARD';
 
 /** RFC 7644 §3.7.3: list page size default/cap — mirrored in SPC filter.maxResults. */
 const PAGE_SIZE_DEFAULT = 100;
@@ -106,10 +110,73 @@ function filterToQuery(filterStr: string): { search?: string; id?: string; email
   if (ast.attrPath.toLowerCase() === 'id') return { id: value };
   return null;
 }
+/** SCIM filter AST → group query: only `displayName eq` / `id eq` push down. */
+function filterToGroupQuery(filterStr: string): { displayName?: string; id?: string } | null {
+  let ast: ReturnType<typeof parseFilter>;
+  try {
+    ast = parseFilter(filterStr);
+  } catch {
+    return null;
+  }
+  if (ast.op !== 'eq') return null;
+  const value = typeof ast.compValue === 'string' ? ast.compValue : undefined;
+  if (value === undefined) return null;
+  const attr = ast.attrPath.toLowerCase();
+  if (attr === 'displayname') return { displayName: value };
+  if (attr === 'id') return { id: value };
+  return null;
+}
+
+/** Group resource (RFC 7643 §4.3). externalId is accepted-and-ignored: the
+ * groups table carries no such column (ponytail: add the column when a real
+ * IdP correlation round-trip demands it). */
+function toScimGroup(
+  g: Group,
+  members?: Array<{ userId: string; email: string; name: string }>,
+): Record<string, unknown> {
+  return {
+    schemas: [GROUP_SCHEMA],
+    id: g.id,
+    displayName: g.name,
+    ...(members ? { members: members.map((m) => ({ value: m.userId, display: m.email })) } : {}),
+    meta: {
+      resourceType: 'Group',
+      location: `/api/v1/scim/v2/ScimGroups/${g.id}`,
+      created: g.createdAt.toISOString(),
+      lastModified: g.updatedAt.toISOString(),
+    },
+  };
+}
+
+/** members/PATCH value → user-id refs (array, single object, or bare string). */
+function memberRefIds(members: unknown): string[] {
+  if (members === undefined || members === null) return [];
+  const list = Array.isArray(members) ? members : [members];
+  const out: string[] = [];
+  for (const m of list) {
+    if (typeof m === 'string' && m !== '') {
+      out.push(m);
+      continue;
+    }
+    if (typeof m === 'object' && m !== null) {
+      const v = (m as { value?: unknown }).value;
+      if (typeof v === 'string' && v !== '') out.push(v);
+    }
+  }
+  return out;
+}
+
+/** PATCH path `members[value eq "u"]` → the single filtered user id. */
+function memberFilterId(path: string): string | undefined {
+  const m = /^members\[\s*value\s+eq\s+"([^"]+)"\s*\]$/i.exec(path);
+  return m?.[1];
+}
 
 export async function scimRoutes(app: FastifyInstance): Promise<void> {
   // Scoped managers (users.ts route-module precedent).
   const userManager = new UserManager();
+  // Q4b ScimGroups provisioning (same scoped auth/parser/error-handler apply).
+  const groupManager = new GroupManager();
   // Lazy singleton: a per-request SessionManager would pile up pg Pools
   // (users.ts getSessionManager precedent). Only DELETE touches it.
   let sessionManager: SessionManager | null = null;
@@ -236,20 +303,29 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
   app.get('/ResourceTypes', async (_req, reply) => {
     scimSend(reply, 200, {
       schemas: ['urn:ietf:params:scim:api:messages:2.0:ListResponse'],
-      totalResults: 1,
+      totalResults: 2,
       Resources: [
         {
           id: 'User',
           name: 'User',
           endpoint: '/Users',
           description: 'User Account',
-          schema: 'urn:ietf:params:scim:schemas:core:2.0:User',
+          schema: USER_SCHEMA,
           schemaExtensions: [],
           meta: { resourceType: 'ResourceType', location: '/api/v1/scim/v2/ResourceTypes/User' },
         },
+        {
+          id: 'Group',
+          name: 'Group',
+          endpoint: '/ScimGroups',
+          description: 'Group',
+          schema: GROUP_SCHEMA,
+          schemaExtensions: [],
+          meta: { resourceType: 'ResourceType', location: '/api/v1/scim/v2/ResourceTypes/Group' },
+        },
       ],
       startIndex: 1,
-      itemsPerPage: 1,
+      itemsPerPage: 2,
     });
   });
 
@@ -520,5 +596,250 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     const finalUser = await userManager.findById(id, tenantId);
     if (!finalUser) return scimError(reply, 500, undefined, `User ${id} disappeared during update`);
     return scimSend(reply, 200, toScimUser(finalUser));
+  });
+  // --- Q4b ScimGroups provisioning (Users-resource template, RFC 7643 §4.3) ---
+
+  /** Map GroupManager error tags to SCIM shapes; true = handled. */
+  function scimGroupError(reply: FastifyReply, err: unknown): boolean {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message === 'GROUP_NOT_FOUND') {
+      scimError(reply, 404, 'notFound', 'Group not found');
+      return true;
+    }
+    if (message === 'GROUP_NAME_EXISTS') {
+      scimError(reply, 409, 'uniqueness', 'A group with this displayName already exists');
+      return true;
+    }
+    if (message === 'GROUP_MEMBER_TENANT_MISMATCH') {
+      scimError(reply, 400, 'invalidValue', 'Member user does not belong to this tenant');
+      return true;
+    }
+    if (message.startsWith(LAST_ADMIN_GUARD_TAG)) {
+      scimError(reply, 403, 'invalidValue', 'Operation would leave the tenant with no active administrator');
+      return true;
+    }
+    return false;
+  }
+
+  /** R4 lock: SCIM must never mutate an isSystem-bound group (IdP compromise
+   * could otherwise strip the tenant's last admin). */
+  async function systemBoundBlock(groupId: string, reply: FastifyReply): Promise<boolean> {
+    if (await groupManager.grantsSystemRole(groupId)) {
+      scimError(
+        reply,
+        403,
+        'invalidValue',
+        'Group is bound to a protected administrator role and cannot be modified via SCIM',
+      );
+      return true;
+    }
+    return false;
+  }
+
+  app.get('/ScimGroups', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const query = request.query as { filter?: string; startIndex?: string; count?: string };
+    let rows = await groupManager.list(tenantId);
+    if (query.filter) {
+      const mapped = filterToGroupQuery(query.filter);
+      if (!mapped) return scimError(reply, 400, 'invalidFilter', 'Unsupported or malformed filter');
+      if (mapped.id !== undefined) rows = rows.filter((r) => r.id === mapped.id);
+      if (mapped.displayName !== undefined) {
+        const needle = mapped.displayName.toLowerCase();
+        rows = rows.filter((r) => r.name.toLowerCase() === needle);
+      }
+    }
+    const startIndex = Math.max(1, Number.parseInt(query.startIndex ?? '1', 10) || 1);
+    const countRaw = Number.parseInt(query.count ?? String(PAGE_SIZE_DEFAULT), 10);
+    const count = Number.isNaN(countRaw) ? PAGE_SIZE_DEFAULT : Math.min(Math.max(1, countRaw), PAGE_SIZE_MAX);
+    // ponytail: list-all-then-slice; per-tenant group counts are dozens. Add a
+    // paginated manager query if a tenant ever approaches PAGE_SIZE_MAX.
+    const offset = Math.max(0, startIndex - 1);
+    const page = rows.slice(offset, offset + count);
+    return scimSend(reply, 200, {
+      schemas: [LIST_RESPONSE_SCHEMA],
+      totalResults: rows.length,
+      startIndex,
+      itemsPerPage: page.length,
+      Resources: page.map((g) => toScimGroup(g)),
+    });
+  });
+
+  app.get('/ScimGroups/:id', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const { id } = request.params as { id: string };
+    const group = await groupManager.findById(id, tenantId);
+    if (!group) return scimError(reply, 404, 'notFound', `Group ${id} not found`);
+    const members = await groupManager.listMembers(id, tenantId);
+    return scimSend(reply, 200, toScimGroup(group, members));
+  });
+
+  app.post('/ScimGroups', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const displayName =
+      typeof body['displayName'] === 'string' && body['displayName'].trim() !== ''
+        ? body['displayName'].trim()
+        : undefined;
+    if (!displayName) return scimError(reply, 400, 'invalidValue', 'displayName is required');
+    const refs = memberRefIds(body['members']);
+    // Validate ALL refs before create (no half-baked groups on a bad batch).
+    for (const ref of refs) {
+      if (!(await userManager.findById(ref, tenantId))) {
+        return scimError(reply, 400, 'invalidValue', `Member user ${ref} not found`);
+      }
+    }
+    let group: Group;
+    try {
+      group = await groupManager.create({ name: displayName }, tenantId);
+      for (const ref of refs) await groupManager.addMember(group.id, ref, tenantId);
+    } catch (err) {
+      if (scimGroupError(reply, err)) return;
+      throw err;
+    }
+    const members = await groupManager.listMembers(group.id, tenantId);
+    return reply
+      .status(201)
+      .header('content-type', SCIM_MEDIA_TYPE)
+      .header('location', `/api/v1/scim/v2/ScimGroups/${group.id}`)
+      .send(toScimGroup(group, members));
+  });
+
+  /** Full replacement: displayName + exact member set (role bindings are NOT
+   * touched — SCIM has no roles concept; bindings stay on the admin surface). */
+  app.put('/ScimGroups/:id', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const { id } = request.params as { id: string };
+    if (!(await groupManager.findById(id, tenantId))) {
+      return scimError(reply, 404, 'notFound', `Group ${id} not found`);
+    }
+    if (await systemBoundBlock(id, reply)) return;
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const displayName =
+      typeof body['displayName'] === 'string' && body['displayName'].trim() !== ''
+        ? body['displayName'].trim()
+        : undefined;
+    if (!displayName) return scimError(reply, 400, 'invalidValue', 'displayName is required');
+    const refs = memberRefIds(body['members']);
+    for (const ref of refs) {
+      if (!(await userManager.findById(ref, tenantId))) {
+        return scimError(reply, 400, 'invalidValue', `Member user ${ref} not found`);
+      }
+    }
+    try {
+      await groupManager.update(id, { name: displayName }, tenantId);
+      const current = await groupManager.listMembers(id, tenantId);
+      const wanted = new Set(refs);
+      for (const m of current) {
+        if (!wanted.has(m.userId)) await groupManager.removeMember(id, m.userId, tenantId);
+      }
+      for (const ref of refs) {
+        if (!current.some((m) => m.userId === ref)) await groupManager.addMember(id, ref, tenantId);
+      }
+    } catch (err) {
+      if (scimGroupError(reply, err)) return;
+      throw err;
+    }
+    const finalGroup = await groupManager.findById(id, tenantId);
+    if (!finalGroup) return scimError(reply, 500, undefined, `Group ${id} disappeared during update`);
+    const members = await groupManager.listMembers(id, tenantId);
+    return scimSend(reply, 200, toScimGroup(finalGroup, members));
+  });
+
+  app.patch('/ScimGroups/:id', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const { id } = request.params as { id: string };
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const operations = Array.isArray(body['Operations']) ? body['Operations'] : undefined;
+    if (!operations || operations.length === 0) {
+      return scimError(reply, 400, 'invalidValue', 'Patch body must carry a non-empty Operations array');
+    }
+    if (!(await groupManager.findById(id, tenantId))) {
+      return scimError(reply, 404, 'notFound', `Group ${id} not found`);
+    }
+    if (await systemBoundBlock(id, reply)) return;
+    try {
+      for (const rawOp of operations) {
+        const op = (typeof rawOp === 'object' && rawOp !== null ? rawOp : {}) as {
+          op?: unknown;
+          path?: unknown;
+          value?: unknown;
+        };
+        const kind = typeof op.op === 'string' ? op.op.toLowerCase() : '';
+        const rawPath = typeof op.path === 'string' ? op.path.trim() : '';
+        const path = rawPath.toLowerCase();
+        if (kind !== 'add' && kind !== 'replace' && kind !== 'remove') {
+          return scimError(reply, 400, 'invalidPath', `Unsupported patch op: ${String(op.op)}`);
+        }
+        if (path === 'displayname') {
+          if (kind !== 'replace' || typeof op.value !== 'string' || op.value.trim() === '') {
+            return scimError(reply, 400, 'invalidPath', 'displayName requires a replace with a non-empty string');
+          }
+          await groupManager.update(id, { name: op.value.trim() }, tenantId);
+          continue;
+        }
+        const filtered = memberFilterId(rawPath);
+        if (path === 'members' || path.startsWith('members[')) {
+          if (filtered !== undefined) {
+            // members[value eq "u"] — a single-member selector (Okta/Azure style)
+            if (kind === 'remove') await groupManager.removeMember(id, filtered, tenantId);
+            else await groupManager.addMember(id, filtered, tenantId);
+            continue;
+          }
+          const refs = memberRefIds(op.value);
+          for (const ref of refs) {
+            if (!(await userManager.findById(ref, tenantId))) {
+              return scimError(reply, 400, 'invalidValue', `Member user ${ref} not found`);
+            }
+          }
+          if (kind === 'add') {
+            for (const ref of refs) await groupManager.addMember(id, ref, tenantId);
+          } else if (kind === 'remove') {
+            const targets = refs.length > 0 ? refs : (await groupManager.listMembers(id, tenantId)).map((m) => m.userId);
+            for (const ref of targets) await groupManager.removeMember(id, ref, tenantId);
+          } else {
+            const current = await groupManager.listMembers(id, tenantId);
+            const wanted = new Set(refs);
+            for (const m of current) {
+              if (!wanted.has(m.userId)) await groupManager.removeMember(id, m.userId, tenantId);
+            }
+            for (const ref of refs) {
+              if (!current.some((m) => m.userId === ref)) await groupManager.addMember(id, ref, tenantId);
+            }
+          }
+          continue;
+        }
+        return scimError(reply, 400, 'invalidPath', `Unsupported patch path: ${op.path === undefined ? '(missing)' : String(op.path)}`);
+      }
+    } catch (err) {
+      if (scimGroupError(reply, err)) return;
+      throw err;
+    }
+    const finalGroup = await groupManager.findById(id, tenantId);
+    if (!finalGroup) return scimError(reply, 500, undefined, `Group ${id} disappeared during update`);
+    const members = await groupManager.listMembers(id, tenantId);
+    return scimSend(reply, 200, toScimGroup(finalGroup, members));
+  });
+
+  app.delete('/ScimGroups/:id', async (request, reply) => {
+    const tenantId = request.tenantId;
+    if (!tenantId) return scimError(reply, 500, undefined, 'Tenant context missing');
+    const { id } = request.params as { id: string };
+    if (!(await groupManager.findById(id, tenantId))) {
+      return scimError(reply, 404, 'notFound', `Group ${id} not found`);
+    }
+    if (await systemBoundBlock(id, reply)) return;
+    try {
+      await groupManager.delete(id, tenantId);
+    } catch (err) {
+      if (scimGroupError(reply, err)) return;
+      throw err;
+    }
+    return reply.status(204).send();
   });
 }

@@ -155,7 +155,7 @@ describe('migrate.sh argument contract', () => {
 // ---------------------------------------------------------------------------
 
 describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
-  it('fresh DB: applies full chain — 17 chain tables + 8 tracking rows', { timeout: 30_000 }, async () => {
+  it('fresh DB: applies full chain — 20 chain tables + 9 tracking rows', { timeout: 30_000 }, async () => {
     const url = await tmpDbUrl();
     const r = migrate(CHAIN, url);
     expect(r.stderr).toBe('');
@@ -163,11 +163,11 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
 
     const tables = await query(url,
       "SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema='public' AND table_name <> 'schema_migrations'");
-    expect((tables[0] as { n: number }).n).toBe(17);
+    expect((tables[0] as { n: number }).n).toBe(20);
 
     const tracked = await query(url,
       "SELECT id FROM schema_migrations ORDER BY id");
-    expect(tracked).toHaveLength(8);
+    expect(tracked).toHaveLength(9);
     expect((tracked[0] as { id: string }).id).toMatch(/^0000_/);
   });
 
@@ -186,10 +186,10 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     // Q3E batch: 0006 adds the backchannel column sentinel — same warn lane
     expect(out).toContain('legacy DB behind chain head (0006) — run db:push to reconcile');
 
-    // Stamped, NOT applied: tracking holds 8 note='stamped' rows and the
+    // Stamped, NOT applied: tracking holds 9 note='stamped' rows and the
     // users table is still the legacy ad-hoc one (no phone column, no chain tables).
     const rows = await query(url, "SELECT note FROM schema_migrations");
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(9);
     expect(rows.every((x) => (x as { note: string }).note === 'stamped')).toBe(true);
     const cols = await query(url,
       "SELECT count(*)::int AS n FROM information_schema.columns WHERE table_name='users' AND column_name='phone'");
@@ -212,17 +212,17 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     }
   });
 
-  it('idempotent: three consecutive runs exit 0, tracking stays 8 rows', async () => {
+  it('idempotent: three consecutive runs exit 0, tracking stays 9 rows', async () => {
     const url = await tmpDbUrl();
     for (let i = 0; i < 3; i += 1) {
       const r = migrate(CHAIN, url);
       expect(r.status).toBe(0);
     }
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(8);
+    expect((rows[0] as { n: number }).n).toBe(9);
   });
 
-  it('concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 8', { timeout: 30_000 }, async () => {
+  it('concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 9', { timeout: 30_000 }, async () => {
     const url = await tmpDbUrl();
     const run = () =>
       new Promise<number>((resolve, reject) => {
@@ -235,7 +235,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     const codes = await Promise.all([run(), run(), run()]);
     expect(codes).toEqual([0, 0, 0]);
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(8);
+    expect((rows[0] as { n: number }).n).toBe(9);
     // no duplicate-application evidence: each id appears exactly once
     const ids = await query(url, 'SELECT id, count(*)::int AS n FROM schema_migrations GROUP BY id HAVING count(*) > 1');
     expect(ids).toEqual([]);

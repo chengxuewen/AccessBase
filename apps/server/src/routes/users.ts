@@ -117,7 +117,8 @@ export async function userRoutes(app: FastifyInstance) {
         if (result.data.length === 0) break;
         for (const user of result.data) {
           if (csvRows.length >= MAX_ROWS) break;
-          const roles = await roleManager.getUserRoles(user.id, request.tenantId ?? DEFAULT_TENANT);
+          // CSV export reflects effective roles (direct + group-granted).
+          const roles = await roleManager.getEffectiveRoles(user.id, request.tenantId ?? DEFAULT_TENANT);
           csvRows.push({
             ...user,
             roles: roles.map((r) => r.name).join(','),

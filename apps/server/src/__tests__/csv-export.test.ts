@@ -61,6 +61,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
   })),
   RoleManager: vi.fn().mockImplementation(() => ({
     getUserRoles: mockGetUserRoles,
+    getEffectiveRoles: mockGetUserRoles,
   })),
   PermissionManager: vi.fn().mockImplementation(() => ({
     hasPermission: vi.fn(async () => allow.value),
