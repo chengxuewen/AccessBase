@@ -40,6 +40,11 @@ const KNOWN_OPTION_KEYS = new Set([
   'password_require_lower',
   'password_require_digit',
   'password_require_special',
+  // Q3E policy trio (spec 2026-09-23-q3e-policy-trio-design)
+  'mfa_enforcement',
+  'captcha_enabled',
+  'auth_cidr_allow',
+  'auth_cidr_deny',
 ]);
 // Batch B dynamic provider secrets: oauth_<name>_client_secret (names are
 // lowercase/hyphen by convention — KEY_FORMAT-legal dots/uppercase in a

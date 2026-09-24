@@ -4,6 +4,8 @@ import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClie
 import type { SmsConfig, SmsProvider } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { getTenantManager, getUserManager } from '../utils/managers.js';
+import { cidrVerdict } from '../utils/cidr.js';
+import { checkCaptcha, newCaptcha, storeCaptchaAnswer, captchaFeatureOn } from '../utils/captcha.js';
 import { routeTx } from '../utils/tx.js';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
@@ -91,6 +93,35 @@ export async function authRoutes(app: FastifyInstance) {
   }
 
   // Tenant suspension gate: shared process singleton (Q2a — was a closure-local holder).
+  // Q3E-CIDR: network admission on the public auth surface (deny wins).
+  // Called BEFORE any credential/lockout work so blocked IPs cannot probe.
+  // Consume-side endpoints (magic/reset/otp verify) intentionally skip it —
+  // post-email IPs legitimately differ (spec E2).
+  const cidrGate = async (request: { ip: string }, reply: {
+    status: (c: number) => { send: (b: unknown) => unknown };
+  }): Promise<boolean> => {
+    // Config-plane failure must NEVER 500 the login door (fail-open like
+    // skipOnError rate limits): no lists readable = no gating active.
+    let allow = '';
+    let deny = '';
+    try {
+      const options = getOptionsManager();
+      allow = String(await options.get('auth_cidr_allow', process.env['AUTH_CIDR_ALLOW'], ''));
+      deny = String(await options.get('auth_cidr_deny', process.env['AUTH_CIDR_DENY'], ''));
+    } catch {
+      return false;
+    }
+    if (allow === '' && deny === '') return false;
+    if (cidrVerdict(request.ip, String(allow), String(deny)) === 'blocked') {
+      reply.status(403).send({
+        success: false,
+        error: { code: 'AUTH_IP_002', message: 'Access denied from this network' },
+      });
+      return true;
+    }
+    return false;
+  };
+
 
   /**
    * SMS OTP delivery config (options key → env fallback, mailer precedent).
@@ -250,6 +281,7 @@ export async function authRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { email, password } = request.body;
 
+      if (await cidrGate(request, reply)) return;
       // IP blacklist then account lockout — both before any credential check
       if (await lockout.isIpBlacklisted(request.ip)) {
         return reply.status(403).send({
@@ -350,6 +382,15 @@ export async function authRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const { email, name, password } = request.body;
+
+      if (await cidrGate(request, reply)) return;
+      const captchaErr = await checkCaptcha(request.body as unknown as Record<string, unknown>);
+      if (captchaErr !== null) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: captchaErr, message: 'Complete the captcha challenge first' },
+        });
+      }
 
       const userManager = await getUserManager();
 
@@ -833,6 +874,15 @@ return { success: true };
     },
     async (request, reply) => {
       const { email } = request.body;
+
+      if (await cidrGate(request, reply)) return;
+      const captchaErr = await checkCaptcha(request.body as unknown as Record<string, unknown>);
+      if (captchaErr !== null) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: captchaErr, message: 'Complete the captcha challenge first' },
+        });
+      }
       const options = getOptionsManager();
       const userManager = await getUserManager();
       const user = await userManager.findByEmail(email);
@@ -886,6 +936,15 @@ return { success: true };
     },
     async (request, reply) => {
       const { email } = request.body;
+
+      if (await cidrGate(request, reply)) return;
+      const captchaErr = await checkCaptcha(request.body as unknown as Record<string, unknown>);
+      if (captchaErr !== null) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: captchaErr, message: 'Complete the captcha challenge first' },
+        });
+      }
       const options = getOptionsManager();
       const userManager = await getUserManager();
       const user = await userManager.findByEmail(email);
@@ -1116,6 +1175,15 @@ return { success: true };
     },
     async (request, reply) => {
       const { phone } = request.body;
+
+      if (await cidrGate(request, reply)) return;
+      const captchaErr = await checkCaptcha(request.body as unknown as Record<string, unknown>);
+      if (captchaErr !== null) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: captchaErr, message: 'Complete the captcha challenge first' },
+        });
+      }
       const options = getOptionsManager();
       const smsConfig = await readSmsConfig(options);
       const smsProvider: SmsProvider | null = smsConfig ? SmsProviderImpl.fromConfig(smsConfig) : null;
@@ -1143,6 +1211,40 @@ return { success: true };
         success: true,
         data: { message: 'If an account exists, a verification code has been sent.', token },
       });
+    },
+  );
+
+  // GET /api/v1/auth/captcha/status + /captcha — Q3E-E1 local challenge.
+  app.get(
+    '/captcha/status',
+    { schema: { description: 'Whether the local captcha challenge is active', tags: ['auth'] } },
+    async (_request, reply) => {
+      const { on, redis } = await captchaFeatureOn();
+      return reply.send({ success: true, data: { enabled: on && redis } });
+    },
+  );
+  app.get(
+    '/captcha',
+    {
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+      schema: { description: 'Fresh SVG captcha challenge (one-time, 5min)', tags: ['auth'] },
+    },
+    async (_request, reply) => {
+      const { on, redis } = await captchaFeatureOn();
+      if (!on || !redis) {
+        return reply.status(503).send({
+          success: false,
+          error: { code: 'CAPTCHA_002', message: 'Captcha not available' },
+        });
+      }
+      const { id, svg, answer } = newCaptcha();
+      if (!(await storeCaptchaAnswer(id, answer))) {
+        return reply.status(503).send({
+          success: false,
+          error: { code: 'CAPTCHA_002', message: 'Captcha not available' },
+        });
+      }
+      return reply.send({ success: true, data: { id, svg } });
     },
   );
 
