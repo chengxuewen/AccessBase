@@ -180,7 +180,7 @@ logger.error('Operation failed', error); // ❌
 ## Phase 8a 授权接线约束（2026-09-04）
 
 - 新增路由的权限码必须**同时**进 authorize.ts `routePermissions` 映射表与 permissions-seed.ts `BUILTIN_PERMISSIONS`（只改其一 = 映射到了无种子码 或 种子码无人消费，均永久 403/死码。注：历史上的 RESOURCES 数组已于 cb79df5 移除——bindPermissions 按名字回读，无需它）
-- 检查命令 1：`grep -c "resource: '" apps/server/src/routes/permissions-seed.ts` 应 =24（码数变更时同步更新此期望值；2026-09-12 批 C 15→18；2026-09-16 batch G 升至 21；2026-09-24 Q4b 升至 24：groups:read/write/delete——三注册点：seed + permission-partition（入 TENANT_BINDABLE）+ authorize routePermissions 映射，同 commit）
+- 检查命令 1：`grep -c "resource: '" apps/server/src/routes/permissions-seed.ts` 应 =24（码数变更时同步更新此期望值；2026-09-12 批 C 15→18；2026-09-16 batch G 升至 21；2026-09-24 Q4b 升至 24：groups:read/write/delete；同日 Q4c 升至 26：webhooks:read/write（入 TENANT_BINDABLE→14）——三注册点：seed + permission-partition + authorize routePermissions 映射，同 commit）
 - 检查命令 2（映射 unique 值 vs 种子清单 diff 应空）：`diff <(grep -oE "'[a-z]+:(read|write|delete)'" packages/identity/src/hooks/authorize.ts | sort -u | tr -d "'") <(grep -oE "name: '[a-z]+:(read|write|delete)'" apps/server/src/routes/permissions-seed.ts | grep -oE "[a-z]+:(read|write|delete)" | sort -u)`
 - DEFAULT_TENANT 单源 `apps/server/src/utils/constants.ts`，禁字面量散落；检查 `grep -rn "00000000-0000-0000-0000-000000000001" apps/server/src --include="*.ts" | grep -v __tests__ | grep -v constants.ts` 应零命中（2026-09-04 已收编 auth.ts 两处 + oauth.ts 一处，commit 8a987f2）
 - dev 环境跑 MFA 端点需 `MFA_ENCRYPTION_KEY`（32-byte hex）：现仓库脚本/accessbase.sh/.env.example 均未透传此变量，缺失时 mfa/setup 返回 400 AUTH_MFA_002（批三 TOTP 面板接线前需补运维配置）
@@ -310,7 +310,16 @@ logger.error('Operation failed', error); // ❌
 ## Gap-audit Q1 e2e probe-mock rule (2026-09-23, PIT-080)
 
 - Any endpoint fetched by the /login page shell (status probes etc.) must be mocked in EVERY mock-API e2e spec that mounts /login (17 files today, greppable via `page.route('**/api/v1/auth/saml/status'` as the roster proxy) — unmocked it leaks to the vite proxy -> 500 console error -> unrelated specs' console nets fail in a burst. Check after adding such a probe: `grep -L "sms/status" e2e/*.spec.ts` minus the no-login-files list should be empty.
-- Current full-suite baselines (flip in same commit as any count change): vitest `1077 passed (102 files)`, e2e chromium `156 passed + 3 skipped 0 failed`. Re-run red on 429 after back-to-back full runs is bucket exhaustion, not code (PIT-083) — cool down ≥60s before A/B.
+- Current full-suite baselines (flip in same commit as any count change): vitest `1200 passed (110 files)`, e2e chromium `169 passed + 3 skipped 0 failed`. Re-run red on 429 after back-to-back full runs is bucket exhaustion, not code (PIT-083) — cool down ≥60s before A/B.
+
+## Phase Q4c events/webhooks/email-templates constraints (2026-09-24)
+
+- **events = manager-funnel emits on the caller tx handle**: `emitEvent(d, ...)` from `packages/identity/src/services/events.js`, NEVER an HTTP-lifecycle hook (PIT-077) and NEVER self-wrapped in a nested transaction (pool-hang). Funnels take trailing `db?: DbLike` (Q2b shape); tx-passing callers get both-or-nothing rollback (real-PG locked); non-tx callers accept the two-autocommit window. New mutating manager funnels MUST emit or document why.
+- **terminality = NOT EXISTS pending delivery** (vacuous on zero subscribers, `events.fanout_complete_at`); prune is AGE-ONLY (`WEBHOOK_RETENTION_DAYS`, runs EVERY dispatcher tick BEFORE the kill-switch early-return). Do not re-couple either to delivery outcomes (Q4c B1/R2 growth brick).
+- **dispatcher is fully dependency-injected + NODE_ENV=test never registers it** (B3: suites + shared DEV PG stay tick-free); `webhook_endpoints` admin pool is LAZY in the plugin (eager createDb tripped health-pool counts AND forced every partial `@accessbase/identity/db` mock to export closeDb — PIT-082 recurrence).
+- **SSRF guard = dedicated FAIL-CLOSED parser** (`apps/server/src/utils/webhook-url.ts`): unparseable/DNS-fail ⇒ deny; v4-mapped IPv6 (`::ffff:127.0.0.1` and `::ffff:7f00:1`) canonicalized before the deny-set. Do not reuse `ipInCidr` for this (its fail-open posture inverts into a bypass). RFC1918 allowed per ruling; TOCTOU rebinding is the documented residual.
+- **email_tmpl_* value = jsonb OBJECT** `{subject:{en?,zh?},html:{en?,zh?}}` — single validate function shared by options PUT and email-templates PUT (dual-write closure R8); renderer HTML-escapes every {{var}}; senders pass locale undefined.
+- **webhook secrets**: reveal-once (create/rotate only), AES-GCM envelope at rest (same store shape as OIDC client secrets — plaintext-compare needs decrypt), decrypt per-tick-per-endpoint in the dispatcher (36.6ms scryptSync each — never per delivery).
 
 ## Phase Q4b groups constraints (2026-09-24)
 

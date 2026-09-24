@@ -43,6 +43,8 @@ Setup guard: SETUP_REQUIRED · SETUP_IN_PROGRESS · SETUP_ALREADY_COMPLETE · SE
 - options: OPT_001..003 · OIDC clients: CLIENT_001..007, OIDC_001..003 · API keys: APIKEY_001
 - metrics: METRICS_AUTH (403)
 - groups (Q4b): GROUP_NOT_FOUND (404), GROUP_NAME_EXISTS (409), GROUP_MEMBER_TENANT_MISMATCH (400), GROUP_ROLE_TENANT_MISMATCH (400); LAST_ADMIN_GUARD 409 on group funnels too (delete/removeMember/setGroupRoles)
+- webhooks (Q4c): WEBHOOK_INVALID (400), WEBHOOK_URL_DENIED (400, fail-closed SSRF guard), WEBHOOK_EXISTS (409 pre-check), WEBHOOK_NOT_FOUND (404), WEBHOOK_PING_FAILED (500)
+- email templates (Q4c): TEMPLATE_INVALID (400, both write paths share the validator), SMTP_UNAVAILABLE (502 test-send without mailer)
 
 ## 409 conflict tags (manager throws with message prefix → conflict-mapper envelope)
 

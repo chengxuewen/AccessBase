@@ -3,6 +3,11 @@
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
 ## [Unreleased] — 2026-09-24
+### Added (Q4c events outbox + webhooks + email templates, spec docs/superpowers/specs/2026-09-24-q4c-events-webhooks-templates-design.md)
+- Durable `events` outbox emitted at every manager mutation funnel (users/roles/tenants/apikeys/groups) atomically with the write; age-based retention prune (`WEBHOOK_RETENTION_DAYS`).
+- Per-tenant webhooks: `/api/v1/webhooks` CRUD + rotate + test-ping + deliveries ledger; HMAC-SHA256 signed dispatch with exponential backoff (dead@10), fail-closed SSRF guard (loopback/link-local/metadata + IPv4-mapped canonicalization), `webhooks_enabled` kill-switch, admin page with reveal-once secrets.
+- Bilingual email templates: 4 transactional templates (verify/reset/magic/invite) options-backed as jsonb objects, `{{var}}` renderer with HTML escaping, Settings editor + preview + test-send; all four mail lanes migrated.
+- Codes 24→26 (`webhooks:read/write`, tenant-bindable partition 14).
 ### Added (Q4b user groups + SCIM /ScimGroups, spec docs/superpowers/specs/2026-09-23-q4b-groups-scim-design.md)
 - User groups: `groups`/`group_users`/`group_roles` tables (chain 0008), GroupManager CRUD + membership + role bindings, admin API `/api/v1/groups` (groups:read/write/delete, 21→24 codes), Groups admin page (members drawer, role bindings, permission gates).
 - Effective-roles chokepoint `getEffectiveRoles` (direct ∪ group, deduped) now drives permission resolution, the enforced-MFA `admins` policy arms, and CSV export role columns; UserEdit prefill intentionally keeps direct roles.
