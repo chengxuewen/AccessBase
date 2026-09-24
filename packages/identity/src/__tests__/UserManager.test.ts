@@ -354,6 +354,7 @@ describe('K-T2 last-admin guard (UserManager funnel)', () => {
     chain.innerJoin = vi.fn(() => chain);
     chain.limit = vi.fn(() => chain);
     chain.set = vi.fn(() => chain);
+    chain.values = vi.fn(() => chain);
     chain.returning = vi.fn(() => chain);
     chain.then = vi.fn(
       (resolve?: ((v: unknown) => unknown) | null, reject?: ((e: unknown) => unknown) | null) =>
@@ -380,6 +381,7 @@ describe('K-T2 last-admin guard (UserManager funnel)', () => {
     vi.mocked(createDb).mockReturnValue(db as never);
     db.select.mockReturnValue(makeChain([{ userId: 'u1' }, { userId: 'u2' }]));
     db.delete.mockReturnValue(makeChain(undefined));
+    db.insert.mockReturnValue(makeChain(undefined)); // Q4c user.deleted event
     const mgr = new UserManager();
     await expect(mgr.delete('u1', 't1')).resolves.toBeUndefined();
     expect(db.delete).toHaveBeenCalled();
@@ -400,6 +402,7 @@ describe('K-T2 last-admin guard (UserManager funnel)', () => {
     const db = makeMockDb();
     vi.mocked(createDb).mockReturnValue(db as never);
     db.update.mockReturnValue(makeChain([{ ...userRow, status: 'pending' }]));
+    db.insert.mockReturnValue(makeChain(undefined)); // Q4c user.updated event
     const mgr = new UserManager();
     const user = await mgr.changeStatus('u1', 'pending', 't1');
     expect(user.status).toBe('pending');
@@ -412,6 +415,7 @@ describe('K-T2 last-admin guard (UserManager funnel)', () => {
     const db = makeMockDb();
     vi.mocked(createDb).mockReturnValue(db as never);
     db.update.mockReturnValue(makeChain([{ ...userRow, status: 'active' }]));
+    db.insert.mockReturnValue(makeChain(undefined)); // Q4c user.updated event
     const mgr = new UserManager();
     const user = await mgr.changeStatus('u1', 'active', 't1');
     expect(user.status).toBe('active');

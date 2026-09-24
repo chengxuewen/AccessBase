@@ -199,6 +199,7 @@ describe('X3/R6 setParent — real cycle detection + system-role moat', () => {
       .mockReturnValueOnce(makeChain([parent])) // walk: P.parent null -> false
       .mockReturnValueOnce(makeChain([])); // getRolePermissions tail
     db.update.mockReturnValue(makeChain([roleRow({ id: 'C', parentId: 'P' })]));
+    db.insert.mockReturnValue(makeChain(undefined)); // Q4c role.changed event
 
     await expect(manager.setParent('C', 'P', TENANT)).resolves.toMatchObject({ id: 'C' });
     // role write + Q3A tenant-wide bump (setParent changes effective subtree perms)

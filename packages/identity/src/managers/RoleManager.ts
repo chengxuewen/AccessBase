@@ -23,6 +23,7 @@ import {
   ROLE_PROTECTED,
   LAST_ADMIN_GUARD,
 } from '../services/last-admin-guard.js';
+import { emitEvent } from '../services/events.js';
 import {
   TENANT_BINDABLE_SET,
   DEFAULT_TENANT_ID,
@@ -106,6 +107,7 @@ export class RoleManager {
       await this.setRolePermissions(inserted.id, data.permissionIds, tenantId, db);
     }
 
+    await emitEvent(d, { tenantId, type: 'role.changed', payload: { id: inserted.id, op: 'created', name: inserted.name } });
     return this.mapToRole(inserted, []);
   }
 
@@ -255,17 +257,19 @@ export class RoleManager {
     // Q3A: effective auth changed for the role's members -> bump + drop authst
     await bumpAuthState(d, { tenantId, roleIds: [id] }, delAuthState);
     invalidatePermissionCache(tenantId);
+    await emitEvent(d, { tenantId, type: 'role.changed', payload: { id: updated.id, op: 'updated', name: updated.name } });
     return this.mapToRole(updated, perms);
   }
 
   /**
    * Delete role (prevent deleting system roles)
    */
-  async delete(id: string, tenantId: string): Promise<void> {
+  async delete(id: string, tenantId: string, db?: DbLike): Promise<void> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Deleting role: ${id} in tenant: ${tenantId}`);
 
     // Check role exists
-    const existing = await this.db
+    const existing = await d
       .select()
       .from(roles)
       .where(and(eq(roles.id, id), eq(roles.tenantId, tenantId)))
@@ -284,11 +288,11 @@ export class RoleManager {
 
     // Check if role has users assigned — Q4b R7: group bindings count too
     // (otherwise a group-only-bound role silently vanishes under members).
-    const [userCount] = await this.db
+    const [userCount] = await d
       .select({ count: count() })
       .from(userRoles)
       .where(eq(userRoles.roleId, id));
-    const [groupCount] = await this.db
+    const [groupCount] = await d
       .select({ count: count() })
       .from(groupRoles)
       .where(eq(groupRoles.roleId, id));
@@ -298,9 +302,10 @@ export class RoleManager {
     }
 
     // Delete role (cascade will handle role_permissions)
-    await this.db.delete(roles).where(and(eq(roles.id, id), eq(roles.tenantId, tenantId)));
+    await d.delete(roles).where(and(eq(roles.id, id), eq(roles.tenantId, tenantId)));
     // (delete: guarded zero-member above -> no bearer can hold this role; no bump needed)
     invalidatePermissionCache(tenantId);
+    await emitEvent(d, { tenantId, type: 'role.changed', payload: { id, op: 'deleted', name: role.name } });
   }
 
   /**
@@ -368,6 +373,7 @@ export class RoleManager {
     // Q3A: inheritance change alters effective perms across the subtree — tenant-wide bump
     await bumpAuthState(d, { tenantId, allTenantUsers: true }, delAuthState);
     invalidatePermissionCache(tenantId);
+    await emitEvent(d, { tenantId, type: 'role.changed', payload: { id: updated.id, op: 'parent', parentId } });
     return this.mapToRole(updated, perms);
   }
 
@@ -427,28 +433,30 @@ export class RoleManager {
       .onConflictDoNothing();
     invalidatePermissionCache(tenantId, userId);
     await bumpAuthState(d, { tenantId, userIds: [userId] }, delAuthState);
+    await emitEvent(d, { tenantId, type: 'role.changed', payload: { userId, roleId, op: 'assigned' } });
   }
 
   /**
    * Revoke role from user
    */
-  async revokeFromUser(userId: string, roleId: string, tenantId: string): Promise<void> {
+  async revokeFromUser(userId: string, roleId: string, tenantId: string, db?: DbLike): Promise<void> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Revoking role ${roleId} from user ${userId} in tenant: ${tenantId}`);
 
     // K-T2: revoking an isSystem role from the tenant's last active admin is
     // a lockout vector — refuse before any write (manager funnel per addendum R2).
-    const [targetRole] = await this.db
+    const [targetRole] = await d
       .select({ isSystem: roles.isSystem })
       .from(roles)
       .where(eq(roles.id, roleId))
       .limit(1);
-    if (targetRole?.isSystem && !(await holdsSystemRoleViaGroup(this.db, tenantId, userId)) && (await wouldOrphanLastAdmin(this.db, tenantId, userId))) {
+    if (targetRole?.isSystem && !(await holdsSystemRoleViaGroup(d, tenantId, userId)) && (await wouldOrphanLastAdmin(d, tenantId, userId))) {
       throw new Error(
         `${LAST_ADMIN_GUARD}: cannot revoke the last active administrator of the tenant`,
       );
     }
 
-    await this.db
+    await d
       .delete(userRoles)
       .where(
         and(
@@ -458,7 +466,8 @@ export class RoleManager {
         ),
       );
     invalidatePermissionCache(tenantId, userId);
-    await bumpAuthState(this.db, { tenantId, userIds: [userId] }, delAuthState);
+    await bumpAuthState(d, { tenantId, userIds: [userId] }, delAuthState);
+    await emitEvent(d, { tenantId, type: 'role.changed', payload: { userId, roleId, op: 'unassigned' } });
   }
 
   /**
@@ -500,6 +509,7 @@ export class RoleManager {
     }
     invalidatePermissionCache(tenantId, userId);
     await bumpAuthState(d, { tenantId, userIds: [userId] }, delAuthState);
+    await emitEvent(d, { tenantId, type: 'role.changed', payload: { userId, op: 'set', roleIds } });
   }
 
   /**
@@ -646,6 +656,8 @@ export class RoleManager {
         })),
       );
     }
+    // No emit here: this private funnel is always called within create/update,
+    // which emit the authoritative role.changed themselves (avoids double event).
   }
 
   /**

@@ -224,7 +224,8 @@ describe('setGroupRoles', () => {
     manager = new GroupManager(db as never);
     await manager.setGroupRoles(G, ['r-admin'], T, tx as never);
     expect(tx.delete).toHaveBeenCalled();
-    expect(tx.insert).toHaveBeenCalledTimes(1);
+    // 1 role binding insert + 1 Q4c group.changed event insert, both on tx
+    expect(tx.insert).toHaveBeenCalledTimes(2);
     // this.db must never write the bindings when a tx handle is provided.
     expect(db.delete).not.toHaveBeenCalled();
     expect(db.insert).not.toHaveBeenCalled();

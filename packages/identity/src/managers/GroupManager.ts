@@ -16,6 +16,7 @@ import {
 } from '../services/last-admin-guard.js';
 import { bumpAuthState, delAuthState } from '../services/token-version.js';
 import { invalidatePermissionCache } from './permission-cache.js';
+import { emitEvent } from '../services/events.js';
 import { logger } from '@accessbase/logging';
 
 export interface Group {
@@ -78,6 +79,7 @@ export class GroupManager {
     if (dup) throw new Error('GROUP_NAME_EXISTS');
     const [row] = await this.db.insert(groups).values({ name: input.name, description: input.description ?? null, tenantId }).returning();
     if (!row) throw new Error('Failed to create group');
+    await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id: row.id, op: 'lifecycle', name: row.name } });
     logger.info({ groupId: row.id, tenantId }, 'group created');
     return this.map(row);
   }
@@ -94,6 +96,7 @@ export class GroupManager {
       .set({ name: patch.name ?? g.name, description: patch.description ?? g.description ?? null, updatedAt: new Date() })
       .where(eq(groups.id, id))
       .returning();
+    await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id, op: 'lifecycle' } });
     return this.map(row as typeof groups.$inferSelect);
   }
 
@@ -108,6 +111,7 @@ export class GroupManager {
     }
     const members = await this.memberIds(id); // capture BEFORE cascade wipes group_users rows
     await this.db.delete(groups).where(eq(groups.id, id)); // cascades membership+bindings
+    await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id, op: 'lifecycle', deleted: true } });
     for (const u of members) invalidatePermissionCache(tenantId, u);
     if (members.length > 0) {
       await bumpAuthState(this.db as DbLike, { tenantId, userIds: members }, delAuthState);
@@ -167,6 +171,7 @@ export class GroupManager {
     const [u] = await this.db.select({ id: users.id }).from(users).where(and(eq(users.id, userId), eq(users.tenantId, tenantId))).limit(1);
     if (!u) throw new Error('GROUP_MEMBER_TENANT_MISMATCH');
     await this.db.insert(groupUsers).values({ groupId, userId, tenantId }).onConflictDoNothing();
+    await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id: groupId, userId, op: 'member', added: true } });
     invalidatePermissionCache(tenantId, userId);
     await bumpAuthState(this.db as DbLike, { tenantId, userIds: [userId] }, delAuthState);
   }
@@ -181,6 +186,7 @@ export class GroupManager {
       if (!keeps) throw new Error(`${LAST_ADMIN_GUARD}: would remove the tenant's last administrator`);
     }
     await this.db.delete(groupUsers).where(and(eq(groupUsers.groupId, groupId), eq(groupUsers.userId, userId)));
+    await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id: groupId, userId, op: 'member', added: false } });
     invalidatePermissionCache(tenantId, userId);
     await bumpAuthState(this.db as DbLike, { tenantId, userIds: [userId] }, delAuthState);
   }
@@ -226,6 +232,7 @@ export class GroupManager {
     for (const roleId of roleIds) {
       await d.insert(groupRoles).values({ groupId, roleId, tenantId }).onConflictDoNothing();
     }
+    await emitEvent(d, { tenantId, type: 'group.changed', payload: { id: groupId, op: 'roles', roleCount: roleIds.length } });
     await this.invalidateMembers(groupId, tenantId);
     logger.info({ groupId, roleIds: roleIds.length }, 'group roles replaced');
   }

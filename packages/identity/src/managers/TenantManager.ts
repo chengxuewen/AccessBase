@@ -7,7 +7,8 @@
  * (self-lockout, R8). Suspend paths invalidate the tenant permission cache (R2).
  */
 import { and, count, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { createDb, type DrizzleDB } from '../db/index.js';
+import { createDb, type DbLike, type DrizzleDB } from '../db/index.js';
+import { emitEvent } from '../services/events.js';
 import { apiKeys, sessions, tenants, users, type TenantRow, type NewTenantRow } from '../db/schema.js';
 import { getRedisClient } from '../services/redis.js';
 import { invalidatePermissionCache } from './permission-cache.js';
@@ -58,10 +59,11 @@ export class TenantManager {
   /**
    * Create tenant. Duplicate slug → TENANT_PROTECTED-tagged error (409 shape).
    */
-  async create(data: CreateTenantInput): Promise<Tenant> {
+  async create(data: CreateTenantInput, db?: DbLike): Promise<Tenant> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Creating tenant: ${data.slug}`);
 
-    const existing = await this.db
+    const existing = await d
       .select()
       .from(tenants)
       .where(eq(tenants.slug, data.slug))
@@ -77,12 +79,13 @@ export class TenantManager {
       slug: data.slug,
     };
 
-    const [inserted] = await this.db.insert(tenants).values(newTenant).returning();
+    const [inserted] = await d.insert(tenants).values(newTenant).returning();
 
     if (!inserted) {
       throw new Error('Failed to create tenant');
     }
 
+    await emitEvent(d, { tenantId: inserted.id, type: 'tenant.created', payload: { id: inserted.id, slug: inserted.slug, name: inserted.name } });
     return this.mapToTenant(inserted);
   }
 
@@ -146,13 +149,14 @@ export class TenantManager {
    * Update tenant. Any update against the default tenant → TENANT_PROTECTED.
    * Suspending (status='suspended') invalidates the tenant permission cache (R2).
    */
-  async update(id: string, data: UpdateTenantInput): Promise<Tenant> {
+  async update(id: string, data: UpdateTenantInput, db?: DbLike, deleteOp = false): Promise<Tenant> {
+    const d: DbLike = db ?? this.db;
     if (id === DEFAULT_TENANT_ID) {
       throw new Error(`${TENANT_PROTECTED}: the default tenant cannot be modified`);
     }
     logger.info(`Updating tenant: ${id}`);
 
-    const existing = await this.db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
+    const existing = await d.select().from(tenants).where(eq(tenants.id, id)).limit(1);
 
     if (existing.length === 0) {
       throw new Error('Tenant not found');
@@ -166,7 +170,7 @@ export class TenantManager {
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.status !== undefined) updateData.status = data.status;
 
-    const [updated] = await this.db
+    const [updated] = await d
       .update(tenants)
       .set(updateData)
       .where(eq(tenants.id, id))
@@ -187,6 +191,11 @@ export class TenantManager {
       await this.revokeTenantAccess(id);
     }
 
+    await emitEvent(d, {
+      tenantId: id,
+      type: deleteOp ? 'tenant.deleted' : updated.status === 'suspended' ? 'tenant.suspended' : 'tenant.updated',
+      payload: { id: updated.id, slug: updated.slug, status: updated.status },
+    });
     return this.mapToTenant(updated);
   }
 
@@ -230,8 +239,8 @@ export class TenantManager {
    * Soft delete: sets status='suspended' (rows are never hard-deleted —
    * users/roles/api_keys reference tenant ids). Default tenant → TENANT_PROTECTED.
    */
-  async delete(id: string): Promise<Tenant> {
-    return this.update(id, { status: 'suspended' });
+  async delete(id: string, db?: DbLike): Promise<Tenant> {
+    return this.update(id, { status: 'suspended' }, db, true);
   }
 
   /** Release the internally-created pool (test suites / graceful shutdown). */

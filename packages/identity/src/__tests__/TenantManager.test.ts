@@ -102,7 +102,7 @@ describe('TenantManager', () => {
       const result = await manager.create({ name: 'Acme', slug: 'acme' });
 
       expect(result).toMatchObject({ id: 't-new', name: 'Acme', slug: 'acme' });
-      expect(db.insert).toHaveBeenCalledTimes(1);
+      expect(db.insert).toHaveBeenCalledTimes(2); // tenant row + Q4c tenant.created event
     });
 
     it('rejects with TENANT_PROTECTED-tagged error on duplicate slug', async () => {
@@ -172,6 +172,7 @@ describe('TenantManager', () => {
       // 1st select -> existence check, update -> returning
       db.select.mockImplementation(() => makeChain([dbTenant('t1')]));
       db.update.mockImplementation(() => makeChain([updated]));
+      db.insert.mockImplementation(() => makeChain([])); // Q4c tenant.updated event
 
       const result = await manager.update('t1', { name: 'Renamed' });
 
@@ -196,6 +197,7 @@ describe('TenantManager', () => {
       const updated = dbTenant('t1', { status: 'suspended' });
       db.select.mockImplementation(() => makeChain([dbTenant('t1')]));
       db.update.mockImplementation(() => makeChain([updated]));
+      db.insert.mockImplementation(() => makeChain([])); // Q4c tenant.suspended event
 
       await manager.update('t1', { status: 'suspended' });
 
@@ -206,6 +208,7 @@ describe('TenantManager', () => {
       const updated = dbTenant('t1', { status: 'active' });
       db.select.mockImplementation(() => makeChain([dbTenant('t1')]));
       db.update.mockImplementation(() => makeChain([updated]));
+      db.insert.mockImplementation(() => makeChain([])); // Q4c tenant.updated event
 
       await manager.update('t1', { status: 'active' });
 
@@ -224,6 +227,7 @@ describe('TenantManager', () => {
       const suspended = dbTenant('t1', { status: 'suspended' });
       db.select.mockImplementation(() => makeChain([dbTenant('t1')]));
       db.update.mockImplementation(() => makeChain([suspended]));
+      db.insert.mockImplementation(() => makeChain([])); // Q4c tenant.deleted event
 
       const result = await manager.delete('t1');
 

@@ -10,7 +10,8 @@
 import { randomBytes, createHash } from 'node:crypto';
 import { eq, and } from 'drizzle-orm';
 import { logger } from '@accessbase/logging';
-import { createDb, type DrizzleDB } from '../db/index.js';
+import { createDb, type DbLike, type DrizzleDB } from '../db/index.js';
+import { emitEvent } from '../services/events.js';
 import { apiKeys, type ApiKeyRow } from '../db/schema.js';
 
 const KEY_BODY_LEN = 32;
@@ -119,11 +120,13 @@ export class ApiKeyManager {
     return rows[0] ?? null;
   }
 
-  async revoke(id: string, tenantId: string): Promise<void> {
-    await this.db
+  async revoke(id: string, tenantId: string, db?: DbLike): Promise<void> {
+    const d: DbLike = db ?? this.db;
+    await d
       .update(apiKeys)
       .set({ revokedAt: new Date(), updatedAt: new Date() })
       .where(and(eq(apiKeys.id, id), eq(apiKeys.tenantId, tenantId)));
+    await emitEvent(d, { tenantId, type: 'apikey.revoked', payload: { id } });
     logger.info({ keyId: id }, 'API key revoked');
   }
 }

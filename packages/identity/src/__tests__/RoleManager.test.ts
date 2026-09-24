@@ -263,6 +263,7 @@ describe('K-T2 isSystem flag + guards', () => {
       .mockReturnValueOnce(makeChain([{ count: 0 }])) // assigned-users count
       .mockReturnValueOnce(makeChain([{ count: 0 }])); // R7: group-bindings count
     db.delete.mockReturnValue(makeChain(undefined));
+    db.insert.mockReturnValue(makeChain(undefined)); // Q4c role.changed event
     await expect(manager.delete('r1', 't1')).resolves.toBeUndefined();
     expect(db.delete).toHaveBeenCalled();
   });
@@ -319,6 +320,7 @@ describe('K-T2 isSystem flag + guards', () => {
   it('revokeFromUser of a non-system role proceeds without the census', async () => {
     db.select.mockReturnValueOnce(makeChain([{ isSystem: false }]));
     db.delete.mockReturnValue(makeChain(undefined));
+    db.insert.mockReturnValue(makeChain(undefined)); // Q4c role.changed event
 
     await expect(manager.revokeFromUser('u1', 'r-plain', 't1')).resolves.toBeUndefined();
     expect(db.select).toHaveBeenCalledTimes(1);

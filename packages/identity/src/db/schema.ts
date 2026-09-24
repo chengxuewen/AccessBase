@@ -4,7 +4,7 @@
  */
 import {
 pgTable,
-  bigint,
+  bigint,bigserial,
 uuid,
 varchar,
 text,
@@ -470,3 +470,89 @@ export const tenants = pgTable(
 
 export type TenantRow = typeof tenants.$inferSelect;
 export type NewTenantRow = typeof tenants.$inferInsert;
+
+/**
+ * Q4c events outbox + webhooks (spec 2026-09-24-q4c rev.2 §3).
+ *
+ * `events` is the durable fan-out trail written at the manager funnels (same tx
+ * as the mutation when a caller handle is passed). `fanout_complete_at` is the
+ * SOLE terminal marker (rev.2 removed dead_at): an event is terminal iff no
+ * pending delivery references it — zero-subscriber events terminalize on the
+ * first fan-out pass (vacuous rule). NO fk to tenants: tenants soft-delete, and
+ * the age-based prune (§3) is the only lifecycle writer.
+ */
+export const events = pgTable(
+  'events',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: uuid('tenant_id').notNull(),
+    type: text('type').notNull(),
+    payload: jsonb('payload').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    fanoutCompleteAt: timestamp('fanout_complete_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('idx_events_pending_fanout')
+      .on(t.tenantId)
+      .where(sql`${t.fanoutCompleteAt} IS NULL`),
+    index('idx_events_created').on(t.createdAt),
+  ],
+);
+
+/**
+ * Per-tenant webhook subscription. `subscribed_events` is a text[] filter
+ * ('{*}' = all); `secret_encrypted` holds the AES-GCM v1 envelope (dispatcher
+ * decrypts once per endpoint per tick — never per delivery, F5/R4).
+ */
+export const webhookEndpoints = pgTable(
+  'webhook_endpoints',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    description: text('description'),
+    secretEncrypted: text('secret_encrypted').notNull(),
+    subscribedEvents: text('subscribed_events').array().notNull().default(sql`'{*}'::text[]`),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.tenantId, t.url)],
+);
+
+/**
+ * Delivery ledger. Surrogate `id` (rev.2 R1) is the claim cursor; UNIQUE
+ * (event_id, endpoint_id) is the fan-out ON CONFLICT target. status only
+ * reaches terminal (delivered|dead) via the dispatcher; retry lease is the
+ * 60s `next_attempt_at` push in the claim CTE (§5.2).
+ */
+export const webhookDeliveries = pgTable(
+  'webhook_deliveries',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    eventId: bigint('event_id', { mode: 'number' })
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    endpointId: uuid('endpoint_id')
+      .notNull()
+      .references(() => webhookEndpoints.id, { onDelete: 'cascade' }),
+    status: text('status').notNull().default('pending'),
+    attempts: integer('attempts').notNull().default(0),
+    nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).defaultNow().notNull(),
+    lastError: text('last_error'),
+    responseStatus: integer('response_status'),
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    unique().on(t.eventId, t.endpointId),
+    index('idx_deliveries_due').on(t.nextAttemptAt).where(sql`${t.status} = 'pending'`),
+  ],
+);
+
+export type EventRow = typeof events.$inferSelect;
+export type NewEventRow = typeof events.$inferInsert;
+export type WebhookEndpointRow = typeof webhookEndpoints.$inferSelect;
+export type NewWebhookEndpointRow = typeof webhookEndpoints.$inferInsert;
+export type WebhookDeliveryRow = typeof webhookDeliveries.$inferSelect;
+export type NewWebhookDeliveryRow = typeof webhookDeliveries.$inferInsert;

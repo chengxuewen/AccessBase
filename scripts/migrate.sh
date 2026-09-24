@@ -112,6 +112,7 @@ if printf '%s\n' "$OUT" | grep -qx 'STAMPED'; then
     "0006|SELECT backchannel_logout_uri FROM oidc_clients LIMIT 1"
     "0007|SELECT must_change_password FROM users LIMIT 1"
     "0008|SELECT name FROM \"groups\" LIMIT 1"
+    "0009|SELECT 1 FROM events LIMIT 1"
   )
   for entry in "${SENTINELS[@]}"; do
     ver="${entry%%|*}"

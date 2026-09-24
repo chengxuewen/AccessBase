@@ -7,6 +7,7 @@ import { users, passwordHistory, type User as DbUser, type NewUser } from '../db
 import { invalidatePermissionCache } from './permission-cache.js';
 import { bumpAuthState, delAuthState } from '../services/token-version.js';
 import { wouldOrphanLastAdmin, LAST_ADMIN_GUARD } from '../services/last-admin-guard.js';
+import { emitEvent } from '../services/events.js';
 import { logger } from '@accessbase/logging';
 import type {
   User,
@@ -54,6 +55,13 @@ export class UserManager {
       throw new Error('Failed to create user');
     }
 
+    // Q4c durable trail (§4): same handle as the insert — when the caller
+    // passed a tx handle (routeTx register/invite), user + event are atomic.
+    await emitEvent(d, {
+      tenantId,
+      type: 'user.created',
+      payload: { id: inserted.id, email: inserted.email, name: inserted.name },
+    });
     return this.mapToUser(inserted);
   }
 
@@ -190,7 +198,8 @@ export class UserManager {
   /**
    * Update user information
    */
-  async update(id: string, data: UpdateUserInput, tenantId: string): Promise<User> {
+  async update(id: string, data: UpdateUserInput, tenantId: string, db?: DbLike): Promise<User> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Updating user: ${id} in tenant: ${tenantId}`);
 
     const updateData: Partial<NewUser> = {
@@ -200,7 +209,7 @@ export class UserManager {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
 
-    const [updated] = await this.db
+    const [updated] = await d
       .update(users)
       .set(updateData)
       .where(and(eq(users.id, id), eq(users.tenantId, tenantId)))
@@ -210,24 +219,31 @@ export class UserManager {
       throw new Error('User not found');
     }
 
+    await emitEvent(d, {
+      tenantId,
+      type: 'user.updated',
+      payload: { id: updated.id, email: updated.email, name: updated.name },
+    });
     return this.mapToUser(updated);
   }
 
   /**
    * Delete user (soft delete / hard delete)
    */
-  async delete(id: string, tenantId: string): Promise<void> {
+  async delete(id: string, tenantId: string, db?: DbLike): Promise<void> {
+    const d: DbLike = db ?? this.db;
     logger.info(`Deleting user: ${id} in tenant: ${tenantId}`);
 
     // K-T2: deleting the tenant's last active admin is a lockout vector —
     // refuse before any write (manager funnel, addendum R2).
-    if (await wouldOrphanLastAdmin(this.db, tenantId, id)) {
+    if (await wouldOrphanLastAdmin(d, tenantId, id)) {
       throw new Error(
         `${LAST_ADMIN_GUARD}: cannot delete the last active administrator of the tenant`,
       );
     }
 
-    await this.db.delete(users).where(and(eq(users.id, id), eq(users.tenantId, tenantId)));
+    await d.delete(users).where(and(eq(users.id, id), eq(users.tenantId, tenantId)));
+    await emitEvent(d, { tenantId, type: 'user.deleted', payload: { id } });
   }
 
   /**
@@ -264,6 +280,11 @@ export class UserManager {
     invalidatePermissionCache(tenantId, id);
     // Q3A: status flips must reach bearers too (reader status arm compares DB truth)
     await bumpAuthState(d, { tenantId, userIds: [id] }, delAuthState);
+    await emitEvent(d, {
+      tenantId,
+      type: status === 'suspended' ? 'user.suspended' : 'user.updated',
+      payload: { id: updated.id, email: updated.email, status: updated.status },
+    });
     return this.mapToUser(updated);
   }
 

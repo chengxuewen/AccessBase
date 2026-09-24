@@ -108,6 +108,7 @@ describe('cache invalidation on write paths', () => {
     db = makeMockDb();
     const { createDb } = await import('../db/index.js');
     vi.mocked(createDb).mockReturnValue(db as never);
+    db.insert.mockReturnValue(makeChain(undefined)); // Q4c: role/user write funnels now emit
     rmStub = {
       getUserRoles: vi.fn(),
       getEffectiveRoles: vi.fn((u: string, t: string) => rmStub.getUserRoles(u, t)), // Q4b R1

@@ -66,8 +66,12 @@ describe.skipIf(!pgUp)('transactional funnels (real PG)', () => {
         await rm.setUserRoles(u.id, [randomUUID()], TENANT, tx);
       }),
     ).rejects.toThrow();
-    const rows = await pool.query('SELECT count(*)::int AS n FROM users WHERE email = $1', [email]);
+const rows = await pool.query('SELECT count(*)::int AS n FROM users WHERE email = $1', [email]);
     expect(Number(rows.rows[0]?.n ?? 0)).toBe(0);
+    // Q4c §8.3: the user.created event rode the SAME tx handle — a detached
+    // emit (this.db instead of tx) would leave this row committed after rollback.
+    const ev = await pool.query("SELECT count(*)::int AS n FROM events WHERE type = 'user.created' AND payload->>'email' = $1", [email]);
+    expect(Number(ev.rows[0]?.n ?? 0)).toBe(0);
     await um.close();
     await rm.close();
   });
@@ -92,6 +96,13 @@ describe.skipIf(!pgUp)('transactional funnels (real PG)', () => {
       [u.id, roleId],
     );
     expect(Number(rows.rows[0]?.n ?? 0)).toBe(1);
+    // Q4c: user.created (UM.create) + role.changed op=set (RM.setUserRoles)
+    // both committed atomically inside the same tx.
+    const ev = await pool.query(
+      "SELECT count(*)::int AS n FROM events WHERE (type = 'user.created' AND payload->>'email' = $1) OR (type = 'role.changed' AND payload->>'op' = 'set')",
+      [email],
+    );
+    expect(Number(ev.rows[0]?.n ?? 0)).toBe(2);
     await um.close();
     await rm.close();
   });

@@ -172,6 +172,7 @@ describe('ApiKeyManager', () => {
     it('sets revokedAt on the row scoped by id + tenant', async () => {
       const chain = makeChain(undefined);
       db.update.mockReturnValue(chain);
+      db.insert.mockReturnValue(makeChain(undefined)); // Q4c apikey.revoked event
 
       await manager.revoke('k1', 't1');
 
