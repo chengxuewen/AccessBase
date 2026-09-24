@@ -605,3 +605,10 @@
 - **根因**: `if (!x) x = new (await resolveClass())` —— await 让出事件循环，一波并发全部穿过空检查，各造各的（各开一个 Pool）。值缓存对「构造过程含 await」的工厂函数不是并发安全的。
 - **解法**: promise-memo（缓存构造 Promise 本身，失败时回滚槽位）；同批修掉第二泄漏源（setup-guard queryAdminExists 每请求 new UserManager()——roster 只数了 handler 里的显式点，守卫链上的工厂漏了）。
 - **验证**: live 三连 24 并发封顶 30/32/31 恒定、静置归 1；manager-singletons.test 全过。判据：任何 `??=`/`if (!x)` 记忆化里若构造含 await，必须 memo Promise 而非值。
+
+## PIT-082: vi.mock 代理对未声明导出「访问即抛」，typeof 守卫救不了（2026-09-23）
+
+- **症状**: cache-coherence 用 `mod['setPermissionCachePublishHook']` 取可选导出，users/verify-email/webauthn 三个套件收集期整灭（"No export is defined on the mock"）。
+- **根因**: vitest mock 模块的命名空间对象在读取未声明键时直接 throw（不是返回 undefined）；属性访问本身就是触发点。
+- **解法**: 把所有 `mod['x']` 读取包进 try/catch，catch 返回降级 noop。
+- **验证**: apps/server 59 文件 595 全绿；单测 users.test 恢复。凡「跨 mock 边界的可选能力探测」一律 try 包裹读取，勿信 undefined 语义。
