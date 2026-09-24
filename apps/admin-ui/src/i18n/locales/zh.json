@@ -43,7 +43,8 @@
     "apiKeys": "API 密钥",
     "tenants": "租户管理",
     "groups": "用户组",
-    "webhooks": "事件钩子"
+    "webhooks": "事件钩子",
+    "events": "事件流水"
   },
   "login": {
     "title": "AccessBase 登录",
@@ -314,6 +315,24 @@
       "invalidConfig": "配置参数无效，请检查输入",
       "setupFailed": "设置失败，请重试"
     }
+  },
+  "events": {
+    "title": "领域事件",
+    "createdAt": "时间",
+    "type": "类型",
+    "resource": "载荷",
+    "fanout": "分发",
+    "fanoutDone": "已完成",
+    "fanoutPending": "进行中",
+    "detail": "详情",
+    "view": "查看",
+    "detailTitle": "事件",
+    "payload": "载荷",
+    "tenant": "租户",
+    "filterType": "按类型过滤",
+    "search": "查询",
+    "resetFilters": "重置筛选",
+    "loadError": "事件加载失败"
   },
   "audit": {
     "title": "审计日志",

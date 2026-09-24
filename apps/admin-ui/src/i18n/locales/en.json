@@ -43,7 +43,8 @@
     "apiKeys": "API Keys",
     "tenants": "Tenants",
     "groups": "Groups",
-    "webhooks": "Webhooks"
+    "webhooks": "Webhooks",
+    "events": "Events"
   },
   "login": {
     "title": "AccessBase Login",
@@ -314,6 +315,24 @@
       "invalidConfig": "Invalid configuration, please check input",
       "setupFailed": "Setup failed, please try again"
     }
+  },
+  "events": {
+    "title": "Domain Events",
+    "createdAt": "Time",
+    "type": "Type",
+    "resource": "Payload",
+    "fanout": "Fan-out",
+    "fanoutDone": "Complete",
+    "fanoutPending": "Pending",
+    "detail": "Detail",
+    "view": "View",
+    "detailTitle": "Event",
+    "payload": "Payload",
+    "tenant": "Tenant",
+    "filterType": "Filter by type",
+    "search": "Search",
+    "resetFilters": "Reset filters",
+    "loadError": "Failed to load events"
   },
   "audit": {
     "title": "Audit Logs",

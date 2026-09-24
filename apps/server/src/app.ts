@@ -27,6 +27,7 @@ import { optionsRoutes } from './routes/options.js';
 import { clientRoutes } from './routes/clients.js';
 import { resolveCorsOrigin } from './cors.js';
 import { webhookRoutes } from './routes/webhooks.js';
+import { eventRoutes } from './routes/events.js';
 import { emailTemplateRoutes } from './routes/email-templates.js';
 import { getRedis } from './utils/redis.js';
 import { buildOidcProvider } from './oidc/provider.js';
@@ -435,6 +436,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(tenantRoutes, { prefix: '/api/v1/tenants' });
   await app.register(groupRoutes, { prefix: '/api/v1/groups' });
   await app.register(webhookRoutes, { prefix: '/api/v1/webhooks' });
+  await app.register(eventRoutes, { prefix: '/api/v1/events' });
   await app.register(emailTemplateRoutes, { prefix: '/api/v1/email-templates' });
   // SCIM 2.0 (Batch H) — own bearer preHandler inside the plugin; never app.authenticate.
   await app.register(scimRoutes, { prefix: '/api/v1/scim/v2' });

@@ -60,6 +60,7 @@ const routePermissions: Record<string, string> = {
   'POST:/api/v1/groups': 'groups:write',
   'PUT:/api/v1/groups': 'groups:write',
   'DELETE:/api/v1/groups': 'groups:delete',
+  'GET:/api/v1/events': 'audit:read', // Q4d: compliance read sibling of audit-logs — no new code
   'GET:/api/v1/webhooks': 'webhooks:read',
   'POST:/api/v1/webhooks': 'webhooks:write',
   'PUT:/api/v1/webhooks': 'webhooks:write',
