@@ -183,6 +183,8 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     expect(out).toContain('legacy DB behind chain head (0004) — run db:push to reconcile');
     // batch N review B2: per-file sentinels — the 0005 table probe fires too
     expect(out).toContain('legacy DB behind chain head (0005) — run db:push to reconcile');
+    // Q3E batch: 0006 adds the backchannel column sentinel — same warn lane
+    expect(out).toContain('legacy DB behind chain head (0006) — run db:push to reconcile');
 
     // Stamped, NOT applied: tracking holds 6 note='stamped' rows and the
     // users table is still the legacy ad-hoc one (no phone column, no chain tables).

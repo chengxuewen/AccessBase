@@ -19,6 +19,8 @@ import bcryptjs from 'bcryptjs';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
+import { enforceHit, optionGetter } from '../utils/mfa-policy.js';
+import { getRoleManager } from '../utils/managers.js';
 import { logger } from '@accessbase/logging';
 import { getTenantManager } from '../utils/managers.js';
 
@@ -491,6 +493,24 @@ export async function oauthRoutes(app: FastifyInstance) {
         // issues ONLY the oauth_exchange code whose payload carries mfaPending
         // (no token pair on the redirect chain); the exchange endpoint does the
         // mfa_verify issuance at exchange time (R6).
+        // Q3E-E3: enforced-MFA pre-check (redirect channel — issuance at exchange)
+        if (
+          await enforceHit({
+            getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
+            isSystemAdmin: async () =>
+              (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
+                (r) => r.isSystem === true,
+              ),
+            user,
+          })
+        ) {
+          const exchangeCode = await flowTokens.issue(
+            'oauth_exchange',
+            { userId: user.id, mfaPending: true, enrollPending: true },
+            EXCHANGE_TTL_SECONDS,
+          );
+          return reply.redirect(`/login?oauthCode=${encodeURIComponent(exchangeCode)}`);
+        }
         if (user.totpEnabled) {
           const exchangeCode = await flowTokens.issue(
             'oauth_exchange',
@@ -536,7 +556,7 @@ export async function oauthRoutes(app: FastifyInstance) {
       const { code } = request.body;
       const payload = code
         ? await flowTokens.consume<
-            | { mfaPending: true; userId: string }
+            | { mfaPending: true; userId: string; enrollPending?: boolean }
             | {
                 accessToken: string;
                 refreshToken: string;
@@ -552,6 +572,14 @@ export async function oauthRoutes(app: FastifyInstance) {
       // Batch E Task 2: MFA step-up — issue the mfa_verify flow token NOW
       // (exchange-time issuance, R6); the SPA completes via /auth/mfa/verify.
       if ('mfaPending' in payload) {
+        if (payload.enrollPending) {
+          // Q3E-E3: enforced-MFA — chain an mfa_enroll token (wizard, no session)
+          const flowToken = await flowTokens.issue('mfa_enroll', { userId: payload.userId }, 300);
+          return {
+            success: true,
+            data: { mfaRequired: true, enroll: true, flowToken },
+          };
+        }
         const flowToken = await flowTokens.issue('mfa_verify', { userId: payload.userId }, 300);
         return {
           success: true,

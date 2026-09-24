@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Form, Input, Button, Card, Alert, theme } from 'antd';
 import { LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
 import { registerUser } from '../api/auth';
+import { useCaptchaField } from '../components/CaptchaField';
 import { apiErrorMessage } from '../api/errors';
 
 /**
@@ -15,6 +16,7 @@ export default function Register() {
   const { t } = useTranslation();
   const { token: themeToken } = theme.useToken();
   const [form] = Form.useForm();
+  const captcha = useCaptchaField();
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export default function Register() {
     setBusy(true);
     setError(null);
     try {
-      await registerUser({ email: values.email, name: values.name, password: values.password });
+      await registerUser({ email: values.email, name: values.name, password: values.password, ...captcha.fields() });
       setPending(true);
     } catch (err) {
       setError(apiErrorMessage(err, t('login.error')));
@@ -99,6 +101,7 @@ export default function Register() {
                   data-testid="register-email"
                 />
               </Form.Item>
+              {captcha.node}
               <Form.Item
                 name="password"
                 label={t('register.password')}

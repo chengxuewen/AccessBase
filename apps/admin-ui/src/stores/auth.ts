@@ -69,6 +69,11 @@ export const useAuthStore = create<AuthState>()(
           // auto-approve effect gate (token || isAuthenticated) cannot fire with
           // a stale session while MFA is pending.
           if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
+            // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
+            // survives the redirect; J14 precedent)
+            if ((payload as { enroll?: boolean }).enroll === true) {
+              sessionStorage.setItem('mfaEnrollToken', payload.flowToken);
+            }
             set({
               mfaFlowToken: payload.flowToken,
               isAuthenticated: false,
@@ -196,6 +201,11 @@ export const useAuthStore = create<AuthState>()(
         if (!data.success) throw new Error(data.error?.message ?? 'OAuth exchange failed');
         const payload = data.data;
         if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
+            // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
+            // survives the redirect; J14 precedent)
+            if ((payload as { enroll?: boolean }).enroll === true) {
+              sessionStorage.setItem('mfaEnrollToken', payload.flowToken);
+            }
           set({
             mfaFlowToken: payload.flowToken,
             isAuthenticated: false,
@@ -231,6 +241,11 @@ export const useAuthStore = create<AuthState>()(
         if (!data.success) throw new Error(data.error?.message ?? 'SAML exchange failed');
         const payload = data.data;
         if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
+            // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
+            // survives the redirect; J14 precedent)
+            if ((payload as { enroll?: boolean }).enroll === true) {
+              sessionStorage.setItem('mfaEnrollToken', payload.flowToken);
+            }
           set({
             mfaFlowToken: payload.flowToken,
             isAuthenticated: false,
@@ -265,6 +280,11 @@ export const useAuthStore = create<AuthState>()(
         if (!data.success) throw new Error(data.error?.message ?? 'Magic link sign-in failed');
         const payload = data.data;
         if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
+            // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
+            // survives the redirect; J14 precedent)
+            if ((payload as { enroll?: boolean }).enroll === true) {
+              sessionStorage.setItem('mfaEnrollToken', payload.flowToken);
+            }
           set({
             mfaFlowToken: payload.flowToken,
             isAuthenticated: false,

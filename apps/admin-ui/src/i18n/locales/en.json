@@ -585,5 +585,22 @@
     "success": "Your email address has been verified.",
     "fail": "This verification link is invalid or has expired.",
     "goLogin": "Go to sign in"
+  },
+  "captcha": {
+    "refresh": "Click to get a new code",
+    "load": "Load captcha",
+    "placeholder": "Enter the code shown"
+  },
+  "enroll": {
+    "title": "Secure your account",
+    "loading": "Preparing enrollment…",
+    "dead": "This enrollment session is no longer valid. Sign in again.",
+    "back": "Back to sign in",
+    "scan": "Scan the QR code with your authenticator app (or paste the URL). Then enter the 6-digit code.",
+    "codePlaceholder": "6-digit code",
+    "confirm": "Finish setup",
+    "cancel": "Cancel and sign out",
+    "recovery": "Recovery codes (store them somewhere safe)",
+    "failed": "Could not verify the code — try again."
   }
 }

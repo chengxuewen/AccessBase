@@ -3,8 +3,9 @@ import { randomInt } from 'node:crypto';
 import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy, SmsProviderImpl } from '@accessbase/identity';
 import type { SmsConfig, SmsProvider } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
-import { getTenantManager, getUserManager } from '../utils/managers.js';
+import { getRoleManager, getTenantManager, getUserManager } from '../utils/managers.js';
 import { cidrVerdict } from '../utils/cidr.js';
+import { enrollGate, optionGetter } from '../utils/mfa-policy.js';
 import { checkCaptcha, newCaptcha, storeCaptchaAnswer, captchaFeatureOn } from '../utils/captcha.js';
 import { routeTx } from '../utils/tx.js';
 import { config } from '../config.js';
@@ -247,6 +248,7 @@ export async function authRoutes(app: FastifyInstance) {
                   expiresIn: { type: 'number' },
                   // MFA step-up branch
                   mfaRequired: { type: 'boolean' },
+                  enroll: { type: 'boolean' },
                   flowToken: { type: 'string' },
                   // Wire carries `user` — undeclared props are stripped by fast-json-stringify
                   user: {
@@ -304,6 +306,58 @@ export async function authRoutes(app: FastifyInstance) {
         const user = await userManager.verifyPassword(email, password);
 
         // MFA step-up: user with TOTP enabled gets a flow token, not a session
+// Q3E-E3 enforced-MFA arm (rev.2: BEFORE step-up — unbound users never see a session)
+{
+  const enroll = await enrollGate({
+    getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
+    issueEnroll: async (uid) => flowTokens.issue('mfa_enroll', { userId: uid }, 300),
+    isSystemAdmin: async () =>
+      (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
+(r) => r.isSystem === true,
+      ),
+    user,
+  });
+  if (enroll) return { success: true, data: enroll };
+}
+// Q3E-E3 enforced-MFA arm (rev.2: BEFORE step-up — unbound users never see a session)
+{
+  const enroll = await enrollGate({
+    getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
+    issueEnroll: async (uid) => flowTokens.issue('mfa_enroll', { userId: uid }, 300),
+    isSystemAdmin: async () =>
+      (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
+(r) => r.isSystem === true,
+      ),
+    user,
+  });
+  if (enroll) return { success: true, data: enroll };
+}
+// Q3E-E3 enforced-MFA arm (rev.2: BEFORE step-up — unbound users never see a session)
+{
+  const enroll = await enrollGate({
+    getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
+    issueEnroll: async (uid) => flowTokens.issue('mfa_enroll', { userId: uid }, 300),
+    isSystemAdmin: async () =>
+      (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
+(r) => r.isSystem === true,
+      ),
+    user,
+  });
+  if (enroll) return { success: true, data: enroll };
+}
+// Q3E-E3 enforced-MFA arm (rev.2: BEFORE step-up — unbound users never see a session)
+{
+  const enroll = await enrollGate({
+    getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
+    issueEnroll: async (uid) => flowTokens.issue('mfa_enroll', { userId: uid }, 300),
+    isSystemAdmin: async () =>
+      (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
+(r) => r.isSystem === true,
+      ),
+    user,
+  });
+  if (enroll) return { success: true, data: enroll };
+}
         if (user.totpEnabled) {
           const flowToken = await flowTokens.issue('mfa_verify', { userId: user.id }, 300);
           return {
@@ -1026,6 +1080,7 @@ return { success: true };
                 properties: {
                   // mfa step-up arm
                   mfaRequired: { type: 'boolean' },
+                  enroll: { type: 'boolean' },
                   flowToken: { type: 'string' },
                   // token-pair arm
                   accessToken: { type: 'string' },
@@ -1303,6 +1358,7 @@ return { success: true };
                 properties: {
                   // mfa step-up arm
                   mfaRequired: { type: 'boolean' },
+                  enroll: { type: 'boolean' },
                   flowToken: { type: 'string' },
                   // token-pair arm
                   accessToken: { type: 'string' },
@@ -1483,7 +1539,10 @@ return { success: true };
   app.post(
     '/mfa/setup',
     {
-      preHandler: [app.authenticate],
+      // Q3E-E3 rev.2 F-B3: dual channel — flowToken present = enroll wizard (NO
+      // bearer); absent = authenticated panel. The decorator is invoked
+      // MANUALLY in the bearer branch so its P0/tenant/Q3A gates stay intact
+      // (raw jwtVerify would bypass them — forbidden).
       schema: {
         description: 'Start TOTP MFA setup: returns otpauth URL, QR and one-time recovery codes',
         tags: ['auth'],
@@ -1491,6 +1550,38 @@ return { success: true };
       },
     },
     async (request, reply) => {
+      const body = (request.body ?? {}) as { flowToken?: string };
+      if (typeof body.flowToken === 'string' && body.flowToken !== '') {
+        const enrolled = await flowTokens.consume<{ userId: string }>(body.flowToken, 'mfa_enroll');
+        if (!enrolled) {
+          return reply.status(401).send({
+            success: false,
+            error: { code: 'AUTH_MFA_004', message: 'Invalid or expired enrollment session — sign in again' },
+          });
+        }
+        const um = await getUserManager();
+        const wizard = await um.findByIdAny(enrolled.userId);
+        if (!wizard || wizard.status !== 'active') {
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_004', message: 'Account suspended' },
+          });
+        }
+        try {
+          const result = await getMfaManager().setup(wizard.id, wizard.email);
+          // chain a FRESH enroll token for the confirm step (single-use burn)
+          const chained = await flowTokens.issue('mfa_enroll', { userId: wizard.id }, 300);
+          return { success: true, data: { ...result, flowToken: chained } };
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'MFA setup failed';
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'AUTH_MFA_002', message },
+          });
+        }
+      }
+      await app.authenticate(request, reply);
+      if (reply.sent) return reply;
       const payload = request.user as { sub: string; email: string };
       try {
         const result = await getMfaManager().setup(payload.sub, payload.email);
@@ -1509,7 +1600,6 @@ return { success: true };
   app.post<{ Body: { code: string } }>(
     '/mfa/enable',
     {
-      preHandler: [app.authenticate],
       schema: {
         description: 'Confirm MFA enable with a TOTP code',
         tags: ['auth'],
@@ -1517,11 +1607,53 @@ return { success: true };
         body: {
           type: 'object',
           required: ['code'],
-          properties: { code: { type: 'string', minLength: 6, maxLength: 8 } },
+          properties: {
+            code: { type: 'string', minLength: 6, maxLength: 8 },
+            flowToken: { type: 'string' },
+          },
         },
       },
     },
     async (request, reply) => {
+      const flowToken = (request.body as { flowToken?: string }).flowToken;
+      if (typeof flowToken === 'string' && flowToken !== '') {
+        // wizard channel: consume the chained token, re-assert active (rev.2 F-B4),
+        // then hand out the REAL session via issueTokenPair (full claim table).
+        const enrolled = await flowTokens.consume<{ userId: string }>(flowToken, 'mfa_enroll');
+        if (!enrolled) {
+          return reply.status(401).send({
+            success: false,
+            error: { code: 'AUTH_MFA_004', message: 'Invalid or expired enrollment session — sign in again' },
+          });
+        }
+        const um = await getUserManager();
+        const wizard = await um.findByIdAny(enrolled.userId);
+        if (!wizard) {
+          return reply.status(401).send({
+            success: false,
+            error: { code: 'AUTH_MFA_004', message: 'Invalid or expired enrollment session — sign in again' },
+          });
+        }
+        if (wizard.status !== 'active') {
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_004', message: 'Account suspended' },
+          });
+        }
+        try {
+          await getMfaManager().enable(wizard.id, request.body.code);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Invalid TOTP code';
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'AUTH_MFA_003', message },
+          });
+        }
+        const issued = await issueTokenPair(request, wizard);
+        return { success: true, data: issued };
+      }
+      await app.authenticate(request, reply);
+      if (reply.sent) return reply;
       const payload = request.user as { sub: string };
       try {
         await getMfaManager().enable(payload.sub, request.body.code);
@@ -1695,6 +1827,7 @@ return { success: true };
                   refreshToken: { type: 'string' },
                   expiresIn: { type: 'number' },
                   mfaRequired: { type: 'boolean' },
+                  enroll: { type: 'boolean' },
                   flowToken: { type: 'string' },
                   user: {
                     type: 'object',

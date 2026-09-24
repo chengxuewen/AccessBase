@@ -15,6 +15,8 @@ import type { FastifyInstance } from 'fastify';
 import { SessionManager, RoleManager, FlowTokenService, getRedisClient, TenantManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
+import { enforceHit, optionGetter } from '../utils/mfa-policy.js';
+import { getRoleManager } from '../utils/managers.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { getTenantManager, getUserManager } from '../utils/managers.js';
 import { logger } from '@accessbase/logging';
@@ -213,6 +215,22 @@ export async function samlRoutes(app: FastifyInstance) {
         // Dual-variant payload (R1, mirror oauth.ts:475-487): MFA users get ONLY
         // the code with mfaPending; everyone else gets the token pair inside it.
         let code: string;
+        // Q3E-E3: enforced-MFA pre-check for not-yet-bound users (dual-variant
+        // payload gains enrollPending; issuance happens at the exchange arm)
+        if (!totpEnabled) {
+          const hit = await enforceHit({
+            getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
+            isSystemAdmin: async () =>
+              (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
+                (r) => r.isSystem === true,
+              ),
+            user: { totpEnabled: false },
+          });
+          if (hit) {
+            code = await flowTokens.issue('saml_exchange', { userId: user.id, mfaPending: true, enrollPending: true }, EXCHANGE_TTL_SECONDS);
+            return reply.redirect(`/login?samlCode=${encodeURIComponent(code)}`);
+          }
+        }
         if (totpEnabled) {
           code = await flowTokens.issue('saml_exchange', { userId: user.id, mfaPending: true }, EXCHANGE_TTL_SECONDS);
         } else {
@@ -271,6 +289,7 @@ export async function samlRoutes(app: FastifyInstance) {
                 properties: {
                   // mfa step-up arm
                   mfaRequired: { type: 'boolean' },
+                enroll: { type: 'boolean' },
                   flowToken: { type: 'string' },
                   // token-pair arm
                   accessToken: { type: 'string' },
@@ -305,7 +324,7 @@ export async function samlRoutes(app: FastifyInstance) {
       const { code } = request.body;
       const payload = code
         ? await flowTokens.consume<
-            | { mfaPending: true; userId: string }
+            | { mfaPending: true; userId: string; enrollPending?: boolean }
             | {
                 accessToken: string;
                 refreshToken: string;
@@ -320,6 +339,11 @@ export async function samlRoutes(app: FastifyInstance) {
         });
       }
       if ('mfaPending' in payload) {
+        if (payload.enrollPending) {
+          // Q3E-E3: enforced-MFA — chain an mfa_enroll token (wizard, no session)
+          const enrollToken = await flowTokens.issue('mfa_enroll', { userId: payload.userId }, 300);
+          return { success: true, data: { mfaRequired: true, enroll: true, flowToken: enrollToken } };
+        }
         // MFA step-up issued AT EXCHANGE TIME (R1, mirror oauth.ts:529-535).
         const flowToken = await flowTokens.issue('mfa_verify', { userId: payload.userId }, 300);
         return {

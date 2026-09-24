@@ -24,3 +24,24 @@
 - e2e: enroll wizard happy path mocked (setup→enable→dashboard) + enforcement-off unchanged; captcha widget appears/hides on status; login existing suites unaffected (off by default).
 
 ## Order: E2 → E1 → E3. Gates per item: RED unit first; vitest+4×tsc; e2e once at end; live: dev server enable each via options, verify 403/400/wizard with curl+browser probe. Deviation: single blockers-Momus on E3 (chain/session issuance is the risky seam), E1/E2 uncontroversial per approved decisions.
+
+---
+
+## rev.2 — blockers-Momus absorbed (bg_1b142e64; flows pass covered by self-check + shipped E1/E2)
+
+- **F-B1**: enrollArm matrix ADDS ldap/login (auth.ts:1710/1718) → 7 arms total; mfa/verify correctly EXCLUDED (bound-user path).
+- **F-B2**: /setup/complete (setup.ts:497-505) signs its own JWT pair OUTSIDE issueTokenPair — wizard path stays enroll-free BY DESIGN (must complete bootstrap; enforcement bites from the next login). Documented here, not a hole to patch.
+- **F-B3 wiring prescribed**: mfa/setup + mfa/enable LOSE the route preHandler; handler branches: `body.flowToken ? consume('mfa_enroll') : await app.authenticate(request, reply)` (manual decorator call preserves P0/tenant/Q3A gates — raw jwtVerify would bypass them).
+- **F-B4 prescribed**: enable-on-flow loads via **findByIdAny** (public context), requires user.status==='active' (403 AUTH_004 else), passes the FULL user row into issueTokenPair (tokenVersion claim rides → Q3A gate applies to wizard sessions), bad/used enroll token = 401 AUTH_MFA_004 (new code → catalog).
+- **F-B5 corrected interpreter roster**: stores/auth.ts login/exchangeOAuthCode/exchangeSamlCode/consumeMagicLink (4) + Login.tsx webauthn + Login.tsx sms = 6 sites; central `handleMfaArm(data)` helper in Login module scope; enroll ⇒ sessionStorage 'mfaEnrollToken' + navigate('/enroll-mfa') (same J14 handoff pattern). /enroll-mfa registered as PUBLIC route (no token exists yet — PrivateRoute would bounce the wizard).
+- **F-B6 accepted+documented**: off→all flip does NOT evict live sessions (enforcement applies at next login; refresh continuation is by design — same posture as Keycloak realm policies). No bump-on-toggle (would evict everyone silently; worse).
+- **F-B7 accepted**: wrong TOTP code burns the enroll token (mirrors mfa/verify precedent; page says re-login). TTL expiry mid-wizard likewise. Setup-cycling bounded by login rate limits + credential ownership.
+- **F-R2 schema rule**: every arm's 200 response schema must declare `enroll:{type:'boolean'}` (+ flowToken already declared) — fast-json-stringify strips undeclared (batch-E lesson).
+- KNOWN_OPTION_KEYS already carries the 4 keys (210b856); Settings generic CRUD suffices (no masking: SENSITIVE_KEY_PATTERN doesn't match them).
+
+## Implementation note (E1/E2 shipped ahead of this record)
+server 608/608 green with CIDR+captcha lanes; captcha verify = GETDEL w/ get+del fallback (W1-3 discipline); config-plane/Redis failures = feature inert by design (fail-open documented at call sites).
+
+## Execution record (2026-09-23)
+
+E2 CIDR (util + login/register/forgot/magic/sms gates, fail-open layers unit-locked) -> E1 svg-captcha (local challenge, GETDEL, status-gated widget, 4 forms mounted, auto-load on enable) -> E3 enroll chain (enrollGate at 7 arms incl. the Momus-caught LDAP omission; dual-channel mfa/setup+enable via manual app.authenticate for the bearer lane (F-B3); chained mfa_enroll token across setup->enable; findByIdAny + status re-assert + full-claim issueTokenPair at enable (F-B4); public /enroll-mfa wizard with sessionStorage handoff; redirect-channel pre-checks via enforceHit at oauth/saml callbacks with enrollPending payloads). Gates: vitest 1024/1024 (99 files, +mfa-policy x5), 4x tsc 0, e2e 148+3 (q3e-policy x3 incl. chain-token flowToken(tok-1->tok-2) proof; 17-spec captcha/status roster = PIT-080 recurrence caught by FULL e2e — targeted runs would have missed it). Deviations: single Momus (E3-focused) per context ceiling; E1/E2 self-checked + fail-open matrices.

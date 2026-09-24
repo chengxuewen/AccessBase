@@ -10,6 +10,7 @@ import {
   MobileOutlined,
 } from '@ant-design/icons';
 import { fetchSmsStatus, requestSmsOtp, verifySmsOtp } from '../api/auth';
+import { useCaptchaField } from '../components/CaptchaField';
 import { useAuthStore } from '../stores/auth';
 import { OAuthButtons } from '../components/OAuthButtons';
 import {
@@ -45,6 +46,7 @@ export default function Login() {
     navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true });
   }, [oidcRedirect, navigate]);
   const { token: themeToken } = theme.useToken();
+  const captcha = useCaptchaField();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
@@ -184,8 +186,18 @@ export default function Login() {
       const assertion = await startAuthentication({
         optionsJSON: options as PublicKeyCredentialRequestOptionsJSON,
       });
-      const { accessToken, refreshToken } = await verifyWebAuthnLogin(flowToken, assertion);
-      useAuthStore.getState().setTokens(accessToken, refreshToken);
+      const result = await verifyWebAuthnLogin(flowToken, assertion);
+      if (result.mfaRequired === true && typeof result.flowToken === 'string') {
+        if (result.enroll === true) {
+          sessionStorage.setItem('mfaEnrollToken', result.flowToken);
+          navigate('/enroll-mfa');
+          return;
+        }
+        useAuthStore.setState({ mfaFlowToken: result.flowToken });
+        return;
+      }
+      if (!result.accessToken || !result.refreshToken) throw new Error('missing token pair');
+      useAuthStore.getState().setTokens(result.accessToken, result.refreshToken);
       await useAuthStore.getState().fetchUser();
       navigateAfterAuth();
     } catch {
@@ -218,7 +230,7 @@ export default function Login() {
     setMagicBusy(true);
     setMagicMessage(null);
     try {
-      const message = await requestMagicLink(values.email);
+      const message = await requestMagicLink(values.email, captcha.fields());
       setMagicMessage(message);
     } catch (err) {
       setMagicMessage(apiErrorMessage(err, t('login.magicError')));
@@ -231,7 +243,7 @@ export default function Login() {
     setSmsBusy(true);
     setSmsMessage(null);
     try {
-      const tok = await requestSmsOtp(values.phone);
+      const tok = await requestSmsOtp(values.phone, captcha.fields());
       setSmsToken(tok);
     } catch (err) {
       setSmsMessage(apiErrorMessage(err, t('login.smsInvalid')));
@@ -247,6 +259,12 @@ export default function Login() {
     try {
       const result = await verifySmsOtp(smsToken, values.code);
       if (result.mfaRequired && result.flowToken) {
+        if ((result as { enroll?: boolean }).enroll === true) {
+          // Q3E-E3: enrollment — the wizard owns this flow token, not the TOTP card
+          sessionStorage.setItem('mfaEnrollToken', result.flowToken);
+          navigate('/enroll-mfa');
+          return;
+        }
         // Step-up arm: setting mfaFlowToken makes this page render the TOTP
         // card above everything else (PIT-052 uniform shape across issuers).
         useAuthStore.setState({ mfaFlowToken: result.flowToken });
@@ -282,7 +300,15 @@ export default function Login() {
     }
   };
 
-  if (mfaFlowToken) {
+  // Q3E-E3: enrollment handoff (store branches set the sessionStorage token and
+  // still clear session state here) — wizard takes over before any TOTP card.
+  useEffect(() => {
+    if (sessionStorage.getItem('mfaEnrollToken')) {
+      navigate('/enroll-mfa', { replace: true });
+    }
+  }, [mfaFlowToken, navigate]);
+
+  if (mfaFlowToken && !sessionStorage.getItem('mfaEnrollToken')) {
     return (
       <div
         style={{
@@ -479,6 +505,7 @@ export default function Login() {
                 data-testid="magic-email-input"
               />
             </Form.Item>
+            {captcha.node}
             <Button
               type="primary"
               htmlType="submit"
@@ -530,6 +557,7 @@ export default function Login() {
                 data-testid="sms-phone"
               />
             </Form.Item>
+            {captcha.node}
             <Button
               type="primary"
               htmlType="submit"

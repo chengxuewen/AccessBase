@@ -7,6 +7,14 @@ export interface ChangePasswordPayload {
   newPassword: string;
 }
 
+export interface WebAuthnVerifyResult {
+  accessToken?: string;
+  refreshToken?: string;
+  mfaRequired?: boolean;
+  enroll?: boolean;
+  flowToken?: string;
+}
+
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
@@ -82,8 +90,14 @@ export async function exchangeSamlCode(code: string): Promise<ExchangePayload> {
 }
 
 /** Request a magic sign-in link. Enumeration-safe: always 202 with a fixed message */
-export async function requestMagicLink(email: string): Promise<string> {
-  const { data } = await client.post<ApiEnvelope<{ message: string }>>('/v1/auth/magic/request', { email });
+export async function requestMagicLink(
+  email: string,
+  captcha?: { captchaId?: string; captchaAnswer?: string },
+): Promise<string> {
+  const { data } = await client.post<ApiEnvelope<{ message: string }>>('/v1/auth/magic/request', {
+      email,
+      ...captcha,
+    });
   return data.data.message;
 }
 
@@ -164,15 +178,24 @@ export async function getWebAuthnLoginOptions(): Promise<WebAuthnOptionsPayload>
 export async function verifyWebAuthnLogin(
   flowToken: string,
   response: unknown,
-): Promise<{ accessToken: string; refreshToken: string; user: unknown }> {
-  const { data } = await client.post<ApiEnvelope<{ accessToken: string; refreshToken: string; user: unknown }>>('/v1/auth/webauthn/login/verify', { flowToken, response });
+): Promise<WebAuthnVerifyResult> {
+  // Q3E-E3: the step-up arm can answer with {mfaRequired, enroll?, flowToken}
+  // instead of a pair — the loose type makes both branches legal (the old
+  // pair-only signature silently destructured undefined on step-up).
+  const { data } = await client.post<ApiEnvelope<WebAuthnVerifyResult>>(
+    '/v1/auth/webauthn/login/verify',
+    { flowToken, response },
+  );
   return data.data;
 }
 
 /** Q1-f2: forgot-password request. Enumeration-safe server arm returns no
 message body (rev.2 F2) — the page renders its own static success text. */
-export async function requestPasswordReset(email: string): Promise<void> {
-  await client.post('/v1/auth/forgot-password', { email });
+export async function requestPasswordReset(
+  email: string,
+  captcha?: { captchaId?: string; captchaAnswer?: string },
+): Promise<void> {
+  await client.post('/v1/auth/forgot-password', { email, ...captcha });
 }
 
 /** Q1-f2: consume a /reset-password link token with the new password. */
@@ -192,6 +215,8 @@ export async function registerUser(payload: {
   email: string;
   name: string;
   password: string;
+  captchaId?: string;
+  captchaAnswer?: string;
 }): Promise<RegisterResult> {
   const { data } = await client.post<ApiEnvelope<RegisterResult>>('/v1/auth/register', payload);
   return data.data;
@@ -205,10 +230,13 @@ export async function fetchSmsStatus(): Promise<boolean> {
 
 /** Q1-f2: request an OTP; resolves with the flow token the verify step needs
  * (wire-chain fix — the token only exists in the response since Q1-b1). */
-export async function requestSmsOtp(phone: string): Promise<string> {
+export async function requestSmsOtp(
+  phone: string,
+  captcha?: { captchaId?: string; captchaAnswer?: string },
+): Promise<string> {
   const { data } = await client.post<ApiEnvelope<{ message: string; token: string }>>(
     '/v1/auth/sms-otp/request',
-    { phone },
+    { phone, ...captcha },
   );
   return data.data.token;
 }
@@ -236,4 +264,51 @@ export async function requestEmailVerify(): Promise<void> {
 /** Q1-f2: public consume of an email-verification link token. */
 export async function verifyEmailToken(token: string): Promise<void> {
   await client.post('/v1/auth/verify-email', { token });
+}
+/** Q3E-E1: captcha feature status (public; widget hides when off) */
+export async function fetchCaptchaStatus(): Promise<boolean> {
+  try {
+    const { data } = await client.get<ApiEnvelope<{ enabled: boolean }>>('/v1/auth/captcha/status');
+    return data.data.enabled === true;
+  } catch {
+    return false;
+  }
+}
+
+export interface CaptchaChallenge {
+  id: string;
+  svg: string;
+}
+
+/** Fresh challenge; caller MUST attach {captchaId, captchaAnswer} when enabled. */
+export async function fetchCaptcha(): Promise<CaptchaChallenge> {
+  const { data } = await client.get<ApiEnvelope<CaptchaChallenge>>('/v1/auth/captcha');
+  return data.data;
+}
+
+/** Q3E-E3 enroll wizard channels (flow-token, NO bearer session yet) */
+export interface MfaEnrollSetup {
+  secret: string;
+  otpauthUrl: string;
+  qrDataUrl: string;
+  recoveryCodes: string[];
+  flowToken: string;
+}
+
+export async function mfaSetupWithToken(flowToken: string): Promise<MfaEnrollSetup> {
+  const { data } = await client.post<ApiEnvelope<MfaEnrollSetup>>('/v1/auth/mfa/setup', { flowToken });
+  return data.data;
+}
+
+export interface MfaEnrollEnableResult {
+  accessToken?: string;
+  refreshToken?: string;
+}
+
+export async function mfaEnableWithToken(code: string, flowToken: string): Promise<MfaEnrollEnableResult> {
+  const { data } = await client.post<ApiEnvelope<MfaEnrollEnableResult>>('/v1/auth/mfa/enable', {
+    code,
+    flowToken,
+  });
+  return data.data;
 }

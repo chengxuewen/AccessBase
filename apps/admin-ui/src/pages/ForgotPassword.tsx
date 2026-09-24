@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Form, Input, Button, Card, Alert, theme } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { requestPasswordReset } from '../api/auth';
+import { useCaptchaField } from '../components/CaptchaField';
 import { apiErrorMessage } from '../api/errors';
 
 /**
@@ -15,6 +16,7 @@ export default function ForgotPassword() {
   const { t } = useTranslation();
   const { token: themeToken } = theme.useToken();
   const [form] = Form.useForm();
+  const captcha = useCaptchaField();
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +25,7 @@ export default function ForgotPassword() {
     setBusy(true);
     setError(null);
     try {
-      await requestPasswordReset(values.email);
+      await requestPasswordReset(values.email, captcha.fields());
       setSent(true);
     } catch (err) {
       setError(apiErrorMessage(err, t('login.error')));
@@ -88,6 +90,7 @@ export default function ForgotPassword() {
                   data-testid="forgot-email"
                 />
               </Form.Item>
+              {captcha.node}
               <Button
                 type="primary"
                 htmlType="submit"

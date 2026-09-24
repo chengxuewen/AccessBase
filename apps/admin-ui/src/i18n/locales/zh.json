@@ -585,5 +585,22 @@
     "success": "邮箱地址已验证。",
     "fail": "验证链接无效或已过期。",
     "goLogin": "去登录"
+  },
+  "captcha": {
+    "refresh": "点击换图",
+    "load": "加载验证码",
+    "placeholder": "输入图中验证码"
+  },
+  "enroll": {
+    "title": "账号安全设置",
+    "loading": "正在准备引导…",
+    "dead": "引导会话已失效，请重新登录。",
+    "back": "返回登录",
+    "scan": "用验证器 App 扫描二维码（或粘贴链接），然后输入 6 位验证码。",
+    "codePlaceholder": "6 位验证码",
+    "confirm": "完成设置",
+    "cancel": "取消并退出",
+    "recovery": "恢复码（请妥善保存）",
+    "failed": "验证码校验失败，请重试。"
   }
 }

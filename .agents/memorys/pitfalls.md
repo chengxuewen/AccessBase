@@ -612,3 +612,9 @@
 - **根因**: vitest mock 模块的命名空间对象在读取未声明键时直接 throw（不是返回 undefined）；属性访问本身就是触发点。
 - **解法**: 把所有 `mod['x']` 读取包进 try/catch，catch 返回降级 noop。
 - **验证**: apps/server 59 文件 595 全绿；单测 users.test 恢复。凡「跨 mock 边界的可选能力探测」一律 try 包裹读取，勿信 undefined 语义。
+
+## PIT-080 追加（2026-09-23 Q3E）：/login 壳探针名册适用于【任何】新壳级 fetch，captcha/status 复发一次
+
+- 症状：定向跑 q3e-policy 全绿；全量 e2e roles-crud×8 红（500 console leak）。
+- 根因：CaptchaField hook 挂在 Login 主体，所有登录 spec 都会触发探针；只跑了新 spec 的定向验证漏掉名册同步。
+- 解法：新壳级端点落地当批就 grep -L 名单（saml/status 名单为代理）补 mock，并以【全量】e2e 收口——定向绿不算绿。

@@ -12,6 +12,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
+import EnrollMfa from './pages/EnrollMfa';
 import Consent from './pages/Consent';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
@@ -119,6 +120,7 @@ export default function App() {
       <Route path="/reset-password" element={<GlobalGuard><ResetPassword /></GlobalGuard>} />
       <Route path="/register" element={<GlobalGuard><Register /></GlobalGuard>} />
       <Route path="/verify-email" element={<GlobalGuard><VerifyEmail /></GlobalGuard>} />
+      <Route path="/enroll-mfa" element={<GlobalGuard><EnrollMfa /></GlobalGuard>} />
       <Route
         path="/"
         element={

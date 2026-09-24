@@ -32,6 +32,9 @@ import type { DrizzleDB } from '@accessbase/identity/db';
 import { SessionManager, FlowTokenService, getRedisClient, TenantManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
+import { getOptionsManager } from './options.js';
+import { getRoleManager } from '../utils/managers.js';
+import { enrollGate, optionGetter } from '../utils/mfa-policy.js';
 import { logger } from '@accessbase/logging';
 import { getTenantManager } from '../utils/managers.js';
 import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
@@ -321,6 +324,20 @@ export async function webauthnRoutes(app: FastifyInstance) {
       if (user.status !== 'active') {
         request.log.warn({ userId: user.id }, 'WebAuthn login blocked: account not active');
         return authError(reply, 403, 'AUTH_004', 'Account suspended');
+      }
+
+      // Q3E-E3 enforced-MFA arm (rev.2 F-B5: BEFORE step-up)
+      {
+        const enroll = await enrollGate({
+          getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
+          issueEnroll: async (uid) => flowTokens.issue('mfa_enroll', { userId: uid }, 300),
+          isSystemAdmin: async () =>
+            (await (await getRoleManager()).getUserRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
+              (r) => r.isSystem === true,
+            ),
+          user,
+        });
+        if (enroll) return { success: true, data: enroll };
       }
 
       // MFA step-up: TOTP-enabled user gets a flow token, not a session
