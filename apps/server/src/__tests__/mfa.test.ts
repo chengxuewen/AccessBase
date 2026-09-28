@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import type { IdentityService } from '@accessbase/identity';
+import { DEFAULT_TENANT } from '../utils/constants.js';
 
 // Set env before importing config-dependent modules
 process.env.NODE_ENV = 'test';
@@ -14,6 +15,26 @@ vi.mock('@fastify/swagger', () => ({ default: async () => {} }));
 vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
+
+// R1-T3: fake the identity/db connection so authDb() (the shared handle behind
+// emitAuthEvent) writes into a captured insert log instead of dialing real PG.
+interface CapturedInsert {
+  values: Record<string, unknown>;
+}
+const eventInserts: CapturedInsert[] = [];
+vi.mock('@accessbase/identity/db', async (importOriginal) => ({
+  // real table defs; only the connection factory is faked (events.test.ts pattern)
+  ...((await importOriginal()) as Record<string, unknown>),
+  createDb: vi.fn(() => ({
+    insert: vi.fn(() => ({
+      values: vi.fn((vals: Record<string, unknown>) => {
+        eventInserts.push({ values: vals });
+        return Promise.resolve();
+      }),
+    })),
+  })),
+  closeDb: vi.fn().mockResolvedValue(undefined),
+}));
 
 // Deterministic TOTP: code '123456' valid, anything else invalid
 const totpUser = { id: '550e8400-e29b-41d4-a716-446655440000', email: 'admin@test.local' };
@@ -76,10 +97,24 @@ afterAll(async () => {
   await app.close();
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.clearAllMocks();
   loginTotpEnabled = false;
   loginPasswordInvalid = false;
+  eventInserts.length = 0;
+  // clear the memoized authDb() handle so the (cleared) createDb mock re-dials
+  const { closeAuthDb } = await import('../utils/managers.js');
+  await closeAuthDb();
+  // re-arm createDb after clearAllMocks wiped its implementation
+  const dbMod = (await import('@accessbase/identity/db')) as { createDb: ReturnType<typeof vi.fn> };
+  dbMod.createDb.mockImplementation(() => ({
+    insert: vi.fn(() => ({
+      values: vi.fn((vals: Record<string, unknown>) => {
+        eventInserts.push({ values: vals });
+        return Promise.resolve();
+      }),
+    })),
+  }));
 });
 
 const authHeader = () => ({
@@ -115,6 +150,43 @@ describe('login MFA branch', () => {
     expect(body.data.accessToken).toBeTruthy();
     expect(body.data.refreshToken).toBe('new-refresh-token');
     expect(body.data.mfaRequired).toBeUndefined();
+    // R1-T3 wire lock: exactly one auth.login.success events row, minimal payload shape
+    const rows = eventInserts.filter((i) => i.values['type'] === 'auth.login.success');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.values['payload']).toEqual({
+      email: totpUser.email,
+      method: 'password',
+      userId: totpUser.id,
+    });
+  });
+});
+
+describe('R1-T3 auth events (logout + failure attribution)', () => {
+  it('logout writes an auth.logout row from the token identity', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      payload: { refreshToken: 'rt-1' },
+      headers: authHeader(),
+    });
+    expect(res.statusCode).toBe(200);
+    const row = eventInserts.find((i) => i.values['type'] === 'auth.logout');
+    expect(row).toBeDefined();
+    expect(row?.values['payload']).toEqual({ email: totpUser.email, method: 'password', userId: totpUser.id });
+  });
+
+  it('bad password writes auth.login.failure reason bad_credentials with the default-tenant fallback', async () => {
+    loginPasswordInvalid = true;
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'who@test.local', password: 'bad' },
+    });
+    expect(res.statusCode).toBe(401);
+    const rows = eventInserts.filter((i) => i.values['type'] === 'auth.login.failure');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.values['tenantId']).toBe(DEFAULT_TENANT);
+    expect(rows[0]?.values['payload']).toEqual({ email: 'who@test.local', method: 'password', reason: 'bad_credentials' });
   });
 });
 
@@ -142,6 +214,11 @@ describe('POST /api/v1/auth/mfa/verify', () => {
     expect(body.data.accessToken).toBeTruthy();
     expect(body.data.refreshToken).toBe('new-refresh-token');
     expect(mfaManagerMock.verify).toHaveBeenCalledWith(totpUser.id, '123456');
+    // R1-T3: the totp lane records ONE success event with method 'totp' (the
+    // flow-token login itself issued no session, so no password-row exists)
+    const rows = eventInserts.filter((i) => i.values['type'] === 'auth.login.success');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.values['payload']).toMatchObject({ method: 'totp', email: totpUser.email });
   });
 
   it('accepts a recovery code as second factor', async () => {

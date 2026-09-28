@@ -14,6 +14,22 @@ vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 
+// R1-T3: fake identity/db connection so authDb() (emitAuthEvent's handle)
+// records inserts instead of dialing real PG.
+const eventInserts: { values: Record<string, unknown> }[] = [];
+vi.mock('@accessbase/identity/db', async (importOriginal) => ({
+  ...((await importOriginal()) as Record<string, unknown>),
+  createDb: vi.fn(() => ({
+    insert: vi.fn(() => ({
+      values: vi.fn((vals: Record<string, unknown>) => {
+        eventInserts.push({ values: vals });
+        return Promise.resolve();
+      }),
+    })),
+  })),
+  closeDb: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Shared spies for assertions
 const revokeAllUserSessions = vi.fn().mockResolvedValue(undefined);
 const rotateRefreshToken = vi.fn();
@@ -143,6 +159,41 @@ describe('disabled user enforcement (P0)', () => {
     expect(res.statusCode).toBe(403);
     expect(res.json()).toMatchObject({ success: false, error: { code: 'AUTH_004' } });
     expect(recordFailure).not.toHaveBeenCalled();
+    // R1-T3: suspended arm → one failure row, reason suspended, pre-lookup tenant fallback
+    eventInserts.length = 0;
+    mockVerifyPassword.mockRejectedValueOnce(new Error('ACCOUNT_SUSPENDED'));
+    const res2 = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'susp2@test.local', password: 'whatever' },
+    });
+    expect(res2.statusCode).toBe(403);
+    const rows = eventInserts.filter((i) => i.values['type'] === 'auth.login.failure');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.values['payload']).toEqual({
+      email: 'susp2@test.local',
+      method: 'password',
+      reason: 'suspended',
+    });
+  });
+
+  it('bad password writes auth.login.failure reason bad_credentials', async () => {
+    eventInserts.length = 0;
+    mockVerifyPassword.mockRejectedValueOnce(new Error('Invalid credentials'));
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'nobody@test.local', password: 'wrong' },
+    });
+    expect(res.statusCode).toBe(401);
+    const rows = eventInserts.filter((i) => i.values['type'] === 'auth.login.failure');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.values['payload']).toEqual({
+      email: 'nobody@test.local',
+      method: 'password',
+      reason: 'bad_credentials',
+    });
+    expect(recordFailure).toHaveBeenCalled();
   });
 
   it('refresh mints access token carrying status claim from findById', async () => {

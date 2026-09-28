@@ -14,6 +14,7 @@ import { getOptionsManager } from './options.js';
 import { renderEmailFor } from '../utils/email-templates.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { logger } from '@accessbase/logging';
+import { emitAuthEvent } from '../utils/auth-events.js';
 
 
 interface LoginBody {
@@ -286,6 +287,14 @@ export async function authRoutes(app: FastifyInstance) {
         });
       }
       if (await lockout.isLocked(email)) {
+        // R1-T3: locked arm resolves no user row → request-tenant fallback attribution
+        emitAuthEvent({
+          type: 'auth.login.failure',
+          tenantId: request.tenantId ?? DEFAULT_TENANT,
+          email,
+          method: 'password',
+          reason: 'locked',
+        });
         return reply.status(423).send({
           success: false,
           error: {
@@ -295,9 +304,12 @@ export async function authRoutes(app: FastifyInstance) {
         });
       }
 
+      // R1-T3: captured for failure-arm attribution (suspended row has a tenant, the throw doesn't)
+      let loginRow: { id: string; tenantId?: string } | undefined;
       try {
         const userManager = await getUserManager();
         const user = await userManager.verifyPassword(email, password);
+        loginRow = { id: user.id, tenantId: user.tenantId };
 
         // Q4a (spec rev.2 B1): armed password change precedes EVERY other arm
         // and issues no session. Field declared below (fast-json strips undeclared).
@@ -332,6 +344,14 @@ export async function authRoutes(app: FastifyInstance) {
         }
 
         const { accessToken, refreshToken } = await issueTokenPair(request, user);
+        // R1-T3: session delivered → success telemetry (fire-and-forget, never blocks the response)
+        emitAuthEvent({
+          type: 'auth.login.success',
+          tenantId: user.tenantId ?? DEFAULT_TENANT,
+          userId: user.id,
+          email: user.email,
+          method: 'password',
+        });
 
         request.log.info({ email }, 'Login successful');
         await lockout.clear(email);
@@ -354,6 +374,14 @@ export async function authRoutes(app: FastifyInstance) {
       // P0: suspended/pending accounts map to a distinct 403 — not a credential
       // failure, so it must not feed the lockout counter either.
       if (err instanceof Error && err.message === 'ACCOUNT_SUSPENDED') {
+        emitAuthEvent({
+          type: 'auth.login.failure',
+          tenantId: loginRow?.tenantId ?? request.tenantId ?? DEFAULT_TENANT,
+          userId: loginRow?.id,
+          email,
+          method: 'password',
+          reason: 'suspended',
+        });
         return reply.status(403).send({
           success: false,
           error: { code: 'AUTH_004', message: 'Account suspended' },
@@ -361,12 +389,28 @@ export async function authRoutes(app: FastifyInstance) {
       }
       // Tenant gate (G): propagate before lockout counting (same family).
       if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') {
+        emitAuthEvent({
+          type: 'auth.login.failure',
+          tenantId: request.tenantId ?? DEFAULT_TENANT,
+          email,
+          method: 'password',
+          // Tenant-suspended login: not a credential failure and no per-row attribution
+          reason: 'other',
+        });
         return reply.status(403).send({
           success: false,
           error: { code: 'AUTH_TENANT_001', message: 'Access denied' },
         });
       }
       await lockout.recordFailure(email);
+        // R1-T3: wrong password AND unknown user both land here (verifyPassword throws alike)
+        emitAuthEvent({
+          type: 'auth.login.failure',
+          tenantId: request.tenantId ?? DEFAULT_TENANT,
+          email,
+          method: 'password',
+          reason: 'bad_credentials',
+        });
         request.log.warn({ email }, 'Login failed');
         return reply.status(401).send({
           success: false,
@@ -634,6 +678,15 @@ export async function authRoutes(app: FastifyInstance) {
           request.log.warn({ err }, 'Logout session revocation failed');
         }
       }
+      const caller = request.user as { sub?: string; email?: string };
+      // R1-T3: both branches (with or without refreshToken) end the caller's session intent
+      emitAuthEvent({
+        type: 'auth.logout',
+        tenantId: request.tenantId ?? DEFAULT_TENANT,
+        userId: caller.sub,
+        email: caller.email ?? '',
+        method: 'password',
+      });
       return { success: true };
     },
   );
@@ -1614,6 +1667,14 @@ return { success: true };
           });
         }
         const issued = await issueTokenPair(request, wizard);
+        // R1-T3: enforced-MFA enroll wizard completion — its own method label
+        emitAuthEvent({
+          type: 'auth.login.success',
+          tenantId: wizard.tenantId ?? DEFAULT_TENANT,
+          userId: wizard.id,
+          email: wizard.email,
+          method: 'admin-wizard',
+        });
         return { success: true, data: issued };
       }
       await app.authenticate(request, reply);
@@ -1702,6 +1763,14 @@ return { success: true };
           email: user.email,
           status: user.status,
           tenantId: user.tenantId,
+        });
+        // R1-T3: step-up resolved into a real session → success telemetry on the totp lane
+        emitAuthEvent({
+          type: 'auth.login.success',
+          tenantId: user.tenantId ?? DEFAULT_TENANT,
+          userId: user.id,
+          email: user.email,
+          method: 'totp',
         });
         return {
           success: true,

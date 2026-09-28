@@ -26,7 +26,10 @@ export type DomainEventType =
   | 'tenant.deleted'
   | 'apikey.revoked'
   | 'group.changed'
-  | 'webhook.test';
+  | 'webhook.test'
+  | 'auth.login.success'
+  | 'auth.login.failure'
+  | 'auth.logout';
 
 export interface EmitEventInput {
   tenantId: string;
