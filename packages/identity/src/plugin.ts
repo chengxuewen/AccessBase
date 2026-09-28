@@ -5,7 +5,6 @@ import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
 import { logger } from '@accessbase/logging';
 import { IdentityService, defaultIdentityConfig } from './index.js';
-import { PasswordProvider } from './providers/PasswordProvider.js';
 import { OAuthProvider } from './providers/OAuthProvider.js';
 import { WebAuthnProvider } from './providers/WebAuthnProvider.js';
 import { LdapProvider } from './providers/LdapProvider.js';
@@ -34,9 +33,9 @@ const identityPlugin: FastifyPluginAsync<IdentityPluginOptions> = async (fastify
   const identityService = new IdentityService(config);
 
   // Phase 2: Register providers based on config
-  if (config.auth.password.enabled) {
-    identityService.authManager.register(new PasswordProvider(config.auth.password));
-  }
+  // R1-T9 (DG-7): the PasswordProvider shell was retired — its domain/alias
+  // policy lives in services/domain-policy.ts, consumed by the server register
+  // route; real password login goes through UserManager.verifyPassword.
 
   // Register OAuth providers
   for (const [providerName, providerConfig] of Object.entries(config.auth.oauth)) {

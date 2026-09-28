@@ -6,6 +6,8 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 process.env.REDIS_URL = 'redis://localhost:6379';
+// R1-T9: blocklist armed for this file's app import (config reads env at load).
+process.env.AUTH_BLOCKED_DOMAINS = 'blocked.test';
 
 // Mock plugins that require fastify@5 but fastify@4 is installed
 vi.mock('@fastify/cors', () => ({ default: async () => {} }));
@@ -148,5 +150,30 @@ describe('POST /api/v1/auth/register', () => {
     });
     expect(res.statusCode).toBe(400);
     expect(res.json().error.code).toBe('AUTH_REG_002');
+  });
+
+  // R1-T9 (DG-7): the retired PasswordProvider's domain/alias policy now lives
+  // on the real registration door. Rejection happens before any user write —
+  // zero inserts is the lock.
+  it('403 AUTH_033 on blocked domain — no user row created', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      payload: { email: 'a@blocked.test', name: 'B', password: 'Passw0rd!' },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('AUTH_033');
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('403 AUTH_034 on alias local-part — no user row created', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      payload: { email: 'new+tag@x.io', name: 'A', password: 'Passw0rd!' },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('AUTH_034');
+    expect(createMock).not.toHaveBeenCalled();
   });
 });

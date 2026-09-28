@@ -37,6 +37,11 @@ export interface AppConfig {
   oidcIpRatePerMin: number;
   /** Q3D back-channel logout feature flag (OIDC_BACKCHANNEL_LOGOUT=1) */
   oidcBackchannelLogout: boolean;
+  /** R1-T9 (DG-7): registration email domain policy — comma lists, empty = allow-all. */
+  authAllowedDomains: string[];
+  authBlockedDomains: string[];
+  /** AUTH_034 local-part '+' gate; default true mirrors the retired provider default. */
+  authBlockEmailAliases: boolean;
 }
 
 function env(key: string, fallback?: string): string {
@@ -45,6 +50,12 @@ function env(key: string, fallback?: string): string {
     throw new Error(`Missing required environment variable: ${key}`);
   }
   return value;
+}
+
+/** R1-T9: comma-separated env list -> trimmed non-empty entries (case kept —
+ * domain-policy lowercases both sides itself). */
+function parseDomainList(raw: string | undefined): string[] {
+  return (raw ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 }
 
 const NODE_ENV_VALUES = ['development', 'production', 'test'] as const;
@@ -134,6 +145,10 @@ export const config: AppConfig = {
   // @fastify/rate-limit entirely (verified: matched routes 429, route-less never).
   oidcIpRatePerMin: Number(process.env['OIDC_IP_RATE_PER_MIN'] ?? 120),
   oidcBackchannelLogout: ['1', 'true'].includes(process.env['OIDC_BACKCHANNEL_LOGOUT'] ?? ''),
+  authAllowedDomains: parseDomainList(process.env['AUTH_ALLOWED_DOMAINS']),
+  authBlockedDomains: parseDomainList(process.env['AUTH_BLOCKED_DOMAINS']),
+  authBlockEmailAliases:
+    (process.env['AUTH_BLOCK_EMAIL_ALIASES'] ?? 'true').trim().toLowerCase() !== 'false',
 };
 
 /**

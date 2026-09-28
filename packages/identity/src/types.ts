@@ -216,6 +216,8 @@ export interface IdentityConfig {
   };
 }
 
+/** Config schema for domain-policy env wiring (server reads AUTH_*_DOMAINS);
+ *  the dead PasswordProvider that consumed it was removed in R1-T9. */
 export interface PasswordConfig {
   enabled: boolean;
   minLength: number;

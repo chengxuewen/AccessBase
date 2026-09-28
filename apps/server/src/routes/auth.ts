@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { randomInt } from 'node:crypto';
-import { SessionManager, RoleManager, FlowTokenService, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy, SmsProviderImpl } from '@accessbase/identity';
+import { SessionManager, RoleManager, FlowTokenService, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy, SmsProviderImpl, isEmailDomainAllowed, hasEmailAlias } from '@accessbase/identity';
 import type { SmsConfig, SmsProvider } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { getRoleManager, getTenantManager, getUserManager } from '../utils/managers.js';
@@ -452,6 +452,22 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.status(400).send({
           success: false,
           error: { code: captchaErr, message: 'Complete the captcha challenge first' },
+        });
+      }
+
+      // R1-T9 (DG-7): domain/alias policy ported verbatim from the retired
+      // PasswordProvider — rejected at the door before any user write (the
+      // route tests lock zero-inserts-on-rejection).
+      if (!isEmailDomainAllowed(email, config.authAllowedDomains, config.authBlockedDomains)) {
+        return reply.status(403).send({
+          success: false,
+          error: { code: 'AUTH_033', message: 'Email domain is blocked' },
+        });
+      }
+      if (hasEmailAlias(email, config.authBlockEmailAliases)) {
+        return reply.status(403).send({
+          success: false,
+          error: { code: 'AUTH_034', message: 'Email aliases are not allowed' },
         });
       }
 
