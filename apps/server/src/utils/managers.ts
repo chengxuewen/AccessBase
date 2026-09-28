@@ -20,6 +20,7 @@
  */
 import type { RoleManager, TenantManager, UserManager } from '@accessbase/identity';
 import { closeDb, createDb, type DrizzleDB } from '@accessbase/identity/db';
+import { resetMfaManager } from './mfa-manager.js';
 import { config } from '../config.js';
 
 let userManager: UserManager | undefined;
@@ -100,6 +101,9 @@ export async function resetManagers(): Promise<void> {
   userManager = undefined;
   roleManager = undefined;
   tenantManager = undefined;
+  // R1-T1: clear the MfaManager memo too (it holds no pool of its own —
+  // authDb()/closeAuthDb own the shared handle, untouched here).
+  resetMfaManager();
 }
 
 // Q3A: ONE dedicated pool for the per-request authst SELECT (not a manager;

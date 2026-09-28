@@ -1,9 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import { randomInt } from 'node:crypto';
-import { SessionManager, RoleManager, FlowTokenService, MfaManager, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy, SmsProviderImpl } from '@accessbase/identity';
+import { SessionManager, RoleManager, FlowTokenService, getRedisClient, LockoutService, PermissionManager, Mailer, assertPasswordPolicy, readPasswordPolicy, SmsProviderImpl } from '@accessbase/identity';
 import type { SmsConfig, SmsProvider } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { getRoleManager, getTenantManager, getUserManager } from '../utils/managers.js';
+import { getMfaManager } from '../utils/mfa-manager.js';
 import { cidrVerdict } from '../utils/cidr.js';
 import { enrollGate, optionGetter } from '../utils/mfa-policy.js';
 import { checkCaptcha, newCaptcha, storeCaptchaAnswer, captchaFeatureOn } from '../utils/captcha.js';
@@ -83,8 +84,6 @@ export async function authRoutes(app: FastifyInstance) {
   const flowTokens = new FlowTokenService(
     config.nodeEnv === 'test' ? undefined : safeRedis(),
   );
-  // Constructed lazily: MFA_ENCRYPTION_KEY is only required when MFA endpoints are used
-  const getMfaManager = () => new MfaManager(requireMfaKey());
 
   function safeRedis() {
     try {
@@ -172,13 +171,6 @@ export async function authRoutes(app: FastifyInstance) {
       err.statusCode = 403;
       throw err;
     }
-  }
-
-  function requireMfaKey(): string {
-    if (!config.mfaEncryptionKey) {
-      throw new Error('MFA_ENCRYPTION_KEY not configured (32-byte hex required for TOTP)');
-    }
-    return config.mfaEncryptionKey;
   }
 
   /** Issue access JWT + refresh token — shared by login (non-MFA) and /mfa/verify */

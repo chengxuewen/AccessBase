@@ -17,6 +17,9 @@ vi.mock('@accessbase/identity', () => {
     UserManager: Fake,
     RoleManager: Plain,
     TenantManager: Fake,
+    // R1-T1: managers.ts now statically links mfa-manager.ts which imports
+    // MfaManager — declare it or the partial-mock proxy throws (PIT-082).
+    MfaManager: Plain,
   };
 });
 
