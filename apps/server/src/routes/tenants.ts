@@ -185,7 +185,13 @@ export async function tenantRoutes(app: FastifyInstance) {
       const { id } = request.params;
       const { name, slug, status } = request.body as { name?: string; slug?: string; status?: string };
       try {
-        const tenant = await tenantManager.update(id, { name, slug, status });
+        // R1-T2: suspend runs a multi-write cascade (tenant row + token bump +
+        // sessions/api_keys revokes + outbox event) — only that arm goes through
+        // routeTx so it commits atomically; plain renames keep the single-statement path.
+        const tenant =
+          status === 'suspended'
+            ? await routeTx((tx) => tenantManager.update(id, { name, slug, status }, tx))
+            : await tenantManager.update(id, { name, slug, status });
         return { success: true, data: tenant };
       } catch (err) {
         return sendTenantError(reply, err);
@@ -213,7 +219,9 @@ export async function tenantRoutes(app: FastifyInstance) {
       if (belt) return belt;
       const { id } = request.params;
       try {
-        const tenant = await tenantManager.delete(id);
+        // R1-T2: soft delete = the same suspend cascade (manager.delete flows
+        // through update(deleteOp=true)) → transactional for the same reason.
+        const tenant = await routeTx((tx) => tenantManager.delete(id, tx));
         return { success: true, data: tenant };
         // TENANT_PROTECTED → 409; not found → 404 (shared mapper)
       } catch (err) {

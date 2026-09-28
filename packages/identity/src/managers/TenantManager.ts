@@ -183,12 +183,14 @@ export class TenantManager {
     if (updated.status === 'suspended') {
       invalidatePermissionCache(id);
       // Q3A: tenant-wide bearer revocation (sessions/keys already killed above)
-      await bumpAuthState(this.db, { tenantId: id, allTenantUsers: true }, delAuthState);
+      await bumpAuthState(d, { tenantId: id, allTenantUsers: true }, delAuthState);
       // W3-3 (F14/C-A2 — revived after wave-1's phantom falsification):
       // suspend/delete must kill live access at the manager funnel so EVERY
       // caller (routes today, any future direct user) is covered. Reactivation
       // never un-revokes: new logins/keys are required by design.
-      await this.revokeTenantAccess(id);
+      // R1-T2: the cascade rides the CALLER handle (d) so a routeTx-wrapped
+      // suspend is atomic — tenant row + revokes + outbox event commit together.
+      await this.revokeTenantAccess(id, d);
     }
 
     await emitEvent(d, {
@@ -207,20 +209,20 @@ export class TenantManager {
    * correctness path; revocation itself
    * is auth-safe regardless: validateSession and the apikey branch read DB).
    */
-  private async revokeTenantAccess(tenantId: string): Promise<void> {
-    const userRows = await this.db
+  private async revokeTenantAccess(tenantId: string, d: DbLike = this.db): Promise<void> {
+    const userRows = await d
       .select({ id: users.id })
       .from(users)
       .where(eq(users.tenantId, tenantId));
     const userIds = userRows.map((r) => r.id);
 
     if (userIds.length > 0) {
-      await this.db
+      await d
         .update(sessions)
         .set({ revokedAt: new Date() })
         .where(and(inArray(sessions.userId, userIds), isNull(sessions.revokedAt)));
     }
-    await this.db
+    await d
       .update(apiKeys)
       .set({ revokedAt: new Date(), updatedAt: new Date() })
       .where(and(eq(apiKeys.tenantId, tenantId), isNull(apiKeys.revokedAt)));

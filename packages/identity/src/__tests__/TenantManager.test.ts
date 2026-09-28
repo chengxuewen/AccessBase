@@ -10,6 +10,14 @@ vi.mock('../managers/permission-cache.js', () => ({
   invalidatePermissionCache: vi.fn(),
 }));
 
+// Mock token-version so the suspend-cascade bump handle is assertable (R1-T2):
+// the real bumpAuthState swallows mock-chain failures, so only a spy can prove
+// which handle (caller tx vs internal pool) the UPDATE was routed to.
+vi.mock('../services/token-version.js', () => ({
+  bumpAuthState: vi.fn().mockResolvedValue(undefined),
+  delAuthState: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock db module entirely
 vi.mock('../db/index.js', () => ({
   createDb: vi.fn(),
@@ -52,6 +60,13 @@ function makeMockDb() {
     update: vi.fn(),
     delete: vi.fn(),
   };
+}
+
+/** Second independent handle (tx-fake shape): same builder surface, separate spies. */
+function makeTxHandle() {
+  const tx = makeMockDb();
+  // Real DbLike also exposes transaction(); include it so handle identity is unambiguous.
+  return Object.assign(tx, { transaction: vi.fn() });
 }
 
 type DbTenantFixture = {
@@ -204,6 +219,41 @@ describe('TenantManager', () => {
       expect(mockInvalidate).toHaveBeenCalledWith('t1');
     });
 
+    it('routes the whole suspend cascade onto the caller tx handle (R1-T2)', async () => {
+      const { bumpAuthState } = await import('../services/token-version.js');
+      const mockBump = vi.mocked(bumpAuthState);
+      const tx = makeTxHandle();
+      const updated = dbTenant('t1', { status: 'suspended' });
+
+      // Pool handle: only the (unused here) existence check could ever land here.
+      db.select.mockImplementation(() => makeChain([dbTenant('t1')]));
+      db.update.mockImplementation(() => makeChain([updated]));
+      db.insert.mockImplementation(() => makeChain([]));
+      // Tx handle: existence SELECT + tenant UPDATE + tenant user SELECT +
+      // sessions/api_keys revoke UPDATEs + the tenant.suspended event INSERT.
+      // (bumpAuthState is the mocked spy — its handle is asserted below.)
+      tx.select
+        .mockImplementationOnce(() => makeChain([dbTenant('t1')]))
+        .mockImplementation(() => makeChain([{ id: 'u1' }]));
+      tx.update.mockImplementation(() => makeChain([updated]));
+      tx.insert.mockImplementation(() => makeChain([])); // Q4c tenant.suspended event
+
+      await manager.update('t1', { status: 'suspended' }, tx as never);
+
+      // bumpAuthState received the caller tx handle, not the internal pool.
+      expect(mockBump).toHaveBeenCalledTimes(1);
+      expect(mockBump.mock.calls[0]?.[0]).toBe(tx);
+      // revokeTenantAccess SQL (tenant user SELECT + sessions/api_keys UPDATEs)
+      // ran on the tx handle.
+      expect(tx.update).toHaveBeenCalledTimes(3); // tenant row + sessions + api_keys
+      expect(tx.select).toHaveBeenCalledTimes(2); // existence check + user lookup
+      // Zero reads/writes against the raw pool handle — the whole cascade
+      // (outbox event included) is tx-scoped.
+      expect(db.update).not.toHaveBeenCalled();
+      expect(db.select).not.toHaveBeenCalled();
+      expect(db.insert).not.toHaveBeenCalled();
+    });
+
     it('does not invalidate for non-suspend status updates', async () => {
       const updated = dbTenant('t1', { status: 'active' });
       db.select.mockImplementation(() => makeChain([dbTenant('t1')]));
@@ -232,9 +282,10 @@ describe('TenantManager', () => {
       const result = await manager.delete('t1');
 
       expect(result).toMatchObject({ id: 't1', status: 'suspended' });
-      // tenant row + sessions + api_keys revokes (W3-3 funnel) + Q3A token_version
-      // bump (bearer revocation) = 4 updates
-      expect(db.update).toHaveBeenCalledTimes(4);
+      // tenant row + sessions + api_keys revokes (W3-3 funnel) = 3 updates
+      // (the Q3A bumpAuthState UPDATE is the module-level spy — its handle
+      // routing is locked by the R1-T2 tx test above)
+      expect(db.update).toHaveBeenCalledTimes(3);
       expect(db.delete).not.toHaveBeenCalled(); // soft — never a hard delete
       expect(mockInvalidate).toHaveBeenCalledWith('t1');
     });

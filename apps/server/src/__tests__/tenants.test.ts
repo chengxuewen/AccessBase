@@ -29,6 +29,9 @@ const mockTenant = {
 
 const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
 
+/** Marker object handed out by the UserManager.transaction mock (routeTx seam). */
+const txHandle = { txHandle: true };
+
 const mockFindAll = vi.fn().mockResolvedValue({
   data: [mockTenant],
   total: 1,
@@ -79,6 +82,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
   UserManager: vi.fn().mockImplementation(() => ({
     findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
     findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+    // Q2b routeTx seam: run the callback with a marker handle so the routed
+    // manager calls can assert the handle reached them (R1-T2).
+    transaction: (fn: (d: unknown) => unknown) => fn(txHandle),
   })),
   RoleManager: vi.fn().mockImplementation(() => ({
     findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
@@ -236,6 +242,36 @@ describe('PUT /api/v1/tenants/:id', () => {
     expect(res.statusCode).toBe(404);
     expect(res.json().error.code).toBe('NOT_FOUND');
   });
+
+  it('R1-T2: suspend PUT threads a transaction handle into manager.update', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/tenants/${mockTenant.id}`,
+      headers: authHeaders(),
+      payload: { status: 'suspended' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    // Third positional arg must be the tx handle from routeTx, not undefined.
+    expect(mockUpdate).toHaveBeenCalledWith(
+      mockTenant.id,
+      expect.objectContaining({ status: 'suspended' }),
+      txHandle,
+    );
+  });
+
+  it('R1-T2: plain (non-suspend) PUT stays off the transaction path', async () => {
+    mockUpdate.mockClear();
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/tenants/${mockTenant.id}`,
+      headers: authHeaders(),
+      payload: { name: 'Plain Rename' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockUpdate).toHaveBeenCalledWith(mockTenant.id, { name: 'Plain Rename', slug: undefined, status: undefined });
+  });
 });
 
 describe('DELETE /api/v1/tenants/:id', () => {
@@ -249,7 +285,8 @@ describe('DELETE /api/v1/tenants/:id', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
-    expect(mockDelete).toHaveBeenCalledWith(mockTenant.id);
+    // R1-T2: soft delete runs the same suspend cascade → must carry the tx handle too.
+    expect(mockDelete).toHaveBeenCalledWith(mockTenant.id, txHandle);
   });
 
   it('returns 409 TENANT_PROTECTED for default tenant', async () => {
