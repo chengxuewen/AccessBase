@@ -220,8 +220,9 @@ describe('PUT /api/v1/tenants/:id', () => {
   });
 
   it('returns 409 TENANT_PROTECTED for default tenant', async () => {
-    const res = await app.inject({
+const res = await app.inject({
       method: 'PUT',
+      remoteAddress: '10.255.7.1', // PIT-083: isolate from the shared 127.0.0.1 rate bucket
       url: `/api/v1/tenants/${DEFAULT_TENANT_ID}`,
       headers: authHeaders(),
       payload: { name: 'Nope' },
@@ -290,8 +291,9 @@ describe('DELETE /api/v1/tenants/:id', () => {
   });
 
   it('returns 409 TENANT_PROTECTED for default tenant', async () => {
-    const res = await app.inject({
+const res = await app.inject({
       method: 'DELETE',
+      remoteAddress: '10.255.7.2', // PIT-083: isolate from the shared 127.0.0.1 rate bucket
       url: `/api/v1/tenants/${DEFAULT_TENANT_ID}`,
       headers: authHeaders(),
     });

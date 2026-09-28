@@ -90,3 +90,11 @@ docker integration day (boot paths) · CI first green run · Q3D back-channel li
 - **R5 market bets (L, product decisions first):** H6 full "logout coherence" batch (SAML SLO + RP end_session + /v2/me + front-channel) · M1 private_key_jwt (now cheap) · DPoP/JAR decision · breach-list check · TOTP URI export · act-as · SoD/approval workflows · per-user session list · custom claims · M10 compliance batch · branding/portal (sales-gated) · Helm + docker-day (ops-gated) · C1/C2 — the last two CRITICAL design promises: decide wire-or-retire per D126 honesty ladder.
 
 Standing residues (unchanged from round 1): docker integration day, CI first green run, external-credential live verifications.
+
+---
+
+## Batch R1 discharge ledger (2026-09-28, commit-stamped)
+
+H1→58e4da0 · M2→c6f6d5a · H5→6f434fe · M3→46239e6 · M19+L3→062b60d · C2/C3(DG-3/DG-1b retirement)→582fdb4 · DG-7→ba71389 · DG-8a→7fbf7e3 · H4→76a26ae. Erratum C3 applied inside 582fdb4. C1 → R-audit spec `docs/superpowers/specs/2026-09-28-r-audit-tamper-evidence-and-erasure-design.md` (rev.3 RATIFIED, awaiting its own plan). U1-U9 decision ledger in the plan §Decision gates. NOT touched by R1 (deferred per ruling): auth.ts split (next batch), integration day, options pub/sub + key-rotation tool (R3), logout coherence (R5), data-scope, branding/portal, SAML SLO, private_key_jwt (cheap, queued), DPoP/JAR/8693 (non-goals), FGA engine (non-goal; data-scope middle path instead).
+
+Gates at close-out: vitest 1250/1250 (115 files, workers auto) · e2e chromium 173+3 0 failed (workers=1) · 4×tsc 0 · eslint 0-new · D126 header gate empty · seed count 26 · openapi 99 paths.
