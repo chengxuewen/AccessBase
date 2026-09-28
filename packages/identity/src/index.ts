@@ -118,12 +118,6 @@ export const defaultIdentityConfig: IdentityConfig = {
         algorithm: 'SHA1',
         window: 1,
       },
-      trustedDevices: {
-        enabled: true,
-        trustWindowDays: 30,
-        maxTrustedDevices: 10,
-        requireMfaToTrust: true,
-      },
       recoveryCodes: {
         count: 10,
         length: 8,
@@ -165,14 +159,6 @@ export const defaultIdentityConfig: IdentityConfig = {
       channel: 'rbac:invalidation',
       localCacheTTL: 300,
       batchSize: 1000,
-    },
-    sso: {
-      session: {
-        idleTimeout: 1800,
-        absoluteTimeout: 28800,
-        maxSessionsPerUser: 10,
-        singleLogoutEnabled: true,
-      },
     },
     rateLimit: {
       login: 10,

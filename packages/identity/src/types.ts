@@ -179,31 +179,6 @@ export interface SessionValidation {
     | 'sso_idle_timeout';
 }
 
-export interface SSOSession {
-  id: string;
-  userId: string;
-  identityProviderId: string;
-  createdAt: Date;
-  lastActivityAt: Date;
-  idleTimeout: number; // Default 1800s (30 min)
-  absoluteTimeout: number; // Default 28800s (8 hours)
-  expiresAt: Date;
-  status: 'active' | 'expired' | 'revoked';
-}
-
-export interface LocalSession {
-  id: string;
-  userId: string;
-  ssoSessionId: string; // Bound SSO session
-  tenantId: string;
-  createdAt: Date;
-  lastActivityAt: Date;
-  idleTimeout: number;
-  absoluteTimeout: number;
-  expiresAt: Date; // ≤ SSO session expiry time
-  status: 'active' | 'expired' | 'revoked';
-}
-
 /**
  * MFA Types (SDD 2.6)
  */
@@ -217,19 +192,6 @@ export interface MfaVerifyResult {
   success: boolean;
   remainingRecoveryCodes?: number;
   error?: AuthError;
-}
-
-export interface TrustedDevice {
-  id: string;
-  userId: string;
-  deviceFingerprint: string;
-  deviceName: string;
-  trustGrantedAt: Date;
-  trustExpiresAt: Date; // Default 30 days
-  lastUsedAt: Date;
-  ipAddress: string;
-  userAgent: string;
-  revoked: boolean;
 }
 
 export interface DeviceMetadata {
@@ -250,7 +212,6 @@ export interface IdentityConfig {
     webauthn: WebAuthnConfig;
     ldap: LdapConfig;
     rbacPropagation: RbacPropagationConfig;
-    sso: SsoConfig;
     rateLimit: RateLimitConfig;
   };
 }
@@ -288,12 +249,6 @@ export interface MfaConfig {
     digits: number;
     algorithm: 'SHA1' | 'SHA256' | 'SHA512';
     window: number;
-  };
-  trustedDevices: {
-    enabled: boolean;
-    trustWindowDays: number;
-    maxTrustedDevices: number;
-    requireMfaToTrust: boolean;
   };
   recoveryCodes: {
     count: number;
@@ -350,22 +305,6 @@ export interface RbacPropagationConfig {
   channel: string;
   localCacheTTL: number;
   batchSize: number;
-}
-
-export interface SsoConfig {
-  session: {
-    idleTimeout: number;
-    absoluteTimeout: number;
-    maxSessionsPerUser: number;
-    singleLogoutEnabled: boolean;
-    tenantOverrides?: Record<
-      string,
-      {
-        idleTimeout?: number;
-        absoluteTimeout?: number;
-      }
-    >;
-  };
 }
 
 export interface RateLimitConfig {

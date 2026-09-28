@@ -1,6 +1,6 @@
 # @accessbase/identity — 软件设计文档（SDD）
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — §2.5/§2.6 phantom APIs (A3); §4.4 events absent (A9); §5.2 code table superseded by error-codes-reality.md. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (2026-09-23 gap audit):** `partial` — §2.5/§2.6 phantom APIs (A3); §4.4 events absent (A9); §5.2 code table superseded by error-codes-reality.md. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md). Session semantics: absolute-expiry-only (REFRESH_TTL fixed); idle/sliding expiry NOT implemented — dead idleTimeout knob removed (R1-T11/DG-1b), real sliding expiry lives in the session-lifetime batch.
 
 > **包名**：`@accessbase/identity`
 > **版本**：0.1.0（设计阶段）

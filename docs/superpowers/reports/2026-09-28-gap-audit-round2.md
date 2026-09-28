@@ -24,6 +24,8 @@
 | C2 | TrustedDevice + SsoSession groups: zero tables, zero implementations; SsoConfig/trustedDevices types/config still exported through plugin surface as dead weight. | identity `types.ts:222,292,355`, `index.ts:121-124`; grep 0 in schema |
 | C3 | Session idle timeout unenforced (baseline D8, zero progress): `idleTimeout` has exactly one assignment site and NO reader; SessionManager validates absolute expiresAt only; no last_used column, no sliding renewal, no idle sweeper; refresh is hard-capped by 1800s (worse than the 14d design). Stolen-at-birth token lives to absolute expiry while the Settings UI implies the knob works. | `packages/identity/src/index.ts:171` (only non-type ref); `SessionManager.ts:113-118,128,207` |
 
+- Erratum (R1-T11): C3's "Settings UI implies the knob works" sentence is wrong — the idleTimeout knob never reached the UI (grep 0 in apps/admin-ui); dishonesty surface was types/config only. Corrected on retirement.
+
 ## HIGH
 
 | # | Finding | Evidence |
