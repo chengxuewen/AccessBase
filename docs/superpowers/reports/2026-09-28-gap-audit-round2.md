@@ -98,3 +98,14 @@ Standing residues (unchanged from round 1): docker integration day, CI first gre
 H1→58e4da0 · M2→c6f6d5a · H5→6f434fe · M3→46239e6 · M19+L3→062b60d · C2/C3(DG-3/DG-1b retirement)→582fdb4 · DG-7→ba71389 · DG-8a→7fbf7e3 · H4→76a26ae. Erratum C3 applied inside 582fdb4. C1 → R-audit spec `docs/superpowers/specs/2026-09-28-r-audit-tamper-evidence-and-erasure-design.md` (rev.3 RATIFIED, awaiting its own plan). U1-U9 decision ledger in the plan §Decision gates. NOT touched by R1 (deferred per ruling): auth.ts split (next batch), integration day, options pub/sub + key-rotation tool (R3), logout coherence (R5), data-scope, branding/portal, SAML SLO, private_key_jwt (cheap, queued), DPoP/JAR/8693 (non-goals), FGA engine (non-goal; data-scope middle path instead).
 
 Gates at close-out: vitest 1250/1250 (115 files, workers auto) · e2e chromium 173+3 0 failed (workers=1) · 4×tsc 0 · eslint 0-new · D126 header gate empty · seed count 26 · openapi 99 paths.
+
+## Integration day — partial run (2026-09-28, batch R1 close-out)
+
+| Battery | Result |
+|---|---|
+| ≤30s real-time revocation (Q3A) | **PASS — measured 0.1s** suspend→/me 401 on scratch PG+Redis; refresh-after-suspend=401 |
+| auth.* events on real PG (R1-T3) | **PASS** — auth.login.success×8 w/ {email,method,userId} + user.suspended landed in events table |
+| backup→wipe→restore round-trip (M) | **PASS** — sha256 verified, counts identical (2/18/28/23 tables), 0600 artifact, live-server refusal proved guard stack |
+| device approval full-browser round (Q3B) | **FAIL — NEW DEFECT**: confirm POST re-renders confirm page forever; no 302 to login; polling never completes. Prime suspect: interactions.url() (oidc/provider.ts:163) only branches prompt.name==='login' — device-flow interaction carries a different prompt name, falling into the relative /consent branch which doesn't exist on the provider origin. e2e mock lane structurally cannot see this. Needs its own debug batch (same area as M7 branded device pages). |
+| docker container / compose.prod boot (F9/W2) | **NOT RUN** — docker registry unreachable in this env (node:22-slim metadata fetch cancelled) |
+| CI first green (D122) | **STILL PENDING USER** — mirror push required |
