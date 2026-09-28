@@ -10,9 +10,12 @@
  * app.ts wiring (kill-switch precedence, NODE_ENV=test gate per §5.7/B3)
  * is the controller's step, deliberately NOT here.
  *
- * Tick contract (§5):
+ * Tick contract (§5 + R1-T4):
  *   0. age prune runs FIRST, before the kill-switch — a disabled
  *      deployment still bounds the events table (invariant 8).
+ *   0.5 backlogStats probe runs right after the prune, BEFORE the
+ *      kill-switch — a disabled dispatcher still exposes its backlog;
+ *      metric deps are guarded and can never kill the tick (R1-T4).
  *   1. fan-out INSERT…SELECT (test events excluded R3, tenant-live
  *      predicate B7) + the vacuous terminalization UPDATE (§3).
  *   2. claim = the canonical §5.2 CTE verbatim (surrogate id, LIMIT 25,
@@ -60,6 +63,15 @@ export interface WebhookDispatcherDeps {
   defaultTenantId?: string;
   /** Optional DNS seam forwarded to the dispatch-time SSRF re-check. */
   dnsLookup?: (host: string, opts: { all: true }) => Promise<Array<{ address: string; family: number }>>;
+  /** R1-T4: called once per settled delivery (2xx → 'ok'; failure below the
+   *  10-attempt cap → 'retry'; at the cap → 'dead'). Prod: prom-counter inc.
+   *  Optional — absent means zero behavior change; throwing never kills the tick. */
+  recordDelivery?: (outcome: 'ok' | 'retry' | 'dead') => void;
+  /** R1-T4: once-per-tick backlog probe (prod: ONE combined SELECT + gauge set,
+   *  app.ts wiring). Called after the prune, before the kill-switch return, so a
+   *  disabled dispatcher still reports. Return value is ignored here — the
+   *  wiring closes over its own instruments. Throwing never kills the tick. */
+  backlogStats?: () => Promise<{ count: number; oldestAgeSeconds: number | null } | null>;
 }
 
 export interface WebhookDispatcher {
@@ -159,6 +171,15 @@ export function startWebhookDispatcher(deps: WebhookDispatcherDeps): WebhookDisp
     }
     return owned;
   };
+  // Metric hooks are observability-only: a throwing instrument must never
+  // abort deliveries (same posture as the degraded-mode guards in metrics.ts).
+  const recordSafe = (outcome: 'ok' | 'retry' | 'dead'): void => {
+    try {
+      deps.recordDelivery?.(outcome);
+    } catch {
+      // swallow — counter bookkeeping is not delivery state
+    }
+  };
 
   const runOnce = async (): Promise<void> => {
     if (stopped || running) return;
@@ -167,6 +188,12 @@ export function startWebhookDispatcher(deps: WebhookDispatcherDeps): WebhookDisp
       const db = q();
       // ---- step 0: age prune BEFORE the kill-switch (invariant 8) ----
       await db.query(PRUNE_SQL, [retentionDays]);
+      // ---- step 0.5: backlog gauge — before the kill-switch (R1-T4) ----
+      try {
+        await deps.backlogStats?.();
+      } catch {
+        // metrics never kill the tick; next tick retries the probe
+      }
       if (!deps.webhooksEnabled()) return;
 
       // ---- step 1: fan-out + terminalization ----
@@ -266,6 +293,9 @@ export function startWebhookDispatcher(deps: WebhookDispatcherDeps): WebhookDisp
               c.id,
             ],
           );
+          // R1-T4: settlement mirrors the UPDATE status verbatim — no new
+          // terminal logic, just telemetry of the one just stamped.
+          recordSafe(ok ? 'ok' : dead ? 'dead' : 'retry');
         }
 
         // Terminality may have flipped during outcomes (invariant 8's

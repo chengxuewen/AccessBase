@@ -39,6 +39,7 @@ import { createOidcRateGuard } from './oidc/rate-guard.js';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { IncomingMessage } from 'node:http';
+import type { WebhookQuery } from './utils/webhook-dispatcher.js';
 import fastifyStatic from '@fastify/static';
 import { createAuditMiddleware, defaultAuditConfig } from '@accessbase/audit';
 import type { AuditStorage } from '@accessbase/audit';
@@ -280,6 +281,14 @@ export async function buildApp(options: BuildAppOptions = {}) {
     const { startWebhookDispatcher } = await import('./utils/webhook-dispatcher.js');
     const { decryptSecret } = await import('@accessbase/identity');
     const { getOptionsManager } = await import('./routes/options.js');
+    // R1-T4: prom-client instruments (module-level singletons — registration is
+    // module-cache-safe, routes/metrics.ts precedent; this gate never runs under NODE_ENV=test).
+    const {
+      webhookDeliveriesTotal,
+      webhookPendingGauge,
+      webhookOldestAgeGauge,
+      WEBHOOK_BACKLOG_SQL,
+    } = await import('./utils/webhook-metrics.js');
     // Kill-switch snapshot: env > option > true. The option refresh is
     // fire-and-forget (dep is sync) so staleness is bounded by one tick.
     let whEnabled = process.env['WEBHOOKS_ENABLED'] !== 'false';
@@ -292,15 +301,18 @@ export async function buildApp(options: BuildAppOptions = {}) {
     };
     const retentionRaw = Number.parseInt(process.env['WEBHOOK_RETENTION_DAYS'] ?? '7', 10);
     const intervalRaw = Number.parseInt(process.env['WEBHOOK_DISPATCH_INTERVAL_MS'] ?? '', 10);
-    webhookDispatcher = startWebhookDispatcher({
-      makeDb: () => {
+    // R1-T4: ONE lazy pool shared by the tick seam and the backlog probe — the
+    // gauge SELECT rides the dispatcher's own handle, never a second pool.
+    let whDb: WebhookQuery | undefined;
+    const getWhDb = (): WebhookQuery => {
+      if (!whDb) {
         // Raw pg pool, not drizzle: the seam is text+$n params (the §5.2 CTE is
         // spec-locked SQL); same max-min pool posture as the sweeper's own handle.
         const pool = new pg.Pool({
           connectionString: config.databaseUrl,
           max: Number.parseInt(process.env['PG_POOL_MAX'] ?? '10', 10) || 10,
         });
-        return {
+        whDb = {
           query: async <T>(text: string, params?: unknown[]) => {
             const r = await pool.query(text, params as never[] | undefined);
             return (r.rows ?? []) as T[];
@@ -309,7 +321,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
             await pool.end();
           },
         };
-      },
+      }
+      return whDb;
+    };
+    webhookDispatcher = startWebhookDispatcher({
+      makeDb: getWhDb,
       webhooksEnabled,
       retentionDays: Number.isNaN(retentionRaw) || retentionRaw <= 0 ? 7 : retentionRaw,
       intervalMs: Number.isNaN(intervalRaw) || intervalRaw <= 0 ? undefined : intervalRaw,
@@ -319,6 +335,26 @@ export async function buildApp(options: BuildAppOptions = {}) {
         return { status: res.status };
       },
       logger: app.log,
+      recordDelivery: (outcome) => {
+        webhookDeliveriesTotal.inc({ outcome });
+      },
+      backlogStats: async () => {
+        try {
+          // count(*) is int8 → pg delivers it as string; oldest is cast int4.
+          const rows = await getWhDb().query<{ c: string | number; oldest: string | number }>(
+            WEBHOOK_BACKLOG_SQL,
+          );
+          const row = rows[0];
+          if (!row) return null;
+          const count = Number(row.c);
+          const oldestAgeSeconds = Number(row.oldest);
+          webhookPendingGauge.set(count);
+          webhookOldestAgeGauge.set(oldestAgeSeconds);
+          return { count, oldestAgeSeconds };
+        } catch {
+          return null; // probe failure keeps the last gauge value; next tick retries
+        }
+      },
     });
   }
   // Q2a(B): graceful close ends the singleton managers' pools + the sweeper's pool.

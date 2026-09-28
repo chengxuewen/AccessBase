@@ -28,3 +28,14 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: "pg-pool acquire queue above 5 — consider PG_POOL_MAX / DB capacity"
+      - alert: AccessbaseWebhookDeadLettering
+        expr: increase(accessbase_webhook_deliveries_total{outcome="dead"}[15m]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "A webhook delivery hit the 10-attempt dead letter in the last 15m (subscriber down or endpoint rejecting)"
+      - alert: AccessbaseWebhookBacklog
+        expr: accessbase_webhook_pending_events > 100 or accessbase_webhook_oldest_pending_age_seconds > 300
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Webhook fan-out backlog above 100 events or oldest pending over 5m for 10m (dispatcher stalled?)"

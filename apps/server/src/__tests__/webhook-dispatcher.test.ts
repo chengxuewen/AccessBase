@@ -314,3 +314,105 @@ describe('backoff math — 30s · 2^(attempts-1), capped', () => {
     expect(nextAttemptAt(15, t).getTime()).toBe(30_000 * 2 ** 9);
   });
 });
+
+/**
+ * R1-T4 (plan 2026-09-28-batch-r1): the two optional metric deps prove their
+ * contract at the seam — outcome settlement mapping, once-per-tick backlog
+ * probe (BEFORE the kill-switch so a disabled dispatcher still reports),
+ * and never-killing-the-tick on metric failure.
+ */
+describe('R1-T4 — metric deps (recordDelivery + backlogStats)', () => {
+  function mixedState(deadAttempts: number): FakeState {
+    return {
+      claimed: [
+        { id: 1, event_id: 10, endpoint_id: EP, attempts: 1 },
+        { id: 2, event_id: 11, endpoint_id: EP, attempts: 1 },
+        { id: 3, event_id: 12, endpoint_id: EP, attempts: deadAttempts },
+      ],
+      endpoints: [{ id: EP, url: 'http://8.8.8.8/h', secret_encrypted: 'B' }],
+      events: [
+        { id: 10, type: 'user.created', payload: {}, created_at: 'x' },
+        { id: 11, type: 'user.updated', payload: {}, created_at: 'y' },
+        { id: 12, type: 'user.deleted', payload: {}, created_at: 'z' },
+      ],
+    };
+  }
+
+  // Event 12 fails, the other two succeed — settlement follows the existing
+  // terminal rule (attempts >= 10 ⇒ dead, else retry).
+  const fetchMixed = async (_url: string, init: Record<string, unknown>): Promise<{ status: number }> => {
+    const headers = init['headers'] as Record<string, string>;
+    return { status: headers['x-accessbase-event'] === '12' ? 500 : 200 };
+  };
+
+  it('settles every delivery: 2 ok + 1 dead at the attempts-cap', async () => {
+    const recordDelivery = vi.fn();
+    const { deps } = baseDeps({ state: mixedState(10), fetchImpl: fetchMixed, recordDelivery });
+    await startWebhookDispatcher(deps).runOnce();
+    const outcomes = recordDelivery.mock.calls.map((c) => c[0]);
+    expect(outcomes.filter((o) => o === 'ok')).toHaveLength(2);
+    expect(outcomes.filter((o) => o === 'dead')).toHaveLength(1);
+    expect(outcomes.filter((o) => o === 'retry')).toHaveLength(0);
+  });
+
+  it('below-cap failure settles as retry (same rule the UPDATE stamps pending)', async () => {
+    const recordDelivery = vi.fn();
+    const { deps } = baseDeps({
+      fetchImpl: async () => ({ status: 500 }),
+      state: {
+        claimed: [{ id: 1, event_id: 10, endpoint_id: EP, attempts: 2 }],
+        endpoints: [{ id: EP, url: 'http://8.8.8.8/h', secret_encrypted: 'B' }],
+        events: [{ id: 10, type: 'user.created', payload: {}, created_at: 'x' }],
+      },
+      recordDelivery,
+    });
+    await startWebhookDispatcher(deps).runOnce();
+    expect(recordDelivery).toHaveBeenCalledWith('retry');
+  });
+
+  it('backlogStats fires once per active tick (kill-switch on) after the prune', async () => {
+    const backlogStats = vi.fn(async () => ({ count: 7, oldestAgeSeconds: 42 }));
+    const { deps, calls } = baseDeps({ state: mixedState(10), fetchImpl: fetchMixed, backlogStats });
+    await startWebhookDispatcher(deps).runOnce();
+    expect(backlogStats).toHaveBeenCalledTimes(1);
+    // placement contract: prune is the first SQL, fan-out follows the probe
+    expect(calls[0]?.sql).toContain('DELETE FROM events');
+  });
+
+  it('backlogStats still fires once when the kill-switch is off (disabled reports backlog)', async () => {
+    const backlogStats = vi.fn(async () => ({ count: 3, oldestAgeSeconds: null }));
+    const { deps } = baseDeps({ state: EMPTY, webhooksEnabled: () => false, backlogStats });
+    await startWebhookDispatcher(deps).runOnce();
+    expect(backlogStats).toHaveBeenCalledTimes(1);
+  });
+
+  it('backlogStats throwing never kills the tick — fan-out still runs', async () => {
+    const { deps, calls } = baseDeps({
+      state: EMPTY,
+      backlogStats: async () => {
+        throw new Error('stats boom');
+      },
+    });
+    await expect(startWebhookDispatcher(deps).runOnce()).resolves.toBeUndefined();
+    expect(calls.some((c) => c.sql.includes('INSERT INTO webhook_deliveries'))).toBe(true);
+  });
+
+  it('recordDelivery throwing never kills the tick — all deliveries still settle', async () => {
+    const recordDelivery = vi.fn(() => {
+      throw new Error('counter boom');
+    });
+    const { deps, calls } = baseDeps({ state: mixedState(10), fetchImpl: fetchMixed, recordDelivery });
+    const d = startWebhookDispatcher(deps);
+    await expect(d.runOnce()).resolves.toBeUndefined();
+    expect(recordDelivery).toHaveBeenCalledTimes(3);
+    // the three outcome UPDATEs happened despite the throwing hook
+    expect(calls.filter((c) => c.sql.includes('SET status = $1'))).toHaveLength(3);
+    await expect(d.runOnce()).resolves.toBeUndefined(); // next tick survives
+  });
+
+  it('default deps (no metric hooks) — zero behavior change', async () => {
+    const { deps, calls } = baseDeps({ state: mixedState(10), fetchImpl: fetchMixed });
+    await expect(startWebhookDispatcher(deps).runOnce()).resolves.toBeUndefined();
+    expect(calls.filter((c) => c.sql.includes('SET status = $1'))).toHaveLength(3);
+  });
+});
