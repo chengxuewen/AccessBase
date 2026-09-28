@@ -49,6 +49,28 @@ export async function getSmtpMailer(
   return host ? Mailer.fromConfig({ host, port, user: smtpUser, pass, from }) : null;
 }
 
+/**
+ * R1-T10 (DG-8a): auth.require_verified_email — three-level read mirroring the
+ * captcha gate (env > option > default 'false'), config-plane failure = off
+ * (never block the login door on a dead options read). True ⇒ the TERMINAL
+ * session-issuance arms demand a verified address; intermediate arms
+ * (force-change / enroll / step-up) run BEFORE this check — anti-lockout.
+ */
+async function verifiedEmailRequired(user: { emailVerified?: boolean }): Promise<boolean> {
+  if (user.emailVerified === true) return false;
+  let flag: unknown = 'false';
+  try {
+    flag = await getOptionsManager().get(
+      'auth.require_verified_email',
+      process.env['AUTH_REQUIRE_VERIFIED_EMAIL'],
+      'false',
+    );
+  } catch {
+    return false;
+  }
+  return flag === '1' || flag === 'true' || flag === 1 || flag === true;
+}
+
 /** Q1-b2: magic-link R3 three-arm origin chain (site.url > forwarded host when
  * TRUST_PROXY > request host with the module warn latch). */
 export async function resolvePublicOrigin(
@@ -343,6 +365,15 @@ export async function authRoutes(app: FastifyInstance) {
           };
         }
 
+        // R1-T10 (DG-8a): verified-email terminal gate — no session, no lockout
+        // feed (credentials were correct), no auth.login.failure row (not a
+        // credential failure; reason space unchanged). 403 pattern mirrors AUTH_004.
+        if (await verifiedEmailRequired(user)) {
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_EMAIL_003', message: 'Email address not verified' },
+          });
+        }
         const { accessToken, refreshToken } = await issueTokenPair(request, user);
         // R1-T3: session delivered → success telemetry (fire-and-forget, never blocks the response)
         emitAuthEvent({
@@ -1198,6 +1229,10 @@ return { success: true };
           error: { code: 'AUTH_004', message: 'Account suspended' },
         });
       }
+      // R1-T10: magic-link delivery proves mailbox possession → mark verified
+      // (exempt channel; the mark also carries the user through the gated
+      // /mfa/verify arm when TOTP is bound).
+      if (user.emailVerified !== true) await userManager.markEmailVerified(user.id);
       // MFA step-up: six-way uniform {userId}/300s/mfa_verify.
       if (user.totpEnabled) {
         const flowToken = await flowTokens.issue('mfa_verify', { userId: user.id }, 300);
@@ -1483,6 +1518,9 @@ return { success: true };
           error: { code: 'AUTH_004', message: 'Account suspended' },
         });
       }
+      // R1-T10 (DG-8a ruling): OTP delivery proves possession → mark verified
+      // (same exempt-channel semantics as the magic-link consume above).
+      if (user.emailVerified !== true) await userManager.markEmailVerified(user.id);
       // MFA step-up: uniform {userId}/300s/mfa_verify (magic consume mirror).
       if (user.totpEnabled) {
         const flowToken = await flowTokens.issue('mfa_verify', { userId: user.id }, 300);
@@ -1774,6 +1812,14 @@ return { success: true };
             error: { code: 'AUTH_MFA_001', message: 'User not found' },
           });
         }
+        // R1-T10 (DG-8a, re-review note 1): the gate covers BOTH terminal arms —
+        // a password-arm-only check would leak unverified TOTP users step-up.
+        if (await verifiedEmailRequired(user)) {
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_EMAIL_003', message: 'Email address not verified' },
+          });
+        }
         const { accessToken, refreshToken } = await issueTokenPair(request, {
           id: user.id,
           email: user.email,
@@ -1977,6 +2023,10 @@ return { success: true };
         // tenant with a null passwordHash (local login stays impossible).
         const existing = await userManager.findByEmail(email);
         const user = existing ?? (await userManager.create({ email, name }, request.tenantId ?? DEFAULT_TENANT));
+        // R1-T10 (DG-8a): first-federation provisioning from an authoritative
+        // directory marks the asserted address verified — otherwise a TOTP-bound
+        // LDAP user would die at the gated shared /mfa/verify arm.
+        if (!existing) await userManager.markEmailVerified(user.id);
 
         // Final review HIGH: a suspended/pending existing account must not
         // obtain an LDAP session — mirror oauth.ts/webauthn.ts 403 AUTH_004.

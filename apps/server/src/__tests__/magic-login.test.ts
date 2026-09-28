@@ -32,6 +32,9 @@ const magicUser = {
   totpEnabled: false,
 };
 
+// R1-T10: consume-path possession mark assertion (shared spy instance).
+const markEmailVerified = vi.fn(async () => {});
+
 // Per-test knobs
 let userByEmail: Record<string, typeof magicUser | null> = { [MAGIC_EMAIL]: magicUser };
 let userById: Record<string, (typeof magicUser & { status?: string; totpEnabled?: boolean }) | null> = {
@@ -70,6 +73,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         return userByEmail[email] ?? null;
       }),
       findById: vi.fn(async (id: string) => userById[id] ?? null),
+      // R1-T10: magic-link consume marks possession-proven addresses verified.
+      markEmailVerified: markEmailVerified,
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
       getUserRoles: vi.fn().mockResolvedValue([{ id: 'role-1', name: 'admin' }]),
@@ -435,6 +440,8 @@ describe('POST /api/v1/auth/magic/consume', () => {
       expect(body.data.expiresIn).toBe(900);
       expect(body.data.user.email).toBe(MAGIC_EMAIL);
       expect(body.data.user.roles).toEqual([{ id: 'role-1', name: 'admin' }]);
+      // R1-T10: link delivery proves mailbox possession → flag marked verified.
+      expect(markEmailVerified).toHaveBeenCalledWith(magicUser.id);
       // No MFA arm on the token-pair branch
       expect(body.data).not.toHaveProperty('mfaRequired');
     } finally {

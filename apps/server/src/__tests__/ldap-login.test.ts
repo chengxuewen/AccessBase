@@ -61,6 +61,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         email: data.email,
         name: data.name,
       })),
+      // R1-T10: first-federation provisioning marks the asserted address.
+      markEmailVerified: vi.fn(async () => {}),
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
       getUserRoles: vi.fn().mockResolvedValue([]),
@@ -199,12 +201,16 @@ describe('POST /api/v1/auth/ldap/login', () => {
     const umInstance = umInstances[umInstances.length - 1]?.value as {
       findByEmail: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
+      markEmailVerified: ReturnType<typeof vi.fn>;
     };
     expect(umInstance.findByEmail).toHaveBeenCalledWith('new-user@test.local');
     expect(umInstance.create).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'new-user@test.local', name: 'New User' }),
       '00000000-0000-0000-0000-000000000001',
     );
+    // R1-T10 (DG-8a): first-federation provisioning marks the asserted address
+    // (otherwise a TOTP-bound directory user dies at the gated /mfa/verify arm).
+    expect(umInstance.markEmailVerified).toHaveBeenCalledWith(testUser.id);
   });
 
   it('claims are never dereferenced for id/tenantId (R3 contract, structural)', async () => {

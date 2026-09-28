@@ -13,3 +13,12 @@ export function apiErrorMessage(err: unknown, fallback: string): string {
 export function apiErrorStatus(err: unknown): number | undefined {
   return isAxiosError(err) ? err.response?.status : undefined;
 }
+
+/** Envelope error.code extractor — for status-level arms (403 AUTH_EMAIL_003) */
+export function apiErrorCode(err: unknown): string | undefined {
+  if (isAxiosError(err)) {
+    const code = (err.response?.data as { error?: { code?: string } } | undefined)?.error?.code;
+    if (typeof code === 'string' && code.length > 0) return code;
+  }
+  return undefined;
+}

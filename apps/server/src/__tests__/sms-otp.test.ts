@@ -33,6 +33,9 @@ const smsUser = {
   totpEnabled: false,
 };
 
+// R1-T10: verify-path possession mark assertion (shared spy instance).
+const markEmailVerified = vi.fn(async () => {});
+
 // Per-test knobs (PIT-055: two-key modeling — both phone and id lookups).
 let userByPhone: Record<string, typeof smsUser | null> = { [SMS_PHONE]: smsUser };
 let userById: Record<string, (typeof smsUser & { status?: string; totpEnabled?: boolean }) | null> = {
@@ -73,6 +76,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       findByPhone: vi.fn(async (phone: string) => userByPhone[phone] ?? null),
       findById: vi.fn(async (id: string) => userById[id] ?? null),
       findByIdAny: vi.fn(async (id: string) => userById[id] ?? null),
+      // R1-T10: verify-path possession mark (shared spy instance).
+      markEmailVerified,
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
       getUserRoles: vi.fn().mockResolvedValue([{ id: 'role-1', name: 'admin' }]),
@@ -370,6 +375,8 @@ describe('POST /api/v1/auth/sms-otp/verify', () => {
     expect(body.data.expiresIn).toBe(900);
     expect(body.data.user.email).toBe(smsUser.email);
     expect(body.data.user.roles).toEqual([{ id: 'role-1', name: 'admin' }]);
+    // R1-T10: OTP delivery proves possession → flag marked verified.
+    expect(markEmailVerified).toHaveBeenCalledWith(smsUser.id);
     // No MFA arm on the token-pair branch
     expect(body.data).not.toHaveProperty('mfaRequired');
   });

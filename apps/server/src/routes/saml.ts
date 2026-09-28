@@ -204,6 +204,9 @@ export async function samlRoutes(app: FastifyInstance) {
           { email: identity.email, name: identity.displayName ?? '' },
           request.tenantId ?? DEFAULT_TENANT,
         ));
+        // R1-T10 (DG-8a): first-federation provisioning from an authoritative IdP
+        // marks the asserted address verified (LDAP-site parity).
+        if (!existing) await userManager.markEmailVerified(user.id);
 
         // Suspended/pending accounts get no session — AUTH_004 on the browser channel.
         if (existing && existing.status !== 'active') {

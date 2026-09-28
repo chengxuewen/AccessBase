@@ -75,6 +75,7 @@
     "magicInvalid": "此登录链接无效或已过期。",
     "magicBackToLogin": "返回登录",
     "accountSuspended": "该账号已被停用。",
+    "emailNotVerified": "邮箱尚未验证。请查收邮箱中的验证链接，或使用下方的邮件链接登录（登录后将自动完成验证）。",
     "magicError": "登录链接发送失败。",
     "forgotPassword": "忘记密码？",
     "register": "创建账号",

@@ -106,6 +106,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         status: 'active',
         totpEnabled: false,
       })),
+      // R1-T10: provision-path mark seam (create-branch parity with the LDAP site).
+      markEmailVerified: vi.fn(async () => {}),
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
       getUserRoles: vi.fn().mockResolvedValue([{ id: 'r1', name: 'Admin' }]),

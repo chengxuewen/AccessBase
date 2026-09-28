@@ -362,6 +362,9 @@ export async function oauthRoutes(app: FastifyInstance) {
         passwordHash: await bcryptjs.hash(randomPassword, 12),
         tenantId: tenantId ?? DEFAULT_TENANT,
         status: 'active',
+        // R1-T10 (DG-8a): an address the external IdP asserted counts as
+        // verified at first provisioning (synthetic fallback emails do not).
+        emailVerified: Boolean(profile.email),
       })
       .returning({ id: users.id, email: users.email, status: users.status });
     if (!created) throw new Error('oauth_user_provision_failed');

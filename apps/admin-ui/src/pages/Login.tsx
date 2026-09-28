@@ -21,7 +21,7 @@ import {
 } from '../api/auth';
 import { startAuthentication } from '@simplewebauthn/browser';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
-import { apiErrorMessage, apiErrorStatus } from '../api/errors';
+import { apiErrorCode, apiErrorMessage, apiErrorStatus } from '../api/errors';
 import { landingPath } from '../utils/landing';
 import { getInteraction, postInteractionDecision, safeOidcRedirect } from '../api/oidc';
 
@@ -296,7 +296,19 @@ export default function Login() {
       }
     } catch (err) {
       const status = apiErrorStatus(err);
-      setLoginError(status === 429 ? t('login.tooManyRequests') : apiErrorMessage(err, t('login.error')));
+      // R1-T10 (DG-8a): the require-verified-email gate answers 403
+      // AUTH_EMAIL_003 — localized arm (server text is English-only). The
+      // magic-link lane below is the unverified user's self-service door: it
+      // proves mailbox possession and auto-marks the address verified.
+      // (No resend button: /auth/verify-email/request is the AUTHENTICATED
+      // self-service lane — bearer-only, no email body.)
+      setLoginError(
+        status === 429
+          ? t('login.tooManyRequests')
+          : apiErrorCode(err) === 'AUTH_EMAIL_003'
+            ? t('login.emailNotVerified')
+            : apiErrorMessage(err, t('login.error')),
+      );
     }
   };
 

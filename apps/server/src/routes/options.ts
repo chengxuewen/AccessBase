@@ -55,6 +55,10 @@ const KNOWN_OPTION_KEYS = new Set([
   'email_tmpl_magic',
   'email_tmpl_invite',
   'email_locale_default',
+  // R1-T10 (DG-8a): login gate — 'true'|'false', default false at the reader
+  // (verifiedEmailRequired in routes/auth.ts); possession-proven channels are
+  // exempt and additionally mark the flag on success.
+  'auth.require_verified_email',
 ]);
 // Batch B dynamic provider secrets: oauth_<name>_client_secret (names are
 // lowercase/hyphen by convention — KEY_FORMAT-legal dots/uppercase in a

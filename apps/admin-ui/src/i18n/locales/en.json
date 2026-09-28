@@ -75,6 +75,7 @@
     "magicInvalid": "This sign-in link is invalid or has expired.",
     "magicBackToLogin": "Back to sign in",
     "accountSuspended": "This account has been suspended.",
+    "emailNotVerified": "Email address not verified. Check your inbox for the verification link, or sign in with the emailed sign-in link below (it verifies your address).",
     "magicError": "Failed to send the sign-in link.",
     "forgotPassword": "Forgot password?",
     "register": "Create an account",
