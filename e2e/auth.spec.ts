@@ -1,6 +1,21 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication', () => {
+  // PIT-080 roster: the /login shell probes these three status endpoints on mount.
+  // Unmocked they leak through the vite proxy as 500s (this spec has no console
+  // net today, so runs stay green — but the pollution is latent for any reuse).
+  // Shapes copied from routes/auth.ts ({ success, data: { enabled } }) — PIT-033.
+  test.beforeEach(async ({ page }) => {
+    for (const probe of ['sms', 'saml', 'captcha']) {
+      await page.route(`**/api/v1/auth/${probe}/status`, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: { enabled: false } }),
+        });
+      });
+    }
+  });
   test('visits login page', async ({ page }) => {
     await page.goto('/login');
     // setup/status: GlobalGuard checks this before rendering any authed page

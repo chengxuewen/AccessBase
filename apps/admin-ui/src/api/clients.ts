@@ -10,6 +10,8 @@ export interface OidcClient {
   grantTypes: string[];
   scope: string;
   tokenAuthMethod: string;
+  /** Operator-visible config (routes/clients.ts list/create echo it; null when unset). */
+  backchannelLogoutUri?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,6 +22,8 @@ export interface CreateClientPayload {
   grantTypes: string[];
   scope: string;
   tokenAuthMethod?: string;
+  /** Optional back-channel logout endpoint; server keeps it only when http(s)-prefixed. */
+  backchannelLogoutUri?: string;
 }
 
 /** GET /v1/clients — list clients (no secret material) */

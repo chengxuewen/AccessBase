@@ -44,6 +44,7 @@ interface CreateFormValues {
   grantTypes?: string[];
   scope?: string;
   tokenAuthMethod?: string;
+  backchannelLogoutUri?: string;
 }
 
 export default function Clients() {
@@ -80,6 +81,7 @@ export default function Clients() {
         grantTypes: values.grantTypes ?? [],
         scope: (values.scope ?? '').trim(),
         tokenAuthMethod: values.tokenAuthMethod,
+        ...(values.backchannelLogoutUri?.trim() ? { backchannelLogoutUri: values.backchannelLogoutUri.trim() } : {}),
       });
       setCreateOpen(false);
       setReveal({ clientId: created.clientId, clientSecret: created.clientSecret });
@@ -160,6 +162,13 @@ export default function Clients() {
         record.grantTypes.map((g) => <Tag key={g}>{g}</Tag>),
     },
     { title: t('clients.scope'), dataIndex: 'scope', search: false },
+    {
+      title: t('clients.backchannelLogoutUri'),
+      dataIndex: 'backchannelLogoutUri',
+      search: false,
+      ellipsis: true,
+      render: (_, record) => record.backchannelLogoutUri ?? '-',
+    },
     {
       title: t('clients.createdAt'),
       dataIndex: 'createdAt',
@@ -296,6 +305,14 @@ export default function Clients() {
               options={TOKEN_AUTH_METHODS.map((m) => ({ label: m, value: m }))}
               data-testid="clients-token-auth-select"
             />
+          </Form.Item>
+          <Form.Item
+            name="backchannelLogoutUri"
+            label={t('clients.backchannelLogoutUri')}
+            extra={t('clients.backchannelLogoutUriHint')}
+            rules={[{ type: 'url', message: t('clients.backchannelLogoutUriInvalid') }]}
+          >
+            <Input data-testid="clients-backchannel-input" placeholder="https://rp.example.com/backchannel-logout" />
           </Form.Item>
         </Form>
       </Modal>

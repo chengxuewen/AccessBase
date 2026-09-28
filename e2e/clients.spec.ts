@@ -69,6 +69,7 @@ const MOCK_CLIENTS = [
     tokenAuthMethod: 'client_secret_basic',
     createdAt: '2026-09-10T10:00:00.000Z',
     updatedAt: '2026-09-10T10:00:00.000Z',
+    backchannelLogoutUri: null,
   },
   {
     id: 'c-2',
@@ -80,6 +81,7 @@ const MOCK_CLIENTS = [
     tokenAuthMethod: 'client_secret_post',
     createdAt: '2026-09-11T10:00:00.000Z',
     updatedAt: '2026-09-11T10:00:00.000Z',
+    backchannelLogoutUri: 'https://beta.example.com/backchannel-logout',
   },
 ];
 
@@ -115,6 +117,10 @@ async function mockCommonApis(page: Page): Promise<void> {
   });
 }
 
+// POST bodies captured by mockClientsApis (per-test arrays via beforeEach reset below).
+let capturedCreateBodies: Record<string, unknown>[] = [];
+
+
 /** GET /api/v1/clients backed by a mutable list so create/delete mutate the "DB". */
 async function mockClientsApis(
   page: Page,
@@ -131,6 +137,7 @@ async function mockClientsApis(
     }
     if (route.request().method() === 'POST') {
       const body = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>;
+      capturedCreateBodies.push(body);
       const created = {
         id: `c-${Date.now()}`,
         clientId: `client-${Date.now()}`,
@@ -139,6 +146,8 @@ async function mockClientsApis(
         grantTypes: body['grantTypes'] as string[],
         scope: body['scope'] as string,
         tokenAuthMethod: (body['tokenAuthMethod'] as string) ?? 'client_secret_basic',
+        // server echoes the optional back-channel URI (dropped server-side unless http(s))
+        backchannelLogoutUri: (body['backchannelLogoutUri'] as string | undefined) ?? null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -181,6 +190,7 @@ test.describe('OIDC clients management', () => {
 
   test.beforeEach(async ({ page }) => {
     consoleErrors = trackConsoleErrors(page);
+    capturedCreateBodies = [];
     await mockCommonApis(page);
   });
 
@@ -211,6 +221,7 @@ test.describe('OIDC clients management', () => {
     await page.getByTestId('clients-name-input').fill('Gamma App');
     await page.getByTestId('clients-redirect-uris-input').fill('https://gamma.example.com/cb');
     await page.getByTestId('clients-scope-input').fill('openid profile email');
+    await page.getByTestId('clients-backchannel-input').fill('https://gamma.example.com/backchannel-logout');
     const reveal = page.locator('.ant-modal', { has: page.getByTestId('secret-reveal-value') });
     await page.locator('.ant-modal-footer .ant-btn-primary').click();
     await expect(reveal).toBeVisible();
@@ -222,6 +233,12 @@ test.describe('OIDC clients management', () => {
 
     await reveal.locator('.ant-btn-primary').click();
     await expect(reveal).toBeHidden();
+
+    // Round-trip: the create POST carried the optional field and the list echoes it back.
+    const createBody = capturedCreateBodies.find((b) => b['name'] === 'Gamma App');
+    expect(createBody?.['backchannelLogoutUri']).toBe('https://gamma.example.com/backchannel-logout');
+    await expect(page.getByRole('cell', { name: 'https://beta.example.com/backchannel-logout' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'https://gamma.example.com/backchannel-logout' })).toBeVisible();
   });
 
   test('after close, the list does NOT contain the plaintext secret', async ({ page }) => {
