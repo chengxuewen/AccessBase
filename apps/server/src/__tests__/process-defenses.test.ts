@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // Static-source locks for the L-T3 process defenses (precedent: route-guard.test
@@ -109,7 +109,15 @@ describe('stop.sh wrapper-first (B2)', () => {
 
 // Batch P W1-6 (N1): the single-container production path must not silently
 // run with dev-mode config, and reset tokens must never hit logs in full.
-const authRoutesSrc = readFileSync(resolve(__dirname, '../routes/auth.ts'), 'utf-8');
+// Batch R2 auth.ts split: the W1-6 token-log lock lives in the split module that
+// owns forgot-password (routes/auth/password.ts); read the façade plus every
+// routes/auth/*.ts so the lock keeps covering the whole auth surface.
+const authRoutesSrc = [
+  readFileSync(resolve(__dirname, '../routes/auth.ts'), 'utf-8'),
+  ...readdirSync(resolve(__dirname, '../routes/auth'))
+    .filter((f) => f.endsWith('.ts'))
+    .map((f) => readFileSync(resolve(__dirname, '../routes/auth', f), 'utf-8')),
+].join('\n');
 const dockerfileSrc = readFileSync(resolve(__dirname, '../../../../Dockerfile'), 'utf-8');
 
 describe('token-log + NODE_ENV hardening locks (P-fix W1-6)', () => {
