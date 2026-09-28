@@ -1,6 +1,6 @@
 # 数据库 Schema 设计
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — §22.1 SQL illustrative — canonical = drizzle/schema.ts (A11); §22.4 retention/archival unimplemented. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (2026-09-23 gap audit):** `partial` — §22.1 SQL illustrative — canonical = drizzle/schema.ts (A11); §22.4 retention/archival unimplemented (the retention side is consumed since Q2a; archival still is not). The Q1–Q4 era tables — `password_history`, `webauthn_credentials`, `options`, `oidc_clients`, `oidc_grants`, `oidc_adapter_state`, `api_keys`, `groups`, `group_users`, `group_roles`, `events`, `webhook_endpoints`, `webhook_deliveries` — are not written up here; canonical shape = `packages/identity/src/db/schema.ts` + the `packages/migration/drizzle/` chain (tracked in gap-audit round2 report H4). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§22 数据库 Schema 设计

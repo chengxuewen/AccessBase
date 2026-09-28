@@ -1,6 +1,6 @@
 # 用户自助服务
 
-> **Implementation status (2026-09-23 gap audit):** `design-only (deferred)` — no standalone portal; Profile/Settings live inside admin chrome (gap-audit C). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (2026-09-23 gap audit):** `partial` — the §32.2 self-service flows shipped (Q1 2026-09-23 forgot/reset/register/verify-email + Q4a 2026-09-23 helpdesk invite / force-change / admin reset); §32.1 personal center is half-shipped under `/auth/*` + `/users/me` (profile read, change-password, session list / revoke / revoke-others) and `login-history` has no endpoint; a standalone portal is still absent — Profile/Settings live inside the admin chrome (gap-audit C). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§32 用户自助服务

@@ -1,6 +1,6 @@
 # UI 设计
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — shipped surface in status.md; §14.17 search / §14.18 notifications / §14.11.3 bulk / §14.16 a11y bar / §37.5 tabs / §37.6 mobile unimplemented. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (2026-09-23 gap audit):** `partial` — shipped surface in status.md; §14.17 search / §14.18 notifications / §14.11.3 bulk / §14.16 a11y bar / §37.5 tabs / §37.6 mobile unimplemented. The post-§14 page generation (13 routes: Groups, Webhooks, Events, Tenants, Clients, ApiKeys, Consent, EnrollMfa + the self-service auth pages Forgot/Reset/Register/Verify-Email/Magic-Login) is not written up here — canonical shape = `apps/admin-ui/src/pages/` + the route table in `App.tsx` (tracked in gap-audit round2 report H4). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§14 UI 设计 + §37 前端补充 P2

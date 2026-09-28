@@ -5,8 +5,11 @@
 **This file is the single source of truth for wire error codes.** Regenerate with:
 
 ```bash
-grep -rhoE "code: '[A-Z0-9_]+'" apps/server/src packages/identity/src --include='*.ts' | sed "s/code: '//;s/'//" | sort -u
-grep -rhoE "AUTH_(WEBAUTHN|LOCKED|IP|SAML|MFA|OAUTH|RESET|REG|MAGIC|SMS|TENANT|PROVIDER)[A-Z0-9_]*" apps/server/src --include='*.ts' | sort -u
+grep -rhoE "code: '[A-Z0-9_]+'" apps/server/src packages/identity/src --include='*.ts' --exclude-dir=__tests__ | sed "s/code: '//;s/'//" | sort -u
+# helper-positional emits (authError / err / samlError / scimError take the code as an argument, not as `code:`)
+grep -rhoE "(authError|err|samlError|scimError)\([^)]*'[A-Z][A-Z0-9_]+'" apps/server/src --include='*.ts' --exclude-dir=__tests__ | grep -oE "'[A-Z][A-Z0-9_]+'$" | tr -d "'" | sort -u
+# checkCaptcha returns CAPTCHA_001 as a bare string; the named-family sweep:
+grep -rhoE "AUTH_(WEBAUTHN|LOCKED|IP|SAML|MFA|OAUTH|RESET|REG|MAGIC|SMS|TENANT|PROVIDER|EMAIL)[A-Z0-9_]*" apps/server/src --include='*.ts' --exclude-dir=__tests__ | sort -u
 ```
 
 When adding a code: update this file in the same commit (conventions D126 gate). Do NOT add rows back to the SDD §5.2 tables — they are frozen historical specs.
@@ -19,18 +22,21 @@ When adding a code: update this file in the same commit (conventions D126 gate).
 | AUTH_002 | invalid credentials (login) | |
 | AUTH_003 | invalid/revoked refresh token | **collision**: spec slot = TOKEN_EXPIRED |
 | AUTH_004 | account suspended | gate on all 8 issue paths (PIT-052) |
-| AUTH_005 | bearer revocation (Q3A: token_version/status stale vs Redis-memoed auth state; refresh rebuilds) |
+| AUTH_005 | bearer revocation (Q3A: token_version/status stale vs Redis-memoed auth state; refresh rebuilds) | |
 | AUTH_007 | insufficient permission (route guard) | |
-| AUTH_032-035 | password policy family | spec-consistent |
+| AUTH_033 | 403 register: email domain rejected | **live since R1-T9** (`routes/auth.ts` register via `services/domain-policy.ts`; env `AUTH_BLOCKED_DOMAINS` checked first and wins, then `AUTH_ALLOWED_DOMAINS` — empty = allow-all, exact whole-domain match, no subdomain implication) — spec slot said 400 `EMAIL_DOMAIN_BLOCKED`, reality is 403 |
+| AUTH_034 | 403 register: '+'-alias local part rejected | **live since R1-T9** (env `AUTH_BLOCK_EMAIL_ALIASES`, default `true`) — spec slot said 400 |
+| AUTH_032 / AUTH_035 | spec slots, **no emitter** | format violations surface as VALIDATION_001 (fastify `format: 'email'`); password strength surfaces as AUTH_REG_002 (register) or the WEAK_PASSWORD 409 tag (admin/helpdesk lanes) |
 | AUTH_063/064/065 | LDAP bind/rejected/provision errors | batch D |
-| AUTH_999 | generic auth failure | |
+| AUTH_999 | generic auth failure | **no in-tree emitter** — the LDAP lane echoes whatever provider code it receives (`routes/auth.ts` `result.error?.code ?? 'AUTH_064'`), so AUTH_999 only appears if a provider supplies it; kept as the reserved generic slot |
 
 ## Named families (grew ad-hoc beyond the numeric spec — the real taxonomy)
 
-- **MFA**: AUTH_MFA_001..004 (004 = enroll-chain token invalid/expired, Q3E) · **lockout**: AUTH_LOCKED_001 · **IP blacklist**: AUTH_IP_001
+- **MFA**: AUTH_MFA_001..004 (004 = enroll-chain token invalid/expired, Q3E) · **lockout**: AUTH_LOCKED_001 · **IP blacklist**: AUTH_IP_001 · **CIDR admission**: AUTH_IP_002 (403 "Access denied from this network", Q3E `utils/cidr.ts` gate, deny-wins, per-entry fail-open / list-level fail-closed)
 - **OAuth RP**: AUTH_OAUTH_001..004 · provider visibility: AUTH_PROVIDER_DISABLED / AUTH_PROVIDER_NOT_FOUND
-- **WebAuthn**: AUTH_WEBAUTHN_001..005 · **SAML SP**: AUTH_SAML_001..003 · **magic link**: AUTH_MAGIC_001 · **SMS OTP**: AUTH_SMS_001
-- **register**: AUTH_REG_001..002 · **reset flow**: AUTH_RESET_001..002 · **tenant gate**: AUTH_TENANT_001 · **email verify (Q1-b2)**: AUTH_EMAIL_001 (bad/expired link, 400) / AUTH_EMAIL_002 (SMTP unconfigured, 503)
+- **WebAuthn**: AUTH_WEBAUTHN_001..005 · **SAML SP**: AUTH_SAML_001..002 (003 folded into 002 by batch F — no emitter) · **magic link**: AUTH_MAGIC_001 · **SMS OTP**: AUTH_SMS_001
+- **register**: AUTH_REG_001..002 · **reset flow**: AUTH_RESET_001..002 · **tenant gate**: AUTH_TENANT_001 · **email verify (Q1-b2)**: AUTH_EMAIL_001 (bad/expired link, 400) / AUTH_EMAIL_002 (SMTP unconfigured, 503) / AUTH_EMAIL_003 (403 "Email address not verified" on the two terminal login arms — password final arm AND `/auth/mfa/verify`; option `auth.require_verified_email`, default off; possession-proven lanes — SMS OTP, magic link, OAuth/SAML/LDAP — are exempt and mark the address verified, R1-T10)
+- **captcha (Q3E)**: CAPTCHA_001 (400 missing/wrong/expired answer — returned as a bare string by `utils/captcha.ts` `checkCaptcha`, then echoed as the envelope code by register / forgot-password / magic-link / SMS lanes) / CAPTCHA_002 (503 challenge unavailable — feature off or Redis down, `GET /api/v1/auth/captcha`)
 
 ## Generic HTTP-family codes
 
@@ -45,6 +51,10 @@ Setup guard: SETUP_REQUIRED · SETUP_IN_PROGRESS · SETUP_ALREADY_COMPLETE · SE
 - groups (Q4b): GROUP_NOT_FOUND (404), GROUP_NAME_EXISTS (409), GROUP_MEMBER_TENANT_MISMATCH (400), GROUP_ROLE_TENANT_MISMATCH (400); LAST_ADMIN_GUARD 409 on group funnels too (delete/removeMember/setGroupRoles)
 - webhooks (Q4c): WEBHOOK_INVALID (400), WEBHOOK_URL_DENIED (400, fail-closed SSRF guard), WEBHOOK_EXISTS (409 pre-check), WEBHOOK_NOT_FOUND (404), WEBHOOK_PING_FAILED (500)
 - email templates (Q4c): TEMPLATE_INVALID (400, both write paths share the validator), SMTP_UNAVAILABLE (502 test-send without mailer)
+- email templates (Q4c): TEMPLATE_INVALID (400, both write paths share the validator), SMTP_UNAVAILABLE (502 test-send without mailer)
+- events history (Q4d): EVENT_NOT_FOUND (404 `GET /api/v1/events/:id`, foreign/absent — no existence leak)
+- setup wizard (`routes/setup.ts`): ADMIN_EXISTS (400 admin already present, both /admin and /initialize guards), ADMIN_NOT_CREATED (400 /complete before the admin row exists), ADMIN_NOT_FOUND (400 /complete could not load the created admin), ADMIN_CREATION_FAILED (500 wrapped create)
+- identity-library only (never reaches the server wire — no route consumes `AuthManager`, login calls `UserManager.verifyPassword` directly): AUTH_ERROR (provider-throw envelope, `managers/AuthManager.ts`)
 
 ## 409 conflict tags (manager throws with message prefix → conflict-mapper envelope)
 

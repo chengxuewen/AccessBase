@@ -1,6 +1,6 @@
 # API 设计规范
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — envelope shipped; §23.10 API-key shape drift (A10); versioning/deprecation policy unwritten. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (2026-09-23 gap audit):** `partial` — envelope shipped; §23.10 API-key shape drift (A10); versioning/deprecation policy unwritten. Q1–Q4 surface (groups/webhooks/events/enroll-mfa/captcha/invite/device/sms endpoints) not yet written up — tracked in gap-audit round2 report H4; machine-readable current truth is `docs/openapi.json`. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§23 API 设计规范

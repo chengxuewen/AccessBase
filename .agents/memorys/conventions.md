@@ -180,7 +180,7 @@ logger.error('Operation failed', error); // ❌
 ## Phase 8a 授权接线约束（2026-09-04）
 
 - 新增路由的权限码必须**同时**进 authorize.ts `routePermissions` 映射表与 permissions-seed.ts `BUILTIN_PERMISSIONS`（只改其一 = 映射到了无种子码 或 种子码无人消费，均永久 403/死码。注：历史上的 RESOURCES 数组已于 cb79df5 移除——bindPermissions 按名字回读，无需它）
-- 检查命令 1：`grep -c "resource: '" apps/server/src/routes/permissions-seed.ts` 应 =24（码数变更时同步更新此期望值；2026-09-12 批 C 15→18；2026-09-16 batch G 升至 21；2026-09-24 Q4b 升至 24：groups:read/write/delete；同日 Q4c 升至 26：webhooks:read/write（入 TENANT_BINDABLE→14）——三注册点：seed + permission-partition + authorize routePermissions 映射，同 commit）
+- 检查命令 1：`grep -c "resource: '" apps/server/src/routes/permissions-seed.ts` 应 =26（码数变更时同步更新此期望值；2026-09-12 批 C 15→18；2026-09-16 batch G 升至 21；2026-09-24 Q4b 升至 24：groups:read/write/delete；同日 Q4c 升至 26：webhooks:read/write（入 TENANT_BINDABLE→14）——三注册点：seed + permission-partition + authorize routePermissions 映射，同 commit）
 - 检查命令 2（映射 unique 值 vs 种子清单 diff 应空）：`diff <(grep -oE "'[a-z]+:(read|write|delete)'" packages/identity/src/hooks/authorize.ts | sort -u | tr -d "'") <(grep -oE "name: '[a-z]+:(read|write|delete)'" apps/server/src/routes/permissions-seed.ts | grep -oE "[a-z]+:(read|write|delete)" | sort -u)`
 - DEFAULT_TENANT 单源 `apps/server/src/utils/constants.ts`，禁字面量散落；检查 `grep -rn "00000000-0000-0000-0000-000000000001" apps/server/src --include="*.ts" | grep -v __tests__ | grep -v constants.ts` 应零命中（2026-09-04 已收编 auth.ts 两处 + oauth.ts 一处，commit 8a987f2）
 - dev 环境跑 MFA 端点需 `MFA_ENCRYPTION_KEY`（32-byte hex）：现仓库脚本/accessbase.sh/.env.example 均未透传此变量，缺失时 mfa/setup 返回 400 AUTH_MFA_002（批三 TOTP 面板接线前需补运维配置）
@@ -320,6 +320,7 @@ logger.error('Operation failed', error); // ❌
 - **SSRF guard = dedicated FAIL-CLOSED parser** (`apps/server/src/utils/webhook-url.ts`): unparseable/DNS-fail ⇒ deny; v4-mapped IPv6 (`::ffff:127.0.0.1` and `::ffff:7f00:1`) canonicalized before the deny-set. Do not reuse `ipInCidr` for this (its fail-open posture inverts into a bypass). RFC1918 allowed per ruling; TOCTOU rebinding is the documented residual.
 - **email_tmpl_* value = jsonb OBJECT** `{subject:{en?,zh?},html:{en?,zh?}}` — single validate function shared by options PUT and email-templates PUT (dual-write closure R8); renderer HTML-escapes every {{var}}; senders pass locale undefined.
 - **webhook secrets**: reveal-once (create/rotate only), AES-GCM envelope at rest (same store shape as OIDC client secrets — plaintext-compare needs decrypt), decrypt per-tick-per-endpoint in the dispatcher (36.6ms scryptSync each — never per delivery).
+- **auth.* telemetry lane (R1-T3) is the ONE sanctioned swallow exception** to the NEVER-swallow rule above: `apps/server/src/utils/auth-events.ts` emits `auth.login.success` / `auth.login.failure` / `auth.logout` fire-and-forget (body try/catch + floating-promise `.catch` → logger.warn) because a login/logout is already settled when we emit — a failed telemetry insert must never fail or delay the response, and the audit log remains the security record of choice. Scoped to that file; every mutating manager funnel still emits on the caller tx handle and MUST NOT swallow.
 
 ## Phase Q4b groups constraints (2026-09-24)
 

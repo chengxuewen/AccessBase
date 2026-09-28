@@ -1,7 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-08-21 · **Updated:** 2026-09-23
-**Status:** Phase 9 + enhancement batches A-P complete (incl. security batch P fix waves 1-3); 2026-09-23 five-lane gap audit landed -> Q0 doc-honesty applied (status headers on all 43 module docs) (RBAC enforcement, MFA, OIDC IdP+RP, SAML/magic-link/SMS OTP, multi-tenant control plane, SCIM, API keys, audit, ops hardening, drizzle-kit v7 toolchain)
+**Generated:** 2026-08-21 · **Updated:** 2026-09-28
+**Status:** Phase 9 + enhancement batches A-P complete (incl. security batch P fix waves 1-3); 2026-09-23 five-lane gap audit landed -> Q0 doc-honesty applied (status headers on all 44 module docs); 2026-09-28 round-2 gap audit -> batch R1 quick-win safety net + R1-T5 honesty wave (RBAC enforcement, MFA, OIDC IdP+RP, SAML/magic-link/SMS OTP, multi-tenant control plane, SCIM, API keys, audit, ops hardening, drizzle-kit v7 toolchain)
 **Stack:** TypeScript / Fastify / React / Ant Design / Drizzle ORM / PostgreSQL / Redis
 
 ## OVERVIEW
@@ -14,7 +14,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 .
 ├── docs/                    # Design documentation
 │   ├── architecture.md      # Stub index → modules/
-│   ├── modules/             # 43 docs (35 modular + 8 SDD), each with an Implementation status header (mandatory, D126)
+│   ├── modules/             # 44 docs (36 modular + 8 SDD), each with an Implementation status header (mandatory, D126)
 ├── .agents/                 # AI agent configuration
 │   ├── skills/              # 12 project-specific skills (graphify, test-harness, etc.)
 │   ├── rules/               # Coding rules by language (14 language dirs)
@@ -119,7 +119,7 @@ pixi run dev                        # Same as bash accessbase.sh dev:native
 
 - 124 design decisions documented in `.agents/memorys/decisions.md` (D1-D126; D107/D108 never used)
 - 84 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~083; heading count includes addendum entries)
-- Architecture doc split into 43 module files under `docs/modules/` — each carries an `Implementation status` line (gate: `grep -L 'Implementation status' docs/modules/*.md` -> empty)
+- Architecture doc split into 44 module files under `docs/modules/` — each carries an `Implementation status` line (gate: `grep -L 'Implementation status' docs/modules/*.md` -> empty)
 - Each module has back-link to `architecture.md` stub
 - Reference implementation (new-api) in `.refinfo/` for studying patterns
 - L0 packages: 8 implemented — 4 wired into apps (types/logging/identity/audit), 4 standalone libraries without consumers (admin/migration/health/i18n) — gap-audit A6

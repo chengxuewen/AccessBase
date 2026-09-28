@@ -1,6 +1,6 @@
 # @accessbase/identity — 软件设计文档（SDD）
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — §2.5/§2.6 phantom APIs (A3); §4.4 events absent (A9); §5.2 code table superseded by error-codes-reality.md. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md). Session semantics: absolute-expiry-only (REFRESH_TTL fixed); idle/sliding expiry NOT implemented — dead idleTimeout knob removed (R1-T11/DG-1b), real sliding expiry lives in the session-lifetime batch.
+> **Implementation status (2026-09-23 gap audit):** `partial` — §2.5/§2.6 shipped in drifted form (A3: `setup`+`enable` stand for `enable`+`confirm`, `validateSession`/`rotateRefreshToken` for `verifyAccessToken`/`refreshTokens`; `regenerateRecoveryCodes` is unimplemented), and the SSO-session + trusted-device groups they also carried are RETIRED 2026-09-28 (R1-T11/DG-3, see the `auth-provider.md` header); §4.4 events SHIPPED (A9 discharged — Q4c outbox 2026-09-24 + R1-T3 auth lane 2026-09-28; live catalog = `DomainEventType` in `packages/identity/src/services/events.ts`, listed in `webhook.md` §33.1); §5.2 code table superseded by error-codes-reality.md. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md). Session semantics: absolute-expiry-only (REFRESH_TTL fixed); idle/sliding expiry NOT implemented — dead idleTimeout knob removed (R1-T11/DG-1b), real sliding expiry lives in the session-lifetime batch.
 
 > **包名**：`@accessbase/identity`
 > **版本**：0.1.0（设计阶段）

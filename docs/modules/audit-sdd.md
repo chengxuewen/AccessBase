@@ -1,6 +1,6 @@
 # @accessbase/audit — 审计日志包 SDD
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — hash chain computed then discarded — no columns (A2); retention config dead; verifyIntegrity absent. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (2026-09-23 gap audit):** `partial` — hash chain computed then discarded, no columns (A2): STILL design-only/deferred — the tamper-evident chain is specified in [the R-audit design](../superpowers/specs/2026-09-28-r-audit-tamper-evidence-and-erasure-design.md) but batch R1 did NOT ship it (do not read this header as discharged); retention config NOW consumed (Q2a 2026-09-23 — `AUDIT_RETENTION_DAYS` → `utils/retention-sweeper.ts`; `archiveAfterDays` still has no reader); `verifyIntegrity` absent. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 
 > 本文档为 `@accessbase/audit` 包的软件设计文档（SDD）。
 

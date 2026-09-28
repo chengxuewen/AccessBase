@@ -1,6 +1,6 @@
 # 邮件/短信服务
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — Mailer + SMS providers shipped; sendTemplate/per-recipient localization absent (L6). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (2026-09-23 gap audit):** `partial` — Mailer + SMS providers shipped (batch A/I); the template substance shipped in Q4c as `apps/server/src/utils/email-templates.ts` (`renderEmail` / `renderEmailFor` + options-backed jsonb bilingual overrides + the Settings editor/preview/test-send surface), but §40.1's `sendTemplate` method name was never adopted — `Mailer.send(to, subject, html)` is still the only transport call site; per-recipient localization is still absent (one site-wide `email_locale_default`, no `users.locale` column) — L6 stays open. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§40 邮件/短信服务

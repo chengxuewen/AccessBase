@@ -2,6 +2,21 @@
 
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
+## [Unreleased] — 2026-09-28 (batch R1 "quick-win safety net", plan docs/superpowers/plans/2026-09-28-batch-r1-quick-win-safety-net.md)
+### Added
+- Auth-lane telemetry events: `auth.login.success` / `auth.login.failure` / `auth.logout` on the Q4c outbox (password / TOTP / admin-wizard lanes; the remaining sign-in channels are on the R-schedule). Fire-and-forget from `apps/server/src/utils/auth-events.ts` — the one sanctioned swallow exception to the funnel-emit rule.
+- Registration domain policy is live: `AUTH_BLOCKED_DOMAINS` wins first, then `AUTH_ALLOWED_DOMAINS` (empty = allow-all; exact whole-domain match, no subdomain implication), and `AUTH_BLOCK_EMAIL_ALIASES` (default on) rejects '+' local parts — rejections answer 403 `AUTH_033` / `AUTH_034` at the door with zero user rows written.
+- `auth.require_verified_email` option gate (default off): unverified users are refused `AUTH_EMAIL_003` on BOTH terminal arms (password login and MFA step-up completion), while force-change and MFA-enroll stay reachable (anti-lockout ordering); possession-proven channels (SMS OTP, magic link, OAuth/SAML/LDAP provisioning) are exempt and mark the address verified.
+- OIDC clients: back-channel logout URI editable in the Clients page (server surface landed in Q3D).
+- Webhook dispatcher observability: per-outcome delivery counters + true-backlog count/age gauges on `/metrics`, with two alert rules in `docker/prometheus/rules.yml`.
+### Fixed
+- Tenant suspend/delete cascades now run on the caller's transaction handle — a mid-failure can no longer leave a suspended tenant with live sessions and API keys.
+- Last per-request pg-pool churn of the PIT-081 family: `MfaManager` is memoized per process over the shared auth pool.
+### Removed (breaking — TypeScript surface only, no SQL chain file)
+- Dead config retired (R1-T11): `SessionConfig.idleTimeout`, the `SsoConfig` trio and the trusted-device block, plus the `SSOSession` / `LocalSession` / `TrustedDevice` interfaces and the never-serving `PasswordProvider` shell (its domain/alias validators moved to `packages/identity/src/services/domain-policy.ts`).
+### Documentation
+- Honesty wave: 5 under-claiming module headers corrected (webhook / identity-sdd / audit-sdd / self-service / messaging) + 4 coverage pointers added (api / database / security / ui); error-code reality catalog reconciled to the emitters (12 live codes added, 3 over-claims corrected, regen block taught to catch helper-shaped emits); `docs/openapi.json` regenerated (77 → 99 paths); module-doc count parity 43 → 44.
+
 ## [Unreleased] — 2026-09-24
 ### Added (Q4d events history surface)
 - `GET /api/v1/events` + `/api/v1/events/:id` (tenant-isolated, type/date filters, paginated) reusing the `audit:read` code — zero new permission codes; Events admin page (family tags, fan-out status, payload detail modal) + e2e.
