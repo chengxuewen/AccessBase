@@ -160,6 +160,11 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
             return `/oidc/auth/${interaction.uid}`;
           }
         })();
+        // TEMP-REPRO-INSTRUMENT (device-flow forensics) — remove after diagnosis
+        logger.info(
+          { promptName: interaction.prompt.name, returnTo: interaction.returnTo, resumePath, nodeEnv: opts.nodeEnv, frontendOrigin },
+          '[TEMP] interactions.url invoked',
+        );
         if (interaction.prompt.name === 'login') {
           const target = `/login?redirect=${encodeURIComponent(resumePath)}`;
           return opts.nodeEnv === 'production' ? target : `${frontendOrigin}${target}`;
