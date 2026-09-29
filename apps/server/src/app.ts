@@ -44,6 +44,41 @@ import fastifyStatic from '@fastify/static';
 import { createAuditMiddleware, defaultAuditConfig } from '@accessbase/audit';
 import type { AuditStorage } from '@accessbase/audit';
 
+/**
+ * R-audit A3: wraps any AuditStorage so entries are SEALED at the storage
+ * boundary — createdAt = the entry's own timestamp (Date object, node-pg
+ * serializes; guarantees ms-precision timestamptz round-trip) and rowHash =
+ * rowHash() over the D1 field set (packages/audit hashing — the single
+ * implementation shared with the future verifier, A6).
+ */
+function sealAuditEntries(inner: AuditStorage): AuditStorage {
+  return {
+    async write(entries) {
+      if (entries.length === 0) return;
+      const { rowHash } = await import('@accessbase/audit');
+      await inner.write(
+        entries.map((e) => ({
+          ...e,
+          createdAt: e.timestamp,
+          rowHash: rowHash({
+            tenantId: e.tenantId ?? '',
+            userId: e.userId ?? '',
+            action: e.action,
+            resourceType: e.resourceType ?? '',
+            resourceId: e.resourceId ?? '',
+            requestBody: e.requestBody ?? {},
+            responseStatus: e.responseStatus,
+            requestId: e.requestId ?? '',
+            ip: e.userIp ?? '',
+            userAgent: e.userAgent ?? '',
+            createdAt: e.timestamp,
+          }),
+        })),
+      );
+    },
+  };
+}
+
 interface BuildAppOptions {
   /** Audit storage override; default = drizzle-backed PG audit_logs table. */
   auditStorage?: AuditStorage;
@@ -409,7 +444,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // Non-test builds without override lazily create a drizzle db — test env without override never touches PG.
   if (options.auditStorage || config.nodeEnv !== 'test') {
     const { AuditLogger } = await import('@accessbase/audit');
-    let storage = options.auditStorage;
+    let storage: AuditStorage | undefined = options.auditStorage;
     if (!storage) {
       const { createDb, auditLogs } = await import('@accessbase/identity/db');
       const db = createDb(config.databaseUrl);
@@ -433,6 +468,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
         },
       };
     }
+    // R-audit A3: seal rows at the storage boundary (spec D4) — every write
+    // path (default drizzle storage AND injected test storage) stamps
+    // createdAt = the entry timestamp and rowHash over the D1 field set via
+    // the SAME hashing module the verifier (A6) uses.
+    storage = sealAuditEntries(storage);
     const auditLogger = new AuditLogger(
       {
         ...defaultAuditConfig,
