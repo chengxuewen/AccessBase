@@ -325,6 +325,11 @@ export class UserManager {
         eventsScrubbed: 0, // placeholder; folded to the true count below
       })
       .returning({ id: auditErasures.id });
+    if (!ledger) {
+      // noUncheckedIndexedAccess guard: INSERT..RETURNING without a row means
+      // the tx is already doomed — fail loudly instead of poisoning step 3.
+      throw new Error('audit erasure ledger insert returned no row');
+    }
 
     // Step 3 — D4 whitelist scrub (ALL subject rows incl. legacy).
     await d

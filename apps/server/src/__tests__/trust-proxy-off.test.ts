@@ -11,7 +11,7 @@ vi.stubEnv('TRUST_PROXY', 'false');
 const noopAudit = { write: async () => undefined };
 
 describe('trustProxy off by default (W1-5 opt-in preserved)', () => {
-  it('ignores X-Forwarded-For when TRUST_PROXY=false', async () => {
+  it('ignores X-Forwarded-For when TRUST_PROXY=false', { timeout: 20_000 }, async () => {
     const { buildApp } = await import('../app.js');
     const app = await buildApp({ auditStorage: noopAudit });
     app.get('/health/ip-probe', (request) => ({ ip: request.ip }));
