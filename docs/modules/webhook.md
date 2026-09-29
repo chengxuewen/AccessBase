@@ -32,6 +32,8 @@
 > `auth.login.failure` (`payload.reason` = bad_credentials|locked|suspended|other) / `auth.logout`
 > (payload `{ email, method, userId?, reason? }`, emitted fire-and-forget from `apps/server/src/utils/auth-events.ts`
 > on the password / totp / admin-wizard lanes; oauth/saml/webauthn/ldap/sms/magic = R-schedule).
+> R-audit (2026-09-28) adds `audit.erased` — payload `{ subjectUserId, rowsAffected, legacySkipped }` (ids and counts only; `legalBasis` never appears in the payload and is never logged). Emitted on the caller transaction handle inside the erasure funnel, never swallowed.
+> Subscription note: `audit.erased` is a two-segment name, so it IS subscribable by name (unlike the three-segment `auth.login.*` lane above).
 > Subscription matching is literal on these names, but the entry validator ("*" or `^[a-z]+\.[a-z_]+$` in
 > `apps/server/src/routes/webhooks.ts`, mirrored in `pages/Webhooks.tsx`) accepts only TWO-segment names — so
 > `auth.login.success` / `auth.login.failure` cannot be subscribed by name and reach endpoints only through a

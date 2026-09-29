@@ -99,4 +99,8 @@ fastify.post('/api/v1/auth/reset-password', async (request, reply) => {
 });
 ```
 
+### 32.3 Audit erasure (RTBF / right to be forgotten)
+
+Audit erasure is an explicit admin opt-in on `DELETE /api/v1/users/:id` with body `{ eraseAudit: true, legalBasis }` (default OFF; `legalBasis` missing or empty answers 400 `VALIDATION_001`). A plain delete never destroys audit history, so a privileged caller cannot nuke forensic evidence by deleting an account. Each erasure writes a receipt-bound ledger row to `audit_erasures` (`subject_user_id`, `requested_by`, `legal_basis`, `receipt_hash` = SHA256 over the affected rows' original `row_hash` set ordered `(created_at, id)`, `rows_affected`, `events_scrubbed`), scrubs the PII columns without touching `row_hash`, `anchor_id`, `created_at` or any provenance column, and in the SAME transaction tombstones the matching outbox rows (their `payload` becomes an erasure marker) so no webhook subscriber keeps personal data. That column-level split is what lets `GET /api/v1/audit-logs/verify` recompute the receipt and tell a sanctioned erasure apart from tampering. Default retention is 365 days (`AUDIT_RETENTION_DAYS`, sweeper ON) and is the ordinary answer; explicit erasure is the GDPR Article 17(3)(e) carve-out, where deletion was requested against a legitimate archiving or audit purpose, and the receipt ledger is the record that the request, the requester and the stated basis existed.
+
 ---

@@ -2,6 +2,17 @@
 
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
+## [Unreleased] — 2026-09-28 (batch R-audit, tamper-evident audit chain + sanctioned erasure; spec docs/superpowers/specs/2026-09-28-r-audit-tamper-evidence-and-erasure-design.md rev.3)
+### Added
+- Tamper-evident audit chain, end to end: every audit row is content-hash sealed at write time (`row_hash` over a canonical-json field set, with the writer's own timestamp persisted so writer and verifier hash the same bytes); a daily anchor table folds the ordered row hashes into one root per `(day, seq)` chained by `prev_root`, gated by `pg_try_advisory_xact_lock(727242)` so only one node folds per pass; a one-time boot backfill hashes pre-existing rows and the retention sweeper marks fully-pruned anchors `pruned_at` before deleting their rows, so age-based pruning never reads as tampering.
+- `GET /api/v1/audit-logs/verify?from=&to=` (platform tenant only, reuses `audit:read` — zero new permission codes; 200 even when `chainOk:false`): re-folds every anchor in the window, verifies erased rows against their receipt instead, and reports `rowsChecked`, `rowsErased`, `erasedLegacyUnhashed`, `legacyPreChain`, `anchorsChecked`, `prunedFrom`, `unanchoredRows`, `chainOk`, `firstFailure` (`{day, seq, kind, rowId?}`). The unanchored check doubles as an anchor-worker stall watchdog. Audit page gains a Verify button with a green/red report alert.
+- Sanctioned RTBF erasure: `UserManager.eraseAuditData` writes a receipt-bound `audit_erasures` ledger row (`receipt_hash` fingerprints the pre-erasure `row_hash` set), scrubs PII columns while never touching `row_hash`, `anchor_id`, `created_at` or provenance, tombstones the matching outbox rows in the same transaction, and emits `audit.erased`. `DELETE /api/v1/users/:id` gains an explicit `{ eraseAudit: true, legalBasis }` opt-in (default off; 400 without a stated basis; 409 `ERASE_LOCK_BUSY` when the anchor worker holds the lock, nothing written, retryable).
+- Ops: chain file `0010_early_odin.sql` (`audit_logs` +4 nullable columns, `audit_chain_anchors`, `audit_erasures`) with its `scripts/migrate.sh` sentinel (25 tables / 11 tracked rows); config `AUDIT_ANCHOR_INTERVAL_SECONDS` (300), `AUDIT_ANCHOR_GRACE_SECONDS` (90), `AUDIT_ANCHOR_EXPORT_PATH` (optional append-only off-box root ledger); metrics `accessbase_audit_anchor_last_root_ok` and `accessbase_audit_anchor_last_root_timestamp_seconds`; alert `AccessbaseAuditAnchorStalled` (>3x interval).
+### Breaking
+- `@accessbase/audit`: `AuditLog` / `AuditLogEntry` drop `hash` and `previousHash` and gain `rowHash?` (one consumer, `apps/server`, migrated in the same commit); `AuditLogger`'s in-memory chain is deleted. `verifyIntegrity` was never in the library and remains absent by design — server-side anchor verification replaced it.
+- Wire: `DELETE /api/v1/users/:id` now accepts an optional body (`{ eraseAudit, legalBasis }`). Plain deletes are unchanged; no new permission codes.
+
+
 ## [Unreleased] — 2026-09-28 (batch R1 "quick-win safety net", plan docs/superpowers/plans/2026-09-28-batch-r1-quick-win-safety-net.md)
 ### Added
 - Auth-lane telemetry events: `auth.login.success` / `auth.login.failure` / `auth.logout` on the Q4c outbox (password / TOTP / admin-wizard lanes; the remaining sign-in channels are on the R-schedule). Fire-and-forget from `apps/server/src/utils/auth-events.ts` — the one sanctioned swallow exception to the funnel-emit rule.

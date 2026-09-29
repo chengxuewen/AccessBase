@@ -54,6 +54,7 @@ Setup guard: SETUP_REQUIRED · SETUP_IN_PROGRESS · SETUP_ALREADY_COMPLETE · SE
 - email templates (Q4c): TEMPLATE_INVALID (400, both write paths share the validator), SMTP_UNAVAILABLE (502 test-send without mailer)
 - events history (Q4d): EVENT_NOT_FOUND (404 `GET /api/v1/events/:id`, foreign/absent — no existence leak)
 - setup wizard (`routes/setup.ts`): ADMIN_EXISTS (400 admin already present, both /admin and /initialize guards), ADMIN_NOT_CREATED (400 /complete before the admin row exists), ADMIN_NOT_FOUND (400 /complete could not load the created admin), ADMIN_CREATION_FAILED (500 wrapped create)
+- audit erasure (R-audit 2026-09-28): ERASE_LOCK_BUSY (409, `DELETE /api/v1/users/:id` with `eraseAudit:true` — the erasure transaction could not take advisory lock 727242 because the anchor worker holds it; nothing was written, RETRYABLE). `TENANT_PLATFORM_ONLY` is also the belt code of `GET /api/v1/audit-logs/verify`: anchors are one global chain across tenants, so verification is platform-tenant only
 - identity-library only (never reaches the server wire — no route consumes `AuthManager`, login calls `UserManager.verifyPassword` directly): AUTH_ERROR (provider-throw envelope, `managers/AuthManager.ts`)
 
 ## 409 conflict tags (manager throws with message prefix → conflict-mapper envelope)

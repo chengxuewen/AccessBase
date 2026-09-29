@@ -1378,6 +1378,10 @@ async function writeAuditLog(entry: Omit<AuditLogEntry, 'hash'>): Promise<void> 
 - **独立数据库** — 审计日志存储在独立数据库，业务管理员无权限访问
 - **定期校验** — 后台任务定期验证哈希链完整性，异常时触发告警
 
+> **SUPERSEDED (R-audit batch, 2026-09-28):** the prev-hash-in-row chain above was a design draft and is NOT what ships. What ships: each row carries a content hash (`row_hash` over the spec D1 field set) computed at write time, and a daily anchor table (`audit_chain_anchors`, chain file `0010_early_odin.sql`) folds the ordered row hashes into one root per `(day, seq)`, chained by `prev_root`. Verification is `GET /api/v1/audit-logs/verify` (platform tenant only, reuses `audit:read`; answers 200 even when `chainOk:false`). The per-row pointer was dropped on purpose: it needs a single writer that knows the current head, which is unobtainable across multiple nodes without hot contention and is hostile to erasure, since a tombstone UPDATE would break the successor's pointer.
+>
+> **Capability boundary (normative):** app-layer single-row/field edits = detected; row deletion = detected (anchor `row_count` + fold mismatch); full-span DBA rebuild = NOT detected without external copies — mitigation named (anchor table + periodic export of last anchor root to config `AUDIT_ANCHOR_EXPORT_PATH`, write-only file, ops rotates it off-box; implementation of the exporter = IN, one fs write per anchor; consuming it off-box = ops story).
+
 ---
 
 ### 19.18 Refresh Token 轮换策略
