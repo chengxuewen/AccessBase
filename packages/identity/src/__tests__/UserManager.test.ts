@@ -518,3 +518,174 @@ describe('findAll sorting (Q1-b3, gap-audit D6)', () => {
     expect(/desc/i.test(sql)).toBe(false);
   });
 });
+
+describe('eraseAuditData (R-audit Task A5, spec D5/U2/U3)', () => {
+  // Resolved once for the fake's tombstone-count wiring (same module instance the funnel uses).
+  let eventsTable: unknown;
+  beforeAll(async () => {
+    const schema = await import('../db/schema.js');
+    eventsTable = schema.events;
+  });
+  const subject = '550e8400-e29b-41d4-a716-446655440001';
+  const acting = '550e8400-e29b-41d4-a716-4466554400aa';
+  const tenantId = '00000000-0000-0000-0000-000000000001';
+  const eraseOpts = { requestedBy: acting, legalBasis: 'GDPR Art.17', email: 'subject@test.local', tenantId };
+
+  /**
+   * Faithful fake db: records the insert values + every update's {table, set,
+   * where}, returns scripted results. The funnel is expressed with drizzle
+   * builders (typed scrub/ledger/tombstone + emitEvent), so the fake captures
+   * those and asserts against the real schema tables.
+   */
+  function makeFakeDb(rows: Array<{ id: string; rowHash: string | null }>, eventsMatched = 0) {
+    const db = {
+      select: vi.fn(),
+      insert: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      execute: vi.fn(),
+    };
+    // SELECT receipt subset: WHERE user_id = subject AND row_hash IS NOT NULL ORDER BY created_at, id
+    db.select.mockReturnValue({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          orderBy: vi.fn(() => Promise.resolve(rows)),
+        })),
+      })),
+    });
+    // INSERT audit_erasures ... RETURNING id — capture the values object
+    const insertedValues: unknown[] = [];
+    db.insert.mockImplementation((_table: unknown) => ({
+      values: vi.fn((values: unknown) => {
+        insertedValues.push(values);
+        return { returning: vi.fn(() => Promise.resolve([{ id: 'ledger-1' }])) };
+      }),
+    }));
+    // UPDATE builder: record {table, set, where} per call; the where chain is
+    // awaitable (plain updates) AND carries returning() (tombstone recount).
+    const updates: Array<{ table: unknown; set: unknown; where: unknown }> = [];
+    db.update.mockImplementation((table: unknown) => ({
+      set: vi.fn((set: unknown) => ({
+        where: vi.fn((where: unknown) => {
+          updates.push({ table, set, where });
+          const tombRows = table === eventsTable ? Array.from({ length: Math.max(eventsMatched, 0) }, (_, i) => ({ id: i + 1 })) : [{ id: 1 }];
+          return Object.assign(Promise.resolve(tombRows), {
+            returning: vi.fn(() => Promise.resolve(tombRows)),
+          });
+        }),
+      })),
+    }));
+    return { db, insertedValues, updates };
+  }
+
+  async function runErase(db: unknown) {
+    const mgr = new UserManager();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return mgr.eraseAuditData(subject, eraseOpts as any, db as never);
+  }
+
+  it('happy path: receipt over ordered non-NULL hashes + rowsAffected/legacySkipped/eventsScrubbed', async () => {
+    const h1 = 'a'.repeat(64);
+    const h2 = 'b'.repeat(64);
+    const { db } = makeFakeDb([{ id: 'r1', rowHash: h1 }, { id: 'r2', rowHash: h2 }, { id: 'r3', rowHash: null }], 3);
+
+    const result = await runErase(db);
+
+    const { receiptHash } = await import('@accessbase/audit');
+    expect(result.receiptHash).toBe(receiptHash([h1, h2]));
+    expect(result.rowsAffected).toBe(3); // ALL rows incl. legacy NULL-hash
+    expect(result.legacySkipped).toBe(1);
+    expect(result.eventsScrubbed).toBe(3);
+  });
+
+  it('ledger row carries the D5 column set incl. receipt + legalBasis (ledger is its sanctioned home)', async () => {
+    const h = 'c'.repeat(64);
+    const { db, insertedValues } = makeFakeDb([{ id: 'r1', row_hash: h }]);
+
+    const result = await runErase(db);
+
+    // db.insert serves BOTH the ledger row and the audit.erased emit (same handle) — the LEDGER is the first
+    expect(db.insert.mock.calls.length).toBeGreaterThanOrEqual(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ledger = insertedValues[0] as any;
+    expect(ledger.subjectUserId).toBe(subject);
+    expect(ledger.requestedBy).toBe(acting);
+    expect(ledger.tenantId).toBe(tenantId);
+    expect(ledger.legalBasis).toBe('GDPR Art.17');
+    expect(ledger.receiptHash).toBe(result.receiptHash);
+    expect(ledger.rowsAffected).toBe(1);
+    expect(ledger.eventsScrubbed).toBe(0); // placeholder 0 at insert; tombstone count folded after
+  });
+
+  it('audit scrub UPDATE whitelist per D4: requestBody={}, userId=[ERASED], ip/userAgent NULL, erasedAt+erasureId — and NOTHING else', async () => {
+    const { db, updates } = makeFakeDb([{ id: 'r1', rowHash: 'd'.repeat(64) }]);
+    await runErase(db);
+
+    const { auditLogs, events } = await import('../db/schema.js');
+    const scrub = updates.find((u) => u.table === auditLogs) as { set: Record<string, unknown>; where: unknown } | undefined;
+    expect(scrub).toBeDefined();
+    const set = scrub?.set as Record<string, unknown>;
+    // Exact whitelist: these keys and ONLY these keys
+    expect(Object.keys(set).sort()).toEqual(['erasedAt', 'erasureId', 'ip', 'requestBody', 'userAgent', 'userId'].sort());
+    expect(set.requestBody).toEqual({});
+    expect(set.userId).toBe('[ERASED]');
+    expect(set.ip).toBeNull();
+    expect(set.userAgent).toBeNull();
+    expect(set.erasureId).toBe('ledger-1');
+    expect(set.erasedAt).toBeInstanceOf(Date);
+    // WHERE names the subject (drizzle eq renders as a predicate; verify via SQL)
+    const { PgDialect } = await import('drizzle-orm/pg-core');
+    const q = new PgDialect().sqlToQuery((scrub as { where: unknown }).where as never);
+    expect(q.sql).toContain('"audit_logs"."user_id"');
+    expect(q.params).toContain(subject);
+    // events tombstone is the OTHER update on this db
+    expect(updates.some((u) => u.table === events)).toBe(true);
+  });
+
+  it('events tombstone matches payload->>id/email OR auth.login.* email; count folds into ledger eventsScrubbed', async () => {
+    const { db, updates, insertedValues } = makeFakeDb([{ id: 'r1', rowHash: 'e'.repeat(64) }], 4);
+    await runErase(db);
+
+    const { events } = await import('../db/schema.js');
+    const tombstone = updates.find((u) => u.table === events) as { set: unknown; where: unknown } | undefined;
+    expect(tombstone).toBeDefined();
+    expect(tombstone?.set).toEqual({ payload: { erased: true } });
+    const { PgDialect } = await import('drizzle-orm/pg-core');
+    const q = new PgDialect().sqlToQuery(tombstone?.where as never);
+    // user.* id OR email + auth.login.* email predicates all reference the captured email + subject id
+    expect(q.sql).toContain('id');
+    expect(JSON.stringify(q.params)).toContain('subject@test.local');
+    expect(JSON.stringify(q.params)).toContain(subject);
+    // ledger insert placeholder is 0; funnel folds the tombstone count into a follow-up ledger UPDATE
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((insertedValues[0] as any).eventsScrubbed).toBe(0);
+    expect(updates.length).toBe(3); // audit scrub + tombstone + ledger eventsScrubbed backfill
+  });
+
+  it('emits audit.erased on the SAME handle; payload = {subjectUserId, rowsAffected, legacySkipped} — NO legalBasis, NO email', async () => {
+    const { db, insertedValues } = makeFakeDb([{ id: 'r1', rowHash: 'f'.repeat(64) }], 2);
+
+    await runErase(db);
+
+    // db.insert called twice: ledger row + events row (emitEvent rides the same handle)
+    expect(db.insert).toHaveBeenCalledTimes(2);
+    const eventRow = insertedValues[1] as Record<string, unknown>;
+    expect(eventRow.type).toBe('audit.erased');
+    expect(eventRow.tenantId).toBe(tenantId);
+    const payload = eventRow.payload as Record<string, unknown>;
+    expect(payload).toEqual({ subjectUserId: subject, rowsAffected: 1, legacySkipped: 0 });
+    expect(JSON.stringify(payload)).not.toContain('GDPR');
+    expect(JSON.stringify(payload)).not.toContain('subject@test.local');
+  });
+
+  it('second call for an already-erased subject: zero rows, NO ledger insert, NO event', async () => {
+    const { db } = makeFakeDb([]);
+
+    const result = await runErase(db);
+
+    expect(result.rowsAffected).toBe(0);
+    expect(result.receiptHash).toBeDefined(); // GENESIS receipt (empty set)
+    expect(db.insert).not.toHaveBeenCalled();
+    expect(db.update).not.toHaveBeenCalled();
+  });
+});

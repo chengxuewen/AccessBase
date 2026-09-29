@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { sql } from 'drizzle-orm';
 import { FlowTokenService, UserManager, RoleManager, SessionManager } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { getSmtpMailer, resolvePublicOrigin } from './auth.js';
@@ -587,12 +588,16 @@ const error = err instanceof Error ? err : new Error(String(err));
     },
   );
 
-  // DELETE /api/v1/users/:id — delete user
-  app.delete<{ Params: { id: string } }>(
+  // DELETE /api/v1/users/:id — delete user. Optional {eraseAudit:true,
+  // legalBasis} body (R-audit spec U2/D5): runs the sanctioned RTBF erasure
+  // inside ONE routeTx whose FIRST statement is the advisory try-lock 727242
+  // (B2 — serializes with the anchor worker; false → retryable 409), then
+  // erase (email captured while the user row still exists) then the cascade.
+  app.delete<{ Params: { id: string }; Body: { eraseAudit?: boolean; legalBasis?: string } }>(
     '/:id',
     {
       schema: {
-        description: 'Delete user',
+        description: 'Delete user (optional body {eraseAudit:true, legalBasis} triggers sanctioned audit erasure in the same transaction)',
         tags: ['users'],
         security: [{ bearerAuth: [] }],
         params: {
@@ -600,17 +605,76 @@ const error = err instanceof Error ? err : new Error(String(err));
           required: ['id'],
           properties: { id: { type: 'string', format: 'uuid' } },
         },
+        body: {
+          // Fastify v4 validates body schemas against ABSENT bodies on DELETE —
+          // type must admit null so bodyless deletes keep passing (byte-identical
+          // legacy path); the handler re-checks eraseAudit/legality itself.
+          type: ['object', 'null'],
+          properties: {
+            eraseAudit: { type: 'boolean' },
+            legalBasis: { type: 'string', minLength: 1 },
+          },
+        },
       },
     },
     async (request, reply) => {
       const { id } = request.params;
+      const tenantId = request.tenantId ?? DEFAULT_TENANT;
+      // Required-when-flag (U2): erasure without a stated legal basis is a 400,
+      // not a silent no-erase. Plain deletes skip this branch entirely.
+      if (request.body?.eraseAudit === true && !request.body.legalBasis) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'VALIDATION_001', message: 'legalBasis is required when eraseAudit is true' },
+        });
+      }
+      const erase = request.body?.eraseAudit === true;
       try {
-        await userManager.delete(id, request.tenantId ?? DEFAULT_TENANT);
+        if (!erase) {
+          await userManager.delete(id, tenantId);
+          return { success: true };
+        }
+        await routeTx(async (tx) => {
+          // FIRST statement in the tx (B2): non-blocking try-lock serializes
+          // with the anchor worker on key 727242. False = worker holds it →
+          // retryable 409, nothing written.
+          const lockResult = await tx.execute(
+            sql`SELECT pg_try_advisory_xact_lock(727242) AS locked`,
+          );
+          const locked = Boolean(
+            (lockResult as unknown as { rows?: Array<{ locked?: unknown }> }).rows?.[0]?.locked,
+          );
+          if (!locked) {
+            throw new Error('ERASE_LOCK_BUSY: audit erasure is anchored by another operation — retry shortly');
+          }
+          const target = await userManager.findById(id, tenantId);
+          if (!target) {
+            throw new Error('User not found');
+          }
+          // Email captured while the user row still exists (U3 tombstone key).
+          await userManager.eraseAuditData(
+            id,
+            {
+              requestedBy: (request.user as { sub: string }).sub,
+              legalBasis: request.body.legalBasis as string,
+              email: target.email,
+              tenantId,
+            },
+            tx,
+          );
+          await userManager.delete(id, tenantId, tx);
+        });
         return { success: true };
       } catch (err) {
         const conflict = sendConflictError(reply, err);
         if (conflict) return conflict;
-const error = err instanceof Error ? err : new Error(String(err));
+        const error = err instanceof Error ? err : new Error(String(err));
+        if (error.message.startsWith('ERASE_LOCK_BUSY')) {
+          return reply.status(409).send({
+            success: false,
+            error: { code: 'ERASE_LOCK_BUSY', message: 'Audit erasure is temporarily locked by the anchor worker — retry shortly' },
+          });
+        }
         if (error.message.includes('not found')) {
           return reply.status(404).send({
             success: false,

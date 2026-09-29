@@ -96,6 +96,16 @@ const mockSetUserRoles = vi.fn().mockResolvedValue(undefined);
 const mockGetUserRoles = vi.fn().mockResolvedValue([
   { id: '550e8400-e29b-41d4-a716-4466554400aa', name: 'admin' },
 ]);
+
+// R-audit Task A5 seams: erase funnel + advisory-lock probe inside the tx seam.
+// mockLockAcquired flips the SELECT pg_try_advisory_xact_lock(727242) result.
+let mockLockAcquired = true;
+const mockTxExecute = vi.fn().mockImplementation(() =>
+  Promise.resolve({ rows: [{ locked: mockLockAcquired }] }),
+);
+const mockEraseAuditData = vi.fn().mockResolvedValue({
+  receiptHash: 'genesis', rowsAffected: 0, legacySkipped: 0, eventsScrubbed: 0,
+});
 // Tenant validator (T2-2): known role ids resolve, anything else is foreign → null
 const mockRoleFindById = vi.fn().mockImplementation((id: string) =>
   id === '550e8400-e29b-41d4-a716-4466554400aa' || id === '550e8400-e29b-41d4-a716-4466554400bb'
@@ -108,9 +118,10 @@ const mockRoleFindById = vi.fn().mockImplementation((id: string) =>
 vi.mock('@accessbase/identity', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@accessbase/identity')>()),
   UserManager: vi.fn().mockImplementation(() => ({
-    // Q2b routeTx seam: run the callback with a dummy handle (mocked
-    // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
-    transaction: (fn: (d: unknown) => unknown) => fn({}),
+    // Q2b routeTx seam — the tx handle exposes execute() like a real drizzle
+    // handle; the erasure route probes the advisory lock through it.
+    transaction: (fn: (d: { execute: typeof mockTxExecute }) => unknown) =>
+      fn({ execute: mockTxExecute }),
     findAll: mockFindAll,
     findById: mockFindById,
     findByEmail: mockFindByEmail,
@@ -118,6 +129,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
     update: mockUpdate,
     changeStatus: mockChangeStatus,
     delete: mockDelete,
+    eraseAuditData: mockEraseAuditData,
   })),
   RoleManager: vi.fn().mockImplementation(() => ({
     findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
@@ -142,6 +154,15 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
   })),
 }));
 
+// A5: the request body schema on DELETE forces express-style content-type
+// handling through the setup-guard DB probe; keep redis absent (getRedis
+// returns null → FlowTokenService degrades) without dialing a real client.
+vi.mock('../utils/redis.js', () => ({ getRedis: vi.fn().mockResolvedValue(null) }));
+// A5: the DELETE body schema trips the setup-guard DB probe path under vitest
+// (no real PG) — stub the guard hook to a pass-through (isSystemInitialized in
+// setup.js is never reached; route imports untouched).
+vi.mock('../middleware/setup-guard.js', () => ({ setupGuard: vi.fn().mockResolvedValue(undefined) }));
+
 const { buildApp } = await import('../app.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
@@ -157,6 +178,14 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
+});
+
+beforeEach(() => {
+  // A5 erasure seams: lock always re-acquired per test; call histories clean.
+  mockLockAcquired = true;
+  mockTxExecute.mockClear();
+  mockEraseAuditData.mockClear();
+  mockDelete.mockClear();
 });
 
 const authHeaders = () => ({ Authorization: `Bearer ${token}` });
@@ -476,5 +505,76 @@ describe('last-admin guard mapping (K-T2)', () => {
 
     expect(res.statusCode).toBe(409);
     expect(res.json().error.code).toBe('LAST_ADMIN_GUARD');
+  });
+});
+
+describe('DELETE /users/:id sanctioned erasure (R-audit Task A5)', () => {
+  it('eraseAudit flag: routeTx FIRST statement is the advisory try-lock; erase runs with captured email BEFORE delete, all on one tx', async () => {
+    mockEraseAuditData.mockResolvedValueOnce({ receiptHash: 'r', rowsAffected: 2, legacySkipped: 0, eventsScrubbed: 1 });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/users/${mockUser.id}`,
+      headers: authHeaders(),
+      payload: { eraseAudit: true, legalBasis: 'GDPR Art.17' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockEraseAuditData).toHaveBeenCalledTimes(1);
+    // (email, requestedBy, legalBasis, tenantId-ish opts, tx handle) — email captured inside the tx
+    const eraseArgs = mockEraseAuditData.mock.calls[0] as unknown[];
+    expect(eraseArgs[0]).toBe(mockUser.id);
+    const opts = eraseArgs[1] as Record<string, unknown>;
+    expect(opts.legalBasis).toBe('GDPR Art.17');
+    expect(opts.requestedBy).toBe(mockUser.id); // token sub (self-delete in mock lane)
+    // ORDERING: erase ran BEFORE delete (email capture while user row exists)
+    const delOrder = mockDelete.mock.invocationCallOrder[0];
+    const eraseOrder = mockEraseAuditData.mock.invocationCallOrder[0];
+    expect(eraseOrder).toBeLessThan(delOrder);
+    // lock executed as tx first statement (drizzle sql template → render via PgDialect)
+    expect(mockTxExecute).toHaveBeenCalledTimes(1);
+    const { PgDialect } = await import('drizzle-orm/pg-core');
+    const rendered = new PgDialect().sqlToQuery(mockTxExecute.mock.calls[0][0] as never);
+    expect(rendered.sql).toContain('pg_try_advisory_xact_lock(727242)');
+  });
+
+  it('advisory lock false → 409 ERASE_LOCK_BUSY, erase/delete never called', async () => {
+    mockLockAcquired = false;
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/users/${mockUser.id}`,
+      headers: authHeaders(),
+      payload: { eraseAudit: true, legalBasis: 'GDPR Art.17' },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe('ERASE_LOCK_BUSY');
+    expect(mockEraseAuditData).not.toHaveBeenCalled();
+    expect(mockDelete).not.toHaveBeenCalled();
+  });
+
+  it('eraseAudit without legalBasis → 400 VALIDATION_001 (schema-declared required-when-flag)', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/users/${mockUser.id}`,
+      headers: authHeaders(),
+      payload: { eraseAudit: true },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('VALIDATION_001');
+    expect(mockEraseAuditData).not.toHaveBeenCalled();
+  });
+
+  it('no flag → today behavior byte-identical: direct userManager.delete, no routeTx/lock/erase', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/users/${mockUser.id}`,
+      headers: authHeaders(),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockDelete).toHaveBeenCalledWith(mockUser.id, expect.any(String));
+    expect(mockEraseAuditData).not.toHaveBeenCalled();
+    expect(mockTxExecute).not.toHaveBeenCalled();
   });
 });

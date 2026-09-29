@@ -25,6 +25,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@accessbase/audit": "workspace:*",
     "@accessbase/logging": "workspace:*",
     "@accessbase/types": "workspace:*",
     "@alicloud/dysmsapi20170525": "^4.6.0",

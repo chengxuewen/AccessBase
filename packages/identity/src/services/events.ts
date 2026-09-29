@@ -29,7 +29,10 @@ export type DomainEventType =
   | 'webhook.test'
   | 'auth.login.success'
   | 'auth.login.failure'
-  | 'auth.logout';
+  | 'auth.logout'
+  // R-audit spec D5/U8: sanctioned-erasure broadcast (payload carries ids +
+  // counts only — never legalBasis, never the subject email).
+  | 'audit.erased';
 
 export interface EmitEventInput {
   tenantId: string;

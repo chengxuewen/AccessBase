@@ -1,9 +1,18 @@
 /**
  * UserManager - User management with Drizzle ORM (SDD 2.2)
  */
-import { eq, and, like, sql, count, asc, desc, notInArray } from 'drizzle-orm';
+import { eq, and, or, like, sql, count, asc, desc, notInArray } from 'drizzle-orm';
 import { closeDb, createDb, type DbLike, type DrizzleDB } from '../db/index.js';
-import { users, passwordHistory, type User as DbUser, type NewUser } from '../db/schema.js';
+import {
+  users,
+  passwordHistory,
+  auditLogs,
+  auditErasures,
+  events,
+  type User as DbUser,
+  type NewUser,
+} from '../db/schema.js';
+import { receiptHash } from '@accessbase/audit';
 import { invalidatePermissionCache } from './permission-cache.js';
 import { bumpAuthState, delAuthState } from '../services/token-version.js';
 import { wouldOrphanLastAdmin, LAST_ADMIN_GUARD } from '../services/last-admin-guard.js';
@@ -20,6 +29,13 @@ import type {
 import bcryptjs from 'bcryptjs';
 const { hash, compare } = bcryptjs;
 
+/** D5 erasure funnel return shape (ledger counts + receipt digest). */
+export interface ErasureResult {
+  receiptHash: string;
+  rowsAffected: number;
+  legacySkipped: number;
+  eventsScrubbed: number;
+}
 export class UserManager {
   private readonly db: DrizzleDB;
 
@@ -246,6 +262,117 @@ export class UserManager {
     await emitEvent(d, { tenantId, type: 'user.deleted', payload: { id } });
   }
 
+  /**
+   * Sanctioned RTBF erasure funnel (R-audit spec 2026-09-28 D5/U2/U3). Runs
+   * INSIDE the caller's routeTx (the route's FIRST statement is the advisory
+   * try-lock 727242; the DELETE cascade follows this call) so ledger + scrubs
+   * + tombstones + audit.erased commit or roll back atomically with the
+   * delete.
+   *
+   * 1. Receipt subset: WHERE user_id = subject AND row_hash IS NOT NULL (D6 —
+   *    legacy NULL-hash rows cannot enter a receipt), ordered created_at,id.
+   *    receiptHash over the ORIGINAL hashes. Legacy rows are counted, never
+   *    silently dropped. Zero matched rows = already erased → pure no-op.
+   * 2. Ledger insert (legalBasis's ONLY sanctioned home).
+   * 3. D4-whitelist scrub over ALL subject rows (incl. legacy): requestBody
+   *    ='{}', userId='[ERASED]', ip/userAgent NULL, erasedAt/erasureId set.
+   *    row_hash/anchor_id/action/provenance NEVER touched.
+   * 4. U3 tombstone: matching outbox events → payload {erased:true} (user.*
+   *    by id or email; auth.login.* by email); count folds into eventsScrubbed.
+   * 5. audit.erased emitted on the SAME handle — payload ids/counts only.
+   *    B3: legalBasis and the subject email are NEVER logged or emitted.
+   *
+   * The subject EMAIL arrives via opts: the route captures it from the
+   * still-present users row BEFORE the cascade deletes it.
+   */
+  async eraseAuditData(
+    subjectUserId: string,
+    opts: { requestedBy: string; legalBasis: string; email: string; tenantId: string },
+    db?: DbLike,
+  ): Promise<ErasureResult> {
+    const d: DbLike = db ?? this.db;
+
+    // Step 1 — receipt subset (fold order = the verifier's re-fold order).
+    const receiptRows = await d
+      .select({ id: auditLogs.id, rowHash: auditLogs.rowHash })
+      .from(auditLogs)
+      .where(eq(auditLogs.userId, subjectUserId))
+      .orderBy(asc(auditLogs.createdAt), asc(auditLogs.id));
+    // Receipt covers ONLY non-NULL-hash rows (D6 — legacy rows cannot enter a
+    // receipt); NULL-hash members of the same subject set are counted as
+    // legacySkipped, never silently dropped, and still get scrubbed in step 3.
+    const hashedRows = receiptRows.filter((r) => r.rowHash !== null);
+    const hashes = hashedRows.map((r) => r.rowHash as string);
+    const receipt = receiptHash(hashes);
+    const legacySkipped = receiptRows.length - hashedRows.length;
+
+    if (receiptRows.length === 0) {
+      // Already-erased (or never-audited) subject: zero writes, zero events.
+      return { receiptHash: receipt, rowsAffected: 0, legacySkipped: 0, eventsScrubbed: 0 };
+    }
+    const rowsAffected = receiptRows.length;
+
+    // Step 2 — ledger row.
+    const [ledger] = await d
+      .insert(auditErasures)
+      .values({
+        tenantId: opts.tenantId,
+        subjectUserId,
+        requestedBy: opts.requestedBy,
+        legalBasis: opts.legalBasis,
+        receiptHash: receipt,
+        rowsAffected,
+        eventsScrubbed: 0, // placeholder; folded to the true count below
+      })
+      .returning({ id: auditErasures.id });
+
+    // Step 3 — D4 whitelist scrub (ALL subject rows incl. legacy).
+    await d
+      .update(auditLogs)
+      .set({
+        requestBody: {},
+        userId: '[ERASED]',
+        ip: null,
+        userAgent: null,
+        erasedAt: new Date(),
+        erasureId: ledger.id,
+      })
+      .where(eq(auditLogs.userId, subjectUserId));
+
+    // Step 4 — U3 outbox tombstone (same predicate for scrub + recount).
+    const tombstoneWhere = or(
+      and(
+        like(events.type, 'user.%'),
+        or(
+          sql`${events.payload}->>'id' = ${subjectUserId}`,
+          sql`${events.payload}->>'email' = ${opts.email}`,
+        ),
+      ),
+      and(
+        like(events.type, 'auth.login.%'),
+        sql`${events.payload}->>'email' = ${opts.email}`,
+      ),
+    );
+    const tombstoned = await d
+      .update(events)
+      .set({ payload: { erased: true } })
+      .where(tombstoneWhere)
+      .returning({ id: events.id });
+    const eventsScrubbed = tombstoned.length;
+
+    if (eventsScrubbed > 0) {
+      await d.update(auditErasures).set({ eventsScrubbed }).where(eq(auditErasures.id, ledger.id));
+    }
+
+    // Step 5 — broadcast on the SAME handle. Ids + counts only (B3).
+    await emitEvent(d, {
+      tenantId: opts.tenantId,
+      type: 'audit.erased',
+      payload: { subjectUserId, rowsAffected, legacySkipped },
+    });
+
+    return { receiptHash: receipt, rowsAffected, legacySkipped, eventsScrubbed };
+  }
   /**
    * Change user status (active / suspended / pending)
    */
