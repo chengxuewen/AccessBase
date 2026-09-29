@@ -8,8 +8,9 @@ pgTable,
 uuid,
 varchar,
 text,
-boolean,
-integer,
+  boolean,
+  integer,
+  date,
   timestamp,
   jsonb,
 primaryKey,
@@ -196,6 +197,12 @@ export const auditLogs = pgTable(
     ip: varchar('ip', { length: 45 }),
     userAgent: text('user_agent'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    // R-audit (spec 2026-09-28 D3): tamper-evidence chain columns. All NULLable
+    // (legacy rows and pending state); no FKs — this table has none today.
+    rowHash: text('row_hash'),
+    anchorId: bigint('anchor_id', { mode: 'number' }),
+    erasedAt: timestamp('erased_at', { withTimezone: true }),
+    erasureId: uuid('erasure_id'),
   },
   (table) => ({
     createdIdx: index('idx_audit_logs_created').on(table.createdAt),
@@ -556,3 +563,47 @@ export type WebhookEndpointRow = typeof webhookEndpoints.$inferSelect;
 export type NewWebhookEndpointRow = typeof webhookEndpoints.$inferInsert;
 export type WebhookDeliveryRow = typeof webhookDeliveries.$inferSelect;
 export type NewWebhookDeliveryRow = typeof webhookDeliveries.$inferInsert;
+
+/**
+ * Day-anchored audit chain roots (R-audit spec 2026-09-28 D2). One row per
+ * (day, seq) fold of ordered audit row hashes; prev_root links across folds.
+ * pruned_at is set by the retention sweeper when the folded rows are gone.
+ */
+export const auditChainAnchors = pgTable(
+  'audit_chain_anchors',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    day: date('day').notNull(),
+    seq: integer('seq').notNull(),
+    firstId: uuid('first_id').notNull(),
+    lastId: uuid('last_id').notNull(),
+    rowCount: integer('row_count').notNull(),
+    root: text('root').notNull(),
+    prevRoot: text('prev_root'),
+    prunedAt: timestamp('pruned_at', { withTimezone: true }),
+    anchoredAt: timestamp('anchored_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex('audit_chain_anchors_day_seq_unique').on(t.day, t.seq)],
+);
+
+/**
+ * Sanctioned RTBF erasure ledger (R-audit spec 2026-09-28 D5). receipt_hash
+ * binds the ledger to the pre-erasure row-hash set; erasure_id on audit_logs
+ * links scrubbed rows back here for verify-time receipt recomputation.
+ */
+export const auditErasures = pgTable('audit_erasures', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: varchar('tenant_id', { length: 64 }).notNull(),
+  subjectUserId: uuid('subject_user_id').notNull(),
+  requestedBy: uuid('requested_by').notNull(),
+  legalBasis: text('legal_basis').notNull(),
+  receiptHash: text('receipt_hash').notNull(),
+  rowsAffected: integer('rows_affected').notNull(),
+  eventsScrubbed: integer('events_scrubbed').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type AuditChainAnchorRow = typeof auditChainAnchors.$inferSelect;
+export type NewAuditChainAnchorRow = typeof auditChainAnchors.$inferInsert;
+export type AuditErasureRow = typeof auditErasures.$inferSelect;
+export type NewAuditErasureRow = typeof auditErasures.$inferInsert;
