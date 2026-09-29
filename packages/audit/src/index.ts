@@ -6,6 +6,8 @@
 
 export { AuditLogger } from './logger.js';
 export type { AuditStorage, AuditLoggerOptions } from './logger.js';
+export { canonicalJson, rowHash, foldRoot, receiptHash, GENESIS } from './hashing.js';
+export type { AuditRowFields } from './hashing.js';
 
 export { createAuditMiddleware, auditAuthEvent, auditConfigChange } from './middleware.js';
 

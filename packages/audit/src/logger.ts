@@ -1,9 +1,10 @@
-import { createHash } from 'crypto';
 import type { AuditLog, AuditLogEntry, AuditConfig } from './types.js';
 import { logger } from '@accessbase/logging';
 
 /**
- * Storage abstraction for audit persistence. Implementations receive entries AFTER hashing.
+ * Storage abstraction for audit persistence. Implementations receive entries
+ * WITHOUT hash fields — sealing (createdAt + rowHash) happens at insert in the
+ * storage layer (spec R-audit D4).
  */
 export interface AuditStorage {
   write(entries: AuditLog[]): Promise<void>;
@@ -23,7 +24,6 @@ export class AuditLogger {
   private config: AuditConfig;
   private logger: typeof logger;
   private storage: AuditStorage | null;
-  private previousHash: string = 'GENESIS';
   private buffer: AuditLogEntry[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
 
@@ -51,15 +51,6 @@ export class AuditLogger {
     }
 
     const sanitizedEntry = this.sanitizeEntry(entry);
-    const hash = this.computeHash(sanitizedEntry);
-    const auditLog: AuditLog = {
-      ...sanitizedEntry,
-      id: this.generateId(),
-      hash,
-      previousHash: this.previousHash,
-    };
-
-    this.previousHash = hash;
 
     if (this.config.async.enabled) {
       this.buffer.push(sanitizedEntry);
@@ -68,7 +59,7 @@ export class AuditLogger {
         await this.flushBuffer();
       }
     } else {
-      await this.writeToStorage(auditLog);
+      await this.writeToStorage({ ...sanitizedEntry, id: this.generateId() });
     }
   }
 
@@ -113,29 +104,14 @@ export class AuditLogger {
     try {
       // Batch write via storage when configured; console fallback otherwise
       if (this.storage) {
-        const hashed = entriesToFlush.map((entry) => {
-          const hash = this.computeHash(entry);
-          const auditLog: AuditLog = {
-            ...entry,
-            id: this.generateId(),
-            hash,
-            previousHash: this.previousHash,
-          };
-          this.previousHash = hash;
-          return auditLog;
-        });
-        await this.storage.write(hashed);
+        const entries = entriesToFlush.map((entry) => ({
+          ...entry,
+          id: this.generateId(),
+        }));
+        await this.storage.write(entries);
       } else {
         for (const entry of entriesToFlush) {
-          const hash = this.computeHash(entry);
-          const auditLog: AuditLog = {
-            ...entry,
-            id: this.generateId(),
-            hash,
-            previousHash: this.previousHash,
-          };
-          this.previousHash = hash;
-          await this.writeToStorage(auditLog);
+          await this.writeToStorage({ ...entry, id: this.generateId() });
         }
       }
     } catch (error) {
@@ -146,25 +122,6 @@ export class AuditLogger {
       // Re-add entries to buffer for retry
       this.buffer.unshift(...entriesToFlush);
     }
-  }
-
-  /**
-   * Compute SHA-256 hash for audit log entry
-   */
-  private computeHash(entry: AuditLogEntry): string {
-    const data = JSON.stringify({
-      userId: entry.userId,
-      action: entry.action,
-      resourceType: entry.resourceType,
-      resourceId: entry.resourceId,
-      timestamp: entry.timestamp,
-      tenantId: entry.tenantId,
-      requestId: entry.requestId,
-      success: entry.success,
-      previousHash: this.previousHash,
-    });
-
-    return createHash('sha256').update(data).digest('hex');
   }
 
   /**
@@ -257,7 +214,6 @@ export class AuditLogger {
         userId: entry.userId,
         tenantId: entry.tenantId,
         success: entry.success,
-        hash: entry.hash,
       },
       'Audit log entry',
     );

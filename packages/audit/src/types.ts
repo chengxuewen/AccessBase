@@ -34,12 +34,14 @@ export interface AuditLogEntry {
 }
 
 /**
- * Full audit log with integrity fields
+ * Full audit log row. Carries NO hash fields from the logger — the write path
+ * (spec R-audit D4) seals rows at insert in the storage layer via rowHash,
+ * which storage computes and persists; the logger only transports entries.
  */
 export interface AuditLog extends AuditLogEntry {
   id: string;
-  hash: string;
-  previousHash: string;
+  /** Set by the storage layer at insert (packages/audit/src/hashing.ts rowHash), never by the logger. */
+  rowHash?: string;
 }
 
 /**

@@ -678,10 +678,12 @@ describe('AuditLogger storage persistence', () => {
 
     expect(written).toHaveLength(1);
     expect(written[0]?.action).toBe('CREATE');
-    expect(written[0]?.hash).toBeDefined();
-    expect(written[0]?.previousHash).toBe('GENESIS');
+    const first: AuditLog | undefined = written[0];
+    expect(first).toBeDefined();
+    const keys = Object.keys(first ?? {});
+    expect(keys).not.toContain('hash');
+    expect(keys).not.toContain('previousHash');
   });
-
   it('batches entries through storage on flush (async mode)', async () => {
     vi.useFakeTimers();
     const written: AuditLog[] = [];
