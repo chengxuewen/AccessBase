@@ -293,10 +293,21 @@ export class UserManager {
     const d: DbLike = db ?? this.db;
 
     // Step 1 — receipt subset (fold order = the verifier's re-fold order).
+    // rev.4 (D-ERASE-1): target set = actor rows UNION mention rows. The actor
+    // column alone misses the flagship RTBF scenario (admin-created subject:
+    // the CREATE/UPDATE rows embed the subject email/uuid in requestBody, but
+    // user_id names the admin). Mention tokens captured BEFORE any scrub —
+    // email from opts, uuid is the subject id itself.
+    const email = opts.email;
+    const mention = or(
+      sql`${auditLogs.requestBody}::text LIKE ${'%' + email + '%'}`,
+      sql`${auditLogs.requestBody}::text LIKE ${'%' + subjectUserId + '%'}`,
+    );
+    const targetSet = or(eq(auditLogs.userId, subjectUserId), mention);
     const receiptRows = await d
       .select({ id: auditLogs.id, rowHash: auditLogs.rowHash })
       .from(auditLogs)
-      .where(eq(auditLogs.userId, subjectUserId))
+      .where(targetSet)
       .orderBy(asc(auditLogs.createdAt), asc(auditLogs.id));
     // Receipt covers ONLY non-NULL-hash rows (D6 — legacy rows cannot enter a
     // receipt); NULL-hash members of the same subject set are counted as
@@ -331,7 +342,7 @@ export class UserManager {
       throw new Error('audit erasure ledger insert returned no row');
     }
 
-    // Step 3 — D4 whitelist scrub (ALL subject rows incl. legacy).
+    // Step 3 — D4 whitelist scrub (target set = actor UNION mention, rev.4).
     await d
       .update(auditLogs)
       .set({
@@ -342,7 +353,7 @@ export class UserManager {
         erasedAt: new Date(),
         erasureId: ledger.id,
       })
-      .where(eq(auditLogs.userId, subjectUserId));
+      .where(targetSet);
 
     // Step 4 — U3 outbox tombstone (same predicate for scrub + recount).
     const tombstoneWhere = or(

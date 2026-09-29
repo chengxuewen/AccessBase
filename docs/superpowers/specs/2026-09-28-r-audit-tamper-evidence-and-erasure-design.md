@@ -215,3 +215,5 @@ Live-fire ledger (post-impl, report): fresh-PG boot→login→actions→anchor w
 **Cost:** funnel predicate +2 OR arms; receipt test fixtures +1 mention-row case; no schema/migration change. ~half day incl. tests.
 
 **Alternatives rejected:** (b) document actor-only boundary — leaves the headline RTBF promise hollow (the flagship scenario "admin creates user, user exercises erasure" scrubs nothing).
+
+**REV.4 RULING: APPROVED (user, 2026-09-29).** Implemented + live-fired: predicate = actor UNION mention (request_body::text LIKE %email% OR %uuid%), shared by receipt select AND scrub (hoisted `targetSet`); RED case added (membership SQL asserts request_body arm + LIKE-wrapped tokens); live rerun on scratch: mention-row 0 residual PII, ledger rows_affected=1/events_scrubbed=1, verify rowsErased=1 green via receipt (prior intentional tamper row stays red — correct). spec status: rev.4 RATIFIED.

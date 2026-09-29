@@ -678,6 +678,22 @@ describe('eraseAuditData (R-audit Task A5, spec D5/U2/U3)', () => {
     expect(JSON.stringify(payload)).not.toContain('subject@test.local');
   });
 
+  it('rev.4 mention-rows: requestBody containing the subject email/uuid joins the target set (D-ERASE-1)', async () => {
+    const h = 'f'.repeat(64);
+    const { db, updates } = makeFakeDb([{ id: 'r1', rowHash: h }]);
+    await runErase(db);
+
+    const { auditLogs } = await import('../db/schema.js');
+    const scrub = updates.find((u) => u.table === auditLogs) as { where: unknown } | undefined;
+    expect(scrub).toBeDefined();
+    const { PgDialect } = await import('drizzle-orm/pg-core');
+    const q = new PgDialect().sqlToQuery((scrub as { where: unknown }).where as never);
+    // predicate must now be the UNION: actor arm + mention arm (email OR uuid in request_body)
+    expect(q.sql).toContain('request_body');
+    expect(q.params).toContain('%subject@test.local%'); // email mention token (LIKE-wrapped)
+    expect(q.params).toContain(subject); // appears for BOTH actor eq + uuid mention
+  });
+
   it('second call for an already-erased subject: zero rows, NO ledger insert, NO event', async () => {
     const { db } = makeFakeDb([]);
 
