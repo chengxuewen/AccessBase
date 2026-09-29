@@ -392,11 +392,32 @@ export async function buildApp(options: BuildAppOptions = {}) {
       },
     });
   }
+  // R-audit A4: audit anchor worker — same hard test gate as the dispatcher
+  // (no ticks, no pools under NODE_ENV=test). Own lazy pool, closed via stop().
+  let auditAnchor: { stop: () => Promise<void> } | undefined;
+  if (config.nodeEnv !== 'test') {
+    const { startAuditAnchor } = await import('./utils/audit-anchor.js');
+    const { auditAnchorLastRootOk, auditAnchorLastRootTimestamp } = await import(
+      './utils/audit-metrics.js'
+    );
+    auditAnchor = startAuditAnchor({
+      makeDb: () => createDb(config.databaseUrl),
+      intervalSeconds: config.auditAnchorIntervalSeconds,
+      graceSeconds: config.auditAnchorGraceSeconds,
+      exportPath: config.auditAnchorExportPath,
+      recordResult: (ok) => {
+        auditAnchorLastRootOk.set(ok ? 1 : 0);
+        if (ok) auditAnchorLastRootTimestamp.set(Date.now() / 1000);
+      },
+      log: app.log,
+    });
+  }
   // Q2a(B): graceful close ends the singleton managers' pools + the sweeper's pool.
   app.addHook('onClose', async () => {
     await coherence.teardown();
     await retention.stop();
     await webhookDispatcher?.stop();
+    await auditAnchor?.stop();
     await resetManagers();
     await closeAuthDb();
   });

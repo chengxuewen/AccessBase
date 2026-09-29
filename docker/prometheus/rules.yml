@@ -39,3 +39,12 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: "Webhook fan-out backlog above 100 events or oldest pending over 5m for 10m (dispatcher stalled?)"
+
+      # R-audit A4: anchor worker staleness (sample — NOT WIRED, like the rest of this file)
+      - alert: AccessbaseAuditAnchorStalled
+        expr: time() - accessbase_audit_anchor_last_root_timestamp_seconds > 900
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Audit anchor worker produced no new root in >15m (3x default interval)"

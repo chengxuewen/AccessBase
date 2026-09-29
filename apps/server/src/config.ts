@@ -9,6 +9,12 @@ export interface AppConfig {
   /** Q3C: comma-separated EXTRA public key PEMs published in /oidc/jwks (rotation overlap window). */
   oidcJwksExtraPublicPaths: string;
   nodeEnv: 'development' | 'production' | 'test';
+  /** R-audit A4: anchor worker cadence (AUDIT_ANCHOR_INTERVAL_SECONDS). */
+  auditAnchorIntervalSeconds: number;
+  /** Grace window before rows become anchor-eligible (AUDIT_ANCHOR_GRACE_SECONDS). */
+  auditAnchorGraceSeconds: number;
+  /** Optional off-box root export file (AUDIT_ANCHOR_EXPORT_PATH); unset = no export. */
+  auditAnchorExportPath: string | undefined;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   adminPassword: string;
   staticDir: string;
@@ -108,6 +114,9 @@ export const config: AppConfig = {
   jwtPublicKeyPath: process.env['JWT_PUBLIC_KEY_PATH'] || '',
   oidcJwksExtraPublicPaths: process.env['JWT_JWKS_EXTRA_PUBLIC_KEY_PATHS'] || '',
   nodeEnv: resolveNodeEnv(process.env),
+  auditAnchorIntervalSeconds: Number.parseInt(process.env['AUDIT_ANCHOR_INTERVAL_SECONDS'] ?? '300', 10) || 300,
+  auditAnchorGraceSeconds: Number.parseInt(process.env['AUDIT_ANCHOR_GRACE_SECONDS'] ?? '90', 10) || 90,
+  auditAnchorExportPath: process.env['AUDIT_ANCHOR_EXPORT_PATH'] || undefined,
   logLevel: (resolveNodeEnv(process.env) === 'production'
     ? 'info'
     : 'debug') as AppConfig['logLevel'],

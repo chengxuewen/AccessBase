@@ -20,21 +20,32 @@ describe('retention sweeper (Q2a E)', () => {
   it('pool is lazy (no makeDb at start); first tick sweeps both tables with BOUND params', async () => {
     vi.useFakeTimers();
     try {
+      // R-audit A4: every statement now rides a transaction (B4 mark-first +
+      // session tx wrap) — the transactional handle carries the statements,
+      // so the assertion surface is the tx-level execute relay.
       const execute = vi.fn(async () => ({ rowCount: 2 }));
-      const makeDb = vi.fn(() => ({ execute }) as never);
+      const makeDb = vi.fn(() => ({
+        execute,
+        transaction: vi.fn(async (fn: (tx: { execute: typeof execute }) => Promise<void>) =>
+          fn({ execute }),
+        ),
+      }) as never);
       const log = { info: vi.fn(), warn: vi.fn() };
       const sweeper = startRetentionSweeper(makeDb, 45, log);
       expect(makeDb).not.toHaveBeenCalled(); // health-pool premise: nothing dials at registration
       await vi.advanceTimersByTimeAsync(60_000);
       expect(makeDb).toHaveBeenCalledTimes(1);
-      // retention>0 → audit DELETE + session DELETE
-      expect(execute).toHaveBeenCalledTimes(2);
+      // retention>0 → mark + audit DELETE (tx 1) + session DELETE (tx 2)
+      expect(execute).toHaveBeenCalledTimes(3);
       const first = new PgDialect().sqlToQuery(execute.mock.calls[0]?.[0] as never);
-      expect(first.sql).toContain('make_interval');
+      expect(first.sql).toContain('pruned_at');
       expect(first.params).toEqual([45]);
       const second = new PgDialect().sqlToQuery(execute.mock.calls[1]?.[0] as never);
-      expect(second.sql).toContain('sessions');
-      expect(second.params).toEqual([SESSION_GRACE_DAYS]);
+      expect(second.sql).toContain('make_interval');
+      expect(second.params).toEqual([45]);
+      const third = new PgDialect().sqlToQuery(execute.mock.calls[2]?.[0] as never);
+      expect(third.sql).toContain('sessions');
+      expect(third.params).toEqual([SESSION_GRACE_DAYS]);
       await sweeper.stop();
     } finally {
       vi.useRealTimers();
@@ -45,7 +56,12 @@ describe('retention sweeper (Q2a E)', () => {
     vi.useFakeTimers();
     try {
       const execute = vi.fn(async () => ({ rowCount: 0 }));
-      const makeDb = vi.fn(() => ({ execute }) as never);
+      const makeDb = vi.fn(() => ({
+        execute,
+        transaction: vi.fn(async (fn: (tx: { execute: typeof execute }) => Promise<void>) =>
+          fn({ execute }),
+        ),
+      }) as never);
       const sweeper = startRetentionSweeper(makeDb, 0, { info: vi.fn(), warn: vi.fn() });
       await vi.advanceTimersByTimeAsync(60_000);
       expect(execute).toHaveBeenCalledTimes(1);
