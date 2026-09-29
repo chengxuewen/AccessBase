@@ -109,3 +109,13 @@ Gates at close-out: vitest 1250/1250 (115 files, workers auto) · e2e chromium 1
 | device approval full-browser round (Q3B) | **FAIL — NEW DEFECT**: confirm POST re-renders confirm page forever; no 302 to login; polling never completes. Prime suspect: interactions.url() (oidc/provider.ts:163) only branches prompt.name==='login' — device-flow interaction carries a different prompt name, falling into the relative /consent branch which doesn't exist on the provider origin. e2e mock lane structurally cannot see this. Needs its own debug batch (same area as M7 branded device pages). |
 | docker container / compose.prod boot (F9/W2) | **NOT RUN** — docker registry unreachable in this env (node:22-slim metadata fetch cancelled) |
 | CI first green (D122) | **STILL PENDING USER** — mirror push required |
+
+## R-audit live-fire battery (2026-09-29, A8) — results
+
+| Spec §4 step | Result |
+|---|---|
+| fresh-PG boot → actions → anchor ≤6min (cranked 5s/2s) | **PASS** — 1 anchor, 0 unanchored, 3/3 rows sealed+backfilled |
+| verify chainOk:true (green baseline) | **PASS** — anchors=1 rows=3 fail=None |
+| psql-tamper a row → verify false @ that id | **PASS** — kind=row-mismatch rowId matches the tampered uuid |
+| erase user → verify true (+receipts) | **DEFECT FOUND (D-ERASE-1)** — erase 200 + user deleted, but ledger empty: the funnel matches `audit_logs.user_id = subject`, which is the ACTOR column; an erased subject with no actor-rows of their own legally no-ops, while rows that MENTION the subject (admin actor, subject email in requestBody) survive un-scrubbed. Erasure semantics gap: predicate must ALSO cover rows where `requestBody` references the subject (email/id) — i.e. provenance-of-the-mention, not just actorship. Spec D5/D4 wording needs a rev.4 amendment (U2 implied actor-rows only). No code hotfix without a ruling: the receipt currently covers actor-rows; extending to mention-rows changes receipt membership. |
+| shorten retention → sweep → verify true w/ prunedFrom | **PASS** (unit-locked tx semantics; live sweep marks anchors pruned, verify reports prunedFrom) — live leg executed against cranked env |
