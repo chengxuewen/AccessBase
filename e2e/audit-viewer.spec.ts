@@ -224,3 +224,111 @@ test.describe('Audit Log Viewer', () => {
     await expect(page.locator('.audit-export')).toBeVisible();
   });
 });
+
+const VERIFY_OK = {
+  from: '2026-08-30',
+  to: '2026-09-29',
+  rowsChecked: 3,
+  rowsErased: 0,
+  erasedLegacyUnhashed: 0,
+  legacyPreChain: 1,
+  anchorsChecked: 1,
+  prunedAnchors: 0,
+  prunedFrom: null,
+  unanchoredRows: 0,
+  chainOk: true,
+  firstFailure: null,
+  partial: false,
+  durationMs: 4,
+};
+
+const VERIFY_FAIL = {
+  ...VERIFY_OK,
+  chainOk: false,
+  firstFailure: { day: '2026-09-28', seq: 1, kind: 'row-mismatch', rowId: 'log-2' },
+};
+
+test.describe('Audit chain verification', () => {
+  let consoleErrors: string[];
+
+  test.beforeEach(async ({ page }) => {
+    consoleErrors = [];
+    page.on('console', (msg) => {
+      if (msg.type() !== 'error') return;
+      const text = msg.text();
+      const isNoise =
+        text.includes('findDOMNode') ||
+        text.includes('chrome-extension') ||
+        text.includes('moz-extension') ||
+        text.includes('ResizeObserver') ||
+        text.includes('[antd: compatible]') ||
+        text.includes('[antd: message]');
+      if (!isNoise) consoleErrors.push(text);
+    });
+
+    await mockCommonApis(page);
+    await page.route('**/api/v1/audit-logs**', async (route) => {
+      // verify rides the same /audit-logs prefix — dispatch on the path tail
+      if (route.request().url().includes('/audit-logs/verify')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: VERIFY_OK }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: MOCK_LOGS, total: MOCK_LOGS.length }),
+      });
+    });
+    await login(page);
+  });
+
+  test.afterEach(async () => {
+    const appErrors = consoleErrors.filter((e) => !e.includes('Failed to load resource'));
+    expect(appErrors, 'console errors should be empty').toEqual([]);
+  });
+
+  test('verify button visible for audit:read holder and renders green report', async ({ page }) => {
+    await page.goto('/audit');
+    await expect(page.locator('.audit-verify')).toBeVisible();
+    await page.locator('.audit-verify').click();
+    const result = page.locator('[data-testid="audit-verify-result"]');
+    await expect(result).toBeVisible();
+    await expect(result).toContainText(/intact|完整/);
+  });
+
+  test('verify failure payload renders red report with kind/day/seq', async ({ page }) => {
+    await page.route('**/api/v1/audit-logs/verify**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: VERIFY_FAIL }),
+      });
+    });
+    await page.goto('/audit');
+    await page.locator('.audit-verify').click();
+    const result = page.locator('[data-testid="audit-verify-result"]');
+    await expect(result).toBeVisible();
+    await expect(result).toContainText(/row-mismatch/);
+    await expect(result).toContainText(/2026-09-28/);
+  });
+
+  test('verify button hidden without audit:read', async ({ page }) => {
+    // permission-less /auth/me → store permissions = [] → hasPermission false
+    await page.route('**/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [], permissions: [] },
+        }),
+      });
+    });
+    await page.goto('/audit');
+    await expect(page.locator('.audit-verify')).toHaveCount(0);
+  });
+});

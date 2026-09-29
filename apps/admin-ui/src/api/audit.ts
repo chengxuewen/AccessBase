@@ -1,5 +1,5 @@
 import client from './client';
-import type { PaginatedEnvelope } from './types';
+import type { PaginatedEnvelope, ApiEnvelope } from './types';
 
 /** Audit log entry — matches GET /api/v1/audit-logs response */
 export interface AuditLog {
@@ -10,6 +10,37 @@ export interface AuditLog {
   status?: number;
   ipAddress?: string;
   createdAt: string;
+}
+
+/** R-audit D7: tamper-chain verification report (GET /v1/audit-logs/verify). */
+export interface AuditVerifyFailure {
+  day: string;
+  seq: number;
+  kind: 'row-mismatch' | 'anchor-mismatch' | 'orphan-erasure' | 'unanchored';
+  rowId?: string;
+}
+
+export interface AuditVerifyReport {
+  from: string;
+  to: string;
+  rowsChecked: number;
+  rowsErased: number;
+  erasedLegacyUnhashed: number;
+  legacyPreChain: number;
+  anchorsChecked: number;
+  prunedAnchors: number;
+  prunedFrom: string | null;
+  unanchoredRows: number;
+  chainOk: boolean;
+  firstFailure: AuditVerifyFailure | null;
+  partial: boolean;
+  durationMs: number;
+}
+
+/** Verify params: ISO dates YYYY-MM-DD; server defaults last 30d, caps 90d. */
+export interface VerifyAuditParams {
+  from?: string;
+  to?: string;
 }
 
 export interface ListAuditParams {
@@ -24,6 +55,12 @@ export interface ListAuditParams {
 export interface PaginatedAuditLogs {
   data: AuditLog[];
   total: number;
+}
+
+/** Run the tamper-chain verification (platform tenant only). */
+export async function verifyAudit(params: VerifyAuditParams = {}): Promise<AuditVerifyReport> {
+  const { data } = await client.get<ApiEnvelope<AuditVerifyReport>>('/v1/audit-logs/verify', { params });
+  return data.data;
 }
 
 /** List audit logs (paginated, filterable) */

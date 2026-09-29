@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next';
 import EmptyState from '../components/EmptyState';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, DatePicker, Input, Select, Tag, Tooltip } from 'antd';
-import { DownloadOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, SearchOutlined, ReloadOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 // ponytail: derive date types from antd instead of importing dayjs types directly
 type RangeDayjs = NonNullable<NonNullable<Parameters<NonNullable<React.ComponentProps<typeof DatePicker.RangePicker>['onChange']>>[0]>[number]>;
-import { listAuditLogs, exportAuditLogs, type AuditLog } from '../api/audit';
+import { useAuthStore } from '../stores/auth';
+import { listAuditLogs, exportAuditLogs, verifyAudit, type AuditLog, type AuditVerifyReport } from '../api/audit';
 
 // Static action filter list — audit actions follow the METHOD /path convention from the middleware
 const ACTION_OPTIONS = ['POST', 'PUT', 'PATCH', 'DELETE'].map((a) => ({ label: a, value: a }));
@@ -30,6 +31,26 @@ export default function Audit() {
   const actionRef = useRef<ActionType>(null);
   const [filters, setFilters] = useState<FilterState>({});
   const [loadError, setLoadError] = useState(false);
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canVerify = hasPermission('audit:read');
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifyReport, setVerifyReport] = useState<AuditVerifyReport | null>(null);
+  const [verifyError, setVerifyError] = useState(false);
+
+  // R-audit D7: chain verification is a read-only health report — the result
+  // renders as an inline Alert (green = chain intact, red = first failure).
+  const handleVerify = async () => {
+    setVerifyBusy(true);
+    setVerifyError(false);
+    try {
+      const report = await verifyAudit();
+      setVerifyReport(report);
+    } catch {
+      setVerifyError(true);
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
 
   const columns: ProColumns<AuditLog>[] = [
     {
@@ -100,6 +121,37 @@ export default function Audit() {
           data-testid="audit-export-error"
         />
       )}
+      {verifyError && (
+        <Alert
+          type="error"
+          showIcon
+          message={t('audit.verifyError')}
+          style={{ marginBottom: 16 }}
+          data-testid="audit-verify-error"
+        />
+      )}
+      {verifyReport && (
+        <Alert
+          type={verifyReport.chainOk ? 'success' : 'error'}
+          showIcon
+          message={t('audit.verifyOkTitle')}
+          description={
+            verifyReport.chainOk
+              ? t('audit.verifyOkBody', {
+                  rows: verifyReport.rowsChecked,
+                  anchors: verifyReport.anchorsChecked,
+                })
+              : t('audit.verifyFailBody', {
+                  kind: verifyReport.firstFailure?.kind ?? 'unknown',
+                  day: verifyReport.firstFailure?.day ?? '-',
+                  seq: verifyReport.firstFailure?.seq ?? 0,
+                })
+          }
+          style={{ marginBottom: 16 }}
+          data-testid="audit-verify-result"
+        />
+      )}
+
       <div style={{ marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Select
           allowClear
@@ -137,12 +189,24 @@ export default function Audit() {
             }}
           />
         </Tooltip>
+        {canVerify && (
+          <Tooltip title={t('audit.verifyTooltip')}>
+            <Button
+              icon={<SafetyCertificateOutlined />}
+              onClick={handleVerify}
+              loading={verifyBusy}
+              className="audit-verify"
+            >
+              {t('audit.verify')}
+            </Button>
+          </Tooltip>
+        )}
         <Tooltip title={t('audit.exportTooltip')}>
           <Button icon={<DownloadOutlined />} onClick={handleExport} loading={exportBusy} className="audit-export">
             {t('audit.export')}
           </Button>
         </Tooltip>
-      </div>
+</div>
       <ProTable<AuditLog>
         headerTitle={t('audit.title')}
         actionRef={actionRef}

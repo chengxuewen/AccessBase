@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { requirePermission } from '../utils/permission.js';
 import { toCsv } from '../utils/csv.js';
+import { verifyAuditChain } from '../utils/audit-verify.js';
 
 // ponytail: module-level db is fine here — route lifetime = app lifetime
 let db: ReturnType<typeof createDb> | undefined;
@@ -18,6 +19,11 @@ function getDb() {
   if (!db) db = createDb(config.databaseUrl);
   return db;
 }
+
+
+/** Verify window: default last 30 days, hard cap 90 days per request (D7). */
+const VERIFY_DEFAULT_DAYS = 30;
+const VERIFY_MAX_DAYS = 90;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -185,6 +191,75 @@ export async function auditRoutes(app: FastifyInstance) {
       reply.header('Content-Type', 'text/csv; charset=utf-8');
       reply.header('Content-Disposition', `attachment; filename="audit-${new Date().toISOString().slice(0, 10)}.csv"`);
       return reply.send(csv);
+    },
+  );
+
+  // GET /api/v1/audit-logs/verify — tamper-chain verification report (R-audit D7).
+  // Platform-only: anchors are GLOBAL (one chain across tenants); a per-tenant
+  // scope cannot isolate a tenant's rows inside a fold, so non-default tenants
+  // get the 403 belt (tenants.ts inline pattern), NOT a scoped report.
+  app.get(
+    '/verify',
+    {
+      schema: {
+        description: 'Verify the audit tamper-evidence chain (platform tenant only; chainOk:false is still a 200 — health-report posture)',
+        tags: ['audit'],
+        security: [{ bearerAuth: [] }],
+        querystring: {
+          type: 'object',
+          properties: {
+            from: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+            to: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      // Platform belt FIRST LINE (L′ pattern): non-platform callers never reach
+      // the verifier or learn chain states.
+      if ((request.tenantId ?? DEFAULT_TENANT) !== DEFAULT_TENANT) {
+        return reply.status(403).send({
+          success: false,
+          error: {
+            code: 'TENANT_PLATFORM_ONLY',
+            message: 'Audit chain verification is restricted to the platform (default) tenant',
+          },
+        });
+      }
+
+      const today = new Date();
+      const isoDay = (d: Date): string => d.toISOString().slice(0, 10);
+      const { from, to } = request.query as { from?: string; to?: string };
+      const toDay = to ?? isoDay(today);
+      const fromDay =
+        from ??
+        isoDay(new Date(today.getTime() - VERIFY_DEFAULT_DAYS * 86_400_000));
+      if (!ISO_DATE.test(fromDay) || !ISO_DATE.test(toDay)) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'VALIDATION_001', message: 'from/to must be YYYY-MM-DD' },
+        });
+      }
+      const spanDays =
+        (new Date(`${toDay}T00:00:00Z`).getTime() - new Date(`${fromDay}T00:00:00Z`).getTime()) /
+        86_400_000;
+      if (spanDays < 0 || spanDays >= VERIFY_MAX_DAYS) {
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: 'VALIDATION_001',
+            message: `Verify window must be 0–${VERIFY_MAX_DAYS - 1} days (from <= to, capped at ${VERIFY_MAX_DAYS})`,
+          },
+        });
+      }
+
+      const report = await verifyAuditChain(getDb(), {
+        from: fromDay,
+        to: toDay,
+        // ponytail: grace window hardcoded to the spec default (90s) until config.ts gains auditAnchorGraceSeconds (A4 contract); swap to config when it lands.
+        graceSeconds: 90,
+      });
+      return { success: true, data: report };
     },
   );
 }

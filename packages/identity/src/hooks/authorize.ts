@@ -41,6 +41,7 @@ const routePermissions: Record<string, string> = {
   'PUT:/api/v1/permissions': 'permissions:write',
   'DELETE:/api/v1/permissions': 'permissions:delete',
   'GET:/api/v1/audit-logs': 'audit:read',
+  'GET:/api/v1/audit-logs/verify': 'audit:read', // R-audit D7: explicit for self-documentation; prefix trim resolves it anyway
   'GET:/api/v1/stats': 'stats:read',
   'GET:/api/v1/options': 'options:read',
   'PUT:/api/v1/options': 'options:write',

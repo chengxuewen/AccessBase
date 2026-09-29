@@ -350,7 +350,14 @@
     "search": "查询",
     "resetFilters": "重置筛选",
     "loadError": "加载审计日志失败",
-    "exportError": "导出未能完成，请重试。"
+    "exportError": "导出未能完成，请重试。",
+    "verify": "校验链",
+    "verifyTooltip": "校验防篡改链（最近 30 天）",
+    "verifyError": "校验未能执行，请检查权限后重试。",
+    "verifyOkTitle": "审计链完整",
+    "verifyOkBody": "已校验 {{anchors}} 个锚点、{{rows}} 行哈希——未检测到篡改。",
+    "verifyFailTitle": "审计链校验失败",
+    "verifyFailBody": "检测到篡改：{{kind}}，位于 {{day}} 序号 {{seq}}。详见服务端审计文档。"
   },
   "profile": {
     "title": "个人资料",

@@ -350,7 +350,14 @@
     "search": "Search",
     "resetFilters": "Reset filters",
     "loadError": "Failed to load audit logs",
-    "exportError": "The export could not be completed. Please retry."
+    "exportError": "The export could not be completed. Please retry.",
+    "verify": "Verify chain",
+    "verifyTooltip": "Verify the tamper-evidence chain (last 30 days)",
+    "verifyError": "Verification could not run. Check permissions and retry.",
+    "verifyOkTitle": "Audit chain intact",
+    "verifyOkBody": "{{anchors}} anchor(s) verified, {{rows}} row(s) re-hashed — no tampering detected.",
+    "verifyFailTitle": "Audit chain FAILURE",
+    "verifyFailBody": "Tampering detected: {{kind}} at {{day}} seq {{seq}}. See server audit docs."
   },
   "profile": {
     "title": "Profile",
