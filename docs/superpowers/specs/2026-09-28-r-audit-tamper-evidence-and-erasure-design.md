@@ -195,3 +195,23 @@ Live-fire ledger (post-impl, report): fresh-PG boot→login→actions→anchor w
 - UserManager.delete hard cascade: `:245 d.delete(users)` ✅
 - events DomainEventType union closed list (auth.* extension precedent T3): events.ts:17-29 ✅ — `audit.erased` joins same way
 - webhook deliveries store NO bodies (out of scope confirmed): `webhook_deliveries` columns status/attempts/lastError/responseStatus only ✅
+
+---
+
+## REV.4 AMENDMENT (2026-09-29, live-fired D-ERASE-1) — STATUS: PROPOSED, awaiting user ruling
+
+**Defect (live-fire battery, A8):** the erasure funnel matches `audit_logs.user_id = subject` — the ACTOR column. A subject who never acted (created by an admin, never logged in) legally no-ops with zero ledger rows, while the admin's CREATE/UPDATE rows that EMBED the subject's email/uuid in `requestBody` survive fully scrubbed-looking. RTBF without mention-coverage is theater: the subject's PII persists in actor rows.
+
+**Measured blast radius (scratch, 13 audit rows):** 1 mention-row (the CREATE) — small surface, per-row receipt impact trivial.
+
+**Proposed predicate (rev.4):** the funnel's target set becomes the UNION of
+1. actor rows: `user_id = subject` (existing, unchanged), and
+2. mention rows: `request_body::text LIKE '%' || <subjectEmail> || '%'` OR `request_body::text LIKE '%' || <subjectUuid> || '%'` (both captured pre-scrub; email is the stable mention token, uuid the absolute one).
+
+**Receipt consequences:** the receipt set GROWS to cover mention rows — receipts issued before rev.4 cover actor-rows only and remain valid against their recorded membership (receipt_hash binds the set it was computed over; nothing retroactively breaks). Scrub for mention rows follows the SAME D4 column whitelist (requestBody → '{}'); row_hash/anchor_id untouched → verify treats them via the ledger receipt exactly like actor rows.
+
+**Redaction interplay:** `requestBody` of the mention row is REPLACED by '{}', so the subject's email disappears from the table; `audit_erasures.legal_basis` and the receipt remain the only records — consistent with U2/U3.
+
+**Cost:** funnel predicate +2 OR arms; receipt test fixtures +1 mention-row case; no schema/migration change. ~half day incl. tests.
+
+**Alternatives rejected:** (b) document actor-only boundary — leaves the headline RTBF promise hollow (the flagship scenario "admin creates user, user exercises erasure" scrubs nothing).
