@@ -59,6 +59,9 @@ const KNOWN_OPTION_KEYS = new Set([
   // (verifiedEmailRequired in routes/auth.ts); possession-proven channels are
   // exempt and additionally mark the flag on success.
   'auth.require_verified_email',
+  // SL-2 session idle timeout seconds (spec 2026-09-29-session-lifetime):
+  // 3-tier env SESSION_IDLE_TIMEOUT_SECONDS > this option > 86400; 0 = off.
+  'session.idle_timeout_seconds',
 ]);
 // Batch B dynamic provider secrets: oauth_<name>_client_secret (names are
 // lowercase/hyphen by convention — KEY_FORMAT-legal dots/uppercase in a
