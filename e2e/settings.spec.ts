@@ -259,3 +259,40 @@ test.describe('Settings page', () => {
     }
   });
 });
+
+test.describe('Settings — idle timeout (SL-3)', () => {
+  test('Security tab shows idle select; change wires PUT /options and confirms', async ({ page }) => {
+    await mockCommonApis(page);
+    // options list: pre-set 3600 so the select hydrates a concrete value
+    let putBody: { key?: string; value?: unknown } = {};
+    await page.route('**/api/v1/options', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: [{ key: 'session.idle_timeout_seconds', value: 3600 }] }),
+        });
+        return;
+      }
+      putBody = route.request().postDataJSON() as { key: string; value: unknown };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: putBody }) });
+    });
+    await login(page);
+    await gotoSettings(page);
+    await page.getByRole('tab', { name: /security/i }).click();
+
+    const select = page.locator('[data-testid="idle-timeout-select"]');
+    await expect(select).toBeVisible();
+    // hydrated with the pre-set 1h value (antd select shows the label)
+    await expect(select).toContainText(/1 hour|1 小时/);
+
+    await select.click();
+    // keyboard nav: ArrowDown moves from the CURRENTLY-SELECTED option (3600 -> 8h is one step)
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    // toast is transient (3s, PIT-023 family) — assert the durable outcomes instead
+    expect(putBody.key).toBe('session.idle_timeout_seconds');
+    expect(putBody.value).toBe(28800);
+    await expect(select).toContainText(/8 hours|8 小时/);
+  });
+});

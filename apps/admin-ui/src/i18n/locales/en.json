@@ -411,6 +411,17 @@
     "revokeCurrentWarning": "This is the session you are using now. Revoking it will sign you out immediately.",
     "sessionsLoadError": "Failed to load sessions",
     "sessionRevokeError": "Failed to revoke session",
+    "idleTimeout": {
+      "label": "Idle timeout",
+      "helper": "Sessions with no refresh activity for this long require re-login. 0 disables. Absolute cap: 7 days.",
+      "option_1h": "1 hour",
+      "option_8h": "8 hours",
+      "option_24h": "24 hours (default)",
+      "option_7d": "7 days",
+      "option_off": "Off",
+      "saved": "Idle timeout saved",
+      "saveError": "Failed to save idle timeout"
+    },
     "passkeys": "Passkeys",
     "noPasskeys": "No passkeys registered yet",
     "registerPasskey": "Register Passkey",

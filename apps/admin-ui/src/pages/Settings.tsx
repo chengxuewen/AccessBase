@@ -9,6 +9,7 @@ import {
   List,
   Modal,
   Popconfirm,
+  Select,
   Space,
   Spin,
   Table,
@@ -86,6 +87,45 @@ export default function Settings() {
     saveSiteSettings({ siteName: values.siteName ?? '', logoUrl: values.logoUrl ?? '' });
     setSiteSaved(true);
   };
+
+  // --- Security tab: idle timeout (SL-3) ---
+  const [idleSeconds, setIdleSeconds] = useState<number | null>(null);
+  const [idleBusy, setIdleBusy] = useState(false);
+  const canManageIdle = hasPermission('options:write');
+  const IDLE_OPTIONS = [
+    { value: 3600, label: t('settings.idleTimeout.option_1h') },
+    { value: 28800, label: t('settings.idleTimeout.option_8h') },
+    { value: 86400, label: t('settings.idleTimeout.option_24h') },
+    { value: 604800, label: t('settings.idleTimeout.option_7d') },
+    { value: 0, label: t('settings.idleTimeout.option_off') },
+  ];
+
+  const loadIdleSeconds = useCallback(async () => {
+    if (!canManageIdle) return;
+    try {
+      const res = await listOptions();
+      const row = res.data.data?.find((o) => o.key === 'session.idle_timeout_seconds');
+      if (row) setIdleSeconds(Number(row.value));
+    } catch {
+      // options unreadable → Select stays empty; the 3-tier server default still enforces
+    }
+  }, [canManageIdle]);
+
+  const handleIdleChange = useCallback(
+    async (value: number) => {
+      setIdleBusy(true);
+      try {
+        await setOption('session.idle_timeout_seconds', value);
+        setIdleSeconds(value);
+        message.success(t('settings.idleTimeout.saved'));
+      } catch {
+        message.error(t('settings.idleTimeout.saveError'));
+      } finally {
+        setIdleBusy(false);
+      }
+    },
+    [t],
+  );
 
   // --- Security tab: sessions ---
   const [sessions, setSessions] = useState<SafeSessionInfo[]>([]);
@@ -224,6 +264,22 @@ export default function Settings() {
         </Spin>
       </Card>
 
+      <Card title={t('settings.idleTimeout.label')} data-testid="idle-timeout">
+        <Form layout="vertical" style={{ maxWidth: 400 }}>
+          <Form.Item label={t('settings.idleTimeout.label')} extra={t('settings.idleTimeout.helper')}>
+            <Select
+              data-testid="idle-timeout-select"
+              value={idleSeconds ?? undefined}
+              options={IDLE_OPTIONS}
+              loading={idleBusy}
+              disabled={!canManageIdle || idleBusy}
+              placeholder={t('settings.idleTimeout.option_24h')}
+              onChange={(v: number) => void handleIdleChange(v)}
+            />
+          </Form.Item>
+        </Form>
+      </Card>
+
       <MfaCard />
 
       <Card title={t('settings.passkeys')} data-testid="passkeys">
@@ -330,7 +386,8 @@ export default function Settings() {
 
   useEffect(() => {
     if (canManageOptions) loadOptions();
-  }, [canManageOptions, loadOptions]);
+    void loadIdleSeconds();
+  }, [canManageOptions, loadOptions, loadIdleSeconds]);
 
   const openAddOption = () => {
     setEditingOption(null);

@@ -411,6 +411,17 @@
     "revokeCurrentWarning": "这是您正在使用的会话，吊销后将立即退出登录。",
     "sessionsLoadError": "会话加载失败",
     "sessionRevokeError": "会话吊销失败",
+    "idleTimeout": {
+      "label": "会话空闲超时",
+      "helper": "会话在此时间内无刷新活动将要求重新登录。设为 0 表示禁用。绝对上限：7 天。",
+      "option_1h": "1 小时",
+      "option_8h": "8 小时",
+      "option_24h": "24 小时（默认）",
+      "option_7d": "7 天",
+      "option_off": "关闭",
+      "saved": "空闲超时已保存",
+      "saveError": "空闲超时保存失败"
+    },
     "passkeys": "通行密钥",
     "noPasskeys": "尚未注册通行密钥",
     "registerPasskey": "注册通行密钥",
