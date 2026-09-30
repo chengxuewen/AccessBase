@@ -7,6 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import { getTenantManager, getUserManager } from '../../utils/managers.js';
 import { DEFAULT_TENANT } from '../../utils/constants.js';
 import { emitAuthEvent } from '../../utils/auth-events.js';
+import { resolveIdleSeconds } from '../../utils/session-idle-wiring.js';
 import type { AuthContext } from './context.js';
 
 export async function meRoutes(app: FastifyInstance, ctx: AuthContext) {
@@ -246,12 +247,16 @@ export async function refreshRoutes(app: FastifyInstance, ctx: AuthContext) {
           await ctx.assertTenantActive(user);
         }
 
-        // DB-backed rotation: validates hash, marks old used, detects replay
+        // DB-backed rotation: validates hash, marks old used, detects replay.
+        // SL-2: idle cutoff rides inside the guarded rotate WHERE (0 = off);
+        // resolver failure degrades to default, never blocks refresh (G4).
         const { refreshToken: newRefreshToken, userId } =
           await ctx.sessionManager.rotateRefreshToken(refreshToken, {
-            ip: request.ip,
-            userAgent: request.headers['user-agent'] ?? '',
-          });
+              ip: request.ip,
+              userAgent: request.headers['user-agent'] ?? '',
+            },
+            { idleCutoffSeconds: await resolveIdleSeconds() },
+          );
 
         // findByIdAny (G fix L1): same tenant-blindness argument as the gate —
         // a non-default-tenant owner must resolve post-rotation, or a valid

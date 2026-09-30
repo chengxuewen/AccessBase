@@ -17,6 +17,13 @@ const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 // a true replay; adaptive per-client tuning only if false burns ever appear.
 const REPLAY_GRACE_MS = 10_000;
 
+/** SL-2: opts for the armed methods. idleCutoffSeconds: 0/undefined = idle
+ * enforcement off (predicate omitted); N = reject rows with last_used_at
+ * older than now()-N. */
+export interface IdleCheckOpts {
+  idleCutoffSeconds?: number;
+}
+
 interface TokenMeta {
   ip: string;
   userAgent: string;
@@ -108,13 +115,21 @@ export class SessionManager {
     return list;
   }
 
-  async validateSession(sessionId: string): Promise<boolean> {
+  async validateSession(sessionId: string, opts?: IdleCheckOpts): Promise<boolean> {
     const [session] = await this.db
-      .select({ id: sessions.id, revokedAt: sessions.revokedAt, expiresAt: sessions.expiresAt })
+      .select({ id: sessions.id, revokedAt: sessions.revokedAt, expiresAt: sessions.expiresAt, lastUsedAt: sessions.lastUsedAt })
       .from(sessions)
       .where(eq(sessions.id, sessionId))
       .limit(1);
     if (!session) return false;
+    if (!session.revokedAt && session.expiresAt.getTime() <= Date.now()) return false;
+    // SL-2 defense-in-depth (spec D2 B1): same idle predicate as rotate.
+    // Wire-dead today; kept in lockstep so a future wiring can't diverge.
+    if (opts?.idleCutoffSeconds) {
+      const cutoff = Date.now() - opts.idleCutoffSeconds * 1000;
+      const lastUsed = session.lastUsedAt?.getTime() ?? 0;
+      if (lastUsed <= cutoff) return false;
+    }
     return !session.revokedAt && session.expiresAt.getTime() > Date.now();
   }
 
@@ -148,6 +163,7 @@ export class SessionManager {
   async rotateRefreshToken(
     oldToken: string,
     meta: TokenMeta,
+    opts?: IdleCheckOpts,
   ): Promise<{ refreshToken: string; userId: string }> {
     const oldHash = this.hashToken(oldToken);
 
@@ -165,17 +181,26 @@ export class SessionManager {
     // unused+unrevoked+unexpired in one statement — a concurrent rotate of the
     // same token cannot slip past a check-then-update gap, and expiry is
     // enforced inside the guard (rev.2 R1: the old SELECT-then-UPDATE allowed both).
+    // SL-2 (spec rev.2 D2/B2): the idle predicate rides INSIDE the guarded
+    // rotate WHERE. Safety proof: an idle-expired row always has used_at NULL
+    // (presented token never burned), so its guard-failure lands in the D125
+    // classifier's 'Session expired' arm — the replay/grace arms require
+    // usedAt SET and are unreachable for idle expiry. No family burn.
+    // idleCutoffSeconds falsy (0/undefined) = enforcement off → predicate
+    // omitted entirely (byte-compat WHERE for legacy callers).
+    const guardConds = [
+      eq(sessions.id, session.id),
+      isNull(sessions.usedAt),
+      isNull(sessions.revokedAt),
+      gt(sessions.expiresAt, new Date()),
+    ];
+    if (opts?.idleCutoffSeconds) {
+      guardConds.push(gt(sessions.lastUsedAt, new Date(Date.now() - opts.idleCutoffSeconds * 1000)));
+    }
     const burned = await this.db
       .update(sessions)
       .set({ usedAt: new Date() })
-      .where(
-        and(
-          eq(sessions.id, session.id),
-          isNull(sessions.usedAt),
-          isNull(sessions.revokedAt),
-          gt(sessions.expiresAt, new Date()),
-        ),
-      )
+      .where(and(...guardConds))
       .returning({ id: sessions.id });
 
     if (burned.length === 0) {

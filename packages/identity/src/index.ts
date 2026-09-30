@@ -24,6 +24,7 @@ export { ApiKeyManager, hashApiKey, type SafeApiKey, type GeneratedApiKey } from
 export { GroupManager, type Group, type CreateGroupInput } from './managers/GroupManager.js';
 export { emitEvent, type DomainEventType, type EmitEventInput } from './services/events.js';
 export { FlowTokenService } from './services/FlowTokenService.js';
+export { resolveIdleTimeoutSeconds, DEFAULT_IDLE_TIMEOUT_SECONDS } from './services/session-idle.js';
 export { LockoutService, MAX_FAILURES, WINDOW_SECONDS, type LockoutOptions } from './services/LockoutService.js';
 export { getRedisClient, type RedisLike } from './services/redis.js';
 export { Mailer, type SmtpConfig } from './services/mailer.js';

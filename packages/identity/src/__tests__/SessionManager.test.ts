@@ -11,6 +11,8 @@ vi.mock('../db/index.js', () => ({
   createDb: vi.fn(),
 }));
 
+import { PgDialect } from 'drizzle-orm/pg-core';
+
 import { SessionManager } from '../managers/SessionManager.js';
 import { sessions } from '../db/schema.js';
 import type { RedisLike } from '../services/redis.js';
@@ -22,11 +24,97 @@ const hash = (token: string): string => createHash('sha256').update(token).diges
  * methods (.from → .where → .limit → rows, .insert().values(), .update().set()
  * → .where()) resolve against a shared in-memory session list.
  */
+function evalGuardOnRow(cond: unknown, row: Record<string, unknown>): boolean {
+  // Render the guard SQL and evaluate it against the single mock row. Params
+  // resolve positionally: $1 = now-ish cutoff dates appear in order — the row's
+  // own values are substituted for its column references.
+  const { sql, params } = new PgDialect().sqlToQuery(cond as never);
+  const evalExpr = (s: string): unknown => {
+    // A bare param: numeric-string date bound by the caller
+    if (/^\$\d+$/.test(s.trim())) {
+      const raw = params.at(Number(s.trim().slice(1)) - 1);
+      return raw instanceof Date ? raw : new Date(String(raw));
+    }
+    return undefined;
+  };
+  const col = (name: string): unknown => {
+    const raw = (name.split('.').pop() ?? '').replace(/"/g, '');
+    // SQL emits snake_case; mock rows use drizzle camelCase — try both.
+    const camel = raw.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    return row[raw] ?? row[camel];
+  };
+  // Normalize: and() renders a wrapped group — strip the outer parens first,
+  // then split top-level ANDs.
+  const trimmed = sql.trim();
+  const body = trimmed.startsWith('(') && trimmed.endsWith(')') ? trimmed.slice(1, -1) : trimmed;
+  const conjunctions = splitTopLevelAnd(body);
+  for (const clause of conjunctions) {
+    const c = clause.trim().replace(/^\(|\)$/g, '').trim();
+    // "col is null"
+    const nul = c.match(/^"?([a-z_".]+)"? is null$/i);
+    if (nul) {
+      const nulCol = nul[1];
+      if (nulCol && col(nulCol) != null) return false;
+      continue;
+    }
+    // "col > $n"
+    const gt = c.match(/^"?([a-z_".]+)"? > (\$\d+)$/i);
+    if (gt) {
+      const gtCol = gt[1];
+      const gtIdx = gt[2];
+      if (!gtCol || !gtIdx) return false;
+      const lhs = col(gtCol);
+      const rhs = evalExpr(gtIdx);
+      const lhsMs = lhs instanceof Date ? lhs.getTime() : new Date(String(lhs)).getTime();
+      if (!(lhsMs > (rhs as Date).getTime())) return false;
+      continue;
+    }
+    // "col = $n"
+    const eqm = c.match(/^"?([a-z_".]+)"? = (\$\d+)$/i);
+    if (eqm) {
+      const eqCol = eqm[1];
+      const eqIdx = eqm[2];
+      if (!eqCol || !eqIdx) return false;
+      if (String(col(eqCol)) !== String(params.at(Number(eqIdx.slice(1)) - 1))) return false;
+      continue;
+    }
+    // Unknown conjunct shape → conservative fail-closed (treat as not matching)
+    return false;
+  }
+  return true;
+}
+
+/** Split a WHERE string on top-level ANDs (paren-depth aware). */
+function splitTopLevelAnd(sql: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let cur = '';
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql.charAt(i);
+    if (ch === '(') depth++;
+    if (ch === ')') depth--;
+    if (depth === 0 && sql.slice(i, i + 5).toUpperCase() === ' AND ') {
+      parts.push(cur);
+      cur = '';
+      i += 4;
+      continue;
+    }
+    cur += ch;
+  }
+  parts.push(cur);
+  return parts;
+}
+
 function makeMockDb(store: { rows: Record<string, unknown>[] }) {
   const db = {
     select: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
+  };
+  /** Captured terminal SQL nodes (PgDialect-parsable) for shape assertions. */
+  const captured: { selectWhere: unknown[]; updateWhere: unknown[] } = {
+    selectWhere: [],
+    updateWhere: [],
   };
 
   const selectChain = () => {
@@ -37,14 +125,17 @@ function makeMockDb(store: { rows: Record<string, unknown>[] }) {
     };
     db.select.mockReturnValue(chain);
     chain.from.mockReturnValue(chain);
-    chain.where.mockImplementation(() => ({
-      // await (select…from…where) → all rows; .limit() → first row (drizzle semantics)
-      limit: vi.fn(async () => store.rows.slice(0, 1)),
-      then: (
-        resolve: (v: unknown) => unknown,
-        reject: (e: unknown) => unknown,
-      ) => Promise.resolve([...store.rows]).then(resolve, reject),
-    }));
+    chain.where.mockImplementation((cond: unknown) => {
+      captured.selectWhere.push(cond);
+      return {
+        // await (select…from…where) → all rows; .limit() → first row (drizzle semantics)
+        limit: vi.fn(async () => store.rows.slice(0, 1)),
+        then: (
+          resolve: (v: unknown) => unknown,
+          reject: (e: unknown) => unknown,
+        ) => Promise.resolve([...store.rows]).then(resolve, reject),
+      };
+    });
     chain.limit.mockImplementation(async () => store.rows.slice(0, 1));
     return chain;
   };
@@ -60,22 +151,21 @@ function makeMockDb(store: { rows: Record<string, unknown>[] }) {
 
   db.update.mockReturnValue({
     set: vi.fn((patch: Record<string, unknown>) => ({
-      where: vi.fn(() => {
+      where: vi.fn((cond: unknown) => {
         // Legacy terminals (revoke paths) await where() directly → record only.
         store.lastUpdatePatch = patch;
+        captured.updateWhere.push(cond);
         const q: Record<string, unknown> = {
           // W1-4 faithful double: UPDATE ... WHERE guard RETURNING applies the
-          // patch only to rows passing the rotate guard predicate (unused,
-          // unrevoked, unexpired) and returns matched ids like PostgreSQL does.
-          // Concurrency truth is locked by the real-PG suite (session-rotate-race).
+          // patch only to rows passing the rotate guard predicate. The guard is
+          // EVALUATED by rendering it via PgDialect against the mock row — a new
+          // SQL conjunct (e.g. sessions.last_used_at > cutoff, SL-2) changes mock
+          // behavior automatically instead of being seam-masked. Concurrency
+          // truth is locked by the real-PG suite (session-rotate-race).
           returning: vi.fn(async () => {
             // rotate's UPDATE targets exactly the row its prior select
             // .limit(1) resolved — evaluate the guard on that row only.
-            const matched = store.rows.slice(0, 1).filter((r) => {
-              const exp = r['expiresAt'];
-              const expMs = exp instanceof Date ? exp.getTime() : Number(exp);
-              return r['usedAt'] == null && r['revokedAt'] == null && expMs > Date.now();
-            });
+            const matched = store.rows.slice(0, 1).filter((r) => evalGuardOnRow(cond, r));
             for (const r of matched) Object.assign(r, patch);
             return matched.map((r) => ({ id: r['id'] }));
           }),
@@ -87,18 +177,19 @@ function makeMockDb(store: { rows: Record<string, unknown>[] }) {
     })),
   });
 
-  return db;
+  return { db, captured };
 }
 
 describe('SessionManager', () => {
   let store: { rows: Record<string, unknown>[]; lastUpdatePatch?: Record<string, unknown> };
-  let mockDb: ReturnType<typeof makeMockDb>;
+  let mockDb: ReturnType<typeof makeMockDb>['db'];
   let manager: SessionManager;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     store = { rows: [] };
-    mockDb = makeMockDb(store);
+    const built = makeMockDb(store);
+    mockDb = built.db;
     const { createDb } = await import('../db/index.js');
     vi.mocked(createDb).mockReturnValue(mockDb as never);
     manager = new SessionManager();
@@ -264,6 +355,7 @@ describe('SessionManager', () => {
       expect(manager.hashToken('abc')).toHaveLength(64);
     });
   });
+});
 
 /**
  * In-memory RedisLike stub. get/set behave like plain KV; tracks keys
@@ -293,14 +385,15 @@ class FakeRedis implements RedisLike {
 
 describe('SessionManager session lifecycle', () => {
   let store: { rows: Record<string, unknown>[]; lastUpdatePatch?: Record<string, unknown> };
-  let mockDb: ReturnType<typeof makeMockDb>;
+  let mockDb: ReturnType<typeof makeMockDb>['db'];
   let manager: SessionManager;
   let redis: FakeRedis;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     store = { rows: [] };
-    mockDb = makeMockDb(store);
+    const built = makeMockDb(store);
+    mockDb = built.db;
     const { createDb } = await import('../db/index.js');
     vi.mocked(createDb).mockReturnValue(mockDb as never);
     redis = new FakeRedis();
@@ -467,6 +560,124 @@ describe('SessionManager session lifecycle', () => {
       store.rows = [];
       expect(await manager.validateSession('ghost')).toBe(false);
     });
+
+    // SL-2 defense-in-depth (spec D2 B1: wire-dead today, gated anyway)
+    it('idle-expired session fails validation when cutoff armed', async () => {
+      store.rows = [sessionRow({ id: 'a', lastUsedAt: new Date(Date.now() - 2000) })];
+      expect(await manager.validateSession('a', { idleCutoffSeconds: 1 })).toBe(false);
+      // fresh row survives the same cutoff
+      store.rows = [sessionRow({ id: 'b', lastUsedAt: new Date() })];
+      expect(await manager.validateSession('b', { idleCutoffSeconds: 1 })).toBe(true);
+    });
   });
 });
+
+describe('SessionManager idle expiry (SL-2, spec rev.2 D2)', () => {
+  let store: { rows: Record<string, unknown>[]; lastUpdatePatch?: Record<string, unknown> };
+  let mockDb: ReturnType<typeof makeMockDb>['db'];
+  let captured: ReturnType<typeof makeMockDb>['captured'];
+  let manager: SessionManager;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    store = { rows: [] };
+    const built = makeMockDb(store);
+    mockDb = built.db;
+    captured = built.captured;
+    const { createDb } = await import('../db/index.js');
+    vi.mocked(createDb).mockReturnValue(mockDb as never);
+    manager = new SessionManager();
+  });
+
+  const meta = { ip: '127.0.0.1', userAgent: 'idle-agent' };
+  const hash = (t: string): string =>
+    createHash('sha256').update(t).digest('hex');
+
+  const idleRow = (over: Partial<Record<string, unknown>> = {}) => ({
+    id: randomBytes(8).toString('hex'),
+    userId: 'u-idle',
+    token: 'legacy-session-token',
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    createdAt: new Date(),
+    revokedAt: null,
+    usedAt: null,
+    refreshTokenHash: null,
+    deviceInfo: { userAgent: 'ua' },
+    ipAddress: '127.0.0.1',
+    ...over,
+  });
+
+  it('idle kill: last_used_at older than cutoff → Session expired, NO family burn, usedAt stays NULL', async () => {
+    const tok = 'idle-dead-token';
+    store.rows = [
+      idleRow({
+        refreshTokenHash: hash(tok),
+        lastUsedAt: new Date(Date.now() - 2000), // 2s ago, cutoff 1s → expired
+      }),
+    ];
+
+    await expect(
+      manager.rotateRefreshToken(tok, meta, { idleCutoffSeconds: 1 }),
+    ).rejects.toThrow(/Session expired/i);
+
+    // The B2 safety proof: usedAt is NULL (idle-expired rows never burned)
+    const killedRow = store.rows.at(0) as Record<string, unknown> | undefined;
+    expect(killedRow?.['usedAt'] ?? null).toBeNull();
+    // and NO family burn happened (no revokedAt patch on this row)
+    expect(killedRow?.['revokedAt'] ?? null).toBeNull();
+  });
+
+  it('slide: fresh-enough row rotates; INSERT carries NO explicit lastUsedAt (column default)', async () => {
+    const tok = 'idle-live-token';
+    store.rows = [
+      idleRow({
+        refreshTokenHash: hash(tok),
+        lastUsedAt: new Date(Date.now() - 1000), // within 86400 cutoff
+      }),
+    ];
+
+    const rotated = await manager.rotateRefreshToken(tok, meta, { idleCutoffSeconds: 86400 });
+
+    expect(rotated.refreshToken).toBeTruthy();
+    const lastInsert = mockDb.insert.mock.results.at(-1)?.value;
+    const inserted = lastInsert?.values.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(inserted).not.toHaveProperty('lastUsedAt');
+  });
+
+  it('idle=0 → predicate omitted entirely (ancient row rotates fine)', async () => {
+    const tok = 'ancient-token';
+    store.rows = [
+      idleRow({
+        refreshTokenHash: hash(tok),
+        lastUsedAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
+      }),
+    ];
+
+    const rotated = await manager.rotateRefreshToken(tok, meta, { idleCutoffSeconds: 0 });
+    expect(rotated.refreshToken).toBeTruthy();
+
+    // SQL shape: rotate guard has NO last_used_at conjunct when disabled
+    const { sql } = new PgDialect().sqlToQuery(captured.updateWhere[0] as never);
+    expect(sql).not.toContain('last_used_at');
+  });
+
+  it('idle armed → guard SQL carries the last_used_at cutoff conjunct', async () => {
+    const tok = 'sql-shape-token';
+    store.rows = [idleRow({ refreshTokenHash: hash(tok), lastUsedAt: new Date() })];
+    await manager.rotateRefreshToken(tok, meta, { idleCutoffSeconds: 86400 });
+    const { sql, params } = new PgDialect().sqlToQuery(captured.updateWhere[0] as never);
+    expect(sql).toContain('"sessions"."last_used_at" > ');
+    // cutoff = now - 86400s, within a minute
+    const cutoff = new Date(params.at(-1) as string | Date).getTime();
+    expect(Math.abs(Date.now() - 86400_000 - cutoff)).toBeLessThan(60_000);
+  });
+
+  it('no opts → guard SQL unchanged (legacy callers byte-compat)', async () => {
+    const tok = 'no-opts-token';
+    store.rows = [idleRow({ refreshTokenHash: hash(tok), lastUsedAt: new Date(Date.now() - 400 * 24 * 3600_000) })];
+    const rotated = await manager.rotateRefreshToken(tok, meta);
+    expect(rotated.refreshToken).toBeTruthy();
+    const { sql } = new PgDialect().sqlToQuery(captured.updateWhere[0] as never);
+    expect(sql).not.toContain('last_used_at');
+  });
 });
