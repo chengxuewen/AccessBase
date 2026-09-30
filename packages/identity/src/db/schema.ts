@@ -151,6 +151,8 @@ export const sessions = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     token: varchar('token', { length: 255 }).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    // Session-lifetime SL-1: idle-expiry touchpoint (rotation sets it; default now() keeps INSERT paths unchanged)
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     // Phase 6a Task 4: refresh token rotation
     refreshTokenHash: varchar('refresh_token_hash', { length: 255 }),

@@ -167,7 +167,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
 
     const tracked = await query(url,
       "SELECT id FROM schema_migrations ORDER BY id");
-    expect(tracked).toHaveLength(11);
+    expect(tracked).toHaveLength(12);
     expect((tracked[0] as { id: string }).id).toMatch(/^0000_/);
   });
 
@@ -189,12 +189,14 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     expect(out).toContain('legacy DB behind chain head (0009) — run db:push to reconcile');
     // R-audit batch: 0010 row_hash column sentinel — same warn lane
     expect(out).toContain('legacy DB behind chain head (0010) — run db:push to reconcile');
+    // R-audit batch: 0010 row_hash column sentinel — same warn lane
+    expect(out).toContain('legacy DB behind chain head (0010) — run db:push to reconcile');
 
     // Stamped, NOT applied: tracking holds 11 note='stamped' rows and the
     // users table is still the legacy ad-hoc one (no phone column, no chain tables).
     // users table is still the legacy ad-hoc one (no phone column, no chain tables).
     const rows = await query(url, "SELECT note FROM schema_migrations");
-    expect(rows).toHaveLength(11);
+    expect(rows).toHaveLength(12);
     expect(rows.every((x) => (x as { note: string }).note === 'stamped')).toBe(true);
     const cols = await query(url,
       "SELECT count(*)::int AS n FROM information_schema.columns WHERE table_name='users' AND column_name='phone'");
@@ -224,7 +226,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
       expect(r.status).toBe(0);
     }
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(11);
+    expect((rows[0] as { n: number }).n).toBe(12);
   });
 
   it('concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 11', { timeout: 30_000 }, async () => {
@@ -240,7 +242,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     const codes = await Promise.all([run(), run(), run()]);
     expect(codes).toEqual([0, 0, 0]);
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(11);
+    expect((rows[0] as { n: number }).n).toBe(12);
     // no duplicate-application evidence: each id appears exactly once
     const ids = await query(url, 'SELECT id, count(*)::int AS n FROM schema_migrations GROUP BY id HAVING count(*) > 1');
     expect(ids).toEqual([]);

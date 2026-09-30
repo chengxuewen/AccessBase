@@ -78,6 +78,13 @@
       "when": 1790646093631,
       "tag": "0010_early_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790737765883,
+      "tag": "0011_motionless_red_ghost",
+      "breakpoints": true
     }
   ]
 }
