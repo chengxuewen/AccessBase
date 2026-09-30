@@ -78,7 +78,7 @@ describe('oidc hijack-space rate guard (W2-1)', () => {
     for (let i = 0; i < 6; i++) {
       const res = await app.inject({
         method: 'POST',
-        url: '/oidc/interaction/anything',
+        url: '/api/v1/oidc/interaction/anything', // P1: interaction contract moved under /api/v1 (hijack exemption matches app.ts:444)
         remoteAddress: ip,
         payload: {},
       });

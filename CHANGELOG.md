@@ -2,6 +2,14 @@
 
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
+## [Unreleased] — 2026-09-29 (batch session-lifetime, spec docs/superpowers/specs/2026-09-29-session-lifetime-idle-expiry-design.md rev.2)
+### Added
+- Session idle expiry, end to end: `sessions.last_used_at` (migration 0011), idle predicate inside the guarded rotate WHERE (idle-expired = `AUTH_003` 401, provably never misclassified as replay by the D125 classifier), slide delivered by the rotate-insert column default; knob `session.idle_timeout_seconds` (env `SESSION_IDLE_TIMEOUT_SECONDS`, default 86400, 0 = off, config-plane failure = off), Settings Security-tab select (options:write gated), en/zh.
+### Fixed
+- oidc-rate-guard test adapted to the P1 interaction-prefix move (`/api/v1/oidc/*`).
+### Docs
+- identity-sdd session-semantics line superseded (REFRESH_TTL corrected to 7d; the earlier 30-min claim was wrong).
+
 ## [Unreleased] — 2026-09-28 (batch R-audit, tamper-evident audit chain + sanctioned erasure; spec docs/superpowers/specs/2026-09-28-r-audit-tamper-evidence-and-erasure-design.md rev.3)
 ### Added
 - Tamper-evident audit chain, end to end: every audit row is content-hash sealed at write time (`row_hash` over a canonical-json field set, with the writer's own timestamp persisted so writer and verifier hash the same bytes); a daily anchor table folds the ordered row hashes into one root per `(day, seq)` chained by `prev_root`, gated by `pg_try_advisory_xact_lock(727242)` so only one node folds per pass; a one-time boot backfill hashes pre-existing rows and the retention sweeper marks fully-pruned anchors `pruned_at` before deleting their rows, so age-based pruning never reads as tampering.
