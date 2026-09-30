@@ -1,4 +1,5 @@
 import client from './client';
+import { useAuthStore } from '../stores/auth';
 import type { ApiEnvelope } from './types';
 
 export interface OidcInteraction {
@@ -10,15 +11,35 @@ export interface OidcInteraction {
   resumePath?: string;
 }
 
-/** GET /v1/oidc/interaction/:uid — interaction details for the consent page (bearer auth) */
+/**
+ * GET /v1/oidc/interaction/:uid — interaction details for the frontend login/
+ * consent pages (bearer auth).
+ */
 export async function getInteraction(uid: string): Promise<OidcInteraction> {
   const { data } = await client.get<ApiEnvelope<OidcInteraction>>(`/v1/oidc/interaction/${uid}`);
   return data.data;
 }
 
-/** POST /v1/oidc/interaction/:uid — submit approve/deny decision (bearer auth) */
-export async function postInteractionDecision(uid: string, decision: 'approve' | 'deny'): Promise<void> {
-  await client.post(`/v1/oidc/interaction/${uid}`, { decision });
+/*
+ * POST /v1/oidc/interaction/:uid — submit approve/deny decision (bearer auth).
+ * Uses fetch with redirect:'manual': a REAL provider responds 303 to the resume
+ * hop; letting XHR auto-follow would consume the whole resume chain (burning the
+ * interaction/resume cookies) before the SPA can assign the resume URL — the
+ * redirect must be driven by a TOP-LEVEL navigation. Mock-API e2e answers 200
+ * JSON, which is also accepted (returns true).
+ */
+export async function postInteractionDecision(uid: string, decision: 'approve' | 'deny'): Promise<boolean> {
+  const { token } = useAuthStore.getState();
+  const res = await fetch(`/api/v1/oidc/interaction/${encodeURIComponent(uid)}`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ decision }),
+  });
+  return res.type === 'opaqueredirect' || res.ok;
 }
 
 /**

@@ -139,7 +139,18 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
 
   // --- Security middleware ---
-  await app.register(helmet);
+  // formAction must also allow the SPA origin: the device-flow confirm POST is a
+  // form submission whose 303 to FRONTEND_ORIGIN/login is governed by CSP
+  // form-action (Chromium blocks the cross-origin redirect otherwise, leaving the
+  // user stuck on the provider's confirm page — browser-round proven 2026-09-30).
+  // helmet v7 useDefaults merges these directives with the defaults.
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        formAction: ["'self'", config.frontendOrigin],
+      },
+    },
+  });
 
   const redis = await getRedis();
   await app.register(rateLimit, {
@@ -427,9 +438,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // and discovery/jwks (anonymous RP polls).
   const oidcGuard = createOidcRateGuard(config.oidcIpRatePerMin, redis);
   app.addHook('onRequest', (req, reply, done) => {
-    // Interaction contract endpoints (Task 4c) are real Fastify routes — they
-    // need body parsing + bearer auth, so they bypass the provider hijack.
-    if (req.url.startsWith('/oidc/interaction/')) return done();
+    // Interaction contract endpoints (Task 4c, now under /api/v1/oidc) are real
+    // Fastify routes — they need body parsing + bearer auth. They never matched
+    // the /oidc/ hijack prefix; this guard is defensive only.
+    if (req.url.startsWith('/api/v1/oidc/interaction/')) return done();
     if (!req.url.startsWith('/oidc/')) return done();
     // Discovery + JWKS are anonymous RP polls: hand off UNCOUNTED (they stay
     // with the provider — this is a guard exemption, not a hijack exemption).
@@ -550,7 +562,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // drops non-schema fields), so the interaction GET resolves them here.
   const oidcClientManager = new OidcClientManager(createDb(config.databaseUrl));
   await app.register(registerInteractionRoutes, {
-    prefix: '/oidc',
+    // /api/v1/oidc — the SPA calls it through the axios /api baseURL AND the dev
+    // vite proxy (only /api/v1 is proxied); the historical '/oidc' mount was
+    // unreachable from any real client topology (dev proxy 404 / deploy 404).
+    prefix: '/api/v1/oidc',
     provider: oidcProvider,
     clientNameLookup: async (clientId) => (await oidcClientManager.get(clientId))?.name,
   });

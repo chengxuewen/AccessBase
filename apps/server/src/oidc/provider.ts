@@ -160,10 +160,12 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
             return `/oidc/auth/${interaction.uid}`;
           }
         })();
-        // TEMP-REPRO-INSTRUMENT (device-flow forensics) — remove after diagnosis
-        logger.info(
-          { promptName: interaction.prompt.name, returnTo: interaction.returnTo, resumePath, nodeEnv: opts.nodeEnv, frontendOrigin },
-          '[TEMP] interactions.url invoked',
+        // Q3B evidence note: device interactions DO carry prompt.name 'login' —
+        // the login branch below fires for them too (debug-level, one line, the
+        // redirect topology is where device loops historically hide).
+        logger.debug(
+          { promptName: interaction.prompt.name, resumePath, nodeEnv: opts.nodeEnv },
+          'oidc interaction redirect',
         );
         if (interaction.prompt.name === 'login') {
           const target = `/login?redirect=${encodeURIComponent(resumePath)}`;

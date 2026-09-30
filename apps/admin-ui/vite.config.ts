@@ -13,6 +13,13 @@ export default defineConfig({
         target: process.env['VITE_API_URL'] || 'http://localhost:5101',
         changeOrigin: true,
       },
+      // OIDC interaction resume: post-login the SPA assigns /oidc/auth|device/:uid
+      // (the resume cookie lives on the provider); without this dev proxy the hop
+      // 404s on the SPA fallback (deploy single-port serves /oidc natively).
+      '/oidc': {
+        target: process.env['VITE_API_URL'] || 'http://localhost:5101',
+        changeOrigin: true,
+      },
     },
   },
   build: {

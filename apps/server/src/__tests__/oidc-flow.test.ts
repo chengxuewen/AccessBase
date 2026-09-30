@@ -151,7 +151,7 @@ async function startAuthorize(jar: Jar, clientId: string, challenge: string, sta
 async function approve(jar: Jar, uid: string) {
   const res = await app.inject({
     method: 'POST',
-    url: `/oidc/interaction/${uid}`,
+    url: `/api/v1/oidc/interaction/${uid}`,
     headers: { cookie: jar.header(), authorization: `Bearer ${bearer}` },
     payload: { decision: 'approve' },
   });
@@ -162,7 +162,7 @@ async function approve(jar: Jar, uid: string) {
 async function deny(jar: Jar, uid: string) {
   const res = await app.inject({
     method: 'POST',
-    url: `/oidc/interaction/${uid}`,
+    url: `/api/v1/oidc/interaction/${uid}`,
     headers: { cookie: jar.header(), authorization: `Bearer ${bearer}` },
     payload: { decision: 'deny' },
   });
@@ -253,7 +253,7 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
     // GET interaction contract (login prompt) — exact M3 shape
     const details = await app.inject({
       method: 'GET',
-      url: `/oidc/interaction/${uid}`,
+      url: `/api/v1/oidc/interaction/${uid}`,
       headers: { cookie: jar.header(), authorization: `Bearer ${bearer}` },
     });
     expect(details.statusCode).toBe(200);
@@ -280,7 +280,7 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
     const consentUrl = consentRedirect.headers['location'] as string;
     // DIAG: inspect what the resumed authorization still demands
     const diagUid = new URL(consentUrl, 'http://x').searchParams.get('uid') ?? new URL(consentUrl, 'http://x').pathname.split('/').pop() ?? '';
-    const diag = await app.inject({ method: 'GET', url: `/oidc/interaction/${diagUid}`, headers: { cookie: jar.header(), authorization: `Bearer ${bearer}` } });
+    const diag = await app.inject({ method: 'GET', url: `/api/v1/oidc/interaction/${diagUid}`, headers: { cookie: jar.header(), authorization: `Bearer ${bearer}` } });
     console.error('[DIAG-CONSENT]', diag.statusCode, diag.body.slice(0, 300));
     expect(consentUrl.startsWith('/consent?uid=')).toBe(true);
     const consentUid = new URL(consentUrl, ISSUER).searchParams.get('uid') ?? '';
@@ -288,7 +288,7 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
     // Consent details — promptName flips to consent
     const consentDetails = await app.inject({
       method: 'GET',
-      url: `/oidc/interaction/${consentUid}`,
+      url: `/api/v1/oidc/interaction/${consentUid}`,
       headers: { cookie: jar.header(), authorization: `Bearer ${bearer}` },
     });
     expect(consentDetails.statusCode).toBe(200);
@@ -461,7 +461,7 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
     // when the cookie is missing — the catch must end the response, not hang.
     const res = await app.inject({
       method: 'POST',
-      url: `/oidc/interaction/no-such-uid`,
+      url: `/api/v1/oidc/interaction/no-such-uid`,
       headers: { authorization: `Bearer ${bearer}` },
       payload: { decision: 'approve' },
     });

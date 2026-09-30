@@ -157,7 +157,10 @@ export default function Login() {
   useEffect(() => {
     const { token, isAuthenticated } = useAuthStore.getState();
     if (!(token || isAuthenticated) || !oidcRedirect) return;
-    const uid = oidcRedirect.replace('/oidc/auth/', '');
+    // Device interactions live at /oidc/device/:uid (Q3B) — strip BOTH resume
+    // prefixes, else uid stays the whole path and getInteraction 404s, leaving
+    // the device flow bouncing between /login and the provider forever.
+    const uid = oidcRedirect.replace(/\/oidc\/(auth|device)\//, '');
     if (!uid) return;
     let cancelled = false;
     getInteraction(uid)
