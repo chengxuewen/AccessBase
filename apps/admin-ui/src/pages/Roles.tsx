@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Alert, Button, Form, Input, Modal, Popconfirm, Select, Transfer } from 'antd';
+import { Alert, Button, Form, Input, Modal, Popconfirm, Select, Tooltip, Transfer } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, LoadingOutlined, ReloadOutlined, LockOutlined } from '@ant-design/icons';
 import EmptyState from '../components/EmptyState';
 import {
@@ -12,11 +12,16 @@ import {
   deleteRole,
   type Role,
   type Permission,
+  type DataScope,
   } from '../api/roles';
 import { fetchAllPermissions } from '../utils/fetchAll';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
 import TenantCell from '../components/TenantCell';
+
+/** The scope Select carries a fourth value: 'mixed' is a hydration-only display
+ * sentinel (B5 disclosure), never part of the saved payload. */
+type ScopeDisplay = DataScope | 'mixed';
 
 export default function Roles() {
   const { t } = useTranslation();
@@ -27,6 +32,10 @@ export default function Roles() {
   const [saving, setSaving] = useState(false);
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [targetPermissionIds, setTargetPermissionIds] = useState<string[]>([]);
+  // data-scope batch: one Select fanning the selected users:* bindings (A4); the mixed
+  // flag carries the B5 state where stored scopes diverge and cannot be unified in the UI.
+  const [dataScope, setDataScope] = useState<DataScope>('all');
+  const [scopeMixed, setScopeMixed] = useState(false);
   const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
   // L'-T5: latest page of roles captured from the table request — feeds the
   // parent-role Select with zero extra endpoints.
@@ -52,6 +61,8 @@ export default function Roles() {
     setEditingRole(null);
     form.resetFields();
     setTargetPermissionIds([]);
+    setDataScope('all');
+    setScopeMixed(false);
     setModalOpen(true);
   };
 
@@ -63,6 +74,15 @@ export default function Roles() {
       setEditingRole(detail);
       form.setFieldsValue({ name: detail.name, description: detail.description, parentId: detail.parentId });
       setTargetPermissionIds((detail.permissions ?? []).map((p) => p.id));
+      const usersIds = (detail.permissions ?? [])
+        .filter((p) => p.resource === 'users')
+        .map((p) => p.id);
+      const stored = detail.permissionScopes ?? {};
+      const distinct = [...new Set(usersIds.map((id) => stored[id] ?? 'all'))];
+      // B5: divergent users:* bindings are not representable by a single value — show
+      // the disabled 'mixed' sentinel instead of silently picking one of them.
+      setScopeMixed(distinct.length > 1);
+      setDataScope(distinct.length === 1 ? distinct[0] ?? 'all' : 'all');
       setModalOpen(true);
     } catch {
       message.error(t('roles.loadDetailError'));
@@ -80,11 +100,19 @@ export default function Roles() {
           description?: string;
           permissionIds: string[];
           parentId?: string | null;
+          permissionScopes?: Record<string, DataScope>;
         } = { ...values, permissionIds: targetPermissionIds };
         // Only send parentId when the user actually touched the Select: an untouched
         // edit must not rewrite the parent, and a touched+cleared one sends explicit
         // null (route maps it to setParent(id, null) = unlink).
         if (form.isFieldTouched('parentId')) payload.parentId = values.parentId ?? null;
+        // Fan the displayed scope onto the users:* ids only — other resources keep the
+        // server default. Mixed state sends nothing (the sentinel tooltip discloses it).
+        if (!scopeMixed && selectedUsersIds.length > 0) {
+          payload.permissionScopes = Object.fromEntries(
+            selectedUsersIds.map((id) => [id, dataScope] as const),
+          );
+        }
         await updateRole(editingRole.id, payload);
         message.success(t('roles.updateSuccess'));
       } else {
@@ -188,6 +216,18 @@ export default function Roles() {
     },
   ];
 
+  // data-scope batch (v1 = users surface): the editor appears once a users:* permission
+  // is selected, and the save payload fans its value onto exactly those ids.
+  const selectedUsersIds = targetPermissionIds.filter((id) =>
+    allPermissions.some((p) => p.id === id && p.resource === 'users'),
+  );
+  const showScopeEditor = editingRole !== null && selectedUsersIds.length > 0;
+  const scopeOptions: { value: ScopeDisplay; label: string }[] = [
+    { value: 'all', label: t('roles.dataScopeAll') },
+    { value: 'dept', label: t('roles.dataScopeDept') },
+    { value: 'self', label: t('roles.dataScopeSelf') },
+  ];
+
   return (
     <>
       {loadError && (
@@ -265,6 +305,7 @@ export default function Roles() {
           </Form.Item>
           <Form.Item name="parentId" label={t('roles.parent')}>
             <Select
+              data-testid="roles-parent-select"
               allowClear
               showSearch
               optionFilterProp="label"
@@ -294,12 +335,36 @@ export default function Roles() {
               }))}
               titles={[t('roles.transferAvailable'), t('roles.transferSelected')]}
               targetKeys={targetPermissionIds}
-              onChange={(nextTargetKeys) => setTargetPermissionIds(nextTargetKeys as string[])}
+              onChange={(nextTargetKeys) => {
+                setTargetPermissionIds(nextTargetKeys as string[]);
+                // Re-editing the permission set resolves the mixed sentinel into a concrete
+                // value (otherwise a disabled Select could never be re-armed in this session).
+                setScopeMixed(false);
+              }}
               render={(item) => item.title}
               showSearch
               listStyle={{ width: '46%', height: 300 }}
             />
           </Form.Item>
+          {showScopeEditor && (
+            <Form.Item label={t('roles.dataScope')}>
+              <Tooltip title={scopeMixed ? t('roles.dataScopeMixedHint') : undefined}>
+                <Select<ScopeDisplay>
+                  data-testid="roles-scope-select"
+                  disabled={scopeMixed}
+                  value={scopeMixed ? 'mixed' : dataScope}
+                  onChange={(value: ScopeDisplay) => {
+                    if (value !== 'mixed') setDataScope(value);
+                  }}
+                  options={
+                    scopeMixed
+                      ? [{ value: 'mixed', label: t('roles.dataScopeMixed') }, ...scopeOptions]
+                      : scopeOptions
+                  }
+                />
+              </Tooltip>
+            </Form.Item>
+          )}
         </Form>
       </Modal>
     </>

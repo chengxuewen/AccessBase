@@ -14,6 +14,9 @@ export interface Role {
    * ROLE_PROTECTED; the table locks its row controls when true. */
   isSystem?: boolean;
 permissions?: Permission[];
+  /** data-scope batch: per-binding row scope keyed by permissionId — the projection
+   * carries only users:* entries that are bound; an absent id means 'all'. */
+  permissionScopes?: Record<string, DataScope>;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,6 +29,10 @@ export interface Permission {
   description?: string;
   createdAt?: string;
 }
+
+/** Row-scope of a permission binding (data-scope batch, v1 = users surface).
+ * Wire form of `role_permissions.data_scope`; absent key on the projection means 'all'. */
+export type DataScope = 'all' | 'dept' | 'self';
 
 export interface PaginatedRoles {
   data: Role[];
@@ -65,7 +72,15 @@ export async function createRole(payload: {
  * before any field write; explicit null unlinks the parent. */
 export async function updateRole(
   id: string,
-  payload: { name?: string; description?: string; permissionIds?: string[]; parentId?: string | null },
+  payload: {
+    name?: string;
+    description?: string;
+    permissionIds?: string[];
+    parentId?: string | null;
+    /** data-scope batch: fans a row scope onto the listed permission ids; ids left
+     * out keep their server-side default. Only users:* codes are ever sent (v1). */
+    permissionScopes?: Record<string, DataScope>;
+  },
 ): Promise<Role> {
   const { data } = await client.put<ApiEnvelope<Role>>(`/v1/roles/${id}`, payload);
   return data.data;

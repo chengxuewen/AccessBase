@@ -10,6 +10,7 @@ interface GroupRow {
   tenantId: string;
   name: string;
   description?: string;
+  kind: 'group' | 'department';
   createdAt: string;
   updatedAt: string;
   memberCount: number;
@@ -25,6 +26,7 @@ interface MemberRow {
 interface GroupMockStats {
   listRequests: number;
   created: { name: string; description?: string } | null;
+  lastPost: { name?: string; description?: string; kind?: 'group' | 'department' } | null;
   lastPut: { id: string; body: Record<string, unknown> } | null;
   deleted: string | null;
   addedMembers: { groupId: string; userId: string }[];
@@ -102,6 +104,7 @@ function makeGroup(overrides: Partial<GroupRow> = {}): GroupRow {
     tenantId: 'tenant-acme',
     name: 'Engineering',
     description: 'Engineers group',
+    kind: 'group',
     createdAt: now,
     updatedAt: now,
     memberCount: 1,
@@ -112,7 +115,7 @@ function makeGroup(overrides: Partial<GroupRow> = {}): GroupRow {
 
 const MOCK_GROUPS = (): GroupRow[] => [
   makeGroup({ id: 'group-eng', name: 'Engineering', memberCount: 2, roleCount: 1 }),
-  makeGroup({ id: 'group-ops', name: 'Operations', description: undefined, memberCount: 0, roleCount: 0 }),
+  makeGroup({ id: 'group-ops', name: 'Operations', description: undefined, memberCount: 0, roleCount: 0, kind: 'department' }),
 ];
 
 // Member rows for group-eng (routes/groups.ts listMembers projection).
@@ -230,16 +233,27 @@ async function mockGroupsApis(
     }
 
     if (isCollection && method === 'POST') {
-      const body = JSON.parse(request.postData() ?? '{}') as { name?: string; description?: string };
-      const created = makeGroup({ name: body.name ?? '', description: body.description, memberCount: 0, roleCount: 0 });
+      const body = JSON.parse(request.postData() ?? '{}') as {
+        name?: string;
+        description?: string;
+        kind?: 'group' | 'department';
+      };
+      const created = makeGroup({
+        name: body.name ?? '',
+        description: body.description,
+        kind: body.kind ?? 'group',
+        memberCount: 0,
+        roleCount: 0,
+      });
       groups.push(created);
       stats.created = { name: created.name, ...(created.description !== undefined ? { description: created.description } : {}) };
+      stats.lastPost = body;
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: created.id, tenantId: created.tenantId, name: created.name, description: created.description, createdAt: created.createdAt, updatedAt: created.updatedAt },
+          data: { id: created.id, tenantId: created.tenantId, name: created.name, description: created.description, kind: created.kind, createdAt: created.createdAt, updatedAt: created.updatedAt },
         }),
       });
       return;
@@ -276,7 +290,7 @@ async function mockGroupsApis(
     }
 
     if (method === 'PUT' && id && segments.length === 4) {
-      const body = JSON.parse(request.postData() ?? '{}') as { name?: string; description?: string };
+      const body = JSON.parse(request.postData() ?? '{}') as { name?: string; description?: string; kind?: string };
       const row = groups.find((g) => g.id === id);
       if (!row) {
         await route.fulfill({
@@ -288,11 +302,12 @@ async function mockGroupsApis(
       }
       if (typeof body.name === 'string') row.name = body.name;
       if (typeof body.description === 'string') row.description = body.description;
+      if (body.kind === 'department' || body.kind === 'group') row.kind = body.kind;
       stats.lastPut = { id, body };
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { id: row.id, tenantId: row.tenantId, name: row.name, description: row.description, createdAt: row.createdAt, updatedAt: row.updatedAt } }),
+        body: JSON.stringify({ success: true, data: { id: row.id, tenantId: row.tenantId, name: row.name, description: row.description, kind: row.kind, createdAt: row.createdAt, updatedAt: row.updatedAt } }),
       });
       return;
     }
@@ -319,7 +334,7 @@ async function mockGroupsApis(
 }
 
 function freshStats(): GroupMockStats {
-  return { listRequests: 0, created: null, lastPut: null, deleted: null, addedMembers: [], rolesPut: null };
+  return { listRequests: 0, created: null, lastPost: null, lastPut: null, deleted: null, addedMembers: [], rolesPut: null };
 }
 
 test.describe('Groups admin page', () => {
@@ -385,6 +400,40 @@ test.describe('Groups admin page', () => {
     await expect.poll(() => stats.lastPut, { timeout: 5000 }).not.toBeNull();
     expect(stats.lastPut?.body.name).toBe('Engineering 2');
     await expect(page.getByRole('cell', { name: 'Engineering 2', exact: true })).toBeVisible();
+  });
+  // data-scope batch: groups.kind column + A5 (kind editable on create and edit).
+  test('kind column renders the department tag beside the plain group tag', async ({ page }) => {
+    await gotoGroups(page);
+    await expect(page.getByTestId('groups-kind-group-eng')).toHaveText('普通组');
+    await expect(page.getByTestId('groups-kind-group-ops')).toHaveText('部门');
+  });
+
+  test('create as department: POST body carries kind=department and the tag renders', async ({ page }) => {
+    const unique = `Dept ${Date.now()}`;
+    await gotoGroups(page);
+    await page.getByTestId('groups-create').click();
+    await page.getByTestId('groups-name-input').fill(unique);
+    await page.getByTestId('groups-kind-switch').click();
+    await page.getByTestId('groups-form-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+
+    await expect.poll(() => stats.lastPost, { timeout: 5000 }).not.toBeNull();
+    expect(stats.lastPost?.kind).toBe('department');
+    await expect(page.getByRole('cell', { name: unique, exact: true })).toBeVisible();
+    // Engineering keeps 普通组; Operations + the new row are 部门
+    await expect(page.getByText('部门', { exact: true })).toHaveCount(2);
+  });
+
+  test('edit kind: switch prefills from the row kind and the PUT body carries the flip', async ({ page }) => {
+    await gotoGroups(page);
+    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Operations', exact: true }) });
+    await row.getByTestId('groups-edit').click();
+    await expect(page.getByTestId('groups-kind-switch')).toBeChecked();
+    await page.getByTestId('groups-kind-switch').click();
+    await page.getByTestId('groups-form-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+
+    await expect.poll(() => stats.lastPut, { timeout: 5000 }).not.toBeNull();
+    expect(stats.lastPut?.body.kind).toBe('group');
+    await expect(page.getByTestId('groups-kind-group-ops')).toHaveText('普通组');
   });
 
   test('delete blocked by 409 LAST_ADMIN_GUARD: server message surfaces', async ({ page }) => {

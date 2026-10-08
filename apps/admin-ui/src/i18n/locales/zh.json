@@ -230,7 +230,13 @@
     "confirmEmptyTitle": "清空该角色的全部权限？",
     "confirmEmptyContent": "该角色保存后将不再拥有任何权限，拥有该角色的成员会失去相应访问能力。确定继续吗？",
     "transferAvailable": "可选",
-    "transferSelected": "已选"
+    "transferSelected": "已选",
+    "dataScope": "数据范围（用户）",
+    "dataScopeAll": "全部数据",
+    "dataScopeDept": "本部门",
+    "dataScopeSelf": "仅本人",
+    "dataScopeMixed": "混合",
+    "dataScopeMixedHint": "当前已选的用户权限存在不一致的数据范围；保存会将它们统一为「全部数据」。"
   },
   "setup": {
     "welcome": {
@@ -635,7 +641,11 @@
     "removeMemberConfirm": "确定将该成员移出用户组？",
     "saveRoles": "保存角色",
     "rolesSaved": "角色绑定已保存",
-    "rolesSaveError": "保存角色绑定失败"
+    "rolesSaveError": "保存角色绑定失败",
+    "kind": "类型",
+    "kindGroup": "普通组",
+    "kindDepartment": "部门",
+    "isDepartment": "设为部门"
   },
   "webhooks": {
     "title": "事件钩子",

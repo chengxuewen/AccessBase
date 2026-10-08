@@ -13,7 +13,9 @@ import {
   Popconfirm,
   Select,
   Space,
+  Switch,
   Tabs,
+  Tag,
 } from 'antd';
 import {
   PlusOutlined,
@@ -33,6 +35,7 @@ import {
   fetchGroupRoles,
   setGroupRoles,
   type Group,
+  type GroupKind,
   type GroupListItem,
   type GroupMember,
 } from '../api/groups';
@@ -51,6 +54,7 @@ dayjs.extend(relativeTime);
 interface GroupFormValues {
   name?: string;
   description?: string;
+  isDepartment?: boolean;
 }
 
 /** Detail drawer state for one group: members + bound-role editor. */
@@ -94,7 +98,11 @@ export default function Groups() {
   const openEdit = (group: Group) => {
     setEditingGroup(group);
     form.resetFields();
-    form.setFieldsValue({ name: group.name, description: group.description });
+    form.setFieldsValue({
+      name: group.name,
+      description: group.description,
+      isDepartment: group.kind === 'department',
+    });
     setModalOpen(true);
   };
 
@@ -109,11 +117,12 @@ export default function Groups() {
     try {
       const name = (values.name ?? '').trim();
       const description = (values.description ?? '').trim();
+      const kind: GroupKind = values.isDepartment ? 'department' : 'group';
       if (editingGroup) {
-        await updateGroup(editingGroup.id, { name, description });
+        await updateGroup(editingGroup.id, { name, description, kind });
         message.success(t('groups.updated'));
       } else {
-        await createGroup({ name, ...(description ? { description } : {}) });
+        await createGroup({ name, kind, ...(description ? { description } : {}) });
         message.success(t('groups.created'));
       }
       setModalOpen(false);
@@ -223,6 +232,18 @@ export default function Groups() {
 
   const columns: ProColumns<GroupListItem>[] = [
     { title: t('groups.name'), dataIndex: 'name' },
+    {
+      title: t('groups.kind'),
+      dataIndex: 'kind',
+      search: false,
+      // antd preset tag colors are theme-token derived (dark-mode safe; Events/Tenants precedent)
+      render: (_, record) =>
+        record.kind === 'department' ? (
+          <Tag color="blue" data-testid={`groups-kind-${record.id}`}>{t('groups.kindDepartment')}</Tag>
+        ) : (
+          <Tag data-testid={`groups-kind-${record.id}`}>{t('groups.kindGroup')}</Tag>
+        ),
+    },
     { title: t('groups.description'), dataIndex: 'description', search: false, ellipsis: true },
     {
       title: t('groups.memberCount'),
@@ -374,6 +395,13 @@ export default function Groups() {
           </Form.Item>
           <Form.Item name="description" label={t('groups.description')}>
             <Input data-testid="groups-description-input" />
+          </Form.Item>
+          <Form.Item
+            name="isDepartment"
+            valuePropName="checked"
+            label={t('groups.isDepartment')}
+          >
+            <Switch data-testid="groups-kind-switch" />
           </Form.Item>
         </Form>
       </Modal>

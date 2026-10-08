@@ -230,7 +230,13 @@
     "confirmEmptyTitle": "Remove all permissions?",
     "confirmEmptyContent": "This role will be saved without any permissions. Members holding it will lose access. Continue?",
     "transferAvailable": "Available",
-    "transferSelected": "Selected"
+    "transferSelected": "Selected",
+    "dataScope": "Data scope (users)",
+    "dataScopeAll": "All records",
+    "dataScopeDept": "Department",
+    "dataScopeSelf": "Own records only",
+    "dataScopeMixed": "Mixed",
+    "dataScopeMixedHint": "The stored users:* scopes differ. Saving sets them all to All records."
   },
   "setup": {
     "welcome": {
@@ -635,7 +641,11 @@
     "removeMemberConfirm": "Remove this member from the group?",
     "saveRoles": "Save Roles",
     "rolesSaved": "Role bindings saved",
-    "rolesSaveError": "Failed to save role bindings"
+    "rolesSaveError": "Failed to save role bindings",
+    "kind": "Type",
+    "kindGroup": "Group",
+    "kindDepartment": "Department",
+    "isDepartment": "Is department"
   },
   "webhooks": {
     "title": "Webhooks",

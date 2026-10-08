@@ -1,6 +1,10 @@
 import client from './client';
 import type { ApiEnvelope } from './types';
 
+/** Group classification (data-scope batch): kind='department' groups are the row-scope
+ * source for users with a 'dept' binding; plain groups stay 'group'. */
+export type GroupKind = 'group' | 'department';
+
 /** Group entity — matches routes/groups.ts projection. The list view adds
  * memberCount/roleCount; the detail view carries only the base fields. */
 export interface Group {
@@ -8,6 +12,7 @@ export interface Group {
   tenantId: string;
   name: string;
   description?: string;
+  kind: GroupKind;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,16 +29,18 @@ export interface GroupMember {
   name: string;
 }
 
-/** POST /v1/groups body (route schema: name required, description optional) */
+/** POST /v1/groups body (route schema: name required, description/kind optional) */
 export interface CreateGroupPayload {
   name: string;
   description?: string;
+  kind?: GroupKind;
 }
 
-/** PUT /v1/groups/:id body — both fields optional */
+/** PUT /v1/groups/:id body — all fields optional */
 export interface UpdateGroupPayload {
   name?: string;
   description?: string;
+  kind?: GroupKind;
 }
 
 /** List groups (plain array envelope, tenant-scoped server-side) */

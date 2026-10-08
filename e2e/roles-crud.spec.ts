@@ -462,8 +462,9 @@ test.describe('Roles CRUD', () => {
     await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
     await expect(page.locator('.ant-modal input#name')).toHaveValue('Admin');
 
-    // Open the parent Select (the only Select in the modal) and pick Viewer — exact label.
-    await page.locator('.ant-modal .ant-select').click();
+    // Open the parent-role Select by testid (the data-scope Select is the modal's
+    // second Select since the data-scope batch — a bare .ant-select match is ambiguous).
+    await page.getByTestId('roles-parent-select').click();
     await page
       .locator('.ant-select-dropdown:visible .ant-select-item-option-content', { hasText: /^Viewer$/ })
       .click();
@@ -485,5 +486,93 @@ test.describe('Roles CRUD', () => {
     await expect(adminRow.locator('td', { hasText: /^1$/ })).toBeVisible();
     const viewerRow = page.locator('tbody tr.ant-table-row', { hasText: 'Viewer' }).first();
     await expect(viewerRow.locator('td', { hasText: /^0$/ })).toBeVisible();
+  });
+
+  // data-scope batch §3.4: the users:* row-scope editor (A4 one Select, B5 mixed
+  // disclosure). GET /roles/:id carries permissionScopes for the bound users:* codes.
+  function usersScopeDetail(permissionScopes: Record<string, 'all' | 'dept' | 'self'>) {
+    return {
+      id: 'role-1',
+      name: 'Admin',
+      description: 'Full access',
+      tenantId: 't1',
+      permissions: MOCK_PERMISSIONS,
+      permissionScopes,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+  }
+
+  /** Shadow the beforeEach list mock on /roles/role-1 (last-registered route wins,
+   *  R8 precedent): GET serves the fixture, PUT captures the wire body. */
+  async function stubRoleDetail(
+    page: Page,
+    detail: Record<string, unknown>,
+    capture: { putBody?: Record<string, unknown> },
+  ): Promise<void> {
+    await page.route('**/api/v1/roles/role-1', async (route) => {
+      const method = route.request().method();
+      if (method === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: detail }),
+        });
+        return;
+      }
+      if (method === 'PUT') {
+        capture.putBody = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: { ...detail, ...capture.putBody } }),
+        });
+        return;
+      }
+      await route.fallback();
+    });
+  }
+
+  async function openFirstRoleModal(page: Page): Promise<void> {
+    await page.goto('/roles');
+    await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
+    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
+    await expect(page.locator('.ant-modal input#name')).toHaveValue('Admin');
+  }
+
+  test('DS-1: uniform users:* scopes hydrate the scope Select; PUT fans the chosen value', async ({ page }) => {
+    const capture: { putBody?: Record<string, unknown> } = {};
+    await stubRoleDetail(page, usersScopeDetail({ 'perm-1': 'all', 'perm-2': 'all' }), capture);
+    await openFirstRoleModal(page);
+
+    const scope = page.getByTestId('roles-scope-select');
+    await expect(scope).toBeVisible();
+    // Bilingual: this spec logs in through the UI, so the locale follows the browser
+    // (en in the runner) — same reason the existing buttons use Edit|编辑 pairs.
+    await expect(scope).toContainText(/All records|全部数据/);
+    await scope.click();
+    await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content', { hasText: /^(Department|本部门)$/ }).click();
+    await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("确认")').first().click();
+
+    await expect.poll(() => capture.putBody, { timeout: 10000 }).toBeDefined();
+    // One displayed value fans onto every selected users:* id (ids are perm ids)
+    expect(capture.putBody?.permissionScopes).toEqual({ 'perm-1': 'dept', 'perm-2': 'dept' });
+    expect(capture.putBody?.permissionIds).toEqual(['perm-1', 'perm-2']);
+  });
+
+  test('DS-2: divergent users:* scopes render the disabled mixed sentinel; save omits the scope map', async ({ page }) => {
+    const capture: { putBody?: Record<string, unknown> } = {};
+    await stubRoleDetail(page, usersScopeDetail({ 'perm-1': 'dept', 'perm-2': 'self' }), capture);
+    await openFirstRoleModal(page);
+
+    const scope = page.getByTestId('roles-scope-select');
+    await expect(scope).toHaveClass(/ant-select-disabled/);
+    await expect(scope).toContainText(/Mixed|混合/);
+    await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("确认")').first().click();
+
+    await expect.poll(() => capture.putBody, { timeout: 10000 }).toBeDefined();
+    // Mixed state never silently rewrites the bindings (B5): nothing scope-related is sent
+    expect(capture.putBody?.permissionScopes).toBeUndefined();
+    expect(capture.putBody?.permissionIds).toEqual(['perm-1', 'perm-2']);
   });
 });
