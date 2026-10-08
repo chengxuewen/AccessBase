@@ -1917,7 +1917,28 @@
         "tags": [
           "users"
         ],
-        "description": "Delete user",
+        "description": "Delete user (optional body {eraseAudit:true, legalBasis} triggers sanctioned audit erasure in the same transaction)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "eraseAudit": {
+                    "type": "boolean"
+                  },
+                  "legalBasis": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        },
         "parameters": [
           {
             "schema": {
@@ -3659,6 +3680,44 @@
         }
       }
     },
+    "/api/v1/audit-logs/verify": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "description": "Verify the audit tamper-evidence chain (platform tenant only; chainOk:false is still a 200 — health-report posture)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "in": "query",
+            "name": "from",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "in": "query",
+            "name": "to",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/api/v1/stats": {
       "get": {
         "tags": [
@@ -3927,6 +3986,24 @@
         }
       }
     },
+    "/api/v1/auth/oauth/end-session-url": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "description": "Resolve the generic OIDC end-session URL (id_token_hint) for the current user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/api/v1/auth/oauth/{provider}": {
       "delete": {
         "tags": [
@@ -3974,6 +4051,48 @@
           "auth"
         ],
         "description": "Begin SAML SP-initiated login (redirect to the IdP)",
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/saml/logout": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "description": "Get the IdP single-logout URL for the authenticated SAML principal",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/saml/slo": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "description": "SAML single logout endpoint (IdP-initiated LogoutRequest + SP-initiated LogoutResponse return)",
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "description": "SAML single logout endpoint, POST binding (same three arms as GET)",
         "responses": {
           "200": {
             "description": "Default Response"
@@ -4272,7 +4391,7 @@
         }
       }
     },
-    "/oidc/interaction/{uid}": {
+    "/api/v1/oidc/interaction/{uid}": {
       "get": {
         "description": "OIDC interaction details for the frontend login/consent pages",
         "parameters": [

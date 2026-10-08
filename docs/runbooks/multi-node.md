@@ -26,6 +26,8 @@ correctness batch (options coherence + envelope key versioning + dispatcher drai
 | Session list cache | Per-process; idle sweeps still correct (DB is truth). |
 | Permission cache invalidation (`ab:perm:invalidate`) | Silent single-node; 30s TTL still bounds staleness. |
 | Options cache invalidation (`ab:options:invalidate`) | Silent single-node; options cache is cache-until-write, so a node can serve **stale options indefinitely** until it sees a local write. |
+| SAML InResponseTo cache (`ab:saml:req:*`) | Falls back to node-saml's per-instance in-memory cache + one warn — since providers are constructed per request, cross-hop (login->acs, logout->response) validation **breaks cross-node AND single-node** without Redis. Treat Redis as mandatory for SAML. |
+| SAML SLO replay dedup (`ab:saml:sreq:*`) | Falls back to an in-process Map: replays are only caught on the node that saw the original request (documented ceiling). |
 
 ## 3. Per-node background workers (all safe to run everywhere)
 

@@ -179,6 +179,11 @@ OUT: back-channel logout RECEIVER on our RP side (Q3D flag stays; live-RP = inte
 ## 8. Ledger / residues
 - R6 latent-defect scope note: if real-IdP SAML login was broken single-node pre-batch, integration-day live-fire
   will reveal it; T-SAML fixes the cache layer regardless. Record honestly in status.md.
-- Bearer-survives-to-TTL on logout (unchanged; §3.4 does not bump tokenVersion — force-logout precedent).
-- jwks create-only: key rollover requires client re-creation (no PUT surface) — operational debt line.
+- IMPLEMENTATION DEVIATION (accepted, stronger than spec): SLO replay dedup claims the request ID AFTER signature validation, not before -
+  only authenticated IDs consume the dedup store (pre-validation claim would let forged requests poison it).
+- node-saml reality discovered during implementation: the REDIRECT-binding LogoutResponse arm never reaches validateInResponseTo
+  (only the POST response arm does, saml.js:516) - route-side Signature+SigAlg enforcement is the protection there;
+  replay of a signed redirect LogoutResponse completes without cache consumption. Residual recorded, posture unchanged.
+- Bearer-survives-to-TTL on logout (unchanged; §3.4 does not bump tokenVersion - force-logout precedent).
+- jwks create-only: key rollover requires client re-creation (no PUT surface) - operational debt line.
 - google/github end-session (A3), backchannel receiver + Q3D live-RP, SCIM deprovisioning.

@@ -2,6 +2,17 @@
 
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
+## [Unreleased] - 2026-10-08 (batch logout-coherence: SAML SLO + RP end_session + provider private_key_jwt; spec docs/superpowers/specs/2026-10-08-logout-coherence-design.md rev.2)
+### Added
+- SAML SP Single Logout both directions: three-arm GET/POST /api/v1/auth/saml/slo (IdP-initiated LogoutRequest -> revoke-all + signed LogoutResponse; SP-initiated completion -> 302 /login; uniform SLO_FAILED posture) + GET /api/v1/auth/saml/logout; saml link persistence (nameID/sessionIndex at ACS); new options saml_logout_url/saml_slo_callback_url; metadata advertises SingleLogoutService; Redis node-saml cacheProvider (ab:saml:req:*) also roots the pre-existing per-request-instance InResponseTo defect (R6).
+- RP-initiated end_session for generic OIDC providers: endSessionUrl config (https-only), id_token persisted on EVERY generic login (existing links upserted - R4), GET /api/v1/auth/oauth/end-session-url.
+- /auth/logout returns data.idpLogoutUrl (SAML-first, RP fallback, fail-soft); SPA logout one-hops to the IdP when present.
+- Provider-side private_key_jwt: oidc_clients.jwks (migration 0012) + create-time CLIENT_008 whitelist, CLIENT_009 none-vs-client_credentials/device gate, CLIENT_010 usable-jwks requirement, CLIENT_011 kty public-member allowlist; adapter passthrough; real client_assertion roundtrip integration-proven.
+### Fixed
+- Audit redactor covers idpLogoutUrl responseBody material (B4); SLO GET-binding requires Signature+SigAlg route-side - node-saml silently accepted unsigned redirect LogoutRequests (B1 forged-logout hole closed pre-ship).
+### Docs
+- openapi 99 -> 103 paths (3 new + 2 catch-up: audit-logs/verify from R-audit, interaction path renamed by the P1 prefix move); multi-node runbook gained SAML cache + SLO dedup rows.
+
 ## [Unreleased] — 2026-10-08 (batch multi-node: options coherence + envelope key versioning + dispatcher drain)
 ### Added
 - R-A cross-node options-cache coherence: OptionsManager writes announce on `ab:options:invalidate` (module-level publish hook, permission-cache precedent); server-side `utils/options-coherence.ts` registers the publisher + subscriber (drops the local cache with `fromRemote` marking — never re-announces) and is a silent single-node no-op when Redis is absent or the identity lane is mocked; wired in app boot with `onClose` teardown.

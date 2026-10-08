@@ -1,6 +1,6 @@
 # 认证提供商架构
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — providers shipped; domain allow/block never invoked from HTTP paths (A12); WebAuthn TTL 300s vs §36.4 60s (A13). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md). TrustedDevice + SsoSession designed groups RETIRED 2026-09-28 (R1-T11/DG-3): zero demand across two gap audits; revive only via proposal aligned with enforced-MFA semantics.
+> **Implementation status (2026-09-23 gap audit, updated 2026-10-08):** `partial` — providers shipped incl. SAML SSO+SLO bidirectional and RP end_session (logout-coherence batch 2026-10-08: signed-redirect enforcement route-side, Redis-backed InResponseTo cache, app-level LogoutRequest dedup); domain allow/block IS invoked from the live register path since R1-T9 (AUTH_033/034 — the old A12 'never invoked' claim retired); WebAuthn TTL 300s vs §36.4 60s (A13). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md). TrustedDevice + SsoSession designed groups RETIRED 2026-09-28 (R1-T11/DG-3): zero demand across two gap audits; revive only via proposal aligned with enforced-MFA semantics.
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§12 认证提供商架构
