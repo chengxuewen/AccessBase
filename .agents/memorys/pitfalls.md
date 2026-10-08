@@ -625,3 +625,37 @@
 - **根因**: rate-limit 用共享 Redis storage（per-IP 127.0.0.1 inject 桶，60s 窗口）。同一 box 上连续多轮全量/定向跑把桶耗尽，波及任何限流端点的测试——与生产代码无关。
 - **解法**: 复现红时先等 ≥60s 冷却单跑定性；跨文件脆弱的登录型 live 测试内置 429 退避重试（revocation-stack 已加固，5×2s）；测间不做背靠背全量重跑。
 - **验证**: 冷却后 `vitest run` 102 文件 1077/1077 复跑绿。附带噪声：scratch DB `pg_terminate_backend` teardown 触发 idle 池 57P01 unhandled（revocation-stack 专报 "Errors N"，无断言失败）——已知残留，勿再 A/B。
+
+## PIT-082 addendum (2026-10-08 verification day): same family re-fire via buildApp destructure
+
+- **Symptom**: app.ts `const { createDb, users } = await import('@accessbase/identity/db')` at buildApp time blew up every narrow vi.mock('@accessbase/identity/db') suite (health-pool, tenants, bootstrap — 24 files; 'No "users" export is defined').
+- **Rule now proven twice**: ANY new export access on a package boundary that tests mock narrowly must be destructured LAZILY inside the calling closure (the getUser fix did exactly that), or added to every mock — lazy is the convention (pinned in conventions.md PIT-082 line).
+
+
+## PIT-084: node-saml SLO/ACS integration triple trap (2026-10-08, logout-coherence)
+
+- **Symptom**: (a) unsigned HTTP-Redirect LogoutRequests pass validation — an anonymous attacker could revoke any user's sessions (dual-Momus B1 caught it pre-ship); (b) validateInResponseTo never guards INBOUND requests (only responses to requests we issued) — the rev.1 premise 'replay fails via cacheProvider' was false; (c) the default CacheProvider is per-SAML-instance while buildProvider constructed a fresh SamlProvider PER REQUEST — under validateInResponseTo:'always' the login→acs hop was doomed even single-node (batch F e2e mocked the lane and never exposed it).
+- **Root cause**: hasValidSignatureForRedirect returns true when the Signature param is absent (saml.js:658-679); the request-ID cache save happens only at OUTBOUND generation; the instance-scoped memory cache assumes a long-lived strategy object.
+- **Fix**: route-side Signature+SigAlg requirement before validation; app-level SETNX dedup keyed on the AUTHENTICATED request ID (post-validation, pre-mutation — only valid IDs consume the store); Redis-backed cacheProvider injected via buildProvider. Any new inbound-SAML surface copies all three.
+- **Verification**: `grep -c unsigned-redirect apps/server/src/routes/saml.ts` >= 1 AND `grep -c ab:saml:sreq apps/server/src/utils/saml-logout.ts` >= 1; saml-slo.test.ts real-crypto battery (counterparty-signed fixtures) green.
+
+## PIT-085: oidc-provider RP walls — human-confirm logoutSource + built-in SSRF dispatcher (2026-10-08, verification day)
+
+- **Symptom**: (a) the browser lands on end_session and just sits: oidc-provider's default logoutSource renders a human 'Yes, sign me out' page — nobody clicks, the provider session survives, re-auth goes silent (reads like 'logout broken'; cost: several mis-hit hypotheses incl. blaming our composer). (b) backchannel logout_token never arrives AND nothing logs the failure; (c) loopback sink answers curl fine while provider-side fetch fails — the hunt wasted a long stretch on proxies/allowlists before the true source.
+- **Root cause**: (a) end_session is treated as a user-facing confirmation by default — but our SPA arrives there ONLY after the RP session was already revoked (double confirm = dead code by construction). (b) delivery outcomes surface exclusively on provider events (no listeners = silence) and (c) oidc-provider's own undici dispatcher refuses special-use IPs (RFC6890 — loopback AND private ranges) for every outgoing request: intranet backchannel URIs can never be delivered.
+- **Fix**: custom logoutSource mirroring the built-in form_post template BYTE-FOR-BYTE (its sha256 is already in the helmet CSP allowlist — whitespace drift breaks the hash silently); success/error listeners log outcome + err.cause as product observability; runbook §7 records the dispatcher wall (front-channel unaffected; RP receiver-side stays Q3D scope).
+- **Verification**: live battery — end_session yields a confirm POST in server logs, re-authorize produces a FRESH login prompt (session dead); `grep backchannel <server.log>` shows delivered/FAILED lines. Env meta-lesson (PIT-087): re-probe scratch fleet liveness before deep-diving protocol mysteries.
+
+## PIT-086: StrictMode double-fire burns one-time exchange codes; mocks structurally hide it (2026-10-08, verification day)
+
+- **Symptom**: RP loop lands on /login?oauthCode=... then auth-storage shows token:null while user is populated — second POST /auth/oauth/exchange 401s (W1-3 burn-first did its job), and the axios 401→refresh→logout interceptor wipes the session the FIRST exchange had just established. Mock-API e2e cannot see this: mocked exchange handlers are idempotent.
+- **Root cause**: React 18 StrictMode dev double-fires mount effects; both runs captured the same one-time code in the pre-clear searchParams closure. Server burn-first is correct; the double client REQUEST is the bug.
+- **Fix**: per-code useRef one-shot guards on the oauthCode and samlCode exchange effects (reset inside the failure branch so genuine retries still work). Family: P1 device-flow + this = one-time-code flows are invisible to mock-API e2e; the >=1-vs-===1 assertion discipline covers tests, PRODUCT code needs the guard.
+- **Verification**: exchangedOauthRef/exchangedSamlRef present in Login.tsx; future e2e pattern: count POSTs to a one-time-code endpoint === 1 under dev StrictMode (mock counter).
+
+## PIT-087: bash-tool timeout reaps detached children; ctx_execute background sandbox survives (2026-10-08, verification day)
+
+- **Symptom**: scratch server/vite fleets started with `nohup ... & disown` (and even `setsid`) died the moment some LATER bash call hit its timeout — health endpoints verified up, gone minutes later; a dead-instance restart then masqueraded as 'code not loading' (EADDRINUSE ghost: the OLD instance kept answering 5101 while the new one crash-looped).
+- **Root cause**: the persistent-shell tool kills the session process group on timeout; nohup/disown detach HUP but not group-kill; plus pretty-printed pino logs made 'no request in log' ambiguous between dead-server and log-shape.
+- **Fix**: long-lived multi-process batteries launch via context-mode `ctx_execute(language:'shell', background:true)` (survives timeouts); re-probe ALL ports after any bash-timeout event before trusting state; kill leftovers by `fuser -k PORT/tcp` (ss-pid extraction proved unreliable here); grep raw method+url lines, not head-limited context, when counting requests.
+- **Verification**: standing rule for live days — every 'protocol mystery' hypothesis list starts with 'is my server even alive?' (cost this session: one full mis-hit cycle).

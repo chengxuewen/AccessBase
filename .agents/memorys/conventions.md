@@ -362,3 +362,8 @@ logger.error('Operation failed', error); // ❌
 - **Create/invite/import require scope=all (A3/R3); RTBF erase escalates to all BEFORE the tx/lock (A6/B2)** — a dept manager may delete an account but may never scrub the shared audit chain; the erase check runs outside routeTx so a denied erase never touches advisory lock 727242.
 - **Single PermissionManager singleton**: `getPermissionManager` is exported from utils/permission.ts (Q2a pool discipline) — data-scope and any future consumer import it; a second module singleton = second pg pool, rejected on sight. GroupManager instances remain per-route-module (existing convention until a managers.ts migration happens — logged residue).
 - Departments are `groups.kind='department'` (no org-unit table); kind is editable (A5), SCIM never sets kind (creates are 'group'); group deletion/member changes fan invalidation through the existing Q4b funnels — scope reads dept membership LIVE per request, so kind edits need no cache work.
+
+## Interaction preferences (user-adjudicated, 2026-10-08)
+
+- Multi-option rulings default to the **adjudication-walkthrough** skill: ONE ruling per message, seven-part template (details / options with paired pros+cons / sources / impact / recommendation / reply line), never a batched table, never the question tool. Check: skill exists at .agents/skills/adjudication-walkthrough/ and was used for data-scope A1-A6.
+- Progress reports and rulings prose in **plain language** (说人话): every paragraph must survive being read aloud to a non-domain colleague; jargon pileups banned; when the user says 说人话, re-issue the same content plainly rather than translating progressively.

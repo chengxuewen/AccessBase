@@ -98,3 +98,16 @@ test('returns empty array when no markets match query', () => {});
 test('throws error when API key is missing', () => {});
 test('falls back to substring search when Redis is unavailable', () => {});
 ```
+
+
+## Live-fire battery (verification days) — what mock lanes structurally cannot cover
+
+Behavior classes invisible to unit + real-PG-vitest + mock-API e2e; require a live multi-process battery (see PIT-084/085/086):
+
+- One-time-code flows (exchange/OTP/magic): client double-requests, server burn-first races.
+- Third-party protocol handshakes with hidden defaults (SAML validators, RP-initiated logout confirmation pages, provider-side dispatchers).
+- Cross-instance coherence claims (options/permission caches, revocation memos) — run the runbook §6 checklist with ≥2 real processes.
+- CSP/CORS/proxy interactions that only exist on real browser navigations.
+- Dev-server StrictMode paths (mount effects, double POSTs).
+
+Standing rules from the 2026-10-08 day: process groups via ctx_execute background:true (PIT-087); re-probe liveness before deep-diving; scratch dbs/servers destroyed post-day; every fix gets a regression test at the LOWEST layer that can see it (no-browser inject round > manual battery).
