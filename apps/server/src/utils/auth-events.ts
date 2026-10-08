@@ -18,8 +18,8 @@ import { emitEvent } from '@accessbase/identity';
 import { logger } from '@accessbase/logging';
 import { authDb } from './managers.js';
 
-/** Sign-in surfaces wired in R1-T3 (oauth/saml/webauthn/ldap/sms/magic = R-schedule). */
-export type AuthEventMethod = 'password' | 'totp' | 'admin-wizard';
+/** Sign-in surfaces wired in R1-T3 (oauth/webauthn/ldap/sms/magic = R-schedule); 'saml' added by the logout-coherence SLO lane (R7 sanctioned same-commit extension). */
+export type AuthEventMethod = 'password' | 'totp' | 'admin-wizard' | 'saml';
 export type AuthEventReason = 'bad_credentials' | 'locked' | 'suspended' | 'other';
 
 export interface AuthEventInput {

@@ -11,7 +11,7 @@
  * Errors redirect to /login?samlError=<code> — browser navigation, no stack
  * traces (anti-enumeration, same style as oauthError).
  */
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { SessionManager, RoleManager, FlowTokenService, getRedisClient, TenantManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
@@ -20,6 +20,8 @@ import { getRoleManager } from '../utils/managers.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { getTenantManager, getUserManager } from '../utils/managers.js';
 import { logger } from '@accessbase/logging';
+import { emitAuthEvent } from '../utils/auth-events.js';
+import { buildSamlProvider, claimSamlRequestId, resolveSamlLogoutUrl, upsertSamlLink } from '../utils/saml-logout.js';
 
 const EXCHANGE_TTL_SECONDS = 60;
 
@@ -64,26 +66,11 @@ export async function samlRoutes(app: FastifyInstance) {
     return enabled && entryPoint !== '' && idpCert !== '';
   }
 
-  /** Options→SamlProviderConfig mapping (per-request construction, auth.ts:898 precedent). */
-  async function buildProvider(host: string) {
-    const om = getOptionsManager();
-    const get = async (key: string, envKey: string, def: unknown) =>
-      om.get(key, process.env[envKey], def);
-    const { SamlProvider } = await import('@accessbase/identity');
-    return new SamlProvider({
-      enabled: true,
-      entryPoint: String(await get('saml_entry_point', 'SAML_ENTRY_POINT', '')),
-      idpCert: String(await get('saml_idp_cert', 'SAML_IDP_CERT', '')),
-      entityId: String(await get('saml_entity_id', 'SAML_ENTITY_ID', 'urn:accessbase:saml:sp')),
-      idpIssuer: String(await get('saml_idp_issuer', 'SAML_IDP_ISSUER', '')) || undefined,
-      privateKey: String(await get('saml_private_key', 'SAML_PRIVATE_KEY', '')) || undefined,
-      publicCert: String(await get('saml_public_cert', 'SAML_PUBLIC_CERT', '')) || undefined,
-      clockSkewMs: Number(await get('saml_clock_skew_ms', 'SAML_CLOCK_SKEW_MS', '300000')),
-      callbackUrl: String(
-        await get('saml_acs_url', 'SAML_ACS_URL', `http://${host}/api/v1/auth/saml/acs`),
-      ),
-    });
-  }
+  // Provider construction lives in utils/saml-logout.ts (single source — also
+  // powers resolveSamlLogoutUrl outside this plugin). §3.6 (R6 precondition):
+  // the Redis CacheProvider is injected there, so per-request construction
+  // shares request-id state across instances/nodes.
+
 
   /** Issue access JWT + refresh token — same claims/shape as login (auth.ts:54-84). */
   async function issueTokenPair(
@@ -165,10 +152,144 @@ export async function samlRoutes(app: FastifyInstance) {
           error: { code: 'AUTH_SAML_001', message: 'SAML authentication is not available' },
         });
       }
-      const provider = await buildProvider(request.hostname);
+      const provider = await buildSamlProvider(request.hostname);
       const loginUrl = await provider.loginUrl('', request.hostname);
       return reply.redirect(loginUrl);
     },
+  );
+
+  // GET /api/v1/auth/saml/logout — SP-initiated logout URL for the caller
+  // (§3.1). Bearer lane, keyed by JWT sub (the authenticated principal — no
+  // cross-tenant path). No saml link -> {logoutUrl: null}: the SPA (and the
+  // §3.4 /auth/logout composer) treat null as "nothing IdP-side to do".
+  app.get(
+    '/saml/logout',
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+      schema: {
+        description: 'Get the IdP single-logout URL for the authenticated SAML principal',
+        tags: ['auth'],
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    async (request, reply) => {
+      if (!(await samlConfigured())) {
+        return reply.status(503).send({
+          success: false,
+          error: { code: 'AUTH_SAML_001', message: 'SAML authentication is not available' },
+        });
+      }
+      const caller = request.user as { sub?: string };
+      const logoutUrl = caller.sub ? await resolveSamlLogoutUrl(caller.sub) : null;
+      return { success: true, data: { logoutUrl } };
+    },
+  );
+
+  // GET+POST /api/v1/auth/saml/slo — the IdP-facing single-logout endpoint (§3.2).
+  // THREE arms discriminated on container shape (saml.js:650-654: message type
+  // lives in SAMLRequest vs SAMLResponse, never in a validate() return field):
+  //  1. LogoutRequest (IdP-initiated): signed-only redirect binding enforced
+  //     ROUTE-side (B1 — node-saml's hasValidSignatureForRedirect returns true
+  //     when Signature is ABSENT, saml.js:658-679, and the POST validator
+  //     enforces on its own), replay-deduped by us (R2 — node-saml only caches
+  //     IDs WE generated), then A1 kill-all + auth.logout(saml) + LogoutResponse.
+  //  2. LogoutResponse (SP-initiated completion): validate, land /login, and
+  //     NEVER echo a message back (B2 loop lock).
+  //  3. Failure arm: uniform 302 /login?error=SLO_FAILED, warn-log only — the
+  //     browser channel never returns JSON and never distinguishes causes.
+  // Audit-excluded in app.ts alongside ACS (R10 family: multi-KB SAML bodies).
+  const sloHandler = async (request: FastifyRequest, reply: FastifyReply) => {
+    const sloFail = (reason: string) => {
+      request.log.warn({ reason }, 'SAML SLO rejected');
+      return reply.redirect('/login?error=SLO_FAILED');
+    };
+    if (!(await samlConfigured())) {
+      return sloFail('AUTH_SAML_001');
+    }
+    const isGet = request.method === 'GET';
+    const container = isGet
+      ? (request.query as Record<string, string>)
+      : ((request.body ?? {}) as Record<string, string>);
+    if (!container['SAMLRequest'] && !container['SAMLResponse']) {
+      return sloFail('no-saml-message');
+    }
+    // B1: unsigned redirect-binding messages are forgeable — node-saml would
+    // silently ACCEPT them, so the gate is route-side (both GET arms). POST
+    // binding needs nothing here: its validators enforce the XML signature.
+    if (isGet && !(container['Signature'] && container['SigAlg'])) {
+      return sloFail('unsigned-redirect');
+    }
+    const provider = await buildSamlProvider(request.hostname);
+    const queryIndex = request.url.indexOf('?');
+    const result = await provider.validateSlo(
+      isGet
+        ? {
+            binding: 'redirect',
+            query: request.query as Record<string, unknown>,
+            // R10: signature base string = the RAW query after '?', never the
+            // path-prefixed url.
+            originalQuery: queryIndex >= 0 ? request.url.slice(queryIndex + 1) : '',
+          }
+        : { binding: 'post', container },
+    );
+    if ('error' in result) {
+      return sloFail(result.message);
+    }
+    if (result.kind === 'response') {
+      // Arm 2: SP-initiated round complete. Land the browser — generating any
+      // SAML message here would loop the exchange (B2).
+      return reply.redirect('/login');
+    }
+    // Arm 1 (LogoutRequest). Claim AFTER validation (the ID is only trustworthy
+    // once the signature passes — an unauthenticated body must not poison the
+    // dedup store) and BEFORE any mutation.
+    const requestId = result.profile.id;
+    if (!requestId) {
+      return sloFail('missing-request-id');
+    }
+    if (!(await claimSamlRequestId(requestId))) {
+      return sloFail('replayed-request');
+    }
+    const user = await getUserManager().then((um) => um.findByEmail(result.profile.nameId));
+    if (user) {
+      // A1 ruling: kill every session of the asserted principal. Email is
+      // globally unique (schema), so the resolution is tenant-straddle-proof.
+      await sessionManager.revokeAllUserSessions(user.id);
+      emitAuthEvent({
+        type: 'auth.logout',
+        tenantId: user.tenantId ?? DEFAULT_TENANT,
+        userId: user.id,
+        email: result.profile.nameId,
+        method: 'saml',
+      });
+    }
+    return reply.redirect(
+      await provider.logoutResponseUrl(result.profile, container['RelayState'] ?? ''),
+    );
+  };
+
+  app.get(
+    '/saml/slo',
+    {
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+      schema: {
+        description: 'SAML single logout endpoint (IdP-initiated LogoutRequest + SP-initiated LogoutResponse return)',
+        tags: ['auth'],
+      },
+    },
+    sloHandler,
+  );
+  app.post(
+    '/saml/slo',
+    {
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+      schema: {
+        description: 'SAML single logout endpoint, POST binding (same three arms as GET)',
+        tags: ['auth'],
+      },
+    },
+    sloHandler,
   );
 
   // POST /api/v1/auth/saml/acs — IdP assertion consumer. ALWAYS 302 (R1);
@@ -187,7 +308,7 @@ export async function samlRoutes(app: FastifyInstance) {
       if (!(await samlConfigured())) {
         return samlError(reply, 'AUTH_SAML_001');
       }
-      const provider = await buildProvider(request.hostname);
+      const provider = await buildSamlProvider(request.hostname);
       const body = (request.body ?? {}) as Record<string, string>;
       const identity = await provider.validateResponse(body);
       if ('error' in identity || identity.email === '') {
@@ -213,6 +334,11 @@ export async function samlRoutes(app: FastifyInstance) {
           request.log.warn({ userId: existing.id }, 'SAML login rejected: account suspended');
           return samlError(reply, 'AUTH_004');
         }
+
+        // §3.1 link persistence: nameID + SessionIndex into oauth_accounts so the
+        // SP-initiated logout / §3.4 composer can resolve this principal later.
+        // Fail-soft by design (upsertSamlLink swallows LOUD, B7) — never breaks login.
+        await upsertSamlLink(user.id, identity.nameId, identity.sessionIndex ?? null);
 
         const totpEnabled = 'totpEnabled' in user ? Boolean(user.totpEnabled) : false;
         // Dual-variant payload (R1, mirror oauth.ts:475-487): MFA users get ONLY
@@ -383,7 +509,7 @@ export async function samlRoutes(app: FastifyInstance) {
           error: { code: 'AUTH_SAML_001', message: 'SAML authentication is not available' },
         });
       }
-      const provider = await buildProvider(request.hostname);
+      const provider = await buildSamlProvider(request.hostname);
       const xml = await provider.metadataXml();
       return reply.type('application/xml').send(xml);
     },

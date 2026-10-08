@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { logger } from '@accessbase/logging';
 import type { IdentityService, OptionsManager } from '@accessbase/identity';
 
 process.env.NODE_ENV = 'test';
@@ -19,13 +20,19 @@ vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 // runs real XML crypto — the route tests own the channel semantics (302s,
 // exchange union, find-or-provision), not signature verification.
 class MockSamlProvider {
-  constructor(public config: Record<string, unknown>) {}
+  static lastConfig: Record<string, unknown> = {};
+  constructor(public config: Record<string, unknown>) {
+    MockSamlProvider.lastConfig = config;
+  }
   async loginUrl(relayState: string, _host?: string): Promise<string> {
     return `https://idp.example.com/sso?RelayState=${encodeURIComponent(relayState)}`;
   }
   async validateResponse(
     container: Record<string, string>,
-  ): Promise<{ email: string; nameId: string; displayName?: string } | { error: 'AUTH_SAML_002'; message: string }> {
+  ): Promise<
+    | { email: string; nameId: string; displayName?: string; sessionIndex?: string }
+    | { error: 'AUTH_SAML_002'; message: string }
+  > {
     const samlResponse = container['SAMLResponse'] ?? '';
     if (samlResponse === 'invalid') {
       return { error: 'AUTH_SAML_002', message: 'Invalid SAML assertion' };
@@ -33,7 +40,47 @@ class MockSamlProvider {
     if (samlResponse === 'no-email') {
       return { email: '', nameId: 'anon' };
     }
-    return { email: 'saml@test.local', nameId: 'user-1', displayName: 'SAML User' };
+    if (samlResponse === 'overflow') {
+      return { email: 'saml@test.local', nameId: 'x'.repeat(129) };
+    }
+    return {
+      email: 'saml@test.local',
+      nameId: 'user-1',
+      displayName: 'SAML User',
+      sessionIndex: 'idx-1',
+    };
+  }
+  async logoutUrl(nameId: string, sessionIndex: string | null): Promise<string> {
+    return `https://idp.example.com/slo?SAMLRequest=mock-${nameId}-${sessionIndex ?? 'none'}`;
+  }
+  /** SLO arm recorder — route tests assert dispatch precedence WITHOUT real crypto. */
+  static sloInputs: Array<Record<string, unknown>> = [];
+  static responseCalls: Array<{ id?: string; relay: string }> = [];
+  async validateSlo(input: {
+    binding: string;
+    query?: Record<string, unknown>;
+    container?: Record<string, string>;
+  }): Promise<
+    | { kind: 'request'; profile: { id?: string; nameId: string; sessionIndex?: string } }
+    | { kind: 'response' }
+    | { error: 'AUTH_SAML_002'; message: string }
+  > {
+    MockSamlProvider.sloInputs.push(input as Record<string, unknown>);
+    const container = input.container ?? {};
+    if (container['SAMLRequest'] === 'mock-req') {
+      return { kind: 'request', profile: { id: '_mock-1', nameId: 'saml@test.local', sessionIndex: 'idx-1' } };
+    }
+    if (container['SAMLResponse'] === 'mock-resp') {
+      return { kind: 'response' };
+    }
+    return { error: 'AUTH_SAML_002', message: 'SAML SLO validation failed' };
+  }
+  async logoutResponseUrl(
+    profile: { id?: string; nameId: string; sessionIndex?: string },
+    relayState: string,
+  ): Promise<string> {
+    MockSamlProvider.responseCalls.push({ id: profile.id, relay: relayState });
+    return `https://idp.example.com/slo?SAMLResponse=mock-${profile.id}-${relayState || 'no-relay'}`;
   }
   async metadataXml(): Promise<string> {
     return '<?xml version="1.0"?><EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" entityID="urn:accessbase:saml:sp"/>';
@@ -63,9 +110,51 @@ const sessionManagerMock = {
   revokeAllUserSessions: vi.fn(),
 };
 
+// Shared link/db state for the logout-coherence lanes (§3.1): the route's
+// oauth_accounts reads+writes land in these arrays (createDb seam).
+const dbWrites: Array<{ table: string; values: Record<string, unknown> }> = [];
+const linkRows: Array<Record<string, unknown>> = [];
+const redisState = { client: null as Record<string, ReturnType<typeof vi.fn>> | null };
+vi.mock('../utils/redis.js', () => ({
+  getRedis: async () => redisState.client as never,
+}));
+
+vi.mock('@accessbase/identity/db', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  type ValuesChain = Promise<Array<Record<string, unknown>>> & {
+    onConflictDoUpdate: (cfg: unknown) => Promise<Array<Record<string, unknown>>>;
+  };
+  const DRIZZLE_NAME = Symbol.for('drizzle:Name');
+  const fakeDb = {
+    insert: (table: Record<symbol, unknown>) => ({
+      values: (vals: Record<string, unknown>) => {
+        dbWrites.push({ table: String(table[DRIZZLE_NAME] ?? 'unknown'), values: vals });
+        const p = Promise.resolve([]) as ValuesChain;
+        p.onConflictDoUpdate = () => p;
+        return p;
+      },
+    }),
+    select: () => ({
+      from: () => ({
+        where: () => {
+          type Limitable = Array<Record<string, unknown>> & {
+            limit: (n: number) => Promise<Array<Record<string, unknown>>>;
+          };
+          const rows = [...linkRows] as Limitable;
+          rows.limit = async () => rows;
+          return rows;
+        },
+      }),
+    }),
+  };
+  return {
+    ...actual,
+    createDb: vi.fn(() => fakeDb),
+    closeDb: vi.fn(async () => {}),
+  };
+});
+
 // Shared FlowTokenService stub via module-level Map (oauth.test.ts seam) —
-// with burn-first consume ordering (delete BEFORE payload check; Task 6 fixes
-// the real stub to match this shape).
 const sharedFlowStore = new Map<string, { purpose: string; payload: unknown; ttl?: number }>();
 function resetSharedFlowStore(): void {
   sharedFlowStore.clear();
@@ -127,6 +216,7 @@ setOptionsManager({
 } as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');
+const { _resetSloDedupForTest } = await import('../utils/saml-logout.js');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -146,6 +236,13 @@ beforeEach(() => {
   optionsStore.clear();
   userManagerState.existing = null;
   sessionManagerMock.issueRefreshToken.mockClear();
+  sessionManagerMock.revokeAllUserSessions.mockClear();
+  dbWrites.length = 0;
+  linkRows.length = 0;
+  redisState.client = null;
+  MockSamlProvider.sloInputs = [];
+  MockSamlProvider.responseCalls = [];
+  _resetSloDedupForTest();
 });
 
 /** Turn SAML fully on via options (enabled + entryPoint + idpCert). */
@@ -369,7 +466,7 @@ describe('GET /api/v1/auth/saml/metadata', () => {
   });
 });
 
-describe('static invariants (app.ts source)', () => {
+describe('static invariants (app.ts + options.ts source)', () => {
   it('app.ts registers no global content-type parser (scoped parser stays in the plugin)', () => {
     const src = readFileSync(resolve(__dirname, '../app.ts'), 'utf-8');
     expect(src).not.toMatch(/addContentTypeParser/);
@@ -379,5 +476,181 @@ describe('static invariants (app.ts source)', () => {
     const src = readFileSync(resolve(__dirname, '../app.ts'), 'utf-8');
     expect(src).toContain("/api/v1/auth/saml/acs");
   });
+
+  it('app.ts excludes the SAML SLO route from audit (§3.2 R10 family)', () => {
+    const src = readFileSync(resolve(__dirname, '../app.ts'), 'utf-8');
+    expect(src).toContain("/api/v1/auth/saml/slo");
+  });
+
+  it('options allowlist carries the two SLO keys (B3)', () => {
+    const src = readFileSync(resolve(__dirname, '../routes/options.ts'), 'utf-8');
+    expect(src).toContain("'saml_logout_url'");
+    expect(src).toContain("'saml_slo_callback_url'");
+  });
 });
 
+// ---------------------------------------------------------------------------
+// Logout-coherence §3.1 — link persistence + SP-initiated logout
+// ---------------------------------------------------------------------------
+
+describe('ACS saml link persistence (§3.1)', () => {
+  it('upserts oauth_accounts(provider=saml) with nameId + sessionIndex after provisioning', async () => {
+    enableSaml();
+    await runAcs('valid');
+    const linkWrite = dbWrites.find((w) => w.table === 'oauth_accounts');
+    expect(linkWrite?.values).toMatchObject({
+      userId: testUser.id,
+      provider: 'saml',
+      providerAccountId: 'user-1',
+      sessionIndex: 'idx-1',
+    });
+  });
+
+  it('B7: 129-char nameID -> loud warn, link skipped, login unaffected', async () => {
+    enableSaml();
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const res = await postAcs('overflow');
+    expect(res.statusCode).toBe(302);
+    expect((res.headers['location'] as string) ?? '').toContain('/login?samlCode=');
+    expect(dbWrites.some((w) => w.table === 'oauth_accounts')).toBe(false);
+    expect(warnSpy.mock.calls.some((c) => JSON.stringify(c).includes('128'))).toBe(true);
+    warnSpy.mockRestore();
+  });
+});
+
+describe('GET /api/v1/auth/saml/logout', () => {
+  const AUTH = (): { authorization: string } => ({
+    authorization: `Bearer ${app.jwt.sign({
+      sub: testUser.id,
+      email: testUser.email,
+      status: 'active',
+      tenantId: testUser.tenantId,
+      tokenVersion: 0,
+    })}`,
+  });
+
+  it('returns 503 AUTH_SAML_001 when SAML is disabled', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/saml/logout', headers: AUTH() });
+    expect(res.statusCode).toBe(503);
+    expect(res.json().error.code).toBe('AUTH_SAML_001');
+  });
+
+  it('no saml link -> {logoutUrl: null}', async () => {
+    enableSaml();
+    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/saml/logout', headers: AUTH() });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true, data: { logoutUrl: null } });
+  });
+
+  it('link present -> logoutUrl built from the stored nameId + sessionIndex', async () => {
+    enableSaml();
+    linkRows.push({ providerAccountId: 'user-1', sessionIndex: 'idx-1' });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/saml/logout', headers: AUTH() });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      success: true,
+      data: { logoutUrl: 'https://idp.example.com/slo?SAMLRequest=mock-user-1-idx-1' },
+    });
+  });
+
+  it('provider config carries cacheProvider (R6) + saml_logout_url + saml_slo_callback_url (B3)', async () => {
+    enableSaml();
+    redisState.client = {
+      // Q3A auth-state reader consults the SAME getRedis seam: answer the
+      // authst: key with a matching state so authenticate passes with redis on.
+      get: vi.fn(async (key: string) =>
+        key.startsWith('authst:')
+          ? JSON.stringify({ tokenVersion: 0, status: 'active' })
+          : null),
+      del: vi.fn(async () => 1),
+    };
+    optionsStore.set('saml_logout_url', 'https://idp.example.com/slo');
+    optionsStore.set('saml_slo_callback_url', 'https://sp.example.com/slo');
+    linkRows.push({ providerAccountId: 'user-1', sessionIndex: null });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/saml/logout', headers: AUTH() });
+    expect(res.statusCode).toBe(200);
+    expect(MockSamlProvider.lastConfig['cacheProvider']).toBeDefined();
+    expect(MockSamlProvider.lastConfig['logoutUrl']).toBe('https://idp.example.com/slo');
+    expect(MockSamlProvider.lastConfig['logoutCallbackUrl']).toBe('https://sp.example.com/slo');
+  });
+});
+
+
+
+// ---------------------------------------------------------------------------
+// Logout-coherence §3.2 — SLO route arms (mock-provider dispatch layer;
+// the real-crypto round-trips live in saml-slo.test.ts)
+// ---------------------------------------------------------------------------
+
+describe('POST /api/v1/auth/saml/slo (dispatch arms)', () => {
+  function postSlo(field: string, value: string): ReturnType<typeof app.inject> {
+    return app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/saml/slo',
+      payload: `${field}=${encodeURIComponent(value)}`,
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    });
+  }
+
+  it('SAMLRequest body -> post-binding validateSlo, revoke + auth.logout(saml), LogoutResponse echoes RelayState', async () => {
+    enableSaml();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/saml/slo',
+      payload: 'SAMLRequest=mock-req&RelayState=relay-9',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    });
+    expect(res.statusCode).toBe(302);
+    expect(String(res.headers['location'])).toContain('https://idp.example.com/slo?SAMLResponse=mock-_mock-1-relay-9');
+    expect(MockSamlProvider.sloInputs).toEqual([
+      { binding: 'post', container: { SAMLRequest: 'mock-req', RelayState: 'relay-9' } },
+    ]);
+    expect(sessionManagerMock.revokeAllUserSessions).toHaveBeenCalledWith(testUser.id);
+    const event = dbWrites.find((w) => w.table === 'events');
+    expect(event?.values).toMatchObject({
+      type: 'auth.logout',
+      payload: { email: 'saml@test.local', method: 'saml', userId: testUser.id },
+    });
+  });
+
+  it('B2 loop lock: SAMLResponse body -> 302 /login, NEVER generates a message back', async () => {
+    enableSaml();
+    const res = await postSlo('SAMLResponse', 'mock-resp');
+    expect(res.statusCode).toBe(302);
+    expect(res.headers['location']).toBe('/login');
+    expect(MockSamlProvider.responseCalls).toHaveLength(0);
+    expect(sessionManagerMock.revokeAllUserSessions).not.toHaveBeenCalled();
+  });
+
+  it('validation error collapses to the uniform SLO_FAILED redirect', async () => {
+    enableSaml();
+    const res = await postSlo('SAMLRequest', 'garbage');
+    expect(res.statusCode).toBe(302);
+    expect(res.headers['location']).toBe('/login?error=SLO_FAILED');
+    expect(sessionManagerMock.revokeAllUserSessions).not.toHaveBeenCalled();
+  });
+
+  it('B1 precedence: unsigned GET never reaches the validator at all', async () => {
+    enableSaml();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/saml/slo?SAMLRequest=whatever',
+    });
+    expect(res.statusCode).toBe(302);
+    expect(res.headers['location']).toBe('/login?error=SLO_FAILED');
+    expect(MockSamlProvider.sloInputs).toHaveLength(0);
+  });
+
+  it('GET with Signature+SigAlg present reaches the validator (gate is param-shape only)', async () => {
+    enableSaml();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/saml/slo?SAMLRequest=whatever&Signature=abc&SigAlg=def',
+    });
+    // The mock validator cannot parse the junk SAMLRequest -> uniform failure,
+    // but the gate must have PASSED (validator consulted with redirect binding).
+    expect(res.headers['location']).toBe('/login?error=SLO_FAILED');
+    expect(MockSamlProvider.sloInputs).toHaveLength(1);
+    expect(MockSamlProvider.sloInputs[0]).toMatchObject({ binding: 'redirect' });
+  });
+});

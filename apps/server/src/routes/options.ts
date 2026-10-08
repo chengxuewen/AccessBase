@@ -62,6 +62,11 @@ const KNOWN_OPTION_KEYS = new Set([
   // SL-2 session idle timeout seconds (spec 2026-09-29-session-lifetime):
   // 3-tier env SESSION_IDLE_TIMEOUT_SECONDS > this option > 86400; 0 = off.
   'session.idle_timeout_seconds',
+  // Logout-coherence batch (spec 2026-10-08): B3 pair — IdP SLO destination
+  // (fallback entryPoint at the read site, warn once) and our public SLO
+  // callback advertised in SP metadata (SingleLogoutService, metadata.js:86-89).
+  'saml_logout_url',
+  'saml_slo_callback_url',
 ]);
 // Batch B dynamic provider secrets: oauth_<name>_client_secret (names are
 // lowercase/hyphen by convention — KEY_FORMAT-legal dots/uppercase in a

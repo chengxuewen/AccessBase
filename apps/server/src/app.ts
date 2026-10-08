@@ -531,7 +531,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
         url.startsWith('/api/v1/options') ||
         // R10 (Batch F): the ACS urlencoded body (multi-KB SAMLResponse XML)
         // must not land in audit_logs — bloat + assertion content at rest.
-        url.startsWith('/api/v1/auth/saml/acs')
+        // §3.2 (logout-coherence): SLO carries SAMLRequest/Response + signed
+        // redirect URLs — same bloat/token-material posture, same exclusion.
+        url.startsWith('/api/v1/auth/saml/acs') ||
+        url.startsWith('/api/v1/auth/saml/slo')
       )
         return;
       await auditHook(request, reply);

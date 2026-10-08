@@ -17,6 +17,10 @@ const mockSamlInstance = {
     profile: null as null | Record<string, unknown>,
     loggedOut: false,
   })),
+  getLogoutUrlAsync: vi.fn(),
+  getLogoutResponseUrlAsync: vi.fn(),
+  validateRedirectAsync: vi.fn(),
+  validatePostRequestAsync: vi.fn(),
 };
 
 const MockSAMLClass = vi.fn().mockImplementation(() => mockSamlInstance);
@@ -255,5 +259,227 @@ describe('SamlProvider constructor options', () => {
 
     const opts = MockSAMLClass.mock.calls[0][0] as Record<string, unknown>;
     expect(opts['acceptedClockSkewMs']).toBe(300000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Logout-coherence batch (spec 2026-10-08-logout-coherence-design §3.1-§3.6)
+// ---------------------------------------------------------------------------
+
+describe('SamlProvider.validateResponse sessionIndex carry (§3.1)', () => {
+  it('carries sessionIndex from the AuthnStatement profile', async () => {
+    vi.clearAllMocks();
+    const provider = new SamlProvider(makeConfig());
+    mockSamlInstance.validatePostResponseAsync.mockResolvedValueOnce({
+      profile: {
+        email: 'alice@example.com',
+        nameID: 'alice@example.com',
+        nameIDFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+        sessionIndex: 'idx-42',
+      },
+      loggedOut: false,
+    });
+
+    const result = await provider.validateResponse({ SAMLResponse: 'b64blob' });
+
+    expect(result).toEqual({
+      email: 'alice@example.com',
+      nameId: 'alice@example.com',
+      sessionIndex: 'idx-42',
+    });
+  });
+});
+
+describe('SamlProvider.validateSlo (§3.2)', () => {
+  let provider: SamlProvider;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    provider = new SamlProvider(makeConfig());
+  });
+
+  it('redirect binding LogoutRequest: returns {kind: request, profile} and forwards the RAW query string verbatim (R10)', async () => {
+    mockSamlInstance.validateRedirectAsync.mockResolvedValueOnce({
+      profile: { ID: '_req1', nameID: 'alice@example.com', sessionIndex: 'idx-9' },
+      loggedOut: true,
+    });
+
+    const result = await provider.validateSlo({
+      binding: 'redirect',
+      query: { SAMLRequest: 'x' },
+      originalQuery: 'SAMLRequest=x&SigAlg=y',
+    });
+
+    expect(mockSamlInstance.validateRedirectAsync).toHaveBeenCalledWith(
+      { SAMLRequest: 'x' },
+      'SAMLRequest=x&SigAlg=y',
+    );
+    expect(result).toEqual({
+      kind: 'request',
+      profile: { id: '_req1', nameId: 'alice@example.com', sessionIndex: 'idx-9' },
+    });
+  });
+
+  it('redirect binding LogoutResponse (null profile): returns {kind: response}', async () => {
+    mockSamlInstance.validateRedirectAsync.mockResolvedValueOnce({ profile: null, loggedOut: true });
+
+    const result = await provider.validateSlo({
+      binding: 'redirect',
+      query: { SAMLResponse: 'x' },
+      originalQuery: 'SAMLResponse=x',
+    });
+
+    expect(result).toEqual({ kind: 'response' });
+  });
+
+  it('post binding SAMLRequest: routes to validatePostRequestAsync', async () => {
+    mockSamlInstance.validatePostRequestAsync.mockResolvedValueOnce({
+      profile: { ID: '_post1', nameID: 'bob@example.com' },
+      loggedOut: true,
+    });
+
+    const result = await provider.validateSlo({
+      binding: 'post',
+      container: { SAMLRequest: 'blob' },
+    });
+
+    expect(mockSamlInstance.validatePostRequestAsync).toHaveBeenCalledWith({ SAMLRequest: 'blob' });
+    expect(result).toEqual({
+      kind: 'request',
+      profile: { id: '_post1', nameId: 'bob@example.com' },
+    });
+  });
+
+  it('post binding SAMLResponse: routes to validatePostResponseAsync and reports {kind: response}', async () => {
+    mockSamlInstance.validatePostResponseAsync.mockResolvedValueOnce({ profile: null, loggedOut: true });
+
+    const result = await provider.validateSlo({
+      binding: 'post',
+      container: { SAMLResponse: 'blob' },
+    });
+
+    expect(mockSamlInstance.validatePostResponseAsync).toHaveBeenCalledWith({ SAMLResponse: 'blob' });
+    expect(result).toEqual({ kind: 'response' });
+  });
+
+  it('never throws: validator rejection collapses to AUTH_SAML_002 error result', async () => {
+    mockSamlInstance.validateRedirectAsync.mockRejectedValueOnce(new Error('bad signature'));
+
+    const result = await provider.validateSlo({
+      binding: 'redirect',
+      query: { SAMLRequest: 'x' },
+      originalQuery: 'SAMLRequest=x',
+    });
+
+    expect(result).toEqual({ error: 'AUTH_SAML_002', message: 'SAML SLO validation failed' });
+  });
+
+  it('request arm without nameID collapses to the uniform error result', async () => {
+    mockSamlInstance.validatePostRequestAsync.mockResolvedValueOnce({
+      profile: { ID: '_noName' },
+      loggedOut: true,
+    });
+
+    const result = await provider.validateSlo({
+      binding: 'post',
+      container: { SAMLRequest: 'blob' },
+    });
+
+    expect(result).toEqual({ error: 'AUTH_SAML_002', message: 'SAML SLO validation failed' });
+  });
+});
+
+describe('SamlProvider.logoutUrl / logoutResponseUrl (§3.1/§3.2)', () => {
+  let provider: SamlProvider;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    provider = new SamlProvider(makeConfig());
+  });
+
+  it('logoutUrl generates a LogoutRequest URL with the email-format NameID + sessionIndex', async () => {
+    mockSamlInstance.getLogoutUrlAsync.mockResolvedValueOnce('https://idp.example.com/slo?SAMLRequest=abc');
+
+    const url = await provider.logoutUrl('alice@example.com', 'idx-1');
+
+    expect(url).toBe('https://idp.example.com/slo?SAMLRequest=abc');
+    expect(mockSamlInstance.getLogoutUrlAsync).toHaveBeenCalledWith(
+      {
+        nameID: 'alice@example.com',
+        nameIDFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+        sessionIndex: 'idx-1',
+      },
+      '',
+      {},
+    );
+  });
+
+  it('logoutUrl omits sessionIndex when the link has none', async () => {
+    mockSamlInstance.getLogoutUrlAsync.mockResolvedValueOnce('https://idp.example.com/slo?SAMLRequest=abc');
+
+    await provider.logoutUrl('alice@example.com', null);
+
+    expect(mockSamlInstance.getLogoutUrlAsync).toHaveBeenCalledWith(
+      {
+        nameID: 'alice@example.com',
+        nameIDFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+      },
+      '',
+      {},
+    );
+  });
+
+  it('logoutResponseUrl echoes the request ID back with success=true (RelayState passthrough)', async () => {
+    mockSamlInstance.getLogoutResponseUrlAsync.mockResolvedValueOnce('https://idp.example.com/slo?SAMLResponse=xyz');
+
+    const url = await provider.logoutResponseUrl({ id: '_req1', nameId: 'alice@example.com' }, 'relay-7');
+
+    expect(url).toBe('https://idp.example.com/slo?SAMLResponse=xyz');
+    expect(mockSamlInstance.getLogoutResponseUrlAsync).toHaveBeenCalledWith({ ID: '_req1' }, 'relay-7', {}, true);
+  });
+});
+
+describe('SamlProvider SLO constructor options + metadata', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('passes cacheProvider through to node-saml when configured (§3.6 injection seam)', async () => {
+    const fakeCache = {
+      saveAsync: vi.fn(),
+      getAsync: vi.fn(),
+      removeAsync: vi.fn(),
+    };
+    const provider = new SamlProvider(makeConfig({ cacheProvider: fakeCache }));
+    await provider['getSaml']();
+
+    const opts = MockSAMLClass.mock.calls[0][0] as Record<string, unknown>;
+    expect(opts['cacheProvider']).toBe(fakeCache);
+  });
+
+  it('omits cacheProvider/logoutUrl keys when unconfigured (node-saml defaults stand)', async () => {
+    const provider = new SamlProvider(makeConfig());
+    await provider['getSaml']();
+
+    const opts = MockSAMLClass.mock.calls[0][0] as Record<string, unknown>;
+    expect('cacheProvider' in opts).toBe(false);
+    expect('logoutUrl' in opts).toBe(false);
+  });
+
+  it('passes logoutUrl through when saml_logout_url is configured (§3.1 B3)', async () => {
+    const provider = new SamlProvider(makeConfig({ logoutUrl: 'https://idp.example.com/slo' }));
+    await provider['getSaml']();
+
+    const opts = MockSAMLClass.mock.calls[0][0] as Record<string, unknown>;
+    expect(opts['logoutUrl']).toBe('https://idp.example.com/slo');
+  });
+
+  it('metadataXml passes logoutCallbackUrl when configured so SingleLogoutService is emitted (B3)', async () => {
+    mockGenerateMetadata.mockReturnValueOnce('<EntityDescriptor/>');
+    const provider = new SamlProvider(makeConfig({ logoutCallbackUrl: 'https://sp.example.com/slo' }));
+
+    await provider.metadataXml();
+
+    expect(mockGenerateMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({ logoutCallbackUrl: 'https://sp.example.com/slo' }),
+    );
   });
 });
