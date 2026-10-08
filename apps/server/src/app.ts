@@ -282,7 +282,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // Registered BEFORE setupGuard: hijacked /oidc requests skip the guard's
   // DB round-trip entirely (the provider's adapter dials PG only when a
   // flow actually needs a Client/Grant lookup).
-  const { createDb, users } = await import('@accessbase/identity/db');
+  const { createDb } = await import('@accessbase/identity/db');
   const { eq } = await import('drizzle-orm');
   // Adapter getUser seam WIRED (verification-day): unwired it released no email/name
   // claims (userinfo = bare sub) and RPs synthesized @*.oauth.invalid addresses.
@@ -297,6 +297,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
     backchannelLogoutEnabled: config.oidcBackchannelLogout,
     adapterCtorArgs: [oidcAdapterDb, {
       getUser: async (id: string) => {
+        // Lazy destructure: destructuring identity/db at buildApp time would hit
+        // every narrow vi.mock('@accessbase/identity/db') proxy (PIT-082).
+        const { users } = await import('@accessbase/identity/db');
+        const { eq } = await import('drizzle-orm');
         const [row] = await oidcAdapterDb
           .select({ name: users.name, email: users.email })
           .from(users)
