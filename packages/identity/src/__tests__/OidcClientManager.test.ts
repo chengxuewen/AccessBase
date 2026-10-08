@@ -215,6 +215,39 @@ describe('OidcClientManager', () => {
       // Stored blob starts with v2:
       expect(String(insertedValues['secretEncrypted'])).toMatch(/^v2:/);
     });
+
+    it('persists jwks to the insert values when provided (T-PKJ)', async () => {
+      const insertChain = makeChain([{ id: 'x', clientId: 'ab_1' }]);
+      db.insert.mockReturnValue(insertChain);
+      const jwks = { keys: [{ kty: 'RSA', n: 'abc', e: 'AQAB' }] };
+
+      await manager.create({
+        name: 'PKJ Client',
+        redirectUris: ['https://example.com/cb'],
+        grantTypes: ['client_credentials'],
+        scope: 'openid',
+        tokenAuthMethod: 'private_key_jwt',
+        jwks,
+      });
+
+      const insertedValues = insertChain.values.mock.calls[0]?.[0] as Record<string, unknown>;
+      expect(insertedValues['jwks']).toEqual(jwks);
+    });
+
+    it('stores null jwks when omitted (T-PKJ)', async () => {
+      const insertChain = makeChain([{ id: 'x', clientId: 'ab_2' }]);
+      db.insert.mockReturnValue(insertChain);
+
+      await manager.create({
+        name: 'Secret Client',
+        redirectUris: ['https://example.com/cb'],
+        grantTypes: ['authorization_code'],
+        scope: 'openid',
+      });
+
+      const insertedValues = insertChain.values.mock.calls[0]?.[0] as Record<string, unknown>;
+      expect(insertedValues['jwks']).toBeNull();
+    });
   });
 
   describe('get', () => {

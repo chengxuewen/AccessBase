@@ -150,6 +150,8 @@ export interface OidcClientCreateInput {
   tokenAuthMethod?: string;
   /** Q3D */
   backchannelLogoutUri?: string | null;
+  /** T-PKJ: public JWKS ({keys:[...]}) for private_key_jwt client auth — route-validated B6. */
+  jwks?: { keys: unknown[] } | null;
 }
 
 export interface OidcClientCreateResult {
@@ -182,6 +184,7 @@ export class OidcClientManager {
       scope: input.scope,
       tokenAuthMethod: input.tokenAuthMethod ?? 'client_secret_basic',
       backchannelLogoutUri: input.backchannelLogoutUri ?? null,
+      jwks: input.jwks ?? null,
     };
 
     const [inserted] = await this.db.insert(oidcClients).values(row).returning();

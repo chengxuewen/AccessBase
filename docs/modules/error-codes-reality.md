@@ -46,7 +46,8 @@ Setup guard: SETUP_REQUIRED · SETUP_IN_PROGRESS · SETUP_ALREADY_COMPLETE · SE
 ## Domain-surface codes
 
 - authorization layer: PERM_001 (auth), PERM_002 (admin-only self), PERM_003 (scope)
-- options: OPT_001..003 · OIDC clients: CLIENT_001..007, OIDC_001..003 · API keys: APIKEY_001
+- options: OPT_001..003 · OIDC clients: CLIENT_001..011, OIDC_001..003 · API keys: APIKEY_001
+  - T-PKJ (logout-coherence §3.5, `POST /api/v1/clients`): 400 CLIENT_008 tokenAuthMethod not in [client_secret_basic, client_secret_post, private_key_jwt, none] · 400 CLIENT_009 `none` combined with client_credentials/device_code (provider does not gate it — client_auth.js lets `none` pass) · 400 CLIENT_010 private_key_jwt without usable jwks (missing / empty keys) · 400 CLIENT_011 jwks key carries non-public or missing members (kty-scoped allowlist RSA kty/n/e · EC kty/crv/x/y · OKP kty/crv/x)
 - metrics: METRICS_AUTH (403)
 - groups (Q4b): GROUP_NOT_FOUND (404), GROUP_NAME_EXISTS (409), GROUP_MEMBER_TENANT_MISMATCH (400), GROUP_ROLE_TENANT_MISMATCH (400); LAST_ADMIN_GUARD 409 on group funnels too (delete/removeMember/setGroupRoles)
 - webhooks (Q4c): WEBHOOK_INVALID (400), WEBHOOK_URL_DENIED (400, fail-closed SSRF guard), WEBHOOK_EXISTS (409 pre-check), WEBHOOK_NOT_FOUND (404), WEBHOOK_PING_FAILED (500)

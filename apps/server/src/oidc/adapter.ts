@@ -245,6 +245,9 @@ export class OidcAdapter {
       token_endpoint_auth_method: row.tokenAuthMethod,
       // Q3D: provider Client schema reads backchannel_logout_uri (snake_case)
       ...(row.backchannelLogoutUri ? { backchannel_logout_uri: row.backchannelLogoutUri } : {}),
+      // T-PKJ: provider Client schema reads jwks ({keys:[...]}) for private_key_jwt
+      // auth — public members only by construction (CLIENT_011 route gate).
+      ...(row.jwks ? { jwks: row.jwks } : {}),
     };
   }
 }

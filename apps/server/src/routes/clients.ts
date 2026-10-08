@@ -17,6 +17,48 @@ const ALLOWED_GRANT_TYPES = new Set([
 ]);
 const ALLOWED_SCOPES = new Set(['openid', 'profile', 'email', 'offline_access']);
 
+// T-PKJ (logout-coherence §3.5): tokenAuthMethod whitelist — oidc-provider's
+// default clientAuthMethods (defaults.js:3119) accept exactly these four.
+const ALLOWED_TOKEN_AUTH_METHODS = new Set([
+  'client_secret_basic',
+  'client_secret_post',
+  'private_key_jwt',
+  'none',
+]);
+
+// B5 gate: `none` passes client auth unconditionally (client_auth.js:193/225) —
+// the provider does NOT refuse it on self-asserting grants, so anyone could
+// mint tokens. Reject the combination at registration.
+const ANONYMOUS_FORBIDDEN_GRANTS = new Set([
+  'client_credentials',
+  'urn:ietf:params:oauth:grant-type:device_code',
+]);
+
+// B6: kty-scoped PUBLIC JWK member allowlist. Any other member
+// (d/p/q/dp/dq/qi/oth/k/x5c/…) rejects — private material must never land
+// in oidc_clients.jwks.
+const PUBLIC_JWK_MEMBERS: Record<string, readonly string[]> = {
+  RSA: ['kty', 'n', 'e'],
+  EC: ['kty', 'crv', 'x', 'y'],
+  OKP: ['kty', 'crv', 'x'],
+};
+
+function usableJwks(value: unknown): { keys: unknown[] } | undefined {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const keys = (value as { keys?: unknown }).keys;
+  return Array.isArray(keys) && keys.length > 0 ? { keys } : undefined;
+}
+
+function isPublicJwk(key: unknown): boolean {
+  if (typeof key !== 'object' || key === null || Array.isArray(key)) return false;
+  const record = key as Record<string, unknown>;
+  const allowed =
+    typeof record['kty'] === 'string' ? PUBLIC_JWK_MEMBERS[record['kty']] : undefined;
+  if (!allowed) return false;
+  const members = Object.keys(record);
+  return members.length === allowed.length && members.every((m) => allowed.includes(m));
+}
+
 let clientManager: OidcClientManager | undefined;
 
 /** Test seam: inject a mocked OidcClientManager. */
@@ -112,6 +154,40 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
         });
       }
 
+      // T-PKJ: auth-method whitelist, none/self-asserting gate, jwks hygiene.
+      if (tokenAuthMethod !== undefined && !ALLOWED_TOKEN_AUTH_METHODS.has(tokenAuthMethod)) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'CLIENT_008', message: 'tokenAuthMethod must be one of: client_secret_basic, client_secret_post, private_key_jwt, none' },
+        });
+      }
+      if (
+        tokenAuthMethod === 'none' &&
+        grantTypes.some((g: unknown) => ANONYMOUS_FORBIDDEN_GRANTS.has(g as string))
+      ) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'CLIENT_009', message: 'tokenAuthMethod "none" cannot be combined with client_credentials or device_code grants' },
+        });
+      }
+      let jwksForCreate: { keys: unknown[] } | undefined;
+      if (tokenAuthMethod === 'private_key_jwt' || body['jwks'] !== undefined) {
+        const usable = usableJwks(body['jwks']);
+        if (!usable) {
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'CLIENT_010', message: 'private_key_jwt requires jwks with a non-empty keys array' },
+          });
+        }
+        if (!usable.keys.every(isPublicJwk)) {
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'CLIENT_011', message: 'jwks may only contain public key members (RSA: kty/n/e, EC: kty/crv/x/y, OKP: kty/crv/x)' },
+          });
+        }
+        jwksForCreate = usable;
+      }
+
       const result = await getClientManager().create({
         name: name.trim(),
         redirectUris,
@@ -119,6 +195,7 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
         scope: scopeTokens.join(' '),
         tokenAuthMethod,
         ...(backchannelLogoutUri ? { backchannelLogoutUri } : {}),
+        ...(jwksForCreate ? { jwks: jwksForCreate } : {}),
       });
 
       const { secretEncrypted: _secretEncrypted, ...safeClient } = result.client;

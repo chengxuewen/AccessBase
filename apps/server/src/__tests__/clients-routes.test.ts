@@ -329,3 +329,142 @@ describe('DELETE /api/v1/clients/:clientId', () => {
     expect(body.data.length).toBe(0);
   });
 });
+
+// --- logout-coherence T-PKJ: tokenAuthMethod whitelist + none/CC gate + jwks rules ---
+
+describe('POST /api/v1/clients — private_key_jwt validation (T-PKJ)', () => {
+  const base = {
+    name: 'PKJ App',
+    redirectUris: ['https://rp.example/cb'],
+    grantTypes: ['authorization_code'],
+    scope: 'openid',
+  };
+  const post = (extra: Record<string, unknown>) =>
+    app.inject({
+      method: 'POST',
+      url: '/api/v1/clients',
+      headers: { ...AUTH(), 'content-type': 'application/json' },
+      payload: { ...base, ...extra },
+    });
+
+  /** Read the input object the route handed to manager.create on its last call. */
+  async function inspectCreateCall(res: { statusCode: number }) {
+    const im = (await import('@accessbase/identity')).OidcClientManager as unknown as {
+      mock: { results: Array<{ value: { create: ReturnType<typeof vi.fn> } }> };
+    };
+    const inst = im.mock.results[im.mock.results.length - 1]?.value;
+    const lastCall = inst.create.mock.calls[inst.create.mock.calls.length - 1]?.[0];
+    void res;
+    return lastCall as Record<string, unknown>;
+  }
+
+  const RSA_PUB_JWK = { kty: 'RSA', n: 'abc123', e: 'AQAB' };
+
+  it('CLIENT_008: unknown tokenAuthMethod rejected', async () => {
+    const res = await post({ tokenAuthMethod: 'client_secret_mac' });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_008');
+  });
+
+  it('whitelisted tokenAuthMethods all accepted', async () => {
+    for (const method of ['client_secret_basic', 'client_secret_post', 'none']) {
+      const res = await post({ tokenAuthMethod: method });
+      expect(res.statusCode).toBe(201);
+    }
+    const pkj = await post({ tokenAuthMethod: 'private_key_jwt', jwks: { keys: [RSA_PUB_JWK] } });
+    expect(pkj.statusCode).toBe(201);
+  });
+
+  it('omitted tokenAuthMethod keeps the client_secret_basic default', async () => {
+    const res = await post({});
+    expect(res.statusCode).toBe(201);
+    const arg = await inspectCreateCall(res);
+    expect(arg.tokenAuthMethod).toBeUndefined();
+    expect(res.json().data.tokenAuthMethod).toBe('client_secret_basic');
+  });
+
+  it('CLIENT_009: none + client_credentials rejected (provider does not gate it)', async () => {
+    const res = await post({ grantTypes: ['client_credentials'], tokenAuthMethod: 'none' });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_009');
+  });
+
+  it('CLIENT_009: none + device_code rejected', async () => {
+    const res = await post({
+      grantTypes: ['urn:ietf:params:oauth:grant-type:device_code'],
+      tokenAuthMethod: 'none',
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_009');
+  });
+
+  it('none + authorization_code stays legal', async () => {
+    const res = await post({ tokenAuthMethod: 'none' });
+    expect(res.statusCode).toBe(201);
+  });
+
+  it('CLIENT_010: private_key_jwt without jwks', async () => {
+    const res = await post({ tokenAuthMethod: 'private_key_jwt' });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_010');
+  });
+
+  it('CLIENT_010: private_key_jwt with empty keys array', async () => {
+    const res = await post({ tokenAuthMethod: 'private_key_jwt', jwks: { keys: [] } });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_010');
+  });
+
+  it('CLIENT_011: RSA key carrying private member d rejected', async () => {
+    const res = await post({
+      tokenAuthMethod: 'private_key_jwt',
+      jwks: { keys: [{ ...RSA_PUB_JWK, d: 'private-exponent' }] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_011');
+  });
+
+  it('CLIENT_011: EC key carrying extra k member rejected', async () => {
+    const res = await post({
+      tokenAuthMethod: 'private_key_jwt',
+      jwks: { keys: [{ kty: 'EC', crv: 'P-256', x: 'a', y: 'b', k: 'junk' }] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_011');
+  });
+
+  it('CLIENT_011: unknown kty rejected', async () => {
+    const res = await post({
+      tokenAuthMethod: 'private_key_jwt',
+      jwks: { keys: [{ kty: 'oct', k: 'shared-secret' }] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_011');
+  });
+
+  it('CLIENT_011: RSA key missing required member e rejected', async () => {
+    const res = await post({
+      tokenAuthMethod: 'private_key_jwt',
+      jwks: { keys: [{ kty: 'RSA', n: 'abc123' }] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_011');
+  });
+
+  it('CLIENT_011 also guards jwks supplied alongside secret auth methods', async () => {
+    const res = await post({
+      tokenAuthMethod: 'client_secret_basic',
+      jwks: { keys: [{ kty: 'RSA', n: 'a', e: 'b', p: 'prime' }] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_011');
+  });
+
+  it('valid public jwks passes through to manager.create verbatim', async () => {
+    const jwks = { keys: [RSA_PUB_JWK, { kty: 'OKP', crv: 'Ed25519', x: 'pubkey' }] };
+    const res = await post({ tokenAuthMethod: 'private_key_jwt', jwks });
+    expect(res.statusCode).toBe(201);
+    const arg = await inspectCreateCall(res);
+    expect(arg.jwks).toEqual(jwks);
+  });
+});
