@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Button, Card, Alert, Spin, theme } from 'antd';
@@ -76,6 +76,13 @@ export default function Login() {
     }
   }, []);
 
+  // StrictMode double-fires mount effects; both runs read the SAME one-time
+  // oauthCode/samlCode from the pre-clear searchParams. Without a guard the
+  // second POST 401s (code consumed) and the refresh-interceptor logout wipes
+  // the session the first exchange just established (verification-day 2026-10-08).
+  const exchangedOauthRef = useRef<string | null>(null);
+  const exchangedSamlRef = useRef<string | null>(null);
+
   useEffect(() => {
     const code = searchParams.get('oauthCode');
     const error = searchParams.get('oauthError');
@@ -83,13 +90,14 @@ export default function Login() {
     // OAuth MFA step-up: a pending mfaFlowToken means the TOTP form is showing —
     // do not re-exchange or navigate; verifyMfa handles the flow after code entry.
     if (code && useAuthStore.getState().mfaFlowToken) return;
-    setSearchParams({}, { replace: true });
     if (error) {
       setOauthError(error);
       return;
     }
     if (code) {
-      setAuthBusy(true);
+      if (exchangedOauthRef.current === code) return;
+      exchangedOauthRef.current = code;
+      setSearchParams({}, { replace: true });
       exchangeOAuthCode(code)
         .then(() => useAuthStore.getState().fetchUser())
         .then(() => navigateAfterAuth())
@@ -133,6 +141,10 @@ export default function Login() {
     const code = searchParams.get('samlCode');
     const error = searchParams.get('samlError');
     if (!code && !error) return;
+    if (code) {
+      if (exchangedSamlRef.current === code) return;
+      exchangedSamlRef.current = code;
+    }
     // SAML MFA step-up: TOTP form showing — do not re-exchange or navigate.
     if (code && useAuthStore.getState().mfaFlowToken) return;
     setSearchParams({}, { replace: true });
