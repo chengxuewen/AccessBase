@@ -68,6 +68,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
   // requirePermission resolves PermissionManager off app.identity — mock allow
   PermissionManager: vi.fn().mockImplementation(() => ({
     hasPermission: vi.fn().mockResolvedValue(true),
+    // DG-6d: utils/data-scope.ts reads the binding scope for the A3 create gate.
+    // Default tenant-wide keeps every pre-existing import case byte-identical.
+    getUserDataScope: vi.fn().mockResolvedValue('all'),
   })),
   RoleManager: vi.fn().mockImplementation(() => ({})),
   SessionManager: vi.fn().mockImplementation(() => ({

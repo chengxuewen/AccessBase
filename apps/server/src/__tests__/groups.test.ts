@@ -294,3 +294,55 @@ describe('groups guards', () => {
     expect(getRequiredPermission('DELETE', `/api/v1/groups/${GID}`)).toBe('groups:delete');
   });
 });
+
+
+// DG-6d data-scope T-SERVER: groups kind passthrough (A5 — editable at the
+// route; the GroupManager clamp is the belt; SCIM never passes kind).
+describe('groups kind (DG-6d)', () => {
+  it('POST passes kind=department to the manager', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/groups',
+      headers: AUTH(),
+      payload: { name: 'Dept X', kind: 'department' },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(groupInstance.create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Dept X', kind: 'department' }),
+      TENANT,
+    );
+  });
+
+  it('POST rejects an out-of-enum kind at the schema boundary (400)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/groups',
+      headers: AUTH(),
+      payload: { name: 'Nope', kind: 'division' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(groupInstance.create).not.toHaveBeenCalled();
+  });
+
+  it('PUT passes kind through for edits (A5 editable)', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/groups/${GID}`,
+      headers: AUTH(),
+      payload: { kind: 'department' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(groupInstance.update).toHaveBeenCalledWith(GID, { kind: 'department' }, TENANT);
+  });
+
+  it('PUT rejects an out-of-enum kind (400)', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/groups/${GID}`,
+      headers: AUTH(),
+      payload: { kind: 'sections' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(groupInstance.update).not.toHaveBeenCalled();
+  });
+});

@@ -1,6 +1,7 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { sql } from 'drizzle-orm';
 import { FlowTokenService, UserManager, RoleManager, SessionManager } from '@accessbase/identity';
+import type { UserScopeFilter } from '@accessbase/identity';
 import { getRedis } from '../utils/redis.js';
 import { getSmtpMailer, resolvePublicOrigin } from './auth.js';
 import { renderEmailFor } from '../utils/email-templates.js';
@@ -8,6 +9,7 @@ import { assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { routeTx } from '../utils/tx.js';
 import { requirePermission } from '../utils/permission.js';
+import { resolveUserRowScope, type UserRowScopeCode } from '../utils/data-scope.js';
 import { sendConflictError } from '../utils/conflict-mapper.js';
 import { toCsv } from '../utils/csv.js';
 import { getOptionsManager } from './options.js';
@@ -42,6 +44,62 @@ export async function userRoutes(app: FastifyInstance) {
     return null;
   }
 
+  /** 403 DATA_SCOPE envelope (spec §3.3: plain forbidden, conflict-mapper not used). */
+  function forbiddenScope(reply: FastifyReply, message: string): FastifyReply {
+    return reply.status(403).send({ success: false, error: { code: 'DATA_SCOPE', message } });
+  }
+
+  /**
+   * DG-6d per-row guard against an already-resolved caller scope. kind 'all'
+   * is the no-op default (ZERO extra queries — the untouched tenant-wide
+   * posture stays byte-identical). 404-first preserved (spec flows oracle):
+   * unknown / cross-tenant ids keep NOT_FOUND; an existing-but-out-of-scope
+   * target reads 403 DATA_SCOPE.
+   */
+  async function rowScopeDenied(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    id: string,
+    scope: UserScopeFilter,
+  ): Promise<boolean> {
+    if (scope.kind === 'all') return false;
+    const target = await userManager.findById(id, request.tenantId ?? DEFAULT_TENANT);
+    if (!target) {
+    reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+    return true;
+    }
+    if (!(await userManager.isWithinScope(id, scope))) {
+      forbiddenScope(reply, 'User is outside your data scope');
+      return true;
+    }
+    return false;
+  }
+
+  /** Resolve + guard in one step for routes without a prior target read. */
+  async function guardRowScope(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    id: string,
+    code: UserRowScopeCode,
+  ): Promise<boolean> {
+    const scope = await resolveUserRowScope(request, code);
+    return rowScopeDenied(request, reply, id, scope);
+  }
+
+  /**
+   * A3/R3 creation-arm gate: create / import / invite are tenant-wide-only
+   * operations — a dept-scoped manager must not mint rows it cannot govern.
+   */
+  async function requireAllWriteScope(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<boolean> {
+    const scope = await resolveUserRowScope(request, 'users:write');
+    if (scope.kind === 'all') return false;
+    forbiddenScope(reply, 'This operation requires tenant-wide (all) data scope');
+    return true;
+  }
+
   // GET /api/v1/users — paginated list
   app.get(
     '/',
@@ -68,6 +126,8 @@ export async function userRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const { page = 1, pageSize = 20, search, status, sortBy, sortOrder } = request.query as Record<string, string | undefined>;
+      // DG-6d [R1]: the list surface rides the caller's users:read binding scope.
+      const scope = await resolveUserRowScope(request, 'users:read');
       const result = await userManager.findAll(
         {
           page: Number(page),
@@ -76,6 +136,7 @@ export async function userRoutes(app: FastifyInstance) {
           status: status as 'active' | 'suspended' | 'pending' | undefined,
           sortBy,
           sortOrder: sortOrder as 'asc' | 'desc' | undefined,
+          scope,
         },
         request.tenantId ?? DEFAULT_TENANT,
       );
@@ -101,6 +162,9 @@ export async function userRoutes(app: FastifyInstance) {
       // ponytail: 50k-row cap — raise if real exports hit it
       const PAGE = 500;
       const MAX_ROWS = 50_000;
+      // DG-6d: the export rides the SAME list predicate as GET / (users:read),
+      // resolved once for every OFFSET page.
+      const exportScope = await resolveUserRowScope(request, 'users:read');
       const headers = [
         'id',
         'email',
@@ -115,7 +179,7 @@ export async function userRoutes(app: FastifyInstance) {
       ];
       const csvRows: Record<string, unknown>[] = [];
       for (let page = 1; csvRows.length < MAX_ROWS; page++) {
-        const result = await userManager.findAll({ page, pageSize: PAGE }, request.tenantId ?? DEFAULT_TENANT);
+        const result = await userManager.findAll({ page, pageSize: PAGE, scope: exportScope }, request.tenantId ?? DEFAULT_TENANT);
         if (result.data.length === 0) break;
         for (const user of result.data) {
           if (csvRows.length >= MAX_ROWS) break;
@@ -193,6 +257,12 @@ export async function userRoutes(app: FastifyInstance) {
             error: { code: 'NOT_FOUND', message: 'User not found' },
           });
         }
+        // DG-6d: tenant-visible rows (404 above) additionally pass the caller's
+        // users:read binding scope. kind 'all' short-circuits with zero cost.
+        const readScope = await resolveUserRowScope(request, 'users:read');
+        if (readScope.kind !== 'all' && !(await userManager.isWithinScope(id, readScope))) {
+          return forbiddenScope(reply, 'User is outside your data scope');
+        }
         // Detail exposes the role list (UserDetail renders it, UserEdit prefills roleIds)
         const roles = await roleManager.getUserRoles(id, request.tenantId ?? DEFAULT_TENANT);
         return {
@@ -247,6 +317,8 @@ export async function userRoutes(app: FastifyInstance) {
         isActive?: boolean;
         roleIds?: string[];
       };
+      // [A3/R3] Creation arm: tenant-wide users:write required.
+      if (await requireAllWriteScope(request, reply)) return reply;
       const unknown = await unknownRoleId(roleIds, request.tenantId);
       if (unknown) {
         return reply.status(400).send({
@@ -306,7 +378,9 @@ const error = err instanceof Error ? err : new Error(String(err));
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
+      // [A3/R3] The import lane is a creation arm — gate exactly like POST /.
+      if (await requireAllWriteScope(request, reply)) return reply;
       const { rows, commit } = request.body as {
         rows: Array<{ email?: string; name?: string; password?: string }>;
         commit?: boolean;
@@ -384,6 +458,11 @@ const error = err instanceof Error ? err : new Error(String(err));
       if (!target) {
         return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
       }
+      // DG-6d: reset is a mutation → the users:write binding scope guards it.
+      const writeScope = await resolveUserRowScope(request, 'users:write');
+      if (writeScope.kind !== 'all' && !(await userManager.isWithinScope(target.id, writeScope))) {
+        return forbiddenScope(reply, 'User is outside your data scope');
+      }
       const newPassword = request.body.newPassword;
       if (typeof newPassword !== 'string') {
         return reply.status(400).send({ success: false, error: { code: 'VALIDATION_001', message: 'newPassword required' } });
@@ -414,6 +493,8 @@ const error = err instanceof Error ? err : new Error(String(err));
       },
     },
     async (request, reply) => {
+      // [A3] Invite is a creation-lane act (first-password mint) — tenant-wide required.
+      if (await requireAllWriteScope(request, reply)) return reply;
       const tenantId = request.tenantId ?? DEFAULT_TENANT;
       const target = await userManager.findById(request.params.id, tenantId);
       if (!target) {
@@ -476,6 +557,11 @@ const error = err instanceof Error ? err : new Error(String(err));
           error: { code: 'NOT_FOUND', message: 'User not found' },
         });
       }
+      // DG-6d: force-logout is a mutation → users:write binding scope (prefix trim).
+      const writeScope = await resolveUserRowScope(request, 'users:write');
+      if (writeScope.kind !== 'all' && !(await userManager.isWithinScope(id, writeScope))) {
+        return forbiddenScope(reply, 'User is outside your data scope');
+      }
       await getSessionManager().revokeAllUserSessions(id);
       return { success: true, data: { revoked: true } };
     },
@@ -507,6 +593,9 @@ const error = err instanceof Error ? err : new Error(String(err));
     },
     async (request, reply) => {
       const { id } = request.params;
+      // DG-6d: update (fields AND the roleIds set-roles lane) is guarded by the
+      // users:write binding scope. kind 'all' adds zero queries.
+      if (await guardRowScope(request, reply, id, 'users:write')) return reply;
       const { name, avatarUrl, roleIds } = request.body as {
         name?: string;
         avatarUrl?: string;
@@ -564,6 +653,8 @@ const error = err instanceof Error ? err : new Error(String(err));
     },
     async (request, reply) => {
       const { id } = request.params;
+      // DG-6d: status changes ride the users:write binding scope.
+      if (await guardRowScope(request, reply, id, 'users:write')) return reply;
       const { status } = request.body as { status: 'active' | 'suspended' | 'pending' };
       try {
         const user = await userManager.changeStatus(id, status, request.tenantId ?? DEFAULT_TENANT);
@@ -629,6 +720,16 @@ const error = err instanceof Error ? err : new Error(String(err));
         });
       }
       const erase = request.body?.eraseAudit === true;
+      // [R1/B1] The delete surface guards with ITS OWN code (users:delete, not users:write).
+      const deleteScope = await resolveUserRowScope(request, 'users:delete');
+      // [A6/B2] Erasure is a compliance act, not subordinate management: it
+      // requires tenant-wide 'all' even when users:delete is dept/self-scoped —
+      // checked BEFORE routeTx / advisory lock 727242 so a denied erase never
+      // touches the lock.
+      if (erase && deleteScope.kind !== 'all') {
+        return forbiddenScope(reply, 'Audit erasure requires tenant-wide (all) data scope');
+      }
+      if (await rowScopeDenied(request, reply, id, deleteScope)) return reply;
       try {
         if (!erase) {
           await userManager.delete(id, tenantId);

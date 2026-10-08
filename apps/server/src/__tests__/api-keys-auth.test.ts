@@ -85,7 +85,8 @@ UserManager: vi.fn().mockImplementation(() => ({
       findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
       findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
 })),
-    PermissionManager: vi.fn().mockImplementation(() => ({ hasPermission })),
+    // DG-6d users-lane seam: the tenant-wide default keeps route behavior unchanged.
+    PermissionManager: vi.fn().mockImplementation(() => ({ hasPermission, getUserDataScope: vi.fn(async () => 'all') })),
     // SessionManager: the dual-read authenticate path never touches it, but
     // keep the mock symmetric with sibling suites.
     SessionManager: vi.fn().mockImplementation(() => ({

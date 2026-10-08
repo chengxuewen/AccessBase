@@ -65,6 +65,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
   })),
   PermissionManager: vi.fn().mockImplementation(() => ({
     hasPermission: vi.fn(async () => allow.value),
+    // DG-6d: the export lane resolves the users:read binding scope (tenant-wide default).
+    getUserDataScope: vi.fn(async () => 'all'),
   })),
 }));
 

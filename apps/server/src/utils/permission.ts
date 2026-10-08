@@ -23,7 +23,7 @@ interface TokenPayload {
  * process mirrors the per-route-module instance convention (permissions.ts).
  */
 let pm: PermissionManager | null = null; // lazy module singleton; pg pool is lazy — connects on first query
-function getPermissionManager(): PermissionManager {
+export function getPermissionManager(): PermissionManager {
   pm ??= new PermissionManager();
   return pm;
 }

@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { GroupManager } from '@accessbase/identity';
+import type { GroupKind } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { routeTx } from '../utils/tx.js';
 import { requirePermission } from '../utils/permission.js';
@@ -97,7 +98,7 @@ export async function groupRoutes(app: FastifyInstance) {
   );
 
   // POST /api/v1/groups
-  app.post<{ Body: { name?: string; description?: string } }>(
+  app.post<{ Body: { name?: string; description?: string; kind?: GroupKind } }>(
     '/',
     {
       schema: {
@@ -110,6 +111,10 @@ export async function groupRoutes(app: FastifyInstance) {
           properties: {
             name: { type: 'string', minLength: 1, maxLength: 255 },
             description: { type: 'string', maxLength: 1024 },
+            // DG-6d (A5): 'department' groups are the row-scope dept source.
+            // Route-side enum belt; the GroupManager clamp covers direct callers.
+            // SCIM's create lane never sends kind (defaults to 'group').
+            kind: { type: 'string', enum: ['group', 'department'] },
           },
         },
       },
@@ -117,7 +122,7 @@ export async function groupRoutes(app: FastifyInstance) {
     async (request, reply) => {
       try {
         const group = await groupManager.create(
-          { name: String(request.body.name), description: request.body.description },
+          { name: String(request.body.name), description: request.body.description, kind: request.body.kind },
           tenantOf(request),
         );
         return reply.status(201).send({ success: true, data: group });
@@ -130,7 +135,7 @@ export async function groupRoutes(app: FastifyInstance) {
   );
 
   // PUT /api/v1/groups/:id
-  app.put<{ Params: { id: string }; Body: { name?: string; description?: string } }>(
+  app.put<{ Params: { id: string }; Body: { name?: string; description?: string; kind?: GroupKind } }>(
     '/:id',
     {
       schema: {
@@ -147,6 +152,8 @@ export async function groupRoutes(app: FastifyInstance) {
           properties: {
             name: { type: 'string', minLength: 1, maxLength: 255 },
             description: { type: 'string', maxLength: 1024 },
+            // DG-6d (A5): kind is editable at this surface (SCIM keeps 'group').
+            kind: { type: 'string', enum: ['group', 'department'] },
           },
         },
       },

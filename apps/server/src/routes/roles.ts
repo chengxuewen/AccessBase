@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { RoleManager } from '@accessbase/identity';
+import type { DataScope } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { routeTx } from '../utils/tx.js';
 import { requirePermission } from '../utils/permission.js';
@@ -69,7 +70,15 @@ export async function roleRoutes(app: FastifyInstance) {
           error: { code: 'NOT_FOUND', message: 'Role not found' },
         });
       }
-      return { success: true, data: role };
+      // DG-6d: project the users:* per-binding data scopes for the UI's single
+      // fan Select (T-UI contract: Record<permissionId, DataScope>, only the
+      // users resource — other resources keep the server default). Absent
+      // junction values read 'all' exactly like the enforcement layer does.
+      const permissionScopes: Record<string, DataScope> = {};
+      for (const p of role.permissions) {
+        if (p.resource === 'users') permissionScopes[p.id] = p.dataScope ?? 'all';
+      }
+      return { success: true, data: { ...role, permissionScopes } };
     },
   );
 
@@ -151,6 +160,13 @@ export async function roleRoutes(app: FastifyInstance) {
             // key leaves the parent untouched.
             parentId: { type: ['string', 'null'], format: 'uuid' },
             permissionIds: { type: 'array', items: { type: 'string' } },
+            // DG-6d: per-binding row scope keyed by permissionId (rides the
+            // permissionIds replacement; the manager clamp is the belt for
+            // identity-direct callers).
+            permissionScopes: {
+              type: 'object',
+              additionalProperties: { type: 'string', enum: ['all', 'dept', 'self'] },
+            },
           },
         },
       },
@@ -162,6 +178,7 @@ export async function roleRoutes(app: FastifyInstance) {
         description?: string;
         parentId?: string | null;
         permissionIds?: string[];
+        permissionScopes?: Record<string, DataScope>;
       };
       const tenantId = request.tenantId ?? DEFAULT_TENANT;
       try {
@@ -174,7 +191,7 @@ export async function roleRoutes(app: FastifyInstance) {
           }
           return roleManager.update(
             id,
-            { name: body.name, description: body.description, permissionIds: body.permissionIds },
+            { name: body.name, description: body.description, permissionIds: body.permissionIds, permissionScopes: body.permissionScopes },
             tenantId,
             tx,
           );

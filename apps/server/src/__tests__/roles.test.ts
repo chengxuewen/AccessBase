@@ -410,3 +410,70 @@ describe('PUT /api/v1/roles/:id — parentId wiring (L\'-T5)', () => {
     expect(rm().callLog).toEqual([]);
   });
 });
+
+
+// DG-6d data-scope T-SERVER: roles PUT carries per-binding permissionScopes
+// (keyed by permissionId, enum all|dept|self) into the update funnel, and
+// GET /:id projects the users:* binding scopes back for the UI's fan Select.
+describe('DG-6d permissionScopes (roles)', () => {
+  const ROLE_ID = '11111111-1111-1111-1111-111111111111';
+  const roleManagerInstance = () => {
+    const ctor = identity.RoleManager as unknown as {
+      mock: { results: Array<{ value: { update: ReturnType<typeof vi.fn>; findById: ReturnType<typeof vi.fn> } }> };
+    };
+    return ctor.mock.results[0].value;
+  };
+
+  it('PUT forwards permissionScopes to RoleManager.update', async () => {
+    roleManagerInstance().update.mockClear();
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+      payload: { permissionIds: ['p-ur', 'p-uw'], permissionScopes: { 'p-ur': 'dept', 'p-uw': 'self' } },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(roleManagerInstance().update).toHaveBeenCalledWith(
+      ROLE_ID,
+      expect.objectContaining({ permissionScopes: { 'p-ur': 'dept', 'p-uw': 'self' } }),
+      '00000000-0000-0000-0000-000000000001',
+      expect.anything(),
+    );
+  });
+
+  it('PUT rejects an out-of-enum scope value at the schema boundary (400)', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+      payload: { permissionScopes: { 'p-ur': 'everything' } },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('GET /:id projects ONLY the users:* bindings into permissionScopes (missing dataScope reads all)', async () => {
+    roleManagerInstance().findById.mockResolvedValueOnce({
+      id: ROLE_ID,
+      name: 'scoped',
+      tenantId: '00000000-0000-0000-0000-000000000001',
+      permissions: [
+        { id: 'p-ur', resource: 'users', action: 'read', dataScope: 'dept' },
+        { id: 'p-uw', resource: 'users', action: 'write', dataScope: 'self' },
+        { id: 'p-ud', resource: 'users', action: 'delete' },
+        { id: 'p-tr', resource: 'tenants', action: 'read', dataScope: 'self' },
+      ],
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+      updatedAt: new Date('2026-01-01T00:00:00Z'),
+    });
+    const res = await app.inject({ method: 'GET', url: `/api/v1/roles/${ROLE_ID}`, headers: AUTH(token) });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.permissionScopes).toEqual({ 'p-ur': 'dept', 'p-uw': 'self', 'p-ud': 'all' });
+  });
+
+  it('GET /:id keeps the envelope and emits an empty map when no users:* bindings exist', async () => {
+    const res = await app.inject({ method: 'GET', url: `/api/v1/roles/${ROLE_ID}`, headers: AUTH(token) });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().success).toBe(true);
+    expect(res.json().data.permissionScopes).toEqual({});
+  });
+});

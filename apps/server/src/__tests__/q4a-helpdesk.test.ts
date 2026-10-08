@@ -76,6 +76,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     PermissionManager: vi.fn().mockImplementation(() => ({
       hasPermission: vi.fn(async () => true),
       getUserEffectivePermissions: vi.fn(async () => []),
+      // DG-6d seam: reset/invite lanes resolve tenant-wide by default.
+      getUserDataScope: vi.fn(async () => 'all'),
     })),
     FlowTokenService: vi.fn().mockImplementation(() => flowTokenMock),
     OptionsManager: vi.fn().mockImplementation(() => ({

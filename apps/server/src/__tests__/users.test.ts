@@ -112,6 +112,15 @@ const mockRoleFindById = vi.fn().mockImplementation((id: string) =>
     ? Promise.resolve({ id, name: 'assigned-role' })
     : Promise.resolve(null),
 );
+// DG-6d data-scope seams: the route wiring resolves scopes through
+// utils/data-scope.ts (PermissionManager.getUserDataScope +
+// GroupManager.getDepartmentIdsForUser) and guards rows via UserManager.
+// isWithinScope. Defaults = today's posture (tenant-wide), so every
+// pre-existing test runs byte-identical unless it arms these fns.
+const mockGetUserDataScope = vi.fn().mockResolvedValue('all');
+const mockGetDeptIds = vi.fn().mockResolvedValue([]);
+const mockIsWithinScope = vi.fn().mockResolvedValue(true);
+
 
 // Spread actual so later-added identity exports (FlowTokenService, MfaManager,
 // getRedisClient) keep resolving; the explicit mocks below override the managers.
@@ -129,6 +138,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
     update: mockUpdate,
     changeStatus: mockChangeStatus,
     delete: mockDelete,
+    isWithinScope: mockIsWithinScope,
     eraseAuditData: mockEraseAuditData,
   })),
   RoleManager: vi.fn().mockImplementation(() => ({
@@ -143,6 +153,11 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
   // requirePermission preHandler (Task 9) — default allow
   PermissionManager: vi.fn().mockImplementation(() => ({
     hasPermission: vi.fn().mockResolvedValue(true),
+    getUserDataScope: mockGetUserDataScope,
+  })),
+  // DG-6d: utils/data-scope.ts constructs a lazy process singleton from this class.
+  GroupManager: vi.fn().mockImplementation(() => ({
+    getDepartmentIdsForUser: mockGetDeptIds,
   })),
   // auth.ts (Phase 6a Task 4) imports SessionManager; mock it too
   // auth.ts (Phase 6a Task 4) imports SessionManager; mock it too
@@ -186,6 +201,10 @@ beforeEach(() => {
   mockTxExecute.mockClear();
   mockEraseAuditData.mockClear();
   mockDelete.mockClear();
+  // DG-6d seams: re-arm the tenant-wide default after per-test implementations.
+  mockGetUserDataScope.mockReset().mockResolvedValue('all');
+  mockGetDeptIds.mockReset().mockResolvedValue([]);
+  mockIsWithinScope.mockReset().mockResolvedValue(true);
 });
 
 const authHeaders = () => ({ Authorization: `Bearer ${token}` });
@@ -576,5 +595,154 @@ describe('DELETE /users/:id sanctioned erasure (R-audit Task A5)', () => {
     expect(mockDelete).toHaveBeenCalledWith(mockUser.id, expect.any(String));
     expect(mockEraseAuditData).not.toHaveBeenCalled();
     expect(mockTxExecute).not.toHaveBeenCalled();
+  });
+});
+
+
+// DG-6d data-scope wiring (T-SERVER, spec §3.3 + §5 server net).
+describe('data-scope wiring (DG-6d)', () => {
+  const OTHER = '550e8400-e29b-41d4-a716-446655440002';
+
+  it('apikey caller on list = tenant-wide, NO permission-scope read [R2]', async () => {
+    const keyToken = app.jwt.sign({ sub: 'key-1', type: 'apikey', scopes: ['*'] });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/users', headers: { Authorization: `Bearer ${keyToken}` } });
+    expect(res.statusCode).toBe(200);
+    expect(mockGetUserDataScope).not.toHaveBeenCalled();
+    expect(mockFindAll).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: { kind: 'all' } }),
+      expect.any(String),
+    );
+  });
+
+  it("dept binding puts {kind:'dept', userId, groupIds} into findAll params", async () => {
+    mockGetUserDataScope.mockResolvedValue('dept');
+    mockGetDeptIds.mockResolvedValue(['g1', 'g2']);
+    const res = await app.inject({ method: 'GET', url: '/api/v1/users', headers: authHeaders() });
+    expect(res.statusCode).toBe(200);
+    expect(mockFindAll).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: { kind: 'dept', userId: mockUser.id, groupIds: ['g1', 'g2'] } }),
+      expect.any(String),
+    );
+  });
+
+  it('empty dept roster converts to self before reaching findAll [B4]', async () => {
+    mockGetUserDataScope.mockResolvedValue('dept');
+    mockGetDeptIds.mockResolvedValue([]);
+    const res = await app.inject({ method: 'GET', url: '/api/v1/users', headers: authHeaders() });
+    expect(res.statusCode).toBe(200);
+    expect(mockFindAll).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: { kind: 'self', userId: mockUser.id } }),
+      expect.any(String),
+    );
+  });
+
+  it('each surface is guarded by ITS OWN code [R1/B1]: users:delete=dept blocks DELETE while users:write=all keeps PUT', async () => {
+    mockGetUserDataScope.mockImplementation((_sub: string, code: string) =>
+      Promise.resolve(code === 'users:delete' ? 'dept' : 'all'),
+    );
+    mockGetDeptIds.mockResolvedValue(['g1']);
+    mockIsWithinScope.mockResolvedValue(false);
+
+    const del = await app.inject({ method: 'DELETE', url: `/api/v1/users/${mockUser.id}`, headers: authHeaders() });
+    expect(del.statusCode).toBe(403);
+    expect(del.json().error.code).toBe('DATA_SCOPE');
+    expect(mockDelete).not.toHaveBeenCalled();
+
+    const put = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${mockUser.id}`,
+      headers: authHeaders(),
+      payload: { name: 'Still Editable' },
+    });
+    expect(put.statusCode).toBe(200);
+  });
+
+  it('out-of-scope detail reads 403 DATA_SCOPE, in-scope reads 200', async () => {
+    mockGetUserDataScope.mockResolvedValue('dept');
+    mockGetDeptIds.mockResolvedValue(['g1']);
+    mockIsWithinScope.mockResolvedValue(false);
+    const denied = await app.inject({ method: 'GET', url: `/api/v1/users/${mockUser.id}`, headers: authHeaders() });
+    expect(denied.statusCode).toBe(403);
+    expect(denied.json().error.code).toBe('DATA_SCOPE');
+
+    mockIsWithinScope.mockResolvedValue(true);
+    const ok = await app.inject({ method: 'GET', url: `/api/v1/users/${mockUser.id}`, headers: authHeaders() });
+    expect(ok.statusCode).toBe(200);
+  });
+
+  it('narrowed scope keeps unknown ids at 404 (404-first posture preserved)', async () => {
+    mockGetUserDataScope.mockResolvedValue('dept');
+    mockGetDeptIds.mockResolvedValue(['g1']);
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${OTHER}`,
+      headers: authHeaders(),
+      payload: { name: 'Ghost' },
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error.code).toBe('NOT_FOUND');
+    expect(mockUpdate).not.toHaveBeenCalledWith(OTHER, expect.anything(), expect.any(String));
+  });
+
+  it('create/import/invite need tenant-wide users:write - dept-scoped callers are 403 [A3/R3]', async () => {
+    mockGetUserDataScope.mockResolvedValue('dept');
+    mockGetDeptIds.mockResolvedValue(['g1']);
+
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users',
+      headers: authHeaders(),
+      payload: { email: 'dept-create@example.com', name: 'Nope' },
+    });
+    expect(create.statusCode).toBe(403);
+    expect(create.json().error.code).toBe('DATA_SCOPE');
+
+    const importRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/import',
+      headers: authHeaders(),
+      payload: { rows: [{ email: 'dept-imp@example.com', name: 'Nope', password: 'Passw0rd-123' }] },
+    });
+    expect(importRes.statusCode).toBe(403);
+    expect(importRes.json().error.code).toBe('DATA_SCOPE');
+
+    const invite = await app.inject({ method: 'POST', url: `/api/v1/users/${mockUser.id}/invite`, headers: authHeaders() });
+    expect(invite.statusCode).toBe(403);
+    expect(invite.json().error.code).toBe('DATA_SCOPE');
+  });
+
+  it('eraseAudit under dept-scoped users:delete is 403 BEFORE routeTx/advisory lock [A6/B2]', async () => {
+    mockGetUserDataScope.mockResolvedValue('dept');
+    mockGetDeptIds.mockResolvedValue(['g1']);
+    mockIsWithinScope.mockResolvedValue(true); // in-scope target - only the erase escalation blocks
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/users/${mockUser.id}`,
+      headers: authHeaders(),
+      payload: { eraseAudit: true, legalBasis: 'GDPR Art.17' },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('DATA_SCOPE');
+    expect(mockTxExecute).not.toHaveBeenCalled();
+    expect(mockEraseAuditData).not.toHaveBeenCalled();
+    expect(mockDelete).not.toHaveBeenCalled();
+  });
+
+  it('plain delete under dept scope within reach succeeds (200)', async () => {
+    mockGetUserDataScope.mockResolvedValue('dept');
+    mockGetDeptIds.mockResolvedValue(['g1']);
+    mockIsWithinScope.mockResolvedValue(true);
+    const res = await app.inject({ method: 'DELETE', url: `/api/v1/users/${mockUser.id}`, headers: authHeaders() });
+    expect(res.statusCode).toBe(200);
+    expect(mockDelete).toHaveBeenCalledWith(mockUser.id, expect.any(String));
+  });
+
+  it('force-logout under dept scope out-of-reach is 403 DATA_SCOPE (users:write code)', async () => {
+    mockGetUserDataScope.mockResolvedValue('dept');
+    mockGetDeptIds.mockResolvedValue(['g1']);
+    mockIsWithinScope.mockResolvedValue(false);
+    const res = await app.inject({ method: 'POST', url: `/api/v1/users/${mockUser.id}/force-logout`, headers: authHeaders() });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.code).toBe('DATA_SCOPE');
   });
 });

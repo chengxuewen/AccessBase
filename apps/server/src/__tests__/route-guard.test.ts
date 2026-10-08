@@ -29,7 +29,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
       findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
     })),
-    PermissionManager: vi.fn().mockImplementation(() => ({ hasPermission })),
+    // DG-6d seam: tenant-wide default keeps the pass-through case unchanged.
+    PermissionManager: vi.fn().mockImplementation(() => ({ hasPermission, getUserDataScope: vi.fn(async () => 'all') })),
   };
 });
 

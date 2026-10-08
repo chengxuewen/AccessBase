@@ -74,6 +74,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     })),
     PermissionManager: vi.fn().mockImplementation(() => ({
       hasPermission: vi.fn().mockResolvedValue(true),
+      // DG-6d seam: tenant-wide default keeps the PATCH-status lane unchanged.
+      getUserDataScope: vi.fn().mockResolvedValue('all'),
     })),
     // SessionManager is mocked here (unlike plan text which kept it real): the
     // spy target is the SAME fn the route calls — with a real manager the route
