@@ -79,7 +79,18 @@ export async function loadDynamicProviders(): Promise<
       continue;
     }
     // tokenUrl carries the client secret — plaintext http transport is rejected.
-    const httpsUrl = (u: string) => u.startsWith('https://');
+    // tokenUrl carries the client secret — plaintext http transport is rejected
+    // EXCEPT for loopback hosts (dev/self-loop parity: clients.ts isValidRedirectUri
+    // and the vite proxy precedent — same machine, no wire to tap).
+    const httpsUrl = (u: string): boolean => {
+      if (u.startsWith('https://')) return true;
+      try {
+        const p = new URL(u);
+        return p.protocol === 'http:' && (p.hostname === 'localhost' || p.hostname === '127.0.0.1');
+      } catch {
+        return false;
+      }
+    };
     const clientSecretRaw = await options.get<unknown>(`oauth_${name}_client_secret`, undefined, '');
     // Secret option values may arrive as a jsonb string (UI sends a quoted
     // JSON string) or as a bare value — coerce only real strings through.
@@ -88,7 +99,7 @@ export async function loadDynamicProviders(): Promise<
       (c.scope !== undefined && typeof c.scope !== 'string') ||
       !httpsUrl(c.authUrl) || !httpsUrl(c.tokenUrl) || !httpsUrl(c.userinfoUrl)
     ) {
-      logger.warn(`oauth: dynamic provider '${name}' has invalid fields (scope must be a string, URLs must be https) — skipped`);
+      logger.warn(`oauth: dynamic provider '${name}' has invalid fields (scope must be a string, URLs must be https or loopback-http) — skipped`);
       continue;
     }
     if (clientSecret === '') {

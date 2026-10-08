@@ -95,6 +95,31 @@ describe('loadDynamicProviders endSessionUrl validation (drop-with-warn, provide
   });
 });
 
+describe('loadDynamicProviders transport policy (verification-day loopback fix)', () => {
+  it('accepts loopback http URLs (dev self-loop parity with isValidRedirectUri)', async () => {
+    setProviders({
+      'local-idp': {
+        authUrl: 'http://localhost:5101/oidc/auth',
+        tokenUrl: 'http://127.0.0.1:5101/oidc/token',
+        userinfoUrl: 'http://localhost:5101/oidc/me',
+        clientId: 'cid',
+        endSessionUrl: 'http://localhost:5101/oidc/session/end',
+      },
+    });
+    const registry = await loadDynamicProviders();
+    expect(registry['local-idp']?.authUrl).toBe('http://localhost:5101/oidc/auth');
+    expect(registry['local-idp']?.endSessionUrl).toBe('http://localhost:5101/oidc/session/end');
+  });
+
+  it('still rejects remote http (secret-in-transit guard intact)', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+    setProviders({ 'evil-idp': { ...validProvider, authUrl: 'http://idp.example.com/authorize' } });
+    const registry = await loadDynamicProviders();
+    expect(registry['evil-idp']).toBeUndefined();
+    expect(warnSpy.mock.calls.some((c) => String(c[0]).includes('invalid fields'))).toBe(true);
+  });
+});
+
 describe('resolveRpEndSessionUrl', () => {
   it('provider arm: registry endSessionUrl + stored id_token -> exact urlencoded URL', async () => {
     setProviders({ 'ok-idp': { ...validProvider, endSessionUrl: 'https://idp.example.com/logout' } });
