@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { IdentityService, OptionsManager } from '@accessbase/identity';
+import type { OAuth2Tokens } from 'arctic';
 
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret';
@@ -164,6 +165,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
 
 // oauth_accounts DB access via @accessbase/identity/db — mocked (in-memory link store)
 const linkedAccounts: Array<Record<string, unknown>> = [];
+/** R4 seam: db.insert(oauthAccounts).values(..).onConflictDoUpdate(..) call capture */
+const upsertCalls: Array<{ values: Record<string, unknown>; update: unknown }> = [];
 vi.mock('@accessbase/identity/db', () => ({
   oauthAccounts: { _: 'oauth_accounts-marker' },
   users: { _: 'users-marker' },
@@ -183,7 +186,14 @@ vi.mock('@accessbase/identity/db', () => ({
       }),
     }),
     insert() {
-      return { values: () => ({ returning: async () => [{ id: testUser.id, email: testUser.email, status: 'active' }] }) };
+      return {
+        values: (row: Record<string, unknown>) => ({
+          returning: async () => [{ id: testUser.id, email: testUser.email, status: 'active' }],
+          onConflictDoUpdate: async (cfg: unknown) => {
+            upsertCalls.push({ values: row, update: cfg });
+          },
+        }),
+      };
     },
     delete() {
       return {
@@ -874,5 +884,284 @@ describe('GET /api/v1/auth/oauth/providers', () => {
     } finally {
       optionsStore.clear();
     }
+  });
+});
+
+// ============================================================================
+// Logout-coherence batch T-RP (spec 2026-10-08 §3.3/§7):
+//  - R4: the generic-provider callback UPSERTs the link row on EVERY successful
+//    login (the existing-link branch must not early-return with stale tokens).
+//  - id_token capture: openid scope gate + arctic idToken() throw -> null.
+//  - GET /api/v1/auth/oauth/end-session-url read surface.
+// ============================================================================
+describe('RP end_session — generic link upsert (R4)', () => {
+  const endSessionProvider = {
+    'my-oidc': {
+      authUrl: 'https://idp.example.com/authorize',
+      tokenUrl: 'https://idp.example.com/token',
+      userinfoUrl: 'https://idp.example.com/userinfo',
+      clientId: 'xxx',
+      scope: 'openid profile email',
+      endSessionUrl: 'https://idp.example.com/logout',
+    },
+  };
+
+  function setEndSessionOptions(): void {
+    optionsStore.set('oauth_providers', endSessionProvider);
+    optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
+  }
+
+  function seedGenericLink(overrides: Record<string, unknown> = {}): void {
+    linkedAccounts.length = 0;
+    linkedAccounts.push({
+      id: testUser.id,
+      email: testUser.email,
+      userId: testUser.id,
+      provider: 'my-oidc',
+      providerAccountId: 'sub-123',
+      status: 'active',
+      tenantId: '00000000-0000-0000-0000-000000000001',
+      ...overrides,
+    });
+  }
+
+  async function runGenericCallback(): Promise<void> {
+    const auth = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/my-oidc/authorize' });
+    const state = auth.cookies.find((c) => c.name === 'oauth_state')?.value ?? '';
+    const verifier = auth.cookies.find((c) => c.name === 'oauth_verifier')?.value ?? '';
+    const cb = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auth/oauth/my-oidc/callback?code=gen_code&state=${state}`,
+      cookies: { oauth_state: state, oauth_verifier: verifier },
+    });
+    expect(cb.statusCode).toBe(302);
+    expect(cb.headers['location']).toContain('/login?oauthCode=');
+  }
+
+  beforeEach(() => {
+    upsertCalls.length = 0;
+    resetSharedFlowStore();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL) => {
+        if (String(url).includes('idp.example.com/userinfo')) {
+          return { ok: true, json: async () => ({ sub: 'sub-123', email: 'gen@t.local', name: 'Gen User' }) };
+        }
+        throw new Error('unexpected fetch ' + String(url));
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    linkedAccounts.length = 0;
+    optionsStore.clear();
+    upsertCalls.length = 0;
+  });
+
+  it('R4 net: existing generic link login UPSERTs the row with fresh tokens + id_token', async () => {
+    setEndSessionOptions();
+    seedGenericLink();
+    await runGenericCallback();
+    expect(upsertCalls).toHaveLength(1);
+    expect(upsertCalls[0]?.values).toMatchObject({
+      provider: 'my-oidc',
+      providerAccountId: 'sub-123',
+      accessToken: 'generic-access-token',
+      idToken: 'generic-id-token',
+    });
+    const update = upsertCalls[0]?.update as { target?: unknown; set?: Record<string, unknown> } | undefined;
+    expect(update?.set).toMatchObject({
+      userId: testUser.id,
+      accessToken: 'generic-access-token',
+      refreshToken: 'generic-refresh-token',
+      idToken: 'generic-id-token',
+    });
+  });
+
+  it('new generic link routes through the same upsert (single code path)', async () => {
+    setEndSessionOptions();
+    linkedAccounts.length = 0; // provisioning path (mocked users insert returns an active row)
+    await runGenericCallback();
+    expect(upsertCalls).toHaveLength(1);
+  });
+
+  it('built-in github link keeps the plain-insert path (no upsert — behavior preserved)', async () => {
+    setProviderEnv(true);
+    linkedAccounts.length = 0;
+    vi.unstubAllGlobals();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL) => {
+        const u = String(url);
+        if (u.includes('api.github.com/user')) {
+          return { ok: true, json: async () => ({ id: 777, login: 'ex', name: 'Ex User', email: 'ex@t.local' }) };
+        }
+        throw new Error('unexpected fetch ' + u);
+      }),
+    );
+    const auth = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/github/authorize' });
+    const state = auth.cookies.find((c) => c.name === 'oauth_state')?.value ?? '';
+    const cb = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auth/oauth/github/callback?code=c&state=${state}`,
+      cookies: { oauth_state: state },
+    });
+    expect(cb.statusCode).toBe(302);
+    expect(upsertCalls).toHaveLength(0);
+  });
+
+  it('arctic idToken() throw (no id_token in token response) -> stored null despite endSessionUrl', async () => {
+    setEndSessionOptions();
+    seedGenericLink();
+    const { OAuth2Client } = await import('arctic');
+    const spy = vi.spyOn(OAuth2Client.prototype, 'validateAuthorizationCode').mockImplementation(
+      async () =>
+        ({
+          accessToken: () => 'gen-access',
+          refreshToken: () => 'gen-refresh',
+          hasRefreshToken: () => true,
+          accessTokenExpiresAt: () => new Date(Date.now() + 3_600_000),
+          idToken: () => {
+            throw new Error("Missing or invalid field 'id_token'");
+          },
+        }) as unknown as OAuth2Tokens,
+    );
+    try {
+      await runGenericCallback();
+    } finally {
+      spy.mockRestore();
+    }
+    expect(upsertCalls).toHaveLength(1);
+    expect(upsertCalls[0]?.values).toMatchObject({ idToken: null });
+  });
+
+  it('scope without openid -> id_token not stored (null) even when provider sends one', async () => {
+    optionsStore.set('oauth_providers', {
+      'my-oidc': {
+        authUrl: 'https://idp.example.com/authorize',
+        tokenUrl: 'https://idp.example.com/token',
+        userinfoUrl: 'https://idp.example.com/userinfo',
+        clientId: 'xxx',
+        scope: 'profile email',
+        endSessionUrl: 'https://idp.example.com/logout',
+      },
+    });
+    optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
+    seedGenericLink();
+    await runGenericCallback();
+    expect(upsertCalls).toHaveLength(1);
+    expect(upsertCalls[0]?.values).toMatchObject({ idToken: null });
+  });
+});
+
+describe('GET /api/v1/auth/oauth/end-session-url', () => {
+  const endSessionProvider = {
+    'my-oidc': {
+      authUrl: 'https://idp.example.com/authorize',
+      tokenUrl: 'https://idp.example.com/token',
+      userinfoUrl: 'https://idp.example.com/userinfo',
+      clientId: 'xxx',
+      scope: 'openid profile email',
+      endSessionUrl: 'https://idp.example.com/logout',
+    },
+  };
+
+  function authHeaders(): { authorization: string } {
+    const accessToken = app.jwt.sign({ sub: testUser.id, email: testUser.email }, { expiresIn: '15m' });
+    return { authorization: `Bearer ${accessToken}` };
+  }
+
+  afterEach(() => {
+    linkedAccounts.length = 0;
+    optionsStore.clear();
+  });
+
+  it('returns 401 without auth token', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/oauth/end-session-url?provider=my-oidc',
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 404 AUTH_OAUTH_001 for invalid or missing provider name', async () => {
+    for (const url of [
+      '/api/v1/auth/oauth/end-session-url?provider=BAD_NAME',
+      '/api/v1/auth/oauth/end-session-url',
+    ]) {
+      const res = await app.inject({ method: 'GET', url, headers: authHeaders() });
+      expect(res.statusCode).toBe(404);
+      expect(res.json().error.code).toBe('AUTH_OAUTH_001');
+    }
+  });
+
+  it('built-in names return logoutUrl null (A3: google/github backlog)', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/oauth/end-session-url?provider=github',
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true, data: { logoutUrl: null } });
+  });
+
+  it('unknown dynamic provider -> logoutUrl null', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/oauth/end-session-url?provider=nope-idp',
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.logoutUrl).toBeNull();
+  });
+
+  it('registry entry without endSessionUrl -> null even when link row has an id_token', async () => {
+    optionsStore.set('oauth_providers', {
+      'my-oidc': {
+        authUrl: 'https://idp.example.com/authorize',
+        tokenUrl: 'https://idp.example.com/token',
+        userinfoUrl: 'https://idp.example.com/userinfo',
+        clientId: 'xxx',
+      },
+    });
+    optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
+    linkedAccounts.push({ userId: testUser.id, provider: 'my-oidc', providerAccountId: 'sub-123', idToken: 'idtok' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/oauth/end-session-url?provider=my-oidc',
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.logoutUrl).toBeNull();
+  });
+
+  it('stored id_token null -> null even with endSessionUrl configured', async () => {
+    optionsStore.set('oauth_providers', endSessionProvider);
+    optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
+    linkedAccounts.push({ userId: testUser.id, provider: 'my-oidc', providerAccountId: 'sub-123', idToken: null });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/oauth/end-session-url?provider=my-oidc',
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.logoutUrl).toBeNull();
+  });
+
+  it('happy path -> exact URL with urlencoded id_token_hint', async () => {
+    optionsStore.set('oauth_providers', endSessionProvider);
+    optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
+    const idTok = 'a b&c/d+e=f';
+    linkedAccounts.push({ userId: testUser.id, provider: 'my-oidc', providerAccountId: 'sub-123', idToken: idTok });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/oauth/end-session-url?provider=my-oidc',
+      headers: authHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.logoutUrl).toBe(
+      `https://idp.example.com/logout?id_token_hint=${encodeURIComponent(idTok)}`,
+    );
   });
 });

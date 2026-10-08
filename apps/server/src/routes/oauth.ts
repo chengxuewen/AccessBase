@@ -23,6 +23,12 @@ import { enforceHit, optionGetter } from '../utils/mfa-policy.js';
 import { getRoleManager } from '../utils/managers.js';
 import { logger } from '@accessbase/logging';
 import { getTenantManager } from '../utils/managers.js';
+import {
+  PROVIDER_NAME_PATTERN,
+  loadDynamicProviders,
+  resolveRpEndSessionUrl,
+  type DynamicProviderConfig,
+} from '../utils/rp-end-session.js';
 
 const SUPPORTED_PROVIDERS = ['github', 'google'] as const;
 type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
@@ -38,17 +44,6 @@ interface NormalizedProfile {
   name: string;
 }
 
-/** Valid dynamic provider name (also the options-key suffix for its secret). */
-const PROVIDER_NAME_PATTERN = /^[a-z0-9-]{1,32}$/;
-
-/** Non-sensitive fields of a dynamic provider (secret lives in its own option key, R7). */
-interface DynamicProviderConfig {
-  authUrl: string;
-  tokenUrl: string;
-  userinfoUrl: string;
-  clientId: string;
-  scope?: string;
-}
 
 /** A provider resolved for the authorize/callback flow. */
 interface ResolvedProvider {
@@ -82,81 +77,6 @@ function providerConfigured(name: SupportedProvider): boolean {
       ? config.oauth.github
       : config.oauth.google;
   return creds.clientId !== '' && creds.clientSecret !== '';
-}
-
-
-/**
- * Dynamic providers from options: `oauth_providers` holds the non-sensitive
- * JSON (R7); each secret lives in its own `oauth_<name>_client_secret` key
- * (matches SENSITIVE_KEY_PATTERN → masked in GET /v1/options). Malformed
- * JSON / invalid name / missing fields skip that provider with a warn —
- * built-ins and startup are never affected.
- */
-async function loadDynamicProviders(): Promise<Record<string, DynamicProviderConfig & { clientSecret: string }>> {
-  const options = getOptionsManager();
-  const raw = await options.get<unknown>('oauth_providers', process.env['OAUTH_PROVIDERS'], '');
-  let parsed: unknown;
-  if (typeof raw === 'string') {
-    if (raw === '') return {};
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      logger.warn('oauth: oauth_providers option is not valid JSON — dynamic providers skipped');
-      return {};
-    }
-  } else {
-    // jsonb object path: the options value column is jsonb, so the natural
-    // Settings→Options flow (UI JSON.parse → PUT object) stores an object and
-    // OptionsManager.get() returns it already parsed — never JSON.parse it again.
-    parsed = raw;
-  }
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    logger.warn('oauth: oauth_providers option is not an object — dynamic providers skipped');
-    return {};
-  }
-  const out: Record<string, DynamicProviderConfig & { clientSecret: string }> = {};
-  for (const [name, value] of Object.entries(parsed as Record<string, unknown>)) {
-    if (!PROVIDER_NAME_PATTERN.test(name)) {
-      logger.warn(`oauth: dynamic provider name '${name}' is invalid — skipped`);
-      continue;
-    }
-    const c = (value ?? {}) as Partial<DynamicProviderConfig>;
-    if (
-      typeof c.authUrl !== 'string' || c.authUrl === '' ||
-      typeof c.tokenUrl !== 'string' || c.tokenUrl === '' ||
-      typeof c.userinfoUrl !== 'string' || c.userinfoUrl === '' ||
-      typeof c.clientId !== 'string' || c.clientId === ''
-    ) {
-      logger.warn(`oauth: dynamic provider '${name}' is missing required fields — skipped`);
-      continue;
-    }
-    // tokenUrl carries the client secret — plaintext http transport is rejected.
-    const httpsUrl = (u: string) => u.startsWith('https://');
-    const clientSecretRaw = await options.get<unknown>(`oauth_${name}_client_secret`, undefined, '');
-    // Secret option values may arrive as a jsonb string (UI sends a quoted
-    // JSON string) or as a bare value — coerce only real strings through.
-    const clientSecret = typeof clientSecretRaw === 'string' ? clientSecretRaw : '';
-    if (
-      (c.scope !== undefined && typeof c.scope !== 'string') ||
-      !httpsUrl(c.authUrl) || !httpsUrl(c.tokenUrl) || !httpsUrl(c.userinfoUrl)
-    ) {
-      logger.warn(`oauth: dynamic provider '${name}' has invalid fields (scope must be a string, URLs must be https) — skipped`);
-      continue;
-    }
-    if (clientSecret === '') {
-      logger.warn(`oauth: dynamic provider '${name}' has no oauth_${name}_client_secret option — skipped`);
-      continue;
-    }
-    out[name] = {
-      authUrl: c.authUrl,
-      tokenUrl: c.tokenUrl,
-      userinfoUrl: c.userinfoUrl,
-      clientId: c.clientId,
-      scope: c.scope,
-      clientSecret,
-    };
-  }
-  return out;
 }
 
 /** Built-in github/google first (env creds), else dynamic options entry. */
@@ -318,6 +238,8 @@ export async function oauthRoutes(app: FastifyInstance) {
     profile: NormalizedProfile,
     tokens: OAuth2Tokens,
     tenantId?: string,
+    /** §3.3 R4: generic providers UPSERT the link row on every login (built-ins: undefined). */
+    genericCfg?: DynamicProviderConfig,
   ): Promise<{ id: string; email: string; status: string; totpEnabled?: boolean; tenantId?: string }> {
     const [existingLink] = await db
       .select({ userId: oauthAccounts.userId })
@@ -336,7 +258,12 @@ export async function oauthRoutes(app: FastifyInstance) {
         .from(users)
         .where(eq(users.id, existingLink.userId))
         .limit(1);
-      if (user) return user;
+      if (user) {
+        // R4 (spec §3.3): the early-return used to leave tokens + id_token stale
+        // forever — generic logins refresh the link row on EVERY success.
+        if (genericCfg) await upsertGenericLink(user.id, provider, profile, tokens, genericCfg);
+        return user;
+      }
       // dangling link (user deleted) — fall through to email match
     }
 
@@ -347,7 +274,7 @@ export async function oauthRoutes(app: FastifyInstance) {
         .where(eq(users.email, profile.email))
         .limit(1);
       if (userByEmail) {
-        await linkAccount(userByEmail.id, provider, profile, tokens);
+        await saveLink(userByEmail.id, provider, profile, tokens, genericCfg);
         return userByEmail;
       }
     }
@@ -368,7 +295,7 @@ export async function oauthRoutes(app: FastifyInstance) {
       })
       .returning({ id: users.id, email: users.email, status: users.status });
     if (!created) throw new Error('oauth_user_provision_failed');
-    await linkAccount(created.id, provider, profile, tokens);
+    await saveLink(created.id, provider, profile, tokens, genericCfg);
     // Freshly provisioned users have no TOTP secret — totpEnabled omitted (false)
     return created;
   }
@@ -387,6 +314,74 @@ export async function oauthRoutes(app: FastifyInstance) {
       refreshToken: tokens.hasRefreshToken() ? tokens.refreshToken() : null,
       expiresAt: tokens.accessTokenExpiresAt(),
     });
+  }
+
+  /** Persist a successful login's link: generic UPSERTs (R4), built-ins keep the plain insert. */
+  async function saveLink(
+    userId: string,
+    provider: string,
+    profile: NormalizedProfile,
+    tokens: OAuth2Tokens,
+    genericCfg?: DynamicProviderConfig,
+  ): Promise<void> {
+    if (genericCfg) {
+      await upsertGenericLink(userId, provider, profile, tokens, genericCfg);
+      return;
+    }
+    await linkAccount(userId, provider, profile, tokens);
+  }
+
+  /**
+   * R4 fix (spec §3.3): every generic-provider login refreshes the link row —
+   * upsert on unique(provider, providerAccountId). The userId update re-links
+   * a dangling row when the email match lands on a different user. There is no
+   * updatedAt column on oauth_accounts (schema.ts) — createdAt stays put.
+   */
+  async function upsertGenericLink(
+    userId: string,
+    provider: string,
+    profile: NormalizedProfile,
+    tokens: OAuth2Tokens,
+    cfg: DynamicProviderConfig,
+  ): Promise<void> {
+    const idToken = genericIdToken(tokens, cfg);
+    const fields = {
+      userId,
+      provider,
+      providerAccountId: profile.providerAccountId,
+      accessToken: tokens.accessToken(),
+      refreshToken: tokens.hasRefreshToken() ? tokens.refreshToken() : null,
+      expiresAt: tokens.accessTokenExpiresAt(),
+      idToken,
+    };
+    await db
+      .insert(oauthAccounts)
+      .values(fields)
+      .onConflictDoUpdate({
+        target: [oauthAccounts.provider, oauthAccounts.providerAccountId],
+        set: {
+          userId: fields.userId,
+          accessToken: fields.accessToken,
+          refreshToken: fields.refreshToken,
+          expiresAt: fields.expiresAt,
+          idToken: fields.idToken,
+        },
+      });
+  }
+
+  /**
+   * arctic OAuth2Tokens.idToken() THROWS when the response carries no
+   * id_token (§2 fact) — attempt it only when the configured scope asks for
+   * openid; anything else (scope absent, throw) stores null.
+   */
+  function genericIdToken(tokens: OAuth2Tokens, cfg: DynamicProviderConfig): string | null {
+    const scopes = cfg.scope ? cfg.scope.split(/\s+/).filter(Boolean) : ['openid'];
+    if (!scopes.includes('openid')) return null;
+    try {
+      return tokens.idToken();
+    } catch {
+      return null;
+    }
   }
 
   // GET /api/v1/auth/oauth/:provider/authorize
@@ -480,7 +475,13 @@ export async function oauthRoutes(app: FastifyInstance) {
           resolved.kind === 'generic'
             ? await fetchGenericProfile(provider, resolved.genericConfig!.userinfoUrl, tokens.accessToken())
             : await fetchProviderProfile(provider as SupportedProvider, tokens.accessToken());
-        const user = await findOrCreateOAuthUser(provider, profile, tokens, request.tenantId);
+        const user = await findOrCreateOAuthUser(
+          provider,
+          profile,
+          tokens,
+          request.tenantId,
+          resolved.kind === 'generic' ? resolved.genericConfig : undefined,
+        );
         // P0 (final review C1): a suspended/pending account must not obtain an
         // OAuth session even with a valid provider link — mirror the login
         // handler's 403 AUTH_004. Only existing users can be non-active; the
@@ -634,6 +635,36 @@ export async function oauthRoutes(app: FastifyInstance) {
         .from(oauthAccounts)
         .where(eq(oauthAccounts.userId, payload.sub));
       return { success: true, data: rows };
+    },
+  );
+
+  // GET /api/v1/auth/oauth/end-session-url?provider=<name> — §3.3 RP-initiated
+  // logout hint. Shape/rate parity with /oauth/links (bearer, global limiter).
+  app.get<{ Querystring: { provider?: string } }>(
+    '/oauth/end-session-url',
+    {
+      preHandler: [app.authenticate],
+      schema: {
+        description: 'Resolve the generic OIDC end-session URL (id_token_hint) for the current user',
+        tags: ['auth'],
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    async (request, reply) => {
+      const name = request.query.provider ?? '';
+      if (!PROVIDER_NAME_PATTERN.test(name)) {
+        return reply.status(404).send({
+          success: false,
+          error: { code: 'AUTH_OAUTH_001', message: 'Unsupported OAuth provider' },
+        });
+      }
+      if (isSupportedProvider(name)) {
+        // A3 ruling: google/github end-session stays on the backlog
+        return { success: true, data: { logoutUrl: null } };
+      }
+      const payload = request.user as { sub: string };
+      const logoutUrl = await resolveRpEndSessionUrl(payload.sub, name);
+      return { success: true, data: { logoutUrl } };
     },
   );
 
