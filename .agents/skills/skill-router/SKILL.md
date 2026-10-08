@@ -30,7 +30,7 @@ description: "分析用户意图，输出推荐技能列表。当用户说'怎�
 | **安全**       | "安全"/"权限"/"认证"                         | `/security-review`                               |
 | **探索**       | "调研"/"对比"/"有什么方案"                   | `/ecosystem-scan` + librarian agent              |
 | **代码库理解** | "代码关系"/"谁调用谁"/"架构理解"/"XX 是什么" | `/graphify query` + `graphify path/explain`      |
-| **模糊**       | 无明确关键词                                 | 提出 2-3 个可能方向，让用户选择                  |
+| **裁决**       | "裁决逐项过"/"一个个来"/"不要一起列出"/多方案逐项拍板 | `/adjudication-walkthrough`（纯文本逐项，禁批量禁 question 工具） |
 | **模糊**       | 无明确关键词                                 | 提出 2-3 个可能方向，让用户选择                  |
 
 ### Step 2: 上下文检查

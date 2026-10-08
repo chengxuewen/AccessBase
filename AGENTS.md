@@ -16,7 +16,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 │   ├── architecture.md      # Stub index → modules/
 │   ├── modules/             # 44 docs (36 modular + 8 SDD), each with an Implementation status header (mandatory, D126)
 ├── .agents/                 # AI agent configuration
-│   ├── skills/              # 12 project-specific skills (graphify, test-harness, etc.)
+│   ├── skills/              # 13 project-specific skills (graphify, test-harness, adjudication-walkthrough, etc.)
 │   ├── rules/               # Coding rules by language (14 language dirs)
 │   └── memorys/             # Project memory (status, decisions, pitfalls, conventions)
 ├── .refinfo/new-api/        # Reference implementation (new-api) — READ ONLY, not our code

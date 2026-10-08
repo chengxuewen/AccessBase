@@ -8,7 +8,7 @@ Project-specific AI agent configuration: skills, coding rules, and project memor
 
 ```
 .agents/
-├── skills/              # 12 project skills (graphify, test-harness, design-system, etc.)
+├── skills/              # 13 project skills (graphify, test-harness, design-system, adjudication-walkthrough, etc.)
 │   ├── graphify/        # Codebase knowledge graph
 │   ├── test-harness/    # TDD test generation from SDD
 │   ├── design-system/   # UI consistency enforcement
