@@ -4,7 +4,7 @@
 import { createDb, type DrizzleDB } from '../db/index.js';
 import { count, sql, and, eq } from 'drizzle-orm';
 import { permissions, rolePermissions, type NewPermission } from '../db/schema.js';
-import { RoleManager } from './RoleManager.js';
+import { RoleManager, mergeWidestScope } from './RoleManager.js';
 import {
   PERMISSION_CACHE_TTL_MS,
   getCachedPermissions,
@@ -14,6 +14,7 @@ import {
 import { logger } from '@accessbase/logging';
 import type {
   Permission,
+  DataScope,
   CreatePermissionInput,
   UpdatePermissionInput,
   PermissionQueryParams,
@@ -162,10 +163,15 @@ export class PermissionManager {
     logger.debug(`Computing effective permissions for user ${userId} in tenant: ${tenantId}`);
 
     const roles = await this.roleManager.getEffectiveRoles(userId, tenantId); // Q4b: direct+inheritance+groups
+    // DG-6d widest-wins: the same code granted by several bindings keeps the
+    // WIDEST scope (all > dept > self), independent of the role iteration order
+    // (the previous last-wins set made the answer depend on which role came
+    // second). Membership semantics are unchanged.
     const seen = new Map<string, Permission>();
     for (const role of roles) {
       for (const p of await this.roleManager.resolveInheritedPermissions(role.id, tenantId)) {
-        seen.set(p.id, p);
+        const held = seen.get(p.id);
+        seen.set(p.id, held ? mergeWidestScope(held, p) : p);
       }
     }
     const permissions = [...seen.values()];
@@ -188,7 +194,28 @@ export class PermissionManager {
     logger.debug(`Checking permission ${permission} for user ${userId} in tenant: ${tenantId}`);
 
     const list = await this.getUserEffectivePermissions(userId, tenantId);
-    return this.matches(list, permission);
+    return this.findMatch(list, permission) !== undefined;
+  }
+
+  /**
+   * DG-6d row-visibility ceiling of ONE code for one user — the value the
+   * users routes gate their row predicates on. Reuses the widened effective-
+   * permission cache (same entry, same tenant-wide invalidation, so scope
+   * edits propagate immediately).
+   *
+   * - null → the code is not granted at all (guarded routes 403 first).
+   * - else → the binding scope; catalog-shaped rows (never bound) read 'all'.
+   */
+  async getUserDataScope(
+    userId: string,
+    permission: string,
+    tenantId: string,
+  ): Promise<DataScope | null> {
+    const granted = this.findMatch(
+      await this.getUserEffectivePermissions(userId, tenantId),
+      permission,
+    );
+    return granted ? (granted.dataScope ?? 'all') : null;
   }
 
   /**
@@ -202,21 +229,27 @@ export class PermissionManager {
     logger.debug(`Checking permissions for user ${userId} in tenant: ${tenantId}`);
 
     const list = await this.getUserEffectivePermissions(userId, tenantId);
-    return permissions.some((permission) => this.matches(list, permission));
+    return permissions.some((permission) => this.findMatch(list, permission) !== undefined);
   }
 
   /**
    * Match a 'resource:action' string against a permission list.
    */
-  private matches(list: Permission[], permission: string): boolean {
+  private findMatch(list: Permission[], permission: string): Permission | undefined {
     const idx = permission.lastIndexOf(':');
     const resource = permission.slice(0, idx);
     const action = permission.slice(idx + 1);
-    return list.some((p) => p.resource === resource && p.action === action);
+    return list.find((p) => p.resource === resource && p.action === action);
   }
 
   /**
-   * Set role permissions (full replacement)
+   * Set role permissions (full replacement).
+   *
+   * @deprecated DEAD API with zero src callers (spec 2026-10-08 §2 R4): it
+   * carries neither the tenant partition guard nor the data_scope clamp that
+   * RoleManager's private funnel enforces, and no tenant parameter exists.
+   * Removal is backlog — do NOT adopt it for new code; bind through the
+   * RoleManager create/update funnels instead.
    */
   async setRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
     logger.info(`Setting permissions for role ${roleId}`);

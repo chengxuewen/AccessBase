@@ -1,10 +1,11 @@
 /**
  * UserManager - User management with Drizzle ORM (SDD 2.2)
  */
-import { eq, and, or, like, sql, count, asc, desc, notInArray } from 'drizzle-orm';
+import { eq, and, or, like, sql, count, asc, desc, inArray, notInArray, type SQL } from 'drizzle-orm';
 import { closeDb, createDb, type DbLike, type DrizzleDB } from '../db/index.js';
 import {
   users,
+  groupUsers,
   passwordHistory,
   auditLogs,
   auditErasures,
@@ -23,6 +24,7 @@ import type {
   CreateUserInput,
   UpdateUserInput,
   UserQueryParams,
+  UserScopeFilter,
   UserStatus,
   PaginatedResult,
 } from '../types.js';
@@ -176,6 +178,11 @@ export class UserManager {
       conditions.push(eq(users.status, params.status));
     }
 
+    // DG-6d row visibility: ONE predicate, shared with isWithinScope so the
+    // list surface and the per-row guard can never drift apart.
+    const scoped = this.scopeCondition(params.scope);
+    if (scoped) conditions.push(scoped);
+
     const where = and(...conditions);
 
     // Get total count
@@ -209,6 +216,52 @@ export class UserManager {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     };
+  }
+
+  /**
+   * DG-6d visibility predicate for a caller's binding scope, or undefined when
+   * nothing narrows the row set (kind 'all'). Shared by findAll + isWithinScope.
+   *
+   * [B4/R5] dept with EMPTY groupIds degrades to the self arm: an empty VALUE
+   * array makes drizzle render a degenerate in (), and dropping the condition
+   * instead would WIDEN visibility rather than narrow it. The server util
+   * converts upstream too; this is the belt.
+   */
+  private scopeCondition(scope: UserScopeFilter | undefined): SQL | undefined {
+    if (!scope || scope.kind === 'all') return undefined;
+    if (scope.kind === 'self' || scope.groupIds.length === 0) {
+      return eq(users.id, scope.userId);
+    }
+    const selfArm = eq(users.id, scope.userId);
+    // or() only yields undefined for an all-undefined argument list; the ?? arm
+    // keeps the return narrowing-safe without a non-null assertion.
+    return or(
+      selfArm,
+      inArray(
+        users.id,
+        this.db
+          .select({ userId: groupUsers.userId })
+          .from(groupUsers)
+          .where(inArray(groupUsers.groupId, scope.groupIds)),
+      ),
+    ) ?? selfArm;
+  }
+
+  /**
+   * DG-6d per-row guard for the users routes (detail / update / status / roles
+   * / force-logout / reset / delete). Single SQL, the SAME arms as the list
+   * predicate: an in-scope missing row still reads as 404 upstream, an
+   * out-of-scope one is 403 DATA_SCOPE.
+   */
+  async isWithinScope(targetUserId: string, scope: UserScopeFilter): Promise<boolean> {
+    const visible = this.scopeCondition(scope);
+    if (!visible) return true;
+    const [hit] = await this.db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, targetUserId), visible))
+      .limit(1);
+    return hit !== undefined;
   }
 
   /**

@@ -18,12 +18,15 @@ import { bumpAuthState, delAuthState } from '../services/token-version.js';
 import { invalidatePermissionCache } from './permission-cache.js';
 import { emitEvent } from '../services/events.js';
 import { logger } from '@accessbase/logging';
+import type { GroupKind } from '../types.js';
 
 export interface Group {
   id: string;
   tenantId: string;
   name: string;
   description?: string;
+  // DG-6d (ruling A5): 'department' groups are the row-scope department source.
+  kind: GroupKind;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +34,14 @@ export interface Group {
 export interface CreateGroupInput {
   name: string;
   description?: string;
+  kind?: GroupKind;
+}
+
+// Kind belt (same posture as the data_scope clamp): identity-direct callers
+// bypass the route JSON-schema, so an out-of-enum kind fails the write.
+function clampKind(kind: unknown): GroupKind {
+  if (kind === 'group' || kind === 'department') return kind;
+  throw new Error('GROUP_KIND_INVALID');
 }
 
 export class GroupManager {
@@ -53,6 +64,9 @@ export class GroupManager {
       tenantId: g.tenantId,
       name: g.name,
       description: g.description ?? undefined,
+      // Rows predating the column (or carrying garbage from a direct write)
+      // read as the safe default: a plain group never grants dept visibility.
+      kind: g.kind === 'department' ? 'department' : 'group',
       createdAt: g.createdAt,
       updatedAt: g.updatedAt,
     };
@@ -74,10 +88,33 @@ export class GroupManager {
     return out;
   }
 
+  /**
+   * DG-6d: the caller's department ids ('department' groups they belong to),
+   * the source of UserScopeFilter's dept arm. kind='department' plus tenant
+   * predicates on BOTH tables: addMember already validates consistency, the SQL
+   * says so anyway (defense-in-depth, spec §2 JN).
+   */
+  async getDepartmentIdsForUser(userId: string, tenantId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ groupId: groupUsers.groupId })
+      .from(groupUsers)
+      .innerJoin(groups, eq(groups.id, groupUsers.groupId))
+      .where(
+        and(
+          eq(groupUsers.userId, userId),
+          eq(groupUsers.tenantId, tenantId),
+          eq(groups.tenantId, tenantId),
+          eq(groups.kind, 'department'),
+        ),
+      );
+    return (rows as Array<{ groupId: string }>).map((r) => r.groupId);
+  }
+
   async create(input: CreateGroupInput, tenantId: string): Promise<Group> {
+    const kind = clampKind(input.kind ?? 'group');
     const [dup] = await this.db.select({ id: groups.id }).from(groups).where(and(eq(groups.tenantId, tenantId), eq(groups.name, input.name))).limit(1);
     if (dup) throw new Error('GROUP_NAME_EXISTS');
-    const [row] = await this.db.insert(groups).values({ name: input.name, description: input.description ?? null, tenantId }).returning();
+    const [row] = await this.db.insert(groups).values({ name: input.name, description: input.description ?? null, kind, tenantId }).returning();
     if (!row) throw new Error('Failed to create group');
     await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id: row.id, op: 'lifecycle', name: row.name } });
     logger.info({ groupId: row.id, tenantId }, 'group created');
@@ -85,6 +122,8 @@ export class GroupManager {
   }
 
   async update(id: string, patch: Partial<CreateGroupInput>, tenantId: string): Promise<Group> {
+    // Clamp first: an invalid kind fails before any read or write.
+    const kind = patch.kind === undefined ? undefined : clampKind(patch.kind);
     const g = await this.findById(id, tenantId);
     if (!g) throw new Error('GROUP_NOT_FOUND');
     if (patch.name && patch.name !== g.name) {
@@ -93,7 +132,7 @@ export class GroupManager {
     }
     const [row] = await this.db
       .update(groups)
-      .set({ name: patch.name ?? g.name, description: patch.description ?? g.description ?? null, updatedAt: new Date() })
+      .set({ name: patch.name ?? g.name, description: patch.description ?? g.description ?? null, kind: kind ?? g.kind, updatedAt: new Date() })
       .where(eq(groups.id, id))
       .returning();
     await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id, op: 'lifecycle' } });

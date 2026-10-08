@@ -33,11 +33,38 @@ import { logger } from '@accessbase/logging';
 import type {
   Role,
   Permission,
+  DataScope,
   CreateRoleInput,
   UpdateRoleInput,
   RoleQueryParams,
   PaginatedResult,
 } from '../types.js';
+
+const DATA_SCOPE_RANK: Record<DataScope, number> = { all: 3, dept: 2, self: 1 };
+
+// Widest-wins merge of two same-id bindings (DG-6d lattice, total order:
+// all > dept > self); ties keep the first seen value.
+export function mergeWidestScope(existing: Permission, incoming: Permission): Permission {
+  const currentRank = DATA_SCOPE_RANK[existing.dataScope ?? 'all'];
+  const candidateRank = DATA_SCOPE_RANK[incoming.dataScope ?? 'all'];
+  return candidateRank > currentRank ? incoming : existing;
+}
+
+// Junction text column -> DataScope. Anything outside the enum falls back to
+// the column default ('all'); the write side enum-clamps at the funnel, which
+// is the repo's single validation point (no DB CHECK constraints by style).
+function toDataScope(value: string | null | undefined): DataScope {
+  return value === 'dept' || value === 'self' ? value : 'all';
+}
+
+// Write-side belt for the data_scope enum: identity-direct callers bypass the
+// route JSON-schema, so an out-of-enum value must fail the whole binding write
+// (never a silent coerce, never a half-applied replacement).
+function clampScope(permissionId: string, raw: DataScope | undefined): DataScope {
+  if (raw === undefined) return 'all';
+  if (raw === 'all' || raw === 'dept' || raw === 'self') return raw;
+  throw new Error(`DATA_SCOPE_INVALID:${permissionId}`);
+}
 
 export class RoleManager {
   private readonly db: DrizzleDB;
@@ -104,7 +131,13 @@ export class RoleManager {
 
     // Assign permissions if provided
     if (data.permissionIds && data.permissionIds.length > 0) {
-      await this.setRolePermissions(inserted.id, data.permissionIds, tenantId, db);
+      await this.setRolePermissions(
+        inserted.id,
+        data.permissionIds,
+        tenantId,
+        db,
+        data.permissionScopes,
+      );
     }
 
     await emitEvent(d, { tenantId, type: 'role.changed', payload: { id: inserted.id, op: 'created', name: inserted.name } });
@@ -249,7 +282,15 @@ export class RoleManager {
 
     // Replace permissions if provided
     if (data.permissionIds !== undefined) {
-      await this.setRolePermissions(id, data.permissionIds, tenantId, db);
+      // permissionScopes ride the permissionIds replacement (full rebuild): a
+      // scope for a code that is no longer bound is meaningless, not persisted.
+      await this.setRolePermissions(
+        id,
+        data.permissionIds,
+        tenantId,
+        db,
+        data.permissionScopes,
+      );
     }
 
     const perms = await this.getRolePermissions(id);
@@ -409,10 +450,13 @@ export class RoleManager {
 
     await resolveChain(roleId);
 
-    // Remove duplicates by permission ID
+    // Dedup by permission id with the DG-6d widest-wins lattice (order-
+    // independent: a narrower parent binding must never overwrite a wider
+    // child binding, which the previous last-wins set did).
     const uniquePermissions = new Map<string, Permission>();
     for (const perm of allPermissions) {
-      uniquePermissions.set(perm.id, perm);
+      const held = uniquePermissions.get(perm.id);
+      uniquePermissions.set(perm.id, held ? mergeWidestScope(held, perm) : perm);
     }
 
     return Array.from(uniquePermissions.values());
@@ -605,12 +649,19 @@ export class RoleManager {
       .innerJoin(rolePermissions, eq(permissions.id, rolePermissions.permissionId))
       .where(eq(rolePermissions.roleId, roleId));
 
+    // [B3 PIN] the junction's data_scope MUST be projected onto the mapped
+    // Permission: a fixed field-map over the join silently drops it and the
+    // whole data-scope feature becomes a silent no-op (batch-E webauthn
+    // projection family). Absent/unknown values read as the column default.
     return result.map((row) => ({
       id: row.permissions.id,
       resource: row.permissions.resource,
       action: row.permissions.action,
       description: row.permissions.description ?? undefined,
       createdAt: row.permissions.createdAt,
+      // Optional chain: test/legacy row shapes without the junction object read
+      // as the default; real drizzle join rows always carry data_scope.
+      dataScope: toDataScope(row.role_permissions?.dataScope),
     }));
   }
 
@@ -621,12 +672,17 @@ export class RoleManager {
    * may only bind the TENANT_BINDABLE names. Without this guard a tenant admin
    * with roles:write could enumerate the global catalog (permissions:read) and
    * bind tenants:write / options:write to a fresh role — full platform takeover.
+   *
+   * DG-6d: `scopes` carries the per-binding row-visibility ceiling (keyed by
+   * permissionId); values outside the enum throw DATA_SCOPE_INVALID here, at
+   * the single write funnel, before any junction mutation.
    */
   private async setRolePermissions(
     roleId: string,
     permissionIds: string[],
     tenantId: string,
     db?: DbLike,
+    scopes?: Record<string, DataScope>,
   ): Promise<void> {
     const d: DbLike = db ?? this.db;
     if (tenantId !== DEFAULT_TENANT_ID && permissionIds.length > 0) {
@@ -644,17 +700,21 @@ export class RoleManager {
       }
     }
 
+    // Bindings are built (and clamped) before the destructive delete below, so
+    // a rejected scope can never leave the role half-bound. Absent entry = the
+    // column default; the entry key is the permissionId.
+    const bindings = permissionIds.map((permissionId) => ({
+      roleId,
+      permissionId,
+      dataScope: clampScope(permissionId, scopes?.[permissionId]),
+    }));
+
     // Remove existing permissions
     await d.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
 
     // Add new permissions
-    if (permissionIds.length > 0) {
-      await d.insert(rolePermissions).values(
-        permissionIds.map((permissionId) => ({
-          roleId,
-          permissionId,
-        })),
-      );
+    if (bindings.length > 0) {
+      await d.insert(rolePermissions).values(bindings);
     }
     // No emit here: this private funnel is always called within create/update,
     // which emit the authoritative role.changed themselves (avoids double event).

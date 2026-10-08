@@ -4,8 +4,44 @@
  */
 
 // Re-export shared types
-import type { User, Role, Permission, Session } from '@accessbase/types';
-export type { User, Role, Permission, Session };
+import type {
+  User,
+  Role as SharedRole,
+  Session,
+  Permission as SharedPermission,
+} from '@accessbase/types';
+export type { User, Session };
+
+/**
+ * DG-6d data scope — the row-visibility ceiling of ONE role→permission
+ * binding (ruling A1: role_permissions.data_scope column). Widest wins when
+ * several bindings grant the same code (rank: all > dept > self).
+ */
+export type DataScope = 'all' | 'dept' | 'self';
+
+/**
+ * Group kind (DG-6d ruling A5): 'department' groups ARE the row-scope
+ * department source — no separate org-unit table in v1.
+ */
+export type GroupKind = 'group' | 'department';
+
+/**
+ * Shared Permission widened with the binding's data scope. Absent only on
+ * catalog rows (a permission never bound to a role); the role projection
+ * pins every junction value, so bound permissions ALWAYS carry one.
+ */
+export interface Permission extends SharedPermission {
+  dataScope?: DataScope;
+}
+
+/**
+ * Shared Role with the widened permission projection (identity-internal view —
+ * RoleManager.mapToRole hands back rows carrying dataScope, so typing the
+ * field as the base entity would hide what the projection actually reads).
+ */
+export interface Role extends Omit<SharedRole, 'permissions'> {
+  permissions: Permission[];
+}
 
 /**
  * Auth Provider Types (SDD 2.1)
@@ -77,6 +113,12 @@ export interface UpdateUserInput {
   metadata?: Record<string, unknown>;
 }
 
+// Row-visibility arms of UserQueryParams.scope (DG-6d data-scope batch).
+export type UserScopeFilter =
+  | { kind: 'all' }
+  | { kind: 'self'; userId: string }
+  | { kind: 'dept'; userId: string; groupIds: string[] };
+
 export interface UserQueryParams {
   page?: number;
   pageSize?: number;
@@ -86,6 +128,12 @@ export interface UserQueryParams {
   emailExact?: string; // Exact case-insensitive email equality (SCIM userName eq, Batch J T1)
   status?: UserStatus;
   roleId?: string;
+  /**
+   * DG-6d row-visibility filter. The server util resolves it from the caller's
+   * users:* binding scope; a dept arm with EMPTY groupIds is converted to self
+   * upstream (findAll re-applies the same conversion as a belt — B4).
+   */
+  scope?: UserScopeFilter;
 }
 
 /**
@@ -96,6 +144,8 @@ export interface CreateRoleInput {
   description?: string;
   parentId?: string; // Parent role ID (RBAC1 inheritance)
   permissionIds?: string[]; // Initial permission list
+  /** Per-binding data scope keyed by permissionId (absent entry = 'all'). */
+  permissionScopes?: Record<string, DataScope>;
   isSystem?: boolean; // K-T2: mark built-in protected roles (admin seed/bootstrap)
 }
 
@@ -103,6 +153,8 @@ export interface UpdateRoleInput {
   name?: string;
   description?: string;
   permissionIds?: string[]; // Full replacement of permission list
+  /** Per-binding data scope keyed by permissionId (rides the permissionIds replacement). */
+  permissionScopes?: Record<string, DataScope>;
 }
 
 export interface RoleQueryParams {
