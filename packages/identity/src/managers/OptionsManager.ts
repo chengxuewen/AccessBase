@@ -1,5 +1,10 @@
 /**
  * OptionsManager - Runtime configuration with env > option > default priority.
+ *
+ * R-A cross-node coherence: every write announces through a publish hook so
+ * OTHER nodes drop their per-process caches (ab:options:invalidate channel,
+ * wired server-side in options-coherence.ts on the cache-coherence.ts
+ * pattern). Redis absent => hook never registered => silent single-node mode.
  */
 import { eq } from 'drizzle-orm';
 import { logger } from '@accessbase/logging';
@@ -12,7 +17,21 @@ export interface OptionEntry {
   updatedAt: Date;
 }
 
-// ponytail: per-process cache; multi-instance deployments need Redis pub/sub invalidation
+// ponytail: per-process cache; R-A adds Redis pub/sub invalidation (publish
+// hook below) instead of deleting the cache — listAll/list get hot on the
+// request path.
+
+/**
+ * R-A: server boot registers a redis-publisher so OTHER nodes drop their
+ * per-process caches too (cross-node coherence without changing the
+ * manager's constructor shape or adding a redis dep to identity).
+ */
+export type OptionsPublishHook = () => void;
+let publishHook: OptionsPublishHook | undefined;
+export function setOptionsPublishHook(hook: OptionsPublishHook | undefined): void {
+  publishHook = hook;
+}
+
 export class OptionsManager {
   private readonly db: DrizzleDB;
   private cache: OptionEntry[] | null = null;
@@ -55,21 +74,30 @@ export class OptionsManager {
         set: { value, updatedAt: new Date() },
       });
     this.cache = null;
+    publishHook?.();
   }
 
   /** Insert only if the key does not exist yet (used by setup config: first write wins). */
   async setIfAbsent(key: string, value: unknown): Promise<void> {
     await this.db.insert(options).values({ key, value }).onConflictDoNothing();
     this.cache = null;
+    publishHook?.();
   }
 
   async delete(key: string): Promise<void> {
     await this.db.delete(options).where(eq(options.key, key));
     this.cache = null;
+    publishHook?.();
   }
 
-  invalidate(): void {
+  /**
+   * Drop the local cache. fromRemote:true marks a pub/sub-delivered drop so
+   * the subscriber never republishes (loop prevention, permission-cache
+   * precedent). With no per-key granularity today the whole cache drops.
+   */
+  invalidate(opts?: { fromRemote?: boolean }): void {
     this.cache = null;
+    if (!opts?.fromRemote) publishHook?.();
   }
 
   private async load(): Promise<OptionEntry[]> {

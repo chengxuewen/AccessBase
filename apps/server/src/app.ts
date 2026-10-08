@@ -318,6 +318,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // is absent or the identity lane is mocked — never a boot failure).
   const { setupCacheCoherence } = await import('./utils/cache-coherence.js');
   const coherence = await setupCacheCoherence(app.log);
+  // R-A: options-table coherence — writes announce on ab:options:invalidate,
+  // subscribers drop the local OptionsManager cache (silent single-node when
+  // Redis absent). Same shape as the permission-cache wiring above.
+  const { setupOptionsCoherence } = await import('./utils/options-coherence.js');
+  const optionsCoherence = await setupOptionsCoherence(app.log);
   // Q4c: webhook dispatcher — HARD test gate (§5.7/B3): the loop is never
   // registered under NODE_ENV=test (no ticks, no pools, no outbound fetch in
   // suites or against shared DEV PG). Production wiring only; every externality injected.
@@ -426,6 +431,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // Q2a(B): graceful close ends the singleton managers' pools + the sweeper's pool.
   app.addHook('onClose', async () => {
     await coherence.teardown();
+    await optionsCoherence.teardown();
     await retention.stop();
     await webhookDispatcher?.stop();
     await auditAnchor?.stop();

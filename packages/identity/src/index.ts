@@ -18,8 +18,17 @@ export {
   PERMISSION_CACHE_TTL_MS,
 } from './managers/permission-cache.js';
 export { MfaManager } from './managers/MfaManager.js';
-export { OptionsManager, type OptionEntry } from './managers/OptionsManager.js';
-export { OidcClientManager, encryptSecret, decryptSecret, type OidcClientListRow } from './managers/OidcClientManager.js';
+export {
+  OptionsManager,
+  setOptionsPublishHook,
+  type OptionEntry,
+} from './managers/OptionsManager.js';
+export {
+  OidcClientManager,
+  encryptSecret,
+  decryptSecret,
+  type OidcClientListRow,
+} from './managers/OidcClientManager.js';
 export { ApiKeyManager, hashApiKey, type SafeApiKey, type GeneratedApiKey } from './managers/ApiKeyManager.js';
 export { GroupManager, type Group, type CreateGroupInput } from './managers/GroupManager.js';
 export { emitEvent, type DomainEventType, type EmitEventInput } from './services/events.js';
