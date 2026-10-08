@@ -2,6 +2,14 @@
 
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
+## [Unreleased] - 2026-10-08 (batch data-scope: self/dept/all row scopes, DG-6d middle path; spec docs/superpowers/specs/2026-10-08-data-scope-design.md rev.3, rulings A1-A6 all ratified)
+### Added
+- Data-scope per role-permission binding: role_permissions.data_scope ('all' default = zero behavior change) with widest-wins resolution across roles/inheritance/groups (total-order lattice, both dedup sites fixed). Departments are kind-marked groups (groups.kind 'group'|'department'); membership reuse of group_users means no new tables.
+- Row-level enforcement on the users surface: list/export filter via scope predicate (dept = members of the caller's department groups UNION self; empty-dept degrades to self, never tenant-wide), every row op guarded (403 DATA_SCOPE), create/invite/import require tenant-wide scope, and the RTBF erase arm (eraseAudit) escalates to scope=all checked BEFORE the tx/lock (a dept manager may delete an account, never scrub the shared audit trail).
+- API-key machine lanes are explicitly tenant-wide (the row guard short-circuits before any user lookup); GET /roles/:id projects permissionScopes for users:* bindings; Groups editor gets an Is-department switch, Roles editor a data-scope Select with an honest 'Mixed' sentinel when stored bindings diverge.
+- Migration 0013 (data_scope + kind, dual SENTINELS), 403 DATA_SCOPE in the error catalog, integration proof on real PG (dept list matrix, B3 projection round-trip test).
+
+
 ## [Unreleased] - 2026-10-08 (batch logout-coherence: SAML SLO + RP end_session + provider private_key_jwt; spec docs/superpowers/specs/2026-10-08-logout-coherence-design.md rev.2)
 ### Added
 - SAML SP Single Logout both directions: three-arm GET/POST /api/v1/auth/saml/slo (IdP-initiated LogoutRequest -> revoke-all + signed LogoutResponse; SP-initiated completion -> 302 /login; uniform SLO_FAILED posture) + GET /api/v1/auth/saml/logout; saml link persistence (nameID/sessionIndex at ACS); new options saml_logout_url/saml_slo_callback_url; metadata advertises SingleLogoutService; Redis node-saml cacheProvider (ab:saml:req:*) also roots the pre-existing per-request-instance InResponseTo defect (R6).

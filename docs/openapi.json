@@ -2317,6 +2317,17 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "permissionScopes": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "enum": [
+                        "all",
+                        "dept",
+                        "self"
+                      ]
+                    }
                   }
                 }
               }
@@ -2672,6 +2683,13 @@
                   "description": {
                     "type": "string",
                     "maxLength": 1024
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "group",
+                      "department"
+                    ]
                   }
                 }
               }
@@ -2738,6 +2756,13 @@
                   "description": {
                     "type": "string",
                     "maxLength": 1024
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "group",
+                      "department"
+                    ]
                   }
                 }
               }
