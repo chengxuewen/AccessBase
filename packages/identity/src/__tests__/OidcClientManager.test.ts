@@ -71,14 +71,14 @@ describe('encryptSecret / decryptSecret (crypto helpers)', () => {
     expect(decrypted).toBe(secret);
   });
 
-  it('produces v1: format with 5 base64 segments', () => {
+  it('produces v2: format with 5 hex segments', () => {
     const blob = encryptSecret('hello');
     const parts = blob.split(':');
-    expect(parts[0]).toBe('v1');
+    expect(parts[0]).toBe('v2');
     expect(parts).toHaveLength(5);
-    // salt, iv, tag, ct should all be valid base64
+    // salt, iv, tag, ct should all be valid hex
     for (const part of parts.slice(1)) {
-      expect(() => Buffer.from(part, 'base64')).not.toThrow();
+      expect(part).toMatch(/^[0-9a-f]+$/);
     }
   });
 
@@ -87,7 +87,16 @@ describe('encryptSecret / decryptSecret (crypto helpers)', () => {
     const secret = 'test';
     const blob = encryptSecret(secret, salt);
     const parts = blob.split(':');
-    expect(Buffer.from(parts[1], 'base64')).toEqual(salt);
+    expect(Buffer.from(parts[1], 'hex')).toEqual(salt);
+    expect(decryptSecret(blob)).toBe(secret);
+  });
+
+  it('accepts an explicit salt parameter', () => {
+    const salt = Buffer.alloc(16, 0x42);
+    const secret = 'test';
+    const blob = encryptSecret(secret, salt);
+    const parts = blob.split(':');
+    expect(Buffer.from(parts[1], 'hex')).toEqual(salt);
     expect(decryptSecret(blob)).toBe(secret);
   });
 
@@ -96,6 +105,50 @@ describe('encryptSecret / decryptSecret (crypto helpers)', () => {
     expect(() => encryptSecret('x')).toThrow();
     process.env['JWT_SECRET'] = TEST_JWT_SECRET;
     expect(() => encryptSecret('x')).not.toThrow();
+  });
+});
+
+describe('secret blob versioning (R-B rotation)', () => {
+  beforeEach(() => {
+    process.env['JWT_SECRET'] = TEST_JWT_SECRET;
+  });
+  afterEach(() => {
+    delete process.env['JWT_SECRET'];
+    delete process.env['JWT_SECRET_OLD'];
+  });
+
+  // Fixture generated with the PRE-EDIT algorithm (v1:scrypt blob), frozen
+  // before any implementation change — proves backward compatibility.
+  const V1_FIXTURE =
+    'v1:FJNBPR1P6TPszTTBdagpFA==:I9iZYBWeMs4m5cK9:FmfAX2U1Nu59NWesRyzYWw==:gmn3w+sqeAw5ZHgVssPzQd/s0YBFmF1/z0Lk4jSd2A==';
+  const FIXTURE_PLAINTEXT = 'fixture-oidc-client-secret-9PQX';
+
+  it('decrypts the frozen pre-edit v1 blob with the current key', () => {
+    expect(decryptSecret(V1_FIXTURE)).toBe(FIXTURE_PLAINTEXT);
+  });
+
+  it('new encryptSecret emits a v2 blob; v2 roundtrips', () => {
+    const blob = encryptSecret('v2-roundtrip');
+    expect(blob.startsWith('v2:')).toBe(true);
+    expect(decryptSecret(blob)).toBe('v2-roundtrip');
+  });
+
+  it('v2 blob decrypts via JWT_SECRET_OLD during rotation (current key fails alone)', () => {
+    const OLD = 'rotation-window-old-secret-value';
+    // Write under the OLD key: env swap since encryptSecret keys off JWT_SECRET.
+    process.env['JWT_SECRET'] = OLD;
+    const blob = encryptSecret('written-under-old');
+    // Rotate: current becomes a NEW secret, OLD moves to the fallback var.
+    process.env['JWT_SECRET'] = 'brand-new-current-secret';
+    expect(() => decryptSecret(blob)).toThrow(); // current key alone: auth fail
+    process.env['JWT_SECRET_OLD'] = OLD;
+    expect(decryptSecret(blob)).toBe('written-under-old'); // OLD fallback catches it
+  });
+
+  it('frozen v1 blob decrypts via JWT_SECRET_OLD when the current key has rotated', () => {
+    process.env['JWT_SECRET'] = 'brand-new-current-secret';
+    process.env['JWT_SECRET_OLD'] = TEST_JWT_SECRET;
+    expect(decryptSecret(V1_FIXTURE)).toBe(FIXTURE_PLAINTEXT);
   });
 });
 
@@ -159,8 +212,8 @@ describe('OidcClientManager', () => {
       expect(insertedValues['secretEncrypted']).toBeTruthy();
       // Stored blob MUST differ from plaintext
       expect(insertedValues['secretEncrypted']).not.toBe(result.plaintextSecret);
-      // Stored blob starts with v1:
-      expect(String(insertedValues['secretEncrypted'])).toMatch(/^v1:/);
+      // Stored blob starts with v2:
+      expect(String(insertedValues['secretEncrypted'])).toMatch(/^v2:/);
     });
   });
 
@@ -234,9 +287,9 @@ describe('OidcClientManager', () => {
       expect(newSecret).toBeTruthy();
       expect(newSecret).not.toBe(fakeRow.secretEncrypted);
       expect(db.update).toHaveBeenCalledTimes(1);
-      // The update set should contain a new v1: blob
+      // The update set should contain a new v2: blob
       const setArg = updateChain.set.mock.calls[0]?.[0] as Record<string, unknown>;
-      expect(String(setArg['secretEncrypted'])).toMatch(/^v1:/);
+      expect(String(setArg['secretEncrypted'])).toMatch(/^v2:/);
     });
   });
 
