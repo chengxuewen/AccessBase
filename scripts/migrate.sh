@@ -115,6 +115,8 @@ if printf '%s\n' "$OUT" | grep -qx 'STAMPED'; then
     "0009|SELECT 1 FROM events LIMIT 1"
     "0010|SELECT row_hash FROM audit_logs LIMIT 1"
     "0011|SELECT last_used_at FROM sessions LIMIT 1"
+    "0012|SELECT id_token FROM oauth_accounts LIMIT 1"
+    "0012|SELECT jwks FROM oidc_clients LIMIT 1"
   )
   for entry in "${SENTINELS[@]}"; do
     ver="${entry%%|*}"

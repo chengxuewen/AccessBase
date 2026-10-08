@@ -135,6 +135,7 @@ const SAFE_COLUMNS = {
   scope: oidcClients.scope,
   tokenAuthMethod: oidcClients.tokenAuthMethod,
   backchannelLogoutUri: oidcClients.backchannelLogoutUri, // URI is operator-visible config, not secret
+  jwks: oidcClients.jwks, // public keys only by construction (CLIENT_011 gate) — operator-visible
   createdAt: oidcClients.createdAt,
   updatedAt: oidcClients.updatedAt,
 };

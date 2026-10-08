@@ -155,7 +155,7 @@ describe('migrate.sh argument contract', () => {
 // ---------------------------------------------------------------------------
 
 describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
-  it('fresh DB: applies full chain — 25 chain tables + 11 tracking rows', { timeout: 30_000 }, async () => {
+  it('fresh DB: applies full chain — 25 chain tables + 13 tracking rows', { timeout: 30_000 }, async () => {
     const url = await tmpDbUrl();
     const r = migrate(CHAIN, url);
     expect(r.stderr).toBe('');
@@ -167,7 +167,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
 
     const tracked = await query(url,
       "SELECT id FROM schema_migrations ORDER BY id");
-    expect(tracked).toHaveLength(12);
+    expect(tracked).toHaveLength(13);
     expect((tracked[0] as { id: string }).id).toMatch(/^0000_/);
   });
 
@@ -189,14 +189,18 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     expect(out).toContain('legacy DB behind chain head (0009) — run db:push to reconcile');
     // R-audit batch: 0010 row_hash column sentinel — same warn lane
     expect(out).toContain('legacy DB behind chain head (0010) — run db:push to reconcile');
-    // R-audit batch: 0010 row_hash column sentinel — same warn lane
-    expect(out).toContain('legacy DB behind chain head (0010) — run db:push to reconcile');
+    // session-lifetime batch: 0011 last_used_at sentinel
+    expect(out).toContain('legacy DB behind chain head (0011) — run db:push to reconcile');
+    // logout-coherence batch B8: 0012 has TWO probes (one per touched table) —
+    // a partial legacy stamp must not pass on just the id_token arm. Both fire:
+    // two warn lines carry the same (0012) tag, so COUNT them.
+    const w12 = out.split('\n').filter((l) => l.includes('legacy DB behind chain head (0012)'));
+    expect(w12).toHaveLength(2);
 
-    // Stamped, NOT applied: tracking holds 11 note='stamped' rows and the
-    // users table is still the legacy ad-hoc one (no phone column, no chain tables).
+    // Stamped, NOT applied: tracking holds 13 note='stamped' rows and the
     // users table is still the legacy ad-hoc one (no phone column, no chain tables).
     const rows = await query(url, "SELECT note FROM schema_migrations");
-    expect(rows).toHaveLength(12);
+    expect(rows).toHaveLength(13);
     expect(rows.every((x) => (x as { note: string }).note === 'stamped')).toBe(true);
     const cols = await query(url,
       "SELECT count(*)::int AS n FROM information_schema.columns WHERE table_name='users' AND column_name='phone'");
@@ -219,17 +223,17 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     }
   });
 
-  it('idempotent: three consecutive runs exit 0, tracking stays 11 rows', async () => {
+  it('idempotent: three consecutive runs exit 0, tracking stays 13 rows', async () => {
     const url = await tmpDbUrl();
     for (let i = 0; i < 3; i += 1) {
       const r = migrate(CHAIN, url);
       expect(r.status).toBe(0);
     }
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(12);
+    expect((rows[0] as { n: number }).n).toBe(13);
   });
 
-  it('concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 11', { timeout: 30_000 }, async () => {
+  it('concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 13', { timeout: 30_000 }, async () => {
     const url = await tmpDbUrl();
     const run = () =>
       new Promise<number>((resolve, reject) => {
@@ -242,7 +246,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     const codes = await Promise.all([run(), run(), run()]);
     expect(codes).toEqual([0, 0, 0]);
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(12);
+    expect((rows[0] as { n: number }).n).toBe(13);
     // no duplicate-application evidence: each id appears exactly once
     const ids = await query(url, 'SELECT id, count(*)::int AS n FROM schema_migrations GROUP BY id HAVING count(*) > 1');
     expect(ids).toEqual([]);

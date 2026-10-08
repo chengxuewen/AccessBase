@@ -272,6 +272,10 @@ export const oauthAccounts = pgTable(
     accessToken: text('access_token'),
     refreshToken: text('refresh_token'),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
+    /** Logout-coherence batch: OIDC RP id_token (id_token_hint for end_session; A4 plaintext like siblings) */
+    idToken: text('id_token'),
+    /** Logout-coherence batch: SAML AuthnStatement SessionIndex captured at ACS for SP-initiated SLO */
+    sessionIndex: text('session_index'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
@@ -340,6 +344,8 @@ export const oidcClients = pgTable('oidc_clients', {
   tokenAuthMethod: text('token_endpoint_auth_method').notNull().default('client_secret_basic'),
   /** Q3D: RP back-channel logout endpoint (opt-in via OIDC_BACKCHANNEL_LOGOUT) */
   backchannelLogoutUri: text('backchannel_logout_uri'),
+  /** Logout-coherence batch: public JWKS for private_key_jwt client auth (kty-scoped public members only) */
+  jwks: jsonb('jwks'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
