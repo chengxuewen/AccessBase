@@ -2,6 +2,15 @@
 
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
+## [Unreleased] — 2026-10-08 (batch multi-node: options coherence + envelope key versioning + dispatcher drain)
+### Added
+- R-A cross-node options-cache coherence: OptionsManager writes announce on `ab:options:invalidate` (module-level publish hook, permission-cache precedent); server-side `utils/options-coherence.ts` registers the publisher + subscriber (drops the local cache with `fromRemote` marking — never re-announces) and is a silent single-node no-op when Redis is absent or the identity lane is mocked; wired in app boot with `onClose` teardown.
+- R-B envelope key versioning: MFA TOTP (`services/crypto.ts`) and OIDC-client/webhook secrets (`OidcClientManager`) now write `v2:` envelopes (per-record salt, HKDF info separation so v1/v2 keys never collide); readers accept bare/`v1:`/`v2:` and fall back to optional `JWT_SECRET_OLD` / `MFA_ENCRYPTION_KEY_OLD` on GCM auth failure — key rotation stops destroying data. Deferred: `re-encrypt` pass tool (registered debt, runbook).
+- Runbooks: `docs/runbooks/multi-node.md` (topology prerequisites, Redis-absent degradation table, per-node worker safety, coherence channels, shutdown order, scaling smoke) + `docs/runbooks/key-rotation.md` (rotation-window procedure).
+### Fixed
+- Webhook dispatcher `stop()` drains the in-flight tick before closing the pool — a mid-POST shutdown now lands the outcome UPDATE (at-least-once, never half-sent).
+
+
 ## [Unreleased] — 2026-09-29 (batch session-lifetime, spec docs/superpowers/specs/2026-09-29-session-lifetime-idle-expiry-design.md rev.2)
 ### Added
 - Session idle expiry, end to end: `sessions.last_used_at` (migration 0011), idle predicate inside the guarded rotate WHERE (idle-expired = `AUTH_003` 401, provably never misclassified as replay by the D125 classifier), slide delivered by the rotate-insert column default; knob `session.idle_timeout_seconds` (env `SESSION_IDLE_TIMEOUT_SECONDS`, default 86400, 0 = off, config-plane failure = off), Settings Security-tab select (options:write gated), en/zh.
