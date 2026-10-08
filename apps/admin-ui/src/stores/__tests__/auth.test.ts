@@ -101,3 +101,55 @@ describe('auth store — MFA branch hygiene', () => {
     expect(state.mfaFlowToken).toBeNull();
   });
 });
+
+// Logout-coherence §3.4 SPA leg: logoutWithServer must hand the composed
+// idpLogoutUrl back to the caller (AdminLayout) instead of discarding it,
+// and stay best-effort on server failure.
+describe('auth store — logoutWithServer idpLogoutUrl passthrough', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      user: { id: 'u1', email: 'a@b.com', name: 'A', roles: [] },
+      token: 'live-token',
+      refreshToken: 'live-refresh',
+      isAuthenticated: true,
+      mfaFlowToken: null,
+      error: null,
+      isLoading: false,
+    });
+    mockedPost.mockReset();
+  });
+
+  it('returns the idpLogoutUrl from the envelope and clears the local session', async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: { success: true, data: { idpLogoutUrl: 'https://idp.example/slo?SAMLRequest=abc' } },
+    });
+
+    const url = await useAuthStore.getState().logoutWithServer();
+
+    expect(url).toBe('https://idp.example/slo?SAMLRequest=abc');
+    expect(mockedPost).toHaveBeenCalledWith('/v1/auth/logout', { refreshToken: 'live-refresh' });
+    const state = useAuthStore.getState();
+    expect(state.token).toBeNull();
+    expect(state.refreshToken).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
+  });
+
+  it('returns null when the server answers idpLogoutUrl: null', async () => {
+    mockedPost.mockResolvedValueOnce({ data: { success: true, data: { idpLogoutUrl: null } } });
+
+    const url = await useAuthStore.getState().logoutWithServer();
+
+    expect(url).toBeNull();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
+  it('returns null and still clears the session when the POST rejects (best-effort)', async () => {
+    mockedPost.mockRejectedValueOnce(new Error('network down'));
+
+    const url = await useAuthStore.getState().logoutWithServer();
+
+    expect(url).toBeNull();
+    expect(useAuthStore.getState().token).toBeNull();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+});

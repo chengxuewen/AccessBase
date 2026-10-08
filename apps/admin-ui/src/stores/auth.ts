@@ -30,7 +30,9 @@ interface AuthState {
   passwordChangeToken: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  logoutWithServer: () => Promise<void>;
+  /** Posts /auth/logout, clears the local session, returns the composed
+   * idpLogoutUrl (§3.4) or null — AdminLayout decides the redirect. */
+  logoutWithServer: () => Promise<string | null>;
   setTokens: (token: string, refreshToken: string) => void;
   fetchUser: () => Promise<void>;
   exchangeOAuthCode: (code: string) => Promise<void>;
@@ -133,14 +135,21 @@ export const useAuthStore = create<AuthState>()(
 
       logoutWithServer: async () => {
         const { refreshToken } = get();
+        let idpLogoutUrl: string | null = null;
         if (refreshToken) {
           try {
-            await client.post('/v1/auth/logout', { refreshToken });
+            const { data } = await client.post<ApiEnvelope<{ idpLogoutUrl?: string | null }>>(
+              '/v1/auth/logout',
+              { refreshToken },
+            );
+            const u = data.data?.idpLogoutUrl;
+            if (typeof u === 'string' && u !== '') idpLogoutUrl = u;
           } catch {
             // best-effort: server may be unreachable or the session already gone
           }
         }
         get().logout();
+        return idpLogoutUrl;
       },
 
       setTokens: (token: string, refreshToken: string) => {

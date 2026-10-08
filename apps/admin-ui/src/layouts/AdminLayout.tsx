@@ -95,10 +95,17 @@ export default function AdminLayout() {
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
+    let idpLogoutUrl: string | null = null;
     try {
-      await logoutWithServer();
+      idpLogoutUrl = await logoutWithServer();
     } finally {
       setLoggingOut(false);
+    }
+    // §3.4 SPA one-hop: hand the browser to the IdP when the composer found
+    // a logout leg; otherwise the current SPA-side /login navigation, unchanged.
+    if (idpLogoutUrl) {
+      window.location.assign(idpLogoutUrl);
+    } else {
       navigate('/login');
     }
   };

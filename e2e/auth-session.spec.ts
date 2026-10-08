@@ -291,6 +291,48 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     expect(logoutBody).toEqual({ refreshToken: 'test-refresh' });
   });
 
+  // Logout-coherence §3.4 SPA leg: a non-null idpLogoutUrl from the composer
+  // hands the TOP-LEVEL window to the IdP; null keeps the SPA-side /login
+  // navigation exactly as before (no redirect churn).
+  test('LC-1: idpLogoutUrl from /auth/logout drives a top-level window.location.assign', async ({ page }) => {
+    await seedSession(page, 'test-token', 'test-refresh');
+    // Same-origin sentinel path (App.tsx '*' -> NotFound, URL stays observable).
+    await page.route('**/api/v1/auth/logout', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { idpLogoutUrl: 'http://localhost:5173/slo-land' } }),
+      });
+    });
+
+    await page.goto('/dashboard');
+    const trigger = page.getByTestId('user-dropdown');
+    await expect(trigger).toBeVisible();
+    await trigger.hover();
+    await page.locator('.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")').first().click();
+    // Async assign after an awaited POST - toHaveURL polling (waitForURL forbidden for this chain).
+    await expect(page).toHaveURL(/slo-land/, { timeout: 15000 });
+  });
+
+  test('LC-2: null idpLogoutUrl keeps the current SPA-side /login navigation', async ({ page }) => {
+    await seedSession(page, 'test-token', 'test-refresh');
+    await page.route('**/api/v1/auth/logout', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { idpLogoutUrl: null } }),
+      });
+    });
+
+    await page.goto('/dashboard');
+    const trigger = page.getByTestId('user-dropdown');
+    await expect(trigger).toBeVisible();
+    await trigger.hover();
+    await page.locator('.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")').first().click();
+    await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
+    await expect(page).not.toHaveURL(/slo-land/);
+  });
+
   test('R5: a 500 from /auth/me during session boot keeps the session and shows an error, no forced logout', async ({ page }) => {
     // Drive fetchUser through the OAuth-exchange path (the only mount-time caller without a
     // browser ceremony): exchange succeeds → /auth/me 500 → store must keep the session.

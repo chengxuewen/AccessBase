@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import type { IdentityService } from '@accessbase/identity';
 
 // Set env before importing config-dependent modules
@@ -13,6 +13,22 @@ vi.mock('@fastify/swagger', () => ({ default: async () => {} }));
 vi.mock('@fastify/swagger-ui', () => ({ default: async () => {} }));
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
+
+// LC composer mocks (logout-coherence §3.4): the /auth/logout composer imports
+// these two builders; the suite drives every resolution arm through them.
+const { samlLogoutUrlMock, rpEndSessionUrlMock } = vi.hoisted(() => ({
+  samlLogoutUrlMock: vi.fn<() => Promise<string | null>>(),
+  rpEndSessionUrlMock: vi.fn<() => Promise<string | null>>(),
+}));
+
+vi.mock('../utils/saml-logout.js', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, resolveSamlLogoutUrl: samlLogoutUrlMock };
+});
+vi.mock('../utils/rp-end-session.js', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, resolveRpEndSessionUrl: rpEndSessionUrlMock };
+});
 
 // Session manager mock — route-level behavior for /refresh and /logout
 const sessionManagerMock = {
@@ -123,6 +139,12 @@ describe('POST /api/v1/auth/refresh (rotation)', () => {
 });
 
 describe('POST /api/v1/auth/logout (session revocation)', () => {
+  beforeEach(() => {
+    // Composer legs start every test at null (the fail-soft baseline) with
+    // cleared call history — assertions below are per-test, not file-order.
+    samlLogoutUrlMock.mockReset().mockResolvedValue(null);
+    rpEndSessionUrlMock.mockReset().mockResolvedValue(null);
+  });
   it('revokes the DB session when a refresh token is supplied', async () => {
     sessionManagerMock.findSessionByToken.mockResolvedValueOnce({
       id: 'sess-1',
@@ -137,7 +159,7 @@ describe('POST /api/v1/auth/logout (session revocation)', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ success: true });
+    expect(res.json()).toEqual({ success: true, data: { idpLogoutUrl: null } });
     expect(sessionManagerMock.revokeSession).toHaveBeenCalledWith('sess-1');
   });
 
@@ -150,7 +172,50 @@ headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@tes
 });
 
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ success: true });
+    expect(res.json()).toEqual({ success: true, data: { idpLogoutUrl: null } });
     expect(sessionManagerMock.revokeSession).not.toHaveBeenCalled();
+  });
+
+  // LC §3.4: response carries the composed idpLogoutUrl; resolution order
+  // saml-first then RP; each leg fail-soft — logout never depends on the IdP.
+  it('idpLogoutUrl comes from the SAML builder when it resolves a URL (RP leg not consulted)', async () => {
+    samlLogoutUrlMock.mockResolvedValueOnce('https://idp.example/slo?SAMLRequest=abc');
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data).toEqual({ idpLogoutUrl: 'https://idp.example/slo?SAMLRequest=abc' });
+    expect(samlLogoutUrlMock).toHaveBeenCalledWith('u-1');
+    expect(rpEndSessionUrlMock).not.toHaveBeenCalled();
+  });
+
+  it('falls through to the RP end-session URL when SAML resolves null', async () => {
+    samlLogoutUrlMock.mockResolvedValueOnce(null);
+    rpEndSessionUrlMock.mockResolvedValueOnce('https://rp.example/end-session?id_token_hint=xyz');
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data).toEqual({ idpLogoutUrl: 'https://rp.example/end-session?id_token_hint=xyz' });
+    expect(rpEndSessionUrlMock).toHaveBeenCalledWith('u-1');
+  });
+
+  it('both builders throwing degrades to null with the 200 envelope (revocation still ran)', async () => {
+    sessionManagerMock.findSessionByToken.mockResolvedValueOnce({ id: 'sess-2', userId: 'u-1' });
+    samlLogoutUrlMock.mockRejectedValueOnce(new Error('saml options unreadable'));
+    rpEndSessionUrlMock.mockRejectedValueOnce(new Error('db down'));
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}` },
+      payload: { refreshToken: 'raw-token-2' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true, data: { idpLogoutUrl: null } });
+    expect(sessionManagerMock.revokeSession).toHaveBeenCalledWith('sess-2');
   });
 });

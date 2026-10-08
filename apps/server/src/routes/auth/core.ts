@@ -8,6 +8,8 @@ import { getTenantManager, getUserManager } from '../../utils/managers.js';
 import { DEFAULT_TENANT } from '../../utils/constants.js';
 import { emitAuthEvent } from '../../utils/auth-events.js';
 import { resolveIdleSeconds } from '../../utils/session-idle-wiring.js';
+import { resolveSamlLogoutUrl } from '../../utils/saml-logout.js';
+import { resolveRpEndSessionUrl } from '../../utils/rp-end-session.js';
 import type { AuthContext } from './context.js';
 
 export async function meRoutes(app: FastifyInstance, ctx: AuthContext) {
@@ -101,7 +103,25 @@ export async function logoutRoutes(app: FastifyInstance, ctx: AuthContext) {
         email: caller.email ?? '',
         method: 'password',
       });
-      return { success: true };
+      // §3.4 logout coherence: compose the IdP-side logout URL AFTER revoke +
+      // event (they own the logout itself). Both legs fail-soft to null — the
+      // IdP leg must never fail or delay the logout answer.
+      let idpLogoutUrl: string | null = null;
+      if (caller.sub) {
+        try {
+          idpLogoutUrl = (await resolveSamlLogoutUrl(caller.sub)) ?? null;
+        } catch (err) {
+          request.log.warn({ err }, 'saml logout URL resolution failed — degrading to null');
+        }
+        if (!idpLogoutUrl) {
+          try {
+            idpLogoutUrl = (await resolveRpEndSessionUrl(caller.sub)) ?? null;
+          } catch (err) {
+            request.log.warn({ err }, 'RP end-session URL resolution failed — degrading to null');
+          }
+        }
+      }
+      return { success: true, data: { idpLogoutUrl } };
     },
   );
 }

@@ -443,6 +443,49 @@ describe('AuditLogger', () => {
       expect(inner['accessToken']).toBe('[REDACTED]');
     });
 
+    // Logout-coherence B4: /auth/logout answers data.idpLogoutUrl — a signed
+    // SAMLRequest redirect URL or an id_token_hint end-session URL. Token
+    // material must never persist in audit_logs.responseBody.
+    it('B4 logout-coherence: redacts idpLogoutUrl from the nested logout envelope', async () => {
+      const written: AuditLog[] = [];
+      const storage: AuditStorage = {
+        write: async (entries) => {
+          written.push(...entries);
+        },
+      };
+      const defaultLogger = new AuditLogger(
+        { ...defaultAuditConfig, async: { ...defaultAuditConfig.async, enabled: false } },
+        { storage },
+      );
+
+      const entry: AuditLogEntry = {
+        userId: 'user1',
+        username: 'testuser',
+        userIp: '127.0.0.1',
+        userAgent: 'test-agent',
+        action: 'CREATE',
+        resourceType: 'auth',
+        resourceId: 'logout',
+        requestBody: { refreshToken: 'raw-refresh' },
+        responseBody: {
+          success: true,
+          data: { idpLogoutUrl: 'https://idp.example/slo?SAMLRequest=f2Z3%3D&RelayState=x' },
+        },
+        timestamp: new Date(),
+        tenantId: 'tenant1',
+        requestId: 'req-lc',
+        success: true,
+      };
+
+      await defaultLogger.log(entry);
+
+      expect(written).toHaveLength(1);
+      const data = (written[0]?.responseBody as Record<string, unknown>)['data'] as Record<string, unknown>;
+      expect(data['idpLogoutUrl']).toBe('[REDACTED]');
+      expect((written[0]?.responseBody as Record<string, unknown>)['success']).toBe(true);
+      expect(written[0]?.requestBody?.['refreshToken']).toBe('[REDACTED]');
+    });
+
     it('should not redact when disabled', async () => {
       const noSanitizeConfig = {
         ...config,
