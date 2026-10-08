@@ -162,6 +162,7 @@ export function startWebhookDispatcher(deps: WebhookDispatcherDeps): WebhookDisp
   const defaultTenantId = deps.defaultTenantId ?? DEFAULT_TENANT;
   let stopped = false;
   let running = false; // one tick at a time — a slow tick never overlaps the next
+  let inFlight: Promise<void> | undefined; // the live tick promise, for stop() drain
   let owned: WebhookQuery | undefined;
   const q = (): WebhookQuery => {
     if (deps.query) return deps.query;
@@ -309,21 +310,37 @@ export function startWebhookDispatcher(deps: WebhookDispatcherDeps): WebhookDisp
     }
   };
 
+  // runOnce flips `running` synchronously before its first await, so a
+  // was-false / now-true transition here means a fresh tick actually started.
+  const runTracked = (): Promise<void> => {
+    const wasRunning = running;
+    const p = runOnce();
+    if (!wasRunning && running) {
+      inFlight = p.finally(() => {
+        inFlight = undefined;
+      });
+    }
+    return p;
+  };
+
   const bootTimer = setTimeout(() => {
-    void runOnce();
+    void runTracked();
   }, deps.bootDelayMs ?? 60_000);
   bootTimer.unref();
   const interval = setInterval(() => {
-    void runOnce();
+    void runTracked();
   }, deps.intervalMs ?? 5_000);
   interval.unref();
 
   return {
-    runOnce,
+    runOnce: runTracked,
     stop: async () => {
       stopped = true;
       clearTimeout(bootTimer);
       clearInterval(interval);
+      // Drain: stop() mid-POST must never cut delivery half-way — the outcome
+      // UPDATE lands before the pool closes, so shutdown is at-least-once, never drop.
+      if (inFlight) await inFlight;
       if (!owned) return;
       try {
         await owned.close?.();

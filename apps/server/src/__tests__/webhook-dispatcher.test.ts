@@ -416,3 +416,60 @@ describe('R1-T4 — metric deps (recordDelivery + backlogStats)', () => {
     expect(calls.filter((c) => c.sql.includes('SET status = $1'))).toHaveLength(3);
   });
 });
+
+describe('L7 — stop() drains the in-flight tick', () => {
+  it('stop() waits for the in-flight POST, records the outcome, THEN closes the pool', async () => {
+    // A stop() landing mid-delivery must never cut the POST half-way: the outcome
+    // UPDATE still lands and the pool closes only after the tick settles, so a
+    // mid-tick shutdown can only ever re-deliver (at-least-once), never drop.
+    const state: FakeState = {
+      claimed: [{ id: 1, event_id: 10, endpoint_id: EP, attempts: 1 }],
+      endpoints: [{ id: EP, url: 'http://8.8.8.8/hook', secret_encrypted: 'S' }],
+      events: [{ id: 10, type: 'user.created', payload: { a: 1 }, created_at: '2026-01-01T00:00:00.000Z' }],
+    };
+    const { query: seam, calls } = makeFake(state);
+    const order: string[] = [];
+    const recordDelivery = vi.fn();
+    let settle: (() => void) | undefined;
+    const deps: WebhookDispatcherDeps = {
+      makeDb: () => ({
+        query: seam.query,
+        close: async () => {
+          order.push('pool-closed');
+        },
+      }),
+      webhooksEnabled: () => true,
+      decrypt: () => 'plain',
+      fetchImpl: () => {
+        order.push('fetch-inflight');
+        return new Promise<{ status: number }>((resolve) => {
+          settle = () => {
+            order.push('fetch-settled');
+            resolve({ status: 200 });
+          };
+        });
+      },
+      logger: { info: vi.fn(), warn: vi.fn() },
+      defaultTenantId: 'tenant-default',
+      recordDelivery,
+      bootDelayMs: 60_000,
+      intervalMs: 60_000,
+    };
+
+    const d = startWebhookDispatcher(deps);
+    const tick = d.runOnce();
+    await vi.waitFor(() => expect(order).toContain('fetch-inflight'));
+
+    const stop = d.stop();
+    // the POST is still pending — a non-draining stop() closes the pool right here
+    expect(order).not.toContain('pool-closed');
+
+    settle?.();
+    await stop;
+    await tick;
+
+    expect(order).toEqual(['fetch-inflight', 'fetch-settled', 'pool-closed']);
+    expect(calls.filter((c) => c.sql.includes('SET status = $1')).map((c) => c.params?.[0])).toEqual(['delivered']);
+    expect(recordDelivery).toHaveBeenCalledWith('ok');
+  });
+});
