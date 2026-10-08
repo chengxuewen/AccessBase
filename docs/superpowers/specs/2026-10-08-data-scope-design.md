@@ -1,4 +1,4 @@
-# Data-Scope Batch — Design Spec (rev.2 — dual-Momus absorbed; rulings PENDING)
+# Data-Scope Batch — Design Spec (rev.3 — dual-Momus absorbed; rulings RATIFIED 2026-10-08, user-adjudicated one by one: A1-A6 all = recommended A)
 
 Date: 2026-10-08 · Ladder: post-logout-coherence · Origin: R1 plan DG-6d (FGA middle path: self/dept/all
 row-scope into the permission funnel, NO relation engine). Dept source RATIFIED: **groups with kind='department'**.
@@ -8,7 +8,7 @@ Cross-hits (double evidence): R1×B1 DELETE code (users:delete), R2×B1 apikey s
 B3×R-projection read-back site, R3 /import creation arm, R4×B-both dead twin setRolePermissions,
 R5 empty-list mechanism. Facts corrected §2 (:90 export not sessions; invite :406; cache cite 1-68).
 
-## 0. Rulings — A1-A5 as drafted + new A6 (the user has pre-adopted recommendations; A6 needs the same call)
+## 0. Rulings — RATIFIED by user 2026-10-08 via adjudication-walkthrough (one-by-one, all A)
 
 - **A1 = per-binding** `role_permissions.data_scope`. **A2 = users surface only** (v1). **A3 = create/invite/import require `all`**
   (import arm added by R3). **A4 = one UI Select fanning users:* codes** (B5 mixed-state disclosure added).
