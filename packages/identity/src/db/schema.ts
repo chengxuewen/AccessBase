@@ -114,6 +114,8 @@ export const rolePermissions = pgTable(
     permissionId: uuid('permission_id')
       .notNull()
       .references(() => permissions.id, { onDelete: 'cascade' }),
+    /** DG-6d data-scope rank for THIS binding: 'all' | 'dept' | 'self' (enum clamped at the funnel) */
+    dataScope: text('data_scope').notNull().default('all'),
   },
   (table) => ({
     compositePk: primaryKey({ columns: [table.roleId, table.permissionId] }),
@@ -360,6 +362,8 @@ export const groups = pgTable('groups', {
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   description: text('description'),
+  /** DG-6d: 'group' | 'department' — department groups ARE the dept source (A1 ruling) */
+  kind: text('kind').notNull().default('group'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [unique().on(t.tenantId, t.name)]);
