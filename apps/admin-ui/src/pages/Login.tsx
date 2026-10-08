@@ -90,6 +90,7 @@ export default function Login() {
     // OAuth MFA step-up: a pending mfaFlowToken means the TOTP form is showing —
     // do not re-exchange or navigate; verifyMfa handles the flow after code entry.
     if (code && useAuthStore.getState().mfaFlowToken) return;
+    setSearchParams({}, { replace: true });
     if (error) {
       setOauthError(error);
       return;
@@ -97,7 +98,6 @@ export default function Login() {
     if (code) {
       if (exchangedOauthRef.current === code) return;
       exchangedOauthRef.current = code;
-      setSearchParams({}, { replace: true });
       exchangeOAuthCode(code)
         .then(() => useAuthStore.getState().fetchUser())
         .then(() => navigateAfterAuth())

@@ -118,6 +118,25 @@ test.describe('SAML login flow', () => {
     expect(stored).toContain('tok-s');
   });
 
+  // PIT-086 gate (mirror of the oauthCode one): the samlCode effect shares the
+  // one-shot ref discipline — EXACTLY one exchange POST per code under StrictMode.
+  test('PIT-086: samlCode exchange fires exactly once under dev StrictMode', async ({ page }) => {
+    await mockSamlStatus(page, false);
+    let exchangeCalls = 0;
+    await page.route('**/api/v1/auth/saml/exchange', async (route) => {
+      exchangeCalls += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { accessToken: 'strict-s', refreshToken: 'strict-r', expiresIn: 900, user: MOCK_ME } }),
+      });
+    });
+    await page.goto('/login?samlCode=strict-saml-code');
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
+    await page.waitForTimeout(1500);
+    expect(exchangeCalls).toBe(1);
+  });
+
   test('samlCode + exchange mfaRequired mock → TOTP form, session hygiene', async ({ page }) => {
     await mockSamlStatus(page, false);
     // Pre-seed a stale persisted session — the MFA branch must wipe it (R4 fix at birth).

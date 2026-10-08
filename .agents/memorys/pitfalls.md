@@ -650,8 +650,8 @@
 
 - **Symptom**: RP loop lands on /login?oauthCode=... then auth-storage shows token:null while user is populated — second POST /auth/oauth/exchange 401s (W1-3 burn-first did its job), and the axios 401→refresh→logout interceptor wipes the session the FIRST exchange had just established. Mock-API e2e cannot see this: mocked exchange handlers are idempotent.
 - **Root cause**: React 18 StrictMode dev double-fires mount effects; both runs captured the same one-time code in the pre-clear searchParams closure. Server burn-first is correct; the double client REQUEST is the bug.
-- **Fix**: per-code useRef one-shot guards on the oauthCode and samlCode exchange effects (reset inside the failure branch so genuine retries still work). Family: P1 device-flow + this = one-time-code flows are invisible to mock-API e2e; the >=1-vs-===1 assertion discipline covers tests, PRODUCT code needs the guard.
-- **Verification**: exchangedOauthRef/exchangedSamlRef present in Login.tsx; future e2e pattern: count POSTs to a one-time-code endpoint === 1 under dev StrictMode (mock counter).
+- **Fix**: per-code useRef one-shot guards on the oauthCode and samlCode exchange effects (a genuine retry arrives with a FRESH code — different value, guard passes naturally; no failure-branch reset needed). Family: P1 device-flow + this = one-time-code flows are invisible to mock-API e2e; the >=1-vs-===1 assertion discipline covers tests, PRODUCT code needs the guard.
+- **Verification**: exchangedOauthRef/exchangedSamlRef present in Login.tsx; e2e gate SHIPPED same day — 'PIT-086: ...exchange fires exactly once under dev StrictMode' in e2e/oauth-login.spec.ts + e2e/saml.spec.ts (POST counter === 1 + grace window; it immediately earned its keep by catching a setSearchParams-placement regression from the guard insertion itself).
 
 ## PIT-087: bash-tool timeout reaps detached children; ctx_execute background sandbox survives (2026-10-08, verification day)
 

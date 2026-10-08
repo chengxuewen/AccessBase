@@ -172,6 +172,25 @@ test.describe('OAuth login flow', () => {
     expect(exchangeBody?.code).toBe('one-time-code');
   });
 
+  // PIT-086 gate: StrictMode double-fires mount effects; a one-time exchange code
+  // POSTed twice makes the 2nd 401 + the refresh interceptor wipes the fresh session
+  // (idempotent mocks hide this). The one-shot ref guard means EXACTLY one POST.
+  test('PIT-086: oauthCode exchange fires exactly once under dev StrictMode', async ({ page }) => {
+    let exchangeCalls = 0;
+    await page.route('**/api/v1/auth/oauth/exchange', async (route) => {
+      exchangeCalls += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { accessToken: 'strict-access', refreshToken: 'strict-refresh', expiresIn: 900, user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] } } }),
+      });
+    });
+    await page.goto('/login?oauthCode=strict-mode-code');
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+    await page.waitForTimeout(1500); // grace window for a stray second POST
+    expect(exchangeCalls).toBe(1);
+  });
+
   test('oauthError=state_mismatch shows inline Alert', async ({ page }) => {
     await page.goto('/login?oauthError=state_mismatch');
     const alert = page.locator('[data-testid="oauth-error"]');
