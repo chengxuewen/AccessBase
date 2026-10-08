@@ -61,14 +61,24 @@ Both setups are silent no-ops when Redis is absent or the identity lane is mocke
 
 - [ ] `GET /health/ready` green on every node (single shared pool per process — watch `accessbase_pg_pool_*`).
 - [ ] Write an option on node A → node B's `/api/v1/options` reflects it immediately (else Redis/coherence is down).
-- [ ] Login on A → force-logout on B → A's token 401 within ~30s.
+- [ ] Login on A → force-logout on B → A's REFRESH chain dies immediately; the
+      bearer survives to its ≤15m TTL (force-logout does NOT bump auth-state — only
+      suspend/role-changes emit the ≤30s AUTH_005 path; verification-day live, 2026-10-08).
+      Want a hard bearer kill? Suspend the user instead (bumps tokenVersion).
 - [ ] Start a MFA step-up / magic-link chain behind the LB — the chain must survive node hops (proves Redis flow tokens).
 - [ ] Kill one dispatcher mid-delivery → delivery re-appears as `pending` on another node (at-least-once), never `dead`-on-timeout.
 
 ## 7. Known residues (honest list)
 
-- `re-encrypt` tool after key rotation is **deferred** (registered debt) — `*_OLD`
-  envs stay armed until it ships; see `key-rotation.md`.
+- ~~`re-encrypt` tool deferred~~ **SHIPPED** (`scripts/re-encrypt.ts`, verification-day):
+  dry-run plan + `--commit` per-row; `*_OLD` windows close with it (see `key-rotation.md`).
 - Webhook SSRF guard has a documented DNS-rebinding TOCTOU residual.
-- Q3D back-channel logout is flag-gated and live-RP-unverified; OIDC multi-node
-  browser rounds are code-proven but not yet integration-day-tested.
+- Q3D back-channel: dispatch path live-proven (end_session→confirm fires delivery), BUT
+  oidc-provider's own undici dispatcher refuses special-use IPs (RFC6890: loopback AND
+  private ranges) → intranet RP `backchannel_logout_uri`s fail delivery by design; the
+  front-channel SPA path is unaffected. Receiver-side remains unimplemented (Q3D flagged).
+- OIDC RP↔IdP browser round now LIVE-FIRED against our own provider (end_session SSO-kill,
+  claims release, private_key_jwt 4/4); real-external-IdP (Keycloak) round still owed —
+  docker registry unreachable during verification day.
+- One-time-token chains (MFA/magic/OTP) cross-node hop: shared-Redis path code-proven,
+  live battery owed (SMTP/MFA env absent on the scratch instances).

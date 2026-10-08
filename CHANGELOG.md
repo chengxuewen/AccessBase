@@ -2,6 +2,19 @@
 
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
+## [Unreleased] - 2026-10-08 (verification day: live IdP↔RP loop, multi-node smoke, re-encrypt tool)
+### Fixed
+- OIDC provider adapter getUser seam was never wired since batch N — /oidc/me released no email/name claims and RPs provisioned users onto synthetic @*.oauth.invalid addresses.
+- RP-initiated logout autoconfirms its own confirmation page (custom logoutSource mirroring the built-in form_post template byte-for-byte, CSP-hash allowlisted): previously end_session rendered a human prompt that silently stranded the provider session.
+- backchannel logout_token delivery is now observable (success/error provider-event listeners with cause); discovered oidc-provider's own undici dispatcher refuses special-use IPs — intranet backchannel URIs fail by design, front-channel unaffected (runbook §7).
+- Login SPA: one-shot refs guard the oauth/saml code-exchange effects against StrictMode double-fire (second POST burned 401 and the refresh interceptor logged out the fresh session — invisible to idempotent mocks).
+- Dynamic-provider registry accepts loopback-http URLs (dev self-loop parity; remote http still rejected).
+### Added
+- scripts/re-encrypt.ts closes the *_OLD key-rotation windows (dry-run plan + --commit, per-row isolation, real-PG roundtrip test) — R-B registered debt paid.
+### Changed
+- multi-node runbook §6 corrected against live behavior: force-logout kills the refresh chain immediately but the bearer survives to TTL (suspend/role-bump is the ≤30s AUTH_005 path); §7 ledger updated with what the day proved and what it owes.
+
+
 ## [Unreleased] - 2026-10-08 (batch data-scope: self/dept/all row scopes, DG-6d middle path; spec docs/superpowers/specs/2026-10-08-data-scope-design.md rev.3, rulings A1-A6 all ratified)
 ### Added
 - Data-scope per role-permission binding: role_permissions.data_scope ('all' default = zero behavior change) with widest-wins resolution across roles/inheritance/groups (total-order lattice, both dedup sites fixed). Departments are kind-marked groups (groups.kind 'group'|'department'); membership reuse of group_users means no new tables.
