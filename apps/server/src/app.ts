@@ -282,7 +282,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // Registered BEFORE setupGuard: hijacked /oidc requests skip the guard's
   // DB round-trip entirely (the provider's adapter dials PG only when a
   // flow actually needs a Client/Grant lookup).
-  const { createDb } = await import('@accessbase/identity/db');
+  const { createDb, users } = await import('@accessbase/identity/db');
+  const { eq } = await import('drizzle-orm');
+  // Adapter getUser seam WIRED (verification-day): unwired it released no email/name
+  // claims (userinfo = bare sub) and RPs synthesized @*.oauth.invalid addresses.
+  const oidcAdapterDb = createDb(config.databaseUrl);
   const { provider: oidcProvider, oidcHandler, stopSweeper } = await buildOidcProvider({
     issuer: `${config.oauthRedirectBase}/oidc`,
     jwtSecret: config.jwtSecret,
@@ -291,7 +295,16 @@ export async function buildApp(options: BuildAppOptions = {}) {
     publicKeyPath: config.jwtPublicKeyPath,
     extraPublicKeys: config.oidcJwksExtraPublicPaths,
     backchannelLogoutEnabled: config.oidcBackchannelLogout,
-    adapterCtorArgs: [createDb(config.databaseUrl)],
+    adapterCtorArgs: [oidcAdapterDb, {
+      getUser: async (id: string) => {
+        const [row] = await oidcAdapterDb
+          .select({ name: users.name, email: users.email })
+          .from(users)
+          .where(eq(users.id, id))
+          .limit(1);
+        return row ?? null;
+      },
+    }],
     frontendOrigin: config.frontendOrigin,
   });
   // Batch N: stop the adapter sweeper on graceful close.

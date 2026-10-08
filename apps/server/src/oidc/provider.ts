@@ -133,6 +133,20 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
       // Q3D: revocation propagation to RPs (end_session delivers logout_token
       // to clients registered with backchannel_logout_uri). FLAGGED.
       backchannelLogout: { enabled: opts.backchannelLogoutEnabled === true },
+      // RP-Initiated Logout autoconfirm (verification-day 2026-10-08): the default
+      // logoutSource renders a human-confirmation page — our SPA navigates here ONLY
+      // after the RP session is already revoked (logout button = explicit intent).
+      // Second confirmation strands the provider session and defeats end_session
+      // (live-proven: silent re-auth + zero logout_token). Auto-POST the form.
+      rpInitiatedLogout: {
+        logoutSource: async (ctx: unknown, form: string): Promise<void> => {
+          // Script bytes identical to oidc-provider's form_post template — its sha256
+          // is already allowlisted in helmet CSP (P1 wave), so the auto-submit works.
+          const script = '<script>\n    document.addEventListener(\'DOMContentLoaded\', function () { document.forms[0].submit() });\n  </script>';
+          (ctx as { body: string }).body =
+            '<!DOCTYPE html>\n<html>\n<head>\n  <title>Submitting Callback</title>\n  ' + script + '\n</head>\n<body>\n  ' + form + '\n</body>\n</html>';
+        },
+      },
     },
     // M2: scope + claims mapping — `openid profile email` must be declared or
     // authorize requests requesting those scopes fail with invalid_client_metadata
@@ -188,6 +202,16 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
 
   const jwksConfig: JWKS | undefined = jwks ? { keys: jwks.keys as JWKS['keys'] } : undefined;
   const provider = new Provider(opts.issuer, jwksConfig ? { ...configuration, jwks: jwksConfig } : configuration);
+
+  // Verification-day (2026-10-08): backchannel logout_token delivery was silent —
+  // oidc-provider surfaces failures only via events; without listeners they vanish.
+  provider.on('backchannel.success', (_ctx: unknown, client: { clientId?: string } | undefined) => {
+    logger.info({ clientId: client?.clientId }, 'oidc backchannel: logout_token delivered');
+  });
+  provider.on('backchannel.error', (_ctx: unknown, err: unknown, client: { clientId?: string } | undefined) => {
+    const detail = err instanceof Error ? [err.message, (err as Error & { cause?: { message?: string } }).cause?.message].filter(Boolean).join(': ') : String(err);
+    logger.warn({ err: detail, clientId: client?.clientId }, 'oidc backchannel: logout_token delivery FAILED');
+  });
 
   // B1/B2: callback() is a Koa factory — build the http handler ONCE.
   const oidcHandler = provider.callback();
