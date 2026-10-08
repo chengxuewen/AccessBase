@@ -32,14 +32,40 @@ Absent `*_OLD` = single-key mode; nothing else changes.
 3. **Verify decryption**: create a new OIDC client (its secret round-trips on
    use), trigger a webhook delivery, and log in with MFA on a test account.
    All three exercise the v2 + OLD-fallback read paths.
-4. **Re-encrypt legacy rows** — **DEFERRED TOOL, REGISTERED DEBT**: no
-   re-encrypt utility exists yet. Until it lands, legacy v1 rows stay v1 and
-   keep decrypting via the OLD env var. (Debt ticket: re-encrypt tool that
-   reads with current+OLD keys and rewrites via encrypt()/encryptSecret().)
-5. **Retire the OLD var ONLY after step 4 has converted every row** (or a full
-   DB audit proves zero remaining `v1:`-family rows, knowing the MFA family's
-   legacy rows have no prefix — the audit for that family is a full-table
-   decrypt probe, not a prefix count).
+4. **Re-encrypt legacy rows** with the `scripts/re-encrypt.ts` tool. It scans
+   every envelope ciphertext column, decrypts each value with the current key +
+   the `*_OLD` fallback (the same read paths live traffic uses), and rewrites any
+   row whose stored value is not already `v2:`-prefixed via `encrypt()`/
+   `encryptSecret()`. Never re-implement the envelope formats — the tool reuses
+   the identity exports (`crypto.encrypt/decrypt`, `encryptSecret/decryptSecret`)
+   so it can never drift from the readers.
+
+   Columns scanned: `users.totp_secret` (MFA family), `oidc_clients.secret_encrypted`
+   and `webhook_endpoints.secret_encrypted` (OIDC family).
+
+   ```bash
+   # Run from apps/server so tsx + the @accessbase/identity ESM graph resolve.
+   # Current keys + DB come from env; the *_OLD vars must stay set for this step.
+   cd apps/server
+   DATABASE_URL=... JWT_SECRET=... MFA_ENCRYPTION_KEY=... \
+     node_modules/.bin/tsx ../../scripts/re-encrypt.ts            # DRY-RUN plan (no writes)
+   DATABASE_URL=... JWT_SECRET=... MFA_ENCRYPTION_KEY=... \
+     node_modules/.bin/tsx ../../scripts/re-encrypt.ts --commit   # apply
+   ```
+
+   The default is **dry-run**: it prints the plan table (`v1->v2` / `v2-skip`, one
+   row per stored value) and issues zero UPDATEs. `--commit` applies each rewrite
+   under its own try/catch, so a single undecryptable row is reported in a FAILURES
+   block (non-zero exit) while every other row still converts.
+
+   **Verify before dropping the OLD var:** re-run the DRY-RUN afterward — it must
+   report zero `v1->v2` rows across all three columns. This is also the full-table
+   audit the MFA family needs (its legacy rows carry no `v1:` prefix, so a prefix
+   count alone is not enough; the scan enumerates every non-`v2:` row).
+5. **Retire the OLD var, then rotate next.** Only once step 4's dry-run proves
+   every row is `v2:`-current, unset `JWT_SECRET_OLD` / `MFA_ENCRYPTION_KEY_OLD`,
+   restart the nodes, and the window is closed — you are now free to roll the
+   current key to its next value (repeat from step 1).
 
 ## NEVER remove the OLD key before re-encryption
 
