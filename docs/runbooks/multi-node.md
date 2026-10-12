@@ -65,7 +65,9 @@ Both setups are silent no-ops when Redis is absent or the identity lane is mocke
       bearer survives to its ≤15m TTL (force-logout does NOT bump auth-state — only
       suspend/role-changes emit the ≤30s AUTH_005 path; verification-day live, 2026-10-08).
       Want a hard bearer kill? Suspend the user instead (bumps tokenVersion).
-- [ ] Start a MFA step-up / magic-link chain behind the LB — the chain must survive node hops (proves Redis flow tokens).
+- [x] **Flow-token cross-node battery** — PASSED live-fire 2026-10-12, two nodes (5101/5102) sharing dev PG + Redis, 21/21 assertions green ×2 runs (driver archived at /tmp/opencode/ft-battery.mjs): forgot issued on A → reset completed on B → new-password login OK; replay + 1-char tamper both 400 AUTH_RESET_001; concurrent A+B reset → exactly one 200 (GETDEL); mfa step-up issued on A → TOTP verified on B → session issued by B. Shared-Redis flow tokens are cross-node sound.
+  Pass criteria (2026-10 protocol): (T1) A-issued reset token consumed on B → 200, new password logs in; (T2) replay same token on B → 400 AUTH_RESET_001, zero new session; (T3) tampered token (1 char) → 400 AUTH_RESET_001; (T4) concurrent reset POSTs to A and B with the same token → EXACTLY one 200 (GETDEL atomicity); (T5) mfa_verify chain: login mfaRequired on A → verify TOTP on B → session issued by B (same Redis flow token).
+  Rate-limit discipline (live code): forgot-password is 5/hour per IP (F-batch R7), reset/verify ride the default bucket — the battery driver clears the scratch forgot bucket between legs (production batteries behind an LB must rotate caller IPs instead); lockout is 5 bad passwords/15min — count every login attempt.
 - [ ] Kill one dispatcher mid-delivery → delivery re-appears as `pending` on another node (at-least-once), never `dead`-on-timeout.
 
 ## 7. Known residues (honest list)
