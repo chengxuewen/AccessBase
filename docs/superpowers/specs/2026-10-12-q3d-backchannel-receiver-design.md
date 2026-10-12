@@ -323,3 +323,18 @@ vitest unit+integration green (new count flipped in conventions same-commit);
 4× tsc 0; eslint 0-new; e2e NOT re-run (zero UI delta — roster sanity check
 only, 186+3); reality-catalog + redactor + vocabulary grep gates pass; scratch
 state destroyed after integration runs; this spec's §0 non-goals unchanged.
+
+
+---
+
+## 8. Adjudications (user-adjudicated one by one, 2026-10-12)
+
+| # | Decision | Ruling | Key note |
+|---|---|---|---|
+| A1 | Unresolvable-target tokens (sid-only / null-sub / unknown sub) | **A: 200 OK no-op + one-time warn** | protocol-valid tokens are a success posture; 400 invites IdP retry storms; Keycloak null-sub is a normal edge (BCL §2.4/2.6-2.8, dual-Momus R4+B6) |
+| A2 | Bearer-kill mechanism (tokenVersion bump) | **A: replicate 3-line UPDATE+DEL inside route tx** | real-PG lock test watches drift; identity package untouched (no rebuild ripple); B3 resolved |
+| A3 | Replay-dedup key + claim position | **A: jti-first (sha256 fallback), claim LAST, release on failure** | effects are idempotent — make repetition harmless instead of guarding it; claim-first crash window = silently lost logout (R2+B4) |
+| A4 | issuer/jwksUri config placement | **A: inside existing oauth_providers JSON blob** | zero allowlist keys touched; pair-natural; providers without the fields simply don't participate (B1) |
+| A5 | JWKS fetch failure posture | **A: fail-closed + unknown-kid forced refetch** | the token's power is kicking users out; unverified = forgery = free DoS. no-contest |
+
+All five rulings = option A, none skipped or deferred. rev.2 text already reflects every ruling; this section is the audit record.
