@@ -165,3 +165,57 @@ describe('resolveRpEndSessionUrl', () => {
     expect(await resolveRpEndSessionUrl('u1')).toBeNull();
   });
 });
+
+// Q3D receiver (spec 2026-10-12, A4): issuer/jwksUri back-channel logout fields —
+// both-or-none, drop-fields-keep-provider, https-or-loopback jwksUri.
+describe('loadDynamicProviders issuer/jwksUri validation (Q3D, drop-fields-keep-provider)', () => {
+  afterEach(() => {
+    setProviders({});
+    vi.restoreAllMocks();
+  });
+
+  it('keeps a valid issuer+jwksUri pair', async () => {
+    setProviders({
+      'bclo-idp': {
+        ...validProvider,
+        issuer: 'https://idp.example.com/realms/x',
+        jwksUri: 'https://idp.example.com/realms/x/protocol/openid-connect/certs',
+      },
+    });
+    const registry = await loadDynamicProviders();
+    expect(registry['bclo-idp']?.issuer).toBe('https://idp.example.com/realms/x');
+    expect(registry['bclo-idp']?.jwksUri).toBe('https://idp.example.com/realms/x/protocol/openid-connect/certs');
+  });
+
+  it('drops BOTH fields when only one is present (half-configured unrepresentable)', async () => {
+    setProviders({ 'half-idp': { ...validProvider, issuer: 'https://idp.example.com' } });
+    const registry = await loadDynamicProviders();
+    expect(registry['half-idp']?.issuer).toBeUndefined();
+    expect(registry['half-idp']?.jwksUri).toBeUndefined();
+  });
+
+  it('drops both when jwksUri is plain http non-loopback', async () => {
+    setProviders({
+      'insecure-idp': { ...validProvider, issuer: 'https://idp.example.com', jwksUri: 'http://evil.example.com/certs' },
+    });
+    const registry = await loadDynamicProviders();
+    expect(registry['insecure-idp']?.jwksUri).toBeUndefined();
+    expect(registry['insecure-idp']?.issuer).toBeUndefined();
+  });
+
+  it('accepts loopback-http jwksUri (self-loop parity with sibling URLs)', async () => {
+    setProviders({
+      'local-idp': { ...validProvider, issuer: 'http://127.0.0.1:5101', jwksUri: 'http://127.0.0.1:5101/jwks' },
+    });
+    const registry = await loadDynamicProviders();
+    expect(registry['local-idp']?.jwksUri).toBe('http://127.0.0.1:5101/jwks');
+  });
+
+  it('drops both when issuer exceeds 512 chars', async () => {
+    setProviders({
+      'long-idp': { ...validProvider, issuer: `https://idp.example.com/${'x'.repeat(600)}`, jwksUri: 'https://idp.example.com/certs' },
+    });
+    const registry = await loadDynamicProviders();
+    expect(registry['long-idp']?.issuer).toBeUndefined();
+  });
+});

@@ -29,6 +29,15 @@ export interface DynamicProviderConfig {
   scope?: string;
   /** OIDC RP-initiated logout endpoint (https-only; §3.3). */
   endSessionUrl?: string;
+  /** Q3D back-channel logout (A4/A5): exact-match target for logout_token.iss.
+   * Verbatim string compare - trailing-slash variants are DIFFERENT issuers.
+   * Providers without issuer+jwksUri simply do not participate in back-channel
+   * logout. Both-or-none with jwksUri keeps the half-configured state
+   * unrepresentable. */
+  issuer?: string;
+  /** Q3D: OUR-configured JWKS URL - never derived from the token (M1 SSRF
+   * invariant). https-only like the sibling URLs. */
+  jwksUri?: string;
 }
 
 /**
@@ -116,6 +125,21 @@ export async function loadDynamicProviders(): Promise<
         logger.warn(`oauth: dynamic provider '${name}' has invalid endSessionUrl (must be an https string) — field dropped, provider kept`);
       }
     }
+    // issuer/jwksUri (Q3D, A4/A5): invalid values drop the FIELDS, not the
+    // provider - login + RP-initiated logout keep working; back-channel logout
+    // participation requires BOTH.
+    let issuer: string | undefined;
+    let jwksUri: string | undefined;
+    if (c.issuer !== undefined || c.jwksUri !== undefined) {
+      const issuerOk = typeof c.issuer === 'string' && c.issuer.length > 0 && c.issuer.length <= 512;
+      const jwksOk = typeof c.jwksUri === 'string' && httpsUrl(c.jwksUri);
+      if (issuerOk && jwksOk) {
+        issuer = c.issuer;
+        jwksUri = c.jwksUri;
+      } else {
+        logger.warn(`oauth: dynamic provider '${name}' has invalid issuer/jwksUri (issuer must be a non-empty string, jwksUri must be https-or-loopback) - back-channel fields dropped, provider kept`);
+      }
+    }
     out[name] = {
       authUrl: c.authUrl,
       tokenUrl: c.tokenUrl,
@@ -123,6 +147,8 @@ export async function loadDynamicProviders(): Promise<
       clientId: c.clientId,
       scope: c.scope,
       endSessionUrl,
+      issuer,
+      jwksUri,
       clientSecret,
     };
   }

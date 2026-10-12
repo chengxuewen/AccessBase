@@ -30,8 +30,11 @@ export type DomainEventType =
   | 'auth.login.success'
   | 'auth.login.failure'
   | 'auth.logout'
+  // Q3D back-channel logout receiver (spec 2026-10-12, A1-A5): IdP-initiated
+  // logout landed; payload carries ids/counts only - never the raw token.
+  | 'auth.backchannel_logout'
   // R-audit spec D5/U8: sanctioned-erasure broadcast (payload carries ids +
-  // counts only — never legalBasis, never the subject email).
+  // counts only - never legalBasis, never the subject email).
   | 'audit.erased';
 
 export interface EmitEventInput {

@@ -23,6 +23,9 @@ export type AuthEventMethod = 'password' | 'totp' | 'admin-wizard' | 'saml';
 export type AuthEventReason = 'bad_credentials' | 'locked' | 'suspended' | 'other';
 
 export interface AuthEventInput {
+  // Q3D: 'auth.backchannel_logout' rides the SAME fire-and-forget lane (spec
+  // 2026-10-12 §3.3.5) — emitted by utils/backchannel-logout.ts via emitEvent
+  // directly, so it does not pass through this union; kept out deliberately.
   type: 'auth.login.success' | 'auth.login.failure' | 'auth.logout';
   tenantId: string;
   /** Omitted on failure arms with no resolved user row (bad_credentials/locked pre-lookup). */
