@@ -78,7 +78,7 @@ Both setups are silent no-ops when Redis is absent or the identity lane is mocke
 - Q3D back-channel: dispatch path live-proven (end_session→confirm fires delivery), BUT
   oidc-provider's own undici dispatcher refuses special-use IPs (RFC6890: loopback AND
   private ranges) → intranet RP `backchannel_logout_uri`s fail delivery by design; the
-  front-channel SPA path is unaffected. Receiver-side remains unimplemented (Q3D flagged).
+  front-channel SPA path is unaffected. Receiver-side SHIPPED (Q3D, 2026-10-12): `POST /api/v1/auth/oauth/backchannel-logout` — telemetry events log delivery; live-RP loop still owed to integration day.
 - OIDC RP↔IdP browser round now LIVE-FIRED against our own provider (end_session SSO-kill,
   claims release, private_key_jwt 4/4); real-external-IdP (Keycloak) round still owed —
   docker registry unreachable during verification day.

@@ -165,7 +165,12 @@ export async function processBackchannelLogout(
     if (parts.length !== 3) return { kind: 'invalid', code: 'AUTH_BCLO_001', detail: 'not a JWT' };
     const payloadB64 = parts[1];
     if (payloadB64 === undefined) return { kind: 'invalid', code: 'AUTH_BCLO_001', detail: 'not a JWT' };
-    const payloadPart = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as { iss?: unknown };
+    // base64url -> base64 normalization (root-tsc lib lacks the base64url
+    // BufferEncoding overload; '-'/'_' differ from '+','/' only in the 62/63
+    // alphabet positions, which the probe JSON may legitimately contain)
+    const payloadPart = JSON.parse(
+      Buffer.from(payloadB64.replaceAll('-', '+').replaceAll('_', '/'), 'base64').toString('utf8'),
+    ) as { iss?: unknown };
     issProbe = typeof payloadPart.iss === 'string' ? payloadPart.iss : null;
   } catch {
     return { kind: 'invalid', code: 'AUTH_BCLO_001', detail: 'undecodable JWT payload' };

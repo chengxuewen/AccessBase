@@ -28,7 +28,7 @@ to precondition. Mutex fix R8. Facts corrected R1/R7/R9/R11.
 IN: SAML link persistence (nameID/sessionIndex), SP-initiated logout, IdP-initiated SLO + SP-initiated response
 arm, RP end-session URL (generic), `/auth/logout` -> `idpLogoutUrl`, SPA one-hop, provider `private_key_jwt`
 (+ per-client jwks), Redis saml cacheProvider, audit-redaction, error-catalog/openapi/runbook/memory wave.
-OUT: back-channel logout RECEIVER on our RP side (Q3D flag stays; live-RP = integration day), bearer hardening
+OUT: back-channel logout RECEIVER on our RP side (Q3D flag stays; live-RP = integration day), bearer hardening — CLOSED 2026-10-12: receiver shipped per docs/superpowers/specs/2026-10-12-q3d-backchannel-receiver-design.md (rev.2, adjudications A1-A5), live-RP loop remains
 (15-min window semantics unchanged, recorded §8), SCIM deprovisioning, google/github end-session, jwks key-rollover
 (no client PUT surface — create-only, §8).
 

@@ -2,6 +2,13 @@
 
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
+## [Unreleased] - 2026-10-12 (Q3D: OIDC back-channel logout receiver)
+### Added
+- RP-side back-channel logout receiver: `POST /api/v1/auth/oauth/backchannel-logout` (OIDC Back-Channel Logout 1.0). Validates logout_token against the ISSUER's configured jwksUri (alg allowlist RS256/ES256/PS256, exact-match iss, aud/events/nonce/jti rules, 60s skew + 10min max age), resolves sub→oauth_accounts, kills sessions + bumps tokenVersion (bearer dies ≤30s) + nulls link token material in one tx; dedup claim-LAST with failure release (A3); 200-empty no-store success posture; spec-shape 400s (AUTH_BCLO_001..003). sid-only and null-sub (Keycloak client-initiated edge) are 200 no-ops (adjudication A1).
+- Dynamic provider config gains `issuer` + `jwksUri` (both-or-none; providers without the pair simply do not participate — back-compatible).
+- Domain event `auth.backchannel_logout` (fire-and-forget telemetry lane).
+- Live-fire lesson: emitEvent on the TX handle poisons the COMMIT path (floating INSERT races the client client; rowCount=1 yet nothing persisted) — telemetry emits via the authDb pool instead.
+
 ## [Unreleased] - 2026-10-08 (verification day: live IdP↔RP loop, multi-node smoke, re-encrypt tool)
 ### Fixed
 - OIDC provider adapter getUser seam was never wired since batch N — /oidc/me released no email/name claims and RPs provisioned users onto synthetic @*.oauth.invalid addresses.
