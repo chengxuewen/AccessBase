@@ -139,6 +139,12 @@
                         },
                         "siteName": {
                           "type": "string"
+                        },
+                        "logoUrl": {
+                          "type": "string"
+                        },
+                        "primaryColor": {
+                          "type": "string"
                         }
                       }
                     }
@@ -4050,6 +4056,30 @@
             "required": true
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/oauth/backchannel-logout": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "logout_token": {
+                    "type": "string",
+                    "maxLength": 8192
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Default Response"

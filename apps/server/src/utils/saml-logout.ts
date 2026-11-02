@@ -146,9 +146,11 @@ export async function claimSamlRequestId(requestId: string): Promise<boolean> {
       'Redis unavailable — SAML LogoutRequest replay-dedup is in-process only (single-node honest)',
     );
   }
-  // ponytail: per-node Map dedup, swept on claim; upgrade path is the Redis
-  // SETNX arm above (shared across nodes). Memory ceiling: one entry per
-  // distinct RequestID inside the TTL window.
+  // Fallback dedup for the Redis-unavailable arm ONLY (the SETNX arm above is
+  // the primary, shared across nodes). Swept on claim; memory ceiling: one
+  // entry per distinct RequestID inside the TTL window. (Comment rewritten
+  // 2026-10-12 T4/G6b — it previously called the implemented Redis arm an
+  // "upgrade path".)
   const now = Date.now();
   for (const [id, expiresAt] of localSeen) {
     if (expiresAt <= now) localSeen.delete(id);

@@ -256,8 +256,8 @@ export async function auditRoutes(app: FastifyInstance) {
       const report = await verifyAuditChain(getDb(), {
         from: fromDay,
         to: toDay,
-        // ponytail: grace window hardcoded to the spec default (90s) until config.ts gains auditAnchorGraceSeconds (A4 contract); swap to config when it lands.
-        graceSeconds: 90,
+        // A4 contract satisfied: config.ts auditAnchorGraceSeconds (env AUDIT_ANCHOR_GRACE_SECONDS, default 90) — ponytail comment retired 2026-10-12 (T4/G6a).
+        graceSeconds: config.auditAnchorGraceSeconds,
       });
       return { success: true, data: report };
     },
