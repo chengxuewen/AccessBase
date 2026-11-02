@@ -130,6 +130,10 @@ describe('setupGuard: un-initialized state (no admin-role user)', () => {
       adminExists: false,
       configComplete: false,
       siteName: 'AccessBase',
+      // Branding slice (2026-10-12): /setup/status carries the two fields
+      // always (empty string = not configured).
+      logoUrl: '',
+      primaryColor: '',
     });
   });
 
@@ -195,6 +199,8 @@ describe('setupGuard: initialized state (admin-role user exists)', () => {
       adminExists: true,
       configComplete: true,
       siteName: 'AccessBase',
+      logoUrl: '',
+      primaryColor: '',
     });
   });
 
@@ -292,6 +298,10 @@ describe('setupGuard: DB failure three-state behavior', () => {
       adminExists: false,
       configComplete: false,
       siteName: 'AccessBase',
+      // Branding slice (2026-10-12): /setup/status carries the two fields
+      // always (empty string = not configured).
+      logoUrl: '',
+      primaryColor: '',
     });
   });
 
