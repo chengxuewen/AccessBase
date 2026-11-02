@@ -8,6 +8,7 @@ import type { FastifyInstance } from 'fastify';
 import { OidcClientManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { requirePermission } from '../utils/permission.js';
+import { parsePageQuery, paginatedReply } from '../utils/pagination.js';
 
 const ALLOWED_GRANT_TYPES = new Set([
   'authorization_code',
@@ -220,9 +221,14 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
         security: [{ bearerAuth: [] }],
       },
     },
-    async () => {
-      const clients = await getClientManager().list();
-      return { success: true as const, data: clients };
+    async (request) => {
+      const opts = parsePageQuery(request.query as Record<string, string>);
+      const mgr = getClientManager();
+      const [clients, total] = await Promise.all([
+        mgr.list({ limit: opts.pageSize, offset: opts.offset }),
+        mgr.count(),
+      ]);
+      return paginatedReply(clients, total, opts);
     },
   );
 

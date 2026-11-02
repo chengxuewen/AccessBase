@@ -23,7 +23,7 @@ import {
   createDecipheriv,
   hkdfSync,
 } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { logger } from '@accessbase/logging';
 import { createDb, type DrizzleDB } from '../db/index.js';
 import { oidcClients, type OidcClientRow } from '../db/schema.js';
@@ -196,8 +196,25 @@ export class OidcClientManager {
     return { client: inserted, plaintextSecret };
   }
 
-  async list(): Promise<OidcClientListRow[]> {
+  /**
+   * T3 (gap-remediation 2026-10-12): opts absent = FULL set; opts present =
+   * LIMIT/OFFSET page. Platform-level table — NO tenant predicate (dual-Momus
+   * B4: do not invent one).
+   */
+  async list(opts?: { limit?: number; offset?: number }): Promise<OidcClientListRow[]> {
+    if (opts) {
+      return await this.db
+        .select(SAFE_COLUMNS)
+        .from(oidcClients)
+        .limit(opts.limit ?? 20)
+        .offset(opts.offset ?? 0);
+    }
     return await this.db.select(SAFE_COLUMNS).from(oidcClients);
+  }
+
+  async count(): Promise<number> {
+    const [row] = await this.db.select({ n: sql<number>`count(*)::int` }).from(oidcClients);
+    return row?.n ?? 0;
   }
 
   async get(clientId: string): Promise<OidcClientRow | undefined> {

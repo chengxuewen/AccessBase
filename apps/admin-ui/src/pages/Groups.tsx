@@ -342,14 +342,15 @@ export default function Groups() {
         data-testid="groups-table"
         request={async (params) => {
           try {
-            const all = await fetchGroups();
+            // T3: server-side pagination + name filter (client-side filter moved to the route).
+            const term = String((params as { name?: unknown }).name ?? '').trim();
+            const page = await fetchGroups({
+              page: params.current,
+              pageSize: params.pageSize,
+              name: term || undefined,
+            });
             setLoadError(false);
-            const term = String((params as { name?: unknown }).name ?? '').trim().toLowerCase();
-            // Backend returns a plain array — filter client-side by name.
-            const filtered = term
-              ? all.filter((g) => g.name.toLowerCase().includes(term))
-              : all;
-            return { data: filtered, total: filtered.length, success: true };
+            return { data: page.data, total: page.total, success: true };
           } catch {
             setLoadError(true);
             return { data: [], total: 0, success: false };

@@ -40,6 +40,7 @@ const group = (overrides: Record<string, unknown> = {}) => ({
 
 const groupInstance = {
   list: vi.fn(),
+  count: vi.fn(),
   findById: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
@@ -110,7 +111,8 @@ describe('groups CRUD', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/groups', headers: AUTH() });
     expect(res.statusCode).toBe(200);
     expect(res.json().data[0]).toMatchObject({ name: 'Eng', memberCount: 2, roleCount: 1 });
-    expect(groupInstance.list).toHaveBeenCalledWith(TENANT);
+    // T3: route passes explicit pagination opts; no-opts = full set (SCIM guard)
+    expect(groupInstance.list).toHaveBeenCalledWith(TENANT, { limit: expect.any(Number), offset: expect.any(Number) });
   });
 
   it('GET /:id → 200 with the group', async () => {

@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { GroupManager } from '@accessbase/identity';
 import type { GroupKind } from '@accessbase/identity';
 import { DEFAULT_TENANT } from '../utils/constants.js';
+import { parsePageQuery, paginatedReply } from '../utils/pagination.js';
 import { routeTx } from '../utils/tx.js';
 import { requirePermission } from '../utils/permission.js';
 import { sendConflictError } from '../utils/conflict-mapper.js';
@@ -65,8 +66,23 @@ export async function groupRoutes(app: FastifyInstance) {
       },
     },
     async (request) => {
-      const data = await groupManager.list(tenantOf(request));
-      return { success: true, data };
+      const tenantId = tenantOf(request);
+      const query = request.query as Record<string, string>;
+      const opts = parsePageQuery(query);
+      const name = typeof query['name'] === 'string' ? query['name'].trim() : '';
+      if (name) {
+        // T3: Groups page's client-side filter moved server-side (ilike name).
+        const all = await groupManager.list(tenantId);
+        const filtered = all.filter((g) => g.name.toLowerCase().includes(name.toLowerCase()));
+        const offset = opts.offset;
+        const page = filtered.slice(offset, offset + opts.pageSize);
+        return paginatedReply(page, filtered.length, opts);
+      }
+      const [data, total] = await Promise.all([
+        groupManager.list(tenantId, { limit: opts.pageSize, offset: opts.offset }),
+        groupManager.count(tenantId),
+      ]);
+      return paginatedReply(data, total, opts);
     },
   );
 

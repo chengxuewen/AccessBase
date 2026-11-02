@@ -77,8 +77,16 @@ export class GroupManager {
     return row ? this.map(row) : null;
   }
 
-  async list(tenantId: string): Promise<Array<Group & { memberCount: number; roleCount: number }>> {
-    const rows = await this.db.select().from(groups).where(eq(groups.tenantId, tenantId)).orderBy(groups.name);
+  /**
+   * T3 (gap-remediation 2026-10-12): opts absent = FULL set (SCIM /ScimGroups
+   * caller at routes/scim.ts depends on the complete list for its in-memory
+   * filtering — silent truncation is the B2 failure mode). opts present =
+   * LIMIT/OFFSET page; enrichment (memberCount/roleCount) runs on the PAGE
+   * slice so the per-row subqueries stay bounded.
+   */
+  async list(tenantId: string, opts?: { limit?: number; offset?: number }): Promise<Array<Group & { memberCount: number; roleCount: number }>> {
+    const base = this.db.select().from(groups).where(eq(groups.tenantId, tenantId)).orderBy(groups.name);
+    const rows = opts ? await base.limit(opts.limit ?? 20).offset(opts.offset ?? 0) : await base;
     const out: Array<Group & { memberCount: number; roleCount: number }> = [];
     for (const r of rows) {
       const [mc] = await this.db.select({ n: sql<number>`count(*)::int` }).from(groupUsers).where(eq(groupUsers.groupId, r.id));
@@ -86,6 +94,11 @@ export class GroupManager {
       out.push({ ...this.map(r), memberCount: mc?.n ?? 0, roleCount: rc?.n ?? 0 });
     }
     return out;
+  }
+
+  async count(tenantId: string): Promise<number> {
+    const [row] = await this.db.select({ n: sql<number>`count(*)::int` }).from(groups).where(eq(groups.tenantId, tenantId));
+    return row?.n ?? 0;
   }
 
   /**

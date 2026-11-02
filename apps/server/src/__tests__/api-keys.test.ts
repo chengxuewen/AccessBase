@@ -65,9 +65,11 @@ store.set(id, row);
         const { hash: _hash, ...safe } = row;
       return { ...safe, plaintext };
       }),
-      list: vi.fn(async () =>
-        [...store.values()].map(({ hash: _h, ...rest }) => rest),
-      ),
+      list: vi.fn(async (_tenantId?: string, opts?: { limit?: number; offset?: number }) => {
+        const all = [...store.values()].map(({ hash: _h, ...rest }) => rest);
+        return opts ? all.slice(opts.offset ?? 0, (opts.offset ?? 0) + (opts.limit ?? 20)) : all;
+      }),
+      count: vi.fn(async () => store.size),
       revoke: vi.fn(async (id: string) => {
         store.delete(id);
       }),

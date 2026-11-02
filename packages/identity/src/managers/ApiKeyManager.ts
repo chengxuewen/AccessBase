@@ -8,7 +8,7 @@
  * precedent (SAFE_COLUMNS / Omit shape).
  */
 import { randomBytes, createHash } from 'node:crypto';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { logger } from '@accessbase/logging';
 import { createDb, type DbLike, type DrizzleDB } from '../db/index.js';
 import { emitEvent } from '../services/events.js';
@@ -103,12 +103,27 @@ export class ApiKeyManager {
     return { ...safe, plaintext };
   }
 
-  async list(tenantId: string): Promise<SafeApiKey[]> {
-    const rows = (await this.db
-      .select(SAFE_COLUMNS)
-      .from(apiKeys)
-      .where(eq(apiKeys.tenantId, tenantId))) as SafeApiKey[];
+  /**
+   * T3 (gap-remediation 2026-10-12): opts absent = FULL set (SCIM/legacy
+   * callers depend on it); opts present = LIMIT/OFFSET page.
+   */
+  async list(tenantId: string, opts?: { limit?: number; offset?: number }): Promise<SafeApiKey[]> {
+    if (opts) {
+      const rows = await this.db
+        .select(SAFE_COLUMNS)
+        .from(apiKeys)
+        .where(eq(apiKeys.tenantId, tenantId))
+        .limit(opts.limit ?? 20)
+        .offset(opts.offset ?? 0);
+      return rows as SafeApiKey[];
+    }
+    const rows = (await this.db.select(SAFE_COLUMNS).from(apiKeys).where(eq(apiKeys.tenantId, tenantId))) as SafeApiKey[];
     return rows;
+  }
+
+  async count(tenantId: string): Promise<number> {
+    const [row] = await this.db.select({ n: sql<number>`count(*)::int` }).from(apiKeys).where(eq(apiKeys.tenantId, tenantId));
+    return row?.n ?? 0;
   }
 
   async findByHash(hash: string): Promise<ApiKeyRow | null> {

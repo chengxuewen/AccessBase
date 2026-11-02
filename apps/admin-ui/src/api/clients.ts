@@ -27,9 +27,22 @@ export interface CreateClientPayload {
 }
 
 /** GET /v1/clients — list clients (no secret material) */
-export async function listClients(): Promise<OidcClient[]> {
-  const { data } = await client.get<ApiEnvelope<OidcClient[]>>('/v1/clients');
-  return data.data;
+/** T3: server-side pagination — envelope gains total/page/pageSize siblings (events.ts precedent). */
+export async function listClients(params?: { page?: number; pageSize?: number }): Promise<{
+  data: OidcClient[];
+  total: number;
+  page: number;
+  pageSize: number;
+}> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  const { data } = await client.get<ApiEnvelope<OidcClient[]> & { total?: number; page?: number; pageSize?: number }>(
+    `/v1/clients${suffix}`,
+  );
+  const d = data as unknown as { data: OidcClient[]; total?: number; page?: number; pageSize?: number };
+  return { data: d.data ?? [], total: d.total ?? (d.data?.length ?? 0), page: d.page ?? 1, pageSize: d.pageSize ?? 20 };
 }
 
 /** POST /v1/clients — create; response carries the plaintext secret ONCE */

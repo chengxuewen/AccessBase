@@ -44,10 +44,28 @@ export interface UpdateGroupPayload {
 }
 
 /** List groups (plain array envelope, tenant-scoped server-side) */
-export async function fetchGroups(): Promise<GroupListItem[]> {
-  const { data } = await client.get<ApiEnvelope<GroupListItem[]>>('/v1/groups');
-  return data.data;
+export interface GroupPage {
+  data: GroupListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
+
+/** T3: server-side pagination + name search (the envelope adds total/page/pageSize siblings). */
+export async function fetchGroups(params?: { page?: number; pageSize?: number; name?: string }): Promise<GroupPage> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
+  if (params?.name) qs.set('name', params.name);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  const { data } = await client.get<ApiEnvelope<GroupListItem[]> & { total?: number; page?: number; pageSize?: number }>(
+    `/v1/groups${suffix}`,
+  );
+  const d = data as unknown as { data: GroupListItem[]; total?: number; page?: number; pageSize?: number };
+  return { data: d.data ?? [], total: d.total ?? (d.data?.length ?? 0), page: d.page ?? 1, pageSize: d.pageSize ?? 20 };
+}
+
+
 
 /** POST /v1/groups — create (201 envelope); 409 GROUP_NAME_EXISTS */
 export async function createGroup(payload: CreateGroupPayload): Promise<Group> {

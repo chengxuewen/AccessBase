@@ -9,6 +9,7 @@ import { ApiKeyManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { requirePermission } from '../utils/permission.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
+import { parsePageQuery, paginatedReply } from '../utils/pagination.js';
 
 let apiKeyManager: ApiKeyManager | undefined;
 
@@ -77,8 +78,13 @@ export async function apiKeysRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     async (request) => {
-      const keys = await getApiKeyManager().list(request.tenantId ?? DEFAULT_TENANT);
-      return { success: true as const, data: keys };
+      const tenantId = request.tenantId ?? DEFAULT_TENANT;
+      const opts = parsePageQuery(request.query as Record<string, string>);
+      const [keys, total] = await Promise.all([
+        getApiKeyManager().list(tenantId, { limit: opts.pageSize, offset: opts.offset }),
+        getApiKeyManager().count(tenantId),
+      ]);
+      return paginatedReply(keys, total, opts);
     },
   );
 

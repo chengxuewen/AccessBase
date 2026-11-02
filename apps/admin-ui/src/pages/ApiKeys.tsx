@@ -204,14 +204,14 @@ export default function ApiKeys() {
         scroll={{ x: 'max-content' }}
         columns={columns}
         data-testid="api-keys-table"
-        request={async () => {
+        request={async (params) => {
           try {
-            const data = await listApiKeys();
+            const page = await listApiKeys({ page: params.current, pageSize: params.pageSize });
             setLoadError(false);
-            return { data, success: true };
+            return { data: page.data, total: page.total, success: true };
           } catch {
             setLoadError(true);
-            return { data: [], success: false };
+            return { data: [], total: 0, success: false };
           }
         }}
         pagination={{ defaultPageSize: 10 }}
