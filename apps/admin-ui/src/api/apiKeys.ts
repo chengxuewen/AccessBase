@@ -40,8 +40,10 @@ export async function listApiKeys(params?: { page?: number; pageSize?: number })
   const { data } = await client.get<ApiEnvelope<ApiKey[]> & { total?: number; page?: number; pageSize?: number }>(
     `/v1/auth/api-keys${suffix}`,
   );
-  const d = data as unknown as { data: ApiKey[]; total?: number; page?: number; pageSize?: number };
-  return { data: d.data ?? [], total: d.total ?? (d.data?.length ?? 0), page: d.page ?? 1, pageSize: d.pageSize ?? 20 };
+    // T3 compat: new envelope {data,total,...} OR legacy plain-array data (older mocks/clients)
+  const payload = data as unknown as { data?: ApiKey[]; total?: number; page?: number; pageSize?: number } | ApiKey[];
+  const arr = Array.isArray(payload) ? payload : (payload.data ?? []);
+  return { data: arr, total: Array.isArray(payload) ? arr.length : (payload.total ?? arr.length), page: Array.isArray(payload) ? 1 : (payload.page ?? 1), pageSize: Array.isArray(payload) ? arr.length : (payload.pageSize ?? 20) };
 }
 
 /** POST /v1/auth/api-keys — create; response carries the plaintext ONCE */

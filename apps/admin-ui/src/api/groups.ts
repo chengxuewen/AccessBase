@@ -61,8 +61,10 @@ export async function fetchGroups(params?: { page?: number; pageSize?: number; n
   const { data } = await client.get<ApiEnvelope<GroupListItem[]> & { total?: number; page?: number; pageSize?: number }>(
     `/v1/groups${suffix}`,
   );
-  const d = data as unknown as { data: GroupListItem[]; total?: number; page?: number; pageSize?: number };
-  return { data: d.data ?? [], total: d.total ?? (d.data?.length ?? 0), page: d.page ?? 1, pageSize: d.pageSize ?? 20 };
+    // T3 compat: new envelope {data,total,...} OR legacy plain-array data (older mocks/clients)
+  const payload = data as unknown as { data?: GroupListItem[]; total?: number; page?: number; pageSize?: number } | GroupListItem[];
+  const arr = Array.isArray(payload) ? payload : (payload.data ?? []);
+  return { data: arr, total: Array.isArray(payload) ? arr.length : (payload.total ?? arr.length), page: Array.isArray(payload) ? 1 : (payload.page ?? 1), pageSize: Array.isArray(payload) ? arr.length : (payload.pageSize ?? 20) };
 }
 
 
