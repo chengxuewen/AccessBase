@@ -8,6 +8,9 @@
  * ephemeral fallback. Adapter is the Task 4a OidcAdapter class.
  */
 import { createHash, createPrivateKey, createPublicKey } from 'node:crypto';
+import { deviceUserCodeInputSource, deviceUserCodeConfirmSource, deviceRenderError } from '../utils/device-flow-pages.js';
+import { setDeviceFlowBrandingReader } from '../utils/device-flow-pages.js';
+import { getOptionsManager } from '../routes/options.js';
 import { existsSync, readFileSync } from 'node:fs';
 import Provider from 'oidc-provider';
 import type { Configuration, JWKS } from 'oidc-provider';
@@ -112,6 +115,21 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
     consume: (id: string) => adapterInstance.consume(kind, id),
     revokeByGrantId: (grantId: string) => adapterInstance.revokeByGrantId(kind, grantId),
   });
+  // G8: fail-soft branding reader for the device-flow pages (60s cache lives
+  // in device-flow-pages.ts; reads the two branding option keys).
+  setDeviceFlowBrandingReader(async () => {
+    try {
+      const om = getOptionsManager();
+      const [logoUrl, primaryColor] = await Promise.all([
+        om.get('site.logo_url', undefined, ''),
+        om.get('site.primary_color', undefined, ''),
+      ]);
+      return { logoUrl, primaryColor };
+    } catch {
+      return { logoUrl: '', primaryColor: '' };
+    }
+  });
+
   const frontendOrigin = opts.frontendOrigin ?? 'http://localhost:5173';
 
   const configuration: Configuration = {
@@ -129,7 +147,14 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
       clientCredentials: { enabled: true },
       // Q3B (RFC 8628): Device Authorization Grant. Adapter already persists
       // DeviceCode rows (batch N) incl. findByUserCode — this is the switch.
-      deviceFlow: { enabled: true },
+      // G8 (gap-remediation 2026-10-12): branded pages replace the library
+      // defaults (English-only Google-styled, dark-mismatched) — bilingual,
+      // dark-safe, site logo/primary color via the branding slice.
+      deviceFlow: {
+        enabled: true,
+        userCodeInputSource: deviceUserCodeInputSource,
+        userCodeConfirmSource: deviceUserCodeConfirmSource,
+      },
       // Q3D: revocation propagation to RPs (end_session delivers logout_token
       // to clients registered with backchannel_logout_uri). FLAGGED.
       backchannelLogout: { enabled: opts.backchannelLogoutEnabled === true },
@@ -157,6 +182,8 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
     },
     // Explicit: the default only forces PKCE for token_endpoint_auth_method=none.
     pkce: { required: () => true },
+    // G8: branded error page (top-level configuration key).
+    renderError: deviceRenderError,
     // B3 topology: the provider 302s to our frontend for login (dev: absolute
     // FRONTEND_ORIGIN URL; deploy single-port: relative) and to /consent for
     // the consent prompt (Task 6 renders both routes).
