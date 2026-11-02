@@ -7,7 +7,9 @@
 import { eq } from 'drizzle-orm';
 import { users } from '@accessbase/identity/db';
 import { getRedis } from './redis.js';
+import { logger } from '@accessbase/logging';
 import { authDb } from './managers.js';
+import { authStateReadErrorsTotal } from './auth-state-metrics.js';
 
 export interface AuthState {
   tokenVersion: number;
@@ -15,6 +17,7 @@ export interface AuthState {
 }
 
 const TTL_SECONDS = 30;
+let lastReadErrorWarn = 0;
 
 async function readDb(sub: string): Promise<AuthState | null> {
   try {
@@ -27,6 +30,15 @@ async function readDb(sub: string): Promise<AuthState | null> {
     const row = rows[0];
     return row ? { tokenVersion: row.tokenVersion, status: row.status } : null;
   } catch {
+    // G1 (gap-map 2026-10-12): fail-open is the Q3A ruling, but it must be
+    // OBSERVABLE — a dead DB silently disables all revocation checks. 1/min
+    // warn rate-limit: the counter carries the volume, the log carries the wake-up.
+    authStateReadErrorsTotal.inc();
+    const now = Date.now();
+    if (now - lastReadErrorWarn > 60_000) {
+      lastReadErrorWarn = now;
+      logger.warn({ rate: '1/min cap' }, 'auth-state reader: DB read failing — revocation checks FAIL-OPEN');
+    }
     return null; // DB error → fail-open
   }
 }
