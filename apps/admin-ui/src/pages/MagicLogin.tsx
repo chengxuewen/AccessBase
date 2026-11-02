@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Card, Alert, Spin, Button, theme } from 'antd';
+import { useBranding } from '../branding';
+import { Card, Alert, Spin, Button, theme, ConfigProvider } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import { landingPath } from '../utils/landing';
 
@@ -12,6 +13,10 @@ import { landingPath } from '../utils/landing';
  */
 export default function MagicLogin() {
   const { t } = useTranslation();
+  const branding = useBranding();
+  const brandTheme = branding.primaryColor
+    ? { token: { colorPrimary: branding.primaryColor } }
+    : undefined;
   const { token: themeToken } = theme.useToken();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,6 +53,7 @@ export default function MagicLogin() {
   }, [searchParams, setSearchParams, navigate]);
 
   return (
+    <ConfigProvider theme={brandTheme}>
     <div
       style={{
         display: 'flex',
@@ -57,6 +63,10 @@ export default function MagicLogin() {
         background: themeToken.colorBgLayout,
       }}
     >
+      {branding.logoUrl && (
+        <img src={branding.logoUrl} alt="logo" data-testid="branding-logo"
+             style={{ display: 'block', margin: '0 auto 16px', maxHeight: 56, maxWidth: '80%', objectFit: 'contain' }} />
+      )}
       <Card title={t('login.magicTitle')} style={{ width: '100%', maxWidth: 400 }}>
         {error ? (
           <>
@@ -78,5 +88,6 @@ export default function MagicLogin() {
         )}
       </Card>
     </div>
+    </ConfigProvider>
   );
 }

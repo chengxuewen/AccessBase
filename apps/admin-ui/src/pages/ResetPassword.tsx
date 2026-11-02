@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Button, Card, Alert, theme } from 'antd';
+import { useBranding } from '../branding';
+import { Form, Input, Button, Card, Alert, theme, ConfigProvider } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
 import { resetPassword } from '../api/auth';
 import { apiErrorMessage } from '../api/errors';
@@ -12,6 +13,10 @@ import { apiErrorMessage } from '../api/errors';
  */
 export default function ResetPassword() {
   const { t } = useTranslation();
+  const branding = useBranding();
+  const brandTheme = branding.primaryColor
+    ? { token: { colorPrimary: branding.primaryColor } }
+    : undefined;
   const { token: themeToken } = theme.useToken();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -41,6 +46,7 @@ export default function ResetPassword() {
   };
 
   return (
+    <ConfigProvider theme={brandTheme}>
     <div
       style={{
         display: 'flex',
@@ -50,6 +56,10 @@ export default function ResetPassword() {
         background: themeToken.colorBgLayout,
       }}
     >
+      {branding.logoUrl && (
+        <img src={branding.logoUrl} alt="logo" data-testid="branding-logo"
+             style={{ display: 'block', margin: '0 auto 16px', maxHeight: 56, maxWidth: '80%', objectFit: 'contain' }} />
+      )}
       <Card
         title={t('reset.title')}
         style={{ width: '100%', maxWidth: 400 }}
@@ -139,5 +149,6 @@ export default function ResetPassword() {
         )}
       </Card>
     </div>
+    </ConfigProvider>
   );
 }

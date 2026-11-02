@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Card, Alert, Spin, theme } from 'antd';
+import { useBranding } from '../branding';
+import { Card, Alert, Spin, theme, ConfigProvider } from 'antd';
 import { verifyEmailToken } from '../api/auth';
 
 /**
@@ -11,6 +12,10 @@ import { verifyEmailToken } from '../api/auth';
  */
 export default function VerifyEmail() {
   const { t } = useTranslation();
+  const branding = useBranding();
+  const brandTheme = branding.primaryColor
+    ? { token: { colorPrimary: branding.primaryColor } }
+    : undefined;
   const { token: themeToken } = theme.useToken();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') ?? '';
@@ -26,6 +31,7 @@ export default function VerifyEmail() {
   }, [token]);
 
   return (
+    <ConfigProvider theme={brandTheme}>
     <div
       style={{
         display: 'flex',
@@ -35,6 +41,10 @@ export default function VerifyEmail() {
         background: themeToken.colorBgLayout,
       }}
     >
+      {branding.logoUrl && (
+        <img src={branding.logoUrl} alt="logo" data-testid="branding-logo"
+             style={{ display: 'block', margin: '0 auto 16px', maxHeight: 56, maxWidth: '80%', objectFit: 'contain' }} />
+      )}
       <Card
         title={t('verifyEmail.title')}
         style={{ width: '100%', maxWidth: 400 }}
@@ -57,5 +67,6 @@ export default function VerifyEmail() {
         </div>
       </Card>
     </div>
+    </ConfigProvider>
   );
 }

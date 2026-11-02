@@ -67,6 +67,16 @@ test.describe('branding slice', () => {
     expect(consoleErrors).toEqual([]);
   });
 
+  test('B3: forgot-password page renders the configured logo (self-service reach)', async ({ page }) => {
+    // 1x1 transparent png data URL (no external fetch)
+    const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    mockShell(page, { logoUrl: PNG, primaryColor: '#ff4400' });
+    await page.goto('/forgot-password');
+    await expect(page.getByTestId('branding-logo')).toBeVisible();
+    await expect(page.getByTestId('branding-logo')).toHaveAttribute('src', /data:image\/png/);
+    expect(consoleErrors).toEqual([]);
+  });
+
   test('B2: no branding configured → built-in chrome, zero console errors', async ({ page }) => {
     mockShell(page, {});
     await page.route('**/api/v1/auth/me', (route) =>
