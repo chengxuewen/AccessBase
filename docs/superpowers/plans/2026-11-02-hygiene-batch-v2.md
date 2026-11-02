@@ -86,6 +86,15 @@ state/logic changes — extract render units only.
   drawer-shaped) — lightest touch of the four.
 - **Anti-goal:** do NOT restructure state, do NOT introduce context/stores,
   do NOT change any wire payload (mock-API e2e mocks exact shapes).
+- **Scope ruling (T3 in execution, 2026-11-02):** Login split SHIPPED
+  (678 -> 564; MfaArm + SmsSection extracted, all state/effect wiring
+  intact, 37 login-cluster e2e green — pure-move proven). Settings/
+  Webhooks/Groups splits DROPPED as negative-value: their line counts come
+  from handler density (options save logic, columns closing over handlers),
+  not from render duplication — extraction would be props-passthrough noise,
+  not complexity reduction. G7 residual = Login only; the quartet's other
+  three pages carry a documented "handler-density, not render-bloat"
+  rationale instead of forced splits.
 
 **Gate:** 4×tsc + admin-ui tsc 0; full e2e suite green (all page specs must
 stay green — the pure-move proof); vitest unchanged; file sizes ≤ 350 for

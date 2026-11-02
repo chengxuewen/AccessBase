@@ -13,6 +13,8 @@ import { fetchSmsStatus, requestSmsOtp, verifySmsOtp } from '../api/auth';
 import { useCaptchaField } from '../components/CaptchaField';
 import { useAuthStore } from '../stores/auth';
 import { useBranding } from '../branding';
+import { MfaArm } from './login/MfaArm';
+import { SmsSection } from './login/SmsSection';
 import { OAuthButtons } from '../components/OAuthButtons';
 import {
   getWebAuthnLoginOptions,
@@ -348,54 +350,13 @@ export default function Login() {
 
   if (mfaFlowToken && !sessionStorage.getItem('mfaEnrollToken')) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-          background: themeToken.colorBgLayout,
-        }}
-      >
-        <Card
-          title={t('login.mfaTitle')}
-          style={{ width: '100%', maxWidth: 400 }}
-          styles={{ header: { textAlign: 'center' } }}
-        >
-          {mfaError && (
-            <Alert
-              type="error"
-              showIcon
-              message={t('login.mfaError')}
-              style={{ marginBottom: 16 }}
-              data-testid="mfa-error"
-            />
-          )}
-          <Form form={mfaForm} layout="vertical" onFinish={handleMfaSubmit}>
-            <Form.Item
-              name="code"
-              rules={[{ required: true, message: t('login.mfaCodeRequired') }]}
-            >
-              <Input
-                prefix={<KeyOutlined />}
-                placeholder={t('login.mfaCodePlaceholder')}
-                size="large"
-                autoFocus
-                data-testid="mfa-code-input"
-                autoComplete="one-time-code"
-              />
-            </Form.Item>
-            <Form.Item>
-              <Button type="primary" htmlType="submit" loading={isLoading} block size="large">
-                {t('login.mfaSubmit')}
-              </Button>
-            </Form.Item>
-          </Form>
-          <Button block size="large" onClick={handleCancelMfa}>
-            {t('login.mfaCancel')}
-          </Button>
-        </Card>
-      </div>
+      <MfaArm
+        mfaForm={mfaForm}
+        mfaError={mfaError}
+        isLoading={isLoading}
+        handleMfaSubmit={handleMfaSubmit}
+        handleCancelMfa={handleCancelMfa}
+      />
     );
   }
 
@@ -576,92 +537,17 @@ export default function Login() {
           />
         )}
 
-        {smsEnabled && !smsOpen && !smsToken && (
-          <Button
-            block
-            size="large"
-            type="text"
-            icon={<MobileOutlined />}
-            onClick={() => setSmsOpen(true)}
-            style={{ marginTop: 8 }}
-            data-testid="sms-trigger"
-          >
-            {t('login.smsTrigger')}
-          </Button>
-        )}
-
-        {smsEnabled && smsOpen && !smsToken && (
-          <Form layout="vertical" onFinish={handleSmsRequest} style={{ marginTop: 16 }}>
-            <Form.Item
-              name="phone"
-              rules={[{ required: true, message: t('login.smsPhoneRequired') }]}
-            >
-              <Input
-                prefix={<MobileOutlined />}
-                placeholder={t('login.smsPhonePlaceholder')}
-                size="large"
-                autoComplete="tel"
-                data-testid="sms-phone"
-              />
-            </Form.Item>
-            {captcha.node}
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={smsBusy}
-              block
-              size="large"
-              data-testid="sms-send"
-            >
-              {t('login.smsSend')}
-            </Button>
-          </Form>
-        )}
-
-        {smsToken && (
-          <Form layout="vertical" onFinish={handleSmsVerify} style={{ marginTop: 16 }}>
-            <Alert
-              type="info"
-              showIcon
-              message={t('login.smsSent')}
-              style={{ marginBottom: 12 }}
-              data-testid="sms-sent"
-            />
-            <Form.Item
-              name="code"
-              rules={[{ required: true, message: t('login.smsCodeRequired') }]}
-            >
-              <Input
-                prefix={<KeyOutlined />}
-                placeholder={t('login.smsCodePlaceholder')}
-                size="large"
-                maxLength={6}
-                autoComplete="one-time-code"
-                data-testid="sms-code"
-              />
-            </Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={smsBusy}
-              block
-              size="large"
-              data-testid="sms-submit"
-            >
-              {t('login.smsSubmit')}
-            </Button>
-          </Form>
-        )}
-
-        {smsMessage && (
-          <Alert
-            type="error"
-            showIcon
-            message={smsMessage}
-            style={{ marginTop: 16 }}
-            data-testid="sms-error"
-          />
-        )}
+        <SmsSection
+          smsEnabled={smsEnabled}
+          smsOpen={smsOpen}
+          smsToken={smsToken}
+          smsBusy={smsBusy}
+          smsMessage={smsMessage}
+          captchaNode={captcha.node}
+          setSmsOpen={setSmsOpen}
+          handleSmsRequest={handleSmsRequest}
+          handleSmsVerify={handleSmsVerify}
+        />
 
         <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between' }}>
           <Link to="/forgot-password" data-testid="forgot-link">
