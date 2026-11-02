@@ -163,7 +163,9 @@ export async function processBackchannelLogout(
   try {
     const parts = logoutToken.split('.');
     if (parts.length !== 3) return { kind: 'invalid', code: 'AUTH_BCLO_001', detail: 'not a JWT' };
-    const payloadPart = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8')) as { iss?: unknown };
+    const payloadB64 = parts[1];
+    if (payloadB64 === undefined) return { kind: 'invalid', code: 'AUTH_BCLO_001', detail: 'not a JWT' };
+    const payloadPart = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as { iss?: unknown };
     issProbe = typeof payloadPart.iss === 'string' ? payloadPart.iss : null;
   } catch {
     return { kind: 'invalid', code: 'AUTH_BCLO_001', detail: 'undecodable JWT payload' };
@@ -177,7 +179,9 @@ export async function processBackchannelLogout(
   // forces a JWKS refetch on the next verify (rotation path, I5).
   let payload: Record<string, unknown>;
   try {
-    const { payload: verified } = await jwtVerify(logoutToken, jwksFor(matched.config.jwksUri!), {
+    const jwksUri = matched.config.jwksUri;
+    if (jwksUri === undefined) return { kind: 'invalid', code: 'AUTH_BCLO_002', detail: 'provider has no jwksUri' };
+    const { payload: verified } = await jwtVerify(logoutToken, jwksFor(jwksUri), {
       issuer: matched.config.issuer,
       audience: matched.config.clientId,
       algorithms: [...ALG_ALLOWLIST],
