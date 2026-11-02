@@ -69,6 +69,21 @@ async function getSiteName(): Promise<string> {
   return getOptionsManager().get('site.name', undefined, 'AccessBase');
 }
 
+// Branding slice (2026-10-12): same fail-open posture — empty string = "not
+// configured", the frontend falls back to its built-in chrome.
+async function getBranding(): Promise<{ logoUrl: string; primaryColor: string }> {
+  try {
+    const om = getOptionsManager();
+    const [logoUrl, primaryColor] = await Promise.all([
+      om.get('site.logo_url', undefined, ''),
+      om.get('site.primary_color', undefined, ''),
+    ]);
+    return { logoUrl, primaryColor };
+  } catch {
+    return { logoUrl: '', primaryColor: '' };
+  }
+}
+
 // Track if setup is in progress to prevent concurrent admin creation
 let setupInProgress = false;
 
@@ -106,7 +121,7 @@ export async function setupRoutes(app: FastifyInstance) {
       ]);
       return {
         success: true,
-        data: { ...status, siteName },
+        data: { ...status, siteName, ...await getBranding() },
       };
     },
   );

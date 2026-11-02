@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Button, Card, Alert, Spin, theme } from 'antd';
+import { Form, Input, Button, Card, Alert, Spin, theme, ConfigProvider } from 'antd';
 import {
   MailOutlined,
   LockOutlined,
@@ -12,6 +12,7 @@ import {
 import { fetchSmsStatus, requestSmsOtp, verifySmsOtp } from '../api/auth';
 import { useCaptchaField } from '../components/CaptchaField';
 import { useAuthStore } from '../stores/auth';
+import { useBranding } from '../branding';
 import { OAuthButtons } from '../components/OAuthButtons';
 import {
   getWebAuthnLoginOptions,
@@ -342,6 +343,9 @@ export default function Login() {
     }
   }, [mfaFlowToken, navigate]);
 
+  const branding = useBranding();
+  const brandTheme = branding.primaryColor ? { token: { colorPrimary: branding.primaryColor } } : undefined;
+
   if (mfaFlowToken && !sessionStorage.getItem('mfaEnrollToken')) {
     return (
       <div
@@ -405,8 +409,17 @@ export default function Login() {
         background: themeToken.colorBgLayout,
       }}
     >
+      {branding.logoUrl && (
+        <img
+          src={branding.logoUrl}
+          alt={branding.siteName || 'logo'}
+          style={{ display: 'block', margin: '0 auto 16px', maxHeight: 64, maxWidth: '80%', objectFit: 'contain' }}
+          data-testid="branding-logo"
+        />
+      )}
+      <ConfigProvider theme={brandTheme}>
       <Card
-        title={t('login.title')}
+        title={branding.siteName || t('login.title')}
         style={{ width: '100%', maxWidth: 400 }}
         styles={{ header: { textAlign: 'center' } }}
       >
@@ -659,6 +672,7 @@ export default function Login() {
           </Link>
         </div>
       </Card>
+      </ConfigProvider>
     </div>
   );
 }

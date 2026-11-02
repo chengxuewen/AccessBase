@@ -406,6 +406,7 @@
     "siteNamePlaceholder": "Enter site name",
     "logoUrl": "Logo URL",
     "logoUrlInvalid": "Please enter a valid URL",
+    "primaryColor": "Primary color",
     "saveSuccess": "Settings saved",
     "activeSessions": "Active Sessions",
     "noSessions": "No active sessions",

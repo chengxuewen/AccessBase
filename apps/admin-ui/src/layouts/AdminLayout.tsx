@@ -24,7 +24,7 @@ import { Alert, Button, Dropdown, Tag, Typography } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import { useUiStore } from '../stores/ui';
 import Breadcrumbs from '../components/Breadcrumbs';
-import { loadSiteSettings, SITE_SETTINGS_EVENT } from '../siteSettings';
+import { fetchBranding } from '../branding';
 
 
 export default function AdminLayout() {
@@ -76,16 +76,10 @@ export default function AdminLayout() {
     try { return localStorage.getItem('admin-layout-collapsed') === 'true'; } catch { return false; }
   });
   const [loggingOut, setLoggingOut] = useState(false);
-  const [site, setSite] = useState(loadSiteSettings);
+  const [site, setSite] = useState({ siteName: '', logoUrl: '' });
 
   useEffect(() => {
-    const refresh = () => setSite(loadSiteSettings());
-    window.addEventListener(SITE_SETTINGS_EVENT, refresh);
-    window.addEventListener('storage', refresh);
-    return () => {
-      window.removeEventListener(SITE_SETTINGS_EVENT, refresh);
-      window.removeEventListener('storage', refresh);
-    };
+    void fetchBranding().then((b) => setSite({ siteName: b.siteName, logoUrl: b.logoUrl }));
   }, []);
 
   useEffect(() => {

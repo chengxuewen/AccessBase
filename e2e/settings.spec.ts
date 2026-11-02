@@ -200,8 +200,21 @@ test.describe('Settings page', () => {
     expect(deleteHit).toBe(true);
   });
 
-  test('General tab save shows success alert (localStorage persist)', async ({ page }) => {
+  test('General tab save PUTs the three branding options (options-table backend)', async ({ page }) => {
     await mockCommonApis(page);
+    const puts: Array<{ key: string; value: string }> = [];
+    await page.route('**/api/v1/options', async (route) => {
+      if (route.request().method() === 'PUT') {
+        puts.push(route.request().postDataJSON() as { key: string; value: string });
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: { key: 'x', value: 'y', updatedAt: '2026-01-01T00:00:00Z', updatedBy: 'admin' } }),
+        });
+      } else {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) });
+      }
+    });
     await login(page);
     await gotoSettings(page);
 
@@ -209,8 +222,9 @@ test.describe('Settings page', () => {
     await page.locator('[data-testid="save-site-settings"]').click();
 
     await expect(page.locator('[data-testid="site-save-success"]')).toBeVisible();
-    const stored = await page.evaluate(() => localStorage.getItem('accessbase.site-settings'));
-    expect(stored).toContain('My AccessBase');
+    const keys = puts.map((p) => p.key).sort();
+    expect(keys).toEqual(['site.logo_url', 'site.name', 'site.primary_color']);
+    expect(puts.find((p) => p.key === 'site.name')?.value).toBe('My AccessBase');
   });
 
   test('passkey login button surfaces inline error on failure (PIT-023)', async ({ page }) => {

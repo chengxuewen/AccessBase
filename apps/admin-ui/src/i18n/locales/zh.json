@@ -406,6 +406,7 @@
     "siteNamePlaceholder": "请输入站点名称",
     "logoUrl": "Logo 地址",
     "logoUrlInvalid": "请输入合法的 URL 地址",
+    "primaryColor": "主色",
     "saveSuccess": "设置已保存",
     "activeSessions": "活跃会话",
     "noSessions": "暂无活跃会话",

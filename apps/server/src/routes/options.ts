@@ -27,6 +27,10 @@ const KEY_FORMAT = /^[a-z][a-zA-Z0-9_.-]{1,63}$/;
 const KNOWN_OPTION_KEYS = new Set([
   'site.name',
   'site.url',
+  // Branding slice (2026-10-12): login/consent appearance. Public read via
+  // /setup/status (fail-open like siteName); writes ride options:write.
+  'site.logo_url',
+  'site.primary_color',
   'smtp_host',
   'smtp_port',
   'smtp_user',

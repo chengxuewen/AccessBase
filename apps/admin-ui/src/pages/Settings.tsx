@@ -41,7 +41,7 @@ import {
 import { startRegistration } from '@simplewebauthn/browser';
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
 import { useAuthStore } from '../stores/auth';
-import { loadSiteSettings, saveSiteSettings } from '../siteSettings';
+import { fetchBranding, saveBranding } from '../branding';
 import { listOptions, setOption, deleteOption, type OptionRow } from '../api/options';
 import { message } from '../api/feedback';
 import dayjs from 'dayjs';
@@ -83,8 +83,8 @@ export default function Settings() {
     } catch {
       return; // field-level errors are rendered inline by antd
     }
-    const values = siteForm.getFieldsValue() as { siteName?: string; logoUrl?: string };
-    saveSiteSettings({ siteName: values.siteName ?? '', logoUrl: values.logoUrl ?? '' });
+    const values = siteForm.getFieldsValue() as { siteName?: string; logoUrl?: string; primaryColor?: string };
+    await saveBranding(values.siteName ?? '', values.logoUrl ?? '', values.primaryColor ?? '');
     setSiteSaved(true);
   };
 
@@ -213,7 +213,9 @@ export default function Settings() {
   useEffect(() => {
     loadSessions();
     loadPasskeys();
-    siteForm.setFieldsValue(loadSiteSettings());
+    void fetchBranding(true).then((b) => {
+      siteForm.setFieldsValue({ siteName: b.siteName, logoUrl: b.logoUrl, primaryColor: b.primaryColor });
+    });
   }, [loadSessions, loadPasskeys, siteForm]);
 
   const sessionsTab = (
@@ -358,6 +360,9 @@ export default function Settings() {
           rules={[{ type: 'url', message: t('settings.logoUrlInvalid') }]}
         >
           <Input placeholder="https://…" />
+        </Form.Item>
+        <Form.Item name="primaryColor" label={t('settings.primaryColor')}>
+          <Input type="color" style={{ width: 64, height: 32 }} placeholder="#1677ff" />
         </Form.Item>
         <Button type="primary" htmlType="submit" onClick={handleSaveSite} data-testid="save-site-settings">
           {t('common.save')}

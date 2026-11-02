@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Card, Checkbox, Space, Spin, theme } from 'antd';
+import { useBranding } from '../branding';
+import { Alert, Button, Card, Checkbox, Space, Spin, theme, ConfigProvider } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import { getInteraction, postInteractionDecision } from '../api/oidc';
 import type { OidcInteraction } from '../api/oidc';
@@ -12,6 +13,8 @@ const SCOPE_I18N = ['openid', 'profile', 'email', 'offline_access'] as const;
 
 export default function Consent() {
   const { t } = useTranslation();
+  const branding = useBranding();
+  const brandTheme = branding.primaryColor ? { token: { colorPrimary: branding.primaryColor } } : undefined;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = useAuthStore((s) => s.token);
@@ -89,7 +92,16 @@ export default function Consent() {
   }
 
   return (
-    <CenteredCard title={t('consent.title')}>
+    <ConfigProvider theme={brandTheme}>
+    {branding.logoUrl && (
+      <img
+        src={branding.logoUrl}
+        alt={branding.siteName || 'logo'}
+        style={{ display: 'block', margin: '0 auto 12px', maxHeight: 56, maxWidth: '80%', objectFit: 'contain' }}
+        data-testid="branding-logo"
+      />
+    )}
+    <CenteredCard title={branding.siteName || t('consent.title')}>
       <Space direction="vertical" size="middle" style={{ display: 'flex', width: '100%' }}>
         {decisionError && (
           <Alert type="error" showIcon message={decisionError} data-testid="consent-decision-error" />
@@ -132,6 +144,7 @@ export default function Consent() {
         </Space>
       </Space>
     </CenteredCard>
+    </ConfigProvider>
   );
 }
 

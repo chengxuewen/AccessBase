@@ -253,6 +253,24 @@ describe('DELETE /api/v1/options/:key', () => {
       expect(res.json<{ error: { message: string } }>().error.message).toBe('Unknown option key');
     });
 
+    it('accepts the branding keys (Q4-5 slice: logo_url + primary_color)', async () => {
+      allow.value = true;
+      const logo = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/options',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { key: 'site.logo_url', value: 'https://cdn.example.com/logo.png' },
+      });
+      expect(logo.statusCode).toBe(200);
+      const color = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/options',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { key: 'site.primary_color', value: '#1677ff' },
+      });
+      expect(color.statusCode).toBe(200);
+    });
+
     it('accepts the password-policy keys batch C reads at runtime', async () => {
       allow.value = true;
       const res = await app.inject({
