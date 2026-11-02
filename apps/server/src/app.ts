@@ -20,6 +20,7 @@ import { metricsRoutes } from './routes/metrics.js';
 import { setupRoutes } from './routes/setup.js';
 import { setupGuard } from './middleware/setup-guard.js';
 import { oauthRoutes } from './routes/oauth.js';
+import { backchannelLogoutRoutes } from './routes/oauth-backchannel-logout.js'; // Q3D back-channel logout receiver
 import { samlRoutes } from './routes/saml.js';
 import { scimRoutes } from './routes/scim.js';
 import { webauthnRoutes } from './routes/webauthn.js';
@@ -551,7 +552,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
         // §3.2 (logout-coherence): SLO carries SAMLRequest/Response + signed
         // redirect URLs — same bloat/token-material posture, same exclusion.
         url.startsWith('/api/v1/auth/saml/acs') ||
-        url.startsWith('/api/v1/auth/saml/slo')
+        url.startsWith('/api/v1/auth/saml/slo') ||
+        // Q3D (spec 2026-10-12): back-channel logout_token is pure token
+        // material — same bloat/token posture as ACS/SLO, same exclusion.
+        url.startsWith('/api/v1/auth/oauth/backchannel-logout')
       )
         return;
       await auditHook(request, reply);
@@ -581,6 +585,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(optionsRoutes, { prefix: '/api/v1' });
   await app.register(clientRoutes, { prefix: '/api/v1' });
   await app.register(oauthRoutes, { prefix: '/api/v1/auth' });
+  await app.register(backchannelLogoutRoutes, { prefix: '/api/v1/auth' }); // Q3D
   await app.register(samlRoutes, { prefix: '/api/v1/auth' });
   await app.register(webauthnRoutes, { prefix: '/api/v1/auth' });
   await app.register(apiKeysRoutes, { prefix: '/api/v1/auth/api-keys' });
