@@ -107,6 +107,8 @@ export async function setupRoutes(app: FastifyInstance) {
                   adminExists: { type: 'boolean' },
                   configComplete: { type: 'boolean' },
                   siteName: { type: 'string' },
+                  logoUrl: { type: 'string' },
+                  primaryColor: { type: 'string' },
                 },
               },
             },
