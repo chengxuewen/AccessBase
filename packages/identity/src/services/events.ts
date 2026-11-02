@@ -13,7 +13,16 @@
 import type { DbLike } from '../db/index.js';
 import { events } from '../db/schema.js';
 
-/** Event catalog (append-only strings — subscription filters are plain text). */
+/**
+ * Event catalog (append-only strings — subscription filters are plain text).
+ *
+ * DEFENSIVE NOTE (PIT-088, Q3D live-fire): emitEvent's `db` parameter must be
+ * either the caller's tx handle for SYNCHRONOUS, AWAITED emits (manager-funnel
+ * discipline — atomicity with the mutation), or a NON-tx pool (authDb()) for
+ * FIRE-AND-FORGET emits. A floating `void emitEvent(tx, ...)` on a tx handle
+ * races the COMMIT on the same client and silently discards the whole
+ * transaction (rowCount=1, nothing persisted — integration I1, 2026-10-12).
+ */
 export type DomainEventType =
   | 'user.created'
   | 'user.updated'

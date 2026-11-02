@@ -659,3 +659,10 @@
 - **Root cause**: the persistent-shell tool kills the session process group on timeout; nohup/disown detach HUP but not group-kill; plus pretty-printed pino logs made 'no request in log' ambiguous between dead-server and log-shape.
 - **Fix**: long-lived multi-process batteries launch via context-mode `ctx_execute(language:'shell', background:true)` (survives timeouts); re-probe ALL ports after any bash-timeout event before trusting state; kill leftovers by `fuser -k PORT/tcp` (ss-pid extraction proved unreliable here); grep raw method+url lines, not head-limited context, when counting requests.
 - **Verification**: standing rule for live days — every 'protocol mystery' hypothesis list starts with 'is my server even alive?' (cost this session: one full mis-hit cycle).
+
+## PIT-088: emitEvent on a TX handle poisons the COMMIT — telemetry rides its own pool (2026-10-12, Q3D integration)
+
+- **Symptom**: backchannel-logout integration I1 — pipeline reported ok, UPDATE returned rowCount=1, yet NOTHING persisted (sessions/tokenVersion/tokens all unchanged). No error surfaced anywhere; mock lanes structurally cannot see it (they fake the db handle).
+- **Root cause**: a fire-and-forget `void emitEvent(tx, {...}).catch(...)` launched from inside `routeTx`'s transaction — the floating INSERT and the pending COMMIT race the SAME pooled client. The tx never committed; every write in it was silently discarded.
+- **Fix**: telemetry NEVER rides the tx handle. Q3D emits via `authDb()` (the sanctioned fire-and-forget pool, auth-events.ts family) after the effects; the tx carries only the business writes (revoke/bump/nulling). Constraints: conventions "Phase Q3D backchannel-logout" + Q4c events discipline already said "emit on the CALLER tx handle" for manager funnels — that rule is for SYNCHRONOUS awaited emits; fire-and-forget telemetry is a DIFFERENT lane and must use a non-tx pool.
+- **Verification**: `grep -c "emitEvent(tx" apps/server/src/routes/oauth-backchannel-logout.ts` = 0; integration I1 asserts persisted state via a separate pool (the net that caught this).
