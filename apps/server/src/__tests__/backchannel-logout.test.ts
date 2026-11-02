@@ -17,7 +17,7 @@ const jwtVerifyState = {
   calls: 0,
 };
 vi.mock('jose', () => ({
-  createRemoteJWKSet: vi.fn(() => 'jwks-set' as unknown as ReturnType<typeof import('jose').createRemoteJWKSet>),
+  createRemoteJWKSet: vi.fn(() => 'jwks-set'),
   jwtVerify: (token: string, key: unknown, opts: unknown) => {
     jwtVerifyState.calls += 1;
     return jwtVerifyState.impl(token, key, opts);
@@ -63,17 +63,6 @@ vi.mock('@accessbase/identity/db', () => ({
 }));
 
 function makeDb() {
-  const selectOps = () => ({
-    from: (table: unknown) => {
-      const isLinks = (table as { _?: string })?._ === 'oauth_accounts-marker';
-      return {
-        where: () => ({
-          // pipeline selects links (provider+sub) then users (id IN ...)
-        }),
-      };
-    },
-  });
-  void selectOps;
   // The pipeline uses drizzle-style chains; simulate them directly:
   return {
     select: (_cols?: unknown) => ({
@@ -198,7 +187,8 @@ async function drive(payload: Record<string, unknown>, opts: { verifyPayload?: R
     linkUserIds: links.map((l) => l.userId),
     linkIds: links.map((l) => l.id),
   };
-  if (links.length > 0 && state.users.length > 0) currentCall.bumpKey = [state.users[0]!.tenantId, state.users[0]!.id];
+  const firstUser = state.users[0];
+  if (links.length > 0 && firstUser) currentCall.bumpKey = [firstUser.tenantId, firstUser.id];
   jwtVerifyState.impl = async () => ({ payload: opts.verifyPayload ?? payload });
   return processBackchannelLogout(token(payload), makeDeps());
 }
@@ -253,7 +243,7 @@ describe('pipeline (A1/A2/A3 semantics)', () => {
     const r = await drive(basePayload());
     expect(r.kind).toBe('ok');
     expect(state.revokedFor).toEqual(['u1']);
-    expect(state.users[0]!.tokenVersion).toBe(2);
+    expect(state.users[0]?.tokenVersion).toBe(2);
     expect(state.authstDeleted).toEqual(['u1']);
     expect(state.links[0]!.accessToken).toBeNull();
     expect(state.links[0]!.idToken).toBeNull();
@@ -270,7 +260,7 @@ describe('pipeline (A1/A2/A3 semantics)', () => {
     expect(r2.kind).toBe('ok');
     expect(redisCalls.sets.length).toBe(setsAfterFirst + 1); // claim attempted again
     // effects ran twice — acceptable under A3 (idempotent); net state unchanged
-    expect(state.users[0]!.tokenVersion).toBe(3);
+    expect(state.users[0]?.tokenVersion).toBe(3);
   });
 
   it('U6: unknown sub -> benign ok, zero effects, no dedup write', async () => {

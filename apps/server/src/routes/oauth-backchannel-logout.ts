@@ -15,7 +15,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { DbLike } from '@accessbase/identity/db';
 import { SessionManager } from '@accessbase/identity';
-import { createDb } from '@accessbase/identity/db';
+import { createDb, closeDb } from '@accessbase/identity/db';
 import { loadDynamicProviders } from '../utils/rp-end-session.js';
 import { processBackchannelLogout } from '../utils/backchannel-logout.js';
 import { getRedis } from '../utils/redis.js';
@@ -38,7 +38,7 @@ async function effectsTx<T>(fn: (tx: DbLike) => Promise<T>): Promise<T> {
 /** Test/onClose seam: release this module's pool (users.ts SessionManager parity). */
 export async function closeBackchannelLogoutPool(): Promise<void> {
   if (txDb) {
-    await txDb.close().catch(() => undefined);
+    await closeDb(txDb).catch(() => undefined);
     txDb = null;
   }
 }

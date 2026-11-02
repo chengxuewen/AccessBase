@@ -11,6 +11,7 @@ import { generateKeyPairSync, createPrivateKey, sign as cryptoSign, randomUUID }
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import type { FastifyInstance } from 'fastify';
 
 process.env['NODE_ENV'] = 'test';
 process.env['JWT_SECRET'] = 'bclo-it-jwt-secret-0123456789abcdef';
@@ -81,7 +82,7 @@ const PROVIDER_JSON = JSON.stringify({
 });
 
 let pool: pg.Pool;
-let app: import('fastify').FastifyInstance | undefined;
+let app: FastifyInstance | undefined;
 
 beforeAll(async () => {
   execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`]);
@@ -157,7 +158,8 @@ async function seedLink(sub: string, userId: string): Promise<void> {
 }
 
 async function post(tokenStr: string, remoteAddress?: string): Promise<{ status: number; body: string; headers: Record<string, unknown> }> {
-  const res = await app!.inject({
+  if (!app) throw new Error('app not built');
+  const res = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/oauth/backchannel-logout',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
