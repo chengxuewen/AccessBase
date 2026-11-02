@@ -243,6 +243,46 @@ describe.skipIf(!pgUp)('backchannel logout integration (real PG + real RSA)', ()
     expect(stranger.status).toBe(200);
   });
 
+  it('T2-pin: missing content-type on POST — pin the framework behavior (415 or validation 400)', async () => {
+    const res = await app!.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/backchannel-logout',
+      payload: 'logout_token=x', // body present, NO content-type header
+    });
+    // PINNED (live behavior): body-present + missing content-type trips
+    // FST_ERR_CTP_INVALID_MEDIA_TYPE, which the route's scoped setErrorHandler
+    // maps to its uniform 500 spec-shape posture (unexpected-error family,
+    // NOT the validation 400 arm). Documented deviation: IdP callers MUST set
+    // application/x-www-form-urlencoded per BCL spec.
+    expect(res.statusCode).toBe(500);
+    expect(JSON.parse(res.body)['error']).toBe('invalid_request');
+  });
+
+  it('T2-pin: application/json body parses via the INHERITED built-in parser (scoped urlencoded parser is additive, not replacing)', async () => {
+    const res = await app!.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/backchannel-logout',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ logout_token: 'garbage' }),
+    });
+    // Fastify's built-in JSON parser is inherited by the route scope — the
+    // body parses fine and lands in route validation (garbage token -> 400
+    // spec shape). NOT 415 (dual-Momus R4 corrected rev.1's parser story).
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body)['error']).toBe('invalid_request');
+  });
+
+  it('T2-pin: urlencoded with EMPTY body -> route AUTH_BCLO_001 arm -> 400 spec shape', async () => {
+    const res = await app!.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/backchannel-logout',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      payload: '',
+    });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body)['error']).toBe('invalid_request');
+  });
+
   it('I6: sid-only / null-sub -> 200, zero effects (A1)', async () => {
     counter += 1;
     const before = Number((await rows(`select count(*)::int as n from events where type = 'auth.backchannel_logout'`))[0]?.['n']);
