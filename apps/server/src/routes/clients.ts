@@ -232,6 +232,72 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  // PUT /clients/:clientId/rotation-surface — G3: jwks rollover + bclo URI
+  // (the create-only pair). Identity/secret/grants untouched; jwks re-uses the
+  // create-time validators (CLIENT_010/011).
+  app.put<{ Params: { clientId: string }; Body: { jwks?: unknown; backchannelLogoutUri?: string | null } }>(
+    '/clients/:clientId/rotation-surface',
+    {
+      schema: {
+        description: 'Rotate create-only fields: jwks (key rollover) and backchannel_logout_uri',
+        tags: ['clients'],
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['clientId'],
+          properties: { clientId: { type: 'string' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { clientId } = request.params;
+      const mgr = getClientManager();
+      if (!(await mgr.get(clientId))) {
+        return reply.status(404).send({ success: false, error: { code: 'CLIENT_NOT_FOUND', message: 'Unknown client' } });
+      }
+      const fields: { jwks?: { keys: unknown[] } | null; backchannelLogoutUri?: string | null } = {};
+
+      if (request.body?.jwks !== undefined) {
+        if (request.body.jwks === null) {
+          fields.jwks = null;
+        } else {
+          const jwks = usableJwks(request.body.jwks);
+          if (!jwks || !jwks.keys.every(isPublicJwk)) {
+            return reply.status(400).send({
+              success: false,
+              error: { code: 'CLIENT_011', message: 'jwks may only contain public key members (RSA: kty/n/e, EC: kty/crv/x/y, OKP: kty/crv/x)' },
+            });
+          }
+          fields.jwks = jwks;
+        }
+      }
+
+      if (request.body?.backchannelLogoutUri !== undefined) {
+        const raw = request.body.backchannelLogoutUri;
+        if (raw === null || raw === '') {
+          fields.backchannelLogoutUri = null;
+        } else if (typeof raw === 'string' && /^https:\/\//.test(raw)) {
+          fields.backchannelLogoutUri = raw;
+        } else {
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'CLIENT_012', message: 'backchannelLogoutUri must be an https URL or null' },
+          });
+        }
+      }
+
+      if (Object.keys(fields).length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'CLIENT_013', message: 'Nothing to rotate: provide jwks and/or backchannelLogoutUri' },
+        });
+      }
+
+      await mgr.updateRotationSurface(clientId, fields);
+      return { success: true };
+    },
+  );
+
   // POST /clients/:clientId/rotate-secret — rotate client secret
   app.post<{ Params: { clientId: string } }>(
     '/clients/:clientId/rotate-secret',

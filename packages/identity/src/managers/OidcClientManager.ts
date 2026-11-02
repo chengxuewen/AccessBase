@@ -217,6 +217,24 @@ export class OidcClientManager {
     return row?.n ?? 0;
   }
 
+  /**
+   * G3 (gap-remediation 2026-10-12): rotation surface for the create-only
+   * fields — jwks (key rollover) + backchannelLogoutUri. Client identity,
+   * secret, and grants are untouched (rotateSecret remains the secret path).
+   */
+  async updateRotationSurface(
+    clientId: string,
+    fields: { jwks?: { keys: unknown[] } | null; backchannelLogoutUri?: string | null },
+  ): Promise<void> {
+    const set: Record<string, unknown> = { updatedAt: new Date() };
+    if (fields.jwks !== undefined) set['jwks'] = fields.jwks;
+    if (fields.backchannelLogoutUri !== undefined) set['backchannelLogoutUri'] = fields.backchannelLogoutUri;
+    await this.db
+      .update(oidcClients)
+      .set(set)
+      .where(eq(oidcClients.clientId, clientId));
+  }
+
   async get(clientId: string): Promise<OidcClientRow | undefined> {
     const rows = await this.db.select().from(oidcClients).where(eq(oidcClients.clientId, clientId)).limit(1);
     return rows[0] as OidcClientRow | undefined;

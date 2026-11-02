@@ -24,6 +24,8 @@ interface MockClient {
   grantTypes: string[];
   scope: string;
   tokenAuthMethod: string;
+  jwks?: { keys: unknown[] } | null;
+  backchannelLogoutUri?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -70,6 +72,13 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       }),
       count: vi.fn(async () => store.size),
       get: vi.fn(async (clientId: string) => store.get(clientId)),
+      updateRotationSurface: vi.fn(async (clientId: string, fields: { jwks?: { keys: unknown[] } | null; backchannelLogoutUri?: string | null }) => {
+        const row = store.get(clientId);
+        if (!row) return;
+        if (fields.jwks !== undefined) row.jwks = fields.jwks;
+        if (fields.backchannelLogoutUri !== undefined) row.backchannelLogoutUri = fields.backchannelLogoutUri;
+        row.updatedAt = new Date();
+      }),
       rotateSecret: vi.fn(async (clientId: string) => {
         const existing = store.get(clientId);
         if (!existing) return undefined;
@@ -468,5 +477,101 @@ describe('POST /api/v1/clients — private_key_jwt validation (T-PKJ)', () => {
     expect(res.statusCode).toBe(201);
     const arg = await inspectCreateCall(res);
     expect(arg.jwks).toEqual(jwks);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// G3 (gap-remediation 2026-10-12): PUT /clients/:id/rotation-surface —
+// jwks rollover + backchannel_logout_uri without re-creating the client.
+describe('PUT /api/v1/clients/:clientId/rotation-surface (G3)', () => {
+  let created = '';
+  beforeEach(async () => {
+    // File-level beforeEach clears the mock store per test — seed AFTER it
+    // through the real create path; the mock mints its own clientId.
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/clients',
+      headers: { ...AUTH(), 'content-type': 'application/json' },
+      payload: {
+        name: 'Rot',
+        redirectUris: ['https://rp.example/cb'],
+        grantTypes: ['authorization_code'],
+        scope: 'openid',
+        tokenAuthMethod: 'private_key_jwt',
+        jwks: { keys: [{ kty: 'RSA', n: 'old', e: 'AQAB' }] },
+      },
+    });
+    expect(createRes.statusCode).toBe(201);
+    created = createRes.json<{ data: { clientId: string } }>().data.clientId;
+  });
+  it('rotates jwks with a valid public-only JWK set (seeded via create)', async () => {
+
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/clients/${created}/rotation-surface`,
+      headers: AUTH(),
+      payload: { jwks: { keys: [{ kty: 'RSA', n: 'new-key', e: 'AQAB' }] } },
+    });
+    expect(res.statusCode).toBe(200);
+    const stored = store.get(created);
+    expect(stored?.jwks).toEqual({ keys: [{ kty: 'RSA', n: 'new-key', e: 'AQAB' }] });
+  });
+
+  it('rejects private-key members with CLIENT_011 (create-time parity)', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/clients/${created}/rotation-surface`,
+      headers: AUTH(),
+      payload: { jwks: { keys: [{ kty: 'RSA', n: 'x', e: 'AQAB', d: 'PRIVATE' }] } },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('CLIENT_011');
+  });
+
+  it('rejects a non-https backchannelLogoutUri with CLIENT_012; accepts https + null', async () => {
+    const bad = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/clients/${created}/rotation-surface`,
+      headers: AUTH(),
+      payload: { backchannelLogoutUri: 'http://intranet.example.com/hook' },
+    });
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json().error.code).toBe('CLIENT_012');
+
+    const good = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/clients/${created}/rotation-surface`,
+      headers: AUTH(),
+      payload: { backchannelLogoutUri: 'https://rp.example.com/bclo' },
+    });
+    expect(good.statusCode).toBe(200);
+    expect(store.get(created)?.backchannelLogoutUri).toBe('https://rp.example.com/bclo');
+
+    const nulling = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/clients/${created}/rotation-surface`,
+      headers: AUTH(),
+      payload: { backchannelLogoutUri: null },
+    });
+    expect(nulling.statusCode).toBe(200);
+    expect(store.get(created)?.backchannelLogoutUri).toBeNull();
+  });
+
+  it('404 on unknown client; 400 on empty payload (CLIENT_013)', async () => {
+    const nf = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/clients/ghost/rotation-surface',
+      headers: AUTH(),
+      payload: { jwks: { keys: [{ kty: 'RSA', n: 'x', e: 'AQAB' }] } },
+    });
+    expect(nf.statusCode).toBe(404);
+    const empty = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/clients/${created}/rotation-surface`,
+      headers: AUTH(),
+      payload: {},
+    });
+    expect(empty.statusCode).toBe(400);
+    expect(empty.json().error.code).toBe('CLIENT_013');
   });
 });
