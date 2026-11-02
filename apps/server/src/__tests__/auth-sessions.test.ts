@@ -372,3 +372,42 @@ describe('POST /api/v1/auth/sessions/revoke-others', () => {
     expect(sessionManagerMock.revokeAllUserSessions).toHaveBeenCalledWith('u-1');
   });
 });
+
+// ---------------------------------------------------------------------------
+// T1 (gap-remediation 2026-10-12): logout arm semantics — arm-1 (presented
+// refreshToken) revokes THAT session only; arm-2 (bearer-only, no token) is
+// API-client hardening: revokeAllUserSessions, NO DEL, NO bump.
+describe('POST /api/v1/auth/logout arm semantics (T1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionManagerMock.findSessionByToken.mockResolvedValue(null);
+  });
+  it('U1: arm-1 with refreshToken → revokeSession(session.id) only', async () => {
+    sessionManagerMock.findSessionByToken.mockResolvedValueOnce({ id: 'sess-77', userId: 'u-1' });
+    const res = await authedInject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      payload: { refreshToken: 'rt-presented' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(sessionManagerMock.findSessionByToken).toHaveBeenCalledWith('rt-presented');
+    expect(sessionManagerMock.revokeSession).toHaveBeenCalledWith('sess-77');
+    expect(sessionManagerMock.revokeAllUserSessions).not.toHaveBeenCalled();
+  });
+
+  it('U2: arm-2 bearer-only → revokeAllUserSessions(sub); no DEL, no bump', async () => {
+    const res = await authedInject({ method: 'POST', url: '/api/v1/auth/logout' });
+    expect(res.statusCode).toBe(200);
+    expect(sessionManagerMock.revokeAllUserSessions).toHaveBeenCalledWith('u-1');
+    expect(sessionManagerMock.revokeSession).not.toHaveBeenCalled();
+    // (no DEL / no bump asserted structurally: the route imports neither
+    // auth-state DEL nor bumpAuthState — grep gate in the close-out.)
+  });
+
+  it('U3: idempotent — repeated token-less logout stays 200', async () => {
+    const r1 = await authedInject({ method: 'POST', url: '/api/v1/auth/logout' });
+    const r2 = await authedInject({ method: 'POST', url: '/api/v1/auth/logout' });
+    expect(r1.statusCode).toBe(200);
+    expect(r2.statusCode).toBe(200);
+  });
+});

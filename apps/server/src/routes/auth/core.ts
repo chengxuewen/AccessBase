@@ -93,6 +93,21 @@ export async function logoutRoutes(app: FastifyInstance, ctx: AuthContext) {
         } catch (err) {
           request.log.warn({ err }, 'Logout session revocation failed');
         }
+      } else if (request.user) {
+        // T1 (gap-remediation 2026-10-12, arm-2): bearer-only logout (no
+        // refresh token presented) — defensive hardening for API clients.
+        // Kills the user's whole refresh family; NOT reachable from the SPA
+        // (stores/auth.ts posts only when it holds a token; the 401
+        // interceptor logs out locally). No DEL, NO bump: the bearer keeps
+        // its documented TTL (multi-node runbook:65-67); refresh rows die here.
+        const sub = (request.user as { sub?: string }).sub;
+        if (sub) {
+          try {
+            await ctx.sessionManager.revokeAllUserSessions(sub);
+          } catch (err) {
+            request.log.warn({ err }, 'Logout arm-2 revocation failed');
+          }
+        }
       }
       const caller = request.user as { sub?: string; email?: string };
       // R1-T3: both branches (with or without refreshToken) end the caller's session intent
