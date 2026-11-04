@@ -86,6 +86,36 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
     );
   }
 
+  // 4. dependency-drift lock (PIT-090): watch the MCP ecosystem's transitive
+  //    keys in pnpm-lock.yaml. A self-healing install fired by a host-launched
+  //    server re-resolves these silently. RED unless explicitly acknowledged:
+  //    AB_ALLOW_MCP_DEP_DRIFT=1 is the one-shot, informed-basis override (state
+  //    the reason in the commit message and re-verify `bash accessbase.sh ci`).
+  //    (Design note: pairing with single-source-dirty checks does not work in
+  //    a real working tree — the watched-key diff is the only unambiguous
+  //    signal; the env override is the auditable exit.)
+  try {
+    const lockDiff = execSync("git diff HEAD -- pnpm-lock.yaml || git diff -- pnpm-lock.yaml", {
+      cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+    });
+    const WATCHED = ["@modelcontextprotocol/sdk"];
+    const acknowledged = process.env.AB_ALLOW_MCP_DEP_DRIFT === "1";
+    for (const key of WATCHED) {
+      const esc = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`^[+-].*${esc}@\\d`, "m").test(lockDiff)) {
+        if (acknowledged) {
+          console.log(`  dep-drift: ${key} lock lines changed — ACKNOWLEDGED via AB_ALLOW_MCP_DEP_DRIFT=1 (state the reason in the commit; re-verify ci)`);
+        } else {
+          findings.push(
+            `dep-drift: ${key} version lines changed in pnpm-lock.yaml — a self-healing install may have fired (PIT-090). Fix: roll back, or set AB_ALLOW_MCP_DEP_DRIFT=1 for an informed one-shot pass + state the reason in the commit and re-verify \`bash accessbase.sh ci\``,
+          );
+        }
+      }
+    }
+  } catch {
+    // git unavailable or not a repo context (e.g. exported tree): skip, not red
+  }
+
   // tool-routing.md must not contain a priority ladder (matrix, not priority)
   if (routingExists) {
     const routing = readFileSync(TOOL_ROUTING, "utf8");

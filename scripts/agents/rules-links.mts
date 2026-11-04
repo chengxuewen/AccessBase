@@ -7,7 +7,7 @@
  * discipline: minimal always-on surface, the rest routes by description).
  */
 
-import { readFileSync, readdirSync, existsSync, lstatSync, realpathSync, symlinkSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, lstatSync, realpathSync } from "node:fs";
 import * as path from "node:path";
 import {
   ROOT, loadTargets, guard, sha256Short, writeIfChanged, relRoot,

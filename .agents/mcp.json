@@ -14,10 +14,10 @@
       "note": "browser automation; CodeBuddy track also has a built-in agent-browser — the matrix routes which to use"
     },
     "local-antd": {
-      "enabled": true,
+      "enabled": false,
       "kind": "npm",
       "launcher": ".opencode/init-mcp-antd.mjs",
-      "note": "Ant Design component semantics; matrix: prefer this over the design-system skill for live prop/API questions"
+      "note": "DISABLED 2026-11-04 (CRITICAL review finding): its init wrapper's self-healing install re-resolved transitive deps (@modelcontextprotocol/sdk 1.31.0->1.32.2) and broke the typecheck/lint baseline the moment a host consumed the generated .mcp.json. Re-enable requires: init wrapper gains a no-auto-install mode + a green full ci run (PIT-090)."
     },
     "local-drizzle": {
       "enabled": true,
