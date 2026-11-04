@@ -1,18 +1,10 @@
 /**
- * skill-lint — skill hygiene layer (plan Batch 3). 8-point check over every
- * `.agents/skills/<name>/SKILL.md`:
+ * skill-lint — skill hygiene layer (plan Batch 3). The check list lives in the CHECKS
+ * constant below and NOWHERE else: the summary prints CHECKS.length, so the layer's
+ * self-description can never again lag the implementation (ADJ-7a — the header used to
+ * advertise "8-point" while the code ran 9 and printed "9 checks each").
  *
- *   1. every skill dir has a SKILL.md
- *   2. frontmatter `name` present and matches the directory name
- *   3. `description` present and >= 20 chars
- *   4. description carries a routing trigger (Use when/for/before, 使用, 适用于…)
- *   5. `status: inoperative` => description MUST hard-prefix "INOPERATIVE"
- *      (RCH discipline: keep the directory, kill the routing, mark loudly)
- *   6. no duplicate skill names
- *   7. AGENTS.md skills-directory region matches frontmatter (digest drift)
- *   8. C/D/PIT citations in the skill body resolve (reuses rule-ref-lint core;
- *      MS:/VE:/RCH: prefixes exempt, ADJ-1b)
- *
+ * `// point N` markers in run() map 1:1 onto CHECKS[N-1].
  * Read-only. Exit via the layer protocol (0/1). CLI: node skill-lint.mts [check]
  */
 
@@ -24,6 +16,19 @@ import { collectDefs, scanTextForDangling } from "./rule-ref-lint.mts";
 interface Skill { dirName: string; name: string; description: string; status?: string; file: string; body: string; }
 
 const TRIGGER = /(use (when|for|before|after)|使用|适用于|自动激活|触发)/i;
+
+/** Single source of truth for what this layer asserts (see the header note). */
+const CHECKS = [
+  "every skill dir has a SKILL.md",
+  "frontmatter `name` present and matches the directory name",
+  "`description` present and >= 20 chars",
+  "description carries a routing trigger (Use when/for/before, 使用, 适用于…)",
+  "`status: inoperative` => description hard-prefixes \"INOPERATIVE\" (keep the dir, kill the routing)",
+  "no duplicate skill names",
+  "AGENTS.md skills-directory row exists AND its Purpose cell is non-empty",
+  "C/D/PIT citations in the skill body resolve (MS:/VE:/RCH: prefixes exempt)",
+  "explicit `skill:`/`rule:` cross-references resolve (`plugin:` declared external)",
+] as const;
 
 /** Collect rule file basenames (no extension) for `rule:<name>` reference resolution. */
 function collectRuleNames(rulesRoot: string, exclude: string[]): Set<string> {
@@ -76,14 +81,21 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
     if (names.filter((x) => x === n).length > 1) findings.push(`duplicate skill name "${n}"`);
   }
 
-  // point 7 — digest drift (registry region must equal frontmatter-derived rows)
+  // point 7 — digest drift: a row must exist for every skill AND its Purpose cell must
+  // carry content. Name-only matching let a generator bug blank the whole column while
+  // this layer stayed green (ADJ-7a).
   const hub = readFileSync(path.join(ROOT, cfg.memory_hub), "utf8");
   const region = hub.match(/<!--[ \t]*BEGIN:skills-directory[ \t]*-->[\s\S]*?<!--[ \t]*END:skills-directory[ \t]*-->/)?.[0] ?? null;
   if (!region) findings.push(`${cfg.memory_hub}: skills-directory region absent (run agents sync)`);
   else {
     for (const s of skills) {
-      if (!region.includes(`\`${s.name || s.dirName}\``)) {
-        findings.push(`${cfg.memory_hub}: skills-directory region missing row for "${s.name || s.dirName}" (drift)`);
+      const name = s.name || s.dirName;
+      const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const row = region.match(new RegExp("^\\|\\s*`" + esc + "`\\s*\\|\\s*([^|]*?)\\s*\\|", "m"));
+      if (!row) {
+        findings.push(`${cfg.memory_hub}: skills-directory region missing row for "${name}" (drift)`);
+      } else if (row[1].trim() === "") {
+        findings.push(`${cfg.memory_hub}: skills-directory row for "${name}" has an EMPTY Purpose cell — frontmatter description did not reach the digest (ADJ-7a)`);
       }
     }
   }
@@ -120,7 +132,7 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
     console.log("  fix: correct the SKILL.md frontmatter/body, then node scripts/agents/agent-links.mts sync");
     return { code: EXIT_FINDINGS, summary: `skill-lint: ${findings.length} finding(s)` };
   }
-  return { code: EXIT_CLEAN, summary: `skill-lint: clean (${skills.length} skills, 9 checks each)` };
+  return { code: EXIT_CLEAN, summary: `skill-lint: clean (${skills.length} skills, ${CHECKS.length} checks each)` };
 }
 
 if (import.meta.main) {

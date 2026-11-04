@@ -133,21 +133,21 @@ frontmatter `description`. Maintained by `agents sync` — do not hand-edit this
 
 | Skill | Purpose |
 |---|---|
-| `adjudication-walkthrough` |  |
-| `book-to-skill` |  |
-| `code-review-and-quality` |  |
-| `code-simplification` |  |
-| `design-system` |  |
-| `doc-audit` |  |
-| `ecosystem-scan` |  |
-| `expert-panel-review` |  |
-| `graphify` |  |
-| `lesson-review` |  |
-| `security-hardening` |  |
-| `skill-creator` |  |
-| `skill-router` |  |
-| `test-harness` |  |
-| `think-before-act` |  |
+| `adjudication-walkthrough` | 裁决逐项过 -- one-at-a-time adjudication protocol… |
+| `book-to-skill` | Converts books and documents (PDF, EPUB, DOC… |
+| `code-review-and-quality` | Structured code review for this repo: determ… |
+| `code-simplification` | Reduce complexity in TypeScript code. Cheste… |
+| `design-system` | 为 AccessBase 企业应用平台生成一致的 UI。引导 AI 代理创建符合 Acc… |
+| `doc-audit` | AccessBase 项目文档与架构审计。并行检查 AGENTS.md、记忆文件、决策记… |
+| `ecosystem-scan` | 审计 .agents/ 体系并扫描社区生态寻找可引入的技能/规则/MCP。双层（Quic… |
+| `expert-panel-review` | 多角色专家团审核一份计划/结论/决策：先独立后合并、隔离视角、必设对抗者、保留分歧、按复… |
+| `graphify` | Use for any question about a codebase, its a… |
+| `lesson-review` | 批量会话回顾：系统性提取经验教训，写入项目记忆。Use after long debug… |
+| `security-hardening` | AccessBase 安全加固。OWASP Top 10 + JWT/RBAC + 数据… |
+| `skill-creator` | Generate AccessBase project skills from SDD … |
+| `skill-router` | 分析用户意图，输出推荐技能列表。当用户说'怎么做'、'用什么技能'、意图模糊时自动激活。… |
+| `test-harness` | AccessBase TypeScript 全栈自动化测试工具架。从 SDD 文档生成 … |
+| `think-before-act` | 元约束：先查再动手，列方案让用户审批，不蛮干。Use BEFORE any non-tr… |
 <!-- END:skills-directory -->
 <!-- BEGIN:agents-memory -->
 Navigable digest — one bullet per entry; full text in `.agents/memorys/*.md`,

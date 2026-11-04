@@ -137,7 +137,7 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
 /** Synthetic fixtures only — never touches real files. */
 function runSelfTest(): number {
   const defs = { D: new Set(["1", "54"]), PIT: new Set(["1", "12"]), C: new Set(["3"]) } as Defs;
-  const dupDefs = { ...defs, duplicatesOf: () => ["decisions.md — D54 defined twice (lines 3, 5)"] };
+  const dupDefs = { ...defs, duplicatesOf: (_name: string) => ["decisions.md — D54 defined twice (lines 3, 5)"] };
   const body =
     "Refs D1 (ok), D999 (dangling), PIT-001 (ok), PIT-99999 (dangling), C3 (ok), C7 (dangling).\n" +
     "Exempt: VE:D47 and MS:PIT-65 and RCH:PIT-250 and RCH:C10 must NOT fire.\n";

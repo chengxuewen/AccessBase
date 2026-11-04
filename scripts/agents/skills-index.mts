@@ -2,6 +2,10 @@
  * skills-index — layer 2/3: two faces of the skills single source.
  *   1. Registry digest: the AGENTS.md `skills-directory` marker region (ADJ-2c
  *      ruling B: NO root SKILL.md — this marker region is the only registry).
+ *      Row content comes from frontmatter ONLY (ADJ-7a: unpack `{ fm, body }` — a
+ *      mis-unpack silently rendered every Purpose cell empty while `check` stayed
+ *      green, because the drift assertion matched names, not content). `|` inside a
+ *      description is escaped so one cell can never split the table.
  *      Region ordering rule (VE D47/B4): skills-directory MUST precede
  *      agents-memory (hosts truncate long files from the tail).
  *   2. Host activation: `.codebuddy/skills/<name>` as RELATIVE symlinks into
@@ -30,7 +34,7 @@ function collectSkills(skillsRoot: string): SkillMeta[] {
     if (!lstatSync(dir).isDirectory()) continue;
     const skillFile = path.join(dir, "SKILL.md");
     if (!existsSync(skillFile)) continue;
-    const fm = parseFrontmatter(readFileSync(skillFile, "utf8"));
+    const { fm } = parseFrontmatter(readFileSync(skillFile, "utf8"));
     out.push({ name: fm.name ?? name, description: fm.description ?? "", status: fm.status, dir });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
@@ -40,10 +44,15 @@ function clip(s: string, n: number): string {
   return [...s].length <= n ? s : [...s].slice(0, n - 1).join("") + "…";
 }
 
+/** Keep one description from splitting the digest table (ADJ-7a). */
+function cell(s: string): string {
+  return s.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+}
+
 function renderDigest(skills: SkillMeta[]): string {
   const rows = skills.map((s) => {
     const flag = s.status === "inoperative" ? " *(inoperative — do not route here)*" : "";
-    return `| \`${s.name}\` | ${clip(s.description, DESC_LIMIT)}${flag} |`;
+    return `| \`${s.name}\` | ${cell(clip(s.description, DESC_LIMIT))}${flag} |`;
   });
   return [
     "Skills single source: `.agents/skills/*/SKILL.md`; routing surface = each",
