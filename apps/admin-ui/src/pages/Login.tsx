@@ -7,7 +7,6 @@ import {
   LockOutlined,
   KeyOutlined,
   SafetyCertificateOutlined,
-  MobileOutlined,
 } from '@ant-design/icons';
 import { fetchSmsStatus, requestSmsOtp, verifySmsOtp } from '../api/auth';
 import { useCaptchaField } from '../components/CaptchaField';

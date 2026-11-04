@@ -51,13 +51,15 @@ for (const [path, methods] of Object.entries(openapi.paths)) {
   for (const [method, op] of Object.entries(methods)) {
     if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) continue;
     const seg = path.split('/').filter(Boolean)[2] ?? 'root'; // after api/v1
-    if (!groups.has(seg)) groups.set(seg, []);
-    groups.get(seg)!.push({
-      method: method.toUpperCase(),
-      path,
-      summary: (op.summary ?? op.description ?? '').replace(/\|/g, '\\|').slice(0, 90),
-      perm: permissionFor(path, method),
-    });
+    const bucket = groups.get(seg);
+    if (bucket) {
+      bucket.push({
+        method: method.toUpperCase(),
+        path,
+        summary: (op.summary ?? op.description ?? '').replace(/\|/g, '\\|').slice(0, 90),
+        perm: permissionFor(path, method),
+      });
+    }
   }
 }
 
