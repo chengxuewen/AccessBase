@@ -1,0 +1,38 @@
+{
+  "$comment": "Host adapter registry — the single source of host integration truth (plan 2026-11-04 Batch 2, VE schema pruned). Layers: rules-links / skills-index / memory-aggregate (constraints-index joins at Batch 3). Generated host layers are per-machine (ADJ-2d ruling A): gitignored, rebuilt by `agents sync`.",
+  "rules_root": ".agents/rules",
+  "skills_root": ".agents/skills",
+  "memorys_root": ".agents/memorys",
+  "memory_hub": "AGENTS.md",
+  "constraints_hub": "CONSTRAINTS.md",
+  "mcp_source": ".agents/mcp.json",
+  "mcp_local": ".agents/mcp.local.json",
+  "generated_tracked": ["AGENTS.md", "CONSTRAINTS.md", ".opencode/opencode.json", ".mcp.json"],
+  "rules_exclude_dirs": ["zh"],
+  "rules_exclude_reason": "zh/ is the pre-2026-09-21 Chinese mirror of common/ (legacy, no-back-translation policy keeps it on disk but host activation layers must not double-load it — MS D199 precedent)",
+  "always_on_rules": ["common-constraints", "common-security"],
+  "rule_descriptions": {
+    "common-constraints": "Hard development constraints: lockfile discipline, forbidden operations, hook status. Use when committing dependency changes or touching git workflow.",
+    "common-security": "Security guidelines for JWT/OAuth/RBAC surfaces: mandatory checks before auth-adjacent edits. Use when editing auth, secrets, or permission code."
+  },
+  "hub_budget": { "hard": 30000, "warn": 28500 },
+  "targets": [
+    {
+      "label": "codebuddy",
+      "enabled": true,
+      "rules_dir": ".codebuddy/rules",
+      "rules_mode": "mdc",
+      "skills_dir": ".codebuddy/skills",
+      "gitignored": true,
+      "note": "symlink hosts only for now; the --copy fallback for symlink-less hosts (Windows) is NOT implemented — building it is a prerequisite before adopting a Windows host"
+    },
+    {
+      "label": "opencode",
+      "enabled": true,
+      "note": "reads .agents/ directly via instructions (read-through-first, VE D28); only the mcp region becomes generated at Batch 4 — no rules/skills layer this batch"
+    },
+    { "label": "trae", "enabled": false, "note": "shape reserved (copy mode when adopted)" },
+    { "label": "cursor", "enabled": false, "note": "shape reserved (flat .mdc layout when adopted, VE D55)" },
+    { "label": "claude", "enabled": false, "note": "shape reserved" }
+  ]
+}

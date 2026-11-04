@@ -66,6 +66,7 @@ After all adjudications are walked:
 ## Relations to Other Skills
 
 - `think-before-act` governs WHETHER to ask before acting (the decision gate) -- this skill governs the PRESENTATION protocol once asking is warranted. They stack: gate triggers, this protocol presents.
+- `expert-panel-review` produces graded finding lists with PRESERVED DISAGREEMENTS (conflict items are the product -- majority smoothing is banned there). When a walkthrough's items originate from a panel, present each conflict item as-is, both stances visible; this skill adjudicates, the panel does not pre-smooth.
 - `lesson-review`: if the user corrects format or method during a walkthrough, file the PIT/rule afterward per lesson-review.
 - `skill-router`: routes explicit how-do-I-decide questions here (the Adjudication row).
 

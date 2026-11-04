@@ -44,6 +44,17 @@ Build & Test:
   typecheck        Run TypeScript type checking
   lint             Run linting
   format           Format code
+  ci               Aggregate gate: typecheck + lint + test + agents check
+  agents sync      Regenerate host layers from .agents/ (idempotent)
+  agents check     Assert generated layers match the single source
+  agents status    Read-only governance overview
+
+Agent & MCP:
+  mcp status       MCP pin three-state report (ok/missing/DRIFT, read-only)
+  mcp setup        Install pinned MCP packages at exact versions
+  mcp index        First-time codegraph index build
+  mcp sync         Codegraph incremental index sync
+  (note: 'agents sync' regenerates config layers; 'mcp sync' syncs the codegraph index)
 
 Database:
   db:push          Push database schema
@@ -608,6 +619,50 @@ cmd_format() {
     log_ok "Format complete"
 }
 
+cmd_agents() {
+    ensure_node
+    local node_bin=".pixi/envs/default/bin/node"
+    [ -x "$node_bin" ] || node_bin="node"
+    local sub="${1:-status}"
+    case "$sub" in
+        sync|check|status)
+            "$node_bin" scripts/agents/agent-links.mts "$sub"
+            ;;
+        *)
+            log_error "Usage: accessbase.sh agents {sync|check|status}"
+            exit 1
+            ;;
+    esac
+}
+
+cmd_mcp() {
+    ensure_node
+    local node_bin=".pixi/envs/default/bin/node"
+    [ -x "$node_bin" ] || node_bin="node"
+    local sub="${1:-status}"
+    case "$sub" in
+        setup|status|index|sync)
+            "$node_bin" scripts/agents/mcp-cli.mts "$sub"
+            ;;
+        *)
+            log_error "Usage: accessbase.sh mcp {setup|status|index|sync}"
+            exit 1
+            ;;
+    esac
+}
+
+cmd_ci() {
+    log_info "ci: [1/4] typecheck..."
+    cmd_typecheck || exit 1
+    log_info "ci: [2/4] lint..."
+    cmd_lint || exit 1
+    log_info "ci: [3/4] test..."
+    cmd_test || exit 1
+    log_info "ci: [4/4] agents check (governance gates)..."
+    cmd_agents check || exit 1
+    log_ok "ci chain: all gates green"
+}
+
 # ===== Database Commands =====
 
 cmd_db_push() {
@@ -848,6 +903,9 @@ case "${1:-}" in
     typecheck)      cmd_typecheck ;;
     lint)           cmd_lint ;;
     format)         cmd_format ;;
+    ci)             cmd_ci ;;
+    agents)         shift; cmd_agents "$@" ;;
+    mcp)            shift; cmd_mcp "$@" ;;
 
     # Database
     db:push)        cmd_db_push ;;

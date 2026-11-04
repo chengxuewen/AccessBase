@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "local-codegraph": {
+      "command": "bash",
+      "args": [
+        "scripts/agents/mcp-launch.sh",
+        ".opencode/init-mcp-codegraph.mjs"
+      ]
+    },
+    "local-playwright": {
+      "command": "bash",
+      "args": [
+        "scripts/agents/mcp-launch.sh",
+        ".opencode/init-mcp-playwright.mjs"
+      ]
+    },
+    "local-drizzle": {
+      "command": "bash",
+      "args": [
+        "scripts/agents/mcp-launch.sh",
+        ".opencode/init-mcp-drizzle.mjs"
+      ]
+    }
+  }
+}

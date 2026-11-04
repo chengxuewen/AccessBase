@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# pre-commit — generated layers can never be committed stale (plan 2026-11-04
+# Batch 3; RCH pattern, D21/PIT-250: hooks are best-effort, gates verify — the
+# same invariants also run in `agents check` inside the ci chain).
+#
+# Flow: agents sync -> stage generated_tracked (missing path = exit 1, never a
+# silent skip, no `|| true` — RCH adjudication 11-A) -> agents check.
+set -uo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$ROOT"
+
+NODE_BIN=".pixi/envs/default/bin/node"
+if [ ! -x "$NODE_BIN" ]; then
+  NODE_BIN="$(command -v node)" || { echo "pre-commit: node not found"; exit 1; }
+fi
+if ! "$NODE_BIN" -e 'const [mj, mn] = process.versions.node.split(".").map(Number); process.exit(mj > 22 || (mj === 22 && mn >= 6) ? 0 : 1)'; then
+  echo "pre-commit: node $("$NODE_BIN" -v) cannot run .mts (needs >= 22.6 for native type stripping) — use the pixi env or upgrade node"
+  exit 1
+fi
+
+echo "pre-commit: agents sync (regenerate tracked layers)..."
+if ! "$NODE_BIN" scripts/agents/agent-links.mts sync; then
+  echo "pre-commit: agents sync failed — fix the cause, not the gate (CONSTRAINTS.md)"
+  exit 1
+fi
+
+echo "pre-commit: staging generated_tracked..."
+for f in $("$NODE_BIN" -e 'const t=require("./scripts/agents/agent-targets.json"); for (const f of t.generated_tracked) console.log(f)'); do
+  if [ ! -f "$f" ]; then
+    echo "pre-commit: generated_tracked path missing: $f — hard error, never a silent skip"
+    exit 1
+  fi
+  git add "$f" || { echo "pre-commit: git add failed for $f"; exit 1; }
+done
+
+echo "pre-commit: agents check..."
+if ! "$NODE_BIN" scripts/agents/agent-links.mts check; then
+  echo "pre-commit: agents check red — fix the cause, not the gate (CONSTRAINTS.md)"
+  exit 1
+fi
+echo "pre-commit: green"

@@ -1,6 +1,6 @@
 ---
 name: test-harness
-description: 'AccessBase TypeScript 全栈自动化测试工具架。从 SDD 文档生成 TDD 测试计划与测试代码骨架、AAA 模式强制执行、SDD-测试一致性验证、覆盖率缺口分析。交互式菜单驱动。支持 Vitest + Playwright + React Testing Library，Phase 感知（跳过未就绪模块）。'
+description: 'AccessBase TypeScript 全栈自动化测试工具架。从 SDD 文档生成 TDD 测试计划与测试代码骨架、AAA 模式强制执行、SDD-测试一致性验证、覆盖率缺口分析。交互式菜单驱动。支持 Vitest + Playwright + React Testing Library，Phase 感知（跳过未就绪模块）。Use when generating test plans or skeletons from SDD docs, or when analyzing coverage gaps.'
 ---
 
 # 测试工具架 (Test Harness)

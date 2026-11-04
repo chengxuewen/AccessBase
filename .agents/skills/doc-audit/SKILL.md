@@ -1,6 +1,6 @@
 ---
 name: doc-audit
-description: 'AccessBase 项目文档与架构审计。并行检查 AGENTS.md、记忆文件、决策记录、规则体系之间的自洽性、完整性、缺口和优化机会。以交互式问答与用户逐项确认每项发现，列出详情、方案与优劣、来源、影响、推荐。支持团队模式(大型审计)和背景代理模式(轻量检查)。'
+description: 'AccessBase 项目文档与架构审计。并行检查 AGENTS.md、记忆文件、决策记录、规则体系之间的自洽性、完整性、缺口和优化机会。以交互式问答与用户逐项确认每项发现，列出详情、方案与优劣、来源、影响、推荐。支持团队模式(大型审计)和背景代理模式(轻量检查)。Use when the user asks for documentation/architecture consistency checks or says 文档审计.'
 ---
 
 # 文档架构审计 (Document & Architecture Audit)

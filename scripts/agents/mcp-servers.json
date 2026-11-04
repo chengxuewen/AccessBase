@@ -1,0 +1,11 @@
+{
+  "$comment": "MCP pin registry (plan Batch 4). Pins = versions actually installed on 2026-11-04 (carry-current-verbatim spirit of ADJ-4a). Enabled servers: missing package or version drift = RED in gate-mcp. Disabled servers (local-postgres, local-github): package state is REPORTED only, never red. Probe = node require of the package's package.json.",
+  "servers": {
+    "local-codegraph": { "package": "@colbymchenry/codegraph", "pin": "1.6.0" },
+    "local-playwright": { "package": "@playwright/mcp", "pin": "0.0.80" },
+    "local-antd": { "package": "@jzone-mcp/antd-components-mcp", "pin": "1.0.45" },
+    "local-drizzle": { "package": "@iflow-mcp/defrex-drizzle-mcp", "pin": "1.0.0" },
+    "local-postgres": { "package": "@vitalyostanin/postgres-mcp", "pin": "latest-known", "note": "disabled server; not installed is fine" },
+    "local-github": { "package": "@modelcontextprotocol/server-github", "pin": null, "note": "remote npx form; no local pin" }
+  }
+}

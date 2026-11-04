@@ -21,7 +21,7 @@ think-before-act  →  [行动]  →  lesson-memory  →  doc-audit
                     lesson-review ← 批量补漏
 ```
 
-|      | `lesson-memory` 规则 (C9)    | `lesson-review` 技能        |
+|      | `lesson-memory` 规则        | `lesson-review` 技能        |
 | ---- | ---------------------------- | --------------------------- |
 | 时机 | 即时（每次错误后，自动触发） | 批量（会话结束/用户触发）   |
 | 方式 | 反射                         | 交互式回顾                  |
@@ -29,7 +29,7 @@ think-before-act  →  [行动]  →  lesson-memory  →  doc-audit
 | 互补 | 第一层防线（不遗漏）         | 第二层防线（不误判 + 归类） |
 
 - `think-before-act`（咨询）：行动前检查已有教训，避免重蹈
-- `lesson-memory`（C9 规则）：每次错误后**即时自动**写入，无需用户要求
+- `lesson-memory`（规则，`.agents/rules/common/lesson-memory.md`）：每次错误后**即时自动**写入，无需用户要求
 - `lesson-review`（本技能）：会话末**批量回顾**，查漏补缺、归类归档
 - `doc-audit`（审计）：定期检查记忆文件自洽性
 

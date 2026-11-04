@@ -9,6 +9,20 @@ platforms = ["linux-64", "osx-arm64", "osx-64"]
 nodejs = ">=20.0.0"
 pnpm = ">=9.0.0"
 
+[tasks]
+check-refs = { cmd = "node scripts/agents/rule-ref-lint.mts", description = "Standalone C/D/PIT reference lint (ADJ-1c ruling B; also runs inside agents-check)" }
+agents-sync = { cmd = "node scripts/agents/agent-links.mts sync", description = "Regenerate all host layers from .agents/ single source (idempotent)" }
+agents-check = { cmd = "node scripts/agents/agent-links.mts check", description = "Assert all generated layers match the single source (6 layers + hub budget)" }
+agents-status = { cmd = "node scripts/agents/agent-links.mts status", description = "Read-only governance overview (always exit 0)" }
+mcp-setup = { cmd = "node scripts/agents/mcp-cli.mts setup", description = "Install pinned MCP packages at exact versions" }
+mcp-status = { cmd = "node scripts/agents/mcp-cli.mts status", description = "MCP pin three-state report (ok/missing/DRIFT, read-only)" }
+mcp-index = { cmd = "node scripts/agents/mcp-cli.mts index", description = "First-time codegraph index build" }
+mcp-sync = { cmd = "node scripts/agents/mcp-cli.mts sync", description = "Codegraph incremental index sync" }
+typecheck = { cmd = "bash accessbase.sh typecheck", description = "TypeScript type checking (double-green)" }
+lint = { cmd = "bash accessbase.sh lint", description = "ESLint" }
+test = { cmd = "bash accessbase.sh test", description = "Vitest suites" }
+ci = { cmd = "echo 'ci chain: all gates green'", depends-on = ["typecheck", "lint", "test", "agents-check"], description = "Aggregate start-of-work gate (ADJ-3a ruling C); the ci gate list derives CONSTRAINTS.md's ci-gates region" }
+
 [feature.native.dependencies]
 postgresql = ">=16.0.0,<17"
 redis-server = ">=7.0.0,<8"

@@ -83,12 +83,13 @@ description: '元约束：先查再动手，列方案让用户审批，不蛮干
 ### 复杂变更：团队审核
 
 对于复杂变更（改构建/改架构/框架级问题/影响 >5 文件），
-用户审批后、执行前，增加团队审核环节：
+用户审批后、执行前，增加团队审核环节（引擎：`expert-panel-review`
+技能——复杂度设闸、角色隔离、分歧保留）：
 
 ```
-1. team_create — 创建审核团队（3 视角）
-2. 收集审核反馈 → 修订计划
-3. 用户确认修订 → 进入 Phase 3
+1. expert-panel-review（顺序轨或并行轨）— 2 固定核心角色 + 场景挂载
+2. 收集审核反馈 → 修订计划（分歧保留为冲突项，禁止多数抹平）
+3. 冲突项走 adjudication-walkthrough 逐项裁决 → 用户确认修订 → 进入 Phase 3
 ```
 
 审核发现的 CRITICAL 项必须修复。LOW 项可记录为技术债。
@@ -120,6 +121,11 @@ description: '元约束：先查再动手，列方案让用户审批，不蛮干
 | E2E        | 用户路径断裂 | `pixi run npx playwright test`       |
 | TypeScript | 类型错误     | `pixi run npx tsc --noEmit`          |
 
+治理面速查（2026-11-04 治理批次后）：改 `.agents/` 或生成物后跑
+`bash accessbase.sh agents check`；开工/交付总门 `bash accessbase.sh ci`
+（typecheck + lint + test + agents check）；新门禁必须带红/绿负例演示
+（CONSTRAINTS.md 验证纪律）。
+
 ---
 
 ## 禁止清单（做 X 前先验证 Y）
@@ -137,13 +143,16 @@ description: '元约束：先查再动手，列方案让用户审批，不蛮干
 
 ## 与现有技能的关系
 
-| 技能                             | 关系                                                  |
-| -------------------------------- | ----------------------------------------------------- |
-| `lesson-memory`                  | think-before-act 查过去教训；lesson-memory 记新教训   |
-| `systematic-debugging`           | think-before-act 管"修之前先查"；debugging 管"怎么修" |
-| `verification-before-completion` | think-before-act 管"动手前"；verification 管"完成后"  |
-| `ecosystem-scan`                 | 查社区生态有无现成方案                                |
-| `conventions.md §编辑约束`       | 编辑后立即 tsc — think-before-act 的"执行后验证"      |
+| 引用                                        | 关系                                                  |
+| ------------------------------------------- | ----------------------------------------------------- |
+| `rule:lesson-memory`                        | think-before-act 查过去教训；lesson-memory 记新教训   |
+| `plugin:systematic-debugging`               | 外部插件技能（superpowers 系）：管"怎么修"（本仓未随仓分发） |
+| `plugin:verification-before-completion`     | 外部插件技能：管"完成后"验证（本仓等价物 = CONSTRAINTS.md 验证纪律） |
+| `skill:expert-panel-review`                 | 复杂变更的团审引擎（本技能 Phase 2 挂载）             |
+| `skill:adjudication-walkthrough`            | 团审冲突项与多方案抉择的逐项裁决呈现                  |
+| `skill:code-review-and-quality`             | 变更完成后的结构化代码审查（执行后验证的技能档）      |
+| `skill:ecosystem-scan`                      | 查社区生态有无现成方案                                |
+| `conventions.md §编辑约束`                   | 编辑后立即 tsc — think-before-act 的"执行后验证"      |
 
 ---
 

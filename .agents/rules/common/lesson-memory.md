@@ -75,5 +75,36 @@
 
 ## 预防升级（高成本/高频教训）
 
-- 重复 ≥2 次或耗费 >3 轮定位 → 添加 CI 门禁或 pre-commit hook
-- 低频/低成本 → 仅记录到 pitfalls.md
+## Escalation ladder (2026-11-04, governance plan Batch 1 — MS lesson-memory graduation rule)
+
+Recording a pitfall is the FIRST step, not the last. Every pitfall must map to
+an executable check; "be careful next time" is not an artifact.
+
+| Repetition / cost signal | Required graduation |
+| --- | --- |
+| Low frequency, low cost | pitfalls.md entry only |
+| Same pitfall class ≥ 2 times, or > 3 failed attempts to localize | add a rule to the matching rules file (edit-safety / testing / patterns) |
+| A rule that keeps being missed in review | promote to a machine check: lint / gate / pre-commit hook |
+| A machine check exists but was bypassed | escalation incident: record as PIT + tighten the gate — never weaken the assertion (CONSTRAINTS.md "Fix the cause, not the gate") |
+
+## Numbering discipline (RCH:C10 / RCH:PIT-241 lesson)
+
+- Before taking a new number (D / PIT / C), read the CURRENT maximum in the
+  target file — never "max I remember + 1". Parallel sessions taking numbers
+  blindly have collided before.
+- The same number defined twice is a hard error; `pixi run check-refs`
+  (rule-ref-lint) flags duplicates.
+- Explanatory mentions in prose ("two numbers were skipped") must NOT use the
+  bare citation shape (kind letter + number) — bare numbers are reserved for
+  real citations that resolve (lint boundary, discovered live 2026-11-04).
+- Cross-repo lesson citations always carry the `MS:` / `VE:` / `RCH:` prefix
+  (ADJ-1b ruling A); bare cross-repo numbers read as dangling on purpose.
+
+## Anti-patterns
+
+| Anti-pattern | Correct behavior |
+| --- | --- |
+| "Noted, will be careful" with no written artifact | Write the PIT / rule / check in the same turn |
+| Pitfall recorded with no prevention hook | Map it to an executable check, or name why none exists |
+| Fixing a red gate by weakening the check | Fix the cause; the gate is right until proven otherwise |
+| Numbering from memory instead of reading the file | Read the current maximum first (see Numbering discipline) |

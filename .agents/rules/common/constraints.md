@@ -20,6 +20,6 @@
 
 ### 禁止事项
 
-- 禁止 `--no-verify` 跳过 git pre-commit hook（已启用 `tsc --noEmit` 校验）
+- 禁止 `--no-verify` 跳过 git pre-commit hook。NOTE (2026-11-04): the tsc pre-commit check is PLANNED (governance plan Batch 3, `.omo/plans/2026-11-04-agent-governance-port.md`) and NOT yet installed — do not claim it as enforced until `core.hooksPath` is set and the hook file exists.
 - 禁止使用 `sed` 修改代码（见 edit-safety.md）
 - 禁止全局 MODACS→AccessBase 替换 — 使用手术式精确编辑

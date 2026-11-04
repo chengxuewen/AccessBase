@@ -44,6 +44,11 @@ cd "${PROJECT_ROOT}"
 pnpm install
 echo "  Dependencies installed"
 
+# Step 3.5: activate repo-owned git hooks (a fresh clone has NO hooks —
+# RCH PIT-250 lesson; the hook itself is best-effort, agents check verifies)
+git config core.hooksPath .githooks
+echo "  Git hooks activated (core.hooksPath=.githooks)"
+
 # Step 4: Start dev services
 echo "[4/4] Starting development services..."
 if command -v docker &>/dev/null; then

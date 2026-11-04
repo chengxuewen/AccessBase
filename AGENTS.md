@@ -117,7 +117,7 @@ pixi run dev                        # Same as bash accessbase.sh dev:native
 
 ## NOTES
 
-- 124 design decisions documented in `.agents/memorys/decisions.md` (D1-D126; D107/D108 never used)
+- 124 design decisions documented in `.agents/memorys/decisions.md` (numbering runs D1–D126; two numbers were intentionally skipped and never assigned)
 - 90 pitfalls documented in `.agents/memorys/pitfalls.md` (PIT-001~088; heading count includes addendum entries)
 - Architecture doc split into 44 module files under `docs/modules/` — each carries an `Implementation status` line (gate: `grep -L 'Implementation status' docs/modules/*.md` -> empty)
 - Each module has back-link to `architecture.md` stub
@@ -127,3 +127,86 @@ pixi run dev                        # Same as bash accessbase.sh dev:native
 - Deploy mode: build to `out/`, single-port serve (API + UI)
 - Auth endpoints: login/me/logout/refresh (wired to UserManager)
 - User CRUD: 7 API endpoints + frontend UI + E2E tests
+<!-- BEGIN:skills-directory -->
+Skills single source: `.agents/skills/*/SKILL.md`; routing surface = each
+frontmatter `description`. Maintained by `agents sync` — do not hand-edit this region.
+
+| Skill | Purpose |
+|---|---|
+| `adjudication-walkthrough` |  |
+| `book-to-skill` |  |
+| `code-review-and-quality` |  |
+| `code-simplification` |  |
+| `design-system` |  |
+| `doc-audit` |  |
+| `ecosystem-scan` |  |
+| `expert-panel-review` |  |
+| `graphify` |  |
+| `lesson-review` |  |
+| `security-hardening` |  |
+| `skill-creator` |  |
+| `skill-router` |  |
+| `test-harness` |  |
+| `think-before-act` |  |
+<!-- END:skills-directory -->
+<!-- BEGIN:agents-memory -->
+Navigable digest — one bullet per entry; full text in `.agents/memorys/*.md`,
+read on demand. Maintained by `agents sync`; do not hand-edit this region.
+
+### decisions
+- full text: `.agents/memorys/decisions.md`
+... 99 older entries omitted (read the full file)
+- D100: CLI 脚本架构 (2026-08-21)
+- D101: 四种构建模式架构 (2026-08-27)
+- D102: Deploy 模式单端口服务 (2026-08-27)
+- D103: Admin 自动创建策略 (2026-08-27)
+- D104: E2E 测试不覆盖跨 session 状态 (2026-08-27)
+- D105: 用户 CRUD API 类型约束 (2026-08-27)
+- D106: E2E 测试 Mock vs 真后端策略 (2026-08-27)
+- D110: 安全基座架构（RS256 回退 + DB 权威会话 + 可注入审计存储） (2026-08-31)
+- D111: FlowTokenService 单次用途 token 作为多步认证主干 (2026-08-31)
+- D109: GitHub OAuth 豁免 PKCE（经典 OAuth App 限制） (2026-08-31)
+- D112: 用户名无发现 WebAuthn Passkey 作为主登录因子 (2026-08-31)
+- D113: Setup 状态以 DB 为准 + env 双变量旁路 (2026-09-01)
+- D114: 已知 bug 用 E2E RED 回归网锁定（test.fail 标注法） (2026-09-03)
+- D115: 授权强制走 requirePermission preHandler（偏离 identity-sdd §3.3 plugin 路线） (2026-09-04)
+- D116: Frontend state-stack review — keep Zustand + declarative react-router v7; TanStack Query deferred (2026-09-10)
+- D117: Runtime migration sole writer = scripts/migrate.sh (bash+psql over committed drizzle SQL chain) (2026-09-20)
+- D118: Tenant permission partition + binding funnel + platform belt (multi-tenant control plane) (2026-09-20)
+- D119: Metrics exposure posture + backup/restore as secret-bearing ops (2026-09-21)
+- D120: OIDC adapter state = single generic PG table, verbatim payload, parity-over-reasoning (2026-09-21)
+- D121: English-only persistence policy (Chinese restricted to live conversation) (2026-09-21)
+- D122: CI topology — Gitee origin + Gitee-side one-way mirror to GitHub for Actions (2026-09-23)
+- D123: Retire the openspec skill family (superseded by the superpowers spec pipeline) (2026-09-23)
+- D124: Batch O snapshot strategy — applied chain frozen, v7 rebuilt from the authoritative writer (2026-09-23)
+- D125: Rotation replay classifier — 10s concurrent grace distinguishes double-fire from family burn (2026-09-23)
+- D126: Gap-audit remediation ladder + documentation status-header gate (2026-09-23)
+
+### pitfalls
+- full text: `.agents/memorys/pitfalls.md`
+... 77 older entries omitted (read the full file)
+- PIT-078: env-pinned config 单例 × vitest import 提升——顶层赋值晚于求值；resetModules 多次 buildApp 触发 prom-client 双注册 (2026-09-23)
+- PIT-076 addendum (2026-09-23, batch P): 审计报告与 PoC 交付物同属 claims——派修复前逐行 grep
+- PIT-080: 给 /login 页壳新增公开探针端点后未同步 e2e mock，17 个 spec 连锁红（2026-09-23）
+- PIT-081: 值记忆化的异步构造函数在并发首波下退化为每请求实例（2026-09-23）
+- PIT-082: vi.mock 代理对未声明导出「访问即抛」，typeof 守卫救不了（2026-09-23）
+- PIT-080 追加（2026-09-23 Q3E）：/login 壳探针名册适用于【任何】新壳级 fetch，captcha/status 复发一次
+- PIT-083: 连续重跑打爆共享 Redis rate 桶 → 跨文件 429 假回归 (2026-09-24, Q4b)
+- PIT-082 addendum (2026-10-08 verification day): same family re-fire via buildApp destructure
+- PIT-084: node-saml SLO/ACS integration triple trap (2026-10-08, logout-coherence)
+- PIT-085: oidc-provider RP walls — human-confirm logoutSource + built-in SSRF dispatcher (2026-10-08, verification day)
+- PIT-086: StrictMode double-fire burns one-time exchange codes; mocks structurally hide it (2026-10-08, verification day)
+- PIT-087: bash-tool timeout reaps detached children; ctx_execute background sandbox survives (2026-10-08, verification day)
+- PIT-088: emitEvent on a TX handle poisons the COMMIT — telemetry rides its own pool (2026-10-12, Q3D integration)
+- PIT-089: "Creating" a file that is git-tracked-but-deleted silently overwrites repo history
+- PIT-090: A host consuming the generated MCP declaration can fire self-healing installs that drift the dependency tree
+
+### status
+- full text: `.agents/memorys/status.md`
+- 模块状态
+- 代码结构
+- 设计决策汇总
+- 测试覆盖
+- 运行模式
+- 近期工作
+<!-- END:agents-memory -->

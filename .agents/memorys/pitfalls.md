@@ -666,3 +666,11 @@
 - **Root cause**: a fire-and-forget `void emitEvent(tx, {...}).catch(...)` launched from inside `routeTx`'s transaction — the floating INSERT and the pending COMMIT race the SAME pooled client. The tx never committed; every write in it was silently discarded.
 - **Fix**: telemetry NEVER rides the tx handle. Q3D emits via `authDb()` (the sanctioned fire-and-forget pool, auth-events.ts family) after the effects; the tx carries only the business writes (revoke/bump/nulling). Constraints: conventions "Phase Q3D backchannel-logout" + Q4c events discipline already said "emit on the CALLER tx handle" for manager funnels — that rule is for SYNCHRONOUS awaited emits; fire-and-forget telemetry is a DIFFERENT lane and must use a non-tx pool.
 - **Verification**: `grep -c "emitEvent(tx" apps/server/src/routes/oauth-backchannel-logout.ts` = 0; integration I1 asserts persisted state via a separate pool (the net that caught this).
+
+## PIT-089: "Creating" a file that is git-tracked-but-deleted silently overwrites repo history
+
+- **Symptom**: a "Create new file" write during the Batch 5 skill port replaced a 157-line repo-specific `think-before-act/SKILL.md` the working tree no longer had — no tool warning, because the working-tree path was indeed absent.
+- **Root cause**: the file was still TRACKED in git (deleted from the tree earlier, never committed as a deletion). Neither the write tool nor the plan checked `git ls-files` for the target path, so "create" semantics were assumed from tree state alone. A second cousin in the same batch: a hook version-probe shipped with an unclosed paren that inverted its verdict — written, not run, almost shipped (RCH:PIT-246 shape).
+- **Solution**: before any "create" of a path that plausibly existed, run `git ls-files -- <path>`; if tracked, read HEAD's version (`git show HEAD:<path>`) and merge instead of overwrite. Every new probe/gate gets one real run before it is believed (already enforced by CONSTRAINTS.md verification discipline; this pit is the personal-scale version of it).
+- **Verification**: `git show HEAD:.agents/skills/think-before-act/SKILL.md | wc -l` (157 restored, then fused); `bash .githooks/pre-commit` → green after the probe fix.
+- **Prevention**: lesson-memory escalation — this is a rule now: check tracked-ness before create-class writes; run new probes before trusting them.

@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: '为 AccessBase 企业应用平台生成一致的 UI。引导 AI 代理创建符合 AccessBase 设计系统的前端界面。'
+description: '为 AccessBase 企业应用平台生成一致的 UI。引导 AI 代理创建符合 AccessBase 设计系统的前端界面。Use when creating or reviewing admin-UI pages and components.'
 compatibility: >-
   Designed for Claude Code, GitHub Copilot, 和类似 AI 编码代理。
 disable-model-invocation: false
