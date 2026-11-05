@@ -1,6 +1,6 @@
 # 品牌定制机制
 
-> **Implementation status (as of 2026-11-05, evidence: source scan of `apps/admin-ui/src` + `packages/*/package.json` inventory):** `partial` — branding ships as **one runtime mechanism, not three**: `apps/admin-ui/src/branding.ts` reads `siteName` / `logoUrl` / `primaryColor` from the options table through the public `/setup/status` probe (already on the login-page contract), with a module-level cache and fail-soft empty values meaning "not configured → built-in chrome". It **is** on the login surface now (`Login`, `MagicLogin`, `ForgotPassword`, `Register`, `VerifyEmail`, `AdminLayout`, `Settings`). What remains unwritten is the §16.5 component-injection model — and note that its example imports **`@accessbase/react`, a package that does not exist in this repo** (roadmap L1 T17), so §16.5 currently documents an SDK surface rather than a gap. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-05, evidence: source scan of `apps/admin-ui/src` + `packages/*/package.json` inventory):** `partial` — branding ships as **one runtime mechanism, not three**: `apps/admin-ui/src/branding.ts` reads `siteName` / `logoUrl` / `primaryColor` from the options table through the public `/setup/status` probe (already on the login-page contract), with a module-level cache and fail-soft empty values meaning "not configured → built-in chrome". It **is** on the login surface now (`Login`, `MagicLogin`, `ForgotPassword`, `Register`, `VerifyEmail`, `AdminLayout`, `Settings`). What remains unwritten is the §16.5 component-injection model — **resolved by product ruling 2026-11-05 (roadmap R11=A)**: §16.5's example imports `@accessbase/react`, a package that does not exist here and was never scheduled; the section is **design intent, signal-gated** (rises with a real consumer frontend), not a gap. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 >
 > _Prior verdict (2026-09-23 gap audit, superseded by the line above, kept for provenance):_ `partial` — site.name/logo shipped; three-method injection model unimplemented; branding not on login surface.
 
@@ -96,6 +96,8 @@ brand:
 ```
 
 ### 16.5 组件注入示例
+
+> **Design intent — unimplemented, signal-gated (product ruling 2026-11-05, roadmap R11=A).** The example imports `@accessbase/react`, which does not exist in this repo and was never scheduled; per-tenant component injection rises only when a real consumer frontend starts. The shipped branding mechanism is the single runtime path described in the status header above. See roadmap L1 T17.
 
 ```typescript
 // React 组件注入

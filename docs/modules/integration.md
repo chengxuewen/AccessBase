@@ -1,6 +1,6 @@
 # 集成架构
 
-> **Implementation status (as of 2026-11-05, evidence: `apps/server/src/utils/webhook-dispatcher.ts:111` + `apps/server/src/utils/webhook-metrics.ts`):** `partial` — pull integrations (OIDC/SCIM/API-key) shipped; the push side **is not absent**: the events outbox and webhook dispatcher are in production use with a `FOR UPDATE SKIP LOCKED` claim, a 60 s lease, delivery-outcome counters and backlog/oldest-pending gauges (metrics consumed by `docker/prometheus/rules.yml`). **Caveat found in the same scan:** §15 below still documents a `@accessbase/react` SDK surface — an import example, an SDK table row and a deploy manifest entry — for a package that does not exist here; see roadmap L1 T17. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-05, evidence: `apps/server/src/utils/webhook-dispatcher.ts:111` + `apps/server/src/utils/webhook-metrics.ts`):** `partial` — pull integrations (OIDC/SCIM/API-key) shipped; the push side **is not absent**: the events outbox and webhook dispatcher are in production use with a `FOR UPDATE SKIP LOCKED` claim, a 60 s lease, delivery-outcome counters and backlog/oldest-pending gauges (metrics consumed by `docker/prometheus/rules.yml`). **Caveat found in the same scan, resolved by product ruling 2026-11-05 (roadmap R11=A):** the `@accessbase/react`/`vue`/`sdk`/`jwt` UI-component family in §15.3-§15.5 is **design intent, unimplemented, signal-gated** — none of these packages exists here and none was ever scheduled; §15.2's standard OIDC path is the shipped, live-fire-proven route. Read §15.3-§15.5 in future tense; the layer rises only when a real consumer frontend (MediaServo / MES) starts. See roadmap L1 T17. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 >
 > _Prior verdict (2026-09-23 gap audit, superseded by the line above, kept for provenance):_ `partial` — push side (webhooks/events) absent (A8/A9).
 
@@ -47,6 +47,8 @@ const endpoints = {
 ### 15.3 UI 层可选
 
 #### 15.3.1 多框架 UI 组件库
+
+> **Design intent — unimplemented, signal-gated (product ruling 2026-11-05, roadmap R11=A).** The component libraries below belong to the optional UI layer: no such package exists in this repo and none was ever scheduled. The shipped route is §15.2's standard OIDC (any stack via `oidc-client-ts` etc.). Rise condition: a real consumer frontend integration (MediaServo / MES) starts. See roadmap L1 T17.
 
 ```typescript
 // React 组件（可选）
