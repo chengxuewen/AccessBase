@@ -9,20 +9,30 @@ AccessBase architecture design documentation. 42 chapters covering IAM system de
 ```
 docs/
 ├── architecture.md      # Stub index (links to modules/)
-└── modules/             # 44 design documents, each with an implementation-status header
-    ├── overview.md      # §1-§7 概述/需求/定义/架构 (217 lines)
-    ├── tech-stack.md    # §9 技术栈选型
-    ├── core-packages.md # §10 核心包详细设计 (382 lines)
-    ├── distributed.md   # §11 分布式架构
-    ├── auth-provider.md # §12 认证提供商架构
-    ├── monitoring.md    # §13 监控与告警
-    ├── ui.md            # §14+§37 UI设计 (2678 lines, largest)
-    ├── security.md      # §19+§25+§29+§36 安全全量 (1035 lines)
-    ├── database.md      # §22 Schema设计
-    ├── api.md           # §23 API规范
-    ├── testing.md       # §30 测试策略
-    └── ...              # 20 more modules
+├── implementation-plan.md  # LONG-TERM PLAN & phase roadmap (live, top of file) + preserved v3.0 plan below
+├── openapi.json         # Generated API contract surface
+├── modules/             # 44 design documents, each with an implementation-status header
+│   ├── overview.md      # §1-§7 概述/需求/定义/架构 (217 lines)
+│   ├── tech-stack.md    # §9 技术栈选型
+│   ├── core-packages.md # §10 核心包详细设计 (382 lines)
+│   ├── distributed.md   # §11 分布式架构
+│   ├── auth-provider.md # §12 认证提供商架构
+│   ├── monitoring.md    # §13 监控与告警
+│   ├── ui.md            # §14+§37 UI设计 (2678 lines, largest)
+│   ├── security.md      # §19+§25+§29+§36 安全全量 (1035 lines)
+│   ├── database.md      # §22 Schema设计
+│   ├── api.md           # §23 API规范
+│   ├── testing.md       # §30 测试策略
+│   └── ...              # 20 more modules
+├── superpowers/         # plans/ (per-batch, incl. the agent-governance plan) · specs/ · reports/ (audits)
+├── runbooks/            # operational procedures (key rotation, multi-node)
+└── reference/           # reference material, not our design truth
 ```
+
+> Index gap closed 2026-11-05: `implementation-plan.md`, `openapi.json`, `superpowers/`,
+> `runbooks/` and `reference/` existed on disk but were absent from this tree — the panel finding
+> "the authoritative backlog is not indexed from the entry point a reader is told to start at"
+> was about this file, not only about the plan.
 
 ## WHERE TO LOOK
 

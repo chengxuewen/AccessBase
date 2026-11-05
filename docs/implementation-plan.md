@@ -1,6 +1,391 @@
+# AccessBase — Long-Term Plan & Phase Roadmap
+
+> **As of:** 2026-11-05 · **Ratified by:** 10 one-at-a-time user rulings (R1–R10, §8 below)
+> **Supersedes:** the v3.0 plan retained at the foot of this file (per R9, option ①: kept in
+> place with a superseded header, not deleted). **Replaces:** nothing outside this file — phase
+> batches continue to live in `docs/superpowers/plans/` (48 files, existing convention).
+
+---
+
+## 0. How to read this document — evidence classes
+
+Every claim carries its evidence class. This convention exists because the audit that produced
+this plan found **9 claims in the repo's own status documents that were contradicted by the
+code** — the failure mode is not missing work, it is trusting a stale list.
+
+| Tag | Meaning |
+|---|---|
+| `[measured]` | Verified on this machine during the 2026-11-04/05 audit; command stated or reproducible |
+| `[doc-claim]` | Asserted by a repo document, **not independently re-checked** — do not schedule on it alone |
+| `[unverified]` | Deliberately not tested; becomes a prerequisite measurement, never a premise |
+
+Naming convention (added by review D3 to stop prefix collisions): this document's rows are
+`T#` (truth), `E#` (engineering health), `V#` (verification debt), `S#` (phase), `R#` (ruling of
+2026-11-05). Panel findings are always written with their report's date and dash form —
+`C-1…C-4` / `E-1…E-6` / `D-1…D-6` / `X-1…X-3` — and never abbreviated to bare `E1` or `D1`.
+
+Rule (binding): a `[doc-claim]` may not appear in a phase's scope until it is re-measured or
+re-labelled. Re-judging a claim is recorded by date, not by silent edit.
+
+Rule (binding, added by the 2026-11-05 self-review): a `[measured]` tag may not assert more than
+the stated command actually covered, and any figure taken from a build artifact rather than a
+fresh run must carry `asOf <artifact date>`. This rule exists because the first draft of this very
+document broke it three times (the dead-package claim, the panel item count, the coverage rows).
+
+**This document is inside the scope of the S1 lint, not above it.** The 2026-11-05 self-audit
+counted 45 evidence tags here (30 `[measured]`, 7 `[doc-claim]`, 8 `[unverified]`), roughly 17
+hand-written measurable figures, and 14 `[measured]` tags without a machine-parseable anchor —
+and the counting script itself proved heuristic: at least 3 of those 14 are false positives
+(the legend row, the rule text, a table header), because it matched prose mentioning a tag rather
+than an assertion carrying one. Consequence, deliberate rather than an oversight: the anchors
+added below are spot fixes on the rows most load-bearing for a deletion or a phase, and the
+**complete** anchor/date reconciliation of this file is an S1 deliverable performed by the same
+lint that judges the 44 module headers — not by another round of hand-written scripts, which is
+the step that failed three times during this audit.
+
+Sixth self-violation caught by machine rather than by reading: the §4 separator row declared four
+columns against a three-column header. The 10 code spans that still contain raw pipes (the grep
+pattern list in Tier 3) are inside ordinary paragraphs, not table cells, so they are left as-is —
+flagging them was the checker over-reaching, not a defect. Lesson recorded for the S1 lint design:
+cell/column consistency and in-cell pipes are machine-checkable; "is this code span inside a table"
+is the qualifier that stops a format gate from crying wolf.
+
+---
+
+## 1. Overview
+
+AccessBase is an enterprise IAM foundation (Fastify + Drizzle + PostgreSQL + Redis, React +
+Ant Design admin UI). The shipped surface covers authentication (password/MFA/captcha/OAuth/
+OIDC provider + generic RP/SAML SP/magic link/SMS OTP/LDAP/passkey), RBAC with tenant
+partition and per-binding row scopes, users/groups/roles CRUD, audit with a tamper-evident
+chain and sanctioned erasure, events outbox + webhook dispatcher, helpdesk self-service,
+multi-tenant control plane, metrics and backup operations `[doc-claim, from AGENTS.md — not
+re-run in this audit]`.
+
+This plan exists because the backlog had **many coexisting carriers with no authority between
+them** — measured on 2026-11-05: this file's v3.0 plan, `docs/superpowers/plans/`, `specs/`,
+`reports/`, the root `AGENTS.md` status paragraph, gitignored `.omo/plans/`, and
+**three separate adjudication sections inside the governance plan alone** (16 points, Batch 7's 11
+points, an OpenCode set added by a concurrent session) plus two execution logs — and because the
+oldest carrier still announced "waiting to start implementation" eleven weeks after Phase 9.
+
+---
+
+## 2. Backlog — four layers
+
+### L1 · Truth layer — reconcile before anything is scheduled
+
+Ten contradictions found and evidenced in this audit. None require code; each requires a
+judgement about which side is real.
+
+| # | Claim in the documents | Reality `[measured]` | Where to fix |
+|---|---|---|---|
+| T1 | `integration.md`: "push side (webhooks/events) absent" | `apps/server/src/utils/webhook-dispatcher.ts` exists, with `FOR UPDATE SKIP LOCKED` at :111 and a 60 s lease | module status header, re-judge |
+| T2 | `audit-sdd.md`: tamper chain "STILL design-only/deferred" | `utils/audit-verify.ts`, `utils/audit-anchor.ts`, `routes/audit.ts` all exist | module status header |
+| T3 | `database.md`: "§22.4 retention/archival unimplemented" | SQL uses `current_date - make_interval(days => retentionDays)`; `archiveAfterDays: 90` present | module status header |
+| T4 | `compliance.md`: "data-export absent; user delete hard-cascades" | `/api/v1/audit-logs/export` and `/api/v1/users/export` exist; erasure is implemented as a compliance act with orphan checks | module status header + scope question (does export satisfy portability?) |
+| T5 | gap-map-v2 §3: password history/expiry "deferred P2" | `passwordHistory` insert/delete/keep logic present | deferred ledger entry |
+| T6 | `permission.ts:36`: "Scope engine is a spec non-goal for now" | `utils/data-scope.ts` + `roles.ts` `all/dept/self` enum + `DATA_SCOPE_RANK` clamp are live | source comment |
+| T7 | `CHANGELOG.md` last entry 2026-10-12 | commits since then: `[measured]` asOf 2026-11-05, line count of `git log --oneline --since=2026-10-13` output (recount before use — a moving target while batches land) | CHANGELOG, batch-collapsed entries |
+| T8 | `.agents/memorys/status.md` recent-work stops 09-12; baselines quoted as vitest 491 / e2e 107 | AGENTS.md quotes 1556 / 184; neither re-run in this audit `[unverified]` | status.md + one measured run |
+| T9 | `AGENTS.md` remaining ladder lists "re-encrypt tool" as outstanding | `scripts/re-encrypt.ts` delivered 2026-10-08 (CHANGELOG) | AGENTS.md status line |
+| T10 | Batch 3 was marked `EXECUTED` while its "gates into checked-in CI" deliverable had not landed | `.github/workflows/ci.yml` now has `Governance Gates` (7f); the false EXECUTED is already AMENDED in the governance plan | closed, documented |
+| T11 | `AGENTS.md`'s "Status:" paragraph and OVERVIEW batch narrative carry un-recounted counts and dated claims (last full re-check 2026-10-08) | partially purged by ADJ-7h on 2026-11-04; the narrative paragraphs were not re-checked in this audit `[unverified]` | AGENTS.md status line + overview, inside S1 |
+| T12 | `monitoring.md` §13.3 says "alerting … unimplemented" — conflating two different things | `[measured]` 2026-11-05: `docker/prometheus/rules.yml` **does** ship alert definitions (`AccessBaseAuthFailureSpike`, `AccessBaseNotReady`) while `prometheus` appears 0 times in all three compose files, `Dockerfile` and both entrypoints. So: rules exist as an operator-facing sample, integration is out of scope — "unimplemented" is neither right nor wrong, it is the wrong question | `monitoring.md` status header + the `rules.yml` header comment, both inside S1 |
+
+### L2 · Engineering health
+
+| # | Item | Evidence |
+|---|---|---|
+| E1 | Coverage ratchet stalled: floors `statements 46 / lines 46 / branches 71 / functions 70`, comment says "raise ~5pt per batch, never lower" written 2026-09-20 | `[measured]` vitest.config.ts:20-27 |
+| E2 | Measured reality (`asOf` the 2026-11-02 `coverage/coverage-final.json`; **not re-run** in this audit): **56.33 % statements / 80.23 % functions / 79.31 % branches**; `apps/server` 90.43 %, `packages/audit` 88.83 %, `packages/identity` 82.48 %, **`apps/admin-ui` 2.51 % (198/7903, 65 files at zero)**; 4 unused packages + logging + types at 0 % | `[measured]` coverage-final.json dated 2026-11-02 |
+| E3 | Unused packages — per-package status differs, **no blanket claim**: `admin` 1356 lines, 0 source imports **and** 0 dependency declarations → truly orphaned. `i18n` 162 lines, 0 imports but **declared in `apps/server/package.json` `dependencies` (`workspace:*`) — a phantom declaration**. `health` 881 lines, 0 imports but 1 type-only import (`identity/src/fastify.d.ts:7`) **plus a phantom production declaration**, and it duplicates the live `routes/health.ts` (139 lines). `migration` 835 lines, 0 imports, 0 declarations, **but it is the execution host of `db:push`/`db:generate`/`db:migrate`** (root `package.json:24-26` → `pnpm --filter @accessbase/migration`; `accessbase.sh:668`) → live tooling, not dead | `[measured]` 2026-11-05: source-import grep + `package.json` dependency scan + command chain trace |
+| E3b | **Phantom production dependency declarations** (`@accessbase/health`, `@accessbase/i18n` declared by `apps/server` but imported nowhere): dead wiring that survives `pnpm install`, misleads consumer analysis, and would break a `--frozen-lockfile` build if the packages vanished without removing the declarations. Whether this counts as "a consumer" for R4 purposes is unresolved → panel conflict **X-2** | `[measured]`; classification open |
+| E3c | **Build-chain coupling — a fourth kind of consumer, missed by the first draft of S3.** `accessbase.sh:809` runs `for pkg in types logging i18n migration health identity audit admin` and `:575` does `pnpm --filter @accessbase/migration build`. So every one of the four packages is wired into the repo's build/prepare path even with zero source importers: deleting a package without editing these two sites is a silent-behaviour or hard-failure change. Also `[measured]`: the root has **no** `drizzle-kit`/`drizzle-orm` dependency, so moving the `db:*` scripts to root would add one (a lockfile change) | `[measured]` 2026-11-05, added by the self-review after panel P2 exposed the single-axis view |
+| E4 | Empty-catch cleanup is done (0 occurrences, re-checked with a multiline-aware regex) **but no ESLint rule guards it** — only `no-empty-pattern: warn` is configured | `[measured]` eslint.config.mjs:68 |
+| E5 | G7 monolith quartet: `Login` 563 (split), `Settings` 614, `Webhooks` 535, `Groups` 528 | `[measured]` wc -l |
+| E6 | G12 error-catalog regen-diff CI step absent | `[measured]` grep of ci.yml = 0 |
+| E7 | **10 commits unpushed** ⇒ the `Governance Gates` job has never executed, and D122 consequence (1) ("first push after a workflow change must be verified by a green Actions run; until then CI claims stay NOT VERIFIED") is currently unmet | `[measured]` git status -sb |
+| E8 | ~~A `@deprecated DEAD API with zero src callers` marker remains~~ — **closed**: re-grepped 2026-11-05, 0 hits; the concurrent session cleaned it up between the audit pass and the plan being written. Kept as a row deliberately: it went stale **within one day of writing**, which is the failure mode §0 exists for | `[measured]` closed 2026-11-05 |
+
+### L3 · Capability gaps — three tiers (R7-D)
+
+Tier assignment is provisional until S1 re-judges each row; the tier, not the item, is the decision.
+
+**Tier 1 — risk-driven** (a known correctness or security gap exists)
+
+| Item | Evidence | Note |
+|---|---|---|
+| Optimistic locking / concurrent-write protection | `[measured]` no `tokenVersion` / `FOR UPDATE` in `routes/users.ts`, `routes/roles.ts` → simultaneous admin edits silently overwrite | `[unverified]` whether a Manager-level or transactional guard exists elsewhere — **must be settled in S1 before scoping** |
+| `identity-sdd` drifted contract (A3: `setup`+`enable` standing in for `enable`+`confirm`; `validateSession`/`rotateRefresh*` naming) | `[doc-claim]` | contract truth, precedes any new surface |
+
+**Tier 2 — one step away** (already built, needs a decision or a mount, not a feature)
+
+| Item | Evidence | What "one step" means |
+|---|---|---|
+| Message queue | §17.4 "unimplemented (outbox = interim)" vs. a production outbox with `FOR UPDATE SKIP LOCKED` + lease + drain | **decision**: ratify outbox as the long-term design (record as a D-entry) or open a real MQ project |
+| Secret management wording | `secret-mgmt.md` says "Vault/KMS zero hits" (literally true) while envelope key versioning + `scripts/re-encrypt.ts` are live | re-label to "self-managed envelope encryption exists; no external KMS integration" |
+| API versioning / deprecation policy | only 3 scattered `deprecat*` comments; no policy text | documentation + one convention (sunset headers, deprecation window) |
+| Data-export scope | export endpoints exist; whether they satisfy portability obligations is undecided | scope question, then decide tier |
+
+**Tier 3 — signal-gated** (build nothing until demand; keep on the register with a rise condition)
+
+Vault/KMS external integration · Helm chart + k8s/failover/multi-region (`distributed.md`, zero
+code) · licensing enforcement (`/v1/license` absent) · file-storage · notification centre (no
+table/routes/component) — also the backend half of R6's deferred item · realtime event tail ·
+tenant switcher · phone-binding UI (column exists, API ruled out) · OTel tracing (heavy-deps
+ruling) · mobile/responsive admin (breakpoint logic exists **only** in the setup wizard;
+main admin surface has none — §37.6's design-only verdict is substantially correct) ·
+**alerting integration** (per P3-A: alert *definitions* ship as an operator-facing sample; whether
+this product bundles a Prometheus deployment at all is a product-posture decision, not a
+half-finished task — so it is not in Tier 2 and its absence is not a gap until that posture is set).
+Rise condition for alerting: an operator requirement to bundle monitoring, or a customer due-diligence
+ask. What S1 owes it (T12): `monitoring.md` §13.3 must stop saying "unimplemented" and say
+"rules provided; integration operator-side", and `rules.yml`'s header must state the same boundary.
+
+All "absent / zero" judgements in the paragraph above: `[measured]` 2026-11-05 by one
+pattern-scan over `apps/server/src`, `apps/admin-ui/src` and `packages/*/src` (tests excluded),
+patterns `vault|kms|secretsmanager`, `helm|kubernetes|service.discovery|blue.green`,
+`licenseKey|entitlement|/v1/license`, `multer|s3client|putObject|multipart`,
+`/notifications|NotificationCenter`, `WebSocket|socket.io|ServerSentEvent`,
+`TenantSwitcher|switchTenant`, `bindPhone`, `If-Match|expectedVersion|optimisticLock`.
+Two known limits of that scan, recorded so the labels are not over-read: `helm` matched
+`helmet` (54 false positives, corrected by inspection), and absence of a keyword is not proof of
+absence of a capability reached by another name — the S1 re-judgement must treat these as
+starting points, not verdicts.
+
+**UI track (R6-C)** — ordering is fixed by capability, not by spec:
+0. Prerequisite: `apps/admin-ui` test surface (75 source files vs 8 vitest files) + the tiered
+   coverage gate from R3-B, so this area stops being averaged away by the backend.
+1. a11y to §14.16 (171 lines of spec; `autoComplete` 24 / `aria-label` 19 / `role=` 8 present,
+   **`aria-live` 0 / focus trap 0** `[measured]`) — incremental, compliance-relevant, testable.
+2. Bulk operations §14.11.3 (72 lines) — rides existing list APIs.
+3. Global search §14.17 (93 lines) — needs a backend search endpoint (Tier 2 work).
+4. Notification centre §14.18 (102 lines) — **register, do not schedule** (needs new table + routes + UI).
+5. Mobile/responsive §37.6 (72 lines) — demand-gated.
+
+### L4 · Condition-gated verification debt
+
+| # | Item | Gate — triage status per R5-C |
+|---|---|---|
+| V1 | CI first green on the mirror | **condition met** (network reachable `[measured]`: `docker pull hello-world` succeeds; the 11-02 "push proxy-blocked, 22 commits queued" entry is stale) → S0 |
+| V2 | Keycloak live-fire L1/L2 | probably met — `[unverified]` image pull from quay.io not tested |
+| V3 | Docker integration day (compose.prod boot paths, deploy trust, tag pin) | **met** — docker 28.1.1 running; `postgres:16-alpine`, `redis:7-alpine`, `accessbase:dev` images already local `[measured]`; `ghcr.io/accessbase/accessbase:latest` needs a local build `[unverified]` |
+| V4 | SMS real delivery | not attainable — needs provider credentials |
+| V5 | dispatcher SKIP-LOCKED cross-node race under load | likely met — local multi-process against shared PG/Redis `[unverified]` |
+| V6 | `entrypoint-dev` loud-fail in real docker | **met** `[measured]` docker available |
+| V7 | G4 SAML redirect-arm cache gap; real-IdP SAML live-fire; Q3D live-RP | not attainable without a real IdP; surrogate IdP possible but its result **must be labelled surrogate** |
+
+Standing rule (R5-C): surrogate verification never discharges a real-environment claim; the
+register records `verified-by: surrogate | real | none` plus a condition-recheck date. This
+carrier merges with R7's tier register so there is exactly one document of outstanding
+verifications, not two.
+
+---
+
+## 3. Phase plan
+
+Reversibility tier per R10-D: **G**reen (additive/reversible, no hot-zone overlap) runs
+continuously; **Y**ellow (edits shared files) requires `git status`/`git diff HEAD` reconciliation
+first, one confirmation per batch; **R**ed (irreversible, cross-boundary, or dependent on an
+unruled item) stops for explicit approval each time.
+
+| Phase | Scope | Deliverables | Acceptance | Tier | Depends on |
+|---|---|---|---|---|---|
+| **S0 Field close-out** | Push the 10 queued commits; observe whether the Gitee→GitHub mirror syncs and whether Actions runs; record the `Governance Gates` result | a run reference recorded against D122 consequence (1); V1 closed | 7 jobs green **or** mirror-broken finding recorded (which flips R8-C → option A) | **R** (push) | user coordination with the concurrent session |
+| **S1 Truth reconciliation** | All 12 L1 rows; re-judge the **38 live module status headers** per section (44 total minus 5 superseded and 1 informational, which are only re-labelled, not re-judged), each rewritten as `Implementation status (as of <date>, evidence: <cmd or file:line>)`; the new format+recency lint lands **in this phase, with its own red/green demo performed in the same change** (R2-D gate is unimplemented as of 2026-11-05 — no prior demo exists to cite); CHANGELOG batch-collapsed for the post-2026-10-12 commit range; status.md recent-work brought current; deferred ledger re-adjudicated | doc/commit wave; a measured test baseline (closes T8) | zero `[doc-claim]` left in module headers; **the new lint demonstrated RED on a planted stale/missing date, then GREEN** | **Y** | none (this is the gate for everything else) |
+| **S2 Governance close-out** | P0-a pilot (`.qoder/rules` field spelling, recursion, meaning of "active" in the 100 000-char budget) → ADJ-7b/7j Qoder rules face; the outstanding panel findings from 2026-11-04 (count deliberately not restated here — read the report's merge table, per the R2-D no-handwritten-counts rule). **ADJ-7c is NOT in this phase**: it is hard-blocked by panel finding **C-2** (see §7) and opens as its own item once ruled | third host receives rules; no skill silently truncated | each new gate demonstrated red→green in its own commit | **Y**, with **R** sub-steps (deleting/rewriting skill bodies) | S1 (do not project rules whose text is still being corrected) |
+| **S3 Dead-asset disposal** | Per R4-C **as amended by panel finding P2 / conflict X-1**: delete `admin` (1356 lines, orphaned on both axes); `i18n` and `health` deletion additionally requires removing their phantom declarations in `apps/server/package.json` (X-2 pending); **`migration` is not deletable by simply removing the directory** — see E3/E3c: its `db:*` scripts are thin `drizzle-kit` wrappers, so the options are keep-as-tooling-host, strip-its-unimplemented-CLI, or move-the-3-scripts-to-root (needs a new root `drizzle-kit` devDep). **Every package deletion must also edit `accessbase.sh:575` and the 8-package loop at `:809`, plus the `Dockerfile` COPY lines and the SDD headers.** `health`'s duplicate-of-`routes/health.ts` question stays separate. X-1=A settled `migration`: strip the unimplemented CLI (5 source files, 835 lines incl. two `TODO: Implement …`), keep the package as the `drizzle-kit` tooling host — no lockfile change, no `accessbase.sh` edit. P3-A settled alerting: its documentation fixes (`rules.yml` header, `monitoring.md` §13.3) belong to **S1**, not here | package set consistent with its docs | `pnpm install --frozen-lockfile` + `bash accessbase.sh typecheck` + **a local docker build** + the `db:*` commands re-invoked after any move | **R** | **its own pre-flight, not S1's**: the E3c binding inventory (complete for the 4 packages as of 2026-11-05: 2 shell sites, 8 Dockerfile lines, 0 root declarations, 2 phantom declarations in `apps/server`) |
+| **S4 Quality climb** | Tiered coverage gates (R3-B) instead of one averaged number; per-area floors with `asOf` dates; E5 remaining three monolith splits; E4 empty-catch lint; E6 error-catalog regen-diff | `apps/admin-ui` visible as its own number, not hidden | each area's floor raised once with a measured baseline; vitest + e2e green | **Y** | **none from S3** (the dead packages are worth only 2.68 pt — see the ordering note below); does need confirmation of vitest's per-area capability `[unverified]` |
+| **S5 Contract close-out** | Tier-2 API versioning/deprecation policy; `identity-sdd` drift reconciliation; regenerate `openapi.json`; settle T4's export-scope question | api.md is the contract surface, self-consistent | generated-artifact diff empty; no `[doc-claim]` in contract docs | **Y** | S1 |
+| **S6 Capability batches** | One batch per opened Tier-1/Tier-2 item, in tier order; Tier-3 stays on the register | per item: spec → plan → batch → review, existing pipeline | per item; each Tier-3 rise recorded with its trigger | **R** per item | S1 re-judgement, plus user's go per batch |
+| **S7 Condition unlock** | V2/V3/V5/V6 as soon as S0 proves the environment; V4/V7 stay gated | runbook entries with `verified-by: real \| surrogate` | evidence recorded in `docs/runbooks/` (the `multi-node.md` §6/§7 "proved / still owes" shape is the existing convention) | **Y** | S0 |
+
+Ordering note forced by measurement: my earlier assumption "dispose of dead packages before
+coverage work, because they pollute the denominator" is **wrong** — removing all four packages
+moves statements only 56.33 % → 59.01 % (`[measured]` asOf the 2026-11-02 coverage artifact,
+recomputed from its per-file totals, not a fresh run). S3 and S4 are therefore independent,
+and S4's real content is `apps/admin-ui`, not the dead packages.
+
+---
+
+## 4. Milestones
+
+| Milestone | Closes | Signal that it happened |
+|---|---|---|
+| M1 Truth baseline | S0 + S1 | anyone can read one document and get an accurate "what remains"; every module header has a date and an evidence pointer |
+| M2 Third host wired | S2 | Qoder receives project rules; no skill body is silently truncated; the 30 000-char host limit is a project assertion |
+| M3 Honest denominator | S3 + S4 | no package that is neither used nor deleted; coverage numbers per area with named exceptions |
+| M4 Contract surface | S5 | api.md/openapi.json agree with routes; deprecation policy written |
+| M5 Verification register | S7 | V1–V7 each real / surrogate / outstanding, with recheck dates |
+
+---
+
+## 5. Risks
+
+| Risk | Likelihood | Effect | Mitigation |
+|---|---|---|---|
+| **Concurrent author on the same tree** — another session is actively landing governance batches here (it shipped 8 of 11 rulings before I could) | high | conflicting edits, duplicated decisions, stale measurements | Yellow-tier pre-flight `git diff HEAD`; Batch 7 plan carries a standing concurrent-author alert; one decision document (§8) rather than parallel notes |
+| Measurements decay while this plan is executed | high | the plan starts scheduling on stale facts again | evidence classes (§0) + re-judge dates in module headers + the R2-D recency lint |
+| Mirrors/CI topology cannot be verified (S0 fails) | medium | every "gates are enforced" claim stays false; R8-C collapses into R8-A | run S0 first; record the outcome either way |
+| Package deletion breaks the image build | medium | broken docker job discovered late (it only runs on push) | S3 acceptance includes a local image build, not just typecheck |
+| Optimistic-locking scope balloons (touches every write path + 409 handling + a migration) | high | Tier-1 item consumes the roadmap | scope it in S5/S6 as its own spec, and let S1 first establish whether an existing guard already covers it |
+| Tiered coverage gate invents a mechanism the repo cannot maintain | low–med | another unenforced rule | prefer vitest-native configuration; if an external script is needed, it is one file in `scripts/agents/` with a red/green demo |
+
+---
+
+## 6. Success criteria
+
+1. **No `[doc-claim]` remains** in any module status header, deferred ledger row, or AGENTS.md
+   status/narrative paragraph (rows T1–T12) — everything is either measured with a date and an
+   evidence pointer, or explicitly labelled unverified.
+2. **One authoritative backlog** for "what remains"; the other carriers either point at it or are
+   marked superseded.
+3. Governance gates run **somewhere other than this machine** (S0) and their result is recorded.
+4. The third host receives the rule layer without first importing the text errors (R7d ordering).
+5. Coverage of each area is individually visible; the aggregate number is no longer used as a
+   pass/fail claim.
+6. Tier-3 items are **still on the register** and explicitly unbuilt — an honest backlog is
+   allowed to contain "not now", provided it names the rise condition.
+
+---
+
+## 7. Execution protocol (R10-D)
+
+- **Green** — additive, reversible, no overlap with the concurrent session's hot files
+  (`AGENTS.md`, `.agents/memorys/*`, `scripts/agents/*`, `docs/modules/*`): proceed continuously.
+- **Yellow** — edits shared/hot files or regenerates tracked artifacts: pre-flight `git status`
+  + `git diff --stat HEAD`, reconcile, then one confirmation per batch.
+- **Red** — irreversible or cross-boundary (deleting packages, pushing, Dockerfile, migrations,
+  write-path changes) **or** implementing anything not yet ruled (ADJ-7c pending C-2, the
+  optimistic-locking scope, `health` rewiring): stop and ask, one item at a time.
+- **Hard blocks** (may not be implemented before their ruling/decision exists): panel **11-04 C-2**
+  blocks ADJ-7c (7c is therefore absent from S2's scope above); **11-05 P2 / X-1** blocks any
+  deletion of `packages/migration` — settled as X-1=A, so the block is now "deleting the package
+  wholesale", while stripping its unimplemented CLI is approved; **11-05 X-2** blocks the
+  `i18n`/`health` deletion shape until the dependency graph is truthful; **11-05 P3-A** settled
+  alerting as Tier 3. Still open: R4's `health` duplicate-vs-rewire sub-decision, the
+  optimistic-locking scope (Tier 1), and mirror reachability before any CI-enforcement claim.
+  Naming rule for this list: panel items always carry their report date (`11-04 C-2`,
+  `11-05 X-2`) — see the collision note in §8.
+- No commit or push without explicit user sanction in that turn (repo C1-equivalent).
+- Every new or changed gate ships with a deliberate-violation → RED → restore → GREEN record in
+  its commit message (CONSTRAINTS.md verification discipline). A gate claimed without a negative
+  demonstration counts as not done — this plan is the document where that lesson was learned.
+
+---
+
+## 8. Adjudication record (2026-11-05, one at a time, adjudication-walkthrough protocol)
+
+| # | Question | Ruling | Binding note |
+|---|---|---|---|
+| R1 | Scheduling doctrine | **A** truth-first | S0+S1 precede all feature or debt work; S0 push does not wait |
+| R2 | Depth of truth reconciliation | **D** layered | 38 headers re-judged **per section** with mandatory evidence date; machine gate checks format + recency only, never content truth; generatable facts go through generation (`gen-api-inventory.mts` precedent) |
+| R3 | Coverage target structure | **B** tiered gates | per-area floors with `asOf` dates; zero-coverage areas must be named and justified; the aggregate stops being the claim |
+| R4 | Dead packages | **C** per-package | delete `admin`/`migration`/`i18n`; decide `health` separately (it duplicates the live `routes/health.ts`). **AMENDED same day by self-review P2/X-1: `migration` is the execution host of `db:push`/`db:generate`/`db:migrate`, so its deletion is blocked pending re-ruling; `i18n`/`health` additionally carry phantom production declarations (E3b). Ruling stands for `admin` only.** |
+| R5 | Verification debt | **C** triage first | measured reality already disproved one recorded blocker; real vs surrogate must be labelled; conditions get recheck dates |
+| R6 | UI four-piece set | **C** build the carrier first | admin-ui test surface before any UI feature; a11y → bulk → search; notification centre deferred (needs backend model) |
+| R7 | Backend ordering | **D** three tiers after re-judgement | tier assignment is provisional until S1; "one step away" items (alerting wiring, MQ ratification, deprecation policy) go first |
+| R8 | CI topology | **C** keep mirror, make D122 executable | record the mirror URL + sync state; workflow-touching commits must cite a green run; delete or explain the dead `pull_request` trigger; **S0 push is the feasibility test** — if the mirror does not sync, this flips to A |
+| R9 | Plan carrier | **C** rewrite `docs/implementation-plan.md` | v3.0 retained below with a superseded header (option ①), not deleted |
+| R10 | Execution mode | **D** reversibility-tiered | Green continuous, Yellow pre-flight per batch, Red/ruled-dependent one stop each |
+
+### Panel-round rulings (2026-11-05, same protocol, on this plan)
+
+Prefix collision, recorded because it broke the §0 naming rule the same page states: this round's
+items are also called X-1…X-3, and the 2026-11-04 report has X-1…X-3 with different meanings
+(there: `question()` scope, ADJ-7b premise, E-1 severity). **Hereafter always write the date.**
+The table below is therefore `11-05 X-1` etc.; the older ones are `11-04 X-1` etc.
+
+| # | Question | Ruling | Effect |
+|---|---|---|---|
+| 11-05 X-1 | Is `packages/migration` deletable? | **A** strip-the-shell | delete the 5 unimplemented CLI sources (835 lines incl. 2 permanent TODOs); keep the package as the `drizzle-kit` tooling host → no lockfile, no `accessbase.sh`, no Dockerfile churn. R4-C's deletion list narrows to `admin` (uncontested) + `i18n`/`health` (behind X-2) |
+| 11-05 X-2 | Does a phantom dependency count as a consumer? | **B** fix the graph, then gate it | order: ① declare `health` in `packages/identity` (its `fastify.d.ts` already imports it undeclared — the only build-fragile finding); ② clear the 6 declared-but-unused; ③ then a `pkg-deps-lint` layer with mandatory `--self-test` fixtures. `health`/`i18n` deletability is decided *after* the graph is truthful |
+| 11-05 X-3 | Severity of this document violating its own evidence rules | **C** self-application | no new mechanism: the S1 lint's declared scope now covers this file too; only the load-bearing rows were spot-anchored by hand, and the audit trail records that all three throwaway verification scripts were wrong in different ways — "the tool said so" is not an evidence class |
+| 11-05 P3 | Which tier is alerting? | **A** Tier 3, keep the file | "bundles a monitoring stack or not" is a product-posture decision, not a half-finished task; `monitoring.md` §13.3 wording and the `rules.yml` header become S1 documentation corrections (new row T12) |
+
+**Defaults I applied where the ruling letter did not answer the sub-question** (each reversible):
+R3: named exception list maintained inside the gate config, not a separate document ·
+R4: `health` treated as a separate decision, nothing deleted yet ·
+R5: verification register merged with R7's tier table into **one** document ·
+R6: notification centre registered as deferred rather than scheduled ·
+R7: `identity-sdd` drift kept in Tier 1 ·
+R8: `pull_request` trigger deletion proposed, not performed ·
+R9: historical content **kept in place with a header** (option ①) rather than archived to
+`docs/reference/`.
+
+Panel round: X-2's `declared-but-unused` severity → **yellow when the gate ships, red after the 6
+existing rows are cleared** (two-stage, since shipping it red today would block every commit);
+X-1's "may `admin` proceed to S3 immediately?" → **not executed**, S3 stays behind S0/S1;
+P3-A chose "keep the sample file" — the `rules.yml` header wording itself was left for S1 rather
+than edited now.
+
+**Deferred / open, explicitly not swallowed:**
+- Panel findings still unruled from the 2026-11-04 review: **C-2** (blocks ADJ-7c), and that
+  report's own conflict items **11-04 X-1** (`question()` ban scope), **11-04 X-2** (whether the
+  100 000-char "active" premise can be sustained — it may reopen ADJ-7b), **11-04 X-3** (severity
+  of the skills-path evidence label), plus its 7 MEDIUM and 3 LOW rows.
+- Measurements owed before their phases: P0-a `.qoder/rules` pilot; P0-b `.qoder/agents`
+  sub-agent capability probe (already 2 data points that this host exposes no team API);
+  P0-c vitest/e2e baseline recount; `ghcr.io` + Keycloak image pull reachability; vitest
+  per-area threshold support; `workspace:*` dependency declarations before S3.
+- Governance Batch 7 remainder: ADJ-7b/7j (pilot-gated), ADJ-7c (ruled, unimplemented, blocked
+  on C-2).
+- D122 obligation (1) — the mirror run reference — closed only by S0.
+- Batch 6 of the governance plan remains deferred by decision (book index / llms.txt /
+  spec-trace).
+
+### Same-day self-review of this document (2026-11-05)
+
+The plan was audited by its own panel protocol immediately after being written —
+`docs/superpowers/reports/2026-11-05-longterm-plan-panel-review.md` (sequential track, 3 roles:
+correctness officer, evidence officer, `doc-audit` lens).
+
+Verdict: **not clean** — 3 CRITICAL / 3 HIGH / 5 MEDIUM / 3 LOW. Two categories of outcome:
+
+- **Fixed in place without a ruling** (they were my own errors, not decisions): the false
+  "0 consumers anywhere" claim (E1 → per-package E3 + new E3b), the citation of a red/green demo
+  that cannot exist yet (P1), the stale `@deprecated` row (E3), the hand-written panel item count
+  (E2, removed per R2-D), missing `asOf` on artifact-derived figures (E5), the alerting tier
+  mis-assignment recorded as pending (P3), ADJ-7c appearing both as a hard block and as S2 scope
+  (P4), the `workspace:*` pre-flight hung on the wrong phase (D2), the un-indexed document (D1),
+  the two-H1 note (P5), prefix collisions (D3), carrier undercount (D4), and the §6 criterion-1
+  gap (E4 → new row T11). Two new binding rules were added to §0 as a result.
+- **Escalated, not fixed** (they touch rulings the user owns): **X-1** reopens R4-C's migration
+  half; **X-2** asks whether a phantom dependency counts as a consumer; **X-3** disputes the
+  severity of a document violating the evidence-class rule it introduces.
+
+While executing X-3 (=C, self-application of the R2-D lint principle) three further self-violations
+surfaced, all in this document, all fixed: a raw pipe inside the T7 table cell (the exact defect
+ADJ-7a fixes in the generated digest), a four-column separator row over a three-column header in
+§4, and ~14 `[measured]` tags with no anchor plus ~17 hand-written figures — of which only the
+rows load-bearing for a deletion or a phase were spot-anchored, because the complete pass is the
+S1 lint's job, not another round of hand-written scripts. The audit-trail point matters more than
+the fixes: the three throwaway verification scripts written during this audit were **each wrong in
+a different way** (over-broad scan roots; a directory-level `.d.ts` heuristic whose output was
+withdrawn; a path-splitting bug that mislabelled 16 rows) — which is precisely why the eventual
+lint must ship with `--self-test` fixtures and why "the tool said so" is not an evidence class.
+
+Why this matters more than the individual rows: the failure mode this plan was written to remove —
+a claim that looks authoritative and is stale — recurred **inside the plan itself, on the day it
+was written, three times**. The corrective response is not "be careful"; it is the two §0 rules
+plus the S1 format/recency lint, which are now the plan's own first acceptance target.
+
+---
+
+## Historical plan — v3.0 (dated 2026-08-21), SUPERSEDED
+
+> Retained in place per R9, option ①. It predates both the D121 English-only persistence policy
+> (2026-09-21) and Phase 9, and its own header ("waiting to start implementation") is what
+> triggered the truth-layer audit — read it as history, not as backlog. Its Phase 0–4 structure
+> survives above as the section skeleton. Not back-translated (same convention as
+> `.agents/rules/zh/`). Note: this section keeps its original top-level heading, so the file
+> intentionally contains two H1s — demoting it would edit preserved historical text (review P5,
+> accepted with this note).
+
 # AccessBase 实施计划
 
-> **状态**: 设计定稿完成（v3.0），等待启动实施
+> **状态**: 设计定稿完成（v3.0），**已被上方长期计划取代（SUPERSEDED，2026-11-05）**
 > **更新日期**: 2026-08-21
 > **预计工期**: 14 周（3.5 个月）
 > **最小可用版本**: v0.1.0（含 identity + admin + audit 基础能力）
