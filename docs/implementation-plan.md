@@ -90,6 +90,14 @@ is the qualifier that stops a format gate from crying wolf.
   re-checked against the enclosing block, paragraph or line-span before it enters a ledger — and the
   type count does not rise by taking two fragments of the same thing.
 
+  **Boundary of the two-type rule (found the hard way).** When the assertion is *about a file's own
+  content* — how many jobs `ci.yml` defines, what thresholds `vitest.config.ts` sets, whether a
+  phrase appears in a header — that file is complete and sufficient evidence, and demanding a second
+  type would only buy a second read of the same source. The two-type bar applies to **inferences
+  across sources** ("this package is unused", "this feature is shipped", "this claim is stale"),
+  which is where every one of my withdrawals actually came from. Label the self-evident kind as
+  `artifact-self` so the distinction is visible rather than improvised.
+
 - **Snapshot documents are exempt from the evidence rules but must point at the live source.**
   Reports under `docs/superpowers/reports/` and the retained v3.0 plan above are dated views: they
   are never rewritten to match later findings (that would destroy the record), and in exchange each
@@ -142,6 +150,9 @@ is deliberately not stated in prose (run-time quantity; §0).
 | T11 | `AGENTS.md` STRUCTURE still carries measurable counts (`:19` "13 project-specific skills", `:20` "14 language dirs") | `[measured]` **2 types**: file content + directory counts (skills dirs vs the digest's own row list; rule dirs with and without the excluded `zh/`) — so `:19` is wrong today, and ADJ-7h's purge reached the marker regions and hub digest but not these handwritten STRUCTURE lines | same deferral as T9 (hot file); note the fix may also be **removal**, not recount, per R2-D/R2-X1 — counts should not live in handwritten regions at all |
 | T12 | `monitoring.md` §13.3 says "alerting … unimplemented" | 3 evidence types: deployment-chain grep (`prometheus` = 0 hits across all compose files, `Dockerfile`, both entrypoints, `.github/`); file read (7 complete rules with `severity`/`for`/annotations, incl. `up{job="accessbase"}` and an audit-anchor staleness alert); cross-source (every metric referenced exists in `metrics.ts`, `webhook-metrics.ts`, `audit-metrics.ts`). Verdict: "unimplemented" is **substantially correct** (nothing is wired) → precision-of-wording, not a contradiction | `monitoring.md` §13.3 wording + the `rules.yml` header, inside S1 — 11-05 P3-A stands on 3 types |
 | T13 | `doc-audit`'s own audit scope list | `[measured]` 2 types: command (existence probe over all 16 listed paths → **12 missing**: `docs/phase-planning.md`, `docs/plans/`, `competitive-landscape.md`, `plugin-architecture-analysis.md`, `api-specification.md`, `database-schema.md`, `test-seed-strategy.md`, `redis-mock-guide.md`, `e2e-test-flows.md`, `api-conventions.md`, `dev-workflow.md`, `frontend-spec.md`, `.opencode/oh-my-openagent.jsonc`) + artifact (the skill asserts "11 TDD docs", glob returns **0**, and its gap dimension says "packages/ 目录未创建、无 CI/CD 配置" against a repo with 8 packages and 8 CI jobs) | the skill's scope table, its "unimplemented features" dimension, and its residual `team_create`/`oracle` block (11-05 X-1 family) — belongs to S1, and any `/doc-audit` run before then reports fabricated gaps |
+| T14 | `core-packages.md`: "6 of 8 packages wired into apps; i18n and migration runtime unused" | `[measured]` 2 types: source-import scan over `apps/*/src` (**identity 128, logging 34, audit 8, types 1; admin/health/migration/i18n all 0**) + the dependency declarations read from `apps/server/package.json` (health/i18n present as phantom production deps) → it is **4 of 8**, and the row's implication that admin and health are wired is wrong | **DONE 2026-11-05** — header rewritten, prior verdict kept as provenance |
+| T15 | `cicd.md`: "7 jobs defined" | `artifact-self` (one type, and sufficient under §0's new boundary): `.github/workflows/ci.yml` defines **8** jobs — Lint, Type Check, Test, E2E (Chromium), Migration chain, Build, Docker Build, Governance Gates (the last from ADJ-7f). The second half of the row — "first green run not yet observed" — stays true and unresolvable from here (no GitHub remote) | header updated 2026-11-05, with the unobserved-CI caveat retained rather than quietly dropped |
+| T16 | `testing.md`: "ratchet floors 46-77" | `artifact-self`: `vitest.config.ts` thresholds are `statements 46 / branches 71 / functions 70 / lines 46` — "46-77" mis-states the pair, and measured coverage (56.33 / 79.31 / 80.23 / 56.33) means the 80 % target holds only for branches and functions. The vitest case counts (972 then; 1556 claimed since) were **not re-run** and stay `[unverified]` | header updated 2026-11-05 for the floors; case-count claim left explicitly unverified |
 
 ### L2 · Engineering health
 

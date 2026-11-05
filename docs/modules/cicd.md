@@ -1,6 +1,8 @@
 # CI/CD 与部署
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — 7 jobs defined; first green run on GitHub mirror not yet observed (D122). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-05, evidence: job names in `.github/workflows/ci.yml`):** `partial` — **8** jobs defined (Lint, Type Check, Test, E2E Chromium, Migration chain, Build, Docker Build, Governance Gates — the eighth added by the governance batch ADJ-7f). **Still not observed from this repository:** whether the mirror has ever run green cannot be checked here, since the only remote is Gitee and the GitHub side is fed by a one-way mirror (D122). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+>
+> _Prior verdict (2026-09-23 gap audit, superseded by the line above, kept for provenance):_ `partial` — 7 jobs defined; first green run on GitHub mirror not yet observed (D122).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§26 CI/CD 与部署

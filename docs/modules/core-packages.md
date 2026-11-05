@@ -1,6 +1,8 @@
 # 核心包详细设计
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — 6 of 8 packages wired into apps; §10.5 i18n and §10.6 migration runtime unused (gap-audit A6/A7). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-05, evidence: source-import scan over `apps/*/src` + dependency declarations in `apps/server/package.json`):** `partial` — **4 of 8** packages are consumed by the apps: `identity` (128 importer files), `logging` (34), `audit` (8), `types` (1). `admin`, `health`, `migration` and `i18n` have **zero source importers**; `health` and `i18n` survive only as phantom production declarations in `apps/server/package.json`, `migration` is nonetheless the live host of the `db:push`/`db:generate`/`db:migrate` scripts, and `admin` is orphaned on both axes. Disposal is governed by the roadmap's R4-C / 11-05 X-1 (per-package, not a blanket delete). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+>
+> _Prior verdict (2026-09-23 gap audit, superseded by the line above, kept for provenance):_ `partial` — 6 of 8 packages wired into apps; §10.5 i18n and §10.6 migration runtime unused (A6/A7).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§10 核心包详细设计

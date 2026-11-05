@@ -1,6 +1,8 @@
 # 测试策略
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — vitest 972 + e2e 138+3 green; 80% coverage target not met (ratchet floors 46-77). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-05, evidence: `vitest.config.ts` thresholds + `coverage-final.json` as of 2026-11-02):** `partial` — the ratchet floors are `statements 46 / branches 71 / functions 70 / lines 46` (the earlier "46-77" mis-states them), and measured coverage sits at 56.33 / 79.31 / 80.23 / 56.33, so the 80 % goal currently holds for **branches and functions only**, not statements or lines; the aggregate also hides `apps/admin-ui` at 2.51 % behind `apps/server` at 90.43 %. Per-area gates are scheduled as S4 (roadmap R3-B). The vitest case count was **not re-run** in this audit and remains unverified either way. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+>
+> _Prior verdict (2026-09-23 gap audit, superseded by the line above, kept for provenance):_ `partial` — vitest 972 + e2e 138+3 green; 80% coverage target not met (ratchet floors 46-77).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§30 测试策略
