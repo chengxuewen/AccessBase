@@ -17,7 +17,7 @@ IF 用户开始新任务:
   ├─ Bug 修复 → 💡 /systematic-debugging
   ├─ 架构变更 → 💡 /think-before-act + /writing-plans
   ├─ UI/前端 → 💡 /design-system + /think-before-act
-  ├─ 安全相关(auth/rbac/权限) → 💡 /security-review
+  ├─ 安全相关(auth/rbac/权限) → 💡 /security-hardening
   ├─ 外部库不熟 → 💡 librarian agent
   ├─ 代码库理解问题（关系/调用链/架构） → 💡 /graphify query + graphify path/explain
   └─ 意图模糊 → 💡 /brainstorming
@@ -56,7 +56,7 @@ IF 会话状态:
 |   1    | `/think-before-act`        | 预防 > 修复，元约束优先 |
 |   2    | `/test-driven-development` | 测试先行 > 事后补测试   |
 |   3    | `/systematic-debugging`    | 有 bug 先诊断，不要瞎试 |
-|   4    | `/security-review`         | 安全问题不能拖          |
+|   4    | `/security-hardening`         | 安全问题不能拖          |
 |   5    | `/design-system`           | UI 一致性               |
 |   6    | `/doc-audit`               | 文档同步                |
 |   7    | `/requesting-code-review`  | 完成后审查              |

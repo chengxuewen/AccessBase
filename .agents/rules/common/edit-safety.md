@@ -46,7 +46,7 @@ Before marking any multi-line edit complete, verify:
 
 ## When to Delegate
 
-Delegate to a `deep` category subagent when:
+Delegate to a deep-capability subagent when (category naming is host-specific — use the host's deep/research-capable lane):
 
 - The change touches 3+ files
 - The change requires understanding cross-module dependencies

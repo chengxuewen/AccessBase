@@ -256,18 +256,19 @@ description: 'AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 
 ## 审计模式
 
-### A. 团队模式（推荐 - 大型审计）
+### A. 团队模式（opt-in - 大型审计；宿主有 team 能力时）
 
-3+ 份大型文档 -> `team_create` 4-6 个 `ultrabrain` 成员并行。
+3+ 份大型文档且宿主具备 team 能力 -> 3-5 个只读成员并行（对齐
+`skill:expert-panel-review` 的 dual-track 形态：sequential 是 DEFAULT，parallel 需 opt-in；
+隔离纪律——每个成员只拿审计对象 + 自己的 brief + 共享验收标准，绝不投喂前一成员的结论）。
 
 ```
 team_create(inline_spec={
   name: "doc-audit",
   members: [
-    { name: "decision-validator", category: "ultrabrain", prompt: "<维度核心问题 + 文件列表 + 输出格式>" },
-    { name: "consistency-checker", category: "ultrabrain", prompt: "..." },
-    { name: "reference-crosschecker", category: "ultrabrain", prompt: "..." },
-    { name: "gap-optimizer", category: "ultrabrain", prompt: "..." }
+    { name: "decision-validator", kind: "subagent_type", subagent_type: "oracle", prompt: "<维度核心问题 + 文件列表 + 输出格式>" },
+    { name: "consistency-checker", kind: "subagent_type", subagent_type: "oracle", prompt: "..." },
+    { name: "reference-crosschecker", kind: "subagent_type", subagent_type: "oracle", prompt: "..." }
   ]
 })
 ```
@@ -293,7 +294,7 @@ team_create(inline_spec={
 
 ## 交互审核：发现项格式
 
-**逐项审核**，每项使用 `question()` 工具展示。
+**逐项审核**，每项以纯文本展示（`question()` 工具的 JSON 转义会破坏选项格式——adjudication-walkthrough 已有三次记录在案的事故，禁用）。
 
 ```markdown
 ## 🔴/🟠/🟡/🔵 [编号]: [标题]
@@ -350,7 +351,7 @@ team_create(inline_spec={
 
 ### Phase 3: 交互审核
 
-逐项审核，question() 交互确认。
+逐项审核，纯文本逐项确认（禁 question() 工具）。
 
 ### Phase 4: 修复
 
