@@ -1,6 +1,8 @@
 # 品牌定制机制
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — site.name/logo shipped; three-method injection model unimplemented; branding not on login surface. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-05, evidence: source scan of `apps/admin-ui/src` + `packages/*/package.json` inventory):** `partial` — branding ships as **one runtime mechanism, not three**: `apps/admin-ui/src/branding.ts` reads `siteName` / `logoUrl` / `primaryColor` from the options table through the public `/setup/status` probe (already on the login-page contract), with a module-level cache and fail-soft empty values meaning "not configured → built-in chrome". It **is** on the login surface now (`Login`, `MagicLogin`, `ForgotPassword`, `Register`, `VerifyEmail`, `AdminLayout`, `Settings`). What remains unwritten is the §16.5 component-injection model — and note that its example imports **`@accessbase/react`, a package that does not exist in this repo** (roadmap L1 T17), so §16.5 currently documents an SDK surface rather than a gap. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+>
+> _Prior verdict (2026-09-23 gap audit, superseded by the line above, kept for provenance):_ `partial` — site.name/logo shipped; three-method injection model unimplemented; branding not on login surface.
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§16 品牌定制机制
