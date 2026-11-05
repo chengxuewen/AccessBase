@@ -113,23 +113,26 @@ oldest carrier still announced "waiting to start implementation" eleven weeks af
 
 ### L1 · Truth layer — reconcile before anything is scheduled
 
-Ten contradictions found and evidenced in this audit. None require code; each requires a
-judgement about which side is real.
+Rows are dispositioned under §0's evidence rule: **a row may be called a contradiction only with
+≥2 evidence types**. Two rows were withdrawn on 2026-11-05 for holding one type only — the single
+`grep -m1` over a long single-line status header that carries its own later corrections. Row count
+is deliberately not stated in prose (run-time quantity; §0).
 
-| # | Claim in the documents | Reality `[measured]` | Where to fix |
+| # | Claim in the documents | Reality | Where to fix |
 |---|---|---|---|
-| T1 | `integration.md`: "push side (webhooks/events) absent" | `apps/server/src/utils/webhook-dispatcher.ts` exists, with `FOR UPDATE SKIP LOCKED` at :111 and a 60 s lease | module status header, re-judge |
-| T2 | `audit-sdd.md`: tamper chain "STILL design-only/deferred" | `utils/audit-verify.ts`, `utils/audit-anchor.ts`, `routes/audit.ts` all exist | module status header |
-| T3 | `database.md`: "§22.4 retention/archival unimplemented" | SQL uses `current_date - make_interval(days => retentionDays)`; `archiveAfterDays: 90` present | module status header |
-| T4 | `compliance.md`: "data-export absent; user delete hard-cascades" | `/api/v1/audit-logs/export` and `/api/v1/users/export` exist; erasure is implemented as a compliance act with orphan checks | module status header + scope question (does export satisfy portability?) |
-| T5 | gap-map-v2 §3: password history/expiry "deferred P2" | `passwordHistory` insert/delete/keep logic present | deferred ledger entry |
-| T6 | `permission.ts:36`: "Scope engine is a spec non-goal for now" | `utils/data-scope.ts` + `roles.ts` `all/dept/self` enum + `DATA_SCOPE_RANK` clamp are live | source comment |
+| T1 | `integration.md`: "push side (webhooks/events) absent" | `[measured]` 2 types: command (pattern scan finds no self-correction in the file) + artifact anchor (`apps/server/src/utils/webhook-dispatcher.ts:111` `FOR UPDATE SKIP LOCKED`, 60 s lease, plus `webhook-metrics.ts`) | module status header |
+| T2 | ~~`audit-sdd.md` says the tamper chain is "STILL design-only/deferred"~~ **WITHDRAWN 2026-11-05 — false on re-reading** | The same header line continues **"SUPERSEDED by the R-audit batch (2026-09-28): the tamper-evident chain is now IMPLEMENTED end to end"** and names the chain file `0010_early_odin.sql`, the `row_hash`/`anchor_id`/`erased_at`/`erasure_id` columns, `audit_chain_anchors`/`audit_erasures`, the anchor worker and `GET /api/v1/audit-logs/verify`. The document was never wrong; my single-type `grep -m1` read was. **Kept in the table as the record of a withdrawn claim**, per "mark, do not delete" | none — nothing to fix; §0's two-type rule is the artifact |
+| T3 | ~~`database.md`: "§22.4 retention/archival unimplemented"~~ **WITHDRAWN / narrowed 2026-11-05** | The header already splits the two: "the retention side **is** consumed since Q2a; archival still is not" — matching `utils/retention-sweeper.ts` reading `AUDIT_RETENTION_DAYS`. My inference that archival was shipped rested on seeing an `archiveAfterDays: 90` value, i.e. **a field existing is not a feature landed** (1 type, and the wrong kind) | none for retention; archival stays open in L3b until a reader is found (needs its own 2 types) |
+| T4 | `compliance.md`: "data-export absent; user delete hard-cascades" | `[measured]` 2 types: command (endpoint scan) + artifact anchors — `/api/v1/audit-logs/export`, `/api/v1/users/export`, and sanctioned RTBF erasure wired into user deletion at `routes/users.ts:683-749` (`eraseAudit` + mandatory `legalBasis`, tenant-wide `all` data scope required, `ERASE_LOCK_BUSY` retry) | module status header + the open scope question: do these exports satisfy portability? (needs a real check, not more grep) |
+| T5 | gap-map-v2 §3: password history/expiry "deferred P2" | `[measured]` 2 types: command (grep for `passwordExpiry\|maxPasswordAge\|passwordChangedAt` → 0) + artifact anchor (`packages/identity/src/db/schema.ts:246` `password_history` + index, `UserManager` insert/delete/keep). **Split verdict: history closed, expiry open** — one §3 row bundled the two | L3b rows; deferred ledger entry |
+| T6 | `permission.ts:36`: "Scope engine is a spec non-goal for now" | `[measured]` 1 type only so far: `utils/data-scope.ts` + `roles.ts` `all/dept/self` enum + `DATA_SCOPE_RANK` clamp exist. Whether the comment refers to *this* scope engine or to an identity-package spec is **undetermined** → downgraded from contradiction to "wording, verify before editing" | source comment, only after a second evidence type settles the referent |
 | T7 | `CHANGELOG.md` last entry 2026-10-12 | commits since then: `[measured]` asOf 2026-11-05, line count of `git log --oneline --since=2026-10-13` output (recount before use — a moving target while batches land) | CHANGELOG, batch-collapsed entries |
 | T8 | `.agents/memorys/status.md` recent-work stops 09-12; baselines quoted as vitest 491 / e2e 107 | AGENTS.md quotes 1556 / 184; neither re-run in this audit `[unverified]` | status.md + one measured run |
 | T9 | `AGENTS.md` remaining ladder lists "re-encrypt tool" as outstanding | `scripts/re-encrypt.ts` delivered 2026-10-08 (CHANGELOG) | AGENTS.md status line |
 | T10 | Batch 3 was marked `EXECUTED` while its "gates into checked-in CI" deliverable had not landed | `.github/workflows/ci.yml` now has `Governance Gates` (7f); the false EXECUTED is already AMENDED in the governance plan | closed, documented |
 | T11 | `AGENTS.md`'s "Status:" paragraph and OVERVIEW batch narrative carry un-recounted counts and dated claims (last full re-check 2026-10-08) | partially purged by ADJ-7h on 2026-11-04; the narrative paragraphs were not re-checked in this audit `[unverified]` | AGENTS.md status line + overview, inside S1 |
-| T12 | `monitoring.md` §13.3 says "alerting … unimplemented" — conflating two different things | `[measured]` 2026-11-05: `docker/prometheus/rules.yml` **does** ship 7 alert definitions (`grep -c '  - alert:' docker/prometheus/rules.yml`, asOf 2026-11-05; among them `AccessBaseAuthFailureSpike`, `AccessBaseNotReady`) while `prometheus` appears 0 times in all three compose files, `Dockerfile` and both entrypoints. So: rules exist as an operator-facing sample, integration is out of scope — "unimplemented" is neither right nor wrong, it is the wrong question | `monitoring.md` status header + the `rules.yml` header comment, both inside S1. Note the direction of this evidence: a 7-rule sample **strengthens** 11-05 P3-A (an operator-facing deliverable, not a stub awaiting a mount) rather than reopening it |
+| T12 | `monitoring.md` §13.3 says "alerting … unimplemented" | 3 evidence types: deployment-chain grep (`prometheus` = 0 hits across all compose files, `Dockerfile`, both entrypoints, `.github/`); file read (7 complete rules with `severity`/`for`/annotations, incl. `up{job="accessbase"}` and an audit-anchor staleness alert); cross-source (every metric referenced exists in `metrics.ts`, `webhook-metrics.ts`, `audit-metrics.ts`). Verdict: "unimplemented" is **substantially correct** (nothing is wired) → precision-of-wording, not a contradiction | `monitoring.md` §13.3 wording + the `rules.yml` header, inside S1 — 11-05 P3-A stands on 3 types |
+| T13 | `doc-audit`'s own audit scope list | `[measured]` 2 types: command (existence probe over all 16 listed paths → **12 missing**: `docs/phase-planning.md`, `docs/plans/`, `competitive-landscape.md`, `plugin-architecture-analysis.md`, `api-specification.md`, `database-schema.md`, `test-seed-strategy.md`, `redis-mock-guide.md`, `e2e-test-flows.md`, `api-conventions.md`, `dev-workflow.md`, `frontend-spec.md`, `.opencode/oh-my-openagent.jsonc`) + artifact (the skill asserts "11 TDD docs", glob returns **0**, and its gap dimension says "packages/ 目录未创建、无 CI/CD 配置" against a repo with 8 packages and 8 CI jobs) | the skill's scope table, its "unimplemented features" dimension, and its residual `team_create`/`oracle` block (11-05 X-1 family) — belongs to S1, and any `/doc-audit` run before then reports fabricated gaps |
 
 ### L2 · Engineering health
 
@@ -475,6 +478,36 @@ Why this matters more than the individual rows: the failure mode this plan was w
 a claim that looks authoritative and is stale — recurred **inside the plan itself, on the day it
 was written, three times**. The corrective response is not "be careful"; it is the two §0 rules
 plus the S1 format/recency lint, which are now the plan's own first acceptance target.
+
+---
+
+## S1 execution log (started 2026-11-05)
+
+**First cut: the L1 ledger was re-verified before any module document was edited — and it failed
+re-verification.** Applying §0's two-type rule to my own table:
+
+- **T2 withdrawn** (`audit-sdd.md`): the header line carries its own `SUPERSEDED by the R-audit
+  batch (2026-09-28)` correction naming the chain migration, the four new columns, both new tables
+  and the verify endpoint. My claim came from `grep -m1` hitting the first half of a single very
+  long line — one evidence type, and the weakest kind.
+- **T3 withdrawn/narrowed** (`database.md`): the header already separates retention (consumed
+  since Q2a) from archival (not). I had read the existence of an `archiveAfterDays` value as "the
+  feature landed".
+- **T6 downgraded** to wording: two types are needed to say whether `permission.ts:36`'s "non-goal"
+  means the shipped `data-scope` engine or a different spec; today it has one.
+- **T12 reclassified** from contradiction to precision-of-wording, on 3 types — and it *hardens*
+  11-05 P3-A rather than reopening it.
+- **T4 strengthened** (2 types): sanctioned RTBF erasure is wired into user deletion at
+  `routes/users.ts:683-749`, so "user delete hard-cascades" is genuinely stale.
+- **T5 split** into history (closed, 2 types) and expiry (open) — the §3 row that bundled two
+  items in different states.
+- **T13 added**: `doc-audit`'s own scope list points at 12 non-existent paths of 16 and asserts 11
+  TDD docs where the glob returns 0; until S1 fixes it, any `/doc-audit` run yields fabricated gaps.
+
+Consequence for the plan's execution: **no module status header was edited in this cut.** The five
+headers originally targeted would have been rewritten on evidence that did not survive a second
+look, which is precisely the failure this whole exercise is meant to prevent. The first cut is
+therefore re-scoped: T1/T4/T5/T13 are the rows with two types today, and only those may drive edits.
 
 ---
 
