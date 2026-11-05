@@ -31,6 +31,7 @@ import * as path from "node:path";
 import { ROOT, loadTargets, hubBudget, EXIT_CLEAN, EXIT_FINDINGS } from "./agent-common.mts";
 import * as rulesLinks from "./rules-links.mts";
 import * as skillsIndex from "./skills-index.mts";
+import * as instructionsLinks from "./instructions-links.mts";
 import * as memoryAggregate from "./memory-aggregate.mts";
 import * as ruleRefLint from "./rule-ref-lint.mts";
 import * as skillLint from "./skill-lint.mts";
@@ -38,7 +39,7 @@ import * as constraintsIndex from "./constraints-index.mts";
 import * as mcpLinks from "./mcp-links.mts";
 import * as gateMcp from "./gate-mcp.mts";
 
-const GENERATORS = ["rules-links", "skills-index", "memory-aggregate", "mcp-links"] as const;
+const GENERATORS = ["rules-links", "skills-index", "memory-aggregate", "instructions-links", "mcp-links"] as const;
 const LINTS = ["rule-ref-lint", "skill-lint", "constraints-index", "gate-mcp"] as const;
 
 function hubBudgetCheck(): { code: number; note: string } {
@@ -72,6 +73,7 @@ function runLayers(mode: "check" | "sync") {
     rulesLinks.run(mode),
     skillsIndex.run(mode),
     memoryAggregate.run(mode),
+    instructionsLinks.run(mode),
     mcpLinks.run(mode),
     ruleRefLint.run(mode),
     skillLint.run(mode),
