@@ -1,0 +1,51 @@
+# Batch 8 Plan Panel Review — 2026-11-04
+
+> Artifact reviewed: `docs/superpowers/plans/2026-11-04-opencode-instructions-face.md` (v1, 438 lines)
+> Spec: ADJ-OC-1..4 section of `docs/superpowers/plans/2026-11-04-agent-governance-port.md`
+> Track: parallel (3 independent read-only reviewers, isolation discipline — none read another's output)
+> Merge: single pass by the lead, disagreements preserved below.
+
+## Roles
+
+| Role | Agent | Duration | Verdict |
+|---|---|---|---|
+| Correctness officer (falsification) | oracle `bg_f7e60726` | 21m | APPROVE-WITH-FIXES |
+| Evidence officer (claim ledger) | oracle `bg_718895de` | 21m | APPROVE-WITH-FIXES |
+| Doc-audit lens (governance coherence) | oracle `bg_f374ca22` | 15m | APPROVE-WITH-FIXES |
+
+## Merge result
+
+**16 findings merged (3 HIGH-class clusters, 6 MEDIUM, 7 LOW) — ALL absorbed into the plan (v2) in the same session. Zero disagreements on substance; one severity disagreement preserved (finding 3). The plan's load-bearing claims all verified exact: 79/80 census, 82-entry shape, 171,946 current bytes, 291,106 projected bytes, 20.2% headroom, 8→9 layers, every cited line range (mcp-links 42-53 / 26, rules-links 17-30 / 12-15, agent-common 18 / 39-47, agent-links 40 / 69-81, targets 29-33), ADJ-OC-2/3/4 fidelity, hook + generated_tracked claims, tool-routing.md absence from the current face.**
+
+## Findings and disposition
+
+| # | Severity | Finding (converged from) | Disposition |
+|---|---|---|---|
+| 1 | HIGH | Task 2 Step 7 demo unreachable: moving status.md crashes memory-aggregate (unguarded `readFileSync`, position 3) BEFORE instructions-links' guard prints (3/3) | Fixed — demo switched to conventions.md (verified unread by earlier layers), expectation re-worded, rationale recorded in the step |
+| 2 | HIGH | Draft imports `relRoot` but never uses it → eslint ERROR (no-unused-vars is error-level for `**/*.mts`; warn-demotion covers apps/packages/e2e only) (2/3) | Fixed — dropped from Task 2 import + Consumes list; Task 1 consumers keep it (still used there) |
+| 3 | HIGH vs MEDIUM — **severity conflict preserved** | Task 3 Step 3 writes a NEW Chinese conventions entry, violating D121 (docaudit graded HIGH: policy governs new writes regardless of file legacy language; evidence graded MEDIUM) | Fixed — entry rewritten in English following the file's post-2026-09 English governance precedent (multi-node/logout-coherence/data-scope/Q3D); literal Chinese heading names kept as quoted pointers with an exemption clause in Global Constraints |
+| 4 | MEDIUM | Task 2 Step 1 self-contradictory ("Expected: exit 1" vs "8 layers, all green") (3/3) | Fixed — retitled "Record the pre-batch baseline", expects exit 0 |
+| 5 | MEDIUM | Task 1 Step 6 claims `status` renders `instructions_face` — the printer covers label/enabled/rules_dir/skills_dir only (2/3) | Fixed — direct `node -e` registry read replaces the eyeball step |
+| 6 | MEDIUM | ADJ-OC-1 mechanism deviation unflagged: ruling note says "rules-links gains an opencode face", plan builds a separate 5th generator (2/3) | Fixed — citation-fidelity note added to Architecture (outcome identical; VE 2-B refinement recorded) |
+| 7 | MEDIUM | Bare `D20` citations at 3 sites collide with real AccessBase D20 (分公司部署); numbering discipline requires cross-repo prefixes (1/3) | Fixed — `RCH D20` everywhere (grep-verified zero bare) |
+| 8 | MEDIUM | CJK in new plan prose (`collectRules口径`) trips the new-file CJK scan (1/3) | Fixed — "collectRules sense"; Global Constraints gains the quoted-pointer exemption clause |
+| 9 | MEDIUM | Task 3 Step 4 false mechanism: "edits ride the memory-aggregate digest" — digest is heading-scoped and conventions.md is not read by memory-aggregate at all (1/3) | Fixed — corrected to "edits do NOT alter AGENTS.md; hub unaffected" |
+| 10 | LOW | mcp-links.mts:10-11 header becomes a lie after Batch 8 (1/3) | Fixed — staleness touch added to Task 1 Step 4 |
+| 11 | LOW | "never localeCompare" ban vs verbatim-moved deepEqual using localeCompare internally (3/3 convergent: comparison-only, exempt) | Fixed — constraint scoped to serialized orderings |
+| 12 | LOW | Projected-bytes baseline "already drifted live: 291,106 → 288,616 (−0.9%)" — **RETRACTED at review close-out**: the re-run's glob omitted CONSTRAINTS.md from the projection set (difference = exactly its 2,490 bytes); 291,106 re-verified exact. Disposition revised: no live drift exists; the plan's re-measure-at-execution instruction stands on its own merits (numbers age, scopes drift) | Fixed — erratum recorded here; plan baselines table carries the corrected provenance |
+| 13 | LOW | Step 6 `git diff` assertions measured against the wrong baseline (pre-commit vs HEAD shows the whole face rewrite) (1/3) | Fixed — assertions re-based on "byte-identical to Step 5 output" (cmp) |
+| 14 | LOW | agent-links.mts:7-10 docblock still lists Batch-3 layers (already stale before this batch) (1/3) | Fixed — folded into the Task 1 staleness touch |
+| 15 | LOW | Baselines-table rendering defect (`} \n } \n` garble) (1/3) | Fixed — od-verified phrasing |
+| 16 | LOW (observation, no action) | Erase-on-sync PIT not required — conventions entry + registry note + execution log already carry the operator warning with an executable check (correct graduation per lesson-memory escalation ladder); add a PIT only if a live erasure incident occurs. No D/PIT numbers taken by the plan (max D126 / PIT-090 intact) | Recorded |
+
+## NOT-COVERED (union, preserved)
+
+- OpenCode host-behavior claims (always-on injection, next-session reload) — host-side, originate in the ADJ-OC-2 ruling text itself.
+- Cross-repo citations (RCH D20/PIT-244, VE 2-B/D28/D50/PIT-84, MS D199) — unverifiable in this repo.
+- No plan code executed (read-only mandate) — behaviors verified by source tracing + live measurement commands only.
+- Task 1/2 refactor neutrality verified by inspection + live baseline, not by running the refactor.
+- Whether OpenCode's config schema caps `instructions[]` length — unknown, watch-item.
+
+## Red-flag check (expert-panel-review)
+
+No role returned "no findings"; none converged instantly (14-21 min each); every finding carries file:line or live command evidence — evidence-officer discipline held.
