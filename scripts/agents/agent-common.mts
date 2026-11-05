@@ -15,7 +15,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync, lstatSync } from "node:fs";
 import * as path from "node:path";
 
 export const EXIT_CLEAN = 0;
@@ -44,7 +44,11 @@ export interface Targets {
     skills_dir?: string;
     gitignored?: boolean;
     note?: string;
-  }>;
+    instructions_face?: {
+      memory_files: string[];
+      budget_warn_bytes: number;
+    };
+  }>
 }
 
 export function loadTargets(): Targets {
@@ -180,4 +184,35 @@ export function writeIfChanged(filePath: string, next: string): boolean {
 
 export function relRoot(p: string): string {
   return path.relative(ROOT, p);
+}
+
+/** Structural deep-equality: key-order-insensitive for objects; array order IS significant. */
+export function deepEqual(a: unknown, b: unknown): boolean {
+  return JSON.stringify(sortKeys(a)) === JSON.stringify(sortKeys(b));
+  function sortKeys(x: unknown): unknown {
+    if (Array.isArray(x)) return x.map(sortKeys);
+    if (x && typeof x === "object") {
+      return Object.fromEntries(
+        Object.entries(x as Record<string, unknown>).sort(([k1], [k2]) => k1.localeCompare(k2)).map(([k, v]) => [k, sortKeys(v)]),
+      );
+    }
+    return x;
+  }
+}
+
+// --- rules collection (rules-links + instructions-links) --------------------
+
+export interface RuleFile { lang: string; topic: string; src: string; }
+
+export function collectRules(rulesRoot: string, exclude: string[]): RuleFile[] {
+  const out: RuleFile[] = [];
+  for (const lang of readdirSync(rulesRoot)) {
+    if (exclude.includes(lang)) continue;
+    const langDir = path.join(rulesRoot, lang);
+    if (!lstatSync(langDir).isDirectory()) continue;
+    for (const f of readdirSync(langDir)) {
+      if (f.endsWith(".md")) out.push({ lang, topic: f.replace(/\.md$/, ""), src: path.join(langDir, f) });
+    }
+  }
+  return out;
 }

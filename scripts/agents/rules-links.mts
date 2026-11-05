@@ -11,23 +11,9 @@ import { readFileSync, readdirSync, existsSync, lstatSync, realpathSync } from "
 import * as path from "node:path";
 import {
   ROOT, loadTargets, guard, sha256Short, writeIfChanged, relRoot,
-  EXIT_CLEAN, EXIT_FINDINGS,
+  EXIT_CLEAN, EXIT_FINDINGS, collectRules, type RuleFile,
 } from "./agent-common.mts";
 
-interface RuleFile { lang: string; topic: string; src: string; }
-
-function collectRules(rulesRoot: string, exclude: string[]): RuleFile[] {
-  const out: RuleFile[] = [];
-  for (const lang of readdirSync(rulesRoot)) {
-    if (exclude.includes(lang)) continue;
-    const langDir = path.join(rulesRoot, lang);
-    if (!lstatSync(langDir).isDirectory()) continue;
-    for (const f of readdirSync(langDir)) {
-      if (f.endsWith(".md")) out.push({ lang, topic: f.replace(/\.md$/, ""), src: path.join(langDir, f) });
-    }
-  }
-  return out;
-}
 
 /** Strip a leading YAML frontmatter block (language-dir files carry `paths:` globs). */
 function stripFrontmatter(text: string): string {

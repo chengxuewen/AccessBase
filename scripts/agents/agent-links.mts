@@ -4,10 +4,11 @@
  * (plan Batch 2/3; VE adjudication 2-B: per-layer small generators + shared
  * base, no mega-script).
  *
- * Layers (Batch 3 aggregate, layering: rule-ref-lint/skill-lint/constraints-
- * index ⊂ agents check ⊂ ci — ADJ-1c/ADJ-3a rulings):
- *   generators: rules-links, skills-index, memory-aggregate
- *   lints:      rule-ref-lint, skill-lint, constraints-index
+ * Layers (Batch 3 aggregate + Batch 4/8 additions; layering: rule-ref-lint/
+ * skill-lint/constraints-index/gate-mcp ⊂ agents check ⊂ ci — ADJ-1c/ADJ-3a):
+ *   generators: rules-links, skills-index, memory-aggregate,
+ *               instructions-links (Batch 8), mcp-links
+ *   lints:      rule-ref-lint, skill-lint, constraints-index, gate-mcp
  *
  * Commands: check | sync | dry-run | list | status
  *   check   — regenerate in memory, compare against disk; red on drift. Read-only.
