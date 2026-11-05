@@ -1,7 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-08-21 · **Updated:** 2026-10-08
-**Status:** Phase 9 + batches A-P complete; R1 11/11; R-audit LANDED (tamper chain + verify + sanctioned erasure, live-fire incl. D-ERASE-1 rev.4); auth.ts split + integration day (partial); session-lifetime LANDED; multi-node LANDED; logout-coherence LANDED (SAML SLO both directions, RP end_session, private_key_jwt); data-scope LANDED 2026-10-08 (DG-6d middle path: per-binding self/dept/all row scopes on the users surface); remaining ladder: branding+portal (sales-gated) + carryovers (real-IdP SAML live-fire, Q3D live-RP, re-encrypt tool)
+**Generated:** 2026-08-21 · **Updated:** 2026-11-05
+**Status:** Phase 9 + batches A-P complete; R1 11/11; R-audit LANDED (tamper chain + verify + sanctioned erasure, live-fire incl. D-ERASE-1 rev.4); auth.ts split + integration day (partial); session-lifetime LANDED; multi-node LANDED; logout-coherence LANDED (SAML SLO both directions, RP end_session, private_key_jwt); data-scope LANDED 2026-10-08 (DG-6d middle path: per-binding self/dept/all row scopes on the users surface); remaining ladder: branding+portal (sales-gated) + carryovers (real-IdP SAML live-fire, Q3D live-RP)
 **Stack:** TypeScript / Fastify / React / Ant Design / Drizzle ORM / PostgreSQL / Redis
 
 ## OVERVIEW
@@ -16,8 +16,8 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 │   ├── architecture.md      # Stub index → modules/
 │   ├── modules/             # 44 docs (36 modular + 8 SDD), each with an Implementation status header (mandatory, D126)
 ├── .agents/                 # AI agent configuration
-│   ├── skills/              # 13 project-specific skills (graphify, test-harness, adjudication-walkthrough, etc.)
-│   ├── rules/               # Coding rules by language (14 language dirs)
+│   ├── skills/              # Project-specific skills (the digest table below is the authoritative list; count dirs at run time)
+│   ├── rules/               # Coding rules by language (count dirs at run time)
 │   └── memorys/             # Project memory (status, decisions, pitfalls, conventions)
 ├── .refinfo/new-api/        # Reference implementation (new-api) — READ ONLY, not our code
 ├── scripts/                 # Utility scripts
@@ -38,7 +38,7 @@ AccessBase is an enterprise access control foundation (IAM) providing authentica
 | Design decisions      | `.agents/memorys/decisions.md`  | D1-D124 with rationale                         |
 | Project status        | `.agents/memorys/status.md`     | Current phase, blockers                        |
 | Coding rules          | `.agents/rules/`                | Per-language rules                             |
-| Skills                | `.agents/skills/`               | graphify, test-harness, design-system, etc.         |         |
+| Skills                | `.agents/skills/`               | graphify, test-harness, design-system, etc.    |
 | Reference impl        | `.refinfo/new-api/`             | Go/React reference (AGENTS.md has conventions) |
 
 ## CONVENTIONS
