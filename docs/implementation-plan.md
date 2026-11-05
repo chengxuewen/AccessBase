@@ -135,7 +135,7 @@ is deliberately not stated in prose (run-time quantity; §0).
 | T4 | `compliance.md`: "data-export absent; user delete hard-cascades" | `[measured]` 2 types: command (endpoint scan) + artifact anchors — `/api/v1/audit-logs/export`, `/api/v1/users/export`, and sanctioned RTBF erasure wired into user deletion at `routes/users.ts:683-749` (`eraseAudit` + mandatory `legalBasis`, tenant-wide `all` data scope required, `ERASE_LOCK_BUSY` retry) | **header DONE 2026-11-05**; the portability scope question stays open in L3b/T4 |
 | T5 | gap-map-v2 §3: password history/expiry "deferred P2" | `[measured]` 2 types: command (grep for `passwordExpiry\|maxPasswordAge\|passwordChangedAt` → 0) + artifact anchor (`packages/identity/src/db/schema.ts:246` `password_history` + index, `UserManager` insert/delete/keep). **Split verdict: history closed, expiry open** — one §3 row bundled the two | L3b rows; deferred ledger entry |
 | T6 | ~~`permission.ts:36`: "Scope engine is a spec non-goal for now" contradicts the shipped data-scope engine~~ **WITHDRAWN 2026-11-05 (third self-error)** | Read with its enclosing block (lines 30-40) and the sentence belongs to the **API-key bypass** comment — "API keys bypass permission checks in v1 … would 403 every key request (deadlock). Scope engine is a spec non-goal for now" — i.e. key-scoped permission checking, **not** the `self/dept/all` row-scope engine in `utils/data-scope.ts`. The comment is accurate about what it describes; my inference was the error, made from a phrase taken out of context | none — nothing to fix. Ledger keeps the row as the record of a third same-family misread |
-| T7 | `CHANGELOG.md` last entry 2026-10-12 | commits since then: `[measured]` asOf 2026-11-05, line count of `git log --oneline --since=2026-10-13` output (recount before use — a moving target while batches land) | CHANGELOG, batch-collapsed entries |
+| T7 | `CHANGELOG.md` last entry 2026-10-12 | `[measured]` 2 types: file content (newest section dated 2026-10-12) + `git rev-list --count 028f6c8..HEAD` = 50 (recount before use — a moving target while batches land) | **DONE 2026-11-05** — six batch entries added covering those 50 commits (`03dfb3e`), grouped by wave rather than per commit |
 | T8 | `.agents/memorys/status.md` recent-work stops 09-12; baselines quoted as vitest 491 / e2e 107 | AGENTS.md quotes 1556 / 184; neither re-run in this audit `[unverified]` | status.md + one measured run |
 | T9 | `AGENTS.md` remaining ladder lists "re-encrypt tool" as outstanding | `[measured]` **2 types**: the CHANGELOG entry dated 2026-10-08 ("`scripts/re-encrypt.ts` closes the *_OLD key-rotation windows … R-B registered debt paid") + the file present on disk (`scripts/re-encrypt.ts`, dated 10-08) | **evidence sufficient, target deferred** — the edit belongs in `AGENTS.md`, the concurrent session's active area (last written 09:23 by ADJ-7h) → registered, not acted on |
 | T10 | Batch 3 was marked `EXECUTED` while its "gates into checked-in CI" deliverable had not landed | `.github/workflows/ci.yml` now has `Governance Gates` (7f); the false EXECUTED is already AMENDED in the governance plan | closed, documented |
@@ -536,9 +536,18 @@ fixable — but both target `AGENTS.md`, last written 09:23 by the concurrent se
 they are deferred on the same hot-zone rule used for T13 rather than edited here.
 
 Ledger state after three cuts: executed T1/T4/T5; withdrawn on re-reading T2/T3/T6; reclassified
-T12; evidence-complete but deferred to a hot file T9/T11/T13; still one-type or unverified T7/T8
-(and T10 closed as documentation). The count of edits made is small; the count of claims that did
-not survive their own verification rule is the more useful number, and it is three.
+T12; evidence-complete but deferred to a hot file T9/T11/T13; T7 since executed by the fourth cut
+below, leaving T8 unverified; T10 closed as documentation. The count of edits made is small; the
+count of claims that did not survive their own verification rule is the more useful number, and it
+is three.
+
+**Fourth cut (same day).** T7 executed: `CHANGELOG.md` gained six wave-level entries covering the
+50 commits after 2026-10-12 (`03dfb3e`) — Q3D completion, the gap-remediation wave, hygiene batch
+v2, governance batches 1-8 with the MCP dependency incident, and this session's roadmap plus its
+two panel reviews. Grouped by wave, not by commit, so the file stays readable. Two entries were
+missed on the first pass and added on check (the flow-token cross-node live-fire runbook, and the
+ModuKit D19 ledger-format reference), as was one misspelling; the commit count in the message was
+corrected from an estimated 53 to the measured 50 — the same habit §0 exists to enforce.
 
 ---
 
