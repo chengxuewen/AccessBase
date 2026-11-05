@@ -118,3 +118,8 @@ apps/*/src/**/*.d.ts.map
 .codebuddy/skills/
 .codebuddy/teams/
 .agents/mcp.local.json
+
+# Qoder host runtime data (ADJ-7j: repowiki etc. are per-machine; .qoder/rules
+# is NOT ignored — it is a tracked generated face, pilot-gated per ADJ-7b)
+.qoder/repowiki/
+.qoder/experts/

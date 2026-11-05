@@ -1,0 +1,5 @@
+# Generated faces fold review noise (ADJ-7j ruling C: linguist-generated,
+# explicitly NOT merge=ours — custom merge drivers need local registration
+# and would be silently inert on machines that never opted in).
+.codebuddy/rules/** linguist-generated
+.qoder/rules/** linguist-generated

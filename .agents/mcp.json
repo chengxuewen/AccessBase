@@ -1,5 +1,5 @@
 {
-  "$comment": "MCP single source (plan 2026-11-04 Batch 4). ADJ-4a ruling A: switches carried verbatim from opencode.json as of 2026-11-04 (4 on / 2 off). ADJ-4c ruling A: full dual-host consumption — a root .mcp.json IS generated for CodeBuddy (dual-instance cost accepted by ruling). Local overlay: .agents/mcp.local.json (gitignored; local wins, ${VAR} injection only, never plaintext). Register first, then rewrite — an unregistered server is erased by the full rewrite (RCH D20).",
+  "$comment": "MCP single source (plan 2026-11-04 Batch 4). ADJ-4a ruling A: switches carried verbatim from opencode.json as of 2026-11-04 (4 on / 2 off). ADJ-4c ruling A (corrected by ADJ-7g): full multi-host consumption — the root .mcp.json is read by CodeBuddy AND Qoder (triple-instance cost on the record: opencode + CodeBuddy + Qoder each spawn their own processes). Local overlay: .agents/mcp.local.json (gitignored; local wins, ${VAR} injection only, never plaintext). Register first, then rewrite — an unregistered server is erased by the full rewrite (RCH D20).",
   "servers": {
     "local-codegraph": {
       "enabled": true,

@@ -23,13 +23,16 @@
 | Browser automation from agent sessions | Host built-in browser tool first; `local-playwright` MCP when the host has none | Do not double-route |
 | Fuzzy middle ground | Pick EXACTLY ONE route | Dual-path retrieval is banned — zero-gain duplication |
 
-## Dual-host reality (ADJ-4c ruling A)
+## Multi-host reality (ADJ-4c ruling A, corrected by ADJ-7g)
 
-Both opencode and CodeBuddy consume this declaration set, each spawning its own
-processes. That cost was accepted by ruling. Discipline that follows from it:
+Three hosts consume this declaration set — opencode (opencode.json face),
+CodeBuddy (.mcp.json face), and Qoder (the same root .mcp.json) — each spawning
+its own processes. That triple-instance cost was accepted by ruling. Discipline
+that follows from it:
 
 - Do not enable a server "just in case" — enablement is a user ruling (RCH:C12
   spirit: reclaiming resources needs explicit sanction too).
 - Before adding any root-level declarative file, answer the three questions
   (RCH:PIT-244): who reads it, what do they do on read, how many hosts on this
-  machine read it.
+  machine read it. Matrix rows are written BY CAPABILITY, never by host, so the
+  table does not fork per reader (ADJ-7g).
