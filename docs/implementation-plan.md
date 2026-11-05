@@ -120,10 +120,10 @@ is deliberately not stated in prose (run-time quantity; §0).
 
 | # | Claim in the documents | Reality | Where to fix |
 |---|---|---|---|
-| T1 | `integration.md`: "push side (webhooks/events) absent" | `[measured]` 2 types: command (pattern scan finds no self-correction in the file) + artifact anchor (`apps/server/src/utils/webhook-dispatcher.ts:111` `FOR UPDATE SKIP LOCKED`, 60 s lease, plus `webhook-metrics.ts`) | module status header |
+| T1 | `integration.md`: "push side (webhooks/events) absent" | `[measured]` 2 types: command (pattern scan finds no self-correction in the file) + artifact anchor (`apps/server/src/utils/webhook-dispatcher.ts:111` `FOR UPDATE SKIP LOCKED`, 60 s lease, plus `webhook-metrics.ts`) | **DONE 2026-11-05** — header rewritten, prior verdict kept as provenance |
 | T2 | ~~`audit-sdd.md` says the tamper chain is "STILL design-only/deferred"~~ **WITHDRAWN 2026-11-05 — false on re-reading** | The same header line continues **"SUPERSEDED by the R-audit batch (2026-09-28): the tamper-evident chain is now IMPLEMENTED end to end"** and names the chain file `0010_early_odin.sql`, the `row_hash`/`anchor_id`/`erased_at`/`erasure_id` columns, `audit_chain_anchors`/`audit_erasures`, the anchor worker and `GET /api/v1/audit-logs/verify`. The document was never wrong; my single-type `grep -m1` read was. **Kept in the table as the record of a withdrawn claim**, per "mark, do not delete" | none — nothing to fix; §0's two-type rule is the artifact |
 | T3 | ~~`database.md`: "§22.4 retention/archival unimplemented"~~ **WITHDRAWN / narrowed 2026-11-05** | The header already splits the two: "the retention side **is** consumed since Q2a; archival still is not" — matching `utils/retention-sweeper.ts` reading `AUDIT_RETENTION_DAYS`. My inference that archival was shipped rested on seeing an `archiveAfterDays: 90` value, i.e. **a field existing is not a feature landed** (1 type, and the wrong kind) | none for retention; archival stays open in L3b until a reader is found (needs its own 2 types) |
-| T4 | `compliance.md`: "data-export absent; user delete hard-cascades" | `[measured]` 2 types: command (endpoint scan) + artifact anchors — `/api/v1/audit-logs/export`, `/api/v1/users/export`, and sanctioned RTBF erasure wired into user deletion at `routes/users.ts:683-749` (`eraseAudit` + mandatory `legalBasis`, tenant-wide `all` data scope required, `ERASE_LOCK_BUSY` retry) | module status header + the open scope question: do these exports satisfy portability? (needs a real check, not more grep) |
+| T4 | `compliance.md`: "data-export absent; user delete hard-cascades" | `[measured]` 2 types: command (endpoint scan) + artifact anchors — `/api/v1/audit-logs/export`, `/api/v1/users/export`, and sanctioned RTBF erasure wired into user deletion at `routes/users.ts:683-749` (`eraseAudit` + mandatory `legalBasis`, tenant-wide `all` data scope required, `ERASE_LOCK_BUSY` retry) | **header DONE 2026-11-05**; the portability scope question stays open in L3b/T4 |
 | T5 | gap-map-v2 §3: password history/expiry "deferred P2" | `[measured]` 2 types: command (grep for `passwordExpiry\|maxPasswordAge\|passwordChangedAt` → 0) + artifact anchor (`packages/identity/src/db/schema.ts:246` `password_history` + index, `UserManager` insert/delete/keep). **Split verdict: history closed, expiry open** — one §3 row bundled the two | L3b rows; deferred ledger entry |
 | T6 | `permission.ts:36`: "Scope engine is a spec non-goal for now" | `[measured]` 1 type only so far: `utils/data-scope.ts` + `roles.ts` `all/dept/self` enum + `DATA_SCOPE_RANK` clamp exist. Whether the comment refers to *this* scope engine or to an identity-package spec is **undetermined** → downgraded from contradiction to "wording, verify before editing" | source comment, only after a second evidence type settles the referent |
 | T7 | `CHANGELOG.md` last entry 2026-10-12 | commits since then: `[measured]` asOf 2026-11-05, line count of `git log --oneline --since=2026-10-13` output (recount before use — a moving target while batches land) | CHANGELOG, batch-collapsed entries |
@@ -508,6 +508,16 @@ Consequence for the plan's execution: **no module status header was edited in th
 headers originally targeted would have been rewritten on evidence that did not survive a second
 look, which is precisely the failure this whole exercise is meant to prevent. The first cut is
 therefore re-scoped: T1/T4/T5/T13 are the rows with two types today, and only those may drive edits.
+
+**Second cut (same day).** T1 and T4 executed: `docs/modules/integration.md` and
+`docs/modules/compliance.md` status headers rewritten into §0's shape (`as of <date>, evidence:
+<file:line>`), each keeping the 2026-09-23 verdict as an explicit superseded line rather than
+deleting it. T4's portability question deliberately stayed open inside the new header — the
+evidence supports "exports and sanctioned erasure exist", not "portability is discharged".
+**T13 was not executed**: `.agents/skills/doc-audit/SKILL.md` was last written at 09:25 and
+committed at 09:26 by the concurrent session, so it is that session's active area — editing it now
+would risk overwriting in-flight work. It stays registered, and no `/doc-audit` run should be
+trusted until it is repaired.
 
 ---
 

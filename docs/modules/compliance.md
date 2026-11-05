@@ -1,6 +1,8 @@
 # 合规与数据隐私（GDPR）
 
-> **Implementation status (2026-09-23 gap audit):** `design-only (deferred)` — data-export absent; user delete hard-cascades (A8). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-05, evidence: route definitions for `/api/v1/users/export` and `/api/v1/audit-logs/export` + `apps/server/src/routes/users.ts:683-749`):** `partial` — export endpoints exist for users and audit logs, and user deletion can carry a sanctioned GDPR/RTBF erasure in the same transaction (`eraseAudit` with a mandatory `legalBasis`, tenant-wide `all` data scope required, `ERASE_LOCK_BUSY` retry, `audit_erasures` / `erased_at` bookkeeping and anchor re-verification). **Still open, not claimed here:** whether these exports discharge portability as a legal obligation — that needs a requirements check, not more grep. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+>
+> _Prior verdict (2026-09-23 gap audit, superseded by the line above, kept for provenance):_ `design-only (deferred)` — data-export absent; user delete hard-cascades (A8).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§39 合规与数据隐私（GDPR）
