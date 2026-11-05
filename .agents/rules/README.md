@@ -31,7 +31,7 @@ Rules are part of the `.agents/` directory, organized into a **common** layer pl
 - **common/** contains universal principles — no language-specific code examples.
 - **Language directories** extend the common rules with framework-specific patterns, tools, and code examples. Each file references its common counterpart.
 
-Rules are project-local and read directly by the AI assistant from `.agents/rules/` — no copying to `~/.claude/` needed.
+Rules are project-local and read directly by the AI assistant from `.agents/rules/` — no copying into any host's personal skills/settings directories is needed.
 
 ## Rules vs Skills
 

@@ -14,6 +14,10 @@
  * Explanatory mentions must not use the bare citation shape (discovered live
  * 2026-11-04 — see lesson-memory.md Numbering discipline).
  *
+ * Check 3 (ADJ-7d): host-private paths (`~/.claude`, `~/.copilot`, `allowedTools`,
+ * ...) in rules/skills surface — rules text names CAPABILITIES, never host-private
+ * bindings; `.refinfo/` exempt by absence from the scan roots.
+ *
  * Exit codes: 0 clean / 1 findings / 2 internal guard (nothing written).
  * --self-test runs on synthetic fixtures ONLY (verification discipline).
  */
@@ -91,6 +95,33 @@ export function scanTextForDangling(text: string, defs: Defs, label: string): st
   return out;
 }
 
+/** ADJ-7d: host-private path patterns — a rules/skills surface must not bind to a
+ *  specific host's private config. Returns finding strings. */
+const HOST_PRIVATE_PATTERNS: Array<[RegExp, string]> = [
+  [/~\/\.claude/g, "~/.claude"],
+  [/~\/\.copilot/g, "~/.copilot"],
+  [/\ballowedTools\b/g, "allowedTools"],
+  [/~\/\.claude\.json/g, "~/.claude.json"],
+  [/dangerously-skip-permissions/g, "dangerously-skip-permissions"],
+];
+
+export function scanTextForHostPrivate(text: string, label: string): string[] {
+  const out: string[] = [];
+  const reported = new Map<string, number[]>();
+  for (const [re, name] of HOST_PRIVATE_PATTERNS) {
+    for (const m of text.matchAll(re)) {
+      const line = text.slice(0, m.index ?? 0).split("\n").length;
+      const lines = reported.get(name) ?? [];
+      if (!lines.includes(line)) lines.push(line);
+      reported.set(name, lines);
+    }
+  }
+  for (const [name, lines] of reported) {
+    out.push(`${label}:${lines.join(",")} — host-private binding "${name}" (name the CAPABILITY, not the host path — ADJ-7d)`);
+  }
+  return out;
+}
+
 // --- layer + CLI -----------------------------------------------------------
 
 function collectMarkdown(dir: string): string[] {
@@ -125,13 +156,21 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
     } else scanFiles.push({ label: path.basename(p), text: readFileSync(p, "utf8") });
   }
   const findings = scanFiles.flatMap((f) => scanTextForDangling(f.text, defs, f.label));
+  // ADJ-7d: host-private scan; zh/ is the legacy Chinese mirror (exempt, no-back-translation
+  // policy) and book-to-skill is an upstream-fork skill whose cross-host install docs are
+  // its own subject matter
+  const hostPrivate = scanFiles
+    .filter((f) => !f.label.startsWith(".agents/rules/zh/") && !f.label.includes("book-to-skill"))
+    .flatMap((f) => scanTextForHostPrivate(f.text, f.label));
   for (const kind of ["D", "PIT", "C"] as Kind[]) findings.push(...defs.duplicatesOf(kind));
 
-  if (findings.length === 0) return { code: EXIT_CLEAN, summary: "rule-ref-lint: clean" };
-  console.log(`rule-ref-lint: ${findings.length} finding(s)`);
+  if (findings.length === 0 && hostPrivate.length === 0) return { code: EXIT_CLEAN, summary: "rule-ref-lint: clean" };
+  const total = findings.length + hostPrivate.length;
+  console.log(`rule-ref-lint: ${total} finding(s)`);
   for (const f of findings) console.log(`  [dangling] ${f}`);
-  console.log("  fix: define the number, correct the citation, or prefix cross-repo numbers with MS:/VE:/RCH: (ADJ-1b)");
-  return { code: EXIT_FINDINGS, summary: `rule-ref-lint: ${findings.length} finding(s)` };
+  for (const f of hostPrivate) console.log(`  [host-private] ${f}`);
+  console.log("  fix: define the number, correct the citation, prefix cross-repo numbers with MS:/VE:/RCH: (ADJ-1b), or rewrite host-private bindings as capability names (ADJ-7d)");
+  return { code: EXIT_FINDINGS, summary: `rule-ref-lint: ${total} finding(s)` };
 }
 
 /** Synthetic fixtures only — never touches real files. */

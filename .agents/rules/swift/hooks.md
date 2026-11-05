@@ -10,7 +10,7 @@ paths:
 
 ## PostToolUse Hooks
 
-Configure in `~/.claude/settings.json`:
+Configure in the host agent's settings (per-hook PostToolUse config):
 
 - **SwiftFormat**: Auto-format `.swift` files after edit
 - **SwiftLint**: Run lint checks after editing `.swift` files

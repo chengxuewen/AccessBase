@@ -13,7 +13,7 @@ paths:
 
 ## PostToolUse Hooks
 
-Configure in `~/.claude/settings.json`:
+Configure in the host agent's settings (per-hook PostToolUse config):
 
 - **perltidy**: Auto-format `.pl` and `.pm` files after edit
 - **perlcritic**: Run lint check after editing `.pm` files

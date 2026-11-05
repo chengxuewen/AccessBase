@@ -10,7 +10,7 @@ paths:
 
 ## PostToolUse Hooks
 
-Configure in `~/.claude/settings.json`:
+Configure in the host agent's settings (per-hook PostToolUse config):
 
 - **cargo fmt**: Auto-format `.rs` files after edit
 - **cargo clippy**: Run lint checks after editing Rust files

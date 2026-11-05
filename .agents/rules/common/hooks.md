@@ -12,8 +12,7 @@ Use with caution:
 
 - Enable for trusted, well-defined plans
 - Disable for exploratory work
-- Never use dangerously-skip-permissions flag
-- Configure `allowedTools` in `~/.claude.json` instead
+- Never bypass permission gates via skip-flags; configure tool allowlists in the host agent's own settings instead
 
 ## TodoWrite Best Practices
 

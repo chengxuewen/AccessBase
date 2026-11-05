@@ -13,7 +13,7 @@ paths:
 
 ## PostToolUse Hooks
 
-Configure in `~/.claude/settings.json`:
+Configure in the host agent's settings (per-hook PostToolUse config):
 
 - **Pint / PHP-CS-Fixer**: Auto-format edited `.php` files.
 - **PHPStan / Psalm**: Run static analysis after PHP edits in typed codebases.

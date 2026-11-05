@@ -11,7 +11,7 @@ paths:
 
 ## PostToolUse Hooks
 
-Configure in `~/.claude/settings.json`:
+Configure in the host agent's settings (per-hook PostToolUse config):
 
 - **dart format**: Auto-format `.dart` files after edit
 - **dart analyze**: Run static analysis after editing Dart files and surface warnings

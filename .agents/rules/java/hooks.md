@@ -12,7 +12,7 @@ paths:
 
 ## PostToolUse Hooks
 
-Configure in `~/.claude/settings.json`:
+Configure in the host agent's settings (per-hook PostToolUse config):
 
 - **google-java-format**: Auto-format `.java` files after edit
 - **checkstyle**: Run style checks after editing Java files

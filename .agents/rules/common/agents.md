@@ -2,7 +2,7 @@
 
 ## Available Agents
 
-Located in `~/.claude/agents/`:
+Provided by the host agent platform (agent-definition directory):
 
 | Agent                | Purpose                 | When to Use                   |
 | -------------------- | ----------------------- | ----------------------------- |
