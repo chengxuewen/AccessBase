@@ -81,6 +81,15 @@ is the qualifier that stops a format gate from crying wolf.
   so" — is not a type. Where a claim has one type only, it stays labelled `[doc-claim]` even if the
   single type is strong.
 
+- **Read the surrounding unit before judging a fragment (third instance of the same self-error).**
+  Three L1 rows were withdrawn or reclassified not because the documents were wrong but because the
+  evidence was taken out of context: a status header read up to its first clause (`audit-sdd.md`), a
+  config field mistaken for a shipped feature (`database.md`), and a bare phrase mistaken for a
+  different subsystem (`permission.ts:36`, whose "scope engine" sentence belongs to the API-key
+  bypass comment, not to `data-scope`). Rule: any claim built on a **quoted fragment** must be
+  re-checked against the enclosing block, paragraph or line-span before it enters a ledger — and the
+  type count does not rise by taking two fragments of the same thing.
+
 - **Snapshot documents are exempt from the evidence rules but must point at the live source.**
   Reports under `docs/superpowers/reports/` and the retained v3.0 plan above are dated views: they
   are never rewritten to match later findings (that would destroy the record), and in exchange each
@@ -125,12 +134,12 @@ is deliberately not stated in prose (run-time quantity; §0).
 | T3 | ~~`database.md`: "§22.4 retention/archival unimplemented"~~ **WITHDRAWN / narrowed 2026-11-05** | The header already splits the two: "the retention side **is** consumed since Q2a; archival still is not" — matching `utils/retention-sweeper.ts` reading `AUDIT_RETENTION_DAYS`. My inference that archival was shipped rested on seeing an `archiveAfterDays: 90` value, i.e. **a field existing is not a feature landed** (1 type, and the wrong kind) | none for retention; archival stays open in L3b until a reader is found (needs its own 2 types) |
 | T4 | `compliance.md`: "data-export absent; user delete hard-cascades" | `[measured]` 2 types: command (endpoint scan) + artifact anchors — `/api/v1/audit-logs/export`, `/api/v1/users/export`, and sanctioned RTBF erasure wired into user deletion at `routes/users.ts:683-749` (`eraseAudit` + mandatory `legalBasis`, tenant-wide `all` data scope required, `ERASE_LOCK_BUSY` retry) | **header DONE 2026-11-05**; the portability scope question stays open in L3b/T4 |
 | T5 | gap-map-v2 §3: password history/expiry "deferred P2" | `[measured]` 2 types: command (grep for `passwordExpiry\|maxPasswordAge\|passwordChangedAt` → 0) + artifact anchor (`packages/identity/src/db/schema.ts:246` `password_history` + index, `UserManager` insert/delete/keep). **Split verdict: history closed, expiry open** — one §3 row bundled the two | L3b rows; deferred ledger entry |
-| T6 | `permission.ts:36`: "Scope engine is a spec non-goal for now" | `[measured]` 1 type only so far: `utils/data-scope.ts` + `roles.ts` `all/dept/self` enum + `DATA_SCOPE_RANK` clamp exist. Whether the comment refers to *this* scope engine or to an identity-package spec is **undetermined** → downgraded from contradiction to "wording, verify before editing" | source comment, only after a second evidence type settles the referent |
+| T6 | ~~`permission.ts:36`: "Scope engine is a spec non-goal for now" contradicts the shipped data-scope engine~~ **WITHDRAWN 2026-11-05 (third self-error)** | Read with its enclosing block (lines 30-40) and the sentence belongs to the **API-key bypass** comment — "API keys bypass permission checks in v1 … would 403 every key request (deadlock). Scope engine is a spec non-goal for now" — i.e. key-scoped permission checking, **not** the `self/dept/all` row-scope engine in `utils/data-scope.ts`. The comment is accurate about what it describes; my inference was the error, made from a phrase taken out of context | none — nothing to fix. Ledger keeps the row as the record of a third same-family misread |
 | T7 | `CHANGELOG.md` last entry 2026-10-12 | commits since then: `[measured]` asOf 2026-11-05, line count of `git log --oneline --since=2026-10-13` output (recount before use — a moving target while batches land) | CHANGELOG, batch-collapsed entries |
 | T8 | `.agents/memorys/status.md` recent-work stops 09-12; baselines quoted as vitest 491 / e2e 107 | AGENTS.md quotes 1556 / 184; neither re-run in this audit `[unverified]` | status.md + one measured run |
-| T9 | `AGENTS.md` remaining ladder lists "re-encrypt tool" as outstanding | `scripts/re-encrypt.ts` delivered 2026-10-08 (CHANGELOG) | AGENTS.md status line |
+| T9 | `AGENTS.md` remaining ladder lists "re-encrypt tool" as outstanding | `[measured]` **2 types**: the CHANGELOG entry dated 2026-10-08 ("`scripts/re-encrypt.ts` closes the *_OLD key-rotation windows … R-B registered debt paid") + the file present on disk (`scripts/re-encrypt.ts`, dated 10-08) | **evidence sufficient, target deferred** — the edit belongs in `AGENTS.md`, the concurrent session's active area (last written 09:23 by ADJ-7h) → registered, not acted on |
 | T10 | Batch 3 was marked `EXECUTED` while its "gates into checked-in CI" deliverable had not landed | `.github/workflows/ci.yml` now has `Governance Gates` (7f); the false EXECUTED is already AMENDED in the governance plan | closed, documented |
-| T11 | `AGENTS.md`'s "Status:" paragraph and OVERVIEW batch narrative carry un-recounted counts and dated claims (last full re-check 2026-10-08) | partially purged by ADJ-7h on 2026-11-04; the narrative paragraphs were not re-checked in this audit `[unverified]` | AGENTS.md status line + overview, inside S1 |
+| T11 | `AGENTS.md` STRUCTURE still carries measurable counts (`:19` "13 project-specific skills", `:20` "14 language dirs") | `[measured]` **2 types**: file content + directory counts (skills dirs vs the digest's own row list; rule dirs with and without the excluded `zh/`) — so `:19` is wrong today, and ADJ-7h's purge reached the marker regions and hub digest but not these handwritten STRUCTURE lines | same deferral as T9 (hot file); note the fix may also be **removal**, not recount, per R2-D/R2-X1 — counts should not live in handwritten regions at all |
 | T12 | `monitoring.md` §13.3 says "alerting … unimplemented" | 3 evidence types: deployment-chain grep (`prometheus` = 0 hits across all compose files, `Dockerfile`, both entrypoints, `.github/`); file read (7 complete rules with `severity`/`for`/annotations, incl. `up{job="accessbase"}` and an audit-anchor staleness alert); cross-source (every metric referenced exists in `metrics.ts`, `webhook-metrics.ts`, `audit-metrics.ts`). Verdict: "unimplemented" is **substantially correct** (nothing is wired) → precision-of-wording, not a contradiction | `monitoring.md` §13.3 wording + the `rules.yml` header, inside S1 — 11-05 P3-A stands on 3 types |
 | T13 | `doc-audit`'s own audit scope list | `[measured]` 2 types: command (existence probe over all 16 listed paths → **12 missing**: `docs/phase-planning.md`, `docs/plans/`, `competitive-landscape.md`, `plugin-architecture-analysis.md`, `api-specification.md`, `database-schema.md`, `test-seed-strategy.md`, `redis-mock-guide.md`, `e2e-test-flows.md`, `api-conventions.md`, `dev-workflow.md`, `frontend-spec.md`, `.opencode/oh-my-openagent.jsonc`) + artifact (the skill asserts "11 TDD docs", glob returns **0**, and its gap dimension says "packages/ 目录未创建、无 CI/CD 配置" against a repo with 8 packages and 8 CI jobs) | the skill's scope table, its "unimplemented features" dimension, and its residual `team_create`/`oracle` block (11-05 X-1 family) — belongs to S1, and any `/doc-audit` run before then reports fabricated gaps |
 
@@ -518,6 +527,18 @@ evidence supports "exports and sanctioned erasure exist", not "portability is di
 committed at 09:26 by the concurrent session, so it is that session's active area — editing it now
 would risk overwriting in-flight work. It stays registered, and no `/doc-audit` run should be
 trusted until it is repaired.
+
+**Third cut (same day) — evidence completion, one more withdrawal.** Reading enclosing context to
+supply second evidence types produced: **T6 withdrawn** (the `permission.ts` "scope engine" phrase
+belongs to the API-key bypass comment, not to `data-scope` — a third fragment-out-of-context error,
+since generalised into a §0 rule); **T9 and T11 upgraded to two types each** and therefore genuinely
+fixable — but both target `AGENTS.md`, last written 09:23 by the concurrent session's ADJ-7h, so
+they are deferred on the same hot-zone rule used for T13 rather than edited here.
+
+Ledger state after three cuts: executed T1/T4/T5; withdrawn on re-reading T2/T3/T6; reclassified
+T12; evidence-complete but deferred to a hot file T9/T11/T13; still one-type or unverified T7/T8
+(and T10 closed as documentation). The count of edits made is small; the count of claims that did
+not survive their own verification rule is the more useful number, and it is three.
 
 ---
 
