@@ -109,7 +109,6 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://accessbase:accessbase@localhost:5432/postgres
-      no_proxy: localhost,127.0.0.1
       NO_PROXY: localhost,127.0.0.1
     steps:
       - uses: actions/checkout@v4
