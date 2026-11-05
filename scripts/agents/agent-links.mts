@@ -68,6 +68,20 @@ function hooksProbe(): void {
   }
 }
 
+/** ADJ-7i ruling B: two memory books — project facts live in .agents/memorys/ (tracked);
+ *  host-private experience categories (user_*, tool/mcp/skill_experience, ide config) belong
+ *  to the HOST's own memory, never committed here. Local-only yellow advisory, same shape as
+ *  hooksProbe: CI-exempt, never affects exit code. Bridging (export → host memory files) is a
+ *  separately-registered item pending its own measurements — this probe only reminds. */
+function hostMemoryProbe(): void {
+  if (process.env.CI) return;
+  console.log(
+    "  [advisory] memory split: project facts -> .agents/memorys/ (tracked, gate-checked); " +
+      "host-private experience (user_*, tool/mcp/skill experience, IDE config) -> the host's own memory, never committed. " +
+      "Bridging export is a registered future item — do not paste host memory into the repo.",
+  );
+}
+
 function runLayers(mode: "check" | "sync") {
   const results = [
     rulesLinks.run(mode),
@@ -109,7 +123,7 @@ function main(): number {
   const tag = arg === "dry-run" ? "dry-run" : mode;
   for (const r of results) console.log(`[${tag}] ${r.summary}`);
   console.log(`[${tag}] ${budget.note}`);
-  if (mode === "check") hooksProbe();
+  if (mode === "check") { hooksProbe(); hostMemoryProbe(); }
   return code;
 }
 
