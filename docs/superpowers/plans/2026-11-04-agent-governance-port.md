@@ -974,3 +974,40 @@ artifact, 291,106 re-verified exact).
   edits are erased by sync (RCH D20). Register new rule files under `.agents/rules/` (they
   join the face automatically) or edit `instructions_face.memory_files` in the registry.
   Face reload = next OpenCode session. No budget recalibration needed (live 291,106 = projection).
+
+---
+
+## Batch 7 execution log — REMAINING SUB-BATCHES LANDED (2026-11-04, second session)
+
+Scope note: ADJ-7a landed in the first session; ADJ-7e was completed by the concurrent session
+(f68eb7d/8284193/d6a97ae + the plan relocation). This session lands the rest, in dependency order.
+
+- **ADJ-7f — LANDED** (`22a8f8a`): skills-index mkdirSync + orphan readdirSync moved behind
+  sync/exists guards (check honestly read-only); gitignored-face skip wired in rules-links +
+  skills-index (CI skips per-machine faces, yellow line, never exit code — fresh-clone+CI sim
+  verified exit 0 against the measured 93-finding baseline); ci.yml `governance` job
+  (node 22.6, frozen-lockfile, sync && git diff --exit-code over tracked faces, CI=1 full
+  check); bootstrap.sh non-fatal agents-sync step. sync-then-check self-blinding rejected per
+  the ruling.
+- **ADJ-7d — LANDED** (`b53041b`): rule-ref-lint check 3 (host-private bindings: ~/.claude,
+  ~/.copilot, allowedTools, dangerously-skip-permissions; zh/ + upstream book-to-skill exempt)
+  — RED proof: 20 live findings caught across 13 language hooks templates + common surfaces;
+  all 20 rewritten as capability names; 3 security-review hallucinations fixed
+  (-> security-hardening); router-surface residuals fixed under 7k.
+- **ADJ-7h + ADJ-7i — LANDED** (`7c537ab`): stale scale figures purged from both hubs
+  (baselines -> status.md pointer; counts -> counting commands; hub 14461/30000 green);
+  hostMemoryProbe() in the hooksProbe shape (local-only yellow advisory, CI-exempt verified,
+  never touches exit code); lesson-memory write-target table pre-existing.
+- **ADJ-7k — LANDED** (`3e3146e`): doc-audit team mode -> read-only oracle members, opt-in
+  not default, isolation discipline aligned with expert-panel-review; question() tool banned
+  in doc-audit (three recorded incidents); edit-safety deep-category phrasing neutralized;
+  skills-router/skill-router /security-review residuals fixed.
+- **ADJ-7g + ADJ-7j local assets — LANDED** (`2e983a3`): three dual-host texts corrected to
+  the measured three-host reality (mcp.json $comment, tool-routing.md, registry note);
+  .gitignore Qoder runtime paths; new .gitattributes (linguist-generated, NOT merge=ours).
+- **ADJ-7b + ADJ-7g projection + ADJ-7j .qoder/rules face — REMAIN GATED**: the ADJ-7b ruling
+  makes a 1-file live-Qoder pilot (frontmatter spelling, directory recursion, "active" budget
+  semantics) a hard precondition, and no Qoder host is present on this machine. The
+  generated_tracked directory-level BLOCKER (ADJ-7j) is also deferred with it — both unlock
+  together when a Qoder host is available. The 29-rule projection, its D-entry, and the
+  staged-loop rework are registered for that session.
