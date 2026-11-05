@@ -49,6 +49,16 @@ echo "  Dependencies installed"
 git config core.hooksPath .githooks
 echo "  Git hooks activated (core.hooksPath=.githooks)"
 
+# Step 3.6: rebuild per-machine generated host layers (fresh clone has none —
+# the root cause of the ADJ-7f fresh-clone red). Warning-only, non-fatal: the
+# gates re-verify on the next commit regardless.
+echo "[3.6] Rebuilding generated host layers (agents sync)..."
+if command -v node &>/dev/null && node -e 'process.exit(parseInt(process.versions.node) >= 22.6 ? 0 : 1)' 2>/dev/null; then
+    node scripts/agents/agent-links.mts sync || echo "  agents sync failed (non-fatal — run it manually: node scripts/agents/agent-links.mts sync)"
+else
+    echo "  SKIPPED (needs node >= 22.6) — run: node scripts/agents/agent-links.mts sync"
+fi
+
 # Step 4: Start dev services
 echo "[4/4] Starting development services..."
 if command -v docker &>/dev/null; then

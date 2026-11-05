@@ -125,9 +125,14 @@ export function run(mode: "check" | "sync"): { code: number; summary: string } {
 
   // --- face 2: symlink activation layer ------------------------------------
   const target = cfg.targets.find((t) => t.label === "codebuddy" && t.enabled && t.skills_dir);
-  if (target?.skills_dir) {
+  // ADJ-7f: symlink face is per-machine/gitignored — CI skips it (yellow, never exit code)
+  if (target?.skills_dir && target.gitignored && process.env.CI) {
+    console.log("skills-index: CI skip for symlink face (gitignored per-machine face — rebuilt by agents sync locally)");
+  } else if (target?.skills_dir) {
     const actDir = path.join(ROOT, target.skills_dir);
-    mkdirSync(actDir, { recursive: true });
+    // ADJ-7f: check is honestly read-only — only sync may create the dir
+    const dirExists = existsSync(actDir);
+    if (!dirExists && mode === "sync") mkdirSync(actDir, { recursive: true });
     const byExpected = new Map(skills.map((s) => [path.resolve(actDir, s.name), s.name]));
     for (const s of skills) {
       const linkPath = path.join(actDir, s.name);
@@ -150,7 +155,8 @@ export function run(mode: "check" | "sync"): { code: number; summary: string } {
       }
     }
     // orphan links (skill gone from canonical)
-    for (const entry of readdirSync(actDir)) {
+    // orphan scan only when the dir exists (check stays read-only, ADJ-7f)
+    if (dirExists) for (const entry of readdirSync(actDir)) {
       if (entry.startsWith(".")) continue;
       const p = path.join(actDir, entry);
       if (!byExpected.has(path.resolve(actDir, entry)) && !entry.includes(".bak-")) {

@@ -66,6 +66,9 @@ export function run(mode: "check" | "sync"): { code: number; summary: string } {
   const cfg = loadTargets();
   const rulesRoot = path.join(ROOT, cfg.rules_root);
   const target = cfg.targets.find((t) => t.label === "codebuddy" && t.enabled && t.rules_mode === "mdc");
+  // ADJ-7f: per-machine faces are gitignored — fresh-clone/CI skips them (yellow, never exit code)
+  const skipPerMachine = Boolean(process.env.CI) && Boolean(target?.gitignored);
+  if (skipPerMachine) return { code: EXIT_CLEAN, summary: "rules-links: CI skip (gitignored per-machine face — rebuilt by agents sync locally)" };
   if (!target || !target.rules_dir) return { code: EXIT_CLEAN, summary: "rules-links: no enabled mdc target, skip" };
 
   const outDir = path.join(ROOT, target.rules_dir);
