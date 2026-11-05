@@ -1,6 +1,8 @@
 # API 设计规范
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — envelope shipped; §23.10 API-key shape drift (A10); versioning/deprecation policy unwritten. Q1–Q4 surface (groups/webhooks/events/enroll-mfa/captcha/invite/device/sms endpoints) not yet written up — tracked in gap-audit round2 report H4; machine-readable current truth is `docs/openapi.json`. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-05, evidence: §23.2 of this file + the `docs/openapi.json` path inventory):** `partial` — envelope shipped; **versioning IS documented** (§23.2: URL-path versioning via Fastify prefix registration; the openapi inventory lists 104 paths with only `/health/{live,ready,startup}` outside `/api/v1`), while the **deprecation policy is absent** — no Sunset header convention, no v1 retirement schedule, no client migration guide. **Not re-checked in this pass:** §23.10 API-key shape drift (A10) and the Q1–Q4 write-up gap (groups/webhooks/events/enroll-mfa/captcha/invite/device/sms endpoints, tracked in gap-audit round2 report H4). Machine-readable current truth is `docs/openapi.json`. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+>
+> _Prior verdict (2026-09-23 gap audit, superseded by the line above, kept for provenance):_ `partial` — envelope shipped; §23.10 API-key shape drift (A10); versioning/deprecation policy unwritten.
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 
