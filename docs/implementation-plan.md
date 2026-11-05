@@ -172,7 +172,7 @@ is deliberately not stated in prose (run-time quantity; §0).
 | E8 | ~~A `@deprecated DEAD API with zero src callers` marker remains~~ — **closed**: re-grepped 2026-11-05, 0 hits; the concurrent session cleaned it up between the audit pass and the plan being written. Kept as a row deliberately: it went stale **within one day of writing**, which is the failure mode §0 exists for | `[measured]` closed 2026-11-05 |
 | E9 | `bash accessbase.sh test:e2e` is a **silent fake success**: the wrapper filters pnpm to `@accessbase/admin-ui`, which defines no `test:e2e` script; pnpm answers "None of the selected packages has a test:e2e script" and the wrapper still reports OK — nothing runs | `[observed execution]` 2026-11-05 (T8): the real entry is the root `pnpm test:e2e` (playwright). Wrapper fix is a one-liner; deferred pending user sanction (code change) |
 | E10 | e2e on HEAD: **9 failures** — api-keys ×3 + clients ×5 mock table-row assertions, setup-real-flow ×1 environmental (needs a real backend that was not started) — against AGENTS.md's "184 (+3 skip) all green" | `[observed execution]` 2026-11-05 (T8, dev-server mode over a dual-stack vite, proxy env stripped): attribution **open** — pre-existing regression vs dev-server cold-compile flake not yet separated; a rerun on built assets (or a bisect) is required before the word "regression" is allowed |
-| E11 | **`.github/workflows/ci.yml` has been invalid since 2026-09-20** — `no_proxy` (L112) and `NO_PROXY` (L113) duplicate one env key under Actions' case-insensitive check, so GitHub rejects the whole file (`'NO_PROXY' is already defined`, Line 113 Col 7) and **no job has ever run** — all 8 included. Runs #17-#29 all carry this single annotation (spot-checked #29 = `6d1e0a2` and #24 = `2989747`, same error). `git log -S` puts the pair in `646f561` (final-review wave, 09-20 13:03) — three days **before** D122 was decided: the green-run duty was never executable, and 46 days of red runs went unread because nobody opened one. No local gate catches this class: nothing runs workflow-schema validation (actionlint absent) | `[observed execution]` (run #29 + #24 annotations, public pages) + `[measured]` local file L112-113 + `git log --all -S NO_PROXY` single introducing commit — 2 types, independent |
+| E11 | **`.github/workflows/ci.yml` has been invalid since 2026-09-20** — `no_proxy` (L112) and `NO_PROXY` (L113) duplicate one env key under Actions' case-insensitive check, so GitHub rejects the whole file (`'NO_PROXY' is already defined`, Line 113 Col 7) and **no job has ever run** — all 8 included. Runs #17-#29 all carry this single annotation (spot-checked #29 = `6d1e0a2` and #24 = `2989747`, same error). `git log -S` puts the pair in `646f561` (final-review wave, 09-20 13:03) — three days **before** D122 was decided: the green-run duty was never executable, and 46 days of red runs went unread because nobody opened one. No local gate catches this class: nothing runs workflow-schema validation (actionlint absent) — **W1 fix landed 2026-11-05** (duplicate `no_proxy` line removed, uppercase kept); acceptance is the next push's run graph (W2), so this row closes only after a run shows job nodes | `[observed execution]` (run #29 + #24 annotations, public pages) + `[measured]` local file L112-113 + `git log --all -S NO_PROXY` single introducing commit — 2 types, independent |
 
 ### L3 · Capability gaps — three tiers (R7-D)
 
@@ -607,6 +607,15 @@ because `ci.yml:112-113` duplicates an env key case-insensitively; the pair pred
 (`646f561`, 09-20). Registered as **E11**; T15's unobserved-CI caveat retired; E7 superseded. The
 one-line fix awaits user sanction (CI config change), and its lesson (no local workflow-schema
 gate; red runs went unread for 46 days) is a PIT candidate.
+
+**Eleventh + twelfth cuts (same evening) — the panel-gated close-out wave opened.** Per the user's
+flow instruction (draft plan -> panel -> revise -> re-review -> execute), the S0+S1 close-out plan
+was drafted with measured inputs, reviewed in two sequential 3-role rounds, and both conflict items
+ruled (X-1=A strict rides `agents check`; X-2=C first-batch-then-continuous). Round 1 caught the
+plan locking its own repo (pre-commit IS the agents check chain) and an exit criterion that would
+force date-painting; round 2 caught the same hole reopened at the parser level (44/44 headers carry
+dates, only 7 use the `as of` spelling). Plan + reports landed as W0; W1 removed the duplicate
+`no_proxy` key from ci.yml — authoritative acceptance is W2's run graph, which needs the push word.
 
 ---
 
