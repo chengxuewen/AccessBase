@@ -376,3 +376,8 @@ logger.error('Operation failed', error); // ❌
 - **Unresolvable targets are 200 no-ops** (A1): sid-only, `sub: null` (Keycloak client-initiated edge), unknown sub — protocol-valid tokens must never 400 (retry storms).
 - **Dynamic provider back-channel participation requires BOTH `issuer` and `jwksUri`** (both-or-none; loader drops the pair keep-the-provider on invalid). jwksUri is OUR config value — never derived from the token (M1 SSRF invariant).
 - **Rate bucket 30/min per IP** on the receiver (token signature is the real auth); audit-excluded in app.ts; `logouttoken` in the audit redactor list.
+
+## Governance Batch 8 constraints (2026-11-04)
+
+- **The opencode.json `instructions` key is GENERATED** (instructions-links layer, ADJ-OC-1): a new rule file dropped under `.agents/rules/` joins the OpenCode load face automatically; NEVER hand-edit that key — the pre-commit sync erases hand edits (RCH D20). The memory-file list and the warn threshold are adjusted in the opencode `instructions_face` field of `scripts/agents/agent-targets.json`.
+- Check: `node scripts/agents/agent-links.mts check` — instructions-links red = hand-edit drift or missing source file; green = consistent.

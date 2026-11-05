@@ -772,6 +772,29 @@ walked one at a time; every ruling binds batch DESIGN only — no execution sanc
 | ADJ-7j | `.qoder/` tracked or ignored | **C** | `.qoder/rules` TRACKED and added to `generated_tracked` (else no gate ever checks it — silent failure on every other machine), matching the official default (rules are "shared with team members via version control"); `.qoder/repowiki/` etc. ignored as host runtime. New `.gitattributes` with `linguist-generated` to fold review noise — explicitly NOT `merge=ours` (custom merge drivers need local registration; silently inert here). `bootstrap.sh` gains an `agents sync` step (warning, non-fatal) — it currently has none, which is the root cause of ADJ-7f's fresh-clone red. BLOCKER to resolve at implementation: `generated_tracked` holds file paths and the hook `exit 1`s on a missing path, so directory-level artifacts need the staging loop reworked first. |
 | ADJ-7k | self-check skills' parallel assumptions | **B** | Align `doc-audit` with the shape ALREADY ESTABLISHED in-repo by `expert-panel-review:24-38` (dual-track by host capability, sequential = DEFAULT, isolation discipline prevents consensus illusion) — this is internal inconsistency, not an external adaptation problem. Drop the plugin-specific `category:"ultrabrain"` parameter; neutralize `edit-safety.md`'s "`deep` category subagent"; `question()` → plain text (adjudication-walkthrough's ban has three recorded format-corruption incidents; 11 rulings walked in plain text with zero incidents). |
 
+---
+
+## OpenCode-adaptation adjudications (2026-11-04, later same day) — user-adjudicated one by one
+
+Trigger: a read-only OpenCode compatibility audit of the freshly landed governance system found
+one real gap with three faces — the handwritten 19-entry `instructions[]` in
+`.opencode/opencode.json` sits outside every generator and every check, so Batch 4's
+`tool-routing.md` silently never reached the OpenCode host. 4 points walked one at a time;
+every ruling binds batch DESIGN only — no execution sanction granted.
+
+| Point | Question | Ruling | Key note |
+|---|---|---|---|
+| ADJ-OC-1 | govern the handwritten `instructions[]`: generate it, drift-check it, or leave it | **A** | Generate it — rules-links gains an opencode face; `generated_tracked` already carries opencode.json so pre-commit syncs it with zero new wiring. C rejected with live evidence (one drift already happened). Scope/file-set itself decided by ADJ-OC-2. |
+| ADJ-OC-2 | what feeds the generated opencode face: all 79 rules, a directory scope, or per-file opt-in | **A** | Full rules layer (79, excl. `zh/`) + the two memory files (status.md, conventions.md), replacing the hand-picked 17-rule subset. The per-turn cost (~4x today's) is knowingly bought; unlike CodeBuddy's description-routed mdc activation, OpenCode instructions are always-on full-text injection — the load face is deliberately the FULL layer rather than inheriting the scoped projection. |
+| ADJ-OC-3 | budget gate on the new always-on load face: warn-only, hard gate, or none | **A** | Warn-only — sync/check print the face's chars/bytes line (hub-budget presentation shape), WARN past a threshold, never block. Cost is a metric, not a violation; the user explicitly bought the full-layer cost under ADJ-OC-2, and a machine gate would re-litigate that ruling. Escalation path: warn-only → hard gate is additive if bloat ever becomes real. |
+| ADJ-OC-4 | CONSTRAINTS.md visibility to OpenCode: full injection, summary, or gate-only | **A** | Full-text fixed entry injected by the generator (first position), taking the ci-gates generated region along as accepted noise (~2-3KB/turn). A summary was rejected as a new drift-prone artifact of exactly the family this port kills. Constraint text moves from gate-only to guidance+gate for the OpenCode host. |
+
+Porting-conduct-rule application note (ADJ-OC-2): RCH PIT-244/C11 three questions asked for
+the generated face — one host reads it (OpenCode), the read action is always-on full-text
+injection, one host pays the instance cost (OpenCode already loaded the 19 handwritten files
+every turn; the face adds no reader). The 79-rule full layer is the one deliberate deviation
+from CodeBuddy's scoped projection, justified above rather than silently inherited.
+
 **Facts established this session that correct the plan and the texts (all locally measured):**
 1. Qoder loads skills from `.agents/skills/` although its documented location is
    `.qoder/skills/{name}/SKILL.md` (elimination + load-log byte match; `codebuddy` occurs 0 times
@@ -927,3 +950,27 @@ Batch 7 (Qoder adaptation) — adjudicated 2026-11-04, execution NOT yet sanctio
 - Every relied-upon host behavior carries its evidence class in the text that uses it: measured
   on this machine / official docs / inferred from client strings. Undocumented scan paths and
   unlisted size limits are watch-items, never premises (ADJ-7g; corrections #1, #2, #6).
+
+---
+
+## Batch 8 execution log (OpenCode instructions face — ADJ-OC-1..4, LANDED 2026-11-04)
+
+Plan: `docs/superpowers/plans/2026-11-04-opencode-instructions-face.md` (v2, panel-reviewed —
+16 findings absorbed, report at `docs/superpowers/reports/2026-11-04-batch8-plan-panel-review.md`,
+incl. one post-merge erratum: the panel's "projection drifted to 288,616" was a measurement-scope
+artifact, 291,106 re-verified exact).
+
+- Task 1 shared-base extraction + registry extension: `f593466`. Behavior-neutral proven
+  (8-layer check green pre-wiring; eslint 0 errors / baseline warnings). Staleness touches:
+  mcp-links header comment + agent-links docblock layer list.
+- Task 2 instructions-links layer: `1e7f41e`. RED proof recorded: handwritten 19-entry face vs
+  generated shape → 63 missing / 0 orphans, tool-routing.md named — the adjudicated gap.
+  Sync → **82 entries / 265,388 chars / 291,106 bytes (warn 350000)** — matches the plan
+  projection byte-exactly. Idempotent (cmp byte-identical); ghost-entry RCH-D20 erasure demo
+  green (orphan named, erased, restored); missing-source guard demo green via conventions.md
+  (the status.md variant would crash memory-aggregate first — panel finding #1, verified live).
+- Task 3 this log + status/conventions entries: this commit.
+- Constraint surfaced for operators: `opencode.json` `instructions` key is GENERATED — hand
+  edits are erased by sync (RCH D20). Register new rule files under `.agents/rules/` (they
+  join the face automatically) or edit `instructions_face.memory_files` in the registry.
+  Face reload = next OpenCode session. No budget recalibration needed (live 291,106 = projection).
