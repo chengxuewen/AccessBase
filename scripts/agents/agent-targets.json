@@ -1,5 +1,5 @@
 {
-  "$comment": "Host adapter registry — the single source of host integration truth (plan 2026-11-04 Batch 2, VE schema pruned; Batch 8 adds the opencode instructions face via the instructions-links layer). Layers: rules-links / skills-index / memory-aggregate / instructions-links / mcp-links + 4 lints. Generated host layers are per-machine (ADJ-2d ruling A): gitignored, rebuilt by `agents sync`.",
+  "$comment": "Host adapter registry — the single source of host integration truth (plan 2026-11-04 Batch 2, VE schema pruned; Batch 8 adds the opencode instructions face via the instructions-links layer). Layers: rules-links / skills-index / memory-aggregate / instructions-links / mcp-links + 5 lints (header-lint fifth, close-out plan W3, report-mode until the W4-exit strict flip). Generated host layers are per-machine (ADJ-2d ruling A): gitignored, rebuilt by `agents sync`.",
   "rules_root": ".agents/rules",
   "skills_root": ".agents/skills",
   "memorys_root": ".agents/memorys",

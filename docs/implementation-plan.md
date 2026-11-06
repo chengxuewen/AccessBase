@@ -638,6 +638,22 @@ observation-vs-assertion miss of this class — the memory line's "疑似" is no
 for both rows moves to "next run clears setup + service starts": needs the push word; a green
 run closes D122 consequence (1) and S0.
 
+**Fifteenth cut (2026-11-06, W3).** `scripts/agents/header-lint.mts` landed as the FIFTH lint in
+the agent-links aggregate (import + runLayers + LINTS + targets-comment, 4→5): E1 missing status
+line / E2 no parseable ISO date ANY spelling (the R2-C1 regression fixture is in the self-test),
+W1 staleness >45 d and W2 as-of-without-evidence as warns only, exemptions derived at run time
+from header text (D-d). REPORT mode per the C-1 two-stage rule — aggregate never blocks; the
+strict flip ships with W4's exit commit (X-1=A wiring, R2-C3 same-commit rule). Self-test: 8
+synthetic fixtures with RELATIVE dates (test set cannot rot), PASS. Red/green demo on a planted
+real file: strict RED exit=1 → remove → GREEN exit=0 — measured honestly only on the third
+attempt: the first two grabbed the exit code of `tail` after a pipe, not node (the `$?`-after-pipe
+trap — detector-self-check material for PIT-090). Live tree: 0 error / 0 warn over 44 files;
+noted honestly: the 09-23 legacy dates sit at 44 days, one day inside the 45-day window — W4's
+driver is the plan's triage list, NOT lint warnings; the window is a heuristic, not the trigger.
+Also honestly recorded: an earlier WebFetch pulled run #31's page while chasing #32 (SHA-based
+reference lesson P-2 working as intended — the in-flight row stays open until the right run is
+read).
+
 ---
 
 ## Historical plan — v3.0 (dated 2026-08-21), SUPERSEDED

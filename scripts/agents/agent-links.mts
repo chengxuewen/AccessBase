@@ -5,10 +5,13 @@
  * base, no mega-script).
  *
  * Layers (Batch 3 aggregate + Batch 4/8 additions; layering: rule-ref-lint/
- * skill-lint/constraints-index/gate-mcp ⊂ agents check ⊂ ci — ADJ-1c/ADJ-3a):
+ * skill-lint/constraints-index/gate-mcp/header-lint ⊂ agents check ⊂ ci —
+ * ADJ-1c/ADJ-3a; header-lint lands REPORT-mode per plan C-1 two-stage rule, the
+ * strict flip ships with the close-out plan's W4 exit — X-1=A wiring):
  *   generators: rules-links, skills-index, memory-aggregate,
  *               instructions-links (Batch 8), mcp-links
- *   lints:      rule-ref-lint, skill-lint, constraints-index, gate-mcp
+ *   lints:      rule-ref-lint, skill-lint, constraints-index, gate-mcp,
+ *               header-lint (close-out plan W3, fifth)
  *
  * Commands: check | sync | dry-run | list | status
  *   check   — regenerate in memory, compare against disk; red on drift. Read-only.
@@ -38,9 +41,10 @@ import * as skillLint from "./skill-lint.mts";
 import * as constraintsIndex from "./constraints-index.mts";
 import * as mcpLinks from "./mcp-links.mts";
 import * as gateMcp from "./gate-mcp.mts";
+import * as headerLint from "./header-lint.mts";
 
 const GENERATORS = ["rules-links", "skills-index", "memory-aggregate", "instructions-links", "mcp-links"] as const;
-const LINTS = ["rule-ref-lint", "skill-lint", "constraints-index", "gate-mcp"] as const;
+const LINTS = ["rule-ref-lint", "skill-lint", "constraints-index", "gate-mcp", "header-lint"] as const;
 
 function hubBudgetCheck(): { code: number; note: string } {
   const cfg = loadTargets();
@@ -93,6 +97,7 @@ function runLayers(mode: "check" | "sync") {
     skillLint.run(mode),
     constraintsIndex.run(mode),
     gateMcp.run(mode),
+    headerLint.run(mode),
   ];
   return results;
 }
