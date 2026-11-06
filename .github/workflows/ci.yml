@@ -35,6 +35,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      # E15 fix: workspace cross-package types resolve to dist/ output; a fresh CI
+      # install has none (clean-worktree probe reproduced the exact TS2307 failure).
+      # Scoped to this job on evidence: vitest/vite transform sources and do not
+      # consume dist declarations - their reds wait for run #33's profile, not speculation.
+      - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm --filter @accessbase/admin-ui typecheck
 
