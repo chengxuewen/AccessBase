@@ -1,6 +1,6 @@
 # @accessbase/health-check 软件设计文档 (SDD)
 
-> **Implementation status (2026-09-23 gap audit):** `superseded` — shipped form is apps/server/src/routes/health.ts; package unused; CacheHealthChecker absent. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-06, evidence: source-import scan → 0 apps importers + E3's measured exception (`identity/src/fastify.d.ts:7`, type-only) + plan S3 row):** `superseded, ruled-for-removal behind phantom-declaration cleanup` — shipped form remains `apps/server/src/routes/health.ts` (the live surface the package duplicates); R4-C rules deletion, but apps/server declares `@accessbase/health` as a production dependency imported nowhere (E3b — 11-05 X-2 classification pending), and that declaration must be removed before the directory can go. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md). Prior verdict (2026-09-23 gap audit, kept for provenance): `superseded` — shipped form is apps/server/src/routes/health.ts; package unused; CacheHealthChecker absent.
 
 > 本文档基于 [`monitoring.md`](./monitoring.md) §13 和 [`error-handling.md`](./error-handling.md) §21 生成。
 

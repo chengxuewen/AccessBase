@@ -700,6 +700,15 @@ when headers were updated in their own era: the gate verifies, it does not manuf
 diffs. Queue next: sdd-six (after reading package inventory + S3 rulings), b-class sweep,
 then the S1-exit strict-flip commit (R2-C3 same-commit rule).
 
+**W4 batch three (2026-11-06, sdd six).** 5 REWRITTEN / 1 KEPT on the measured import scan
+(same method as T14) plus ruling records: the three orphan candidates now say what is
+actually pending (R4-C removal rulings, phantom declarations per E3b, the S3 binding
+gate); migration-sdd states the X-1=A settlement (strip CLI, keep as tooling host —
+"unused code" ≠ "dead package"); **shared-types-sdd's "used repo-wide" was falsified by
+the scan (3 importer files) and rewritten to `implemented, narrowly used`** with the
+shared-types→types naming drift recorded; logging-sdd's claim matched its measured count
+and stayed. Triage table carries the outcome rows.
+
 ---
 
 ## Historical plan — v3.0 (dated 2026-08-21), SUPERSEDED

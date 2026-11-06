@@ -72,3 +72,18 @@ Outcome note: an all-KEPT batch is the expected shape when headers were already 
 their era — the gate's job is verification, not production of diffs. Remaining queue:
 the sdd-six (needs package inventory + S3 rulings read), then b-class sweep (auth-provider,
 security, ui, frontend, overview, tech-stack, and the rest), then S1 exit (strict-flip).
+
+## BATCH THREE EXECUTED (2026-11-06) — sdd six: 5 REWRITTEN, 1 KEPT
+
+Evidence base: on-disk + import scan (8 packages, same method as T14: identity 128 / logging
+34 / audit 8 / types 3 files repo-wide (2 pkgs + 1 app) / admin,health,i18n,migration 0) +
+ruling records (R4-C, X-1=A, D117, E3/E3b/E3c).
+
+| Header           | Disposition       | What the rewrite states                                                                                                                             |
+| ---------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| admin-sdd        | REWRITTEN         | superseded + R4-C ruled-for-removal, execution gated on S3 binding inventory (build loop, Dockerfile COPY)                                          |
+| health-check-sdd | REWRITTEN         | superseded + removal pending the **phantom production declaration** (E3b, X-2 pending); type-only exception at identity/fastify.d.ts:7 named inline |
+| i18n-sdd         | REWRITTEN         | same phantom-dep shape as health; zero-consumer claim itself survives                                                                               |
+| migration-sdd    | REWRITTEN         | X-1=A settled: strip CLI, KEEP as drizzle-kit tooling host; "unused code" ≠ "dead package" (E3c coupling)                                           |
+| shared-types-sdd | REWRITTEN         | "used repo-wide" falsified by scan (3 importer files); recorded as `implemented, narrowly used` + naming drift shared-types→types                   |
+| logging-sdd      | KEPT-HONEST-STALE | "wired in identity/audit/server" matches the measured 34-import count                                                                               |

@@ -1,6 +1,6 @@
 # @accessbase/admin 软件设计文档（SDD）
 
-> **Implementation status (2026-09-23 gap audit):** `superseded` — package never wired into apps (A6); real admin surface = apps/admin-ui; ADMIN_* codes unused. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-06, evidence: source-import scan `@accessbase/admin` → 0 apps files + plan E3/S3 rows):** `superseded, ruled-for-removal (S3 pending)` — the 09-23 finding stands (never wired; real admin surface = apps/admin-ui; ADMIN_* codes unused); what moved since: R4-C **rules the package for deletion** (truly orphaned on both axes — 0 imports AND 0 dependency declarations), execution gated on S3's binding inventory (build loop + Dockerfile COPY sites per E3c — deleting the directory without those edits is a silent-behaviour change). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md). Prior verdict (2026-09-23 gap audit, kept for provenance): `superseded` — package never wired into apps (A6); real admin surface = apps/admin-ui; ADMIN_* codes unused.
 
 > 本文档为 `@accessbase/admin` 包的详细软件设计文档。
 > 基于 [`core-packages.md`](./core-packages.md) §10.2 和 [`ui.md`](./ui.md) §14 生成。

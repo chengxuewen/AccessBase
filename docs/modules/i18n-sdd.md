@@ -1,6 +1,6 @@
 # @accessbase/i18n 软件设计文档 (SDD)
 
-> **Implementation status (2026-09-23 gap audit):** `superseded` — package has zero consumers; frontend runs bare i18next single namespace (A7). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-06, evidence: source-import scan `@accessbase/i18n` → 0 importers + plan E3/E3b/S3 rows):** `superseded, ruled-for-removal behind phantom-declaration cleanup` — the zero-consumer finding stands (frontend runs bare i18next, A7); what the 09-23 text could not know: apps/server carries `@accessbase/i18n` as a production declaration with no importer (phantom dep, E3b) and R4-C rules deletion after its removal (11-05 X-2 pending classification). See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md). Prior verdict (2026-09-23 gap audit, kept for provenance): `superseded` — package has zero consumers; frontend runs bare i18next single namespace (A7).
 
 > 本文档基于 [`core-packages.md`](./core-packages.md) §10.5 和 [`frontend.md`](./frontend.md) §35 生成。
 

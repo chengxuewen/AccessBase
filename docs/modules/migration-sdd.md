@@ -1,6 +1,6 @@
 # @accessbase/migration 软件设计文档 (SDD)
 
-> **Implementation status (2026-09-23 gap audit):** `superseded` — runtime writer = scripts/migrate.sh (Phase L/O); TS pipeline unused; down/rollback unreachable. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-06, evidence: D117 sole-writer record + ruling 11-05 X-1=A + E3c command-chain trace (`accessbase.sh:575/:668`, root `package.json:24-26`):** `superseded-as-runtime, retained-as-tooling-host` — the 09-23 split stands (runtime writer = scripts/migrate.sh; TS pipeline's down/rollback unreachable); what got ruled since: X-1=A settles the package — strip the unimplemented CLI surface, KEEP it as the drizzle-kit tooling host the `db:*` commands execute through; removing the directory outright would break the build/prepare loop (E3c), so "unused code" and "dead package" are different claims and only the first is true. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md). Prior verdict (2026-09-23 gap audit, kept for provenance): `superseded` — runtime writer = scripts/migrate.sh (Phase L/O); TS pipeline unused; down/rollback unreachable.
 
 > 本文档基于 [`core-packages.md`](./core-packages.md) §10.6 和 [`database.md`](./database.md) §22 生成。
 

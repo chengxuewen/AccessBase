@@ -1,6 +1,6 @@
 # @accessbase/shared-types 软件设计文档 (SDD)
 
-> **Implementation status (2026-09-23 gap audit):** `implemented` — wired and used repo-wide. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-06, evidence: source-import scan `@accessbase/types` → 3 files repo-wide (2 under packages, 1 under apps), same method as T14):** `implemented, narrowly used` — the package exists and is genuinely wired (it is one of the 4 wired per T14), but the 09-23 phrase "used repo-wide" overstates: measured importers are three files. Naming drift recorded too: this SDD describes "shared-types", the shipped package is `packages/types`. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md). Prior verdict (2026-09-23 gap audit, kept for provenance): `implemented` — wired and used repo-wide.
 
 > 本文档基于 [`error-handling.md`](./error-handling.md) §21 和 [`core-packages.md`](./core-packages.md) §10 生成。
 
