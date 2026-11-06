@@ -57,3 +57,18 @@ built by reading what the headers actually say.
 - Exemption markers: whether setup-*-plan/p3-supplement bodies already contain
   superseded/informational phrasing (lint derives from TEXT — no text, no exemption).
 - identity-sdd: stays DEFER-REGISTERED (S5 owns the contract-drift fix; W4 records only).
+
+## BATCH TWO EXECUTED (2026-11-06) — exemption four + webhook: 5/5 KEPT, zero rewrites
+
+| Header          | Check performed                                                                                                                                                                                                                                                                           | Disposition                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| setup-api-plan  | head carries the word `superseded` (D113 replaced the contract) — the lint's own exemption rule matches it at run time                                                                                                                                                                    | KEPT (already self-labelled; no edit needed for exemption to work) |
+| setup-ui-plan   | wizard shipped + e2e lock verified by file existence (e2e/setup*.spec.ts)                                                                                                                                                                                                                 | KEPT-HONEST-STALE                                                  |
+| docker-dev-plan | dev-container path shipped (Dockerfile.dev + dev:container in the CLI surface)                                                                                                                                                                                                            | KEPT-HONEST-STALE                                                  |
+| p3-supplement   | verdict internally scoped (§42.8 partial via options center, rest deferred); no newer contradiction found                                                                                                                                                                                 | KEPT-HONEST-STALE                                                  |
+| webhook         | T1's real host (anchor reassigned in batch one): header already Q4c-updated — outbox chain 0009, CRUD/rotate/ping/deliveries, HMAC + backoff + fail-closed SSRF, and the §33-vs-§42 numbering pitfall documented inline; anchor spot-checks 4/4 (dispatcher SKIP LOCKED ×2, metrics, url) | KEPT-HONEST-STALE                                                  |
+
+Outcome note: an all-KEPT batch is the expected shape when headers were already updated in
+their era — the gate's job is verification, not production of diffs. Remaining queue:
+the sdd-six (needs package inventory + S3 rulings read), then b-class sweep (auth-provider,
+security, ui, frontend, overview, tech-stack, and the rest), then S1 exit (strict-flip).
