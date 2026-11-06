@@ -151,7 +151,10 @@ async function mockCommonApis(page: Page): Promise<void> {
 
 /** GET/POST/DELETE /api/v1/auth/api-keys backed by a mutable list so CRUD mutates the "DB". */
 async function mockApiKeysApis(page: Page, keys: (typeof MOCK_KEYS)[number][]): Promise<void> {
-  await page.route('**/api/v1/auth/api-keys', async (route) => {
+  // trailing * added 2026-11-06 (E10 fix): T3 pagination made the page request
+  // /api-keys?page=&pageSize=; a query-less glob falls through to no-backend.
+  // :id paths still land on the later-registered `api-keys/*` route (priority-safe).
+  await page.route('**/api/v1/auth/api-keys*', async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
         status: 200,

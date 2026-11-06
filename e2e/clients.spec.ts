@@ -153,7 +153,9 @@ async function mockClientsApis(
   page: Page,
   clients: (typeof MOCK_CLIENTS)[number][],
 ): Promise<void> {
-  await page.route('**/api/v1/clients', async (route) => {
+  // trailing * added 2026-11-06 (E10 fix): query-carrying list URLs from T3 pagination
+  // fell through this glob; rotate-secret/:id routes registered later keep priority.
+  await page.route('**/api/v1/clients*', async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
         status: 200,
