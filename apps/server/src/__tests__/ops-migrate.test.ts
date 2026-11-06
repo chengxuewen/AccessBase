@@ -406,11 +406,14 @@ describe('network exposure hardening (W2-4/F11)', () => {
 describe('hygiene locks (W3-4)', () => {
   it('/docs swagger is dev-only (production registration skipped)', () => {
     const src = readFileSync(path.join(ROOT, 'apps/server/src/app.ts'), 'utf-8');
+    // E17 fix 2026-11-06: whitespace-tolerant - the assertion guards dev-only
+    // registration, not line layout; the prettier wave legitimately rewrapped
+    // the if-statement onto two lines.
     expect(src).toMatch(
-      /if \(config\.nodeEnv !== 'production'\) await app\.register\(fastifySwagger,/,
+      /if\s*\(\s*config\.nodeEnv\s*!==\s*'production'\s*\)\s*\n?\s*await\s+app\.register\(\s*fastifySwagger,/,
     );
     expect(src).toMatch(
-      /if \(config\.nodeEnv !== 'production'\) await app\.register\(fastifySwaggerUi,/,
+      /if\s*\(\s*config\.nodeEnv\s*!==\s*'production'\s*\)\s*\n?\s*await\s+app\.register\(\s*fastifySwaggerUi,/,
     );
   });
 

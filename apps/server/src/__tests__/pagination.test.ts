@@ -3,6 +3,13 @@
  * guard (no-opts list() returns the FULL set — /ScimGroups depends on it).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// E18 fix 2026-11-06: repo-root relative resolution replaces two hardcoded
+// /home/ubuntu paths (passed locally by luck of the machine, ENOENT on CI).
+// Same depth and idiom as ops-migrate.test.ts's ROOT.
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
 process.env['NODE_ENV'] = 'test';
 process.env['JWT_SECRET'] = 'test-secret';
@@ -52,7 +59,7 @@ describe('SCIM full-set guard (B2, structural)', () => {
   it('GroupManager.list no-opts branch has no LIMIT/OFFSET; opts branch does', async () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync(
-      '/home/ubuntu/Documents/AccessBase/packages/identity/src/managers/GroupManager.ts',
+      path.join(ROOT, 'packages/identity/src/managers/GroupManager.ts'),
       'utf-8',
     );
     const baseArm = src.slice(src.indexOf('const base ='), src.indexOf('const rows = opts ?'));
@@ -69,7 +76,7 @@ describe('SCIM full-set guard (B2, structural)', () => {
   it('scim.ts caller invokes list() WITHOUT opts (full set)', async () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync(
-      '/home/ubuntu/Documents/AccessBase/apps/server/src/routes/scim.ts',
+      path.join(ROOT, 'apps/server/src/routes/scim.ts'),
       'utf-8',
     );
     expect(src).toContain('groupManager.list(tenantId)');
