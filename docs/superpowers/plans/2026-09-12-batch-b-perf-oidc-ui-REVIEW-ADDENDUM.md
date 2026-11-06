@@ -17,13 +17,13 @@ constructor(databaseUrl?: string, roleManager?: RoleManager, options?: { cacheTt
 
 真实写路径清单替换 spec §2 与计划 T2 的清单（以下为完整、互斥、经源码核实的版本）：
 
-| 写路径 | 归属文件 | 失效粒度 |
-|---|---|---|
-| RoleManager.update / delete | RoleManager.ts | 租户级 |
-| **RoleManager.setParent**（:262，改继承链） | RoleManager.ts | 租户级 |
-| **RoleManager.assignToUser / revokeFromUser / setUserRoles**（:348-392） | RoleManager.ts | userId 级 |
-| **PermissionManager.setRolePermissions**（:196） | PermissionManager.ts | 租户级 |
-| UserManager.changeStatus | UserManager.ts | userId 级 |
+| 写路径                                                                   | 归属文件             | 失效粒度  |
+| ------------------------------------------------------------------------ | -------------------- | --------- |
+| RoleManager.update / delete                                              | RoleManager.ts       | 租户级    |
+| **RoleManager.setParent**（:262，改继承链）                              | RoleManager.ts       | 租户级    |
+| **RoleManager.assignToUser / revokeFromUser / setUserRoles**（:348-392） | RoleManager.ts       | userId 级 |
+| **PermissionManager.setRolePermissions**（:196）                         | PermissionManager.ts | 租户级    |
+| UserManager.changeStatus                                                 | UserManager.ts       | userId 级 |
 
 **删除**原清单中的 PermissionManager.create/update/delete 接线（permissions 表无 tenantId、与用户有效权限无耦合——接线即死码）。任务 Files 相应修正：UserManager 只保留 changeStatus；users 路由的 setUserRoles 调用（users.ts:189/245）经 RoleManager 方法内部失效，路由层零改动。
 
@@ -91,11 +91,11 @@ R1 的 ctor 修正之外，测试写法同步修正：**弃用 `vi.spyOn(mgr,'ro
 
 R3 的「统一 400」与现状冲突，最终语义表（覆盖 R3）：
 
-| 场景 | 状态码 |
-|---|---|
-| 已知内置（github/google）但 env 凭据未配 | **503 AUTH_OAUTH_002**（现状保留） |
-| registry 外名称（未知/非法字符/被跳过的畸形动态 provider） | **404 AUTH_OAUTH_001**（现状未知名称即 404） |
-| options JSON 畸形 | 该 provider 不注册 → 请求其 authorize 落 404；内置不受影响 |
+| 场景                                                       | 状态码                                                     |
+| ---------------------------------------------------------- | ---------------------------------------------------------- |
+| 已知内置（github/google）但 env 凭据未配                   | **503 AUTH_OAUTH_002**（现状保留）                         |
+| registry 外名称（未知/非法字符/被跳过的畸形动态 provider） | **404 AUTH_OAUTH_001**（现状未知名称即 404）               |
+| options JSON 畸形                                          | 该 provider 不注册 → 请求其 authorize 落 404；内置不受影响 |
 
 既有测试 400 断言（oauth.test.ts:180-196）实为 404 分支（未知名称）——执行者以**本表**为准核对既有断言语义，勿凭 R3 字面统一 400。
 
@@ -117,10 +117,10 @@ R6 确认：theme algorithm 与 html[data-theme] effect 落 components/LocaleGat
 
 ## 审核结论汇总
 
-| 审核人 | 裁决 | 吸收 |
-|---|---|---|
-| critic-correctness | NEEDS-FIXES 6M+6m | R1-R11 |
-| critic-blockers | NEEDS-FIXES 3C+3H+4M | R12-R20（R14 叶子模块断环覆盖 R2 的模块落位；R15 修正 R2 的 setRolePermissions 粒度；R17 覆盖 R3 的统一 400） |
-| cross-checker | PASS 0 违规 + 2 minor | R21 |
+| 审核人             | 裁决                  | 吸收                                                                                                          |
+| ------------------ | --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| critic-correctness | NEEDS-FIXES 6M+6m     | R1-R11                                                                                                        |
+| critic-blockers    | NEEDS-FIXES 3C+3H+4M  | R12-R20（R14 叶子模块断环覆盖 R2 的模块落位；R15 修正 R2 的 setRolePermissions 粒度；R17 覆盖 R3 的统一 400） |
+| cross-checker      | PASS 0 违规 + 2 minor | R21                                                                                                           |
 
 冲突裁定：R12>R1（ctor 修正以 blockers 实证为准）；R14>R2（缓存落位叶子模块）；R15>R2（失效粒度全清）；R17>R3（503/404 语义表）。附录与主计划冲突处一律以本附录为准。

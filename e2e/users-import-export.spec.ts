@@ -55,29 +55,57 @@ test.describe('Users import/export/force-logout', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
-  // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
-  await page.route('**/api/v1/auth/saml/status', async (route) => {
-  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
-  // unmocked → console-error net failure (R4 discipline)
-  await page.route('**/api/v1/tenants**', async (route) => {
-    if (route.request().method() !== 'GET') return route.fallback();
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: [{ id: '00000000-0000-0000-0000-000000000001', name: 'Default', slug: 'default', status: 'active', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+    // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
+    await page.route('**/api/v1/auth/saml/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
-  });
+    await page.route('**/api/v1/auth/sms/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    await page.route('**/api/v1/auth/captcha/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
+    // unmocked → console-error net failure (R4 discipline)
+    await page.route('**/api/v1/tenants**', async (route) => {
+      if (route.request().method() !== 'GET') return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: '00000000-0000-0000-0000-000000000001',
+              name: 'Default',
+              slug: 'default',
+              status: 'active',
+              createdAt: '2026-01-01T00:00:00Z',
+              updatedAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 1,
+        }),
+      });
+    });
     await page.route('**/api/v1/auth/login', async (route) => {
       await route.fulfill({
         status: 200,
@@ -88,7 +116,12 @@ test.describe('Users import/export/force-logout', () => {
             accessToken: 'test-token',
             refreshToken: 'test-refresh',
             expiresIn: 900,
-            user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
+            user: {
+              id: '1',
+              email: 'admin@accessbase.local',
+              name: 'Administrator',
+              roles: [{ id: 'role-1', name: 'admin' }],
+            },
           },
         }),
       });
@@ -97,14 +130,20 @@ test.describe('Users import/export/force-logout', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+        }),
       });
     });
     await page.route('**/api/v1/auth/me', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] },
+        }),
       });
     });
     await page.route('**/api/v1/roles**', async (route) => {
@@ -127,7 +166,9 @@ test.describe('Users import/export/force-logout', () => {
     expect(appErrors, 'console errors should be empty').toEqual([]);
   });
 
-  test('force-logout row action: click → confirm → POST fires → success toast', async ({ page }) => {
+  test('force-logout row action: click → confirm → POST fires → success toast', async ({
+    page,
+  }) => {
     let forceLogoutCalled = false;
     await page.route('**/api/v1/users/1/force-logout', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback();
@@ -150,14 +191,27 @@ test.describe('Users import/export/force-logout', () => {
     await page.goto('/users');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
-    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Force Logout"), button:has-text("强制下线")').click();
-    await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
+    await page
+      .locator('tbody tr.ant-table-row')
+      .first()
+      .locator('button:has-text("Force Logout"), button:has-text("强制下线")')
+      .click();
+    await page
+      .locator(
+        '.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")',
+      )
+      .first()
+      .click();
 
     await expect.poll(() => forceLogoutCalled).toBe(true);
-    await expect(page.locator('.ant-message .ant-message-notice-content')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.ant-message .ant-message-notice-content')).toBeVisible({
+      timeout: 5000,
+    });
   });
 
-  test('import modal dry-run: paste rows → report shows valid + per-row errors', async ({ page }) => {
+  test('import modal dry-run: paste rows → report shows valid + per-row errors', async ({
+    page,
+  }) => {
     let importPayload: unknown = null;
     await page.route('**/api/v1/users/import', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback();
@@ -193,10 +247,12 @@ test.describe('Users import/export/force-logout', () => {
     // UI must state the CSV limitation explicitly (R11)
     // (asserted softly via presence of any limitation copy — exact text lives in i18n)
 
-    await modal.locator('textarea').fill(JSON.stringify([
-      { email: 'new.user@example.com', name: 'New User', password: 'GoodPass1' },
-      { email: 'bad-email', name: 'Bad', password: 'GoodPass1' },
-    ]));
+    await modal.locator('textarea').fill(
+      JSON.stringify([
+        { email: 'new.user@example.com', name: 'New User', password: 'GoodPass1' },
+        { email: 'bad-email', name: 'Bad', password: 'GoodPass1' },
+      ]),
+    );
 
     // Dry-run (default submit)
     await modal.locator('[data-testid="import-check"]').click();
@@ -208,7 +264,9 @@ test.describe('Users import/export/force-logout', () => {
     await expect(page.locator('text=Invalid email')).toBeVisible({ timeout: 5000 });
   });
 
-  test('import modal commit: clicking confirm-commit creates and shows created count', async ({ page }) => {
+  test('import modal commit: clicking confirm-commit creates and shows created count', async ({
+    page,
+  }) => {
     let importPayload: unknown = null;
     await page.route('**/api/v1/users/import', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback();
@@ -232,10 +290,12 @@ test.describe('Users import/export/force-logout', () => {
     await page.locator('button:has-text("Import"), button:has-text("导入")').first().click();
     const modal = page.locator('.ant-modal');
     await expect(modal).toBeVisible();
-    await modal.locator('textarea').fill(JSON.stringify([
-      { email: 'a@example.com', name: 'A', password: 'GoodPass1' },
-      { email: 'b@example.com', name: 'B', password: 'GoodPass1' },
-    ]));
+    await modal.locator('textarea').fill(
+      JSON.stringify([
+        { email: 'a@example.com', name: 'A', password: 'GoodPass1' },
+        { email: 'b@example.com', name: 'B', password: 'GoodPass1' },
+      ]),
+    );
     // Two-phase: dry-run first, then commit
     await modal.locator('[data-testid="import-check"]').click();
     await expect.poll(() => importPayload).not.toBeNull();

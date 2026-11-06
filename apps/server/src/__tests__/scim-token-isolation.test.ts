@@ -53,7 +53,10 @@ const keyStore = new Map<string, MockKeyRow>();
 const dataHash = createHash('sha256').update(DATA_KEY).digest('hex');
 const scimHash = createHash('sha256').update(SCIM_KEY).digest('hex');
 keyStore.set(dataHash, makeKey({ id: 'key-data', hash: dataHash, scopes: ['*'] }));
-keyStore.set(scimHash, makeKey({ id: 'key-scim', hash: scimHash, scopes: ['scim'], prefix: 'ab_eeee' }));
+keyStore.set(
+  scimHash,
+  makeKey({ id: 'key-scim', hash: scimHash, scopes: ['scim'], prefix: 'ab_eeee' }),
+);
 
 // --- Identity mock ---
 
@@ -63,16 +66,27 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@accessbase/identity')>();
 
   // Mock user rows keyed by ID (used by /me handler's findById)
-  const mockUsers = new Map<string, { id: string; email: string; name: string; totpEnabled: boolean }>([
-    ['key-data', { id: 'key-data', email: 'data@test.local', name: 'Data User', totpEnabled: false }],
-    ['key-scim', { id: 'key-scim', email: 'scim@test.local', name: 'SCIM User', totpEnabled: false }],
+  const mockUsers = new Map<
+    string,
+    { id: string; email: string; name: string; totpEnabled: boolean }
+  >([
+    [
+      'key-data',
+      { id: 'key-data', email: 'data@test.local', name: 'Data User', totpEnabled: false },
+    ],
+    [
+      'key-scim',
+      { id: 'key-scim', email: 'scim@test.local', name: 'SCIM User', totpEnabled: false },
+    ],
   ]);
 
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
       findByEmail: vi.fn().mockResolvedValue({ id: 'admin-u1', email: 'admin@test.local' }),
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
       findById: vi.fn(async (id: string) => mockUsers.get(id) ?? null),
     })),
     RoleManager: vi.fn().mockImplementation(() => ({

@@ -82,7 +82,10 @@ describe('kind column (A5)', () => {
     const db = makeDb([[]]); // duplicate-name check: free
     db.insert.mockImplementation(() => deptChain);
 
-    const g = await new GroupManager(db as never).create({ name: 'Platform', kind: 'department' }, T);
+    const g = await new GroupManager(db as never).create(
+      { name: 'Platform', kind: 'department' },
+      T,
+    );
 
     expect(deptChain.values.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({ name: 'Platform', kind: 'department', tenantId: T }),
@@ -94,14 +97,16 @@ describe('kind column (A5)', () => {
     db2.insert.mockImplementation(() => plainChain);
     await new GroupManager(db2 as never).create({ name: 'Eng' }, T);
 
-    expect(plainChain.values.mock.calls[0]?.[0]).toEqual(expect.objectContaining({ kind: 'group' }));
+    expect(plainChain.values.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({ kind: 'group' }),
+    );
   });
 
   it('create clamps an out-of-enum kind before any write (GROUP_KIND_INVALID)', async () => {
     const db = makeDb([]);
-    await expect(new GroupManager(db as never).create({ name: 'X', kind: 'division' }, T)).rejects.toThrow(
-      'GROUP_KIND_INVALID',
-    );
+    await expect(
+      new GroupManager(db as never).create({ name: 'X', kind: 'division' }, T),
+    ).rejects.toThrow('GROUP_KIND_INVALID');
     expect(db.insert).not.toHaveBeenCalled();
   });
 
@@ -112,7 +117,9 @@ describe('kind column (A5)', () => {
 
     const g = await new GroupManager(db as never).update(G, { kind: 'department' }, T);
 
-    expect(setChain.set.mock.calls[0]?.[0]).toEqual(expect.objectContaining({ kind: 'department' }));
+    expect(setChain.set.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({ kind: 'department' }),
+    );
     expect(g.kind).toBe('department');
   });
 

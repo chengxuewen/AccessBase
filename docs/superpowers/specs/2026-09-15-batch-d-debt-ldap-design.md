@@ -14,6 +14,7 @@ audit write records actor 'anonymous'. Batch C's CSV export made this visible: a
 column all-anonymous, actor filter parameter effectively unusable.
 
 Change:
+
 - All four sites → `user?.id ?? user?.sub ?? 'anonymous'` (JWT→sub, API key→keyId,
   system jobs→system semantics preserved where 'system' literal already used).
 - Audit package tests: update/extend the four assertions (sub preferred, id fallback,
@@ -32,6 +33,7 @@ search user → user bind → sync attributes → auto-provision → auth result
 AUTH_063/064/065 pre-reserved. No LDAP client library in dependencies.
 
 Deliverables:
+
 1. Add `ldapts` (modern ESM LDAP client) — the batch's ONLY new dependency.
 2. LdapProvider five methods, real: connect (ldapts Client), admin bind, searchUser
    (uid filter), user-bind verification, syncAttributes (mail/displayName mapping),

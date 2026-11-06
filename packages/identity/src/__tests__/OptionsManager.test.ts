@@ -223,9 +223,8 @@ describe('OptionsManager publish hook (R-A cross-node coherence)', () => {
   });
 
   it('cross-instance: A writes, remote invalidation makes B re-read the shared DB', async () => {
-    const { setOptionsPublishHook, OptionsManager: Mgr } = await import(
-      '../managers/OptionsManager.js',
-    );
+    const { setOptionsPublishHook, OptionsManager: Mgr } =
+      await import('../managers/OptionsManager.js');
     // Node B: separate manager instance on the SAME shared DB
     const nodeB = new Mgr();
     db.select.mockReturnValue(makeChain([]));

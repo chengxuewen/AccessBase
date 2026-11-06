@@ -46,44 +46,63 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     })),
     PermissionManager: vi.fn().mockImplementation(() => ({ hasPermission })),
     OidcClientManager: vi.fn().mockImplementation(() => ({
-      create: vi.fn(async (input: { name: string; redirectUris: string[]; grantTypes: string[]; scope: string; tokenAuthMethod?: string; backchannelLogoutUri?: string | null }) => {
-        const id = `id-${++counter}`;
-        const clientId = `ab_test${counter}`;
-        const plaintextSecret = `secret-${counter}-${Date.now()}`;
-        const row: MockClient = {
-          id,
-          clientId,
-          name: input.name,
-          secretEncrypted: `encrypted-${plaintextSecret}`,
-          redirectUris: input.redirectUris,
-          postLogoutRedirectUris: [],
-          grantTypes: input.grantTypes,
-          scope: input.scope,
-          tokenAuthMethod: input.tokenAuthMethod ?? 'client_secret_basic',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        store.set(clientId, row);
-        return { client: row, plaintextSecret };
-      }),
+      create: vi.fn(
+        async (input: {
+          name: string;
+          redirectUris: string[];
+          grantTypes: string[];
+          scope: string;
+          tokenAuthMethod?: string;
+          backchannelLogoutUri?: string | null;
+        }) => {
+          const id = `id-${++counter}`;
+          const clientId = `ab_test${counter}`;
+          const plaintextSecret = `secret-${counter}-${Date.now()}`;
+          const row: MockClient = {
+            id,
+            clientId,
+            name: input.name,
+            secretEncrypted: `encrypted-${plaintextSecret}`,
+            redirectUris: input.redirectUris,
+            postLogoutRedirectUris: [],
+            grantTypes: input.grantTypes,
+            scope: input.scope,
+            tokenAuthMethod: input.tokenAuthMethod ?? 'client_secret_basic',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          store.set(clientId, row);
+          return { client: row, plaintextSecret };
+        },
+      ),
       list: vi.fn(async (opts?: { limit?: number; offset?: number }) => {
         const all = [...store.values()].map(({ secretEncrypted: _s, ...rest }) => rest);
         return opts ? all.slice(opts.offset ?? 0, (opts.offset ?? 0) + (opts.limit ?? 20)) : all;
       }),
       count: vi.fn(async () => store.size),
       get: vi.fn(async (clientId: string) => store.get(clientId)),
-      updateRotationSurface: vi.fn(async (clientId: string, fields: { jwks?: { keys: unknown[] } | null; backchannelLogoutUri?: string | null }) => {
-        const row = store.get(clientId);
-        if (!row) return;
-        if (fields.jwks !== undefined) row.jwks = fields.jwks;
-        if (fields.backchannelLogoutUri !== undefined) row.backchannelLogoutUri = fields.backchannelLogoutUri;
-        row.updatedAt = new Date();
-      }),
+      updateRotationSurface: vi.fn(
+        async (
+          clientId: string,
+          fields: { jwks?: { keys: unknown[] } | null; backchannelLogoutUri?: string | null },
+        ) => {
+          const row = store.get(clientId);
+          if (!row) return;
+          if (fields.jwks !== undefined) row.jwks = fields.jwks;
+          if (fields.backchannelLogoutUri !== undefined)
+            row.backchannelLogoutUri = fields.backchannelLogoutUri;
+          row.updatedAt = new Date();
+        },
+      ),
       rotateSecret: vi.fn(async (clientId: string) => {
         const existing = store.get(clientId);
         if (!existing) return undefined;
         const newSecret = `rotated-${Date.now()}`;
-        store.set(clientId, { ...existing, secretEncrypted: `encrypted-${newSecret}`, updatedAt: new Date() });
+        store.set(clientId, {
+          ...existing,
+          secretEncrypted: `encrypted-${newSecret}`,
+          updatedAt: new Date(),
+        });
         return newSecret;
       }),
       remove: vi.fn(async (clientId: string) => {
@@ -197,44 +216,46 @@ describe('POST /api/v1/clients', () => {
   });
 });
 
-  it('Q3D: backchannelLogoutUri passes through when http(s); invalid schemes dropped', async () => {
-    const im = (await import('@accessbase/identity')).OidcClientManager as unknown as {
-      mock: { results: Array<{ value: { create: ReturnType<typeof vi.fn> } }> };
-    };
-    const inst = im.mock.results[im.mock.results.length - 1]?.value;
-    inst.create.mockClear();
-    const good = await app.inject({
-      method: 'POST',
-      url: '/api/v1/clients',
-      headers: { ...AUTH(), 'content-type': 'application/json' },
-      payload: {
-        name: 'BC App',
-        redirectUris: ['https://rp.example/cb'],
-        grantTypes: ['authorization_code'],
-        scope: 'openid',
-        backchannelLogoutUri: 'https://rp.example/bc-logout',
-      },
-    });
-    expect(good.statusCode).toBe(201);
-    expect(inst.create).toHaveBeenCalledWith(expect.objectContaining({ backchannelLogoutUri: 'https://rp.example/bc-logout' }));
-
-    inst.create.mockClear();
-    const bad = await app.inject({
-      method: 'POST',
-      url: '/api/v1/clients',
-      headers: { ...AUTH(), 'content-type': 'application/json' },
-      payload: {
-        name: 'BC Bad',
-        redirectUris: ['https://rp.example/cb'],
-        grantTypes: ['authorization_code'],
-        scope: 'openid',
-        backchannelLogoutUri: 'javascript://evil',
-      },
-    });
-    expect(bad.statusCode).toBe(201);
-    const passed = inst.create.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(passed.backchannelLogoutUri).toBeUndefined();
+it('Q3D: backchannelLogoutUri passes through when http(s); invalid schemes dropped', async () => {
+  const im = (await import('@accessbase/identity')).OidcClientManager as unknown as {
+    mock: { results: Array<{ value: { create: ReturnType<typeof vi.fn> } }> };
+  };
+  const inst = im.mock.results[im.mock.results.length - 1]?.value;
+  inst.create.mockClear();
+  const good = await app.inject({
+    method: 'POST',
+    url: '/api/v1/clients',
+    headers: { ...AUTH(), 'content-type': 'application/json' },
+    payload: {
+      name: 'BC App',
+      redirectUris: ['https://rp.example/cb'],
+      grantTypes: ['authorization_code'],
+      scope: 'openid',
+      backchannelLogoutUri: 'https://rp.example/bc-logout',
+    },
   });
+  expect(good.statusCode).toBe(201);
+  expect(inst.create).toHaveBeenCalledWith(
+    expect.objectContaining({ backchannelLogoutUri: 'https://rp.example/bc-logout' }),
+  );
+
+  inst.create.mockClear();
+  const bad = await app.inject({
+    method: 'POST',
+    url: '/api/v1/clients',
+    headers: { ...AUTH(), 'content-type': 'application/json' },
+    payload: {
+      name: 'BC Bad',
+      redirectUris: ['https://rp.example/cb'],
+      grantTypes: ['authorization_code'],
+      scope: 'openid',
+      backchannelLogoutUri: 'javascript://evil',
+    },
+  });
+  expect(bad.statusCode).toBe(201);
+  const passed = inst.create.mock.calls[0]?.[0] as Record<string, unknown>;
+  expect(passed.backchannelLogoutUri).toBeUndefined();
+});
 
 describe('GET /api/v1/clients', () => {
   it('lists clients without secret material', async () => {
@@ -505,7 +526,6 @@ describe('PUT /api/v1/clients/:clientId/rotation-surface (G3)', () => {
     created = createRes.json<{ data: { clientId: string } }>().data.clientId;
   });
   it('rotates jwks with a valid public-only JWK set (seeded via create)', async () => {
-
     const res = await app.inject({
       method: 'PUT',
       url: `/api/v1/clients/${created}/rotation-surface`,

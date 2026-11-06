@@ -28,11 +28,13 @@
 ## Task 0: tenantId claim at all issuance points (R0)
 
 **Files:**
+
 - Modify: `apps/server/src/routes/auth.ts` (issueTokenPair ~:63 — add tenantId to jwt.sign payload; ~:473 mfa/verify inline sign; ~:973 inline sign)
-- Modify: `apps/server/src/routes/oauth.ts` (issueTokenPair ~:280), `apps/server/src/routes/saml.ts` (~:91), `apps/server/src/routes/webauthn.ts` (~:91)
+- Modify: `apps/server/src/routes/oauth.ts` (issueTokenPair ~~:280), `apps/server/src/routes/saml.ts` (~~:91), `apps/server/src/routes/webauthn.ts` (~:91)
 - Test: `apps/server/src/__tests__/route-guard.test.ts` (or nearest existing JWT-shape assertion site — implementer greps for the existing token-shape test and extends it)
 
 **Interfaces:**
+
 - Consumes: issueTokenPair(request, user) signatures — all four take user with id/email/status; user rows carry tenantId (users table) — use `user.tenantId ?? DEFAULT_TENANT`
 - Produces: every access token JWT carries `tenantId` claim; inline sign sites (mfa/verify :473, :973) add the same claim sourced from the verified user row
 
@@ -44,6 +46,7 @@
 ## Task 1: tenants table + TenantManager + seed (R5/R6/R8)
 
 **Files:**
+
 - Modify: `packages/identity/src/db/schema.ts` (tenants table per spec G1)
 - Create: `packages/identity/src/managers/TenantManager.ts` + `packages/identity/src/__tests__/TenantManager.test.ts`
 - Modify: `packages/identity/src/index.ts` (export TenantManager)
@@ -53,6 +56,7 @@
 - Modify: `.agents/memorys/conventions.md` (seed 18→21 check commands)
 
 **Interfaces:**
+
 - Produces: `TenantManager` — `create({name, slug})`, `findAll({page,pageSize,search?})` paginated, `findById(id)`, `update(id, {name?, slug?, status?})`, `suspend`/`delete` soft-refuse semantics: any update/delete against DEFAULT_TENANT throws `TENANT_PROTECTED`; suspend branch calls `invalidatePermissionCache(tenantId)` (R2); slug unique (409-style error result)
 - Table: `tenants(id uuid pk default gen_random_uuid(), name varchar(200) notNull, slug varchar(64) notNull unique, status varchar(20) notNull default 'active', createdAt, updatedAt)`; seed row id = DEFAULT_TENANT literal, slug 'default', name 'Default'
 
@@ -65,10 +69,12 @@
 ## Task 2: CRUD routes + permission codes (dual registration)
 
 **Files:**
+
 - Create: `apps/server/src/routes/tenants.ts` + `apps/server/src/__tests__/tenants.test.ts`
 - Modify: `apps/server/src/app.ts` (register tenantsRoutes), `packages/identity/src/hooks/authorize.ts` (routePermissions: GET/POST/PUT/DELETE /api/v1/tenants), `apps/server/src/routes/permissions-seed.ts` (3 codes + RESOURCES 'tenants' → 21)
 
 **Interfaces:**
+
 - Produces: GET /api/v1/tenants (tenants:read, paginated), GET /:id (tenants:read), POST (tenants:write), PUT /:id (tenants:write), DELETE /:id (tenants:delete → soft suspend semantics via manager; TENANT_PROTECTED on default → 409); all `{success,data}` envelopes; requirePermission preHandler wired like users.ts
 - Error codes: 403 TENANT_PROTECTED mapped 409? — NO: TENANT_PROTECTED → HTTP 409, code `TENANT_PROTECTED`; suspended login gate is Task 3's AUTH_TENANT_001
 
@@ -79,11 +85,13 @@
 ## Task 3: suspension gate + refresh door (R1)
 
 **Files:**
+
 - Modify: the 4 issueTokenPair helpers (auth.ts / oauth.ts / saml.ts / webauthn.ts) — after user-resolution, before sign: tenant status check via TenantManager.findById (status !== 'active' → throw/return 403 AUTH_TENANT_001 'Access denied'); keep the check INSIDE the helpers so all 8 call sites + mfa/password re-issuance inherit it (R1)
 - Modify: `apps/server/src/routes/auth.ts` refresh endpoint — fail-closed tenant check before rotation (mirror batch A user-suspended refresh door)
 - Test: `apps/server/src/__tests__/tenant-gate.test.ts` (new) — strategy per R8: tests insert a second suspended tenant row directly + a user row bound to it, then exercise login/refresh paths
 
 **Interfaces:**
+
 - Produces: login/ldap/webauthn/oauth-exchange/saml-exchange/magic-consume/mfa-verify/change-password/refresh ALL reject for suspended-tenant users with 403 `{code:'AUTH_TENANT_001'}`; default tenant can never suspend → default-user flows unaffected
 
 - [ ] **Step 1: RED** — suspended-tenant user login → 403 AUTH_TENANT_001; refresh → 403; default-tenant user unaffected
@@ -93,11 +101,13 @@
 ## Task 4: request-context injection + DEFAULT_TENANT retirement (R3/R7)
 
 **Files:**
+
 - Modify: `apps/server/src/fastify.d.ts` (FastifyRequest.tenantId?: string), `apps/server/src/app.ts` (authenticate extension: after user resolution — JWT branch `request.tenantId = request.user.tenantId ?? DEFAULT_TENANT`; apikey branch `request.tenantId = key.tenantId` — NO overwrite/DEFAULT fallback on apikey)
 - Modify: `apps/server/src/routes/roles.ts` ×5, `users.ts` ×14, `saml.ts` ×2, `oauth.ts` ×1, `api-keys.ts` ×3, `utils/permission.ts` ×1, `auth.ts` rolesOf/permissionsOf ×2 — replace DEFAULT_TENANT with `request.tenantId ?? DEFAULT_TENANT` (public-route issuance paths keep explicit resolution: saml/magic resolve DEFAULT_TENANT per spec G2)
 - KEEP: constants.ts, permissions-seed.ts, setup.ts (bootstrap self-writes)
 
 **Interfaces:**
+
 - Consumes: Task 0 claim + Task 1 TenantManager
 - Produces: authenticated-route tenant resolution from request context; convergence check (R3 grep) returns ZERO hits outside the keep-list
 
@@ -109,11 +119,13 @@
 ## Task 5: frontend read-only column + e2e mocks + full regression (R4)
 
 **Files:**
+
 - Modify: `apps/admin-ui/src/api/tenants.ts` (new — fetchTenants, ApiEnvelope-typed), `apps/admin-ui/src/pages/Users.tsx`, `apps/admin-ui/src/pages/Roles.tsx` (Tenant column: slug via module-scope cached lookup; failure → '—' cached, no retry, no toast, no console error)
 - Modify: e2e specs touching Users/Roles pages (users-crud, roles-crud, users-import-export, auth-rbac-ui…) — add `/api/v1/tenants` mock returning the default-tenant array (B2/F per-spec precedent)
 - Test: e2e — existing specs stay green (the new column degrades silently in specs without the mock? NO — unmocked → 500 → console net. EVERY spec that renders Users/Roles MUST get the mock; grep `goto('/users'|'/roles'` to enumerate)
 
 **Interfaces:**
+
 - Produces: Users/Roles tables show Tenant slug column (id → slug lookup); users without tenants:read see '—' (lookup 403s, caught)
 
 - [ ] **Step 1: enumerate affected specs** (`grep -l "goto('/users'\|goto('/roles'" e2e/*.spec.ts`) + RED: run one without mock to confirm console-net failure mode is real (document)

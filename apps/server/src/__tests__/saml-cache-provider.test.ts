@@ -26,9 +26,8 @@ vi.mock('@accessbase/logging', () => ({
 }));
 
 const { logger } = await import('@accessbase/logging');
-const { buildSamlCacheProvider, SAML_REQUEST_TTL_MS } = await import(
-  '../utils/saml-cache-provider.js'
-);
+const { buildSamlCacheProvider, SAML_REQUEST_TTL_MS } =
+  await import('../utils/saml-cache-provider.js');
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -95,6 +94,8 @@ describe('buildSamlCacheProvider (Redis absent — honest single-node fallback)'
     expect(a).toBeUndefined();
     expect(b).toBeUndefined();
     expect(logger.warn).toHaveBeenCalledTimes(1);
-    expect(String((logger.warn as ReturnType<typeof vi.fn>).mock.calls[0]?.[1])).toMatch(/in-memory/i);
+    expect(String((logger.warn as ReturnType<typeof vi.fn>).mock.calls[0]?.[1])).toMatch(
+      /in-memory/i,
+    );
   });
 });

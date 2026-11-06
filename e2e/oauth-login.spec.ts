@@ -13,7 +13,10 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
 
@@ -27,7 +30,12 @@ async function mockCommonApis(page: Page): Promise<void> {
           accessToken: 'test-token',
           refreshToken: 'test-refresh',
           expiresIn: 900,
-          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
+          user: {
+            id: '1',
+            email: 'admin@accessbase.local',
+            name: 'Administrator',
+            roles: [{ id: 'role-1', name: 'admin' }],
+          },
         },
       }),
     });
@@ -53,7 +61,10 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
 
@@ -67,15 +78,26 @@ async function mockCommonApis(page: Page): Promise<void> {
   });
   // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
   await page.route('**/api/v1/auth/saml/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
-
 }
 
 async function login(page: Page): Promise<void> {
@@ -141,7 +163,11 @@ test.describe('OAuth login flow', () => {
     await expect(page.locator('[data-testid="oauth-github"]')).toBeVisible();
     // Fulfill the follow-up external navigation so the test never hits real github.com
     await page.route('**github.com/**', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>gh</body></html>' });
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '<html><body>gh</body></html>',
+      });
     });
     await page.click('[data-testid="oauth-github"]');
     // The document request to the authorize endpoint proves the click wired up
@@ -161,7 +187,12 @@ test.describe('OAuth login flow', () => {
             accessToken: 'oauth-access',
             refreshToken: 'oauth-refresh',
             expiresIn: 900,
-            user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
+            user: {
+              id: '1',
+              email: 'admin@accessbase.local',
+              name: 'Administrator',
+              roles: [{ id: 'role-1', name: 'admin' }],
+            },
           },
         }),
       });
@@ -182,7 +213,15 @@ test.describe('OAuth login flow', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { accessToken: 'strict-access', refreshToken: 'strict-refresh', expiresIn: 900, user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] } } }),
+        body: JSON.stringify({
+          success: true,
+          data: {
+            accessToken: 'strict-access',
+            refreshToken: 'strict-refresh',
+            expiresIn: 900,
+            user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] },
+          },
+        }),
       });
     });
     await page.goto('/login?oauthCode=strict-mode-code');
@@ -233,7 +272,11 @@ test.describe('Profile linked accounts', () => {
     });
     await page.route('**/api/v1/auth/oauth/github', async (route) => {
       if (route.request().method() === 'DELETE') {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true }),
+        });
       } else {
         await route.continue();
       }
@@ -252,7 +295,12 @@ test.describe('Profile linked accounts', () => {
     await expect(page.locator('text=4242')).toBeVisible();
 
     await page.locator('[data-testid="oauth-unlink-github"]').click();
-    await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
+    await page
+      .locator(
+        '.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")',
+      )
+      .first()
+      .click();
     await expect(page.locator('[data-testid="oauth-unlink-github"]')).not.toBeVisible();
   });
 });

@@ -19,12 +19,13 @@
 Called from: the 7 funnels above (post-write, in the same DbLike when threaded).
 
 **Read side (apps/server app.authenticate decorator)**: after jwtVerify, cheap freshness check:
+
 1. read `authst:{sub}` from Redis (cached `{tokenVersion,status}`, TTL 30s, one GET — Redis already per-process client);
 2. on miss: `SELECT token_version,status FROM users WHERE id=$1` (indexed PK) + SETEX 30s;
 3. mismatch vs claims (tokenVersion OR status) → 401 `AUTH_005` (new code → error-codes-reality.md same commit, D126 rule) — frontend refresh-single-flight (already exists on 401) rebuilds silently;
 4. Redis AND DB error → **fail-OPEN to the claim-only P0 check as today** (metrics degraded gauge already covers; document the window).
-Cost: +1 Redis GET per authed request (amortized), 1 PG PK lookup per user per 30s. Contract: **revocation ≤30s across nodes** (pub/sub invalidation kills the 30s on role-change directly: bump publishes → every node drops the key → next request DB-fresh).
-Design docs: security.md/identity-sdd status note updated to ≤30s (not 'immediate') — honest number.
+   Cost: +1 Redis GET per authed request (amortized), 1 PG PK lookup per user per 30s. Contract: **revocation ≤30s across nodes** (pub/sub invalidation kills the 30s on role-change directly: bump publishes → every node drops the key → next request DB-fresh).
+   Design docs: security.md/identity-sdd status note updated to ≤30s (not 'immediate') — honest number.
 
 **Tests**: unit — writer SQL shape via PgDialect lock; funnel spies assert bump called; decorator — redis-stub hit/miss/mismatch/fail-open matrix (trust-proxy-{on,off} file-split pattern per PIT-078); integration real-PG — role update bumps members, not others; AUTH_005 e2e lock in auth spec (mock /auth/me returns stale → auto refresh once).
 

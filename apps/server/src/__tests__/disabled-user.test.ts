@@ -56,9 +56,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
-    // Q2b routeTx seam: run the callback with a dummy handle (mocked
-    // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
-    transaction: (fn: (d: unknown) => unknown) => fn({}),
+      // Q2b routeTx seam: run the callback with a dummy handle (mocked
+      // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
+      transaction: (fn: (d: unknown) => unknown) => fn({}),
       verifyPassword: mockVerifyPassword,
       findById: mockFindById,
       // Refresh path resolves the session owner tenant-blind (G fix H1/L1)
@@ -66,10 +66,14 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       changeStatus: mockChangeStatus,
       // Non-null admin short-circuits setup-guard's queryAdminExists (skips its raw-PG fallback)
       findByEmail: vi.fn().mockResolvedValue({ id: ADMIN_ID, email: 'admin@accessbase.local' }),
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
       getUserRoles: vi.fn().mockResolvedValue([]),
     })),
     PermissionManager: vi.fn().mockImplementation(() => ({

@@ -26,10 +26,11 @@ export function LocaleGate({ children }: { children: ReactNode }) {
   return (
     <ConfigProvider
       locale={ANT_LOCALES[lang]}
-      theme={{ algorithm: resolved === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm }}
+      theme={{
+        algorithm: resolved === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+      }}
     >
       <AntdApp>{children}</AntdApp>
     </ConfigProvider>
   );
 }
-

@@ -2,6 +2,7 @@
 
 **Date:** 2026-10-12 · **Status:** PROPOSED (rev.2 — dual-Momus absorbed: flows R1-R7 + blockers B1-B8, both APPROVE-WITH-FIXES; cross-confirmed R2≡B3, R3≡B6)
 **rev.2 change log:**
+
 - B5 (CRITICAL-grade catch, already fixed on master `4114538`): branding fields were stripped by fast-json-stringify — response schema now declares them; live server verified. Plan's T4 regen rider updated accordingly.
 - R1≡B1 (T1 reframe): the SPA does NOT use the no-token arm (stores/auth.ts posts ONLY when refreshToken exists; the 401 interceptor calls local logout, never the endpoint — both lanes verified independently). D-1 re-posed: A applies to ARM-1 semantics only if wanted; recommendation flipped to B+defensive (arm-2 = API-client hardening, documented; SPA multi-device UX untouched).
 - R2≡B3 (T3 envelope): helper emits `{success, data, total, page, pageSize}` per events.ts:118 precedent — `items`/`totalPages` dropped, audit/events become drop-in consumers.
@@ -13,8 +14,8 @@
 - R7≡B4 (T3 per-manager): clients manager has NO tenantId — signature `list({limit, offset})` for OidcClientManager only.
 - B8 (citation): runbook ref corrected to docs/runbooks/multi-node.md:65-67.
 - U2 internal contradiction rewritten (B3-blockers): final ruling = revoke rows, NO DEL, NO bump.
-**Parent:** `docs/superpowers/reports/2026-10-12-gap-map.md` (G-numbered findings)
-**Scope ruling:** G2 re-scoped during fact-check (see §0); G3 jwks-rotation and G8 device-flow branding are EXCLUDED (bigger, separate specs); hygiene riders G6a/G6b/G9-annotate ride along only where they touch files already opened.
+  **Parent:** `docs/superpowers/reports/2026-10-12-gap-map.md` (G-numbered findings)
+  **Scope ruling:** G2 re-scoped during fact-check (see §0); G3 jwks-rotation and G8 device-flow branding are EXCLUDED (bigger, separate specs); hygiene riders G6a/G6b/G9-annotate ride along only where they touch files already opened.
 
 ---
 
@@ -48,6 +49,7 @@ D-1's original "kill ALL on token-less logout" would have targeted an
 arm the SPA never hits (dual-lane flagged: dead-letter decision).
 
 **Final semantics:**
+
 1. **refreshToken presented (arm-1, the SPA path)**: unchanged —
    `revokeSession(session.id)` (revoking the row kills any copies of THAT
    token; reuse detection then guards rotation attempts per D125).
@@ -67,6 +69,7 @@ logout-everywhere semantics on arm-1, that is a separate ruling with a
 multi-device UX trade (Profile per-device revoke exists).
 
 **Tests (RED-first):**
+
 - U1: logout w/ refreshToken → session row `revokedAt` set (exists, keep).
 - U2 (rewritten, was self-contradicting): logout w/o refreshToken →
   ALL user session rows revoked; NO authst DEL; NO bump (bearer to TTL).
@@ -150,7 +153,7 @@ three admin-ui pages + api clients.
 - G6a corrected by dual-lane: `auditAnchorGraceSeconds` ALREADY EXISTS
   (config.ts:118, consumed app.ts:440) — the rider is the ONE-LINE swap
   in routes/audit.ts:259-260 (`graceSeconds: config.auditAnchorGraceSeconds`)
-  + stale ponytail comment rewrite. NOT a config addition.
+  - stale ponytail comment rewrite. NOT a config addition.
 - G6b: saml-logout.ts:149-151 ponytail comment rewrite (the Redis SETNX
   arm is implemented, not an "upgrade path").
 

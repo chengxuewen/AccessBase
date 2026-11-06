@@ -55,11 +55,13 @@ e2e/
 ### Task 1: apiErrorMessage helper + 错误文案族（FO-1/FO-3/FO-7/FO-8/FE-4）
 
 **Files:**
+
 - Create: `apps/admin-ui/src/api/errors.ts`
 - Modify: `pages/Login.tsx:83-93`, `pages/users/UserEdit.tsx:25`, `pages/users/UserDetail.tsx:20`, `pages/Users.tsx:63-64`, `pages/Roles.tsx:74-75`, `pages/Profile.tsx:85-104`, `pages/setup/steps/AdminStep.tsx:44-47`, `pages/setup/steps/ConfigStep.tsx:38-41`
 - Test: `apps/admin-ui/src/api/__tests__/errors.test.ts`
 
 **Interfaces:**
+
 - Produces: `apiErrorMessage(err: unknown, fallback: string): string` — 从 axios 错误提取服务端信封 `response.data.error.message`，无则 fallback。
 
 - [x] **Step 1: 写失败测试**
@@ -72,8 +74,11 @@ import { isAxiosError } from 'axios';
 
 describe('apiErrorMessage', () => {
   it('extracts server envelope message from axios error', () => {
-    const err = { isAxiosError: true, response: { data: { error: { message: 'Role name already exists' } } },
-      toJSON: () => ({}) } as unknown as Parameters<typeof isAxiosError>[0];
+    const err = {
+      isAxiosError: true,
+      response: { data: { error: { message: 'Role name already exists' } } },
+      toJSON: () => ({}),
+    } as unknown as Parameters<typeof isAxiosError>[0];
     expect(apiErrorMessage(err, 'fb')).toBe('Role name already exists');
   });
   it('falls back when no envelope message', () => {
@@ -97,7 +102,8 @@ import { isAxiosError } from 'axios';
  *  调用方对 401/429 可先查 apiErrorStatus() 做专门文案。 */
 export function apiErrorMessage(err: unknown, fallback: string): string {
   if (isAxiosError(err)) {
-    const msg = (err.response?.data as { error?: { message?: string } } | undefined)?.error?.message;
+    const msg = (err.response?.data as { error?: { message?: string } } | undefined)?.error
+      ?.message;
     if (typeof msg === 'string' && msg.length > 0) return msg;
   }
   return fallback;
@@ -120,21 +126,32 @@ export function apiErrorStatus(err: unknown): number | undefined {
 ### Task 2: 语言持久化 + 探测 + 英文孤串（I18-1/I18-3/I18-4）
 
 **Files:**
+
 - Modify: `i18n/index.ts:11`, `layouts/AdminLayout.tsx:66-69`, `pages/Dashboard.tsx:30-38`, `App.tsx:34`
 - Test: `e2e/ui-quality.spec.ts`（新建，本任务起）
 
 **Interfaces:**
+
 - Produces: localStorage key `'lng'`；`i18n.t` 相对时间；后续任务共用。
 
 - [x] **Step 1: i18n 初始化改**
 
 ```typescript
 // i18n/index.ts —— 替换 lng: 'en'
-const probed = typeof navigator !== 'undefined' && navigator.language.startsWith('zh') ? 'zh' : 'en';
-const stored = (typeof localStorage !== 'undefined' && localStorage.getItem('lng')) === 'zh' ? 'zh'
-  : (typeof localStorage !== 'undefined' && localStorage.getItem('lng')) === 'en' ? 'en' : probed;
-i18n.use(initReactI18next).init({ resources: { en: { translation: en }, zh: { translation: zh } },
-  lng: stored, fallbackLng: 'en', interpolation: { escapeValue: false } });
+const probed =
+  typeof navigator !== 'undefined' && navigator.language.startsWith('zh') ? 'zh' : 'en';
+const stored =
+  (typeof localStorage !== 'undefined' && localStorage.getItem('lng')) === 'zh'
+    ? 'zh'
+    : (typeof localStorage !== 'undefined' && localStorage.getItem('lng')) === 'en'
+      ? 'en'
+      : probed;
+i18n.use(initReactI18next).init({
+  resources: { en: { translation: en }, zh: { translation: zh } },
+  lng: stored,
+  fallbackLng: 'en',
+  interpolation: { escapeValue: false },
+});
 ```
 
 - [x] **Step 2: 切换即持久化** — AdminLayout.tsx:66-69 `toggleLanguage`：`i18n.changeLanguage(next)` 后加 `localStorage.setItem('lng', next);`
@@ -163,16 +180,19 @@ test('语言切换后刷新保持中文（I18-4）', async ({ page }) => {
 ```
 
 （需给语言按钮加 `data-testid="lang-toggle"`——同任务内加）
+
 - [x] **Step 6: vitest/tsc + 单跑该 spec 绿**
 - [x] **Step 7: Commit** `fix(admin-ui): 语言探测+持久化，相对时间接 Intl（I18-1/3/4）`
 
 ### Task 3: 状态与数据加载修复（ST-1/ST-2/ST-3）
 
 **Files:**
+
 - Modify: `layouts/AdminLayout.tsx:40-50`（mount fetchUser）, `pages/Dashboard.tsx:61-99`（卡片 loading）, `pages/Roles.tsx:152-164`（try/catch+error Alert）
 - Test: `e2e/ui-quality.spec.ts` 追加
 
 **Interfaces:**
+
 - Consumes: `stores/auth.ts fetchUser`（已有，Phase 7）。
 
 - [x] **Step 1: fetchUser 上布局** — AdminLayout 加 `useEffect(() => { if (token) void fetchUser().catch(() => {}); }, []);`（token 从 store 取；仅 mount 一次，勿进依赖数组造成循环——fetchUser 引用稳定则 `[]`+eslint-disable 不允许，改写为把 fetchUser 存 ref 或确认 store action 引用恒定后用 `[fetchUser]`）。验收：mock `/auth/me` 改名 → 硬刷新头部用户名跟变
@@ -184,6 +204,7 @@ test('语言切换后刷新保持中文（I18-4）', async ({ page }) => {
 ### Task 4: 假排序修复 + 行操作可达性（TA-1/AC-1）
 
 **Files:**
+
 - Modify: `pages/Users.tsx:21-50,105-113`（sorter 映射 + `<a>`→`<Link>`/`<Button type="link">`）, `pages/Roles.tsx:119,137`
 - Test: vitest 单元（排序参数映射纯函数）+ e2e
 
@@ -191,8 +212,10 @@ test('语言切换后刷新保持中文（I18-4）', async ({ page }) => {
 
 ```typescript
 // pages/users/sortParams.ts
-export function mapSort(sort: Record<string, 'ascend' | 'descend' | undefined> | undefined):
-    { sortBy?: string; sortOrder?: 'asc' | 'desc' } {
+export function mapSort(sort: Record<string, 'ascend' | 'descend' | undefined> | undefined): {
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+} {
   const entry = Object.entries(sort ?? {})[0];
   if (!entry) return {};
   return { sortBy: entry[0], sortOrder: entry[1] === 'ascend' ? 'asc' : 'desc' };
@@ -200,6 +223,7 @@ export function mapSort(sort: Record<string, 'ascend' | 'descend' | undefined> |
 ```
 
 测试：`mapSort({name:'ascend'})` → `{sortBy:'name',sortOrder:'asc'}`；`mapSort(undefined)`/`mapSort({})` → `{}`；两键取第一。
+
 - [x] **Step 2: Users.tsx request 中 `...rest` 前显式展开 `...mapSort(params.sort)`，并从 rest 中排除 sort**（`const { current, pageSize, name, sort, ...rest } = params`）
 - [x] **Step 3: AC-1** — Users.tsx 名称列 `<a onClick=…>` → `<Link to={…}>`（react-router）；操作列三个 `<a onClick>` → `<Button type="link" size="small">`；Roles.tsx:119,137 同
 - [x] **Step 4: E2E**：点击 name 表头 → 断言请求 URL 含 `sortBy=name&sortOrder=ascend→asc`（`page.on('request')` 捕获）；键盘 Tab 序列可 focus 到行操作按钮
@@ -208,6 +232,7 @@ export function mapSort(sort: Record<string, 'ascend' | 'descend' | undefined> |
 ### Task 5: 杂项快修包（NA-4/FE-1/FE-2/AC-3/I18-5）
 
 **Files:**
+
 - Modify: `layouts/AdminLayout.tsx`（persistCollapsed prop、删 actionsRender 裸登出、语言按钮 `GlobalOutlined`+当前语言文本+`data-testid` 保留）, `#999` 四处（`Users/Audit` 无关；AdminLayout.tsx:113、Profile.tsx:227、Settings.tsx:155,201 → `<Typography.Text type="secondary">`）, `api/setup.ts:54-59 + pages/setup/steps/WelcomeStep.tsx:34-37,112`（检查项 label：`{database:'setup.checkDatabase', redis:'setup.checkRedis', …}[c.name] ?? c.name`，模式同旁 recoveryMap；key 双语已有则复用）
 
 - [x] **Step 1-4:** 逐项小改（各 ≤5 行），每项完成后 `tsc`；WelcomeStep 改后 mock setup check 跑 e2e 向导步断言中文 label 不回落英文（现有 setup spec 顺带扩展或加断言）
@@ -226,10 +251,12 @@ export function mapSort(sort: Record<string, 'ascend' | 'descend' | undefined> |
 ### Task 7: PermissionManager 补实 6 桩方法
 
 **Files:**
+
 - Modify: `packages/identity/src/managers/PermissionManager.ts:104-172`
 - Test: `packages/identity/src/__tests__/PermissionManager.test.ts`（新建，mock drizzle 同 RoleManager 测试模式）
 
 **Interfaces:**
+
 - Consumes: `RoleManager.getUserRoles(userId, tenantId)`（RoleManager.ts:399）、`RoleManager.resolveInheritedPermissions(roleId, tenantId)`（:309，继承引擎已实现）
 - Produces: `getUserEffectivePermissions(userId, tenantId): Promise<Permission[]>`；`hasPermission(userId, 'resource:action', tenantId): Promise<boolean>`；`hasPermissions(...)`；`setRolePermissions(roleId, permissionIds, tenantId?)`；`update/delete`
 
@@ -262,10 +289,12 @@ async hasPermission(userId: string, permission: string, tenantId: string): Promi
 ### Task 8: 内置权限种子 + admin 全量绑定（启动守卫）
 
 **Files:**
+
 - Modify: `apps/server/src/routes/auth.ts`（/setup/init 或 admin 创建成功处）或新建 `apps/server/src/startup/seedPermissions.ts` 并在 app.ts build() 迁移后调用
 - Test: `apps/server/src/__tests__/permissions-seed.test.ts`
 
 **Interfaces:**
+
 - Produces: 种子清单常量 `BUILTIN_PERMISSIONS: {resource:string; action:string; description:string}[]`，值**必须与 authorize.ts 映射表逐字一致**：3 资源（users/roles/permissions）× 3 动作（read/write/delete）= **9 条**，description 用固定英文说明串
 
 - [x] **Step 1: 失败测试**：init 完成后 permissions 表含 9 条、admin 角色 role_permissions 关联 9 条、重复执行幂等（ON CONFLICT DO NOTHING）
@@ -275,10 +304,12 @@ async hasPermission(userId: string, permission: string, tenantId: string): Promi
 ### Task 9: requirePermission preHandler + 路由挂线（含 authorize.ts 匹配 bug 修复）
 
 **Files:**
+
 - Modify: `packages/identity/src/hooks/authorize.ts`（导出 `getRequiredPermission`，**前缀匹配**修复：最长前缀命中 `/api/v1/users/xxx` → `users:read`），`apps/server/src/utils/permission.ts` 新建，`routes/{users,roles,permissions}.ts` 挂线
 - Test: `apps/server/src/__tests__/route-guard.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 7 `PermissionManager.hasPermission`；`request.user`（@fastify/jwt payload `{sub, email, jti?, tenantId?}`——实现前先读 auth.ts 登录签发处确认含 sub；若无 tenantId 字段用 DEFAULT_TENANT）
 - Produces: `requirePermission(app: FastifyInstance)` 或 `preHandler: [app.authenticate, requirePermission()]`——工厂无参，内部按 `getRequiredPermission(method, url)` 查表；**无映射 = 不强制**（渐进面同 authorize.ts 语义）
 
@@ -298,21 +329,29 @@ export function requirePermission() {
     const required = getRequiredPermission(request.method, request.url);
     if (!required) return;
     const user = request.user as { sub: string; tenantId?: string };
-    const ok = await new PermissionManager().hasPermission(user.sub, required, user.tenantId ?? DEFAULT_TENANT);
+    const ok = await new PermissionManager().hasPermission(
+      user.sub,
+      required,
+      user.tenantId ?? DEFAULT_TENANT,
+    );
     if (!ok) {
-      await reply.status(403).send({ success: false, error: { code: 'PERM_001', message: 'Insufficient permissions' } });
+      await reply
+        .status(403)
+        .send({ success: false, error: { code: 'PERM_001', message: 'Insufficient permissions' } });
     }
   };
 }
 ```
 
 挂线：users.ts/roles.ts/permissions.ts 各文件顶部现有 `app.addHook('preHandler', …authenticate)` **之后**追加一行 `app.addHook('preHandler', requirePermission())`——Fastify 同阶段 hook 按注册顺序执行，authenticate 先填 `request.user`，本 hook 后读。同时消掉原 `(app as any).authenticate` 的 `as any`：在 server 既有 fastify 类型增强文件声明 `authenticate(request, reply): Promise<void>`（禁 as any）。
+
 - [x] **Step 4: 全量 server vitest 绿（现有测试全走 admin → 种子后全放行）**
 - [x] **Step 5: Commit** `feat(server): requirePermission 路由强制（users/roles/permissions）+ authorize 前缀匹配修复`
 
 ### Task 10: /auth/me 暴露 permissions + mfaEnabled
 
 **Files:**
+
 - Modify: `apps/server/src/routes/auth.ts`（:243-252 me 返回体；rolesOf 旁新增 `permissionsOf`）
 - Test: `apps/server/src/__tests__/auth.test.ts` 追加 2 例
 
@@ -323,6 +362,7 @@ export function requirePermission() {
 ### Task 11: 前端权限门（store + 菜单过滤 + 路由守卫 + /403 可达）
 
 **Files:**
+
 - Modify: `stores/auth.ts`（User 加 `permissions: string[]`、`mfaEnabled: boolean`；state 加 `hasPermission(code): boolean`——admin 语义**不**硬编码 bypass，数据驱动：种子已给 admin 全量）, `layouts/AdminLayout.tsx:25-37`（menuRoutes 过滤：`{path→code}` 表 dashboard/profile/settings=null 恒显，users/roles/audit→`users:read`/`roles:read`/`audit:read`；audit 暂不在 authorize 表 → 过滤表用 `'audit:read'` 但后端不强制本批维持现状，注释标注 ponytail 上限）, `App.tsx:21-25`（PrivateRoute 加可选 `permission` prop，未通过 `<Navigate to="/403" replace />`；users 路由传 `'users:read'`，roles/permissions 同）
 - Test: `e2e/auth-rbac-ui.spec.ts`（mock：/auth/me 返回 `permissions:['users:read']` → 侧栏无 Roles/Audit 项、直访 `/roles` 落 403 页、`/users` 正常）
 
@@ -343,11 +383,13 @@ export function requirePermission() {
 ### Task 13: 前端 api/mfa.ts + Settings TOTP 卡片
 
 **Files:**
+
 - Create: `apps/admin-ui/src/api/mfa.ts`
 - Modify: `pages/Settings.tsx`（sessionsTab :147-193 与 passkeys 之间插 `totpCard`）, `i18n/locales/{en,zh}.json`
 - Test: `e2e/mfa-panel.spec.ts`
 
 **Interfaces:**
+
 - Consumes: 后端契约（已实测存在）：`POST /v1/auth/mfa/setup` → `{success,data:{otpauthUrl:string, qrDataUrl:string, recoveryCodes:string[]}}`（MfaManager.setup:50-53 QRCode.toDataURL 已是 dataURL，**零新依赖**）；`POST /v1/auth/mfa/enable` body `{code:string}`（6-8 位）；`POST /v1/auth/mfa/disable` body `{password:string}`；Task 10 的 `user.mfaEnabled`
 - Produces: `mfaApi.setup()/enable(code)/disable(password)`，`ApiEnvelope` 泛型（Phase 7 门禁）
 
@@ -367,13 +409,13 @@ export function requirePermission() {
 
 ## 验证总清单（三批各自完成判据）
 
-| 判据 | 命令 | 标准 |
-|------|------|------|
-| 类型 | `pixi run npx tsc --noEmit`（server/admin-ui/identity） | 0 错误 |
-| 单测 | `pixi run npx vitest run` | 全绿（321+新增） |
-| E2E | `export no_proxy=… && pixi run npx playwright test --project=chromium` | 69 基线 + ~8 新用例全绿 |
-| Lint | `pnpm lint` | 0 error |
-| 真后端 | curl：无权限 403 / admin 200；mfa setup→enable→登录挑战 | 实测输出贴报告 |
+| 判据   | 命令                                                                   | 标准                    |
+| ------ | ---------------------------------------------------------------------- | ----------------------- |
+| 类型   | `pixi run npx tsc --noEmit`（server/admin-ui/identity）                | 0 错误                  |
+| 单测   | `pixi run npx vitest run`                                              | 全绿（321+新增）        |
+| E2E    | `export no_proxy=… && pixi run npx playwright test --project=chromium` | 69 基线 + ~8 新用例全绿 |
+| Lint   | `pnpm lint`                                                            | 0 error                 |
+| 真后端 | curl：无权限 403 / admin 200；mfa setup→enable→登录挑战                | 实测输出贴报告          |
 
 ## 明确不做（防范围失控）
 

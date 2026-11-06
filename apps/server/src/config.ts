@@ -26,8 +26,7 @@ export interface AppConfig {
   lockoutMaxFailures: number;
   lockoutWindowSeconds: number;
   oauth: {
-    github: { clientId: string; clientSecret: string
-};
+    github: { clientId: string; clientSecret: string };
     google: { clientId: string; clientSecret: string };
   };
   webauthn: {
@@ -61,7 +60,10 @@ function env(key: string, fallback?: string): string {
 /** R1-T9: comma-separated env list -> trimmed non-empty entries (case kept —
  * domain-policy lowercases both sides itself). */
 function parseDomainList(raw: string | undefined): string[] {
-  return (raw ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  return (raw ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 const NODE_ENV_VALUES = ['development', 'production', 'test'] as const;
@@ -99,7 +101,9 @@ function requireJwtSecret(env: NodeJS.ProcessEnv): string {
 
 function requireCorsOrigins(env: NodeJS.ProcessEnv): string {
   if (resolveNodeEnv(env) === 'production' && !env['CORS_ORIGINS']) {
-    throw new Error('CORS_ORIGINS must be set in production. Provide a comma-separated allowlist, e.g. https://admin.example.com');
+    throw new Error(
+      'CORS_ORIGINS must be set in production. Provide a comma-separated allowlist, e.g. https://admin.example.com',
+    );
   }
   return env['CORS_ORIGINS'] ?? '';
 }
@@ -114,8 +118,10 @@ export const config: AppConfig = {
   jwtPublicKeyPath: process.env['JWT_PUBLIC_KEY_PATH'] || '',
   oidcJwksExtraPublicPaths: process.env['JWT_JWKS_EXTRA_PUBLIC_KEY_PATHS'] || '',
   nodeEnv: resolveNodeEnv(process.env),
-  auditAnchorIntervalSeconds: Number.parseInt(process.env['AUDIT_ANCHOR_INTERVAL_SECONDS'] ?? '300', 10) || 300,
-  auditAnchorGraceSeconds: Number.parseInt(process.env['AUDIT_ANCHOR_GRACE_SECONDS'] ?? '90', 10) || 90,
+  auditAnchorIntervalSeconds:
+    Number.parseInt(process.env['AUDIT_ANCHOR_INTERVAL_SECONDS'] ?? '300', 10) || 300,
+  auditAnchorGraceSeconds:
+    Number.parseInt(process.env['AUDIT_ANCHOR_GRACE_SECONDS'] ?? '90', 10) || 90,
   auditAnchorExportPath: process.env['AUDIT_ANCHOR_EXPORT_PATH'] || undefined,
   logLevel: (resolveNodeEnv(process.env) === 'production'
     ? 'info'
@@ -180,7 +186,9 @@ export function warnDegradedChecks(env: NodeJS.ProcessEnv, isProd: boolean): str
   }
 
   if (!env['MFA_ENCRYPTION_KEY']) {
-    lines.push('MFA_ENCRYPTION_KEY not set — MFA enrollment unavailable (env-only; no options-table fallback)');
+    lines.push(
+      'MFA_ENCRYPTION_KEY not set — MFA enrollment unavailable (env-only; no options-table fallback)',
+    );
   }
 
   if (!env['SMTP_HOST']) {

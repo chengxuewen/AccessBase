@@ -17,7 +17,10 @@ async function mockInitialized(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   // Login page mounts fetchUser-ish calls only when a session exists; /auth/me
@@ -33,7 +36,10 @@ async function mockInitialized(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
   // SAML disabled by default — each test overrides via mockSamlStatus.
@@ -43,12 +49,20 @@ async function mockInitialized(page: Page): Promise<void> {
       contentType: 'application/json',
       body: JSON.stringify({ success: true, data: { enabled: false } }),
     });
-  await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
+    await page.route('**/api/v1/auth/sms/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    await page.route('**/api/v1/auth/captcha/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
   });
 }
 
@@ -108,7 +122,10 @@ test.describe('SAML login flow', () => {
         status: 200,
         contentType: 'application/json',
         // Real shape (routes/saml.ts token-pair arm)
-        body: JSON.stringify({ success: true, data: { accessToken: 'tok-s', refreshToken: 'r-s', expiresIn: 900, user: MOCK_ME } }),
+        body: JSON.stringify({
+          success: true,
+          data: { accessToken: 'tok-s', refreshToken: 'r-s', expiresIn: 900, user: MOCK_ME },
+        }),
       });
     });
 
@@ -128,7 +145,15 @@ test.describe('SAML login flow', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { accessToken: 'strict-s', refreshToken: 'strict-r', expiresIn: 900, user: MOCK_ME } }),
+        body: JSON.stringify({
+          success: true,
+          data: {
+            accessToken: 'strict-s',
+            refreshToken: 'strict-r',
+            expiresIn: 900,
+            user: MOCK_ME,
+          },
+        }),
       });
     });
     await page.goto('/login?samlCode=strict-saml-code');
@@ -154,12 +179,17 @@ test.describe('SAML login flow', () => {
         status: 200,
         contentType: 'application/json',
         // Real shape (routes/saml.ts mfa arm)
-        body: JSON.stringify({ success: true, data: { mfaRequired: true, flowToken: 'saml-flow-1' } }),
+        body: JSON.stringify({
+          success: true,
+          data: { mfaRequired: true, flowToken: 'saml-flow-1' },
+        }),
       });
     });
 
     await page.goto('/login?samlCode=e2e-code-mfa');
-    const codeInput = page.locator('[data-testid="mfa-code-input"], input#code, input[name="code"]').first();
+    const codeInput = page
+      .locator('[data-testid="mfa-code-input"], input#code, input[name="code"]')
+      .first();
     await expect(codeInput).toBeVisible({ timeout: 10000 });
     await expect(page).toHaveURL(/\/login/);
     // Hygiene + persist exclusion: wiped session tokens AND the flow token must
@@ -186,7 +216,10 @@ test.describe('SAML login flow', () => {
         status: 202,
         contentType: 'application/json',
         // Real shape (routes/auth.ts): enumeration-safe constant message
-        body: JSON.stringify({ success: true, data: { message: 'If an account exists, a sign-in link has been sent.' } }),
+        body: JSON.stringify({
+          success: true,
+          data: { message: 'If an account exists, a sign-in link has been sent.' },
+        }),
       });
     });
 
@@ -195,8 +228,12 @@ test.describe('SAML login flow', () => {
     await page.getByTestId('magic-email-input').fill('magic@accessbase.local');
     await page.getByTestId('magic-submit').click();
 
-    await expect.poll(() => reqBody, { timeout: 10000 }).toEqual({ email: 'magic@accessbase.local' });
+    await expect
+      .poll(() => reqBody, { timeout: 10000 })
+      .toEqual({ email: 'magic@accessbase.local' });
     await expect(page.getByTestId('magic-success')).toBeVisible();
-    await expect(page.getByTestId('magic-success')).toContainText('If an account exists, a sign-in link has been sent.');
+    await expect(page.getByTestId('magic-success')).toContainText(
+      'If an account exists, a sign-in link has been sent.',
+    );
   });
 });

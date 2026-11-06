@@ -6,13 +6,14 @@
 ## R1 (H — scope 隔离的具体改法)
 
 spec 所称 "requirePermission checks key.scopes" **不存在**：requirePermission apikey 分支整体放行数据面（permission.ts:33-40 `return; // allow`），authenticate 硬编码 `scopes:['*']`（app.ts:135）。**裁定**：两处具体变更——
+
 1. authenticate apikey 分支：从行读 scope，payload.scopes = scope==='scim' ? ['scim'] : ['*']；
-2. requirePermission apikey 分支：`payload.scopes` 含 '*' 放行（存量 data key 兼容）；仅 ['scim'] → 403。
-存量 key scopes jsonb=['*'] 天然兼容，零回填。
+2. requirePermission apikey 分支：`payload.scopes` 含 '_' 放行（存量 data key 兼容）；仅 ['scim'] → 403。
+   存量 key scopes jsonb=['_'] 天然兼容，零回填。
 
 ## R2 (H — 复用 scopes jsonb，删 scope varchar 列)
 
-`api_keys.scopes` jsonb default ['*'] **已存在**（schema.ts:354）。新增 `scope` varchar 列与之撞名（3am 事故配方）且冗余。**裁定**：删 scope 列方案——scim token = scopes `['scim']`，data token = `['*']`（存量零回填）。迁移 0003 仅剩 `users.external_id`。ApiKeyManager 联动：`create()` 签名不改（scopes 参数已有）；SAFE_COLUMNS 加 scopes 投影；api-keys create 路由接 body.scopes 白名单（['*']|['scim'] 二值）。
+`api_keys.scopes` jsonb default ['_'] **已存在**（schema.ts:354）。新增 `scope` varchar 列与之撞名（3am 事故配方）且冗余。**裁定**：删 scope 列方案——scim token = scopes `['scim']`，data token = `['*']`（存量零回填）。迁移 0003 仅剩 `users.external_id`。ApiKeyManager 联动：`create()` 签名不改（scopes 参数已有）；SAFE_COLUMNS 加 scopes 投影；api-keys create 路由接 body.scopes 白名单（['_']|['scim'] 二值）。
 
 ## R3 (H — POST /Users 租户归属)
 

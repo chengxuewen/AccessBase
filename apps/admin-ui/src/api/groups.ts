@@ -52,22 +52,30 @@ export interface GroupPage {
 }
 
 /** T3: server-side pagination + name search (the envelope adds total/page/pageSize siblings). */
-export async function fetchGroups(params?: { page?: number; pageSize?: number; name?: string }): Promise<GroupPage> {
+export async function fetchGroups(params?: {
+  page?: number;
+  pageSize?: number;
+  name?: string;
+}): Promise<GroupPage> {
   const qs = new URLSearchParams();
   if (params?.page) qs.set('page', String(params.page));
   if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
   if (params?.name) qs.set('name', params.name);
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
-  const { data } = await client.get<ApiEnvelope<GroupListItem[]> & { total?: number; page?: number; pageSize?: number }>(
-    `/v1/groups${suffix}`,
-  );
-    // T3 compat: new envelope {data,total,...} OR legacy plain-array data (older mocks/clients)
-  const payload = data as unknown as { data?: GroupListItem[]; total?: number; page?: number; pageSize?: number } | GroupListItem[];
+  const { data } = await client.get<
+    ApiEnvelope<GroupListItem[]> & { total?: number; page?: number; pageSize?: number }
+  >(`/v1/groups${suffix}`);
+  // T3 compat: new envelope {data,total,...} OR legacy plain-array data (older mocks/clients)
+  const payload = data as unknown as
+    { data?: GroupListItem[]; total?: number; page?: number; pageSize?: number } | GroupListItem[];
   const arr = Array.isArray(payload) ? payload : (payload.data ?? []);
-  return { data: arr, total: Array.isArray(payload) ? arr.length : (payload.total ?? arr.length), page: Array.isArray(payload) ? 1 : (payload.page ?? 1), pageSize: Array.isArray(payload) ? arr.length : (payload.pageSize ?? 20) };
+  return {
+    data: arr,
+    total: Array.isArray(payload) ? arr.length : (payload.total ?? arr.length),
+    page: Array.isArray(payload) ? 1 : (payload.page ?? 1),
+    pageSize: Array.isArray(payload) ? arr.length : (payload.pageSize ?? 20),
+  };
 }
-
-
 
 /** POST /v1/groups — create (201 envelope); 409 GROUP_NAME_EXISTS */
 export async function createGroup(payload: CreateGroupPayload): Promise<Group> {

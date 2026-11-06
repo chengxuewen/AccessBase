@@ -23,15 +23,15 @@ metadata:
 
 ## 2. 技术栈
 
-| 层       | 技术                                           | 用途                              |
-| -------- | ---------------------------------------------- | --------------------------------- |
-| UI 框架  | React 19                                       | 组件化                            |
-| 组件库   | **Ant Design 5**                               | 唯一 UI 库，不使用其他组件库      |
-| 布局     | @ant-design/pro-components（ProLayout）        | 管理后台骨架（无 refine 数据层）        |
-| 数据组件 | ProTable / ProForm / antd Table / antd Form    | 列表 / 表单                       |
-| 状态管理 | Zustand 5（auth/setup store）+ axios 手写服务层   | 客户端状态（D116：TanStack Query 缓议） |
-| 国际化   | react-i18next                                  | 双命名空间（插件包名 + `client`） |
-| 样式方案 | antd 5 CSS-in-JS（ConfigProvider.theme.token） | 不使用 Tailwind CSS               |
+| 层       | 技术                                            | 用途                                    |
+| -------- | ----------------------------------------------- | --------------------------------------- |
+| UI 框架  | React 19                                        | 组件化                                  |
+| 组件库   | **Ant Design 5**                                | 唯一 UI 库，不使用其他组件库            |
+| 布局     | @ant-design/pro-components（ProLayout）         | 管理后台骨架（无 refine 数据层）        |
+| 数据组件 | ProTable / ProForm / antd Table / antd Form     | 列表 / 表单                             |
+| 状态管理 | Zustand 5（auth/setup store）+ axios 手写服务层 | 客户端状态（D116：TanStack Query 缓议） |
+| 国际化   | react-i18next                                   | 双命名空间（插件包名 + `client`）       |
+| 样式方案 | antd 5 CSS-in-JS（ConfigProvider.theme.token）  | 不使用 Tailwind CSS                     |
 
 **约束**：禁止 Tailwind CSS 语法、禁止 `styled-components`、禁止自写 CSS 模块（除非 antd 无法覆盖的极端场景）。
 

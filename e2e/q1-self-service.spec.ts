@@ -12,10 +12,18 @@ async function mockCommon(page: Page, smsEnabled = false) {
     }),
   );
   await page.route('**/api/v1/auth/oauth/providers', (r) =>
-    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { providers: [] } }) }),
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { providers: [] } }),
+    }),
   );
   await page.route('**/api/v1/auth/saml/status', (r) =>
-    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) }),
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    }),
   );
   await page.route('**/api/v1/auth/sms/status', (r) =>
     r.fulfill({
@@ -34,12 +42,18 @@ test.describe('Q1 self-service surface', () => {
     await expect(page.getByTestId('register-link')).toBeVisible();
   });
 
-  test('forgot-password submits email and shows static success (no server message)', async ({ page }) => {
+  test('forgot-password submits email and shows static success (no server message)', async ({
+    page,
+  }) => {
     await mockCommon(page);
     let captured: Record<string, unknown> | null = null;
     await page.route('**/api/v1/auth/forgot-password', (r) => {
       captured = JSON.parse(r.request().postData() ?? '{}');
-      return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+      return r.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
     });
     await page.goto('/login');
     await page.getByTestId('forgot-link').click();
@@ -60,16 +74,18 @@ test.describe('Q1 self-service surface', () => {
     let captured: Record<string, unknown> | null = null;
     await page.route('**/api/v1/auth/reset-password', (r) => {
       captured = JSON.parse(r.request().postData() ?? '{}');
-      return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+      return r.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
     });
     await page.goto('/reset-password?token=t-123');
     await page.getByTestId('reset-password').fill('NewPass1!x');
     await page.getByTestId('reset-confirm').fill('NewPass1!x');
     await page.getByTestId('reset-submit').click();
     await expect(page.getByTestId('reset-success')).toBeVisible();
-    await expect
-      .poll(() => captured)
-      .toEqual({ token: 't-123', newPassword: 'NewPass1!x' });
+    await expect.poll(() => captured).toEqual({ token: 't-123', newPassword: 'NewPass1!x' });
   });
 
   test('register posts and lands in the pending-approval state', async ({ page }) => {
@@ -80,7 +96,10 @@ test.describe('Q1 self-service surface', () => {
       return r.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { id: 'u-1', email: 'n@t.local', name: 'N', status: 'pending' } }),
+        body: JSON.stringify({
+          success: true,
+          data: { id: 'u-1', email: 'n@t.local', name: 'N', status: 'pending' },
+        }),
       });
     });
     await page.goto('/register');
@@ -90,7 +109,9 @@ test.describe('Q1 self-service surface', () => {
     await page.getByTestId('register-confirm').fill('Abcdef12!');
     await page.getByTestId('register-submit').click();
     await expect(page.getByTestId('register-pending')).toBeVisible();
-    await expect.poll(() => captured).toEqual({ email: 'n@t.local', name: 'New User', password: 'Abcdef12!' });
+    await expect
+      .poll(() => captured)
+      .toEqual({ email: 'n@t.local', name: 'New User', password: 'Abcdef12!' });
   });
 
   test('verify-email consumes the link token once', async ({ page }) => {
@@ -101,7 +122,11 @@ test.describe('Q1 self-service surface', () => {
       if (r.request().url().endsWith('/verify-email/request')) return r.fallback();
       calls += 1;
       captured = JSON.parse(r.request().postData() ?? '{}');
-      return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { verified: true } }) });
+      return r.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { verified: true } }),
+      });
     });
     await page.goto('/verify-email?token=vt-9');
     await expect(page.getByTestId('verify-success')).toBeVisible();
@@ -130,7 +155,12 @@ test.describe('Q1 self-service surface', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { accessToken: 'at', refreshToken: 'rt', expiresIn: 900, user: { id: 'u', email: 'e@t', name: 'n', roles: [] } },
+          data: {
+            accessToken: 'at',
+            refreshToken: 'rt',
+            expiresIn: 900,
+            user: { id: 'u', email: 'e@t', name: 'n', roles: [] },
+          },
         }),
       });
     });

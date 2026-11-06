@@ -46,9 +46,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
-    // Q2b routeTx seam: run the callback with a dummy handle (mocked
-    // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
-    transaction: (fn: (d: unknown) => unknown) => fn({}),
+      // Q2b routeTx seam: run the callback with a dummy handle (mocked
+      // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
+      transaction: (fn: (d: unknown) => unknown) => fn({}),
       findByEmail: vi.fn(async (email: string) => {
         // Guard fast path: queryAdminExists looks up the admin email first.
         if (email === 'admin@accessbase.local') return { ...testUser, email };
@@ -94,7 +94,11 @@ const optionsStore = new Map<string, unknown>([
 const { setOptionsManager } = await import('../routes/options.js');
 setOptionsManager({
   get: async (key: string, envValue: unknown, defaultValue: unknown) =>
-    envValue !== undefined ? envValue : (optionsStore.has(key) ? optionsStore.get(key) : defaultValue),
+    envValue !== undefined
+      ? envValue
+      : optionsStore.has(key)
+        ? optionsStore.get(key)
+        : defaultValue,
 } as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');
@@ -165,9 +169,7 @@ describe('POST /api/v1/auth/ldap/login', () => {
 
     // Reuse branch: findByEmail hit, create NOT called. Use the LAST instance
     // (setup-guard instantiates UserManager earlier on first request).
-    const umInstances = vi.mocked(
-      (await import('@accessbase/identity')).UserManager,
-    ).mock.results;
+    const umInstances = vi.mocked((await import('@accessbase/identity')).UserManager).mock.results;
     const umInstance = umInstances[umInstances.length - 1]?.value as {
       findByEmail: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
@@ -195,9 +197,7 @@ describe('POST /api/v1/auth/ldap/login', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const umInstances = vi.mocked(
-      (await import('@accessbase/identity')).UserManager,
-    ).mock.results;
+    const umInstances = vi.mocked((await import('@accessbase/identity')).UserManager).mock.results;
     const umInstance = umInstances[umInstances.length - 1]?.value as {
       findByEmail: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
@@ -278,7 +278,6 @@ describe('POST /api/v1/auth/ldap/login', () => {
     expect(body.error.message).not.toContain('LDAP');
   });
 
-
   it('AUTH_065 real → 500', async () => {
     authenticateMock.mockResolvedValueOnce({
       success: false,
@@ -332,8 +331,7 @@ describe('POST /api/v1/auth/ldap/login', () => {
     // registration) — clear issuance spies so earlier 200s don't pollute.
     const smMock = vi.mocked((await import('@accessbase/identity')).SessionManager);
     for (const r of smMock.mock.results) {
-      (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> })
-        .issueRefreshToken.mockClear();
+      (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> }).issueRefreshToken.mockClear();
     }
 
     suspendedEmail = 'ldap-user@test.local';
@@ -356,8 +354,8 @@ describe('POST /api/v1/auth/ldap/login', () => {
       const issued = smMock.mock.results.reduce(
         (n, r) =>
           n +
-          (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> })
-            .issueRefreshToken.mock.calls.length,
+          (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> }).issueRefreshToken.mock.calls
+            .length,
         0,
       );
       expect(issued).toBe(0);
@@ -369,8 +367,7 @@ describe('POST /api/v1/auth/ldap/login', () => {
   it('TOTP-enabled existing user → 200 MFA step-up ({mfaRequired, flowToken}), no token pair (E)', async () => {
     const smMock = vi.mocked((await import('@accessbase/identity')).SessionManager);
     for (const r of smMock.mock.results) {
-      (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> })
-        .issueRefreshToken.mockClear();
+      (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> }).issueRefreshToken.mockClear();
     }
 
     totpEmail = 'ldap-user@test.local';
@@ -393,8 +390,8 @@ describe('POST /api/v1/auth/ldap/login', () => {
       const issued = smMock.mock.results.reduce(
         (n, r) =>
           n +
-          (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> })
-            .issueRefreshToken.mock.calls.length,
+          (r.value as { issueRefreshToken: ReturnType<typeof vi.fn> }).issueRefreshToken.mock.calls
+            .length,
         0,
       );
       expect(issued).toBe(0);

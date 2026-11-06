@@ -101,7 +101,9 @@ describe('widest-wins dedup (effective-permission site)', () => {
   it('dept + self for the same code collapses to dept (order A first)', async () => {
     roleManager.getUserRoles.mockResolvedValue([role('r1'), role('r2')]);
     roleManager.resolveInheritedPermissions.mockImplementation(async (roleId: string) =>
-      roleId === 'r1' ? [scopedPermission('p1', 'users', 'read', 'dept')] : [scopedPermission('p1', 'users', 'read', 'self')],
+      roleId === 'r1'
+        ? [scopedPermission('p1', 'users', 'read', 'dept')]
+        : [scopedPermission('p1', 'users', 'read', 'self')],
     );
 
     const result = await manager.getUserEffectivePermissions('u1', 't1');
@@ -113,7 +115,9 @@ describe('widest-wins dedup (effective-permission site)', () => {
   it('the reverse binding order yields the same lattice value', async () => {
     roleManager.getUserRoles.mockResolvedValue([role('r1'), role('r2')]);
     roleManager.resolveInheritedPermissions.mockImplementation(async (roleId: string) =>
-      roleId === 'r1' ? [scopedPermission('p1', 'users', 'read', 'self')] : [scopedPermission('p1', 'users', 'read', 'dept')],
+      roleId === 'r1'
+        ? [scopedPermission('p1', 'users', 'read', 'self')]
+        : [scopedPermission('p1', 'users', 'read', 'dept')],
     );
 
     const result = await manager.getUserEffectivePermissions('u1', 't1');
@@ -125,7 +129,10 @@ describe('widest-wins dedup (effective-permission site)', () => {
     roleManager.getUserRoles.mockResolvedValue([role('r1'), role('r2')]);
     roleManager.resolveInheritedPermissions.mockImplementation(async (roleId: string) =>
       roleId === 'r1'
-        ? [scopedPermission('p1', 'users', 'read', 'all'), scopedPermission('p2', 'users', 'write', 'self')]
+        ? [
+            scopedPermission('p1', 'users', 'read', 'all'),
+            scopedPermission('p2', 'users', 'write', 'self'),
+          ]
         : [scopedPermission('p1', 'users', 'read', 'self')],
     );
 
@@ -227,7 +234,9 @@ describe('[B3] round trip — declared scope reads back THROUGH the projection',
         const list = (Array.isArray(rows) ? rows : [rows]) as Array<Record<string, unknown>>;
         for (const row of list) {
           if ('permissionId' in row && 'dataScope' in row) {
-            junction.push(row as unknown as { roleId: string; permissionId: string; dataScope: string });
+            junction.push(
+              row as unknown as { roleId: string; permissionId: string; dataScope: string },
+            );
           }
         }
         return chain;
@@ -269,7 +278,9 @@ describe('[B3] round trip — declared scope reads back THROUGH the projection',
 
     // read leg: getEffectiveRoles(direct join → projection) + resolveInherited(→ projection)
     db.select
-      .mockReturnValueOnce(passthroughChain([{ roles: roleRow('r1'), user_roles: { userId: 'u1' } }]))
+      .mockReturnValueOnce(
+        passthroughChain([{ roles: roleRow('r1'), user_roles: { userId: 'u1' } }]),
+      )
       .mockReturnValueOnce(junctionRead())
       .mockReturnValueOnce(passthroughChain([])) // group leg: none
       .mockReturnValueOnce(junctionRead())

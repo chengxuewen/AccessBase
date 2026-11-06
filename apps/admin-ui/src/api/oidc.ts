@@ -28,7 +28,10 @@ export async function getInteraction(uid: string): Promise<OidcInteraction> {
  * redirect must be driven by a TOP-LEVEL navigation. Mock-API e2e answers 200
  * JSON, which is also accepted (returns true).
  */
-export async function postInteractionDecision(uid: string, decision: 'approve' | 'deny'): Promise<boolean> {
+export async function postInteractionDecision(
+  uid: string,
+  decision: 'approve' | 'deny',
+): Promise<boolean> {
   const { token } = useAuthStore.getState();
   const res = await fetch(`/api/v1/oidc/interaction/${encodeURIComponent(uid)}`, {
     method: 'POST',

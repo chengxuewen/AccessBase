@@ -26,7 +26,13 @@ import pg from 'pg';
 // PG-reachable probe — skip entire suite when native PG is down (per e2e/health.spec.ts:15 precedent).
 const pgProbe = new pg.Client({ connectionString: process.env.DATABASE_URL });
 const pgAvailable = await (async () => {
-  try { await pgProbe.connect(); await pgProbe.end(); return true; } catch { return false; }
+  try {
+    await pgProbe.connect();
+    await pgProbe.end();
+    return true;
+  } catch {
+    return false;
+  }
 })();
 // Mock plugins that require fastify@5 but fastify@4 is installed
 vi.mock('@fastify/cors', () => ({ default: async () => {} }));
@@ -47,10 +53,11 @@ const EMAIL = `mfa-int-${Date.now()}@test.local`;
 
 let app: App;
 let userId = '';
-const userManager = new (UserManager as unknown as {
-  new (): import('@accessbase/identity').UserManager;
-})();
-
+const userManager = new (
+  UserManager as unknown as {
+    new (): import('@accessbase/identity').UserManager;
+  }
+)();
 
 const login = () =>
   app.inject({
@@ -67,7 +74,10 @@ const codeFromSecret = async (secret: string): Promise<string> => {
 describe.skipIf(!pgAvailable)('MFA true-backend E2E (real DB)', () => {
   beforeAll(async () => {
     app = await buildApp();
-    const user = await userManager.create({ email: EMAIL, name: 'MFA Integration', password: PASSWORD }, TENANT);
+    const user = await userManager.create(
+      { email: EMAIL, name: 'MFA Integration', password: PASSWORD },
+      TENANT,
+    );
     userId = user.id;
   });
 
@@ -83,93 +93,97 @@ describe.skipIf(!pgAvailable)('MFA true-backend E2E (real DB)', () => {
     await app.close();
   });
 
-  it('full 2FA lifecycle: setup → enable → step-up → verify → recovery', { timeout: 60_000 }, async () => {
-    // (a) user exists in real DB
-    const found = await userManager.findById(userId, TENANT);
-    expect(found?.email).toBe(EMAIL);
+  it(
+    'full 2FA lifecycle: setup → enable → step-up → verify → recovery',
+    { timeout: 60_000 },
+    async () => {
+      // (a) user exists in real DB
+      const found = await userManager.findById(userId, TENANT);
+      expect(found?.email).toBe(EMAIL);
 
-    // (b) enable MFA: login → setup → parse secret from otpauthUrl → live TOTP → enable
-    const first = await login();
-    expect(first.statusCode).toBe(200);
-    const firstSession = first.json().data;
-    expect(firstSession.accessToken).toBeTruthy();
-    expect(firstSession.mfaRequired).toBeUndefined();
+      // (b) enable MFA: login → setup → parse secret from otpauthUrl → live TOTP → enable
+      const first = await login();
+      expect(first.statusCode).toBe(200);
+      const firstSession = first.json().data;
+      expect(firstSession.accessToken).toBeTruthy();
+      expect(firstSession.mfaRequired).toBeUndefined();
 
-    const setup = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/mfa/setup',
-      headers: { authorization: `Bearer ${firstSession.accessToken as string}` },
-    });
-    expect(setup.statusCode).toBe(200);
-    const { otpauthUrl, recoveryCodes } = setup.json().data;
-    expect(otpauthUrl).toMatch(/^otpauth:\/\//);
-    expect(recoveryCodes).toHaveLength(10);
+      const setup = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/mfa/setup',
+        headers: { authorization: `Bearer ${firstSession.accessToken as string}` },
+      });
+      expect(setup.statusCode).toBe(200);
+      const { otpauthUrl, recoveryCodes } = setup.json().data;
+      expect(otpauthUrl).toMatch(/^otpauth:\/\//);
+      expect(recoveryCodes).toHaveLength(10);
 
-    const secret = decodeURIComponent(otpauthUrl.split('secret=')[1]?.split('&')[0] ?? '');
-    expect(secret).toBeTruthy();
-    const code = await codeFromSecret(secret);
+      const secret = decodeURIComponent(otpauthUrl.split('secret=')[1]?.split('&')[0] ?? '');
+      expect(secret).toBeTruthy();
+      const code = await codeFromSecret(secret);
 
-    const enable = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/mfa/enable',
-      headers: { authorization: `Bearer ${firstSession.accessToken as string}` },
-      payload: { code },
-    });
-    expect(enable.statusCode).toBe(200);
+      const enable = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/mfa/enable',
+        headers: { authorization: `Bearer ${firstSession.accessToken as string}` },
+        payload: { code },
+      });
+      expect(enable.statusCode).toBe(200);
 
-    // (c) login again → step-up branch: mfaRequired + flowToken, NO tokens
-    const second = await login();
-    expect(second.statusCode).toBe(200);
-    const step = second.json().data;
-    expect(step.mfaRequired).toBe(true);
-    expect(step.flowToken).toMatch(/^[0-9a-f]{64}$/);
-    expect(step.accessToken).toBeUndefined();
-    expect(step.refreshToken).toBeUndefined();
+      // (c) login again → step-up branch: mfaRequired + flowToken, NO tokens
+      const second = await login();
+      expect(second.statusCode).toBe(200);
+      const step = second.json().data;
+      expect(step.mfaRequired).toBe(true);
+      expect(step.flowToken).toMatch(/^[0-9a-f]{64}$/);
+      expect(step.accessToken).toBeUndefined();
+      expect(step.refreshToken).toBeUndefined();
 
-    // (d) wrong TOTP → 401 AUTH_MFA_001
-    const wrong = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/mfa/verify',
-      payload: { flowToken: step.flowToken, code: '000000' },
-    });
-    expect(wrong.statusCode).toBe(401);
-    expect(wrong.json().error.code).toBe('AUTH_MFA_001');
+      // (d) wrong TOTP → 401 AUTH_MFA_001
+      const wrong = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/mfa/verify',
+        payload: { flowToken: step.flowToken, code: '000000' },
+      });
+      expect(wrong.statusCode).toBe(401);
+      expect(wrong.json().error.code).toBe('AUTH_MFA_001');
 
-    // (e) fresh login — the failed verify may have burned the old flowToken
-    // (consume happens before code check), so get a new one like a real client
-    const third = await login();
-    const flowToken = third.json().data.flowToken as string;
+      // (e) fresh login — the failed verify may have burned the old flowToken
+      // (consume happens before code check), so get a new one like a real client
+      const third = await login();
+      const flowToken = third.json().data.flowToken as string;
 
-    // (f) correct TOTP → token pair
-    const ok = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/mfa/verify',
-      payload: { flowToken, code: await codeFromSecret(secret) },
-    });
-    expect(ok.statusCode).toBe(200);
-    const okBody = ok.json().data;
-    expect(okBody.accessToken).toBeTruthy();
-    expect(okBody.refreshToken).toBeTruthy();
+      // (f) correct TOTP → token pair
+      const ok = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/mfa/verify',
+        payload: { flowToken, code: await codeFromSecret(secret) },
+      });
+      expect(ok.statusCode).toBe(200);
+      const okBody = ok.json().data;
+      expect(okBody.accessToken).toBeTruthy();
+      expect(okBody.refreshToken).toBeTruthy();
 
-    // (g) recovery code path — fresh login, use a recovery code instead of TOTP
-    const fourth = await login();
-    const ft4 = fourth.json().data.flowToken as string;
-    const viaRecovery = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/mfa/verify',
-      payload: { flowToken: ft4, code: recoveryCodes[0] },
-    });
-    expect(viaRecovery.statusCode).toBe(200);
-    expect(viaRecovery.json().data.accessToken).toBeTruthy();
+      // (g) recovery code path — fresh login, use a recovery code instead of TOTP
+      const fourth = await login();
+      const ft4 = fourth.json().data.flowToken as string;
+      const viaRecovery = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/mfa/verify',
+        payload: { flowToken: ft4, code: recoveryCodes[0] },
+      });
+      expect(viaRecovery.statusCode).toBe(200);
+      expect(viaRecovery.json().data.accessToken).toBeTruthy();
 
-    // (h) used recovery code cannot replay
-    const fifth = await login();
-    const ft5 = fifth.json().data.flowToken as string;
-    const replayRecovery = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/mfa/verify',
-      payload: { flowToken: ft5, code: recoveryCodes[0] },
-    });
-    expect(replayRecovery.statusCode).toBe(401);
-  });
+      // (h) used recovery code cannot replay
+      const fifth = await login();
+      const ft5 = fifth.json().data.flowToken as string;
+      const replayRecovery = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/mfa/verify',
+        payload: { flowToken: ft5, code: recoveryCodes[0] },
+      });
+      expect(replayRecovery.statusCode).toBe(401);
+    },
+  );
 });

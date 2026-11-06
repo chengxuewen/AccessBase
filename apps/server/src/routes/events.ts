@@ -94,7 +94,13 @@ export async function eventRoutes(app: FastifyInstance) {
       },
     },
     async (request) => {
-      const { page = 1, pageSize = 20, type, startDate, endDate } = request.query as {
+      const {
+        page = 1,
+        pageSize = 20,
+        type,
+        startDate,
+        endDate,
+      } = request.query as {
         page?: number;
         pageSize?: number;
         type?: string;
@@ -142,11 +148,7 @@ export async function eventRoutes(app: FastifyInstance) {
         tenantId === DEFAULT_TENANT
           ? (and(eq(events.id, id), inArray(events.tenantId, [tenantId, 'system'])) as SQL)
           : (and(eq(events.id, id), eq(events.tenantId, tenantId)) as SQL);
-      const [row] = await getDb()
-        .select()
-        .from(events)
-        .where(where)
-        .limit(1);
+      const [row] = await getDb().select().from(events).where(where).limit(1);
       if (!row) {
         return reply
           .status(404)

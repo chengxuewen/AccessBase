@@ -102,7 +102,11 @@ describe('GET /email-templates', () => {
   it('returns the 4 built-ins merged, overridden=false', async () => {
     const res = await app.inject({ method: 'GET', url: BASE, headers: AUTH() });
     expect(res.statusCode).toBe(200);
-    const data = res.json().data as Array<{ id: string; subject: { en: string }; overridden: boolean }>;
+    const data = res.json().data as Array<{
+      id: string;
+      subject: { en: string };
+      overridden: boolean;
+    }>;
     expect(data.map((d) => d.id)).toEqual(['verify', 'reset', 'magic', 'invite']);
     expect(data[0].subject.en).toBe('Verify your email');
     expect(data.every((d) => d.overridden === false)).toBe(true);
@@ -133,7 +137,10 @@ describe('PUT /email-templates/:id', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().data.id).toBe('verify');
-    expect(rows.get('email_tmpl_verify')).toEqual({ subject: { en: 'Confirm now' }, html: { en: '<p>{{link}}</p>' } });
+    expect(rows.get('email_tmpl_verify')).toEqual({
+      subject: { en: 'Confirm now' },
+      html: { en: '<p>{{link}}</p>' },
+    });
   });
 
   it('rejects unknown id with TEMPLATE_INVALID', async () => {
@@ -176,7 +183,12 @@ describe('PUT /email-templates/:id', () => {
 
 describe('POST /email-templates/:id/preview', () => {
   it('renders sample vars without sending', async () => {
-    const res = await app.inject({ method: 'POST', url: `${BASE}/invite/preview`, headers: AUTH(), payload: {} });
+    const res = await app.inject({
+      method: 'POST',
+      url: `${BASE}/invite/preview`,
+      headers: AUTH(),
+      payload: {},
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json().data.subject).toBe('Set your password');
     expect(res.json().data.html).toContain('alex@example.com');

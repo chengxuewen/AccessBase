@@ -12,7 +12,13 @@
  * traces (anti-enumeration, same style as oauthError).
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { SessionManager, RoleManager, FlowTokenService, getRedisClient, TenantManager } from '@accessbase/identity';
+import {
+  SessionManager,
+  RoleManager,
+  FlowTokenService,
+  getRedisClient,
+  TenantManager,
+} from '@accessbase/identity';
 import { config } from '../config.js';
 import { getOptionsManager } from './options.js';
 import { enforceHit, optionGetter } from '../utils/mfa-policy.js';
@@ -21,7 +27,12 @@ import { DEFAULT_TENANT } from '../utils/constants.js';
 import { getTenantManager, getUserManager } from '../utils/managers.js';
 import { logger } from '@accessbase/logging';
 import { emitAuthEvent } from '../utils/auth-events.js';
-import { buildSamlProvider, claimSamlRequestId, resolveSamlLogoutUrl, upsertSamlLink } from '../utils/saml-logout.js';
+import {
+  buildSamlProvider,
+  claimSamlRequestId,
+  resolveSamlLogoutUrl,
+  upsertSamlLink,
+} from '../utils/saml-logout.js';
 
 const EXCHANGE_TTL_SECONDS = 60;
 
@@ -29,19 +40,21 @@ export async function samlRoutes(app: FastifyInstance) {
   // Scoped to this plugin encapsulation context: only ACS (urlencoded) needs
   // it; the exchange endpoint's JSON parser is inherited from the root. app.ts
   // must NOT gain any global addContentTypeParser (static invariant in tests).
-  app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_req, body, done) => {
-    try {
-      done(null, Object.fromEntries(new URLSearchParams(body as string)));
-    } catch (e) {
-      done(e as Error, undefined);
-    }
-  });
+  app.addContentTypeParser(
+    'application/x-www-form-urlencoded',
+    { parseAs: 'string' },
+    (_req, body, done) => {
+      try {
+        done(null, Object.fromEntries(new URLSearchParams(body as string)));
+      } catch (e) {
+        done(e as Error, undefined);
+      }
+    },
+  );
 
   const sessionManager = new SessionManager();
   const roleManager = new RoleManager();
-  const flowTokens = new FlowTokenService(
-    config.nodeEnv === 'test' ? undefined : safeRedis(),
-  );
+  const flowTokens = new FlowTokenService(config.nodeEnv === 'test' ? undefined : safeRedis());
 
   function safeRedis() {
     try {
@@ -71,7 +84,6 @@ export async function samlRoutes(app: FastifyInstance) {
   // the Redis CacheProvider is injected there, so per-request construction
   // shares request-id state across instances/nodes.
 
-
   /** Issue access JWT + refresh token — same claims/shape as login (auth.ts:54-84). */
   async function issueTokenPair(
     request: { ip: string; headers: Record<string, unknown> },
@@ -99,22 +111,27 @@ export async function samlRoutes(app: FastifyInstance) {
     }
     // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
     const accessToken = app.jwt.sign(
-      { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT, tokenVersion: user.tokenVersion },
+      {
+        sub: user.id,
+        email: user.email,
+        status: user.status,
+        tenantId: user.tenantId ?? DEFAULT_TENANT,
+        tokenVersion: user.tokenVersion,
+      },
       { expiresIn: '15m' },
     );
-    const { refreshToken } = await sessionManager.issueRefreshToken(
-      crypto.randomUUID(),
-      user.id,
-      {
-        ip: request.ip,
-        userAgent: (request.headers['user-agent'] as string | undefined) ?? 'unknown',
-      },
-    );
+    const { refreshToken } = await sessionManager.issueRefreshToken(crypto.randomUUID(), user.id, {
+      ip: request.ip,
+      userAgent: (request.headers['user-agent'] as string | undefined) ?? 'unknown',
+    });
     return { accessToken, refreshToken };
   }
 
   /** Real [{id,name}] role list for a user (login projection parity). */
-  async function rolesOf(userId: string, tenantId?: string): Promise<{ id: string; name: string }[]> {
+  async function rolesOf(
+    userId: string,
+    tenantId?: string,
+  ): Promise<{ id: string; name: string }[]> {
     const roles = await roleManager.getUserRoles(userId, tenantId ?? DEFAULT_TENANT);
     return roles.map((r) => ({ id: r.id, name: r.name }));
   }
@@ -274,7 +291,8 @@ export async function samlRoutes(app: FastifyInstance) {
     {
       config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
       schema: {
-        description: 'SAML single logout endpoint (IdP-initiated LogoutRequest + SP-initiated LogoutResponse return)',
+        description:
+          'SAML single logout endpoint (IdP-initiated LogoutRequest + SP-initiated LogoutResponse return)',
         tags: ['auth'],
       },
     },
@@ -321,10 +339,12 @@ export async function samlRoutes(app: FastifyInstance) {
         // Find-or-provision (LDAP auth.ts:960-976 parity): reuse the row by
         // globally-unique email; provision into the default tenant.
         const existing = await userManager.findByEmail(identity.email);
-        const user = existing ?? (await userManager.create(
-          { email: identity.email, name: identity.displayName ?? '' },
-          request.tenantId ?? DEFAULT_TENANT,
-        ));
+        const user =
+          existing ??
+          (await userManager.create(
+            { email: identity.email, name: identity.displayName ?? '' },
+            request.tenantId ?? DEFAULT_TENANT,
+          ));
         // R1-T10 (DG-8a): first-federation provisioning from an authoritative IdP
         // marks the asserted address verified (LDAP-site parity).
         if (!existing) await userManager.markEmailVerified(user.id);
@@ -348,20 +368,32 @@ export async function samlRoutes(app: FastifyInstance) {
         // payload gains enrollPending; issuance happens at the exchange arm)
         if (!totpEnabled) {
           const hit = await enforceHit({
-            getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
+            getOption: optionGetter(
+              getOptionsManager() as unknown as Parameters<typeof optionGetter>[0],
+            ),
             isSystemAdmin: async () =>
-              (await (await getRoleManager()).getEffectiveRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
-                (r) => r.isSystem === true,
-              ),
+              (
+                await (
+                  await getRoleManager()
+                ).getEffectiveRoles(user.id, user.tenantId ?? DEFAULT_TENANT)
+              ).some((r) => r.isSystem === true),
             user: { totpEnabled: false },
           });
           if (hit) {
-            code = await flowTokens.issue('saml_exchange', { userId: user.id, mfaPending: true, enrollPending: true }, EXCHANGE_TTL_SECONDS);
+            code = await flowTokens.issue(
+              'saml_exchange',
+              { userId: user.id, mfaPending: true, enrollPending: true },
+              EXCHANGE_TTL_SECONDS,
+            );
             return reply.redirect(`/login?samlCode=${encodeURIComponent(code)}`);
           }
         }
         if (totpEnabled) {
-          code = await flowTokens.issue('saml_exchange', { userId: user.id, mfaPending: true }, EXCHANGE_TTL_SECONDS);
+          code = await flowTokens.issue(
+            'saml_exchange',
+            { userId: user.id, mfaPending: true },
+            EXCHANGE_TTL_SECONDS,
+          );
         } else {
           const { accessToken, refreshToken } = await issueTokenPair(request, user);
           code = await flowTokens.issue(
@@ -369,7 +401,12 @@ export async function samlRoutes(app: FastifyInstance) {
             {
               accessToken,
               refreshToken,
-              user: { id: user.id, email: user.email, name: user.name, roles: await rolesOf(user.id, request.tenantId) },
+              user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                roles: await rolesOf(user.id, request.tenantId),
+              },
             },
             EXCHANGE_TTL_SECONDS,
           );
@@ -418,7 +455,7 @@ export async function samlRoutes(app: FastifyInstance) {
                 properties: {
                   // mfa step-up arm
                   mfaRequired: { type: 'boolean' },
-                enroll: { type: 'boolean' },
+                  enroll: { type: 'boolean' },
                   flowToken: { type: 'string' },
                   // token-pair arm
                   accessToken: { type: 'string' },
@@ -457,7 +494,12 @@ export async function samlRoutes(app: FastifyInstance) {
             | {
                 accessToken: string;
                 refreshToken: string;
-                user: { id: string; email: string; name: string; roles: { id: string; name: string }[] };
+                user: {
+                  id: string;
+                  email: string;
+                  name: string;
+                  roles: { id: string; name: string }[];
+                };
               }
           >(code, 'saml_exchange')
         : null;
@@ -471,7 +513,10 @@ export async function samlRoutes(app: FastifyInstance) {
         if (payload.enrollPending) {
           // Q3E-E3: enforced-MFA — chain an mfa_enroll token (wizard, no session)
           const enrollToken = await flowTokens.issue('mfa_enroll', { userId: payload.userId }, 300);
-          return { success: true, data: { mfaRequired: true, enroll: true, flowToken: enrollToken } };
+          return {
+            success: true,
+            data: { mfaRequired: true, enroll: true, flowToken: enrollToken },
+          };
         }
         // MFA step-up issued AT EXCHANGE TIME (R1, mirror oauth.ts:529-535).
         const flowToken = await flowTokens.issue('mfa_verify', { userId: payload.userId }, 300);

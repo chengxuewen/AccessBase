@@ -27,9 +27,11 @@
 ### Task 1: 创建 pixi.toml
 
 **Files:**
+
 - Create: `pixi.toml`
 
 **Interfaces:**
+
 - Produces: `pixi install -e native` 可用, `pixi run dev/start/stop/reset/status` 可用
 
 - [ ] **Step 1: 创建 pixi.toml**
@@ -79,6 +81,7 @@ Expected: 所有命令输出版本号
 - [ ] **Step 5: 更新 .gitignore**
 
 在 `.gitignore` 中添加:
+
 ```gitignore
 # Pixi native data
 .pixi/data/
@@ -97,9 +100,11 @@ git commit -m "feat: add pixi.toml for native build mode"
 ### Task 2: 创建端口冲突检测脚本
 
 **Files:**
+
 - Create: `scripts/native/_ports.sh`
 
 **Interfaces:**
+
 - Produces: `detect_required_ports` 函数, `check_port_available` 函数
 - Used by: Task 3-6 的 pg-init/start, redis-start
 
@@ -109,7 +114,7 @@ git commit -m "feat: add pixi.toml for native build mode"
 mkdir -p scripts/native
 ```
 
-- [ ] **Step 2: 创建 _ports.sh**
+- [ ] **Step 2: 创建 \_ports.sh**
 
 ```bash
 #!/usr/bin/env bash
@@ -198,9 +203,11 @@ git commit -m "feat: add port conflict detection for native mode"
 ### Task 3: 创建 PostgreSQL 初始化脚本
 
 **Files:**
+
 - Create: `scripts/native/pg-init.sh`
 
 **Interfaces:**
+
 - Consumes: `_common.sh` 的 `log_info/log_ok/log_warn/log_error`
 - Produces: `.pixi/data/pg/` 目录（PG_VERSION 存在表示已初始化）
 - Used by: Task 7 的 `cmd_dev_native()`
@@ -316,10 +323,12 @@ git commit -m "feat: add PostgreSQL init script for native mode"
 ### Task 4: 创建 PostgreSQL 启动/停止脚本
 
 **Files:**
+
 - Create: `scripts/native/pg-start.sh`
 - Create: `scripts/native/pg-stop.sh`
 
 **Interfaces:**
+
 - Consumes: `PG_DATA`, `PG_PORT` 环境变量
 - Produces: PostgreSQL 服务运行/停止
 - Used by: Task 7 的 `cmd_dev_native()`
@@ -416,10 +425,12 @@ git commit -m "feat: add PostgreSQL start/stop scripts for native mode"
 ### Task 5: 创建 Redis 启动/停止脚本
 
 **Files:**
+
 - Create: `scripts/native/redis-start.sh`
 - Create: `scripts/native/redis-stop.sh`
 
 **Interfaces:**
+
 - Consumes: `REDIS_PORT` 环境变量
 - Produces: Redis 服务运行/停止, `.pixi/data/redis/redis.conf`
 - Used by: Task 7 的 `cmd_dev_native()`
@@ -549,9 +560,11 @@ git commit -m "feat: add Redis start/stop scripts for native mode"
 ### Task 6: 在 _common.sh 中添加 ensure_pixi 和 configure_native_urls
 
 **Files:**
+
 - Modify: `scripts/_common.sh`
 
 **Interfaces:**
+
 - Consumes: `$HOME/.pixi/bin/pixi`
 - Produces: `ensure_pixi()`, `configure_native_urls()` 函数
 - Used by: Task 7 的 `cmd_dev_native()` 等
@@ -614,9 +627,11 @@ git commit -m "feat: add ensure_pixi and configure_native_urls to common"
 ### Task 7: 在 accessbase.sh 中添加 native 命令
 
 **Files:**
+
 - Modify: `accessbase.sh`
 
 **Interfaces:**
+
 - Consumes: Task 2-6 的所有脚本和函数
 - Produces: `dev:native`, `start:native`, `stop:native`, `reset:native`, `status:native` 命令
 
@@ -800,6 +815,7 @@ git commit -m "feat: add native build mode commands to accessbase.sh"
 ### Task 8: 端到端测试 Native 模式
 
 **Files:**
+
 - Test: 手动验证
 
 - [ ] **Step 1: 清理环境（如果有旧数据）**
@@ -855,11 +871,13 @@ git commit -m "fix: native mode fixes from end-to-end testing"
 ### Task 9: 重命名 Container 命令 + 添加新命令
 
 **Files:**
+
 - Modify: `accessbase.sh`
 
 - [ ] **Step 1: 重命名 cmd_dev_docker → cmd_dev_container**
 
 在 `accessbase.sh` 中:
+
 1. 将 `cmd_dev_docker()` 重命名为 `cmd_dev_container()`
 2. 添加 `cmd_stop_container()`, `cmd_status_container()`, `cmd_logs_container()`
 
@@ -941,6 +959,7 @@ git commit -m "feat: add container mode commands, deprecate docker aliases"
 ### Task 10: 改进 Dockerfile.dev entrypoint
 
 **Files:**
+
 - Modify: `docker/entrypoint-dev.sh`
 
 - [ ] **Step 1: 添加健康检查和优雅关闭**
@@ -1007,6 +1026,7 @@ git commit -m "feat: improve Dockerfile.dev entrypoint with health checks and gr
 ### Task 11: 修复 docker-compose.prod.yml 环境变量外部化
 
 **Files:**
+
 - Modify: `docker-compose.prod.yml`
 
 - [ ] **Step 1: 使用环境变量默认值模式**
@@ -1016,7 +1036,7 @@ services:
   server:
     image: ghcr.io/accessbase/accessbase:latest
     ports:
-      - "5101:5101"
+      - '5101:5101'
     environment:
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL:-postgresql://accessbase:accessbase@localhost:5432/accessbase}
@@ -1024,7 +1044,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5101/health/live"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:5101/health/live']
       interval: 30s
       timeout: 3s
       retries: 3
@@ -1051,6 +1071,7 @@ git commit -m "feat: externalize prod compose environment variables"
 ### Task 12: 添加 dev compose 服务健康检查
 
 **Files:**
+
 - Modify: `docker-compose.dev.yml`
 
 - [ ] **Step 1: 为 server 添加健康检查**
@@ -1058,12 +1079,12 @@ git commit -m "feat: externalize prod compose environment variables"
 在 `server` 服务中添加:
 
 ```yaml
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5101/health/live"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 30s
+healthcheck:
+  test: ['CMD', 'curl', '-f', 'http://localhost:5101/health/live']
+  interval: 10s
+  timeout: 3s
+  retries: 5
+  start_period: 30s
 ```
 
 - [ ] **Step 2: 为 admin-ui 添加健康检查和依赖**
@@ -1071,15 +1092,15 @@ git commit -m "feat: externalize prod compose environment variables"
 在 `admin-ui` 服务中添加:
 
 ```yaml
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5173"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-      start_period: 20s
-    depends_on:
-      server:
-        condition: service_healthy
+healthcheck:
+  test: ['CMD', 'curl', '-f', 'http://localhost:5173']
+  interval: 10s
+  timeout: 3s
+  retries: 3
+  start_period: 20s
+depends_on:
+  server:
+    condition: service_healthy
 ```
 
 - [ ] **Step 3: Commit**
@@ -1094,6 +1115,7 @@ git commit -m "feat: add health checks to dev compose services"
 ### Task 13: 添加 Compose 模式命令
 
 **Files:**
+
 - Modify: `accessbase.sh`
 
 - [ ] **Step 1: 添加 cmd_start_compose**
@@ -1185,6 +1207,7 @@ git commit -m "feat: add compose mode commands"
 ### Task 14: 实现无后缀别名（向后兼容）
 
 **Files:**
+
 - Modify: `accessbase.sh`
 
 - [ ] **Step 1: 更新 case 语句中的向后兼容别名**
@@ -1211,6 +1234,7 @@ git commit -m "feat: add backward-compatible command aliases with deprecation wa
 ### Task 15: 更新文档
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `AGENTS.md` (在 Commands 部分)
 
@@ -1218,7 +1242,7 @@ git commit -m "feat: add backward-compatible command aliases with deprecation wa
 
 添加三种模式的快速开始指南:
 
-```markdown
+````markdown
 ## Getting Started
 
 ### Prerequisites
@@ -1230,21 +1254,26 @@ git commit -m "feat: add backward-compatible command aliases with deprecation wa
 ### Quick Start
 
 **Native (recommended for development):**
+
 ```bash
 pixi install -e native
 pixi run dev
 ```
+````
 
 **Single Container:**
+
 ```bash
 bash accessbase.sh dev:container
 ```
 
 **Docker Compose:**
+
 ```bash
 bash accessbase.sh dev:compose
 ```
-```
+
+````
 
 - [ ] **Step 2: 更新 AGENTS.md Commands 部分**
 
@@ -1282,15 +1311,16 @@ bash accessbase.sh lint              # Lint
 bash accessbase.sh format            # Format
 bash accessbase.sh db:push           # Push schema
 bash accessbase.sh clean             # Clean artifacts
-```
-```
+````
+
+````
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add README.md AGENTS.md
 git commit -m "docs: update README and AGENTS with three build modes"
-```
+````
 
 ---
 

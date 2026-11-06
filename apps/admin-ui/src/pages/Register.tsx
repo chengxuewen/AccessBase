@@ -35,7 +35,12 @@ export default function Register() {
     setBusy(true);
     setError(null);
     try {
-      await registerUser({ email: values.email, name: values.name, password: values.password, ...captcha.fields() });
+      await registerUser({
+        email: values.email,
+        name: values.name,
+        password: values.password,
+        ...captcha.fields(),
+      });
       setPending(true);
     } catch (err) {
       setError(apiErrorMessage(err, t('login.error')));
@@ -46,123 +51,133 @@ export default function Register() {
 
   return (
     <ConfigProvider theme={brandTheme}>
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: themeToken.colorBgLayout,
-      }}
-    >
-      {branding.logoUrl && (
-        <img src={branding.logoUrl} alt="logo" data-testid="branding-logo"
-             style={{ display: 'block', margin: '0 auto 16px', maxHeight: 56, maxWidth: '80%', objectFit: 'contain' }} />
-      )}
-      <Card
-        title={pending ? t('register.pendingTitle') : t('register.title')}
-        style={{ width: '100%', maxWidth: 400 }}
-        styles={{ header: { textAlign: 'center' } }}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          background: themeToken.colorBgLayout,
+        }}
       >
-        {pending ? (
-          <>
-            <Alert
-              type="success"
-              showIcon
-              message={t('register.pending')}
-              style={{ marginBottom: 16 }}
-              data-testid="register-pending"
-            />
-            <Link to="/login" data-testid="register-back">
-              {t('register.back')}
-            </Link>
-          </>
-        ) : (
-          <>
-            {error && (
-              <Alert
-                type="error"
-                showIcon
-                message={error}
-                style={{ marginBottom: 16 }}
-                data-testid="register-error"
-              />
-            )}
-            <Form form={form} layout="vertical" onFinish={handleSubmit}>
-              <Form.Item
-                name="name"
-                label={t('register.name')}
-                rules={[{ required: true, message: t('login.emailRequired') }]}
-              >
-                <Input prefix={<UserOutlined />} size="large" data-testid="register-name" />
-              </Form.Item>
-              <Form.Item
-                name="email"
-                label={t('register.email')}
-                rules={[
-                  { required: true, message: t('login.emailRequired') },
-                  { type: 'email', message: t('login.emailInvalid') },
-                ]}
-              >
-                <Input
-                  prefix={<MailOutlined />}
-                  size="large"
-                  autoComplete="username"
-                  data-testid="register-email"
-                />
-              </Form.Item>
-              {captcha.node}
-              <Form.Item
-                name="password"
-                label={t('register.password')}
-                rules={[{ required: true, message: t('login.passwordRequired') }]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  size="large"
-                  autoComplete="new-password"
-                  data-testid="register-password"
-                />
-              </Form.Item>
-              <Form.Item
-                name="confirm"
-                label={t('register.confirm')}
-                dependencies={['password']}
-                rules={[
-                  { required: true, message: t('login.passwordRequired') },
-                  ({ getFieldValue }) => ({
-                    validator(_, value: string) {
-                      if (!value || getFieldValue('password') === value) return Promise.resolve();
-                      return Promise.reject(new Error(t('register.mismatch')));
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  size="large"
-                  autoComplete="new-password"
-                  data-testid="register-confirm"
-                />
-              </Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={busy}
-                block
-                size="large"
-                data-testid="register-submit"
-              >
-                {t('register.submit')}
-              </Button>
-            </Form>
-            <div style={{ marginTop: 16 }}>
-              <Link to="/login">{t('register.back')}</Link>
-            </div>
-          </>
+        {branding.logoUrl && (
+          <img
+            src={branding.logoUrl}
+            alt="logo"
+            data-testid="branding-logo"
+            style={{
+              display: 'block',
+              margin: '0 auto 16px',
+              maxHeight: 56,
+              maxWidth: '80%',
+              objectFit: 'contain',
+            }}
+          />
         )}
-      </Card>
-    </div>
+        <Card
+          title={pending ? t('register.pendingTitle') : t('register.title')}
+          style={{ width: '100%', maxWidth: 400 }}
+          styles={{ header: { textAlign: 'center' } }}
+        >
+          {pending ? (
+            <>
+              <Alert
+                type="success"
+                showIcon
+                message={t('register.pending')}
+                style={{ marginBottom: 16 }}
+                data-testid="register-pending"
+              />
+              <Link to="/login" data-testid="register-back">
+                {t('register.back')}
+              </Link>
+            </>
+          ) : (
+            <>
+              {error && (
+                <Alert
+                  type="error"
+                  showIcon
+                  message={error}
+                  style={{ marginBottom: 16 }}
+                  data-testid="register-error"
+                />
+              )}
+              <Form form={form} layout="vertical" onFinish={handleSubmit}>
+                <Form.Item
+                  name="name"
+                  label={t('register.name')}
+                  rules={[{ required: true, message: t('login.emailRequired') }]}
+                >
+                  <Input prefix={<UserOutlined />} size="large" data-testid="register-name" />
+                </Form.Item>
+                <Form.Item
+                  name="email"
+                  label={t('register.email')}
+                  rules={[
+                    { required: true, message: t('login.emailRequired') },
+                    { type: 'email', message: t('login.emailInvalid') },
+                  ]}
+                >
+                  <Input
+                    prefix={<MailOutlined />}
+                    size="large"
+                    autoComplete="username"
+                    data-testid="register-email"
+                  />
+                </Form.Item>
+                {captcha.node}
+                <Form.Item
+                  name="password"
+                  label={t('register.password')}
+                  rules={[{ required: true, message: t('login.passwordRequired') }]}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined />}
+                    size="large"
+                    autoComplete="new-password"
+                    data-testid="register-password"
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="confirm"
+                  label={t('register.confirm')}
+                  dependencies={['password']}
+                  rules={[
+                    { required: true, message: t('login.passwordRequired') },
+                    ({ getFieldValue }) => ({
+                      validator(_, value: string) {
+                        if (!value || getFieldValue('password') === value) return Promise.resolve();
+                        return Promise.reject(new Error(t('register.mismatch')));
+                      },
+                    }),
+                  ]}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined />}
+                    size="large"
+                    autoComplete="new-password"
+                    data-testid="register-confirm"
+                  />
+                </Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={busy}
+                  block
+                  size="large"
+                  data-testid="register-submit"
+                >
+                  {t('register.submit')}
+                </Button>
+              </Form>
+              <div style={{ marginTop: 16 }}>
+                <Link to="/login">{t('register.back')}</Link>
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
     </ConfigProvider>
   );
 }

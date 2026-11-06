@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- R1 (security): authenticate apikey branch reads key.scopes from row (scim=['scim'], data=['*']); requirePermission apikey branch: scopes含'*'放行，仅['scim']→403. 存量key ['*']零回填
+- R1 (security): authenticate apikey branch reads key.scopes from row (scim=['scim'], data=['_']); requirePermission apikey branch: scopes含'_'放行，仅['scim']→403. 存量key ['*']零回填
 - R2 (schema): 复用 api_keys.scopes jsonb（['scim']|['*']），**不加 scope varchar 列**；migration 0003 = users.external_id only（nullable, 无唯一约束, correlation-only R6）
 - R3: SCIM provisioning 租户 = request.tenantId（scim bearer 注入），**禁 DEFAULT_TENANT 字面量**
 - R4: 测试 = vitest app.inject 集成（无 e2e）；PIT-056 probe 断言（门调用记录）
@@ -26,6 +26,7 @@
 ## Task 0: identity deps + migration + scopes wiring
 
 **Files:**
+
 - Modify: `packages/identity/package.json` (add scim2-parse-filter + scim-patch to dependencies)
 - Modify: `packages/identity/src/db/schema.ts` (users.external_id uuid nullable)
 - Generate: migration 0003 (drizzle-kit generate — external_id only, verify no dirty diff)
@@ -34,6 +35,7 @@
 - Test: `apps/server/src/__tests__/scim-token-isolation.test.ts` (new)
 
 **Interfaces:**
+
 - Consumes: existing authenticate apikey branch (app.ts:135), requirePermission (permission.ts:33-50)
 - Produces: scim-scope keys → data routes 403; data keys unchanged; app.ts authenticate reads row
 
@@ -45,10 +47,12 @@
 ## Task 1: SCIM protocol mount skeleton (parser + auth + discovery endpoints)
 
 **Files:**
+
 - Create: `apps/server/src/routes/scim.ts` + `apps/server/src/__tests__/scim.test.ts`
 - Modify: `apps/server/src/app.ts` (register scimRoutes)
 
 **Interfaces:**
+
 - Consumes: T0 scopes wiring (bearer via app.authenticate? NO — scim does its OWN bearer preHandler reading api_keys.findByHash directly, per spec H2; NOT app.authenticate)
 - Produces: plugin with scoped scim+json parser (unconditional R5); own bearer preHandler (findByHash → scopes must contain 'scim' → request.tenantId = key.tenantId; 401/403 envelopes); GET /ServiceProviderConfig + /Schemas + /ResourceTypes (static docs); all responses Content-Type application/scim+json
 
@@ -59,9 +63,11 @@
 ## Task 2: User provisioning (GET/POST/PUT/DELETE /Users + filter + pagination)
 
 **Files:**
+
 - Modify: `apps/server/src/routes/scim.ts` + test file
 
 **Interfaces:**
+
 - Consumes: T1 plugin skeleton + UserManager (findByEmail→lower(trim) normalized per R8, create, findById, findByIdAny, update, changeStatus+revokeAllUserSessions per H3 parity)
 - Produces: GET /Users (ListResponse, startIndex 1-based↔page 0-based, filter userName eq / id eq via scim2-parse-filter→SQL push-down); GET /Users/:id; POST /Users (find-or-create, 409 uniqueness on existing, name↔userName fallback R9, password→policy+hash, provision into request.tenantId per R3); PUT /Users/:id (full replace minus immutable); DELETE /Users/:id (soft suspend + revoke, 204); all errors SCIM Error schema (uniqueness/notFound/invalidValue/invalidFilter)
 
@@ -72,9 +78,11 @@
 ## Task 3: PATCH + full regression (final task)
 
 **Files:**
+
 - Modify: `apps/server/src/routes/scim.ts` + test file
 
 **Interfaces:**
+
 - Consumes: scim-patch lib (apply Operations to current SCIM representation) + T2 CRUD
 - Produces: PATCH /Users/:id — fetch → map to SCIM representation → scim-patch apply → diff-map to Manager calls (active→changeStatus+revoke parity; name→update; per-attribute sequential R7; unknown→400 invalidPath R7); multi-attr → ordered calls
 

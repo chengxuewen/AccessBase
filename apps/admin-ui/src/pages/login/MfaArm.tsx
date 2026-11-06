@@ -11,7 +11,6 @@ import { KeyOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { theme } from 'antd';
 
-
 export interface MfaArmProps {
   mfaForm: FormInstance<{ code: string }>;
   mfaError: boolean;
@@ -20,7 +19,13 @@ export interface MfaArmProps {
   handleCancelMfa: () => void;
 }
 
-export function MfaArm({ mfaForm, mfaError, isLoading, handleMfaSubmit, handleCancelMfa }: MfaArmProps): React.ReactElement {
+export function MfaArm({
+  mfaForm,
+  mfaError,
+  isLoading,
+  handleMfaSubmit,
+  handleCancelMfa,
+}: MfaArmProps): React.ReactElement {
   const { t } = useTranslation();
   const { token: themeToken } = theme.useToken();
   return (
@@ -48,10 +53,7 @@ export function MfaArm({ mfaForm, mfaError, isLoading, handleMfaSubmit, handleCa
           />
         )}
         <Form form={mfaForm} layout="vertical" onFinish={handleMfaSubmit}>
-          <Form.Item
-            name="code"
-            rules={[{ required: true, message: t('login.mfaCodeRequired') }]}
-          >
+          <Form.Item name="code" rules={[{ required: true, message: t('login.mfaCodeRequired') }]}>
             <Input
               prefix={<KeyOutlined />}
               placeholder={t('login.mfaCodePlaceholder')}

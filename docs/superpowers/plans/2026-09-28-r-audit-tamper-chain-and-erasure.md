@@ -19,29 +19,30 @@
 
 ## File structure
 
-| Act | Path | Owns |
-|---|---|---|
-| Mod | `packages/identity/src/db/schema.ts` | audit_logs +row_hash/anchor_id/erased_at/erasure_id; new auditChainAnchors, auditErasures tables |
-| Gen | `packages/migration/drizzle/0010_*.sql` + meta | chain file (v7 ritual) |
-| Mod | `scripts/migrate.sh` + `apps/server/src/__tests__/ops-migrate.test.ts` | SENTINELS row_hash probe; count flip |
-| New | `packages/audit/src/hashing.ts` + `packages/audit/src/__tests__/hashing.test.ts` | canonicalJson, rowHash, merkleFold, receiptHash — pure, zero deps |
-| Mod | `packages/audit/src/logger.ts` `types.ts` + pkg tests | delete in-memory chain; rowHash?; export hashing from index |
-| Mod | `apps/server/src/app.ts` | AuditStorage write: createdAt+rowHash; wire anchor worker + backfill lifecycle |
-| New | `apps/server/src/utils/audit-anchor.ts` (+test) | worker: xact lock, fold, mark, export file, prune-mark coordination |
-| Mod | `apps/server/src/utils/retention-sweeper.ts` (+test) | mark anchors `pruned_at` (same tx, before DELETE) |
-| New | `apps/server/src/utils/audit-verify.ts` (+test) | verify service: re-fold anchors, row content-check, erasure receipts, unanchored watchdog |
-| Mod | `packages/identity/src/managers/UserManager.ts` (+test) | `eraseAuditData` funnel + `audit.erased` emit on caller tx |
-| Mod | `packages/identity/src/services/events.ts` | union + `audit.erased` |
-| Mod | `apps/server/src/routes/users.ts` + `routes/audit.ts` + `packages/identity/src/hooks/authorize.ts` (routePermissions — real map location; NOT utils/) | eraseAudit flag mapping; GET /v1/audit/verify + platform belt inline check |
-| Mod | `apps/server/src/routes/metrics.ts` (or utils) + `config.ts` + `.env.example` + `docker/prometheus/rules.yml` | 2 instruments, 3 config keys, 2 alerts |
-| Mod | `apps/admin-ui/src/pages/Audit.tsx` + `api/audit.ts` + locales + `e2e/audit-viewer.spec.ts` | Verify button + report rendering |
-| Mod | docs (security.md, self-service.md, webhook.md event list, error-codes-reality if new codes, CHANGELOG) | T7 |
+| Act | Path                                                                                                                                                  | Owns                                                                                             |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Mod | `packages/identity/src/db/schema.ts`                                                                                                                  | audit_logs +row_hash/anchor_id/erased_at/erasure_id; new auditChainAnchors, auditErasures tables |
+| Gen | `packages/migration/drizzle/0010_*.sql` + meta                                                                                                        | chain file (v7 ritual)                                                                           |
+| Mod | `scripts/migrate.sh` + `apps/server/src/__tests__/ops-migrate.test.ts`                                                                                | SENTINELS row_hash probe; count flip                                                             |
+| New | `packages/audit/src/hashing.ts` + `packages/audit/src/__tests__/hashing.test.ts`                                                                      | canonicalJson, rowHash, merkleFold, receiptHash — pure, zero deps                                |
+| Mod | `packages/audit/src/logger.ts` `types.ts` + pkg tests                                                                                                 | delete in-memory chain; rowHash?; export hashing from index                                      |
+| Mod | `apps/server/src/app.ts`                                                                                                                              | AuditStorage write: createdAt+rowHash; wire anchor worker + backfill lifecycle                   |
+| New | `apps/server/src/utils/audit-anchor.ts` (+test)                                                                                                       | worker: xact lock, fold, mark, export file, prune-mark coordination                              |
+| Mod | `apps/server/src/utils/retention-sweeper.ts` (+test)                                                                                                  | mark anchors `pruned_at` (same tx, before DELETE)                                                |
+| New | `apps/server/src/utils/audit-verify.ts` (+test)                                                                                                       | verify service: re-fold anchors, row content-check, erasure receipts, unanchored watchdog        |
+| Mod | `packages/identity/src/managers/UserManager.ts` (+test)                                                                                               | `eraseAuditData` funnel + `audit.erased` emit on caller tx                                       |
+| Mod | `packages/identity/src/services/events.ts`                                                                                                            | union + `audit.erased`                                                                           |
+| Mod | `apps/server/src/routes/users.ts` + `routes/audit.ts` + `packages/identity/src/hooks/authorize.ts` (routePermissions — real map location; NOT utils/) | eraseAudit flag mapping; GET /v1/audit/verify + platform belt inline check                       |
+| Mod | `apps/server/src/routes/metrics.ts` (or utils) + `config.ts` + `.env.example` + `docker/prometheus/rules.yml`                                         | 2 instruments, 3 config keys, 2 alerts                                                           |
+| Mod | `apps/admin-ui/src/pages/Audit.tsx` + `api/audit.ts` + locales + `e2e/audit-viewer.spec.ts`                                                           | Verify button + report rendering                                                                 |
+| Mod | docs (security.md, self-service.md, webhook.md event list, error-codes-reality if new codes, CHANGELOG)                                               | T7                                                                                               |
 
 ---
 
 ### Task A1: Schema + migration 0010
 
 **Files:** schema.ts (table defs above), generate 0010, migrate.sh, ops test.
+
 - [ ] Step: write table defs per spec D2/D5 VERBATIM (anchors: id bigserial PK, day date, seq int, first_id/last_id uuid, row_count int, root/prev_root text, pruned_at ts null, anchored_at default now, UNIQUE(day,seq); erasures: uuid PK, tenant_id varchar(64), subject_user_id uuid, requested_by uuid, legal_basis text, receipt_hash text, rows_affected int, events_scrubbed int default 0, created_at). audit_logs: `row_hash text`, `anchor_id bigint`, `erased_at ts`, `erasure_id uuid` — all NULLable, no FKs (audit table has none today; keep posture).
 - [ ] Step: `pnpm db:generate` (config out: dir), inspect SQL: zero DROPs, indexes sane; snapshot v7 shape.
 - [ ] Step: migrate.sh SENTINELS += probe `row_hash`; ops-migrate test: legacy-stamp case asserts 0010 pending; fresh case asserts 11 files applied. Run: `vitest run apps/server/src/__tests__/ops-migrate` RED→GREEN.

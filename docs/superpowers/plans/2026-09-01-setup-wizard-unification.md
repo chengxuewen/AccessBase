@@ -26,6 +26,7 @@
 ### Task 1: setup 状态改为 DB 实时推导
 
 **Files:**
+
 - Modify: `apps/server/src/routes/setup.ts`（删内存 `setupState` 与 `setAdminExists`/`setIsInitialized`，新增导出 `getSetupStatus` + `isSystemInitialized`）
 - Modify: `apps/server/src/middleware/setup-guard.ts`（删 `setupComplete` 内存态与 `setSetupComplete`，改调 `isSystemInitialized()`）
 - Modify: `apps/server/src/init.ts`（本任务**临时**处理：删掉其对旧 setter 的引用与调用块，保留其余逻辑原样——Task 2 整体重写）
@@ -33,6 +34,7 @@
 - Test: `apps/server/src/__tests__/setup-guard.test.ts`（重写状态相关用例）
 
 **Interfaces:**
+
 - Consumes: `UserManager.findByEmail(email: string): Promise<User | null>`（`packages/identity/src/managers/UserManager.ts:75`）；`config.adminEmail`（`apps/server/src/config.ts:13`，可能为空字符串，代码须兜底 `'admin@accessbase.local'`）
 - Produces: `getSetupStatus(): Promise<{ isInitialized: boolean; adminExists: boolean; configComplete: boolean }>` — **永不 reject**（status 端点用，内部 catch 转 false + log error）
 - Produces: `isSystemInitialized(): Promise<boolean>` — DB 失败时 **reject**（guard 三态判定用：resolve true / resolve false / reject）
@@ -126,14 +128,20 @@ export async function setupGuard(request: FastifyRequest, reply: FastifyReply): 
   if (initialized && SETUP_WRITE_PATHS.some((path) => url.startsWith(path))) {
     return reply.status(410).send({
       success: false,
-      error: { code: 'SETUP_ALREADY_COMPLETE', message: 'System setup has already been completed.' },
+      error: {
+        code: 'SETUP_ALREADY_COMPLETE',
+        message: 'System setup has already been completed.',
+      },
     });
   }
 
   if (!initialized && !url.startsWith('/api/v1/setup')) {
     return reply.status(403).send({
       success: false,
-      error: { code: 'SETUP_REQUIRED', message: 'System setup is not complete. Please complete setup first.' },
+      error: {
+        code: 'SETUP_REQUIRED',
+        message: 'System setup is not complete. Please complete setup first.',
+      },
     });
   }
 }
@@ -165,11 +173,13 @@ git commit -m "feat(setup): derive setup state from users table — DB as single
 ### Task 2: init.ts 收缩为状态同步器 + env 双变量旁路
 
 **Files:**
+
 - Modify: `apps/server/src/init.ts`（重写）
 - Modify: `apps/server/src/index.ts`（**不改**——`initializeAdmin(app)` 调用点与签名保持不变）
 - Test: `apps/server/src/__tests__/init.test.ts`（新建）
 
 **Interfaces:**
+
 - Consumes: `UserManager`/`RoleManager`（identity 包）；`config.adminEmail` / `config.adminPassword`
 - Produces: `initializeAdmin(app: FastifyInstance): Promise<void>` 签名不变。行为：admin 存在 → no-op；不存在 + `config.adminEmail && config.adminPassword` 双齐 → 创建 admin（**不再生成随机密码，密码绝不入日志**）；env 不齐 → 仅日志 "Setup Wizard will run on first access"；**任何异常吞掉不 throw**（向导接管，启动不崩）
 
@@ -279,9 +289,11 @@ git commit -m "feat(setup): init.ts → state sync + env dual-var bypass; elimin
 ### Task 3: accessbase.sh reset 对齐 + 确认提示
 
 **Files:**
+
 - Modify: `accessbase.sh`（`cmd_reset_native`，line ~267-278）
 
 **Interfaces:**
+
 - Consumes: `scripts/native/{pg-stop,redis-stop,pg-init}.sh`（现有）；`pnpm db:push`（根 package.json 已有）
 - Produces: reset 完成 = 空库 + 表结构就绪；dev 重启后 `GET /api/v1/setup/status` 返回 `adminExists:false` → 浏览器访问进向导
 
@@ -393,10 +405,12 @@ git commit -m "feat(dev): reset → schema push + confirm guard + wizard boot (D
 ### Task 4: E2E 验证 + 文档收尾
 
 **Files:**
+
 - Test: `e2e/setup.spec.ts`（检查是否需适配新行为）
 - Modify: `.agents/memorys/status.md`（近期工作行）
 
 **Interfaces:**
+
 - Consumes: Task 1-3 全部产出 + Task 3 Step 3 重建的基线 admin
 - Produces: 验收证据 + 文档同步
 
@@ -426,9 +440,11 @@ git commit -m "test(e2e): setup wizard unification adaptation + status sync"
 ```
 
 ---
+
 ### Task 5: setup/reset 真闭环 E2E（真后端 + 真命令）
 
 **Files:**
+
 - Create: `e2e/setup-real-flow.spec.ts`（T5.1 真 UI setup 闭环 + T5.2 真命令 reset 闭环）
 - Create: `e2e/helpers/backend-control.ts`（execSync 封装：reset/dev server 生命周期管理）
 - Modify: `playwright.config.ts`（新增 `setup-real` project：`testMatch: '**/setup-real-*.spec.ts'`, serial, 独立 webServer 配置）
@@ -436,6 +452,7 @@ git commit -m "test(e2e): setup wizard unification adaptation + status sync"
 - Test: `e2e/setup-real-flow.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Task 1-3 全部产出（DB 推导状态 / env 双变量旁路 / reset+db:push+confirm）
 - Produces: `e2e/helpers/backend-control.ts` 导出 `resetBackend(): void`（execSync `ACCESSBASE_RESET_CONFIRM=yes bash accessbase.sh reset`，cwd=项目根）与 `waitForServer(url, timeoutMs): Promise<void>`（轮询 /setup/status 直至 200）
 - 约束：真后端测试必须 `test.describe.serial`（reset 动全库，与其余真后端测试互斥）；mock 测试不受影响
@@ -456,13 +473,18 @@ export function resetBackend(): void {
   });
 }
 
-export async function waitForServer(url = 'http://localhost:5101/api/v1/setup/status', timeoutMs = 60_000): Promise<void> {
+export async function waitForServer(
+  url = 'http://localhost:5101/api/v1/setup/status',
+  timeoutMs = 60_000,
+): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
       const res = await fetch(url);
       if (res.ok) return;
-    } catch { /* not up yet */ }
+    } catch {
+      /* not up yet */
+    }
     await new Promise((r) => setTimeout(r, 500));
   }
   throw new Error(`server not ready within ${timeoutMs}ms`);
@@ -495,14 +517,16 @@ const API = 'http://localhost:5101/api/v1';
 
 test.describe.serial('Setup real backend flow', () => {
   test('T5.1 fresh DB → wizard → admin created → login round-trip', async ({ page }) => {
-    resetBackend();                       // 真命令 reset（含 db:push）
-    await waitForServer();                // tsx watch 还活着, DB 推导状态即时反映
+    resetBackend(); // 真命令 reset（含 db:push）
+    await waitForServer(); // tsx watch 还活着, DB 推导状态即时反映
 
     await page.goto('/');
     await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 });
     await expect(page.locator('h2#welcome-title')).toBeVisible();
     await page.locator('button:has-text("Start Setup")').click();
-    await expect(page.locator('[role="listitem"] .anticon-check-circle').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[role="listitem"] .anticon-check-circle').first()).toBeVisible({
+      timeout: 15_000,
+    });
     await page.locator('button:has-text("Next")').click();
 
     const unique = `admin-${Date.now()}@test.local`;
@@ -515,7 +539,7 @@ test.describe.serial('Setup real backend flow', () => {
       page.waitForResponse((r) => r.url().includes('/setup/admin')),
       page.locator('button:has-text("Next")').click(),
     ]);
-    await page.locator('button:has-text("Skip")').click();   // config 步跳过
+    await page.locator('button:has-text("Skip")').click(); // config 步跳过
     await expect(page).toHaveURL(/\/dashboard|\/$/, { timeout: 15_000 });
 
     // 登出 → 重新登录闭环（admin 真实可登录）
@@ -532,14 +556,14 @@ test.describe.serial('Setup real backend flow', () => {
     const before = await (await fetch(`${API}/setup/status`)).json();
     expect(before.data.adminExists).toBe(true);
 
-    resetBackend();   // ACCESSBASE_RESET_CONFIRM=yes 非交互旁路验证点
+    resetBackend(); // ACCESSBASE_RESET_CONFIRM=yes 非交互旁路验证点
     await waitForServer();
 
     const after = await (await fetch(`${API}/setup/status`)).json();
-    expect(after.data.adminExists).toBe(false);   // D113: DB 推导的浏览器外证据
+    expect(after.data.adminExists).toBe(false); // D113: DB 推导的浏览器外证据
 
     await page.goto('/');
-    await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 });   // PIT-027 的 E2E 证据: 向导重现
+    await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 }); // PIT-027 的 E2E 证据: 向导重现
     await expect(page.locator('h2#welcome-title')).toBeVisible();
   });
 
@@ -547,8 +571,14 @@ test.describe.serial('Setup real backend flow', () => {
     // 无 CONFIRM env + 非交互 stdin → read 失败 → reset 退出非 0
     let threw = false;
     try {
-      execSync('bash accessbase.sh reset', { cwd: resolve(__dirname, '..'), stdio: 'pipe', input: '' });
-    } catch { threw = true; }
+      execSync('bash accessbase.sh reset', {
+        cwd: resolve(__dirname, '..'),
+        stdio: 'pipe',
+        input: '',
+      });
+    } catch {
+      threw = true;
+    }
     expect(threw).toBe(true);
     const status = await (await fetch(`${API}/setup/status`)).json();
     expect(status.data.adminExists).toBe(false); // 数据未被误删（仍在 reset 后状态）且命令被拒
@@ -556,17 +586,25 @@ test.describe.serial('Setup real backend flow', () => {
 
   test('T5.3 guard states surfaced in UI (mock layer)', async ({ page }) => {
     // 403 拦截: mock /setup/status 未初始化 → 访问受保护 API 的页面应看到 SETUP_REQUIRED 行为
-    await page.route('**/api/v1/setup/status', (r) => r.fulfill({
-      status: 200, contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: false, adminExists: false, configComplete: false } }),
-    }));
+    await page.route('**/api/v1/setup/status', (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: false, adminExists: false, configComplete: false },
+        }),
+      }),
+    );
     await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 });   // GlobalGuard 重定向
+    await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 }); // GlobalGuard 重定向
 
     // 503: mock status 503 → 前端不崩（ErrorBoundary 不触发）
-    await page.route('**/api/v1/setup/status', (r) => r.fulfill({ status: 503, body: '{"success":false}' }));
+    await page.route('**/api/v1/setup/status', (r) =>
+      r.fulfill({ status: 503, body: '{"success":false}' }),
+    );
     await page.goto('/');
-    await expect(page.locator('body')).toBeVisible();   // 页面可渲染（具体文案断言随实现调整）
+    await expect(page.locator('body')).toBeVisible(); // 页面可渲染（具体文案断言随实现调整）
   });
 });
 ```
@@ -601,6 +639,7 @@ git commit -m "test(e2e): real backend setup/reset closed-loop — wizard round-
 ```
 
 **风险与预案：**
+
 - execSync reset 耗时 15-30s（停库+删库+重建+push）→ serial + 项目级 timeout 放宽（`timeout: 180_000` per test in setup-real project）
 - CI（GitHub Actions）需 bash + node ≥18（fetch 全局可用）；若 runner 无 accessbase.sh 依赖（pixi）→ 该 project 标记 `testIgnore` 于 CI env（`process.env.CI && test.skip()`），本地强制跑
 - tsx watch 跨 reset 存活假设：watch 父进程在 pg 停启期间可能因 DB 连接断开崩溃 → 预案：helper 提供 `restartServer()`（kill 旧 PID + 后台重启 + waitForServer），T5.1 开头先调 waitForServer，失败则走 restartServer 分支
@@ -611,6 +650,7 @@ git commit -m "test(e2e): real backend setup/reset closed-loop — wizard round-
 - [ ] 全量门禁：vitest 0 新失败 / E2E 0 新失败 / tsc 双绿
 
 ---
+
 ## 验收清单（人工，实施完成后逐项打勾）
 
 - [ ] 全新环境模拟：`ACCESSBASE_RESET_CONFIRM=yes bash accessbase.sh reset` → `bash accessbase.sh dev` → 浏览器自动进 `/setup` → 向导三步走通 → 登录成功

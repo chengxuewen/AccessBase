@@ -43,7 +43,11 @@ const optionsStore = new Map<string, unknown>();
 const { setOptionsManager } = await import('../routes/options.js');
 setOptionsManager({
   get: async (key: string, envValue: unknown, defaultValue: unknown) =>
-    envValue !== undefined ? envValue : optionsStore.has(key) ? optionsStore.get(key) : defaultValue,
+    envValue !== undefined
+      ? envValue
+      : optionsStore.has(key)
+        ? optionsStore.get(key)
+        : defaultValue,
 } as unknown as OptionsManager);
 
 const { loadDynamicProviders, resolveRpEndSessionUrl } = await import('../utils/rp-end-session.js');
@@ -71,14 +75,18 @@ afterEach(() => {
 
 describe('loadDynamicProviders endSessionUrl validation (drop-with-warn, provider survives)', () => {
   it('keeps an https endSessionUrl', async () => {
-    setProviders({ 'ok-idp': { ...validProvider, endSessionUrl: 'https://idp.example.com/logout' } });
+    setProviders({
+      'ok-idp': { ...validProvider, endSessionUrl: 'https://idp.example.com/logout' },
+    });
     const registry = await loadDynamicProviders();
     expect(registry['ok-idp']?.endSessionUrl).toBe('https://idp.example.com/logout');
   });
 
   it('drops a non-https endSessionUrl with a warn — provider stays in the registry', async () => {
     const warnSpy = vi.spyOn(logger, 'warn');
-    setProviders({ 'insecure-idp': { ...validProvider, endSessionUrl: 'http://idp.example.com/logout' } });
+    setProviders({
+      'insecure-idp': { ...validProvider, endSessionUrl: 'http://idp.example.com/logout' },
+    });
     const registry = await loadDynamicProviders();
     expect(registry['insecure-idp']).toBeDefined();
     expect(registry['insecure-idp']?.endSessionUrl).toBeUndefined();
@@ -122,14 +130,23 @@ describe('loadDynamicProviders transport policy (verification-day loopback fix)'
 
 describe('resolveRpEndSessionUrl', () => {
   it('provider arm: registry endSessionUrl + stored id_token -> exact urlencoded URL', async () => {
-    setProviders({ 'ok-idp': { ...validProvider, endSessionUrl: 'https://idp.example.com/logout' } });
-    rows.push({ userId: 'u1', provider: 'ok-idp', providerAccountId: 'pa1', idToken: 'a b&c/d+e=f' });
+    setProviders({
+      'ok-idp': { ...validProvider, endSessionUrl: 'https://idp.example.com/logout' },
+    });
+    rows.push({
+      userId: 'u1',
+      provider: 'ok-idp',
+      providerAccountId: 'pa1',
+      idToken: 'a b&c/d+e=f',
+    });
     const url = await resolveRpEndSessionUrl('u1', 'ok-idp');
     expect(url).toBe('https://idp.example.com/logout?id_token_hint=a%20b%26c%2Fd%2Be%3Df');
   });
 
   it('null when the link row has no id_token', async () => {
-    setProviders({ 'ok-idp': { ...validProvider, endSessionUrl: 'https://idp.example.com/logout' } });
+    setProviders({
+      'ok-idp': { ...validProvider, endSessionUrl: 'https://idp.example.com/logout' },
+    });
     rows.push({ userId: 'u1', provider: 'ok-idp', providerAccountId: 'pa1', idToken: null });
     expect(await resolveRpEndSessionUrl('u1', 'ok-idp')).toBeNull();
   });
@@ -151,16 +168,33 @@ describe('resolveRpEndSessionUrl', () => {
       'ok-idp': { ...validProvider, endSessionUrl: 'https://idp.example.com/logout' },
     });
     // rows[0] = newest (identity orderBy — see seam note at the top)
-    rows.push({ userId: 'u1', provider: 'plain-idp', providerAccountId: 'pa0', idToken: 'newest-no-es' });
-    rows.push({ userId: 'u1', provider: 'ghost-idp', providerAccountId: 'pa1', idToken: 'not-registered' });
-    rows.push({ userId: 'u1', provider: 'ok-idp', providerAccountId: 'pa2', idToken: 'third-row-wins' });
+    rows.push({
+      userId: 'u1',
+      provider: 'plain-idp',
+      providerAccountId: 'pa0',
+      idToken: 'newest-no-es',
+    });
+    rows.push({
+      userId: 'u1',
+      provider: 'ghost-idp',
+      providerAccountId: 'pa1',
+      idToken: 'not-registered',
+    });
+    rows.push({
+      userId: 'u1',
+      provider: 'ok-idp',
+      providerAccountId: 'pa2',
+      idToken: 'third-row-wins',
+    });
     expect(await resolveRpEndSessionUrl('u1')).toBe(
       'https://idp.example.com/logout?id_token_hint=third-row-wins',
     );
   });
 
   it('newest arm: no usable row -> null', async () => {
-    setProviders({ 'ok-idp': { ...validProvider, endSessionUrl: 'https://idp.example.com/logout' } });
+    setProviders({
+      'ok-idp': { ...validProvider, endSessionUrl: 'https://idp.example.com/logout' },
+    });
     rows.push({ userId: 'u1', provider: 'ok-idp', providerAccountId: 'pa1', idToken: null });
     expect(await resolveRpEndSessionUrl('u1')).toBeNull();
   });
@@ -184,7 +218,9 @@ describe('loadDynamicProviders issuer/jwksUri validation (Q3D, drop-fields-keep-
     });
     const registry = await loadDynamicProviders();
     expect(registry['bclo-idp']?.issuer).toBe('https://idp.example.com/realms/x');
-    expect(registry['bclo-idp']?.jwksUri).toBe('https://idp.example.com/realms/x/protocol/openid-connect/certs');
+    expect(registry['bclo-idp']?.jwksUri).toBe(
+      'https://idp.example.com/realms/x/protocol/openid-connect/certs',
+    );
   });
 
   it('drops BOTH fields when only one is present (half-configured unrepresentable)', async () => {
@@ -196,7 +232,11 @@ describe('loadDynamicProviders issuer/jwksUri validation (Q3D, drop-fields-keep-
 
   it('drops both when jwksUri is plain http non-loopback', async () => {
     setProviders({
-      'insecure-idp': { ...validProvider, issuer: 'https://idp.example.com', jwksUri: 'http://evil.example.com/certs' },
+      'insecure-idp': {
+        ...validProvider,
+        issuer: 'https://idp.example.com',
+        jwksUri: 'http://evil.example.com/certs',
+      },
     });
     const registry = await loadDynamicProviders();
     expect(registry['insecure-idp']?.jwksUri).toBeUndefined();
@@ -205,7 +245,11 @@ describe('loadDynamicProviders issuer/jwksUri validation (Q3D, drop-fields-keep-
 
   it('accepts loopback-http jwksUri (self-loop parity with sibling URLs)', async () => {
     setProviders({
-      'local-idp': { ...validProvider, issuer: 'http://127.0.0.1:5101', jwksUri: 'http://127.0.0.1:5101/jwks' },
+      'local-idp': {
+        ...validProvider,
+        issuer: 'http://127.0.0.1:5101',
+        jwksUri: 'http://127.0.0.1:5101/jwks',
+      },
     });
     const registry = await loadDynamicProviders();
     expect(registry['local-idp']?.jwksUri).toBe('http://127.0.0.1:5101/jwks');
@@ -213,7 +257,11 @@ describe('loadDynamicProviders issuer/jwksUri validation (Q3D, drop-fields-keep-
 
   it('drops both when issuer exceeds 512 chars', async () => {
     setProviders({
-      'long-idp': { ...validProvider, issuer: `https://idp.example.com/${'x'.repeat(600)}`, jwksUri: 'https://idp.example.com/certs' },
+      'long-idp': {
+        ...validProvider,
+        issuer: `https://idp.example.com/${'x'.repeat(600)}`,
+        jwksUri: 'https://idp.example.com/certs',
+      },
     });
     const registry = await loadDynamicProviders();
     expect(registry['long-idp']?.issuer).toBeUndefined();

@@ -80,13 +80,31 @@ function trackConsoleErrors(page: Page): string[] {
 }
 
 const ADMIN_PERMS = [
-  'stats:read', 'users:read', 'users:write', 'roles:read', 'roles:write', 'roles:delete',
-  'audit:read', 'audit:delete', 'stats:write', 'stats:delete', 'clients:read', 'clients:write',
-  'apikeys:read', 'apikeys:write', 'apikeys:delete',
-  'tenants:read', 'tenants:write', 'tenants:delete',
-  'groups:read', 'groups:write', 'groups:delete',
-  'webhooks:read', 'webhooks:write',
-  'options:read', 'options:write',
+  'stats:read',
+  'users:read',
+  'users:write',
+  'roles:read',
+  'roles:write',
+  'roles:delete',
+  'audit:read',
+  'audit:delete',
+  'stats:write',
+  'stats:delete',
+  'clients:read',
+  'clients:write',
+  'apikeys:read',
+  'apikeys:write',
+  'apikeys:delete',
+  'tenants:read',
+  'tenants:write',
+  'tenants:delete',
+  'groups:read',
+  'groups:write',
+  'groups:delete',
+  'webhooks:read',
+  'webhooks:write',
+  'options:read',
+  'options:write',
 ];
 
 const FULL_PERMS_ME = {
@@ -125,10 +143,21 @@ function makeWebhook(overrides: Partial<WebhookRow> = {}): WebhookRow {
 }
 
 const MOCK_WEBHOOKS = (): WebhookRow[] => [
-  makeWebhook({ id: 'hook-a', url: 'https://hooks.acme.test/a', subscribedEvents: ['*'], pending: 3, dead: 0 }),
   makeWebhook({
-    id: 'hook-b', url: 'https://hooks.acme.test/b', description: 'secondary lane',
-    subscribedEvents: ['user.created', 'user.deleted'], active: false, pending: 0, dead: 2,
+    id: 'hook-a',
+    url: 'https://hooks.acme.test/a',
+    subscribedEvents: ['*'],
+    pending: 3,
+    dead: 0,
+  }),
+  makeWebhook({
+    id: 'hook-b',
+    url: 'https://hooks.acme.test/b',
+    description: 'secondary lane',
+    subscribedEvents: ['user.created', 'user.deleted'],
+    active: false,
+    pending: 0,
+    dead: 2,
   }),
 ];
 
@@ -136,9 +165,36 @@ const MOCK_WEBHOOKS = (): WebhookRow[] => [
 const MOCK_DELIVERIES = (): DeliveryRow[] => {
   const now = new Date().toISOString();
   return [
-    { id: 'dlv-1', eventId: 'evt-1', status: 'delivered', attempts: 1, lastError: null, responseStatus: 200, deliveredAt: now, createdAt: now },
-    { id: 'dlv-2', eventId: 'evt-2', status: 'pending', attempts: 2, lastError: 'connect timeout', responseStatus: null, deliveredAt: null, createdAt: now },
-    { id: 'dlv-3', eventId: 'evt-3', status: 'dead', attempts: 5, lastError: 'ssrf-denied', responseStatus: 403, deliveredAt: null, createdAt: now },
+    {
+      id: 'dlv-1',
+      eventId: 'evt-1',
+      status: 'delivered',
+      attempts: 1,
+      lastError: null,
+      responseStatus: 200,
+      deliveredAt: now,
+      createdAt: now,
+    },
+    {
+      id: 'dlv-2',
+      eventId: 'evt-2',
+      status: 'pending',
+      attempts: 2,
+      lastError: 'connect timeout',
+      responseStatus: null,
+      deliveredAt: null,
+      createdAt: now,
+    },
+    {
+      id: 'dlv-3',
+      eventId: 'evt-3',
+      status: 'dead',
+      attempts: 5,
+      lastError: 'ssrf-denied',
+      responseStatus: 403,
+      deliveredAt: null,
+      createdAt: now,
+    },
   ];
 };
 
@@ -147,18 +203,33 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   // PIT-080 roster: /login-shell probes mocked in every spec (harness copy).
   await page.route('**/api/v1/auth/saml/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
 }
 
@@ -193,7 +264,9 @@ async function mockWebhookApis(
 
     if (segments.length === 3 && method === 'POST') {
       const body = JSON.parse(request.postData() ?? '{}') as {
-        url?: string; description?: string; subscribedEvents?: string[];
+        url?: string;
+        description?: string;
+        subscribedEvents?: string[];
       };
       const created = makeWebhook({
         url: body.url ?? '',
@@ -232,7 +305,10 @@ async function mockWebhookApis(
       await route.fulfill({
         status: 202,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { deliveryQueued: true, eventId: 'evt-ping-1' } }),
+        body: JSON.stringify({
+          success: true,
+          data: { deliveryQueued: true, eventId: 'evt-ping-1' },
+        }),
       });
       return;
     }
@@ -254,16 +330,24 @@ async function mockWebhookApis(
         await route.fulfill({
           status: 404,
           contentType: 'application/json',
-          body: JSON.stringify({ success: false, error: { code: 'WEBHOOK_NOT_FOUND', message: 'Webhook not found' } }),
+          body: JSON.stringify({
+            success: false,
+            error: { code: 'WEBHOOK_NOT_FOUND', message: 'Webhook not found' },
+          }),
         });
         return;
       }
       if (typeof body.url === 'string') row.url = body.url;
       if (typeof body.description === 'string') row.description = body.description;
-      if (Array.isArray(body.subscribedEvents)) row.subscribedEvents = body.subscribedEvents as string[];
+      if (Array.isArray(body.subscribedEvents))
+        row.subscribedEvents = body.subscribedEvents as string[];
       if (typeof body.active === 'boolean') row.active = body.active;
       stats.lastPut = { id, body };
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: row }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: row }),
+      });
       return;
     }
 
@@ -271,7 +355,11 @@ async function mockWebhookApis(
       const idx = webhooks.findIndex((w) => w.id === id);
       if (idx >= 0) webhooks.splice(idx, 1);
       stats.deleted = id;
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: null }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: null }),
+      });
       return;
     }
 
@@ -281,8 +369,14 @@ async function mockWebhookApis(
 
 function freshStats(): WebhookMockStats {
   return {
-    listRequests: 0, deliveriesRequests: 0, created: null, createSecretRevealed: false,
-    lastPut: null, deleted: null, pinged: [], rotated: [],
+    listRequests: 0,
+    deliveriesRequests: 0,
+    created: null,
+    createSecretRevealed: false,
+    lastPut: null,
+    deleted: null,
+    pinged: [],
+    rotated: [],
   };
 }
 
@@ -312,47 +406,72 @@ test.describe('Webhooks admin page', () => {
     await seedSessionWithMe(page, me);
     await page.goto('/webhooks');
     await expect(page.getByTestId('webhooks-page')).toBeVisible();
-    await expect(page.locator('td', { hasText: 'https://hooks.acme.test/a' }).first()).toBeVisible();
+    await expect(
+      page.locator('td', { hasText: 'https://hooks.acme.test/a' }).first(),
+    ).toBeVisible();
   }
 
   function rowFor(page: Page, url: string) {
     return page.locator('tr', { has: page.locator('td', { hasText: url }) });
   }
 
-  test('menu entry visible with webhooks:read; list renders counts + active switch', async ({ page }) => {
+  test('menu entry visible with webhooks:read; list renders counts + active switch', async ({
+    page,
+  }) => {
     await gotoWebhooks(page);
     // Sidebar menu entry (i18n zh label)
     await expect(page.locator('.ant-menu').getByText('事件钩子', { exact: true })).toBeVisible();
     // pending/dead aggregates from the list projection
-    await expect(rowFor(page, 'https://hooks.acme.test/a').getByText('3', { exact: true })).toBeVisible();
-    await expect(rowFor(page, 'https://hooks.acme.test/b').getByText('2', { exact: true })).toBeVisible();
+    await expect(
+      rowFor(page, 'https://hooks.acme.test/a').getByText('3', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      rowFor(page, 'https://hooks.acme.test/b').getByText('2', { exact: true }),
+    ).toBeVisible();
     // '*' subscription tag renders
-    await expect(rowFor(page, 'https://hooks.acme.test/a').getByText('*', { exact: true })).toBeVisible();
-    await expect(rowFor(page, 'https://hooks.acme.test/a').getByTestId('webhooks-active-switch')).toBeChecked();
-    await expect(rowFor(page, 'https://hooks.acme.test/b').getByTestId('webhooks-active-switch')).not.toBeChecked();
+    await expect(
+      rowFor(page, 'https://hooks.acme.test/a').getByText('*', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      rowFor(page, 'https://hooks.acme.test/a').getByTestId('webhooks-active-switch'),
+    ).toBeChecked();
+    await expect(
+      rowFor(page, 'https://hooks.acme.test/b').getByTestId('webhooks-active-switch'),
+    ).not.toBeChecked();
     // list payload must not carry secret material anywhere in the DOM
     await expect(page.locator('body')).not.toContainText(CREATED_SECRET);
   });
 
-  test('create: modal → POST 201 → reveal-once secret modal; secret never in list', async ({ page }) => {
+  test('create: modal → POST 201 → reveal-once secret modal; secret never in list', async ({
+    page,
+  }) => {
     await gotoWebhooks(page);
     await page.getByTestId('webhooks-create').click();
     await page.getByTestId('webhooks-url-input').fill('https://hooks.acme.test/new');
     await page.getByTestId('webhooks-description-input').fill('created by e2e');
     const events = page.getByTestId('webhooks-events-select').getByRole('combobox');
     await events.click();
-    await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content', { hasText: /^user\.created$/ }).click();
+    await page
+      .locator('.ant-select-dropdown:visible .ant-select-item-option-content', {
+        hasText: /^user\.created$/,
+      })
+      .click();
     await events.fill('role.updated');
     await events.press('Enter');
     await events.press('Escape'); // close dropdown — open options overlay intercepts the footer click
 
-    await page.getByTestId('webhooks-form-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+    await page
+      .getByTestId('webhooks-form-modal')
+      .locator('.ant-modal-footer .ant-btn-primary')
+      .click();
 
-    await expect.poll(() => stats.created, { timeout: 5000 }).toEqual({
-      url: 'https://hooks.acme.test/new',
-      description: 'created by e2e',
-      subscribedEvents: ['user.created', 'role.updated'],
-    });
+    await expect
+      .poll(() => stats.created, { timeout: 5000 })
+      .toEqual({
+        url: 'https://hooks.acme.test/new',
+        description: 'created by e2e',
+        subscribedEvents: ['user.created', 'role.updated'],
+      });
     // Reveal-once modal shows the secret exactly here…
     const reveal = page.getByTestId('webhooks-secret-reveal');
     await expect(reveal.locator('.ant-modal-content')).toBeVisible();
@@ -371,7 +490,9 @@ test.describe('Webhooks admin page', () => {
     await expect.poll(() => stats.lastPut, { timeout: 5000 }).not.toBeNull();
     expect(stats.lastPut?.id).toBe('hook-a');
     expect(stats.lastPut?.body.active).toBe(false);
-    await expect(rowFor(page, 'https://hooks.acme.test/a').getByTestId('webhooks-active-switch')).not.toBeChecked();
+    await expect(
+      rowFor(page, 'https://hooks.acme.test/a').getByTestId('webhooks-active-switch'),
+    ).not.toBeChecked();
   });
 
   test('test ping: POST /:id/ping 202 → queued message', async ({ page }) => {
@@ -416,15 +537,21 @@ test.describe('Webhooks admin page', () => {
     await expect(rowFor(page, 'https://hooks.acme.test/b')).toHaveCount(0);
   });
 
-  test('read-only user: create/edit/ping/rotate/delete hidden; switch disabled; deliveries available', async ({ page }) => {
+  test('read-only user: create/edit/ping/rotate/delete hidden; switch disabled; deliveries available', async ({
+    page,
+  }) => {
     await gotoWebhooks(page, READONLY_ME);
     await expect(page.getByTestId('webhooks-create')).toHaveCount(0);
     await expect(page.getByTestId('webhooks-edit')).toHaveCount(0);
     await expect(page.getByTestId('webhooks-ping')).toHaveCount(0);
     await expect(page.getByTestId('webhooks-rotate')).toHaveCount(0);
     await expect(page.getByTestId('webhooks-delete')).toHaveCount(0);
-    await expect(rowFor(page, 'https://hooks.acme.test/a').getByTestId('webhooks-active-switch')).toBeDisabled();
+    await expect(
+      rowFor(page, 'https://hooks.acme.test/a').getByTestId('webhooks-active-switch'),
+    ).toBeDisabled();
     // Deliveries is a read action — stays available for webhooks:read
-    await expect(rowFor(page, 'https://hooks.acme.test/a').getByTestId('webhooks-deliveries-open')).toBeVisible();
+    await expect(
+      rowFor(page, 'https://hooks.acme.test/a').getByTestId('webhooks-deliveries-open'),
+    ).toBeVisible();
   });
 });

@@ -5,7 +5,11 @@ import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-comp
 import { Alert, Button, DatePicker, Input, Modal, Tag, Tooltip, Typography } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 // ponytail: derive date types from antd instead of importing dayjs types directly
-type RangeDayjs = NonNullable<NonNullable<Parameters<NonNullable<React.ComponentProps<typeof DatePicker.RangePicker>['onChange']>>[0]>[number]>;
+type RangeDayjs = NonNullable<
+  NonNullable<
+    Parameters<NonNullable<React.ComponentProps<typeof DatePicker.RangePicker>['onChange']>>[0]
+  >[number]
+>;
 import { listEvents, type DomainEvent } from '../api/events';
 
 /** Tag color by event family (the catalog prefix before the dot). */
@@ -46,7 +50,9 @@ export default function Events() {
       title: t('events.type'),
       dataIndex: 'type',
       width: 180,
-      render: (_, record) => <Tag color={FAMILY_COLORS[familyOf(record.type)] ?? 'default'}>{record.type}</Tag>,
+      render: (_, record) => (
+        <Tag color={FAMILY_COLORS[familyOf(record.type)] ?? 'default'}>{record.type}</Tag>
+      ),
     },
     {
       title: t('events.resource'),
@@ -74,7 +80,12 @@ export default function Events() {
       dataIndex: 'detail',
       width: 90,
       render: (_, record) => (
-        <Button type="link" size="small" onClick={() => setDetail(record)} data-testid={`events-detail-${record.id}`}>
+        <Button
+          type="link"
+          size="small"
+          onClick={() => setDetail(record)}
+          data-testid={`events-detail-${record.id}`}
+        >
           {t('events.view')}
         </Button>
       ),
@@ -84,7 +95,13 @@ export default function Events() {
   return (
     <>
       {loadError && (
-        <Alert type="error" showIcon message={t('events.loadError')} style={{ marginBottom: 16 }} data-testid="events-load-error" />
+        <Alert
+          type="error"
+          showIcon
+          message={t('events.loadError')}
+          style={{ marginBottom: 16 }}
+          data-testid="events-load-error"
+        />
       )}
       <div style={{ marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Input
@@ -104,7 +121,12 @@ export default function Events() {
             })
           }
         />
-        <Button type="primary" icon={<SearchOutlined />} onClick={() => actionRef.current?.reload()} className="events-search">
+        <Button
+          type="primary"
+          icon={<SearchOutlined />}
+          onClick={() => actionRef.current?.reload()}
+          className="events-search"
+        >
           {t('events.search')}
         </Button>
         <Tooltip title={t('events.resetFilters')}>

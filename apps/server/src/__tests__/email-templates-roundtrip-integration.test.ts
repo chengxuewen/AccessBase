@@ -115,7 +115,9 @@ suite('email template options jsonb round-trip (real PG)', () => {
     const r = await renderEmailFor('magic', { link: 'https://x.test/m' }, om);
     expect(r.subject).toBe('Your sign-in link'); // built-in default wins over junk
     // jsonb_typeof is the tripwire proving it was stored as a scalar, not object
-    const chk = await pool.query(`SELECT jsonb_typeof(value) AS t FROM options WHERE key = 'email_tmpl_magic'`);
+    const chk = await pool.query(
+      `SELECT jsonb_typeof(value) AS t FROM options WHERE key = 'email_tmpl_magic'`,
+    );
     expect(chk.rows[0]?.['t']).toBe('string');
   });
 

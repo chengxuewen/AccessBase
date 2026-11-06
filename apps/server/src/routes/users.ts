@@ -14,7 +14,6 @@ import { sendConflictError } from '../utils/conflict-mapper.js';
 import { toCsv } from '../utils/csv.js';
 import { getOptionsManager } from './options.js';
 
-
 /**
  * Module-level lazy singleton (addendum #5): per-request `new SessionManager()`
  * would pile up pg Pools. Constructed only when suspend first needs it.
@@ -35,7 +34,10 @@ export async function userRoutes(app: FastifyInstance) {
   const roleManager = new RoleManager();
 
   /** Tenant-scope check for caller-supplied roleIds; returns the first unknown id (route-boundary validation). */
-  async function unknownRoleId(roleIds: string[] | undefined, tenantId?: string): Promise<string | null> {
+  async function unknownRoleId(
+    roleIds: string[] | undefined,
+    tenantId?: string,
+  ): Promise<string | null> {
     if (!roleIds) return null;
     for (const roleId of roleIds) {
       const role = await roleManager.findById(roleId, tenantId ?? DEFAULT_TENANT);
@@ -65,8 +67,10 @@ export async function userRoutes(app: FastifyInstance) {
     if (scope.kind === 'all') return false;
     const target = await userManager.findById(id, request.tenantId ?? DEFAULT_TENANT);
     if (!target) {
-    reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
-    return true;
+      reply
+        .status(404)
+        .send({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+      return true;
     }
     if (!(await userManager.isWithinScope(id, scope))) {
       forbiddenScope(reply, 'User is outside your data scope');
@@ -125,7 +129,14 @@ export async function userRoutes(app: FastifyInstance) {
       },
     },
     async (request) => {
-      const { page = 1, pageSize = 20, search, status, sortBy, sortOrder } = request.query as Record<string, string | undefined>;
+      const {
+        page = 1,
+        pageSize = 20,
+        search,
+        status,
+        sortBy,
+        sortOrder,
+      } = request.query as Record<string, string | undefined>;
       // DG-6d [R1]: the list surface rides the caller's users:read binding scope.
       const scope = await resolveUserRowScope(request, 'users:read');
       const result = await userManager.findAll(
@@ -179,12 +190,18 @@ export async function userRoutes(app: FastifyInstance) {
       ];
       const csvRows: Record<string, unknown>[] = [];
       for (let page = 1; csvRows.length < MAX_ROWS; page++) {
-        const result = await userManager.findAll({ page, pageSize: PAGE, scope: exportScope }, request.tenantId ?? DEFAULT_TENANT);
+        const result = await userManager.findAll(
+          { page, pageSize: PAGE, scope: exportScope },
+          request.tenantId ?? DEFAULT_TENANT,
+        );
         if (result.data.length === 0) break;
         for (const user of result.data) {
           if (csvRows.length >= MAX_ROWS) break;
           // CSV export reflects effective roles (direct + group-granted).
-          const roles = await roleManager.getEffectiveRoles(user.id, request.tenantId ?? DEFAULT_TENANT);
+          const roles = await roleManager.getEffectiveRoles(
+            user.id,
+            request.tenantId ?? DEFAULT_TENANT,
+          );
           csvRows.push({
             ...user,
             roles: roles.map((r) => r.name).join(','),
@@ -197,7 +214,10 @@ export async function userRoutes(app: FastifyInstance) {
 
       const csv = toCsv(headers, csvRows);
       reply.header('Content-Type', 'text/csv; charset=utf-8');
-      reply.header('Content-Disposition', `attachment; filename="users-${new Date().toISOString().slice(0, 10)}.csv"`);
+      reply.header(
+        'Content-Disposition',
+        `attachment; filename="users-${new Date().toISOString().slice(0, 10)}.csv"`,
+      );
       return reply.send(csv);
     },
   );
@@ -336,7 +356,12 @@ export async function userRoutes(app: FastifyInstance) {
             tx,
           );
           if (roleIds && roleIds.length > 0) {
-            await roleManager.setUserRoles(created.id, roleIds, request.tenantId ?? DEFAULT_TENANT, tx);
+            await roleManager.setUserRoles(
+              created.id,
+              roleIds,
+              request.tenantId ?? DEFAULT_TENANT,
+              tx,
+            );
           }
           return created;
         });
@@ -344,7 +369,7 @@ export async function userRoutes(app: FastifyInstance) {
       } catch (err) {
         const conflict = sendConflictError(reply, err);
         if (conflict) return conflict;
-const error = err instanceof Error ? err : new Error(String(err));
+        const error = err instanceof Error ? err : new Error(String(err));
         if (error.message.includes('duplicate') || error.message.includes('unique')) {
           return reply.status(409).send({
             success: false,
@@ -385,7 +410,10 @@ const error = err instanceof Error ? err : new Error(String(err));
         rows: Array<{ email?: string; name?: string; password?: string }>;
         commit?: boolean;
       };
-      const policy = await readPasswordPolicy(getOptionsManager().get.bind(getOptionsManager()), 'register');
+      const policy = await readPasswordPolicy(
+        getOptionsManager().get.bind(getOptionsManager()),
+        'register',
+      );
       const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const errors: Array<{ row: number; field: string; message: string }> = [];
       const valid: Array<{ email: string; name: string; password: string }> = [];
@@ -412,7 +440,11 @@ const error = err instanceof Error ? err : new Error(String(err));
             // Pre-existing duplicate check; in-batch duplicates surface via the
             // same path once the first row is created (findByEmail sees it).
             if (await userManager.findByEmail(email)) {
-              errors.push({ row: i, field: 'email', message: 'User with this email already exists' });
+              errors.push({
+                row: i,
+                field: 'email',
+                message: 'User with this email already exists',
+              });
               continue;
             }
             await userManager.create(
@@ -448,15 +480,25 @@ const error = err instanceof Error ? err : new Error(String(err));
         description: 'Admin password reset (arms force-change, revokes sessions)',
         tags: ['users'],
         security: [{ bearerAuth: [] }],
-        params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
-        body: { type: 'object', required: ['newPassword'], properties: { newPassword: { type: 'string', minLength: 1 } } },
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string', format: 'uuid' } },
+        },
+        body: {
+          type: 'object',
+          required: ['newPassword'],
+          properties: { newPassword: { type: 'string', minLength: 1 } },
+        },
       },
     },
     async (request, reply) => {
       const tenantId = request.tenantId ?? DEFAULT_TENANT;
       const target = await userManager.findById(request.params.id, tenantId);
       if (!target) {
-        return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+        return reply
+          .status(404)
+          .send({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
       }
       // DG-6d: reset is a mutation → the users:write binding scope guards it.
       const writeScope = await resolveUserRowScope(request, 'users:write');
@@ -465,12 +507,21 @@ const error = err instanceof Error ? err : new Error(String(err));
       }
       const newPassword = request.body.newPassword;
       if (typeof newPassword !== 'string') {
-        return reply.status(400).send({ success: false, error: { code: 'VALIDATION_001', message: 'newPassword required' } });
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'VALIDATION_001', message: 'newPassword required' },
+        });
       }
-      const policy = await readPasswordPolicy(getOptionsManager().get.bind(getOptionsManager()), 'user_create');
+      const policy = await readPasswordPolicy(
+        getOptionsManager().get.bind(getOptionsManager()),
+        'user_create',
+      );
       const verdict = assertPasswordPolicy(newPassword, policy);
       if (!verdict.ok) {
-        return reply.status(400).send({ success: false, error: { code: 'VALIDATION_001', message: verdict.message ?? 'Password rejected' } });
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'VALIDATION_001', message: verdict.message ?? 'Password rejected' },
+        });
       }
       await routeTx(async (tx) => {
         await userManager.adminResetPassword(target.id, newPassword, tx);
@@ -489,7 +540,11 @@ const error = err instanceof Error ? err : new Error(String(err));
         description: 'Send a set-password invitation email (72h single-use link)',
         tags: ['users'],
         security: [{ bearerAuth: [] }],
-        params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: { type: 'string', format: 'uuid' } },
+        },
       },
     },
     async (request, reply) => {
@@ -498,20 +553,28 @@ const error = err instanceof Error ? err : new Error(String(err));
       const tenantId = request.tenantId ?? DEFAULT_TENANT;
       const target = await userManager.findById(request.params.id, tenantId);
       if (!target) {
-        return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+        return reply
+          .status(404)
+          .send({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
       }
       const armed = target.mustChangePassword === true;
       if ((await userManager.hasPassword(target.id, undefined)) && !armed) {
         return reply.status(409).send({
           success: false,
-          error: { code: 'CONFLICT', message: 'User already has a password — use admin reset instead' },
+          error: {
+            code: 'CONFLICT',
+            message: 'User already has a password — use admin reset instead',
+          },
         });
       }
       const flowTokens = new FlowTokenService((await getRedis()) ?? undefined);
       const token = await flowTokens.issue('password_reset', { userId: target.id }, 72 * 3600);
       const mailer = await getSmtpMailer(getOptionsManager());
       if (!mailer) {
-        return reply.status(202).send({ success: true, data: { message: 'Invitation recorded; email delivery is not configured' } });
+        return reply.status(202).send({
+          success: true,
+          data: { message: 'Invitation recorded; email delivery is not configured' },
+        });
       }
       const origin = await resolvePublicOrigin(request, getOptionsManager());
       const link = `${origin}/reset-password?token=${token}`;
@@ -520,12 +583,13 @@ const error = err instanceof Error ? err : new Error(String(err));
         { link, invitee: target.email, inviter: 'An administrator' },
         getOptionsManager(),
       );
-      mailer
-        .send(target.email, rendered.subject, rendered.html)
-        .catch((err: unknown) => {
-          request.log.warn({ err }, 'invite mail delivery failed (degraded to log)');
-        });
-      return reply.status(202).send({ success: true, data: { message: 'If the account is invitable, an email has been sent.' } });
+      mailer.send(target.email, rendered.subject, rendered.html).catch((err: unknown) => {
+        request.log.warn({ err }, 'invite mail delivery failed (degraded to log)');
+      });
+      return reply.status(202).send({
+        success: true,
+        data: { message: 'If the account is invitable, an email has been sent.' },
+      });
     },
   );
 
@@ -566,7 +630,6 @@ const error = err instanceof Error ? err : new Error(String(err));
       return { success: true, data: { revoked: true } };
     },
   );
-
 
   // PUT /api/v1/users/:id — update user
   app.put<{ Params: { id: string } }>(
@@ -609,7 +672,11 @@ const error = err instanceof Error ? err : new Error(String(err));
         });
       }
       try {
-        const user = await userManager.update(id, { name, avatarUrl }, request.tenantId ?? DEFAULT_TENANT);
+        const user = await userManager.update(
+          id,
+          { name, avatarUrl },
+          request.tenantId ?? DEFAULT_TENANT,
+        );
         if (roleIds !== undefined) {
           await roleManager.setUserRoles(id, roleIds, request.tenantId ?? DEFAULT_TENANT);
         }
@@ -617,7 +684,7 @@ const error = err instanceof Error ? err : new Error(String(err));
       } catch (err) {
         const conflict = sendConflictError(reply, err);
         if (conflict) return conflict;
-const error = err instanceof Error ? err : new Error(String(err));
+        const error = err instanceof Error ? err : new Error(String(err));
         if (error.message.includes('not found')) {
           return reply.status(404).send({
             success: false,
@@ -667,7 +734,7 @@ const error = err instanceof Error ? err : new Error(String(err));
       } catch (err) {
         const conflict = sendConflictError(reply, err);
         if (conflict) return conflict;
-const error = err instanceof Error ? err : new Error(String(err));
+        const error = err instanceof Error ? err : new Error(String(err));
         if (error.message.includes('not found')) {
           return reply.status(404).send({
             success: false,
@@ -688,7 +755,8 @@ const error = err instanceof Error ? err : new Error(String(err));
     '/:id',
     {
       schema: {
-        description: 'Delete user (optional body {eraseAudit:true, legalBasis} triggers sanctioned audit erasure in the same transaction)',
+        description:
+          'Delete user (optional body {eraseAudit:true, legalBasis} triggers sanctioned audit erasure in the same transaction)',
         tags: ['users'],
         security: [{ bearerAuth: [] }],
         params: {
@@ -716,7 +784,10 @@ const error = err instanceof Error ? err : new Error(String(err));
       if (request.body?.eraseAudit === true && !request.body.legalBasis) {
         return reply.status(400).send({
           success: false,
-          error: { code: 'VALIDATION_001', message: 'legalBasis is required when eraseAudit is true' },
+          error: {
+            code: 'VALIDATION_001',
+            message: 'legalBasis is required when eraseAudit is true',
+          },
         });
       }
       const erase = request.body?.eraseAudit === true;
@@ -746,7 +817,9 @@ const error = err instanceof Error ? err : new Error(String(err));
             (lockResult as unknown as { rows?: Array<{ locked?: unknown }> }).rows?.[0]?.locked,
           );
           if (!locked) {
-            throw new Error('ERASE_LOCK_BUSY: audit erasure is anchored by another operation — retry shortly');
+            throw new Error(
+              'ERASE_LOCK_BUSY: audit erasure is anchored by another operation — retry shortly',
+            );
           }
           const target = await userManager.findById(id, tenantId);
           if (!target) {
@@ -773,7 +846,10 @@ const error = err instanceof Error ? err : new Error(String(err));
         if (error.message.startsWith('ERASE_LOCK_BUSY')) {
           return reply.status(409).send({
             success: false,
-            error: { code: 'ERASE_LOCK_BUSY', message: 'Audit erasure is temporarily locked by the anchor worker — retry shortly' },
+            error: {
+              code: 'ERASE_LOCK_BUSY',
+              message: 'Audit erasure is temporarily locked by the anchor worker — retry shortly',
+            },
           });
         }
         if (error.message.includes('not found')) {

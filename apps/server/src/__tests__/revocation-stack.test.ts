@@ -30,7 +30,10 @@ let sub: FastifyInstance;
 let bearer = '';
 let refreshToken = '';
 let userId = '';
-const rds = new Redis('redis://localhost:6379', { maxRetriesPerRequest: 2, retryStrategy: () => null });
+const rds = new Redis('redis://localhost:6379', {
+  maxRetriesPerRequest: 2,
+  retryStrategy: () => null,
+});
 let redisUp = false;
 try {
   await rds.ping();
@@ -43,18 +46,37 @@ beforeAll(async () => {
   // buildApp opens several scratch pools (oidc adapter et al.) that may still
   // hold backends at this instant; terminate-then-drop makes cleanup terminal.
   try {
-    execFileSync(PS, [ADMIN_URL, '-qc', `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${SCRATCH}' AND pid <> pg_backend_pid()`], { stdio: 'ignore' });
-  } catch { /* best effort */ }
+    execFileSync(
+      PS,
+      [
+        ADMIN_URL,
+        '-qc',
+        `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${SCRATCH}' AND pid <> pg_backend_pid()`,
+      ],
+      { stdio: 'ignore' },
+    );
+  } catch {
+    /* best effort */
+  }
   try {
     try {
-    const { execSync } = await import('node:child_process');
-    const orphans = execSync(`"${PS}" "${ADMIN_URL}" -tAc "SELECT datname FROM pg_database WHERE datname LIKE 'accessbase_revstack_%'"`, { encoding: 'utf8' }).trim();
-    for (const name of orphans.split('\n').filter(Boolean)) {
-      execSync(`"${PS}" "${ADMIN_URL}" -qc "DROP DATABASE IF EXISTS ${name}"`, { stdio: 'ignore' });
+      const { execSync } = await import('node:child_process');
+      const orphans = execSync(
+        `"${PS}" "${ADMIN_URL}" -tAc "SELECT datname FROM pg_database WHERE datname LIKE 'accessbase_revstack_%'"`,
+        { encoding: 'utf8' },
+      ).trim();
+      for (const name of orphans.split('\n').filter(Boolean)) {
+        execSync(`"${PS}" "${ADMIN_URL}" -qc "DROP DATABASE IF EXISTS ${name}"`, {
+          stdio: 'ignore',
+        });
+      }
+    } catch {
+      /* fresh box or locked orphans — harmless */
     }
-  } catch { /* fresh box or locked orphans — harmless */ }
-  execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`], { stdio: 'ignore' });
-  } catch { /* next-run beforeAll reclaims */ }
+    execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`], { stdio: 'ignore' });
+  } catch {
+    /* next-run beforeAll reclaims */
+  }
   execFileSync(PS, [ADMIN_URL, '-qc', `CREATE DATABASE ${SCRATCH}`]);
   execFileSync('bash', [MIGRATE, path.join(ROOT, 'packages/migration/drizzle')], {
     env: {
@@ -93,7 +115,15 @@ afterAll(async () => {
   // plugin-scope pools (setup.ts wizard managers, oidc adapter db) may still
   // hold backends — terminate first, then a best-effort drop.
   try {
-    execFileSync(PS, [ADMIN_URL, '-qc', `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${SCRATCH}' AND pid <> pg_backend_pid()`], { stdio: 'ignore' });
+    execFileSync(
+      PS,
+      [
+        ADMIN_URL,
+        '-qc',
+        `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${SCRATCH}' AND pid <> pg_backend_pid()`,
+      ],
+      { stdio: 'ignore' },
+    );
     execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`], { stdio: 'ignore' });
   } catch {
     /* orphan scratch DBs are reclaimed by the next run's prefix sweep */
@@ -102,53 +132,83 @@ afterAll(async () => {
 
 describe.skipIf(!redisUp)('bearer revocation end-to-end (live stack)', () => {
   it('pre-change bearer passes; authst got memoized in Redis', async () => {
-    const me = await sub!.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { authorization: `Bearer ${bearer}` } });
+    const me = await sub!.inject({
+      method: 'GET',
+      url: '/api/v1/auth/me',
+      headers: { authorization: `Bearer ${bearer}` },
+    });
     expect(me.statusCode).toBe(200);
     expect(await rds.exists(`authst:${userId}`)).toBe(1);
   });
 
-  it('authorization mutation → SAME bearer dies on next request (≤2s ≪ 30s), refresh rebuilds, legacy claim passes', { timeout: 30_000 }, async () => {
-    // mutate via the real RoleManager (production path: assign → bumpAuthState + DEL)
-    const { RoleManager } = await import('@accessbase/identity');
-    const rm = new RoleManager(URL);
-    const aux = await rm.create({ name: `aux-${Date.now()}`, description: '' }, TENANT);
-    const t0 = Date.now();
-    await rm.assignToUser(userId, aux.id, TENANT);
-    await rm.close();
+  it(
+    'authorization mutation → SAME bearer dies on next request (≤2s ≪ 30s), refresh rebuilds, legacy claim passes',
+    { timeout: 30_000 },
+    async () => {
+      // mutate via the real RoleManager (production path: assign → bumpAuthState + DEL)
+      const { RoleManager } = await import('@accessbase/identity');
+      const rm = new RoleManager(URL);
+      const aux = await rm.create({ name: `aux-${Date.now()}`, description: '' }, TENANT);
+      const t0 = Date.now();
+      await rm.assignToUser(userId, aux.id, TENANT);
+      await rm.close();
 
-    const dead = await sub.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { authorization: `Bearer ${bearer}` } });
-    expect(dead.statusCode).toBe(401);
-    expect((dead.json() as { error: { code: string } }).error.code).toBe('AUTH_005');
-    expect(Date.now() - t0).toBeLessThan(2000); // DEL is immediate; contract is ≤30s
+      const dead = await sub.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: { authorization: `Bearer ${bearer}` },
+      });
+      expect(dead.statusCode).toBe(401);
+      expect((dead.json() as { error: { code: string } }).error.code).toBe('AUTH_005');
+      expect(Date.now() - t0).toBeLessThan(2000); // DEL is immediate; contract is ≤30s
 
-    // refresh rebuild path via a REAL login (DB-backed session pair — the
-    // wizard's /complete hands out a JWT-shaped dev refresh token that never
-    // enters the sessions table, so it cannot rotate; login mints a real one)
-    // Full-suite runs share the per-IP login rate bucket with parallel suites —
-    // back off and retry on 429 instead of failing on contention (K-batch
-    // users-crud poll-hardening precedent).
-    const loginAgain = () => sub!.inject({
-      method: 'POST',
-      url: '/api/v1/auth/login',
-      payload: { email: 'revoketest@it.local', password: 'RevokerPass-123' },
-    });
-    let lg = await loginAgain();
-    for (let attempt = 0; lg.statusCode === 429 && attempt < 5; attempt++) {
-      await new Promise((r) => setTimeout(r, 2000));
-      lg = await loginAgain();
-    }
-    expect(lg.statusCode).toBe(200);
-    const pair = (lg.json().data as { accessToken: string; refreshToken: string });
-    const rf = await sub.inject({ method: 'POST', url: '/api/v1/auth/refresh', payload: { refreshToken: pair.refreshToken } });
-    expect(rf.statusCode).toBe(200);
-    const fresh = (rf.json().data as { accessToken: string }).accessToken;
-    void refreshToken;
-    const me2 = await sub.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { authorization: `Bearer ${fresh}` } });
-    expect(me2.statusCode).toBe(200);
+      // refresh rebuild path via a REAL login (DB-backed session pair — the
+      // wizard's /complete hands out a JWT-shaped dev refresh token that never
+      // enters the sessions table, so it cannot rotate; login mints a real one)
+      // Full-suite runs share the per-IP login rate bucket with parallel suites —
+      // back off and retry on 429 instead of failing on contention (K-batch
+      // users-crud poll-hardening precedent).
+      const loginAgain = () =>
+        sub!.inject({
+          method: 'POST',
+          url: '/api/v1/auth/login',
+          payload: { email: 'revoketest@it.local', password: 'RevokerPass-123' },
+        });
+      let lg = await loginAgain();
+      for (let attempt = 0; lg.statusCode === 429 && attempt < 5; attempt++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        lg = await loginAgain();
+      }
+      expect(lg.statusCode).toBe(200);
+      const pair = lg.json().data as { accessToken: string; refreshToken: string };
+      const rf = await sub.inject({
+        method: 'POST',
+        url: '/api/v1/auth/refresh',
+        payload: { refreshToken: pair.refreshToken },
+      });
+      expect(rf.statusCode).toBe(200);
+      const fresh = (rf.json().data as { accessToken: string }).accessToken;
+      void refreshToken;
+      const me2 = await sub.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: { authorization: `Bearer ${fresh}` },
+      });
+      expect(me2.statusCode).toBe(200);
 
-    // legacy token (no tokenVersion claim) → gate must skip (B1 rule), not loop
-    const legacy = sub.jwt.sign({ sub: userId, email: 'revoketest@it.local', status: 'active', tenantId: TENANT });
-    const ok = await sub.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { authorization: `Bearer ${legacy}` } });
-    expect(ok.statusCode).toBe(200);
-  });
+      // legacy token (no tokenVersion claim) → gate must skip (B1 rule), not loop
+      const legacy = sub.jwt.sign({
+        sub: userId,
+        email: 'revoketest@it.local',
+        status: 'active',
+        tenantId: TENANT,
+      });
+      const ok = await sub.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: { authorization: `Bearer ${legacy}` },
+      });
+      expect(ok.statusCode).toBe(200);
+    },
+  );
 });

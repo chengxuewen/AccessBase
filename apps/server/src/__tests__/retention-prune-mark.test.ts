@@ -27,12 +27,13 @@ function makeTxDb(script?: (sqlText: string, params: unknown[], call: Call) => u
     return script?.(text, params as unknown[], call) ?? { rowCount: 3 };
   };
   const execute = vi.fn();
-  const transaction = vi.fn(async (fn: (tx: { execute: (q: never) => Promise<unknown> }) => Promise<void>) =>
-    // Each statement gets its OWN Call record — reusing one object would make
-    // the calls[] probe see a single mutated entry instead of the sequence.
-    fn({
-      execute: ((q: never) => run({ sql: '', params: [] })(q)) as never,
-    }),
+  const transaction = vi.fn(
+    async (fn: (tx: { execute: (q: never) => Promise<unknown> }) => Promise<void>) =>
+      // Each statement gets its OWN Call record — reusing one object would make
+      // the calls[] probe see a single mutated entry instead of the sequence.
+      fn({
+        execute: ((q: never) => run({ sql: '', params: [] })(q)) as never,
+      }),
   );
   return { execute, transaction, calls };
 }

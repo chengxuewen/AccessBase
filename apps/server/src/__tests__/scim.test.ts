@@ -147,7 +147,11 @@ const userManagerMock = {
     },
   ),
   changeStatus: vi.fn(
-    async (id: string, status: 'active' | 'suspended' | 'pending', tenantId: string): Promise<MockUser> => {
+    async (
+      id: string,
+      status: 'active' | 'suspended' | 'pending',
+      tenantId: string,
+    ): Promise<MockUser> => {
       const user = [...userStore.values()].find((u) => u.id === id && u.tenantId === tenantId);
       if (!user) throw new Error('User not found');
       user.status = status;
@@ -198,7 +202,8 @@ const groupManagerMock = {
     [...groupStore.values()]
       .filter((g) => g.tenantId === tenantId)
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((g) => ({ ...g, memberCount: g.memberIds.length, roleCount: 0 }))),
+      .map((g) => ({ ...g, memberCount: g.memberIds.length, roleCount: 0 })),
+  ),
   findById: vi.fn(async (id: string, tenantId: string) => {
     const g = findGroup(id, tenantId);
     return g ? { ...g } : null;
@@ -209,21 +214,23 @@ const groupManagerMock = {
     }
     return { ...makeGroup(input.name, tenantId) };
   }),
-  update: vi.fn(async (id: string, patch: { name?: string; description?: string }, tenantId: string) => {
-    const g = findGroup(id, tenantId);
-    if (!g) throw new Error('GROUP_NOT_FOUND');
-    if (
-      patch.name &&
-      patch.name !== g.name &&
-      [...groupStore.values()].some((o) => o.tenantId === tenantId && o.name === patch.name)
-    ) {
-      throw new Error('GROUP_NAME_EXISTS');
-    }
-    if (patch.name) g.name = patch.name;
-    if (patch.description !== undefined) g.description = patch.description;
-    g.updatedAt = new Date();
-    return { ...g };
-  }),
+  update: vi.fn(
+    async (id: string, patch: { name?: string; description?: string }, tenantId: string) => {
+      const g = findGroup(id, tenantId);
+      if (!g) throw new Error('GROUP_NOT_FOUND');
+      if (
+        patch.name &&
+        patch.name !== g.name &&
+        [...groupStore.values()].some((o) => o.tenantId === tenantId && o.name === patch.name)
+      ) {
+        throw new Error('GROUP_NAME_EXISTS');
+      }
+      if (patch.name) g.name = patch.name;
+      if (patch.description !== undefined) g.description = patch.description;
+      g.updatedAt = new Date();
+      return { ...g };
+    },
+  ),
   delete: vi.fn(async (id: string, tenantId: string) => {
     const g = findGroup(id, tenantId);
     if (!g) throw new Error('GROUP_NOT_FOUND');
@@ -353,7 +360,11 @@ describe('SCIM mount skeleton', () => {
     const AUTH = { authorization: `Bearer ${SCIM_KEY}` };
 
     it('GET /ServiceProviderConfig → 200 capability doc', async () => {
-      const res = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ServiceProviderConfig`, headers: AUTH });
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/ServiceProviderConfig`,
+        headers: AUTH,
+      });
       expect(res.statusCode).toBe(200);
       expect(res.headers['content-type']).toContain('application/scim+json');
       const body = res.json();
@@ -375,7 +386,11 @@ describe('SCIM mount skeleton', () => {
     });
 
     it('GET /ResourceTypes → 200 ListResponse with User resource', async () => {
-      const res = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ResourceTypes`, headers: AUTH });
+      const res = await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/ResourceTypes`,
+        headers: AUTH,
+      });
       expect(res.statusCode).toBe(200);
       expect(res.headers['content-type']).toContain('application/scim+json');
       const body = res.json();
@@ -389,7 +404,11 @@ describe('SCIM mount skeleton', () => {
       method: 'POST',
       url: `${SCIM_BASE}/Users`,
       headers: { authorization: `Bearer ${SCIM_KEY}`, 'content-type': 'application/scim+json' },
-      payload: JSON.stringify({ schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'], userName: 'parser-proof@b.c', name: { formatted: 'Parser Proof' } }),
+      payload: JSON.stringify({
+        schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+        userName: 'parser-proof@b.c',
+        name: { formatted: 'Parser Proof' },
+      }),
     });
     // 201 = scoped parser accepted the media type (no 415) and the real
     // provisioning handler ran (T1 placeholder was 501).
@@ -453,7 +472,10 @@ describe('SCIM user provisioning (T2)', () => {
       expect(body.name).toEqual({ formatted: 'New User' });
       expect(body.emails).toEqual([{ value: 'new.user@example.com', primary: true }]);
       expect(body.active).toBe(true);
-      expect(body.meta).toMatchObject({ resourceType: 'User', location: `/api/v1/scim/v2/Users/${body.id}` });
+      expect(body.meta).toMatchObject({
+        resourceType: 'User',
+        location: `/api/v1/scim/v2/Users/${body.id}`,
+      });
       expect(res.headers.location).toBe(`/api/v1/scim/v2/Users/${body.id}`);
     });
 
@@ -615,7 +637,11 @@ describe('SCIM user provisioning (T2)', () => {
     });
 
     it('defaults: no query → page=1 pageSize=100', async () => {
-      await app.inject({ method: 'GET', url: `${SCIM_BASE}/Users`, headers: { authorization: `Bearer ${SCIM_KEY}` } });
+      await app.inject({
+        method: 'GET',
+        url: `${SCIM_BASE}/Users`,
+        headers: { authorization: `Bearer ${SCIM_KEY}` },
+      });
       expect(userManagerMock.findAll).toHaveBeenLastCalledWith(
         expect.objectContaining({ page: 1, pageSize: 100 }),
         DEFAULT_TENANT,
@@ -752,19 +778,18 @@ describe('SCIM user provisioning (T2)', () => {
 
   describe('M1 scoped error handler', () => {
     it('invalid JSON body → 400 SCIM Error invalidSyntax (not the global envelope)', async () => {
-
-    const res = await app.inject({
-      method: 'POST',
-      url: `${SCIM_BASE}/Users`,
-      headers: AUTH,
-      payload: '{not json',
-    });
-    expect(res.statusCode).toBe(400);
-    expect(res.headers['content-type']).toContain('application/scim+json');
-    const body = res.json();
-    expect(body.schemas).toEqual(['urn:ietf:params:scim:api:messages:2.0:Error']);
-    expect(body.scimType).toBe('invalidSyntax');
-    expect(body.status).toBe('400');
+      const res = await app.inject({
+        method: 'POST',
+        url: `${SCIM_BASE}/Users`,
+        headers: AUTH,
+        payload: '{not json',
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.headers['content-type']).toContain('application/scim+json');
+      const body = res.json();
+      expect(body.schemas).toEqual(['urn:ietf:params:scim:api:messages:2.0:Error']);
+      expect(body.scimType).toBe('invalidSyntax');
+      expect(body.status).toBe('400');
     });
   });
 
@@ -773,29 +798,22 @@ describe('SCIM user provisioning (T2)', () => {
   // ---------------------------------------------------------------------------
 
   describe('PATCH /Users/:id (T3)', () => {
-
     beforeEach(() => resetUserStore());
 
     function patchBody(operations: unknown): string {
-
       return JSON.stringify({
-
         schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
 
         Operations: operations,
-
       });
-
     }
 
     it('PIT-056: replace active=false → 200 + changeStatus(suspended, tenant) + revokeAllUserSessions', async () => {
-
       const u = makeUser({ email: 'patch-off@x.io' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -803,7 +821,6 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([{ op: 'replace', path: 'active', value: false }]),
-
       });
 
       expect(res.statusCode).toBe(200);
@@ -815,17 +832,14 @@ describe('SCIM user provisioning (T2)', () => {
       expect(userManagerMock.changeStatus).toHaveBeenCalledWith(u.id, 'suspended', DEFAULT_TENANT);
 
       expect(sessionManagerMock.revokeAllUserSessions).toHaveBeenCalledWith(u.id);
-
     });
 
     it('replace active=true (on suspended user) → changeStatus(active), NO session revocation', async () => {
-
       const u = makeUser({ email: 'patch-on@x.io', status: 'suspended' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -833,7 +847,6 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([{ op: 'replace', path: 'active', value: true }]),
-
       });
 
       expect(res.statusCode).toBe(200);
@@ -843,17 +856,14 @@ describe('SCIM user provisioning (T2)', () => {
       expect(userManagerMock.changeStatus).toHaveBeenCalledWith(u.id, 'active', DEFAULT_TENANT);
 
       expect(sessionManagerMock.revokeAllUserSessions).not.toHaveBeenCalled();
-
     });
 
     it('replace name → update called with {name: value}, response reflects it', async () => {
-
       const u = makeUser({ email: 'patch-name@x.io', name: 'Before' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -861,7 +871,6 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([{ op: 'replace', path: 'name', value: 'After' }]),
-
       });
 
       expect(res.statusCode).toBe(200);
@@ -869,17 +878,14 @@ describe('SCIM user provisioning (T2)', () => {
       expect(res.json().name.formatted).toBe('After');
 
       expect(userManagerMock.update).toHaveBeenCalledWith(u.id, { name: 'After' }, DEFAULT_TENANT);
-
     });
 
     it('name.formatted sub-path → update({name: value})', async () => {
-
       const u = makeUser({ email: 'patch-nf@x.io', name: 'Before' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -887,25 +893,25 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([{ op: 'replace', path: 'name.formatted', value: 'Sub Path' }]),
-
       });
 
       expect(res.statusCode).toBe(200);
 
       expect(res.json().name.formatted).toBe('Sub Path');
 
-      expect(userManagerMock.update).toHaveBeenCalledWith(u.id, { name: 'Sub Path' }, DEFAULT_TENANT);
-
+      expect(userManagerMock.update).toHaveBeenCalledWith(
+        u.id,
+        { name: 'Sub Path' },
+        DEFAULT_TENANT,
+      );
     });
 
     it('multi-attr Operations → BOTH changeStatus AND update called (sequential, array order)', async () => {
-
       const u = makeUser({ email: 'patch-multi@x.io', name: 'Before' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -913,13 +919,10 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([
-
           { op: 'replace', path: 'active', value: false },
 
           { op: 'replace', path: 'name', value: 'Multi Renamed' },
-
         ]),
-
       });
 
       expect(res.statusCode).toBe(200);
@@ -930,7 +933,11 @@ describe('SCIM user provisioning (T2)', () => {
 
       expect(userManagerMock.changeStatus).toHaveBeenCalledWith(u.id, 'suspended', DEFAULT_TENANT);
 
-      expect(userManagerMock.update).toHaveBeenCalledWith(u.id, { name: 'Multi Renamed' }, DEFAULT_TENANT);
+      expect(userManagerMock.update).toHaveBeenCalledWith(
+        u.id,
+        { name: 'Multi Renamed' },
+        DEFAULT_TENANT,
+      );
 
       expect(sessionManagerMock.revokeAllUserSessions).toHaveBeenCalledWith(u.id);
 
@@ -941,17 +948,14 @@ describe('SCIM user provisioning (T2)', () => {
       const updateIdx = userManagerMock.update.mock.invocationCallOrder[0] as number;
 
       expect(statusIdx).toBeLessThan(updateIdx);
-
     });
 
     it('unknown attribute (title) → 400 invalidPath, no manager writes (R7)', async () => {
-
       const u = makeUser({ email: 'patch-title@x.io' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -959,7 +963,6 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([{ op: 'replace', path: 'title', value: 'CEO' }]),
-
       });
 
       expect(res.statusCode).toBe(400);
@@ -969,17 +972,14 @@ describe('SCIM user provisioning (T2)', () => {
       expect(userManagerMock.update).not.toHaveBeenCalled();
 
       expect(userManagerMock.changeStatus).not.toHaveBeenCalled();
-
     });
 
     it('remove active → 400 invalidPath (active is required)', async () => {
-
       const u = makeUser({ email: 'patch-rmact@x.io' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -987,7 +987,6 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([{ op: 'remove', path: 'active' }]),
-
       });
 
       expect(res.statusCode).toBe(400);
@@ -995,47 +994,40 @@ describe('SCIM user provisioning (T2)', () => {
       expect(res.json().scimType).toBe('invalidPath');
 
       expect(userManagerMock.changeStatus).not.toHaveBeenCalled();
-
     });
 
     it('replace/remove emails → 400 invalidPath (email immutable, PUT parity)', async () => {
-
       const u = makeUser({ email: 'patch-eml@x.io' });
 
       userStore.set(u.email, u);
 
       for (const op of ['replace', 'remove']) {
-
         const res = await app.inject({
-
           method: 'PATCH',
 
           url: `${SCIM_BASE}/Users/${u.id}`,
 
           headers: AUTH,
 
-          payload: patchBody([{ op, path: 'emails', value: op === 'replace' ? [{ value: 'x@y.io' }] : undefined }]),
-
+          payload: patchBody([
+            { op, path: 'emails', value: op === 'replace' ? [{ value: 'x@y.io' }] : undefined },
+          ]),
         });
 
         expect(res.statusCode).toBe(400);
 
         expect(res.json().scimType).toBe('invalidPath');
-
       }
 
       expect(userManagerMock.update).not.toHaveBeenCalled();
-
     });
 
     it("unknown op ('append') → 400 invalidPath", async () => {
-
       const u = makeUser({ email: 'patch-op@x.io' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -1043,23 +1035,19 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([{ op: 'append', path: 'name', value: 'X' }]),
-
       });
 
       expect(res.statusCode).toBe(400);
 
       expect(res.json().scimType).toBe('invalidPath');
-
     });
 
     it("capitalized op ('Replace', Azure AD style) → 200 (case-insensitive)", async () => {
-
       const u = makeUser({ email: 'patch-cap@x.io', name: 'Before' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -1067,19 +1055,15 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([{ op: 'Replace', path: 'name', value: 'Cased' }]),
-
       });
 
       expect(res.statusCode).toBe(200);
 
       expect(res.json().name.formatted).toBe('Cased');
-
     });
 
     it('user not found → 404 scimType notFound, no writes', async () => {
-
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/00000000-0000-0000-0000-00000000dead`,
@@ -1087,7 +1071,6 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([{ op: 'replace', path: 'active', value: false }]),
-
       });
 
       expect(res.statusCode).toBe(404);
@@ -1095,17 +1078,14 @@ describe('SCIM user provisioning (T2)', () => {
       expect(res.json().scimType).toBe('notFound');
 
       expect(userManagerMock.changeStatus).not.toHaveBeenCalled();
-
     });
 
     it('missing Operations → 400 invalidValue', async () => {
-
       const u = makeUser({ email: 'patch-noop@x.io' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -1113,23 +1093,19 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: JSON.stringify({ schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'] }),
-
       });
 
       expect(res.statusCode).toBe(400);
 
       expect(res.json().scimType).toBe('invalidValue');
-
     });
 
     it('empty Operations array → 400 invalidValue', async () => {
-
       const u = makeUser({ email: 'patch-empty@x.io' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -1137,23 +1113,19 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([]),
-
       });
 
       expect(res.statusCode).toBe(400);
 
       expect(res.json().scimType).toBe('invalidValue');
-
     });
 
     it('not a PatchOp body (no schemas/Operations shape) → 400 invalidValue', async () => {
-
       const u = makeUser({ email: 'patch-shape@x.io' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -1161,23 +1133,19 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: JSON.stringify({ active: false }),
-
       });
 
       expect(res.statusCode).toBe(400);
 
       expect(res.json().scimType).toBe('invalidValue');
-
     });
 
     it('T2 H1 carry-over: active=false with NO other writes → response reflects FRESH suspended state', async () => {
-
       const u = makeUser({ email: 'patch-fresh@x.io', name: 'Same Name' });
 
       userStore.set(u.email, u);
 
       const res = await app.inject({
-
         method: 'PATCH',
 
         url: `${SCIM_BASE}/Users/${u.id}`,
@@ -1185,7 +1153,6 @@ describe('SCIM user provisioning (T2)', () => {
         headers: AUTH,
 
         payload: patchBody([{ op: 'replace', path: 'active', value: false }]),
-
       });
 
       expect(res.statusCode).toBe(200);
@@ -1195,9 +1162,7 @@ describe('SCIM user provisioning (T2)', () => {
       expect(res.json().active).toBe(false);
 
       expect(userManagerMock.findById).toHaveBeenCalledTimes(2); // pre-check + fresh re-read
-
     });
-
   });
 
   describe('L1 ServiceProviderConfig carry-overs', () => {
@@ -1246,7 +1211,6 @@ describe('SCIM user provisioning (T2)', () => {
       expect(body.detail).toContain('LAST_ADMIN_GUARD');
     });
   });
-
 });
 
 // ---------------------------------------------------------------------------
@@ -1331,22 +1295,37 @@ describe('SCIM group provisioning (Q4b)', () => {
     expect(pj.totalResults).toBe(3);
     expect(pj.itemsPerPage).toBe(2);
     // sorted by name: Alpha,Beta,Gamma → offset 1 → Beta,Gamma
-    expect(pj.Resources.map((r: { displayName: string }) => r.displayName)).toEqual(['Beta', 'Gamma']);
+    expect(pj.Resources.map((r: { displayName: string }) => r.displayName)).toEqual([
+      'Beta',
+      'Gamma',
+    ]);
   });
 
   it('GET /:id embeds members; unknown id 404; other-tenant group invisible', async () => {
     const g = makeGroup('Squad');
     const u = seedUser('squad@q4b.local');
     g.memberIds.push(u.id);
-    const res = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ScimGroups/${g.id}`, headers: G_AUTH });
+    const res = await app.inject({
+      method: 'GET',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json().members).toEqual([{ value: u.id, display: 'squad@q4b.local' }]);
 
-    const missing = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ScimGroups/g-none`, headers: G_AUTH });
+    const missing = await app.inject({
+      method: 'GET',
+      url: `${SCIM_BASE}/ScimGroups/g-none`,
+      headers: G_AUTH,
+    });
     expect(missing.statusCode).toBe(404);
 
     const foreign = makeGroup('Foreign', 'tenant-B');
-    const f = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ScimGroups/${foreign.id}`, headers: G_AUTH });
+    const f = await app.inject({
+      method: 'GET',
+      url: `${SCIM_BASE}/ScimGroups/${foreign.id}`,
+      headers: G_AUTH,
+    });
     expect(f.statusCode).toBe(404);
   });
 
@@ -1436,23 +1415,43 @@ describe('SCIM group provisioning (Q4b)', () => {
     });
     expect(patch.statusCode).toBe(403);
 
-    const del = await app.inject({ method: 'DELETE', url: `${SCIM_BASE}/ScimGroups/${g.id}`, headers: G_AUTH });
+    const del = await app.inject({
+      method: 'DELETE',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+    });
     expect(del.statusCode).toBe(403);
 
-    const get = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ScimGroups/${g.id}`, headers: G_AUTH });
+    const get = await app.inject({
+      method: 'GET',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+    });
     expect(get.statusCode).toBe(200);
   });
 
   it('DELETE → 204 and gone; LAST_ADMIN_GUARD from manager maps to 403 invalidValue', async () => {
     const g = makeGroup('Doomed');
-    const del = await app.inject({ method: 'DELETE', url: `${SCIM_BASE}/ScimGroups/${g.id}`, headers: G_AUTH });
+    const del = await app.inject({
+      method: 'DELETE',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+    });
     expect(del.statusCode).toBe(204);
-    const gone = await app.inject({ method: 'GET', url: `${SCIM_BASE}/ScimGroups/${g.id}`, headers: G_AUTH });
+    const gone = await app.inject({
+      method: 'GET',
+      url: `${SCIM_BASE}/ScimGroups/${g.id}`,
+      headers: G_AUTH,
+    });
     expect(gone.statusCode).toBe(404);
 
     const g2 = makeGroup('Guarded');
     groupGuardThrow = 'LAST_ADMIN_GUARD: group is the only admin source of the tenant';
-    const blocked = await app.inject({ method: 'DELETE', url: `${SCIM_BASE}/ScimGroups/${g2.id}`, headers: G_AUTH });
+    const blocked = await app.inject({
+      method: 'DELETE',
+      url: `${SCIM_BASE}/ScimGroups/${g2.id}`,
+      headers: G_AUTH,
+    });
     expect(blocked.statusCode).toBe(403);
     expect(blocked.json().detail).toContain('no active administrator');
   });

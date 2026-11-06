@@ -4,19 +4,19 @@
 
 ## 必须修（BLOCKER/HIGH）
 
-| # | 级别 | 发现 | 吸收 |
-|---|---|---|---|
-| B1 | **BLOCKER** | restore 确认框**不回显目标身份**：DATABASE_URL override 最高优先——stale shell 指向 prod + 泛化 yes/no 提示 → `pg_restore --clean` 抹 prod | 提示**必打 host:port/dbname/user**；非 localhost 或 DATABASE_URL 显式设置时要求**键入库名**确认（ACCESSBASE_RESTORE_CONFIRM=yes 旁路，独立变量） |
-| B2 | **HIGH** | dump 文件默认 umask 0644 世界可读，而 schema 实锤 `sessions.token` **明文 varchar**（+oauth 令牌+passwordHash）——备份=皇冠钥匙 | 脚本开头 `umask 077` + 产物 chmod 600；报告/头注明 dump 含明文 session 须按机密管理 |
-| R2/B3 | **HIGH** | setup-guard ALLOWED_PATHS（:16）无 '/metrics'：setup 前 403 SETUP_REQUIRED、setup 后**每次抓取一趟 DB 查询**（D113 无缓存）、且 PG-down vitest 基线下 metrics 测试拿 503 **炸信号归零门** | ALLOWED_PATHS += '/metrics'；T2 文件矩阵 += middleware/setup-guard.ts；测试 PG-down 绿 |
-| B4 | **HIGH** | 「unset=open 镜像 JWT 哲学」**论据为假**（JWT prod fail-fast；metrics 裸奔）；prod 下 route-pattern 直方图标签=**全 API 面地图**+`nodejs_version_info` 指纹；CORS 空单 dev 回显任意源 | 承 K-T4 禁新 fail-fast：**warnDegradedChecks 增 env-only 告警行**（prod & 无 token）+ `/metrics` 路由级 `cors:false`（服务器对服务器抓取无需 CORS）——一刀封两类 |
+| #     | 级别        | 发现                                                                                                                                                                                      | 吸收                                                                                                                                                            |
+| ----- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1    | **BLOCKER** | restore 确认框**不回显目标身份**：DATABASE_URL override 最高优先——stale shell 指向 prod + 泛化 yes/no 提示 → `pg_restore --clean` 抹 prod                                                 | 提示**必打 host:port/dbname/user**；非 localhost 或 DATABASE_URL 显式设置时要求**键入库名**确认（ACCESSBASE_RESTORE_CONFIRM=yes 旁路，独立变量）                |
+| B2    | **HIGH**    | dump 文件默认 umask 0644 世界可读，而 schema 实锤 `sessions.token` **明文 varchar**（+oauth 令牌+passwordHash）——备份=皇冠钥匙                                                            | 脚本开头 `umask 077` + 产物 chmod 600；报告/头注明 dump 含明文 session 须按机密管理                                                                             |
+| R2/B3 | **HIGH**    | setup-guard ALLOWED_PATHS（:16）无 '/metrics'：setup 前 403 SETUP_REQUIRED、setup 后**每次抓取一趟 DB 查询**（D113 无缓存）、且 PG-down vitest 基线下 metrics 测试拿 503 **炸信号归零门** | ALLOWED_PATHS += '/metrics'；T2 文件矩阵 += middleware/setup-guard.ts；测试 PG-down 绿                                                                          |
+| B4    | **HIGH**    | 「unset=open 镜像 JWT 哲学」**论据为假**（JWT prod fail-fast；metrics 裸奔）；prod 下 route-pattern 直方图标签=**全 API 面地图**+`nodejs_version_info` 指纹；CORS 空单 dev 回显任意源     | 承 K-T4 禁新 fail-fast：**warnDegradedChecks 增 env-only 告警行**（prod & 无 token）+ `/metrics` 路由级 `cors:false`（服务器对服务器抓取无需 CORS）——一刀封两类 |
 
 ## MAJOR（flows）
 
-| # | 发现 | 吸收 |
-|---|---|---|
-| R1 | 限流「既有 /health skip 列表」**伪前提**（app.ts:96-104 无 skip，utils/limiter 幽灵文件） | 改为：app.ts 注册处新增 `skip: req => /health 或 /metrics 前缀`；T2 矩阵删 utils/limiter 行 |
-| R3 | **D4 机制与镜像现实不符**：compose server 走 Dockerfile.dev ENTRYPOINT=`entrypoint-dev.sh`（`command:` 被吞为入参），push **已在** :50 执行但 `2>/dev/null \|\| echo skipped` **吞败** | T4 重定向：改 entrypoint-dev.sh（push 失败致命或重试+显错），文件矩阵 += docker/entrypoint-dev.sh；compose command 改法**撤销**；G5-4 实弹（down -v→up→/setup/status 200）为唯一仲裁，机制如再异据实修 |
+| #   | 发现                                                                                                                                                                                   | 吸收                                                                                                                                                                                                   |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | 限流「既有 /health skip 列表」**伪前提**（app.ts:96-104 无 skip，utils/limiter 幽灵文件）                                                                                              | 改为：app.ts 注册处新增 `skip: req => /health 或 /metrics 前缀`；T2 矩阵删 utils/limiter 行                                                                                                            |
+| R3  | **D4 机制与镜像现实不符**：compose server 走 Dockerfile.dev ENTRYPOINT=`entrypoint-dev.sh`（`command:` 被吞为入参），push **已在** :50 执行但 `2>/dev/null \|\| echo skipped` **吞败** | T4 重定向：改 entrypoint-dev.sh（push 失败致命或重试+显错），文件矩阵 += docker/entrypoint-dev.sh；compose command 改法**撤销**；G5-4 实弹（down -v→up→/setup/status 200）为唯一仲裁，机制如再异据实修 |
 
 ## MED/LOW（全采纳）
 

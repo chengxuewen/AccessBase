@@ -97,7 +97,11 @@ const roleFor = (id: string): Role => ({
 
 describe('cache invalidation on write paths', () => {
   let db: ReturnType<typeof makeMockDb>;
-  let rmStub: { getUserRoles: ReturnType<typeof vi.fn>; getEffectiveRoles: ReturnType<typeof vi.fn>; resolveInheritedPermissions: ReturnType<typeof vi.fn> };
+  let rmStub: {
+    getUserRoles: ReturnType<typeof vi.fn>;
+    getEffectiveRoles: ReturnType<typeof vi.fn>;
+    resolveInheritedPermissions: ReturnType<typeof vi.fn>;
+  };
   let pm: PermissionManager;
   let roleManager: RoleManager;
   let userManager: UserManager;
@@ -258,9 +262,8 @@ describe('cache invalidation on write paths', () => {
 
 describe('permission-cache publish hook (Q2c)', () => {
   it('local invalidation announces through the hook; fromRemote suppresses it', async () => {
-    const { invalidatePermissionCache, setPermissionCachePublishHook } = await import(
-      '../managers/permission-cache.js'
-    );
+    const { invalidatePermissionCache, setPermissionCachePublishHook } =
+      await import('../managers/permission-cache.js');
     const seen: Array<[string | undefined, string | undefined]> = [];
     setPermissionCachePublishHook((t, u) => seen.push([t, u]));
     invalidatePermissionCache('t1', 'u1');

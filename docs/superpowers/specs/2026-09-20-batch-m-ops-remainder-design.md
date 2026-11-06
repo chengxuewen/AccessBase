@@ -80,6 +80,7 @@ close→rebuild→probe → 200 again (mocked).
 
 `scripts/backup.sh` + `scripts/restore.sh` ↔ `accessbase.sh backup [--dir D] [--keep N]`
 / `accessbase.sh restore FILE [--force]`:
+
 - Target resolution reuses **`configure_native_urls`** (_common.sh:51) for native,
   deploy-mode .env sourcing pattern (start.sh), `DATABASE_URL` override wins. URL →
   host/port/user/db split + **percent-decode** password into `PGPASSWORD` env;
@@ -92,8 +93,7 @@ close→rebuild→probe → 200 again (mocked).
   beyond --keep (default 7); validate OUT is a real dir (mkdir -p), never follow user
   globs.
 - restore: BEFORE any prompt — echo `target: <user>@<host>:<port>/<db>`; refuse unless
-  server for that mode is down (deploy: `data/.pids`/PIDFILE probe; native: port probe
-  5101) OR `--force`; tty confirm requires **typing the database name** when
+  server for that mode is down (deploy: `data/.pids`/PIDFILE probe; native: port probe 5101) OR `--force`; tty confirm requires **typing the database name** when
   host≠localhost or DATABASE_URL was externally set; `ACCESSBASE_RESTORE_CONFIRM=yes`
   = non-interactive bypass (SEPARATE variable from RESET — rev.1 body fixed).
   `pg_restore -c --clean --if-exists --no-owner`; nonzero + loud half-restored warning.

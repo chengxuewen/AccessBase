@@ -18,19 +18,43 @@ describe('mfa policy resolution (Q3E)', () => {
   });
   it('enforceHit skips bound users, admins-only consults roles lazily', async () => {
     const isAdmin = vi.fn(async () => true);
-    expect(await enforceHit({ getOption: get('all'), isSystemAdmin: isAdmin, user: { totpEnabled: true } })).toBe(false);
+    expect(
+      await enforceHit({
+        getOption: get('all'),
+        isSystemAdmin: isAdmin,
+        user: { totpEnabled: true },
+      }),
+    ).toBe(false);
     expect(isAdmin).not.toHaveBeenCalled();
-    expect(await enforceHit({ getOption: get('admins'), isSystemAdmin: isAdmin, user: {} })).toBe(true);
-    expect(await enforceHit({ getOption: get('admins'), isSystemAdmin: async () => false, user: {} })).toBe(false);
+    expect(await enforceHit({ getOption: get('admins'), isSystemAdmin: isAdmin, user: {} })).toBe(
+      true,
+    );
+    expect(
+      await enforceHit({ getOption: get('admins'), isSystemAdmin: async () => false, user: {} }),
+    ).toBe(false);
   });
   it('enrollGate issues the chain token only when the policy hits', async () => {
     const issue = vi.fn(async () => 'ft-1');
-    const r = await enrollGate({ getOption: get('all'), issueEnroll: issue, isSystemAdmin: async () => false, user: { id: 'u1' } });
+    const r = await enrollGate({
+      getOption: get('all'),
+      issueEnroll: issue,
+      isSystemAdmin: async () => false,
+      user: { id: 'u1' },
+    });
     expect(r).toEqual({ mfaRequired: true, enroll: true, flowToken: 'ft-1' });
-    expect(await enrollGate({ getOption: get('off'), issueEnroll: issue, isSystemAdmin: async () => true, user: { id: 'u1' } })).toBeNull();
+    expect(
+      await enrollGate({
+        getOption: get('off'),
+        issueEnroll: issue,
+        isSystemAdmin: async () => true,
+        user: { id: 'u1' },
+      }),
+    ).toBeNull();
   });
   it('config-plane explosion = off (login door never 500s on policy reads)', async () => {
-    const boom = async () => { throw new Error('db down'); };
+    const boom = async () => {
+      throw new Error('db down');
+    };
     expect(await resolveMfaPolicy(boom)).toBe('off');
   });
 });

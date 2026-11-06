@@ -16,7 +16,7 @@ conclusions before finishing.
 ### Pass 1 — correctness officer (assume the fixed plan is still wrong)
 
 - **R2-C1 [HIGH] `S0` says "push the 10 queued commits"; it is 11.** Measured: `git rev-list
-  --count origin/master..HEAD` → 11. The number went stale **during the very session that wrote
+--count origin/master..HEAD` → 11. The number went stale **during the very session that wrote
   it**, when the plan itself was committed. This is not a rounding error — it is the plan's own
   thesis demonstrated on the plan: a hand-written measurable count is wrong by the time it is read.
 - **R2-C2 [HIGH] `S0`'s acceptance says "7 jobs green"; `ci.yml` defines 8.** Measured job names:
@@ -48,7 +48,7 @@ conclusions before finishing.
   was set by the product-posture argument, and bigger sample ⇒ stronger case that bundling a
   Prometheus deployment is the operator's call). But the plan should cite 7, with `asOf`.
 - **R2-E3 [LOW] `asOf` is used 7 times while the file carries many more dated claims**
-  ("delivered 2026-10-08", "last entry 2026-10-12", "stops 09-12"). Those are dates *inside*
+  ("delivered 2026-10-08", "last entry 2026-10-12", "stops 09-12"). Those are dates _inside_
   document claims rather than measurements, so they are not violations — but the visual
   similarity between "2026-10-08" in a `[measured]` cell and the same format in a `[doc-claim]`
   cell is itself a trap for the next reader. Worth one line in §0.
@@ -77,17 +77,17 @@ conclusions before finishing.
 
 ## Merge (single pass, lead)
 
-| # | Grade | Finding | Origin | Disposition proposed |
-|---|---|---|---|---|
-| R2-C2 | HIGH | "7 jobs green" vs 8 defined → S0 acceptance unsatisfiable as written | pass 1 | replace count with a pointer ("all jobs in `jobs:` green"); or state the count with `asOf` |
-| R2-C1 | HIGH | "10 queued commits" is 11, made stale by this session's own commit | pass 1 | replace with `git rev-list --count origin/master..HEAD` at run time |
-| R2-E2 | MEDIUM | T12 under-states: sample carries 7 alert definitions, not 2 | pass 2 | cite 7 with `asOf 2026-11-05`; strengthens P3-A, does not reopen it |
-| R2-D1 | MEDIUM | date-prefix naming rule violated inside the same document | pass 3 | mechanical sweep in §2/§3 prose |
-| R2-D2 | MEDIUM | §6 criterion #1 covers a deferred ledger no S1 task owns | pass 3 | name the owner or narrow the criterion |
-| R2-C3 | MEDIUM | three different counts of the same self-violation set | pass 1 | drop the counts; keep the enumerated list |
-| R2-E3 | LOW | `asOf` used 7× while dated document-claims use the same visual form | pass 2 | one clarifying line in §0 |
-| R2-E1 | CLEAN | T12, X-2 counts, package presence all reproduce exactly | pass 2 | — |
-| R2-D3 | CLEAN | §13.3 exists; report path resolves; 38-header arithmetic verified | pass 3 | — |
+| #     | Grade  | Finding                                                              | Origin | Disposition proposed                                                                       |
+| ----- | ------ | -------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------ |
+| R2-C2 | HIGH   | "7 jobs green" vs 8 defined → S0 acceptance unsatisfiable as written | pass 1 | replace count with a pointer ("all jobs in `jobs:` green"); or state the count with `asOf` |
+| R2-C1 | HIGH   | "10 queued commits" is 11, made stale by this session's own commit   | pass 1 | replace with `git rev-list --count origin/master..HEAD` at run time                        |
+| R2-E2 | MEDIUM | T12 under-states: sample carries 7 alert definitions, not 2          | pass 2 | cite 7 with `asOf 2026-11-05`; strengthens P3-A, does not reopen it                        |
+| R2-D1 | MEDIUM | date-prefix naming rule violated inside the same document            | pass 3 | mechanical sweep in §2/§3 prose                                                            |
+| R2-D2 | MEDIUM | §6 criterion #1 covers a deferred ledger no S1 task owns             | pass 3 | name the owner or narrow the criterion                                                     |
+| R2-C3 | MEDIUM | three different counts of the same self-violation set                | pass 1 | drop the counts; keep the enumerated list                                                  |
+| R2-E3 | LOW    | `asOf` used 7× while dated document-claims use the same visual form  | pass 2 | one clarifying line in §0                                                                  |
+| R2-E1 | CLEAN  | T12, X-2 counts, package presence all reproduce exactly              | pass 2 | —                                                                                          |
+| R2-D3 | CLEAN  | §13.3 exists; report path resolves; 38-header arithmetic verified    | pass 3 | —                                                                                          |
 
 ## Conflict items (preserved, not smoothed)
 
@@ -100,7 +100,7 @@ conclusions before finishing.
     that yields it at run time — which is what R2-D ruled for module headers and what R10's S1
     lint enforces.
   - Left open deliberately: the two readings differ on whether this plan is allowed to contain
-    *any* run-time-variable quantity, and that is a policy, not a typo.
+    _any_ run-time-variable quantity, and that is a policy, not a typo.
 - **R2-X2 — is "7 jobs" a wording bug or an acceptance defect?**
   - Correctness: HIGH — a criterion that cannot be satisfied is a broken gate, and a broken gate
     that reports success is worse than no gate; S0 is the plan's first action.
@@ -125,7 +125,7 @@ conclusions before finishing.
 - Roles: correctness officer, evidence officer, `doc-audit` lens; sequential track; 3 passes;
   all findings backed by a command in this report.
 - Verdict: **not clean** — 2 HIGH, 4 MEDIUM, 1 LOW, 2 CLEAN. Notably, both CLEAN rows confirm
-  round 1's repairs held, and both HIGH rows are the *same class* as the finding that motivated
+  round 1's repairs held, and both HIGH rows are the _same class_ as the finding that motivated
   R2-D in the first place: quantities that change under the writer's own feet.
 - Handoff: to `adjudication-walkthrough`, one at a time. Suggested order **R2-X1 → R2-C2 →
   R2-E2 → R2-D1 → R2-D2 → R2-C3 → R2-E3**, with R2-X2 and R2-X3 raised only if their fixes are

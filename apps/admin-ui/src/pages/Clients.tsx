@@ -81,7 +81,9 @@ export default function Clients() {
         grantTypes: values.grantTypes ?? [],
         scope: (values.scope ?? '').trim(),
         tokenAuthMethod: values.tokenAuthMethod,
-        ...(values.backchannelLogoutUri?.trim() ? { backchannelLogoutUri: values.backchannelLogoutUri.trim() } : {}),
+        ...(values.backchannelLogoutUri?.trim()
+          ? { backchannelLogoutUri: values.backchannelLogoutUri.trim() }
+          : {}),
       });
       setCreateOpen(false);
       setReveal({ clientId: created.clientId, clientSecret: created.clientSecret });
@@ -158,8 +160,7 @@ export default function Clients() {
       title: t('clients.grantTypes'),
       dataIndex: 'grantTypes',
       search: false,
-      render: (_, record) =>
-        record.grantTypes.map((g) => <Tag key={g}>{g}</Tag>),
+      render: (_, record) => record.grantTypes.map((g) => <Tag key={g}>{g}</Tag>),
     },
     { title: t('clients.scope'), dataIndex: 'scope', search: false },
     {
@@ -214,7 +215,12 @@ export default function Clients() {
           showIcon
           message={t('clients.loadError')}
           action={
-            <Button size="small" icon={<ReloadOutlined />} onClick={handleRetry} data-testid="clients-load-retry">
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={handleRetry}
+              data-testid="clients-load-retry"
+            >
               {t('common.retry')}
             </Button>
           }
@@ -270,7 +276,15 @@ export default function Clients() {
         destroyOnHidden
         forceRender
       >
-        <Form form={form} layout="vertical" initialValues={{ grantTypes: ['authorization_code'], scope: DEFAULT_SCOPE, tokenAuthMethod: 'client_secret_basic' }}>
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{
+            grantTypes: ['authorization_code'],
+            scope: DEFAULT_SCOPE,
+            tokenAuthMethod: 'client_secret_basic',
+          }}
+        >
           <Form.Item
             name="name"
             label={t('clients.name')}
@@ -312,7 +326,10 @@ export default function Clients() {
             extra={t('clients.backchannelLogoutUriHint')}
             rules={[{ type: 'url', message: t('clients.backchannelLogoutUriInvalid') }]}
           >
-            <Input data-testid="clients-backchannel-input" placeholder="https://rp.example.com/backchannel-logout" />
+            <Input
+              data-testid="clients-backchannel-input"
+              placeholder="https://rp.example.com/backchannel-logout"
+            />
           </Form.Item>
         </Form>
       </Modal>

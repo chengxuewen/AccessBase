@@ -29,10 +29,14 @@ interface Call {
 
 function makeFake(state: FakeState): { query: WebhookQuery; calls: Call[] } {
   const calls: Call[] = [];
-  const query: WebhookQuery['query'] = async <T>(text: string, params?: unknown[]): Promise<T[]> => {
+  const query: WebhookQuery['query'] = async <T>(
+    text: string,
+    params?: unknown[],
+  ): Promise<T[]> => {
     calls.push({ sql: text, params });
     if (text === CLAIM_SQL) return state.claimed as unknown as T[];
-    if (text.includes('FROM webhook_endpoints WHERE id = ANY')) return state.endpoints as unknown as T[];
+    if (text.includes('FROM webhook_endpoints WHERE id = ANY'))
+      return state.endpoints as unknown as T[];
     if (text.includes('FROM events WHERE id = ANY')) return state.events as unknown as T[];
     return [] as unknown as T[];
   };
@@ -63,7 +67,11 @@ beforeEach(() => {
 
 describe('step 0 — retention prune', () => {
   it('prune runs FIRST, before the kill-switch check (invariant 8)', async () => {
-    const { deps, calls } = baseDeps({ state: EMPTY, webhooksEnabled: () => false, retentionDays: 3 });
+    const { deps, calls } = baseDeps({
+      state: EMPTY,
+      webhooksEnabled: () => false,
+      retentionDays: 3,
+    });
     await startWebhookDispatcher(deps).runOnce();
     expect(calls[0]?.sql).toContain('DELETE FROM events');
     expect(calls[0]?.params).toEqual([3]);
@@ -102,7 +110,14 @@ describe('step 1 — fan-out + vacuous terminalization', () => {
       state: {
         claimed: [{ id: 1, event_id: 10, endpoint_id: EP, attempts: 1 }],
         endpoints: [{ id: EP, url: 'http://8.8.8.8/hook', secret_encrypted: 'S' }],
-        events: [{ id: 10, type: 'user.created', payload: { a: 1 }, created_at: '2026-01-01T00:00:00.000Z' }],
+        events: [
+          {
+            id: 10,
+            type: 'user.created',
+            payload: { a: 1 },
+            created_at: '2026-01-01T00:00:00.000Z',
+          },
+        ],
       },
     });
     await startWebhookDispatcher(deps).runOnce();
@@ -154,13 +169,25 @@ describe('step 2/3 — claim lease + signed POST', () => {
       state: {
         claimed: [{ id: 1, event_id: 42, endpoint_id: EP, attempts: 1 }],
         endpoints: [{ id: EP, url: 'https://hooks.example/x', secret_encrypted: 'B' }],
-        events: [{ id: 42, type: 'user.created', payload: { email: 'a@b.c' }, created_at: '2026-05-01T10:00:00.000Z' }],
+        events: [
+          {
+            id: 42,
+            type: 'user.created',
+            payload: { email: 'a@b.c' },
+            created_at: '2026-05-01T10:00:00.000Z',
+          },
+        ],
       },
     });
     await startWebhookDispatcher(deps).runOnce();
     const call = fetchImpl.mock.calls[0];
     const url = call?.[0] as string;
-    const init = call?.[1] as { body: string; headers: Record<string, string>; method: string; redirect: string };
+    const init = call?.[1] as {
+      body: string;
+      headers: Record<string, string>;
+      method: string;
+      redirect: string;
+    };
     expect(url).toBe('https://hooks.example/x');
     expect(init.method).toBe('POST');
     expect(init.redirect).toBe('manual'); // 3xx must not be followed
@@ -340,7 +367,10 @@ describe('R1-T4 — metric deps (recordDelivery + backlogStats)', () => {
 
   // Event 12 fails, the other two succeed — settlement follows the existing
   // terminal rule (attempts >= 10 ⇒ dead, else retry).
-  const fetchMixed = async (_url: string, init: Record<string, unknown>): Promise<{ status: number }> => {
+  const fetchMixed = async (
+    _url: string,
+    init: Record<string, unknown>,
+  ): Promise<{ status: number }> => {
     const headers = init['headers'] as Record<string, string>;
     return { status: headers['x-accessbase-event'] === '12' ? 500 : 200 };
   };
@@ -372,7 +402,11 @@ describe('R1-T4 — metric deps (recordDelivery + backlogStats)', () => {
 
   it('backlogStats fires once per active tick (kill-switch on) after the prune', async () => {
     const backlogStats = vi.fn(async () => ({ count: 7, oldestAgeSeconds: 42 }));
-    const { deps, calls } = baseDeps({ state: mixedState(10), fetchImpl: fetchMixed, backlogStats });
+    const { deps, calls } = baseDeps({
+      state: mixedState(10),
+      fetchImpl: fetchMixed,
+      backlogStats,
+    });
     await startWebhookDispatcher(deps).runOnce();
     expect(backlogStats).toHaveBeenCalledTimes(1);
     // placement contract: prune is the first SQL, fan-out follows the probe
@@ -401,7 +435,11 @@ describe('R1-T4 — metric deps (recordDelivery + backlogStats)', () => {
     const recordDelivery = vi.fn(() => {
       throw new Error('counter boom');
     });
-    const { deps, calls } = baseDeps({ state: mixedState(10), fetchImpl: fetchMixed, recordDelivery });
+    const { deps, calls } = baseDeps({
+      state: mixedState(10),
+      fetchImpl: fetchMixed,
+      recordDelivery,
+    });
     const d = startWebhookDispatcher(deps);
     await expect(d.runOnce()).resolves.toBeUndefined();
     expect(recordDelivery).toHaveBeenCalledTimes(3);
@@ -425,7 +463,9 @@ describe('L7 — stop() drains the in-flight tick', () => {
     const state: FakeState = {
       claimed: [{ id: 1, event_id: 10, endpoint_id: EP, attempts: 1 }],
       endpoints: [{ id: EP, url: 'http://8.8.8.8/hook', secret_encrypted: 'S' }],
-      events: [{ id: 10, type: 'user.created', payload: { a: 1 }, created_at: '2026-01-01T00:00:00.000Z' }],
+      events: [
+        { id: 10, type: 'user.created', payload: { a: 1 }, created_at: '2026-01-01T00:00:00.000Z' },
+      ],
     };
     const { query: seam, calls } = makeFake(state);
     const order: string[] = [];
@@ -469,7 +509,9 @@ describe('L7 — stop() drains the in-flight tick', () => {
     await tick;
 
     expect(order).toEqual(['fetch-inflight', 'fetch-settled', 'pool-closed']);
-    expect(calls.filter((c) => c.sql.includes('SET status = $1')).map((c) => c.params?.[0])).toEqual(['delivered']);
+    expect(
+      calls.filter((c) => c.sql.includes('SET status = $1')).map((c) => c.params?.[0]),
+    ).toEqual(['delivered']);
     expect(recordDelivery).toHaveBeenCalledWith('ok');
   });
 });

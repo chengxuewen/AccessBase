@@ -1,6 +1,6 @@
 ---
 name: code-review-and-quality
-description: "Structured code review for this repo: deterministic checks first (machines are the authority), then a six-domain deep pass with a confidence gate. Use when reviewing any code change before delivery — own edits, batch outputs, or ported code — or when the user says 审查/复审这份代码/review this change."
+description: 'Structured code review for this repo: deterministic checks first (machines are the authority), then a six-domain deep pass with a confidence gate. Use when reviewing any code change before delivery — own edits, batch outputs, or ported code — or when the user says 审查/复审这份代码/review this change.'
 ---
 
 # code-review-and-quality — structured review, deterministic checks first
@@ -15,15 +15,15 @@ description: "Structured code review for this repo: deterministic checks first (
 Run these first; a red here ends the review — fix, then come back. A tool
 missing from the machine = SKIP with a note (never a blocker, never silent):
 
-| # | Check | Command | Red when |
-|---|---|---|---|
-| 1 | Type double-green | `bash accessbase.sh typecheck` | any error |
-| 2 | Lint | `bash accessbase.sh lint` | any error |
-| 3 | Banned syntax, zero NEW instances | `git diff -U0 \| grep -E "as any\\|@ts-ignore\\|@ts-expect-error"` | any hit in added lines |
-| 4 | Tests did not silently shrink | `git diff -- '*test*' '*spec*'` | deletions/skips/weakened assertions without a stated reason (CONSTRAINTS.md Never #3) |
-| 5 | Frontend change → E2E duty | touched `apps/admin-ui/**` → run the mock-first suites | E2E skipped for a UI behavior change |
-| 6 | Governance surfaces | touched `.agents/**`, generated layers, or `CONSTRAINTS.md` → `bash accessbase.sh agents check` | any finding |
-| 7 | Plaintext secrets | `git diff \| grep -iE "password\\|secret\\|token\\|api_key"` (added lines) | any literal that is not `${VAR}` / env indirection |
+| #   | Check                             | Command                                                                                         | Red when                                                                              |
+| --- | --------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 1   | Type double-green                 | `bash accessbase.sh typecheck`                                                                  | any error                                                                             |
+| 2   | Lint                              | `bash accessbase.sh lint`                                                                       | any error                                                                             |
+| 3   | Banned syntax, zero NEW instances | `git diff -U0 \| grep -E "as any\\                                                              | @ts-ignore\\                                                                          | @ts-expect-error"` | any hit in added lines  |
+| 4   | Tests did not silently shrink     | `git diff -- '*test*' '*spec*'`                                                                 | deletions/skips/weakened assertions without a stated reason (CONSTRAINTS.md Never #3) |
+| 5   | Frontend change → E2E duty        | touched `apps/admin-ui/**` → run the mock-first suites                                          | E2E skipped for a UI behavior change                                                  |
+| 6   | Governance surfaces               | touched `.agents/**`, generated layers, or `CONSTRAINTS.md` → `bash accessbase.sh agents check` | any finding                                                                           |
+| 7   | Plaintext secrets                 | `git diff \| grep -iE "password\\                                                               | secret\\                                                                              | token\\            | api_key"` (added lines) | any literal that is not `${VAR}` / env indirection |
 
 ## Phase 2 — six-domain deep pass (this repo's domains)
 
@@ -52,11 +52,11 @@ domain invariants, record findings with evidence.
 
 ## Confidence gate (per finding)
 
-| Confidence | Action |
-|---|---|
-| > 80 | Report with severity + fix |
-| 60–80 | Report, marked "needs human confirmation" |
-| < 60 | Suppress (a vague finding costs more than it saves) |
+| Confidence | Action                                              |
+| ---------- | --------------------------------------------------- |
+| > 80       | Report with severity + fix                          |
+| 60–80      | Report, marked "needs human confirmation"           |
+| < 60       | Suppress (a vague finding costs more than it saves) |
 
 ## Output format
 
@@ -70,10 +70,10 @@ place.
 
 ## Anti-excuse table
 
-| Excuse | Answer |
-|---|---|
-| "Typecheck takes long, skip to judgment" | Phase 1 is not optional; judgment on unverified code is theater |
-| "It's just a small change" | Small changes still run the Phase 1 table — it is minutes of machine time |
-| "The test will probably pass" | Run it (`rule:testing`); "probably" is a Phase-2 confidence < 60 = suppress |
-| "The finding is obvious, no evidence needed" | Evidence column is mandatory; an unfounded finding is noise with authority |
-| "Baseline counts are X tests" | Never quote counts from memory — the gate prints them (scale literals drift) |
+| Excuse                                       | Answer                                                                       |
+| -------------------------------------------- | ---------------------------------------------------------------------------- |
+| "Typecheck takes long, skip to judgment"     | Phase 1 is not optional; judgment on unverified code is theater              |
+| "It's just a small change"                   | Small changes still run the Phase 1 table — it is minutes of machine time    |
+| "The test will probably pass"                | Run it (`rule:testing`); "probably" is a Phase-2 confidence < 60 = suppress  |
+| "The finding is obvious, no evidence needed" | Evidence column is mandatory; an unfounded finding is noise with authority   |
+| "Baseline counts are X tests"                | Never quote counts from memory — the gate prints them (scale literals drift) |

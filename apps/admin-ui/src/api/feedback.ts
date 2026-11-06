@@ -27,10 +27,13 @@ function ready(which: 'message' | 'notification'): FeedbackBridge {
 
 export const message: MessageInstance = {
   info: (content, duration, onClose) => ready('message').message.info(content, duration, onClose),
-  success: (content, duration, onClose) => ready('message').message.success(content, duration, onClose),
+  success: (content, duration, onClose) =>
+    ready('message').message.success(content, duration, onClose),
   error: (content, duration, onClose) => ready('message').message.error(content, duration, onClose),
-  warning: (content, duration, onClose) => ready('message').message.warning(content, duration, onClose),
-  loading: (content, duration, onClose) => ready('message').message.loading(content, duration, onClose),
+  warning: (content, duration, onClose) =>
+    ready('message').message.warning(content, duration, onClose),
+  loading: (content, duration, onClose) =>
+    ready('message').message.loading(content, duration, onClose),
   open: (args) => ready('message').message.open(args),
   destroy: (key) => ready('message').message.destroy(key),
 };

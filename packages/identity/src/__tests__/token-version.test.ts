@@ -46,7 +46,11 @@ describe('bumpAuthState (Q3A)', () => {
     expect(db.update).not.toHaveBeenCalled();
   });
   it('broken db lane fails soft (never blocks the legitimate write)', async () => {
-    const db = { update: vi.fn(() => { throw new Error('chain ended'); }) };
+    const db = {
+      update: vi.fn(() => {
+        throw new Error('chain ended');
+      }),
+    };
     await expect(
       bumpAuthState(db as never, { tenantId: 't1', allTenantUsers: true }),
     ).resolves.toBeUndefined();

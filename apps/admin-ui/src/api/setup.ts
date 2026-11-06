@@ -83,7 +83,10 @@ export async function completeSetup(): Promise<{
   accessToken: string;
   refreshToken: string;
 }> {
-  const { data } = await client.post<ApiEnvelope<{ accessToken: string; refreshToken: string }>>('/v1/setup/complete');
+  const { data } =
+    await client.post<ApiEnvelope<{ accessToken: string; refreshToken: string }>>(
+      '/v1/setup/complete',
+    );
   // Backend wraps tokens in the standard envelope { success, data: { accessToken, refreshToken } } — unwrap
   const payload = data.data;
   return { accessToken: payload.accessToken, refreshToken: payload.refreshToken };

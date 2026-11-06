@@ -12,15 +12,15 @@
 
 ## 2. External Facts (verified via librarian, sources cited)
 
-| # | Fact | Evidence |
-|---|------|----------|
-| F1 | Partial-index generate support lands in **drizzle-kit 0.22.0** ("Full support for indexes in PostgreSQL"; new index API incl. `.where(sql``)`) | drizzle-kit-mirror release v0.22.0; issue drizzle-team/drizzle-orm#1519 closed comment: "After versions drizzle-kit@0.22.0 and drizzle-orm@0.31.0 all fields are supported" |
-| F2 | `eq()` helper in index WHERE emits `$1` parameters — **never fixed in 0.x** (#3349 @0.22.7, #2506, #4790 @2025-07). Our schema already uses `sql` template literals (schema.ts:375-376 `sql`${t.uid} IS NOT NULL``) → unaffected | issues as cited |
-| F3 | Latest stable pair: **drizzle-kit 0.31.11 + drizzle-orm 0.45.3** (npm latest, 2026-09). 1.0.0-rc.4 exists but is a full kit rewrite (v3 folder structure, DDL snapshots) — OUT of scope for this batch | npm registry; drizzle-orm releases |
-| F4 | Snapshot format jumps v5→v6 (kit 0.21.0) then v6→v7 (kit ~0.22.x), all handled by **`drizzle-kit up`**; stays v7 through the rest of 0.x incl. 0.31.11 | 0.21.0 release notes ("snapshots upgraded to version 6"); #2506/#2614 threads |
-| F5 | Breaking config/CLI surface since 0.20: `:pg` command suffixes removed (0.21.0) — `generate:pg`→`generate` etc.; `dialect` mandatory in config; `dbCredentials.connectionString`→`url`; `driver` key removed (0.21.0 release notes) | as cited |
-| F6 | Post-up regression watch: #6020 — `up` + `generate` can emit phantom no-op migrations due to WHERE text-normalization drift (`"table"."col"` vs `"col"`), reported across 0.31.10→rc line | issue #6020 |
-| F7 | kit enforces a `drizzle-orm/version` compatibility check at startup — kit 0.31.x requires a recent orm, so orm must move together with kit (#2614 thread; F3 pairing) | issue #2614 |
+| #   | Fact                                                                                                                                                                                                                                | Evidence                                                                                                                                                                    |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | Partial-index generate support lands in **drizzle-kit 0.22.0** ("Full support for indexes in PostgreSQL"; new index API incl. `.where(sql``)`)                                                                                      | drizzle-kit-mirror release v0.22.0; issue drizzle-team/drizzle-orm#1519 closed comment: "After versions drizzle-kit@0.22.0 and drizzle-orm@0.31.0 all fields are supported" |
+| F2  | `eq()` helper in index WHERE emits `$1` parameters — **never fixed in 0.x** (#3349 @0.22.7, #2506, #4790 @2025-07). Our schema already uses `sql` template literals (schema.ts:375-376 `sql`${t.uid} IS NOT NULL``) → unaffected    | issues as cited                                                                                                                                                             |
+| F3  | Latest stable pair: **drizzle-kit 0.31.11 + drizzle-orm 0.45.3** (npm latest, 2026-09). 1.0.0-rc.4 exists but is a full kit rewrite (v3 folder structure, DDL snapshots) — OUT of scope for this batch                              | npm registry; drizzle-orm releases                                                                                                                                          |
+| F4  | Snapshot format jumps v5→v6 (kit 0.21.0) then v6→v7 (kit ~0.22.x), all handled by **`drizzle-kit up`**; stays v7 through the rest of 0.x incl. 0.31.11                                                                              | 0.21.0 release notes ("snapshots upgraded to version 6"); #2506/#2614 threads                                                                                               |
+| F5  | Breaking config/CLI surface since 0.20: `:pg` command suffixes removed (0.21.0) — `generate:pg`→`generate` etc.; `dialect` mandatory in config; `dbCredentials.connectionString`→`url`; `driver` key removed (0.21.0 release notes) | as cited                                                                                                                                                                    |
+| F6  | Post-up regression watch: #6020 — `up` + `generate` can emit phantom no-op migrations due to WHERE text-normalization drift (`"table"."col"` vs `"col"`), reported across 0.31.10→rc line                                           | issue #6020                                                                                                                                                                 |
+| F7  | kit enforces a `drizzle-orm/version` compatibility check at startup — kit 0.31.x requires a recent orm, so orm must move together with kit (#2614 thread; F3 pairing)                                                               | issue #2614                                                                                                                                                                 |
 
 ## 3. Target Decision
 
@@ -31,6 +31,7 @@ Rationale: smallest distance to the end-state the repo wants (generate is author
 ## 4. Scope
 
 ### 4.1 In scope
+
 1. **Version bumps (4 files)**: packages/migration/package.json devDep kit ^0.20.0→^0.31.11; orm ^0.29.0→^0.45.3 in identity:34 / migration:35 / server:43. `pnpm install` → lockfile commit (constraints.md lockfile rule).
 2. **Script/config rewrite (3 files)**:
    - packages/migration/package.json scripts:29-31 `push:pg`→`push`, `generate:pg`→`generate`, `up:pg`→`up`.
@@ -45,6 +46,7 @@ Rationale: smallest distance to the end-state the repo wants (generate is author
 9. **Memory close-out (English, D121)**: PIT-072 status line → RESOLVED + the root-package.json:36 false-fact correction appended; Phase N conventions partial-index bullet rewritten (workaround retired; hand-written-trio rule downgraded to "legacy 0004/0005 files only — new chain files may be generate-produced"); conventions CI/migrate bullets checked for kit-command mentions needing reword (db:migrate inert-command note still true, command now `up` not `up:pg` — reword); status.md batch line.
 
 ### 4.2 Out of scope
+
 - drizzle-kit 1.x / v3 folder structure adoption (rc-line, F3).
 - Switching runtime migration to `drizzle-kit migrate` (migrate.sh is the audited sole runtime writer, Phase L convention — untouched).
 - Rewriting applied chain SQL files 0000-0005 (frozen, applied to live DBs; generate is only ever run to diff FROM them).
@@ -61,13 +63,13 @@ Rationale: smallest distance to the end-state the repo wants (generate is author
 
 ## 6. Risks
 
-| Risk | Likelihood | Mitigation |
-|------|-----------|------------|
-| #6020 phantom no-op migration (WHERE normalization drift v5→v7 conversion) | MED (issue spans 0.31.x) | acceptance 4.1(5); fix = align snapshot text to generator format, never ship no-op SQL |
-| ORM 0.29→0.45 hidden query breakage at runtime (types pass, behavior differs) | LOW-MED | 931-test suite incl. real-PG oidc/L-chain + e2e + migrate.sh live-fire; diff release notes 0.30/0.31/0.32 during fallout fix |
-| `drizzle-kit up` mutates journal in a way migrate.sh misreads (new fields) | LOW | migrate.sh parses `tag` + file order only (read its jq-less grep loop during acceptance); journal diff review in 4.1(8) |
-| root drizzle.config.ts breaks (MCP placeholder imports defineConfig from hoisted kit) | LOW | pnpm strict layout means root has NO drizzle-kit at all today (declared nowhere in root package.json) — it already resolves via MCP tooling or fails silently; verify `pnpm --filter @accessbase/migration exec drizzle-kit up` path works and leave root config untouched unless typecheck complains |
-| kit startup version-gate (F7) rejects installed orm | LOW | bump both in the same install (target pair from F3) |
+| Risk                                                                                  | Likelihood               | Mitigation                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #6020 phantom no-op migration (WHERE normalization drift v5→v7 conversion)            | MED (issue spans 0.31.x) | acceptance 4.1(5); fix = align snapshot text to generator format, never ship no-op SQL                                                                                                                                                                                                                |
+| ORM 0.29→0.45 hidden query breakage at runtime (types pass, behavior differs)         | LOW-MED                  | 931-test suite incl. real-PG oidc/L-chain + e2e + migrate.sh live-fire; diff release notes 0.30/0.31/0.32 during fallout fix                                                                                                                                                                          |
+| `drizzle-kit up` mutates journal in a way migrate.sh misreads (new fields)            | LOW                      | migrate.sh parses `tag` + file order only (read its jq-less grep loop during acceptance); journal diff review in 4.1(8)                                                                                                                                                                               |
+| root drizzle.config.ts breaks (MCP placeholder imports defineConfig from hoisted kit) | LOW                      | pnpm strict layout means root has NO drizzle-kit at all today (declared nowhere in root package.json) — it already resolves via MCP tooling or fails silently; verify `pnpm --filter @accessbase/migration exec drizzle-kit up` path works and leave root config untouched unless typecheck complains |
+| kit startup version-gate (F7) rejects installed orm                                   | LOW                      | bump both in the same install (target pair from F3)                                                                                                                                                                                                                                                   |
 
 ## 7. Execution Shape (task decomposition for SDD)
 
@@ -91,22 +93,32 @@ Rationale: smallest distance to the end-state the repo wants (generate is author
 # Review Appendix rev.2 (dual-Momus 2026-09-23: flows APPROVE-WITH-FIXES, blockers findings absorbed)
 
 ## R1 [HIGH, blockers] up-readability of the malformed v5 snapshots is UNPROVEN — new T0 probe gates the whole batch
+
 The hand-written 0004/0005 snapshots are malformed-by-construction against 0.20's own strict v5 validator (`index = {name, columns: string[], isUnique}.strict()` — rejects `where/concurrently/method/with` AND the object-style columns `[{name,isExpression,asc,nulls}]` they were written in, i.e. the v6/v7 vocabulary under a version:"5" label). F4's "all handled by drizzle-kit up" is an assumption about a read path no tool has ever exercised. **T0 (new, gates T1)**: isolated scratch probe — copy meta/ + 6 SQL files to /tmp, `npm i drizzle-kit@0.31.11 drizzle-orm@0.45.3` there, minimal config, run `drizzle-kit up`; assert exit 0 + snapshots reach version "7" + all 4 `where` entries survive. If up crashes → plan pivots to hand-rewrite of the 6 snapshots to v7 vocabulary (or head-snapshot rebuild) BEFORE any repo change. Recovery line for a partial write (repo run): meta/ is git-tracked — `git restore packages/migration/drizzle/meta/`.
+
 ## R2 [HIGH, flows] "7 tracked" false → 6; ops-migrate.test.ts:158 `toHaveLength(6)`; success-criteria wording fixed: fresh = 17 chain tables (+schema_migrations = 18 total) / 6 tracking rows.
+
 ## R3 [HIGH, flows] migrate.sh reads NO journal — mechanism corrected: `mapfile FILES < (find "$CHAIN_DIR" -maxdepth 1 -name '[0-9][0-9][0-9][0-9]_*.sql' | sort)`, tracks basename. The risk-table row "up mutates journal → migrate misreads" is therefore **zero**, not LOW; §5 "journal order" and §6 mitigation wording ("jq-less grep loop", "parses tag") are fictional-mechanism text — replaced. Chain-dir/SQL-files remain the only contract surface.
+
 ## R4 [MED, flows] census corrections (grep truth): varchar 37 (was 39), timestamp 31 (was 32), jsonb 8 (was 10), pgTable declarations 17 (18 was the raw grep incl. the import line); index( 21, .references( 5 stand. Vitest baseline **949/0** (batch N terminal; 931 appears nowhere in status.md).
+
 ## R5 [MED, blockers] WHERE-text inconsistency is real and already inside our snapshots: 0004/0005 phone entries are bare `phone IS NOT NULL` while oidc entries are quoted `"uid" IS NOT NULL` / `"user_code" IS NOT NULL`. A schema-declared `sql`${t.phone} IS NOT NULL`` serializes WITH identifier quoting → the 4.1(5) generate-dry-run will very likely emit phantom DROP/CREATE for the phone pair specifically. Fix path fixed in writing: after up, run generate; if drift files appear, do NOT ship them — align the snapshot `where` texts to the generator's own serialized format (or accept the generator format by regenerating the affected snapshot entries), then re-dry-run to zero. Pin with: `grep -c '"where"' meta/0005_snapshot.json` = 4 post-ritual.
+
 ## R6 [MED, blockers] db:push blast window: between the version bump and up completion, any `drizzle-kit push/generate` hits the old malformed-parse wall (PIT-072 mode) — dev startup (`accessbase.sh` dev:113, reset:155, entrypoint-dev:54) is `|| log_warn`-degraded, not fatal. Accepted: T1 runs bump→up→verify in one uninterrupted pass on master; post-ritual smoke includes one `pnpm db:push` against the native dev DB (must run clean, which also proves push no longer trips on the snapshots). Note the semantic shift: `db:migrate` (`up:pg`, previously inert at v5) becomes real `drizzle-kit up` — post-ritual it is a no-op again; conventions reword per 4.1(9) must say "up = snapshot upgrader (idempotent at v7)", still NOT a runtime migrator.
-## R7 [MED, blockers] ORM 0.30 timestamp serialization change (always `.toISOString` toward the driver; postgres.js date-mutation does NOT apply — we are node-postgres, packages/identity/src/db + server use drizzle-orm/node-postgres) + #1993-class Date-in-`sql`` template breaks. T2 smoke list, explicit: audit list/stats date-range filters (gte/lte on timestamp), sessions expiry comparisons, and adapter.ts:127 `jsonb_set(... to_jsonb(${now}::bigint))` — verify `now` is a number (Date.now) at the call site; type-checker catches most but the suite covers the rest.
+
+## R7 [MED, blockers] ORM 0.30 timestamp serialization change (always `.toISOString` toward the driver; postgres.js date-mutation does NOT apply — we are node-postgres, packages/identity/src/db + server use drizzle-orm/node-postgres) + #1993-class Date-in-`sql`` template breaks. T2 smoke list, explicit: audit list/stats date-range filters (gte/lte on timestamp), sessions expiry comparisons, and adapter.ts:127 `jsonb_set(... to_jsonb(${now}::bigint))`— verify`now` is a number (Date.now) at the call site; type-checker catches most but the suite covers the rest.
+
 ## R8 [LOW, blockers] internal-API call sites named for the tsc-fallout budget: `PgDialect.sqlToQuery` from drizzle-orm/pg-core/dialect at helpers/tenant-where.ts:10 and SessionManager.test.ts:344 (test seams that simulate SQL) — if the path moved 0.29→0.45, adapt minimally.
+
 ## R9 [flows, confirmations] up:pg/push:pg rename blast: only 3 definitions (migration/package.json:29-31); `db:push`/`db:generate`/`db:migrate` npm-script names and root re-exports (package.json:24-26) unchanged → the ~50 textual `db:push` references (accessbase.sh ×9, entrypoint-dev, migrate.sh:55 message, i18n strings, ops-migrate assertions) stay valid. v3 folder restructure confirmed 1.0-beta-only (v1.0.0-beta.2 release notes) → 0.31.11 `up` touches snapshots/journal only, SQL files byte-safe under the §5 diff gate. No CI files reference drizzle-kit commands.
 
 ## Plan (supersedes §7 decomposition)
+
 - **T0 probe (controller-direct, gates all)**: /tmp scratch up experiment per R1. Kill-switch: if up cannot read the snapshots, stop and pivot (snapshot rewrite strategy) before touching the repo.
 - **T1 (controller-direct)**: repo-wide version bumps + scripts/config rewrite + `pnpm install` (lockfile) + in-repo `drizzle-kit up` + R2/R5 verifications + schema phone-index declarations + generate-dry-run to zero + `pnpm db:push` clean smoke (R6).
 - **T2 (controller-direct)**: tsc/vitest fallout per R7/R8 → 949/0.
 - **T3 (controller-direct)**: migrate.sh three-state live-fire (17 tables/6 tracked per R2), eslint, e2e 137+3, memory close-out (4.1 item 9, incl. reworded db:migrate note).
-Rationale for no delegation: single strictly-sequential shell-ritual chain with a mid-flight pivot decision (R1) and exact-text alignment work (R5); precedent H-T4c/L-prime controller-direct for up-critical rituals.
+  Rationale for no delegation: single strictly-sequential shell-ritual chain with a mid-flight pivot decision (R1) and exact-text alignment work (R5); precedent H-T4c/L-prime controller-direct for up-critical rituals.
 
 ## T0 VERDICT (2026-09-23, executed probe in /tmp/opencode/drizzle-probe — pivots R1 into a proven recipe)
 

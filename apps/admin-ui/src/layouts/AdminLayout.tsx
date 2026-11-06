@@ -26,7 +26,6 @@ import { useUiStore } from '../stores/ui';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { fetchBranding } from '../branding';
 
-
 export default function AdminLayout() {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useUiStore();
@@ -73,7 +72,11 @@ export default function AdminLayout() {
   const location = useLocation();
   const { user, error, fetchUser, logoutWithServer } = useAuthStore();
   const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('admin-layout-collapsed') === 'true'; } catch { return false; }
+    try {
+      return localStorage.getItem('admin-layout-collapsed') === 'true';
+    } catch {
+      return false;
+    }
   });
   const [loggingOut, setLoggingOut] = useState(false);
   const [site, setSite] = useState({ siteName: '', logoUrl: '' });
@@ -112,7 +115,11 @@ export default function AdminLayout() {
 
   const handleCollapse = (next: boolean) => {
     setCollapsed(next);
-    try { localStorage.setItem('admin-layout-collapsed', String(next)); } catch { /* noop */ }
+    try {
+      localStorage.setItem('admin-layout-collapsed', String(next));
+    } catch {
+      /* noop */
+    }
   };
 
   return (
@@ -173,7 +180,16 @@ export default function AdminLayout() {
           aria-label={t('common.theme')}
           onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
         />,
-        <Button type="text" size="small" icon={<GlobalOutlined />} key="lang" data-testid="lang-toggle" onClick={toggleLanguage} title={t('common.language')} aria-label={t('common.language')}>
+        <Button
+          type="text"
+          size="small"
+          icon={<GlobalOutlined />}
+          key="lang"
+          data-testid="lang-toggle"
+          onClick={toggleLanguage}
+          title={t('common.language')}
+          aria-label={t('common.language')}
+        >
           {i18n.language === 'zh' ? '中文' : 'EN'}
         </Button>,
       ]}
@@ -181,11 +197,13 @@ export default function AdminLayout() {
         if (props?.collapsed) return undefined;
         return (
           <div style={{ textAlign: 'center', paddingBlockEnd: 12 }}>
-            <div style={{ fontSize: 12 }}><Typography.Text type="secondary">AccessBase v0.1.0</Typography.Text></div>
+            <div style={{ fontSize: 12 }}>
+              <Typography.Text type="secondary">AccessBase v0.1.0</Typography.Text>
+            </div>
           </div>
         );
       }}
-      >
+    >
       {error && (
         <Alert
           type="error"

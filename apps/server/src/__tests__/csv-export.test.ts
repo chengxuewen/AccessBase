@@ -49,7 +49,9 @@ vi.mock('@accessbase/identity/db', async (importOriginal) => ({
 
 // Mutable permission verdict + manager mocks
 const allow = { value: true };
-const mockFindAll = vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 500, totalPages: 0 });
+const mockFindAll = vi
+  .fn()
+  .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 500, totalPages: 0 });
 const mockGetUserRoles = vi.fn().mockResolvedValue([]);
 
 vi.mock('@accessbase/identity', async (importOriginal) => ({
@@ -80,7 +82,11 @@ type App = Awaited<ReturnType<typeof buildApp>>;
 let app: App;
 
 function authedGet(url: string, claims: Record<string, unknown> = {}) {
-  const token = app.jwt.sign({ sub: '550e8400-e29b-41d4-a716-446655440000', email: 'admin@test.local', ...claims });
+  const token = app.jwt.sign({
+    sub: '550e8400-e29b-41d4-a716-446655440000',
+    email: 'admin@test.local',
+    ...claims,
+  });
   return app.inject({ method: 'GET', url, headers: { authorization: `Bearer ${token}` } });
 }
 
@@ -94,7 +100,15 @@ afterAll(async () => {
 
 describe('toCsv', () => {
   it('serializes headers verbatim and one row per line (CRLF, RFC4180)', () => {
-    expect(toCsv(['a', 'b'], [{ a: '1', b: '2' }, { a: '3', b: '4' }])).toBe('a,b\r\n1,2\r\n3,4');
+    expect(
+      toCsv(
+        ['a', 'b'],
+        [
+          { a: '1', b: '2' },
+          { a: '3', b: '4' },
+        ],
+      ),
+    ).toBe('a,b\r\n1,2\r\n3,4');
   });
 
   it('quotes cells containing comma, quote, or newline and doubles inner quotes', () => {
@@ -104,7 +118,7 @@ describe('toCsv', () => {
 
   it('prefixes cells starting with =, +, -, or @ with a single quote (injection guard)', () => {
     const out = toCsv(['c'], [{ c: '=cmd' }, { c: '+1' }, { c: '-1' }, { c: '@x' }, { c: 'safe' }]);
-    expect(out).toBe('c\r\n\'=cmd\r\n\'+1\r\n\'-1\r\n\'@x\r\nsafe');
+    expect(out).toBe("c\r\n'=cmd\r\n'+1\r\n'-1\r\n'@x\r\nsafe");
   });
 
   it('emits only the header row for empty rows and empty string for nullish cells', () => {
@@ -124,32 +138,32 @@ describe('GET /api/v1/audit-logs/export', () => {
 
   it('streams CSV with download headers and list-shaped mapped columns', async () => {
     auditRows.length = 0;
-    auditRows.push(
-      {
-        id: 'a-1',
-        tenantId: DEFAULT_TENANT,
-        action: 'POST /api/v1/users',
-        userId: 'u-1',
-        resourceType: 'user',
-        resourceId: 'u-9',
-        ip: '10.0.0.1',
-        responseStatus: 201,
-        createdAt: new Date('2026-08-31T00:00:00Z'),
-      },
-    );
+    auditRows.push({
+      id: 'a-1',
+      tenantId: DEFAULT_TENANT,
+      action: 'POST /api/v1/users',
+      userId: 'u-1',
+      resourceType: 'user',
+      resourceId: 'u-9',
+      ip: '10.0.0.1',
+      responseStatus: 201,
+      createdAt: new Date('2026-08-31T00:00:00Z'),
+    });
 
     const res = await authedGet('/api/v1/audit-logs/export');
 
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toBe('text/csv; charset=utf-8');
-    expect(res.headers['content-disposition']).toMatch(/^attachment; filename="audit-\d{4}-\d{2}-\d{2}\.csv"$/);
+    expect(res.headers['content-disposition']).toMatch(
+      /^attachment; filename="audit-\d{4}-\d{2}-\d{2}\.csv"$/,
+    );
     const lines = res.body.split('\r\n');
     expect(lines[0]).toBe('id,action,actor,resource,status,ipAddress,createdAt');
-    expect(lines[1]).toBe('a-1,POST /api/v1/users,u-1,user u-9,201,10.0.0.1,2026-08-31T00:00:00.000Z');
+    expect(lines[1]).toBe(
+      'a-1,POST /api/v1/users,u-1,user u-9,201,10.0.0.1,2026-08-31T00:00:00.000Z',
+    );
   });
-
 });
-
 
 describe('GET /api/v1/audit-logs/export tenant scoping (K-T1)', () => {
   const TENANT_A = '11111111-1111-1111-1111-111111111111';
@@ -176,7 +190,10 @@ describe('GET /api/v1/audit-logs/export tenant scoping (K-T1)', () => {
     scopedFixture();
     const res = await authedGet('/api/v1/audit-logs/export', { tenantId: TENANT_A });
     expect(res.statusCode).toBe(200);
-    const ids = res.body.split('\r\n').slice(1).map((line) => line.split(',')[0]);
+    const ids = res.body
+      .split('\r\n')
+      .slice(1)
+      .map((line) => line.split(',')[0]);
     expect(ids).toEqual(['r-a']);
   });
 
@@ -185,7 +202,10 @@ describe('GET /api/v1/audit-logs/export tenant scoping (K-T1)', () => {
     // No tenantId claim -> request.tenantId falls back to DEFAULT_TENANT.
     const res = await authedGet('/api/v1/audit-logs/export');
     expect(res.statusCode).toBe(200);
-    const ids = res.body.split('\r\n').slice(1).map((line) => line.split(',')[0]);
+    const ids = res.body
+      .split('\r\n')
+      .slice(1)
+      .map((line) => line.split(',')[0]);
     expect(ids).toEqual(expect.arrayContaining(['r-def', 'r-sys']));
     expect(ids).not.toContain('r-a');
   });
@@ -230,14 +250,18 @@ describe('GET /api/v1/users/export', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toBe('text/csv; charset=utf-8');
-    expect(res.headers['content-disposition']).toMatch(/^attachment; filename="users-\d{4}-\d{2}-\d{2}\.csv"$/);
+    expect(res.headers['content-disposition']).toMatch(
+      /^attachment; filename="users-\d{4}-\d{2}-\d{2}\.csv"$/,
+    );
     // Export rides the existing list query path, OFFSET pages of 500
     expect(mockFindAll).toHaveBeenCalledWith(
       expect.objectContaining({ page: 1, pageSize: 500 }),
       '00000000-0000-0000-0000-000000000001',
     );
     const lines = res.body.split('\r\n');
-    expect(lines[0]).toBe('id,email,name,status,isActive,totpEnabled,tenantId,roles,createdAt,updatedAt');
+    expect(lines[0]).toBe(
+      'id,email,name,status,isActive,totpEnabled,tenantId,roles,createdAt,updatedAt',
+    );
     // 'admin,auditor' contains commas → RFC4180-quoted as one cell
     expect(lines[1]).toBe(
       '550e8400-e29b-41d4-a716-446655440001,test@example.com,Test User,active,true,false,' +

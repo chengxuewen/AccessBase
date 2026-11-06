@@ -8,7 +8,11 @@
  * ephemeral fallback. Adapter is the Task 4a OidcAdapter class.
  */
 import { createHash, createPrivateKey, createPublicKey } from 'node:crypto';
-import { deviceUserCodeInputSource, deviceUserCodeConfirmSource, deviceRenderError } from '../utils/device-flow-pages.js';
+import {
+  deviceUserCodeInputSource,
+  deviceUserCodeConfirmSource,
+  deviceRenderError,
+} from '../utils/device-flow-pages.js';
 import { setDeviceFlowBrandingReader } from '../utils/device-flow-pages.js';
 import { getOptionsManager } from '../routes/options.js';
 import { existsSync, readFileSync } from 'node:fs';
@@ -47,7 +51,9 @@ export function loadJwks(opts: BuildOidcProviderOptions): JwkSet | undefined {
     }
     // ponytail: dev/test ephemeral keystore — restart rotates id_tokens; use
     // JWT_*_KEY_PATH files when RP key pinning matters
-    logger.warn('OIDC provider running without JWT key files — ephemeral signing keys in use (dev only)');
+    logger.warn(
+      'OIDC provider running without JWT key files — ephemeral signing keys in use (dev only)',
+    );
     return undefined; // provider falls back to its dev-only keystore
   }
   for (const p of [opts.privateKeyPath, opts.publicKeyPath]) {
@@ -91,7 +97,10 @@ export function loadJwks(opts: BuildOidcProviderOptions): JwkSet | undefined {
 
 export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise<{
   provider: Provider;
-  oidcHandler: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void>;
+  oidcHandler: (
+    req: import('node:http').IncomingMessage,
+    res: import('node:http').ServerResponse,
+  ) => Promise<void>;
   stopSweeper: () => void;
 }> {
   const jwks = loadJwks(opts);
@@ -167,9 +176,14 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
         logoutSource: async (ctx: unknown, form: string): Promise<void> => {
           // Script bytes identical to oidc-provider's form_post template — its sha256
           // is already allowlisted in helmet CSP (P1 wave), so the auto-submit works.
-          const script = '<script>\n    document.addEventListener(\'DOMContentLoaded\', function () { document.forms[0].submit() });\n  </script>';
+          const script =
+            "<script>\n    document.addEventListener('DOMContentLoaded', function () { document.forms[0].submit() });\n  </script>";
           (ctx as { body: string }).body =
-            '<!DOCTYPE html>\n<html>\n<head>\n  <title>Submitting Callback</title>\n  ' + script + '\n</head>\n<body>\n  ' + form + '\n</body>\n</html>';
+            '<!DOCTYPE html>\n<html>\n<head>\n  <title>Submitting Callback</title>\n  ' +
+            script +
+            '\n</head>\n<body>\n  ' +
+            form +
+            '\n</body>\n</html>';
         },
       },
     },
@@ -228,17 +242,31 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
   };
 
   const jwksConfig: JWKS | undefined = jwks ? { keys: jwks.keys as JWKS['keys'] } : undefined;
-  const provider = new Provider(opts.issuer, jwksConfig ? { ...configuration, jwks: jwksConfig } : configuration);
+  const provider = new Provider(
+    opts.issuer,
+    jwksConfig ? { ...configuration, jwks: jwksConfig } : configuration,
+  );
 
   // Verification-day (2026-10-08): backchannel logout_token delivery was silent —
   // oidc-provider surfaces failures only via events; without listeners they vanish.
   provider.on('backchannel.success', (_ctx: unknown, client: { clientId?: string } | undefined) => {
     logger.info({ clientId: client?.clientId }, 'oidc backchannel: logout_token delivered');
   });
-  provider.on('backchannel.error', (_ctx: unknown, err: unknown, client: { clientId?: string } | undefined) => {
-    const detail = err instanceof Error ? [err.message, (err as Error & { cause?: { message?: string } }).cause?.message].filter(Boolean).join(': ') : String(err);
-    logger.warn({ err: detail, clientId: client?.clientId }, 'oidc backchannel: logout_token delivery FAILED');
-  });
+  provider.on(
+    'backchannel.error',
+    (_ctx: unknown, err: unknown, client: { clientId?: string } | undefined) => {
+      const detail =
+        err instanceof Error
+          ? [err.message, (err as Error & { cause?: { message?: string } }).cause?.message]
+              .filter(Boolean)
+              .join(': ')
+          : String(err);
+      logger.warn(
+        { err: detail, clientId: client?.clientId },
+        'oidc backchannel: logout_token delivery FAILED',
+      );
+    },
+  );
 
   // B1/B2: callback() is a Koa factory — build the http handler ONCE.
   const oidcHandler = provider.callback();
@@ -247,9 +275,12 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
   // (tests build apps freely); sweepExpired swallows its own errors — a DB
   // blip must never reach the L-T3 uncaughtException exit path. stop() is
   // wired to app.onClose by the caller.
-  const sweepTimer = setInterval(() => {
-    void adapterInstance.sweepExpired();
-  }, 5 * 60 * 1000);
+  const sweepTimer = setInterval(
+    () => {
+      void adapterInstance.sweepExpired();
+    },
+    5 * 60 * 1000,
+  );
   sweepTimer.unref();
 
   return { provider, oidcHandler, stopSweeper: () => clearInterval(sweepTimer) };

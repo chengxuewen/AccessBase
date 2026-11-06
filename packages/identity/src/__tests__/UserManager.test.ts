@@ -123,9 +123,7 @@ describe('verifyPassword status enforcement', () => {
     db.select.mockReturnValue(makeChain([userRow('suspended')]));
 
     const mgr = new UserManager();
-    await expect(mgr.verifyPassword('a@b.c', 'any-password')).rejects.toThrow(
-      'ACCOUNT_SUSPENDED',
-    );
+    await expect(mgr.verifyPassword('a@b.c', 'any-password')).rejects.toThrow('ACCOUNT_SUSPENDED');
     expect(compare).not.toHaveBeenCalled();
   });
 
@@ -138,9 +136,7 @@ describe('verifyPassword status enforcement', () => {
     db.select.mockReturnValue(makeChain([userRow('pending')]));
 
     const mgr = new UserManager();
-    await expect(mgr.verifyPassword('p@b.c', 'any-password')).rejects.toThrow(
-      'ACCOUNT_SUSPENDED',
-    );
+    await expect(mgr.verifyPassword('p@b.c', 'any-password')).rejects.toThrow('ACCOUNT_SUSPENDED');
     expect(compare).not.toHaveBeenCalled();
   });
 
@@ -162,9 +158,7 @@ describe('verifyPassword status enforcement', () => {
     const { createDb } = await import('../db/index.js');
     const db = makeMockDb();
     vi.mocked(createDb).mockReturnValue(db as never);
-    db.select.mockReturnValue(
-      makeChain([{ ...userRow('suspended'), totpEnabled: true }]),
-    );
+    db.select.mockReturnValue(makeChain([{ ...userRow('suspended'), totpEnabled: true }]));
 
     const mgr = new UserManager();
     const user = await mgr.findById('u1', '00000000-0000-0000-0000-000000000001');
@@ -173,7 +167,7 @@ describe('verifyPassword status enforcement', () => {
     expect(user?.status).toBe('suspended');
     expect(user?.isActive).toBe(false);
   });
-  
+
   // findByIdAny: tenant-unfiltered lookup for cross-tenant flows (refresh
   // door resolves the token owner without knowing their tenant). Unlike
   // findById, no tenantId predicate is applied — the where clause filters by
@@ -272,9 +266,7 @@ describe('findByPhone (Batch I Task 0, R1)', () => {
     const { createDb } = await import('../db/index.js');
     const db = makeMockDb();
     vi.mocked(createDb).mockReturnValue(db as never);
-    db.select.mockReturnValue(
-      makeChain([userRow('+8613800000001'), userRow('+8613800000001')]),
-    );
+    db.select.mockReturnValue(makeChain([userRow('+8613800000001'), userRow('+8613800000001')]));
 
     const mgr = new UserManager();
     const user = await mgr.findByPhone('+8613800000001');
@@ -473,7 +465,10 @@ describe('email verification plumbing (Q1-b2)', () => {
 });
 
 describe('findAll sorting (Q1-b3, gap-audit D6)', () => {
-  async function runFindAll(params: { sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<string> {
+  async function runFindAll(params: {
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<string> {
     const { createDb } = await import('../db/index.js');
     const db = { select: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn() };
     vi.mocked(createDb).mockReturnValue(db as never);
@@ -487,8 +482,8 @@ describe('findAll sorting (Q1-b3, gap-audit D6)', () => {
               orderBy: (...a: unknown[]) => {
                 orderArg = a[0];
                 const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-                chain.then = vi.fn(
-                  (resolve?: ((v: unknown) => unknown) | null) => Promise.resolve([]).then(resolve),
+                chain.then = vi.fn((resolve?: ((v: unknown) => unknown) | null) =>
+                  Promise.resolve([]).then(resolve),
                 );
                 return chain;
               },
@@ -529,7 +524,12 @@ describe('eraseAuditData (R-audit Task A5, spec D5/U2/U3)', () => {
   const subject = '550e8400-e29b-41d4-a716-446655440001';
   const acting = '550e8400-e29b-41d4-a716-4466554400aa';
   const tenantId = '00000000-0000-0000-0000-000000000001';
-  const eraseOpts = { requestedBy: acting, legalBasis: 'GDPR Art.17', email: 'subject@test.local', tenantId };
+  const eraseOpts = {
+    requestedBy: acting,
+    legalBasis: 'GDPR Art.17',
+    email: 'subject@test.local',
+    tenantId,
+  };
 
   /**
    * Faithful fake db: records the insert values + every update's {table, set,
@@ -568,7 +568,10 @@ describe('eraseAuditData (R-audit Task A5, spec D5/U2/U3)', () => {
       set: vi.fn((set: unknown) => ({
         where: vi.fn((where: unknown) => {
           updates.push({ table, set, where });
-          const tombRows = table === eventsTable ? Array.from({ length: Math.max(eventsMatched, 0) }, (_, i) => ({ id: i + 1 })) : [{ id: 1 }];
+          const tombRows =
+            table === eventsTable
+              ? Array.from({ length: Math.max(eventsMatched, 0) }, (_, i) => ({ id: i + 1 }))
+              : [{ id: 1 }];
           return Object.assign(Promise.resolve(tombRows), {
             returning: vi.fn(() => Promise.resolve(tombRows)),
           });
@@ -587,7 +590,14 @@ describe('eraseAuditData (R-audit Task A5, spec D5/U2/U3)', () => {
   it('happy path: receipt over ordered non-NULL hashes + rowsAffected/legacySkipped/eventsScrubbed', async () => {
     const h1 = 'a'.repeat(64);
     const h2 = 'b'.repeat(64);
-    const { db } = makeFakeDb([{ id: 'r1', rowHash: h1 }, { id: 'r2', rowHash: h2 }, { id: 'r3', rowHash: null }], 3);
+    const { db } = makeFakeDb(
+      [
+        { id: 'r1', rowHash: h1 },
+        { id: 'r2', rowHash: h2 },
+        { id: 'r3', rowHash: null },
+      ],
+      3,
+    );
 
     const result = await runErase(db);
 
@@ -622,11 +632,14 @@ describe('eraseAuditData (R-audit Task A5, spec D5/U2/U3)', () => {
     await runErase(db);
 
     const { auditLogs, events } = await import('../db/schema.js');
-    const scrub = updates.find((u) => u.table === auditLogs) as { set: Record<string, unknown>; where: unknown } | undefined;
+    const scrub = updates.find((u) => u.table === auditLogs) as
+      { set: Record<string, unknown>; where: unknown } | undefined;
     expect(scrub).toBeDefined();
     const set = scrub?.set as Record<string, unknown>;
     // Exact whitelist: these keys and ONLY these keys
-    expect(Object.keys(set).sort()).toEqual(['erasedAt', 'erasureId', 'ip', 'requestBody', 'userAgent', 'userId'].sort());
+    expect(Object.keys(set).sort()).toEqual(
+      ['erasedAt', 'erasureId', 'ip', 'requestBody', 'userAgent', 'userId'].sort(),
+    );
     expect(set.requestBody).toEqual({});
     expect(set.userId).toBe('[ERASED]');
     expect(set.ip).toBeNull();
@@ -647,7 +660,8 @@ describe('eraseAuditData (R-audit Task A5, spec D5/U2/U3)', () => {
     await runErase(db);
 
     const { events } = await import('../db/schema.js');
-    const tombstone = updates.find((u) => u.table === events) as { set: unknown; where: unknown } | undefined;
+    const tombstone = updates.find((u) => u.table === events) as
+      { set: unknown; where: unknown } | undefined;
     expect(tombstone).toBeDefined();
     expect(tombstone?.set).toEqual({ payload: { erased: true } });
     const { PgDialect } = await import('drizzle-orm/pg-core');

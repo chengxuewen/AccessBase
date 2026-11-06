@@ -241,7 +241,10 @@ export function startAuditAnchor(deps: AuditAnchorDeps): AuditAnchorWorker {
     } catch (err) {
       running = false; // a failed tick must never wedge the one-at-a-time gate
       if (is40P01(err)) {
-        deps.log.warn({ err }, 'audit anchor tick hit a 40P01 deadlock — skipped, retries next interval');
+        deps.log.warn(
+          { err },
+          'audit anchor tick hit a 40P01 deadlock — skipped, retries next interval',
+        );
       } else {
         deps.log.warn({ err }, 'audit anchor tick failed (next pass continues)');
       }
@@ -260,7 +263,10 @@ export function startAuditAnchor(deps: AuditAnchorDeps): AuditAnchorWorker {
     let frontier: { day: string; seq: number } | null = null;
     try {
       const content = readFileSync(path, 'utf8');
-      const last = content.split('\n').filter((l) => l !== '').pop();
+      const last = content
+        .split('\n')
+        .filter((l) => l !== '')
+        .pop();
       if (last) {
         const [d, s] = last.split(' ');
         frontier = { day: d as string, seq: num(s) };
@@ -278,8 +284,8 @@ export function startAuditAnchor(deps: AuditAnchorDeps): AuditAnchorWorker {
           SELECT day, seq, root FROM audit_chain_anchors
           ORDER BY day, seq LIMIT ${sql.raw(String(EXPORT_HEAD_LIMIT))}
         `);
-    const rows = (tail as unknown as { rows?: Array<{ day: string; seq: unknown; root: string }> })
-      .rows ?? [];
+    const rows =
+      (tail as unknown as { rows?: Array<{ day: string; seq: unknown; root: string }> }).rows ?? [];
     for (const r of rows) {
       appendFileSync(path, `${r.day} ${num(r.seq)} ${r.root}\n`);
     }

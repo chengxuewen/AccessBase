@@ -52,8 +52,9 @@ export function ipInCidr(ip: string, entry: string): boolean {
     const bits = Number(bitsRaw);
     if (!Number.isInteger(bits) || bits < 0 || bits > 128) return warnBad(entry);
     const nib = Math.ceil(bits / 4);
-    const mask = bits % 4 === 0 ? 0 : 0xf >> bits % 4;
-    if (a.slice(0, nib - (bits % 4 === 0 ? 0 : 1)) !== b.slice(0, nib - (bits % 4 === 0 ? 0 : 1))) return false;
+    const mask = bits % 4 === 0 ? 0 : 0xf >> (bits % 4);
+    if (a.slice(0, nib - (bits % 4 === 0 ? 0 : 1)) !== b.slice(0, nib - (bits % 4 === 0 ? 0 : 1)))
+      return false;
     if (bits % 4 !== 0) {
       const ia = parseInt(a[nib - 1] ?? '0', 16);
       const ib = parseInt(b[nib - 1] ?? '0', 16);
@@ -67,8 +68,8 @@ export function ipInCidr(ip: string, entry: string): boolean {
   if (!bitsRaw) return ipN === netN;
   const bits = Number(bitsRaw);
   if (!Number.isInteger(bits) || bits < 0 || bits > 32) return warnBad(entry);
-  const mask = bits === 0 ? 0 : ((0xffffffff << (32 - bits)) >>> 0);
-  return (ipN & mask) === (netN >>> 0 & mask);
+  const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
+  return (ipN & mask) === ((netN >>> 0) & mask);
 }
 
 /** Parse the two option values once; empty list = disabled. */
@@ -77,9 +78,15 @@ export function cidrVerdict(
   allow: string | null | undefined,
   deny: string | null | undefined,
 ): 'ok' | 'blocked' {
-  const denyList = (deny ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  const denyList = (deny ?? '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
   if (denyList.some((c) => ipInCidr(ip, c))) return 'blocked';
-  const allowList = (allow ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  const allowList = (allow ?? '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
   if (allowList.length > 0 && !allowList.some((c) => ipInCidr(ip, c))) return 'blocked';
   return 'ok';
 }

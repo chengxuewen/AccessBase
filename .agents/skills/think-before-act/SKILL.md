@@ -143,16 +143,16 @@ description: '元约束：先查再动手，列方案让用户审批，不蛮干
 
 ## 与现有技能的关系
 
-| 引用                                        | 关系                                                  |
-| ------------------------------------------- | ----------------------------------------------------- |
-| `rule:lesson-memory`                        | think-before-act 查过去教训；lesson-memory 记新教训   |
-| `plugin:systematic-debugging`               | 外部插件技能（superpowers 系）：管"怎么修"（本仓未随仓分发） |
-| `plugin:verification-before-completion`     | 外部插件技能：管"完成后"验证（本仓等价物 = CONSTRAINTS.md 验证纪律） |
-| `skill:expert-panel-review`                 | 复杂变更的团审引擎（本技能 Phase 2 挂载）             |
-| `skill:adjudication-walkthrough`            | 团审冲突项与多方案抉择的逐项裁决呈现                  |
-| `skill:code-review-and-quality`             | 变更完成后的结构化代码审查（执行后验证的技能档）      |
-| `skill:ecosystem-scan`                      | 查社区生态有无现成方案                                |
-| `conventions.md §编辑约束`                   | 编辑后立即 tsc — think-before-act 的"执行后验证"      |
+| 引用                                    | 关系                                                                 |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| `rule:lesson-memory`                    | think-before-act 查过去教训；lesson-memory 记新教训                  |
+| `plugin:systematic-debugging`           | 外部插件技能（superpowers 系）：管"怎么修"（本仓未随仓分发）         |
+| `plugin:verification-before-completion` | 外部插件技能：管"完成后"验证（本仓等价物 = CONSTRAINTS.md 验证纪律） |
+| `skill:expert-panel-review`             | 复杂变更的团审引擎（本技能 Phase 2 挂载）                            |
+| `skill:adjudication-walkthrough`        | 团审冲突项与多方案抉择的逐项裁决呈现                                 |
+| `skill:code-review-and-quality`         | 变更完成后的结构化代码审查（执行后验证的技能档）                     |
+| `skill:ecosystem-scan`                  | 查社区生态有无现成方案                                               |
+| `conventions.md §编辑约束`              | 编辑后立即 tsc — think-before-act 的"执行后验证"                     |
 
 ---
 

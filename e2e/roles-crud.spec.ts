@@ -50,7 +50,10 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
 
@@ -65,7 +68,12 @@ async function mockCommonApis(page: Page): Promise<void> {
           accessToken: 'test-token',
           refreshToken: 'test-refresh',
           expiresIn: 900,
-          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
+          user: {
+            id: '1',
+            email: 'admin@accessbase.local',
+            name: 'Administrator',
+            roles: [{ id: 'role-1', name: 'admin' }],
+          },
         },
       }),
     });
@@ -76,7 +84,11 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: MOCK_PERMISSIONS, total: MOCK_PERMISSIONS.length }),
+      body: JSON.stringify({
+        success: true,
+        data: MOCK_PERMISSIONS,
+        total: MOCK_PERMISSIONS.length,
+      }),
     });
   });
   // B2: login page fetches the provider list on mount — unmocked → vite proxy 500 → console-error assertion failure
@@ -89,13 +101,25 @@ async function mockCommonApis(page: Page): Promise<void> {
   });
   // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
   await page.route('**/api/v1/auth/saml/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
   // unmocked → console-error net failure (R4 discipline)
@@ -104,7 +128,20 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: [{ id: '00000000-0000-0000-0000-000000000001', name: 'Default', slug: 'default', status: 'active', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+      body: JSON.stringify({
+        success: true,
+        data: [
+          {
+            id: '00000000-0000-0000-0000-000000000001',
+            name: 'Default',
+            slug: 'default',
+            status: 'active',
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+          },
+        ],
+        total: 1,
+      }),
     });
   });
   // Phase 6d Task 5: Dashboard mounts GET /api/v1/stats — unmocked 401 → axios logout
@@ -112,34 +149,43 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
-    });
+  });
 
-    // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
-    // Full admin permission set: login lands on /dashboard and the full menu renders
-    await page.route('**/api/v1/auth/me', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: {
-            id: '1',
-            email: 'admin@accessbase.local',
-            name: 'Administrator',
-            roles: [],
-            permissions: [
-              'users:read', 'users:write', 'users:delete',
-              'roles:read', 'roles:write', 'roles:delete',
-              'permissions:read', 'permissions:write', 'permissions:delete',
-              'audit:read', 'stats:read',
-            ],
-          },
-        }),
-      });
+  // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
+  // Full admin permission set: login lands on /dashboard and the full menu renders
+  await page.route('**/api/v1/auth/me', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          id: '1',
+          email: 'admin@accessbase.local',
+          name: 'Administrator',
+          roles: [],
+          permissions: [
+            'users:read',
+            'users:write',
+            'users:delete',
+            'roles:read',
+            'roles:write',
+            'roles:delete',
+            'permissions:read',
+            'permissions:write',
+            'permissions:delete',
+            'audit:read',
+            'stats:read',
+          ],
+        },
+      }),
     });
-
+  });
 }
 
 async function login(page: Page): Promise<void> {
@@ -189,7 +235,11 @@ test.describe('Roles CRUD', () => {
       }
 
       if (method === 'POST' && !idMatch) {
-        const body = req.postDataJSON() as { name: string; description?: string; permissionIds?: string[] };
+        const body = req.postDataJSON() as {
+          name: string;
+          description?: string;
+          permissionIds?: string[];
+        };
         const created: RoleFixture = {
           id: `role-${Date.now()}`,
           name: body.name,
@@ -208,10 +258,18 @@ test.describe('Roles CRUD', () => {
       }
 
       if (method === 'PUT' && idMatch) {
-        const body = req.postDataJSON() as { name?: string; description?: string; permissionIds?: string[] };
+        const body = req.postDataJSON() as {
+          name?: string;
+          description?: string;
+          permissionIds?: string[];
+        };
         const role = roles.find((r) => r.id === idMatch[1]);
         if (!role) {
-          await route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ success: false }) });
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: false }),
+          });
           return;
         }
         if (body.name !== undefined) role.name = body.name;
@@ -240,7 +298,11 @@ test.describe('Roles CRUD', () => {
         return;
       }
 
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: roles[0], total: 1 }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: roles[0], total: 1 }),
+      });
     });
 
     await login(page);
@@ -273,7 +335,12 @@ test.describe('Roles CRUD', () => {
     await page.locator('.ant-modal input#name').fill(roleName);
     await page.locator('.ant-modal textarea#description').fill('Can edit content');
 
-    await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")').first().click();
+    await page
+      .locator(
+        '.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")',
+      )
+      .first()
+      .click();
 
     // New row appears after reload
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(3);
@@ -287,7 +354,11 @@ test.describe('Roles CRUD', () => {
     await page.goto('/roles');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
 
-    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
+    await page
+      .locator('tbody tr.ant-table-row')
+      .first()
+      .locator('button:has-text("Edit"), button:has-text("编辑")')
+      .click();
     await expect(page.locator('.ant-modal')).toBeVisible();
 
     // Modal prefilled with existing values
@@ -297,7 +368,12 @@ test.describe('Roles CRUD', () => {
     await expect(page.locator('.ant-modal .ant-transfer')).toBeVisible();
 
     await page.locator('.ant-modal input#name').fill(updatedName);
-    await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")').first().click();
+    await page
+      .locator(
+        '.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")',
+      )
+      .first()
+      .click();
 
     await expect(page.locator(`td:has-text("${updatedName}")`)).toBeVisible();
   });
@@ -306,19 +382,31 @@ test.describe('Roles CRUD', () => {
     await page.goto('/roles');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
 
-    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
-    await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
+    await page
+      .locator('tbody tr.ant-table-row')
+      .first()
+      .locator('button:has-text("Delete"), button:has-text("删除")')
+      .click();
+    await page
+      .locator(
+        '.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")',
+      )
+      .first()
+      .click();
 
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
     await expect(page.locator('td:has-text("Viewer")')).toBeVisible();
   });
 
-  test('R8: edit role hydrates from GET /roles/:id detail and saves its permission ids', async ({ page }) => {
-
+  test('R8: edit role hydrates from GET /roles/:id detail and saves its permission ids', async ({
+    page,
+  }) => {
     // Server-faithful mocks. RoleManager.mapToRole returns `permissions: Permission[]`
     // — there is NO `permissionIds` field anywhere on the wire, and list rows carry no
     // permission info at all. Detail (GET /roles/:id) is the only permission source.
-    const detailPermissions = [{ id: 'perm-2', resource: 'users', action: 'write', description: 'Write users' }];
+    const detailPermissions = [
+      { id: 'perm-2', resource: 'users', action: 'write', description: 'Write users' },
+    ];
     const detailRole = {
       id: 'role-1',
       name: 'Admin',
@@ -357,7 +445,13 @@ test.describe('Roles CRUD', () => {
     // Override the beforeEach list mock: rows WITHOUT permission fields (server truth)
     await page.route('**/api/v1/roles**', async (route) => {
       const req = route.request();
-      const bare = { id: 'role-1', name: 'Admin', description: 'Full access', createdAt: nowIso(), updatedAt: nowIso() };
+      const bare = {
+        id: 'role-1',
+        name: 'Admin',
+        description: 'Full access',
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
       if (req.method() === 'GET' && new URL(req.url()).pathname === '/api/v1/roles') {
         await route.fulfill({
           status: 200,
@@ -372,13 +466,22 @@ test.describe('Roles CRUD', () => {
     await page.goto('/roles');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
-    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
+    await page
+      .locator('tbody tr.ant-table-row')
+      .first()
+      .locator('button:has-text("Edit"), button:has-text("编辑")')
+      .click();
     await expect(page.locator('.ant-modal input#name')).toHaveValue('Admin');
 
     // Correct behavior: the modal must be hydrated from the DETAIL endpoint, not the list row
     await expect.poll(() => detailCalled, { timeout: 5000 }).toBe(true);
 
-    await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")').first().click();
+    await page
+      .locator(
+        '.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")',
+      )
+      .first()
+      .click();
     await expect.poll(() => putBody, { timeout: 10000 }).toBeDefined();
     // Saved payload must retain the detail's permissions (current bug sends [] → wipes them)
     expect(putBody?.permissionIds).toEqual(['perm-2']);
@@ -386,7 +489,9 @@ test.describe('Roles CRUD', () => {
 
   // K-T2: built-in admin role rows must lock their edit/delete controls
   // (server-side 409 ROLE_PROTECTED is the moat; the UI never offers the foot-gun).
-  test('K-T2: isSystem role row has edit/delete disabled; normal row unaffected', async ({ page }) => {
+  test('K-T2: isSystem role row has edit/delete disabled; normal row unaffected', async ({
+    page,
+  }) => {
     await page.route('**/api/v1/roles**', async (route) => {
       const req = route.request();
       if (req.method() === 'GET' && new URL(req.url()).pathname === '/api/v1/roles') {
@@ -396,8 +501,22 @@ test.describe('Roles CRUD', () => {
           body: JSON.stringify({
             success: true,
             data: [
-              { id: 'role-sys', name: 'admin', description: 'Built-in', isSystem: true, createdAt: nowIso(), updatedAt: nowIso() },
-              { id: 'role-plain', name: 'Editor', description: 'Custom', isSystem: false, createdAt: nowIso(), updatedAt: nowIso() },
+              {
+                id: 'role-sys',
+                name: 'admin',
+                description: 'Built-in',
+                isSystem: true,
+                createdAt: nowIso(),
+                updatedAt: nowIso(),
+              },
+              {
+                id: 'role-plain',
+                name: 'Editor',
+                description: 'Custom',
+                isSystem: false,
+                createdAt: nowIso(),
+                updatedAt: nowIso(),
+              },
             ],
             total: 2,
           }),
@@ -412,11 +531,17 @@ test.describe('Roles CRUD', () => {
 
     const sysRow = page.locator('tbody tr.ant-table-row', { hasText: 'admin' }).first();
     await expect(sysRow.locator('button:has-text("Edit"), button:has-text("编辑")')).toBeDisabled();
-    await expect(sysRow.locator('button:has-text("Delete"), button:has-text("删除")')).toBeDisabled();
+    await expect(
+      sysRow.locator('button:has-text("Delete"), button:has-text("删除")'),
+    ).toBeDisabled();
 
     const plainRow = page.locator('tbody tr.ant-table-row', { hasText: 'Editor' }).first();
-    await expect(plainRow.locator('button:has-text("Edit"), button:has-text("编辑")')).toBeEnabled();
-    await expect(plainRow.locator('button:has-text("Delete"), button:has-text("删除")')).toBeEnabled();
+    await expect(
+      plainRow.locator('button:has-text("Edit"), button:has-text("编辑")'),
+    ).toBeEnabled();
+    await expect(
+      plainRow.locator('button:has-text("Delete"), button:has-text("删除")'),
+    ).toBeEnabled();
   });
 
   // L'-T5: the modal's parent-role Select must persist the choice as parentId on the
@@ -459,17 +584,28 @@ test.describe('Roles CRUD', () => {
     await page.goto('/roles');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
 
-    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
+    await page
+      .locator('tbody tr.ant-table-row')
+      .first()
+      .locator('button:has-text("Edit"), button:has-text("编辑")')
+      .click();
     await expect(page.locator('.ant-modal input#name')).toHaveValue('Admin');
 
     // Open the parent-role Select by testid (the data-scope Select is the modal's
     // second Select since the data-scope batch — a bare .ant-select match is ambiguous).
     await page.getByTestId('roles-parent-select').click();
     await page
-      .locator('.ant-select-dropdown:visible .ant-select-item-option-content', { hasText: /^Viewer$/ })
+      .locator('.ant-select-dropdown:visible .ant-select-item-option-content', {
+        hasText: /^Viewer$/,
+      })
       .click();
 
-    await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")').first().click();
+    await page
+      .locator(
+        '.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("Confirm"), .ant-modal button:has-text("确认")',
+      )
+      .first()
+      .click();
 
     await expect.poll(() => putBody, { timeout: 10000 }).toBeDefined();
     expect(putBody?.parentId).toBe('role-2');
@@ -536,11 +672,17 @@ test.describe('Roles CRUD', () => {
   async function openFirstRoleModal(page: Page): Promise<void> {
     await page.goto('/roles');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(2);
-    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').click();
+    await page
+      .locator('tbody tr.ant-table-row')
+      .first()
+      .locator('button:has-text("Edit"), button:has-text("编辑")')
+      .click();
     await expect(page.locator('.ant-modal input#name')).toHaveValue('Admin');
   }
 
-  test('DS-1: uniform users:* scopes hydrate the scope Select; PUT fans the chosen value', async ({ page }) => {
+  test('DS-1: uniform users:* scopes hydrate the scope Select; PUT fans the chosen value', async ({
+    page,
+  }) => {
     const capture: { putBody?: Record<string, unknown> } = {};
     await stubRoleDetail(page, usersScopeDetail({ 'perm-1': 'all', 'perm-2': 'all' }), capture);
     await openFirstRoleModal(page);
@@ -551,8 +693,15 @@ test.describe('Roles CRUD', () => {
     // (en in the runner) — same reason the existing buttons use Edit|编辑 pairs.
     await expect(scope).toContainText(/All records|全部数据/);
     await scope.click();
-    await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content', { hasText: /^(Department|本部门)$/ }).click();
-    await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("确认")').first().click();
+    await page
+      .locator('.ant-select-dropdown:visible .ant-select-item-option-content', {
+        hasText: /^(Department|本部门)$/,
+      })
+      .click();
+    await page
+      .locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("确认")')
+      .first()
+      .click();
 
     await expect.poll(() => capture.putBody, { timeout: 10000 }).toBeDefined();
     // One displayed value fans onto every selected users:* id (ids are perm ids)
@@ -560,7 +709,9 @@ test.describe('Roles CRUD', () => {
     expect(capture.putBody?.permissionIds).toEqual(['perm-1', 'perm-2']);
   });
 
-  test('DS-2: divergent users:* scopes render the disabled mixed sentinel; save omits the scope map', async ({ page }) => {
+  test('DS-2: divergent users:* scopes render the disabled mixed sentinel; save omits the scope map', async ({
+    page,
+  }) => {
     const capture: { putBody?: Record<string, unknown> } = {};
     await stubRoleDetail(page, usersScopeDetail({ 'perm-1': 'dept', 'perm-2': 'self' }), capture);
     await openFirstRoleModal(page);
@@ -568,7 +719,10 @@ test.describe('Roles CRUD', () => {
     const scope = page.getByTestId('roles-scope-select');
     await expect(scope).toHaveClass(/ant-select-disabled/);
     await expect(scope).toContainText(/Mixed|混合/);
-    await page.locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("确认")').first().click();
+    await page
+      .locator('.ant-modal-footer .ant-btn-primary, .ant-modal button:has-text("确认")')
+      .first()
+      .click();
 
     await expect.poll(() => capture.putBody, { timeout: 10000 }).toBeDefined();
     // Mixed state never silently rewrites the bindings (B5): nothing scope-related is sent

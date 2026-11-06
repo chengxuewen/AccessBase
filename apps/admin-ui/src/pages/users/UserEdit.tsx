@@ -46,7 +46,6 @@ export default function UserEdit() {
       .finally(() => setRolesLoading(false));
   }, []);
 
-
   useEffect(() => {
     fetchRoles();
   }, [fetchRoles]);
@@ -73,7 +72,9 @@ export default function UserEdit() {
         <EmptyState
           variant="error"
           action={
-            <Button type="primary" onClick={refetch}>{t('common.retry')}</Button>
+            <Button type="primary" onClick={refetch}>
+              {t('common.retry')}
+            </Button>
           }
         />
       </Card>
@@ -83,50 +84,52 @@ export default function UserEdit() {
   return (
     <Card title={t('users.editTitle')} style={{ width: '100%', maxWidth: 560, margin: '0 auto' }}>
       <Spin spinning={loading}>
-      <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={loading}>
-        <Form.Item
-          name="name"
-          label={t('users.name')}
-          rules={[{ required: true, message: t('users.nameRequired') }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item label={t('users.email')}>
-          <Input value={user?.email} disabled />
-        </Form.Item>
-        <Form.Item name="roleIds" label={t('users.roles')}>
-          <Select
-            mode="multiple"
-            options={roleOptions}
-            loading={rolesLoading}
-            placeholder={roleOptions.length === 0 ? t('users.rolesEmpty') : t('users.rolesPlaceholder')}
-          />
-        </Form.Item>
-        {rolesError && (
-          <Alert
-            type="error"
-            showIcon
-            message={t('users.rolesLoadError')}
-            action={
-              <Button size="small" data-testid="roles-retry" onClick={fetchRoles}>
-                {t('common.retry')}
-              </Button>
-            }
-          />
-        )}
-        {/* No password change here — password rotation lives in auth change-password flow */}
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={saving}>
-            {t('common.save')}
-          </Button>
-          <Button
-            style={{ marginLeft: 8 }}
-            onClick={() => navigate(id ? `/users/${id}` : '/users')}
+        <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={loading}>
+          <Form.Item
+            name="name"
+            label={t('users.name')}
+            rules={[{ required: true, message: t('users.nameRequired') }]}
           >
-            {t('common.cancel')}
-          </Button>
-        </Form.Item>
-      </Form>
+            <Input />
+          </Form.Item>
+          <Form.Item label={t('users.email')}>
+            <Input value={user?.email} disabled />
+          </Form.Item>
+          <Form.Item name="roleIds" label={t('users.roles')}>
+            <Select
+              mode="multiple"
+              options={roleOptions}
+              loading={rolesLoading}
+              placeholder={
+                roleOptions.length === 0 ? t('users.rolesEmpty') : t('users.rolesPlaceholder')
+              }
+            />
+          </Form.Item>
+          {rolesError && (
+            <Alert
+              type="error"
+              showIcon
+              message={t('users.rolesLoadError')}
+              action={
+                <Button size="small" data-testid="roles-retry" onClick={fetchRoles}>
+                  {t('common.retry')}
+                </Button>
+              }
+            />
+          )}
+          {/* No password change here — password rotation lives in auth change-password flow */}
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={saving}>
+              {t('common.save')}
+            </Button>
+            <Button
+              style={{ marginLeft: 8 }}
+              onClick={() => navigate(id ? `/users/${id}` : '/users')}
+            >
+              {t('common.cancel')}
+            </Button>
+          </Form.Item>
+        </Form>
       </Spin>
     </Card>
   );

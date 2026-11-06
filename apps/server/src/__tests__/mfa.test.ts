@@ -48,7 +48,9 @@ const mfaManagerMock = {
   })),
   enable: vi.fn(async () => {}),
   verify: vi.fn(async (_userId: string, code: string) => ({ success: code === '123456' })),
-  verifyRecoveryCode: vi.fn(async (_userId: string, code: string) => ({ success: code === 'deadbeef00' })),
+  verifyRecoveryCode: vi.fn(async (_userId: string, code: string) => ({
+    success: code === 'deadbeef00',
+  })),
   disable: vi.fn(async () => {}),
 };
 
@@ -172,7 +174,11 @@ describe('R1-T3 auth events (logout + failure attribution)', () => {
     expect(res.statusCode).toBe(200);
     const row = eventInserts.find((i) => i.values['type'] === 'auth.logout');
     expect(row).toBeDefined();
-    expect(row?.values['payload']).toEqual({ email: totpUser.email, method: 'password', userId: totpUser.id });
+    expect(row?.values['payload']).toEqual({
+      email: totpUser.email,
+      method: 'password',
+      userId: totpUser.id,
+    });
   });
 
   it('bad password writes auth.login.failure reason bad_credentials with the default-tenant fallback', async () => {
@@ -186,7 +192,11 @@ describe('R1-T3 auth events (logout + failure attribution)', () => {
     const rows = eventInserts.filter((i) => i.values['type'] === 'auth.login.failure');
     expect(rows).toHaveLength(1);
     expect(rows[0]?.values['tenantId']).toBe(DEFAULT_TENANT);
-    expect(rows[0]?.values['payload']).toEqual({ email: 'who@test.local', method: 'password', reason: 'bad_credentials' });
+    expect(rows[0]?.values['payload']).toEqual({
+      email: 'who@test.local',
+      method: 'password',
+      reason: 'bad_credentials',
+    });
   });
 });
 

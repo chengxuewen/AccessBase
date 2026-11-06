@@ -32,9 +32,7 @@ function keyBytes(keyHex: string): Buffer {
 
 /** v2 key derivation: HKDF separates v2 keys from v1's raw-key use. */
 function v2KeyBytes(keyHex: string, salt: Buffer): Buffer {
-  return Buffer.from(
-    hkdfSync('sha256', keyBytes(keyHex), salt, ENVELOPE_V2_INFO, KEY_BYTES),
-  );
+  return Buffer.from(hkdfSync('sha256', keyBytes(keyHex), salt, ENVELOPE_V2_INFO, KEY_BYTES));
 }
 
 /** Current (argument) key first, then the optional rotation-window OLD key. */
@@ -119,4 +117,3 @@ export function decrypt(ciphertext: string, keyHex: string): string {
   const body = ciphertext.startsWith('v1:') ? ciphertext.slice(3) : ciphertext;
   return decryptV1(body, keys);
 }
-

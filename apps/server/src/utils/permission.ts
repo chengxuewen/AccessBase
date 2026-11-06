@@ -39,7 +39,10 @@ export function requirePermission() {
       // Carve-out: keys may not manage keys (self-proliferation would defeat
       // revocation-as-remediation). Management requires an interactive JWT.
       if (required.startsWith('apikeys:')) {
-        request.log.warn({ userId: payload.sub, required }, 'API key denied on key-management route');
+        request.log.warn(
+          { userId: payload.sub, required },
+          'API key denied on key-management route',
+        );
         await reply.status(403).send({
           success: false,
           error: { code: 'PERM_002', message: 'API keys cannot manage API keys' },

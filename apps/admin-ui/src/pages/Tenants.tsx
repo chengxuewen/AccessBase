@@ -110,7 +110,9 @@ export default function Tenants() {
       setEditingTenant(null);
       actionRef.current?.reload();
     } catch (err) {
-      message.error(apiErrorMessage(err, editingTenant ? t('tenants.updateError') : t('tenants.createError')));
+      message.error(
+        apiErrorMessage(err, editingTenant ? t('tenants.updateError') : t('tenants.createError')),
+      );
     } finally {
       setSaving(false);
     }
@@ -253,7 +255,11 @@ export default function Tenants() {
             <Popconfirm
               key="status"
               disabled={locked}
-              title={record.status === 'active' ? t('tenants.suspendConfirm') : t('tenants.activateConfirm')}
+              title={
+                record.status === 'active'
+                  ? t('tenants.suspendConfirm')
+                  : t('tenants.activateConfirm')
+              }
               onConfirm={() => void handleToggleStatus(record)}
               okText={t('common.confirm')}
               cancelText={t('common.cancel')}
@@ -305,7 +311,12 @@ export default function Tenants() {
           showIcon
           message={t('tenants.loadError')}
           action={
-            <Button size="small" icon={<ReloadOutlined />} onClick={() => actionRef.current?.reload()} data-testid="tenants-load-retry">
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={() => actionRef.current?.reload()}
+              data-testid="tenants-load-retry"
+            >
               {t('common.retry')}
             </Button>
           }

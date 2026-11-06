@@ -4,8 +4,11 @@ import type { isAxiosError } from 'axios';
 
 describe('apiErrorMessage', () => {
   it('extracts server envelope message from axios error', () => {
-    const err = { isAxiosError: true, response: { data: { error: { message: 'Role name already exists' } } },
-      toJSON: () => ({}) } as unknown as Parameters<typeof isAxiosError>[0];
+    const err = {
+      isAxiosError: true,
+      response: { data: { error: { message: 'Role name already exists' } } },
+      toJSON: () => ({}),
+    } as unknown as Parameters<typeof isAxiosError>[0];
     expect(apiErrorMessage(err, 'fb')).toBe('Role name already exists');
   });
   it('falls back when no envelope message', () => {
@@ -19,11 +22,20 @@ describe('apiErrorMessage', () => {
 
 describe('apiErrorCode (R1-T10)', () => {
   it('extracts the envelope code (AUTH_EMAIL_003 arm)', () => {
-    const err = { isAxiosError: true, response: { status: 403, data: { error: { code: 'AUTH_EMAIL_003', message: 'Email address not verified' } } }, toJSON: () => ({}) };
+    const err = {
+      isAxiosError: true,
+      response: {
+        status: 403,
+        data: { error: { code: 'AUTH_EMAIL_003', message: 'Email address not verified' } },
+      },
+      toJSON: () => ({}),
+    };
     expect(apiErrorCode(err as never)).toBe('AUTH_EMAIL_003');
   });
   it('undefined for non-axios values and codeless envelopes', () => {
     expect(apiErrorCode(new Error('x'))).toBeUndefined();
-    expect(apiErrorCode({ isAxiosError: true, response: { data: {} }, toJSON: () => ({}) } as never)).toBeUndefined();
+    expect(
+      apiErrorCode({ isAxiosError: true, response: { data: {} }, toJSON: () => ({}) } as never),
+    ).toBeUndefined();
   });
 });

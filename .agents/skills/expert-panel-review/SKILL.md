@@ -1,6 +1,6 @@
 ---
 name: expert-panel-review
-description: "多角色专家团审核一份计划/结论/决策：先独立后合并、隔离视角、必设对抗者、保留分歧、按复杂度设闸。Ported from RCH D22 and rewritten for this repo. Use when reviewing a plan, a design decision, or a batch of rulings before execution — or when the user says 复审/专家团/审查这份方案."
+description: '多角色专家团审核一份计划/结论/决策：先独立后合并、隔离视角、必设对抗者、保留分歧、按复杂度设闸。Ported from RCH D22 and rewritten for this repo. Use when reviewing a plan, a design decision, or a batch of rulings before execution — or when the user says 复审/专家团/审查这份方案.'
 ---
 
 # expert-panel-review — multi-role panel review engine
@@ -12,11 +12,11 @@ description: "多角色专家团审核一份计划/结论/决策：先独立后�
 
 ## When to open a panel (complexity gates)
 
-| Situation | Gate |
-|---|---|
-| 1-file fix, single-concern doc edit | NO panel — direct review |
-| Plan / decision / cross-batch ruling review | Standard: 3 roles (2 fixed core + 1 mounted) |
-| Architecture-level or security-critical review | Deep: 4-5 roles (2 core + 2-3 mounted) |
+| Situation                                      | Gate                                         |
+| ---------------------------------------------- | -------------------------------------------- |
+| 1-file fix, single-concern doc edit            | NO panel — direct review                     |
+| Plan / decision / cross-batch ruling review    | Standard: 3 roles (2 fixed core + 1 mounted) |
+| Architecture-level or security-critical review | Deep: 4-5 roles (2 core + 2-3 mounted)       |
 
 Burning 15x tokens (community evidence) on a 1-file review is an anti-pattern,
 not diligence.
@@ -27,7 +27,7 @@ not diligence.
   sessions, single-agent runs). One agent plays each role in SEPARATE passes.
   Isolation discipline is what keeps this honest:
   - each role receives ONLY the artifact under review + its adversarial brief
-    + the shared acceptance criteria;
+    - the shared acceptance criteria;
   - NEVER feed one role a previous role's conclusions (that is how consensus
     illusion starts);
   - each pass locks its output in a fixed shape: findings + evidence
@@ -47,11 +47,11 @@ not diligence.
 
 ## Scenario-mounted lens roles (reuse existing skills — never invent new ones)
 
-| Review target | Mount |
-|---|---|
-| Security-sensitive surface | `security-hardening` lens |
-| API / contract shape | `api-interface-design` lens |
-| UI consistency claims | `design-system` lens |
+| Review target                  | Mount                                                      |
+| ------------------------------ | ---------------------------------------------------------- |
+| Security-sensitive surface     | `security-hardening` lens                                  |
+| API / contract shape           | `api-interface-design` lens                                |
+| UI consistency claims          | `design-system` lens                                       |
 | Document/plan self-consistency | `doc-audit` lens (numbering, cross-refs, dependency graph) |
 
 ## Four-layer division (who does what)
@@ -67,7 +67,7 @@ not diligence.
 
 1. Merge all role outputs ONCE; dedupe; grade CRITICAL → LOW.
 2. DISAGREEMENTS BETWEEN ROLES ARE PRESERVED as conflict items. Majority-vote
-  smoothing is BANNED — a disagreement is information, not noise.
+   smoothing is BANNED — a disagreement is information, not noise.
 3. Hand off the graded list to `adjudication-walkthrough` (one ruling at a
    time).
 4. Record the run in `.omo/reports/` (English, dated): roles, per-role
@@ -83,9 +83,9 @@ not diligence.
 
 ## Anti-excuse table
 
-| Excuse | Answer |
-|---|---|
-| "It's just a doc, no panel needed" | The gate table decides, not the artifact type |
+| Excuse                                            | Answer                                                                                        |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| "It's just a doc, no panel needed"                | The gate table decides, not the artifact type                                                 |
 | "I already know the answer, the panel is theater" | Then produce the falsification pass solo — skipping the adversarial brief is the failure mode |
-| "Roles will repeat each other" | They repeat only when isolation leaked; fix the isolation, don't drop the roles |
-| "Disagreement means the panel failed" | Disagreement is the product; smooth it in adjudication, not in the panel |
+| "Roles will repeat each other"                    | They repeat only when isolation leaked; fix the isolation, don't drop the roles               |
+| "Disagreement means the panel failed"             | Disagreement is the product; smooth it in adjudication, not in the panel                      |

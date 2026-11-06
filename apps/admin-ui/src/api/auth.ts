@@ -1,6 +1,9 @@
 import client from './client';
 import type { ApiEnvelope } from './types';
-import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/browser';
 
 export interface ChangePasswordPayload {
   oldPassword: string;
@@ -54,7 +57,9 @@ export async function unlinkOAuthProvider(provider: string): Promise<void> {
 
 /** Configured OAuth provider names for the login page (public endpoint) */
 export async function listOAuthProviders(): Promise<string[]> {
-  const { data } = await client.get<ApiEnvelope<{ providers: string[] }>>('/v1/auth/oauth/providers');
+  const { data } = await client.get<ApiEnvelope<{ providers: string[] }>>(
+    '/v1/auth/oauth/providers',
+  );
   return data.data.providers;
 }
 
@@ -84,7 +89,9 @@ type ExchangePayload = SamlExchangeResult;
 
 /** Consume a SAML one-time code → session (token pair or MFA step-up) */
 export async function exchangeSamlCode(code: string): Promise<ExchangePayload> {
-  const { data } = await client.post<ApiEnvelope<ExchangePayload>>('/v1/auth/saml/exchange', { code });
+  const { data } = await client.post<ApiEnvelope<ExchangePayload>>('/v1/auth/saml/exchange', {
+    code,
+  });
   if (!data.success) throw new Error(data.error?.message ?? 'SAML exchange failed');
   return data.data;
 }
@@ -95,9 +102,9 @@ export async function requestMagicLink(
   captcha?: { captchaId?: string; captchaAnswer?: string },
 ): Promise<string> {
   const { data } = await client.post<ApiEnvelope<{ message: string }>>('/v1/auth/magic/request', {
-      email,
-      ...captcha,
-    });
+    email,
+    ...captcha,
+  });
   return data.data.message;
 }
 
@@ -106,7 +113,9 @@ export type MagicConsumeResult = SamlExchangeResult;
 
 /** Consume a magic link token → session (token pair or MFA step-up) */
 export async function consumeMagicLink(token: string): Promise<MagicConsumeResult> {
-  const { data } = await client.post<ApiEnvelope<MagicConsumeResult>>('/v1/auth/magic/consume', { token });
+  const { data } = await client.post<ApiEnvelope<MagicConsumeResult>>('/v1/auth/magic/consume', {
+    token,
+  });
   if (!data.success) throw new Error(data.error?.message ?? 'Magic link sign-in failed');
   return data.data;
 }
@@ -143,7 +152,9 @@ export interface PasskeyCredential {
 
 /** List registered passkeys for the current user */
 export async function getPasskeys(): Promise<PasskeyCredential[]> {
-  const { data } = await client.get<ApiEnvelope<PasskeyCredential[]>>('/v1/auth/webauthn/credentials');
+  const { data } = await client.get<ApiEnvelope<PasskeyCredential[]>>(
+    '/v1/auth/webauthn/credentials',
+  );
   return data.data;
 }
 
@@ -159,18 +170,27 @@ export interface WebAuthnOptionsPayload {
 
 /** Get WebAuthn registration options + single-use challenge token (auth flow) */
 export async function getWebAuthnRegisterOptions(): Promise<WebAuthnOptionsPayload> {
-  const { data } = await client.post<ApiEnvelope<WebAuthnOptionsPayload>>('/v1/auth/webauthn/register/options', {});
+  const { data } = await client.post<ApiEnvelope<WebAuthnOptionsPayload>>(
+    '/v1/auth/webauthn/register/options',
+    {},
+  );
   return data.data;
 }
 
 /** Verify a browser registration ceremony result and store the passkey */
-export async function verifyWebAuthnRegistration(flowToken: string, response: unknown): Promise<void> {
+export async function verifyWebAuthnRegistration(
+  flowToken: string,
+  response: unknown,
+): Promise<void> {
   await client.post('/v1/auth/webauthn/register/verify', { flowToken, response });
 }
 
 /** Get discoverable (usernameless) login options + challenge token */
 export async function getWebAuthnLoginOptions(): Promise<WebAuthnOptionsPayload> {
-  const { data } = await client.post<ApiEnvelope<WebAuthnOptionsPayload>>('/v1/auth/webauthn/login/options', {});
+  const { data } = await client.post<ApiEnvelope<WebAuthnOptionsPayload>>(
+    '/v1/auth/webauthn/login/options',
+    {},
+  );
   return data.data;
 }
 
@@ -296,7 +316,9 @@ export interface MfaEnrollSetup {
 }
 
 export async function mfaSetupWithToken(flowToken: string): Promise<MfaEnrollSetup> {
-  const { data } = await client.post<ApiEnvelope<MfaEnrollSetup>>('/v1/auth/mfa/setup', { flowToken });
+  const { data } = await client.post<ApiEnvelope<MfaEnrollSetup>>('/v1/auth/mfa/setup', {
+    flowToken,
+  });
   return data.data;
 }
 
@@ -305,7 +327,10 @@ export interface MfaEnrollEnableResult {
   refreshToken?: string;
 }
 
-export async function mfaEnableWithToken(code: string, flowToken: string): Promise<MfaEnrollEnableResult> {
+export async function mfaEnableWithToken(
+  code: string,
+  flowToken: string,
+): Promise<MfaEnrollEnableResult> {
   const { data } = await client.post<ApiEnvelope<MfaEnrollEnableResult>>('/v1/auth/mfa/enable', {
     code,
     flowToken,

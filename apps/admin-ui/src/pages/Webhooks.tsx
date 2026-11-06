@@ -143,7 +143,9 @@ export default function Webhooks() {
     } catch (err) {
       // 400 WEBHOOK_INVALID / WEBHOOK_URL_DENIED, 409 WEBHOOK_EXISTS messages
       // surface verbatim via apiErrorMessage (K-R6 passthrough)
-      message.error(apiErrorMessage(err, editing ? t('webhooks.updateError') : t('webhooks.createError')));
+      message.error(
+        apiErrorMessage(err, editing ? t('webhooks.updateError') : t('webhooks.createError')),
+      );
     } finally {
       setSaving(false);
     }
@@ -268,7 +270,9 @@ export default function Webhooks() {
       title: t('webhooks.pending'),
       dataIndex: 'pending',
       search: false,
-      render: (_, record) => <Tag color={record.pending > 0 ? 'orange' : 'default'}>{record.pending}</Tag>,
+      render: (_, record) => (
+        <Tag color={record.pending > 0 ? 'orange' : 'default'}>{record.pending}</Tag>
+      ),
     },
     {
       title: t('webhooks.dead'),
@@ -341,7 +345,13 @@ export default function Webhooks() {
             okText={t('common.confirm')}
             cancelText={t('common.cancel')}
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} data-testid="webhooks-delete">
+            <Button
+              type="link"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              data-testid="webhooks-delete"
+            >
               {t('common.delete')}
             </Button>
           </Popconfirm>,
@@ -358,12 +368,18 @@ export default function Webhooks() {
       render: (status: WebhookDelivery['status'], record) =>
         record.lastError ? (
           <Tooltip title={record.lastError}>
-            <Tag color={DELIVERY_STATUS_COLOR[status]} data-testid={`webhooks-delivery-status-${record.id}`}>
+            <Tag
+              color={DELIVERY_STATUS_COLOR[status]}
+              data-testid={`webhooks-delivery-status-${record.id}`}
+            >
               {t(`webhooks.status${status.charAt(0).toUpperCase()}${status.slice(1)}`)}
             </Tag>
           </Tooltip>
         ) : (
-          <Tag color={DELIVERY_STATUS_COLOR[status]} data-testid={`webhooks-delivery-status-${record.id}`}>
+          <Tag
+            color={DELIVERY_STATUS_COLOR[status]}
+            data-testid={`webhooks-delivery-status-${record.id}`}
+          >
             {t(`webhooks.status${status.charAt(0).toUpperCase()}${status.slice(1)}`)}
           </Tag>
         ),
@@ -389,7 +405,12 @@ export default function Webhooks() {
           showIcon
           message={t('webhooks.loadError')}
           action={
-            <Button size="small" icon={<ReloadOutlined />} onClick={() => actionRef.current?.reload()} data-testid="webhooks-load-retry">
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={() => actionRef.current?.reload()}
+              data-testid="webhooks-load-retry"
+            >
               {t('common.retry')}
             </Button>
           }
@@ -421,7 +442,13 @@ export default function Webhooks() {
         toolBarRender={
           canWrite
             ? () => [
-                <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate} data-testid="webhooks-create">
+                <Button
+                  key="create"
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={openCreate}
+                  data-testid="webhooks-create"
+                >
                   {t('webhooks.create')}
                 </Button>,
               ]
@@ -450,7 +477,10 @@ export default function Webhooks() {
             label={t('webhooks.url')}
             rules={[{ required: true, message: t('webhooks.urlRequired') }]}
           >
-            <Input placeholder="https://example.com/hooks/accessbase" data-testid="webhooks-url-input" />
+            <Input
+              placeholder="https://example.com/hooks/accessbase"
+              data-testid="webhooks-url-input"
+            />
           </Form.Item>
           <Form.Item name="description" label={t('webhooks.description')}>
             <Input data-testid="webhooks-description-input" />
@@ -464,7 +494,9 @@ export default function Webhooks() {
                 validator: (_, value: string[] | undefined) => {
                   const bad = (value ?? []).filter((e) => e !== '*' && !EVENT_PATTERN.test(e));
                   return bad.length
-                    ? Promise.reject(new Error(t('webhooks.eventsInvalid', { events: bad.join(', ') })))
+                    ? Promise.reject(
+                        new Error(t('webhooks.eventsInvalid', { events: bad.join(', ') })),
+                      )
                     : Promise.resolve();
                 },
               },
@@ -493,7 +525,11 @@ export default function Webhooks() {
           <Alert type="warning" showIcon message={t('webhooks.secretWarning')} />
           <Space.Compact style={{ width: '100%' }}>
             <Input readOnly value={reveal?.secret} data-testid="webhooks-secret-value" />
-            <Button icon={<CopyOutlined />} onClick={() => void handleCopy()} data-testid="webhooks-secret-copy">
+            <Button
+              icon={<CopyOutlined />}
+              onClick={() => void handleCopy()}
+              data-testid="webhooks-secret-copy"
+            >
               {copied ? t('webhooks.copied') : t('webhooks.copy')}
             </Button>
           </Space.Compact>
@@ -520,13 +556,13 @@ export default function Webhooks() {
       >
         <div data-testid="webhooks-deliveries">
           <Table<WebhookDelivery>
-          rowKey="id"
-          size="small"
-          loading={drawer?.loading ?? false}
-          columns={deliveryColumns}
-          dataSource={drawer?.deliveries ?? []}
-          pagination={false}
-          locale={{ emptyText: t('webhooks.noDeliveries') }}
+            rowKey="id"
+            size="small"
+            loading={drawer?.loading ?? false}
+            columns={deliveryColumns}
+            dataSource={drawer?.deliveries ?? []}
+            pagination={false}
+            locale={{ emptyText: t('webhooks.noDeliveries') }}
           />
         </div>
       </Drawer>

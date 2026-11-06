@@ -59,7 +59,11 @@ beforeAll(() => {
   );
   keyStore.set(
     createHash('sha256').update(REVOKED_KEY).digest('hex'),
-    makeRow({ id: 'key-2', hash: createHash('sha256').update(REVOKED_KEY).digest('hex'), revokedAt: new Date() }),
+    makeRow({
+      id: 'key-2',
+      hash: createHash('sha256').update(REVOKED_KEY).digest('hex'),
+      revokedAt: new Date(),
+    }),
   );
   keyStore.set(
     createHash('sha256').update(EXPIRED_KEY).digest('hex'),
@@ -81,12 +85,16 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   return {
     ...actual,
     // D113: setup guard queries the users table — mock admin as existing
-UserManager: vi.fn().mockImplementation(() => ({
+    UserManager: vi.fn().mockImplementation(() => ({
       findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
-})),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+    })),
     // DG-6d users-lane seam: the tenant-wide default keeps route behavior unchanged.
-    PermissionManager: vi.fn().mockImplementation(() => ({ hasPermission, getUserDataScope: vi.fn(async () => 'all') })),
+    PermissionManager: vi
+      .fn()
+      .mockImplementation(() => ({ hasPermission, getUserDataScope: vi.fn(async () => 'all') })),
     // SessionManager: the dual-read authenticate path never touches it, but
     // keep the mock symmetric with sibling suites.
     SessionManager: vi.fn().mockImplementation(() => ({
@@ -130,7 +138,11 @@ beforeEach(() => {
 
 describe('authenticate dual-read (ab_ prefix → ApiKeyManager)', () => {
   it('valid ab_ key on GET /api/v1/users → 200 (R4: authorization through)', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/v1/users', headers: KEY_AUTH(VALID_KEY) });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users',
+      headers: KEY_AUTH(VALID_KEY),
+    });
 
     expect(res.statusCode).toBe(200);
     expect(res.json().success).toBe(true);
@@ -155,7 +167,11 @@ describe('authenticate dual-read (ab_ prefix → ApiKeyManager)', () => {
   });
 
   it('revoked ab_ key → 401 AUTH_001', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/v1/users', headers: KEY_AUTH(REVOKED_KEY) });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users',
+      headers: KEY_AUTH(REVOKED_KEY),
+    });
 
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('AUTH_001');
@@ -163,7 +179,11 @@ describe('authenticate dual-read (ab_ prefix → ApiKeyManager)', () => {
   });
 
   it('expired ab_ key → 401 AUTH_001', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/v1/users', headers: KEY_AUTH(EXPIRED_KEY) });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users',
+      headers: KEY_AUTH(EXPIRED_KEY),
+    });
 
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('AUTH_001');
@@ -181,7 +201,11 @@ describe('authenticate dual-read (ab_ prefix → ApiKeyManager)', () => {
   });
 
   it('garbage non-ab_ token → 401 AUTH_001 unchanged (JWT path)', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/v1/users', headers: KEY_AUTH('garbage-token') });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users',
+      headers: KEY_AUTH('garbage-token'),
+    });
 
     expect(res.statusCode).toBe(401);
     expect(res.json().error.code).toBe('AUTH_001');

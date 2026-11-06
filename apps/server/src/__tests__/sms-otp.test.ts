@@ -16,9 +16,8 @@ vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 
 // SmsProvider mock (R8 keyed off provider): shared send spy, provider-gated null.
 const smsSend = vi.fn().mockResolvedValue(undefined);
-const smsFromConfig = vi.fn(
-  (cfg: { provider?: string } | null | undefined) =>
-    cfg && cfg.provider ? { send: smsSend } : null,
+const smsFromConfig = vi.fn((cfg: { provider?: string } | null | undefined) =>
+  cfg && cfg.provider ? { send: smsSend } : null,
 );
 
 const SMS_PHONE = '+15551234567';
@@ -38,9 +37,10 @@ const markEmailVerified = vi.fn(async () => {});
 
 // Per-test knobs (PIT-055: two-key modeling — both phone and id lookups).
 let userByPhone: Record<string, typeof smsUser | null> = { [SMS_PHONE]: smsUser };
-let userById: Record<string, (typeof smsUser & { status?: string; totpEnabled?: boolean }) | null> = {
-  [smsUser.id]: smsUser,
-};
+let userById: Record<string, (typeof smsUser & { status?: string; totpEnabled?: boolean }) | null> =
+  {
+    [smsUser.id]: smsUser,
+  };
 
 // Real-ish FlowTokenService: in-memory store so request+verify share state
 // (both routes live in the same plugin instance — matches production shape).
@@ -265,7 +265,9 @@ describe('POST /api/v1/auth/sms-otp/request', () => {
     TOKEN_PAIR_ENV();
     const unknown = await requestOtp('+15550000000');
     expect(unknown.statusCode).toBe(202);
-    expect(unknown.json().data.message).toBe('If an account exists, a verification code has been sent.');
+    expect(unknown.json().data.message).toBe(
+      'If an account exists, a verification code has been sent.',
+    );
     expect(typeof unknown.json().data.token).toBe('string');
 
     expect(smsSend).not.toHaveBeenCalled();
@@ -277,20 +279,25 @@ describe('POST /api/v1/auth/sms-otp/request', () => {
     );
   });
 
-  it.each(['suspended', 'pending'] as const)('%s user: 202 identical + no send + DUMMY issue', async (status) => {
-    TOKEN_PAIR_ENV();
-    userByPhone = { [SMS_PHONE]: { ...smsUser, status } };
-    const res = await requestOtp(SMS_PHONE);
-    expect(res.statusCode).toBe(202);
-    expect(res.json().data.message).toBe('If an account exists, a verification code has been sent.');
-    expect(typeof res.json().data.token).toBe('string');
-    expect(smsSend).not.toHaveBeenCalled();
-    expect(flowTokenMock.issue).toHaveBeenCalledWith(
-      'sms_otp',
-      { userId: null, phone: SMS_PHONE, code: expect.any(String) },
-      300,
-    );
-  });
+  it.each(['suspended', 'pending'] as const)(
+    '%s user: 202 identical + no send + DUMMY issue',
+    async (status) => {
+      TOKEN_PAIR_ENV();
+      userByPhone = { [SMS_PHONE]: { ...smsUser, status } };
+      const res = await requestOtp(SMS_PHONE);
+      expect(res.statusCode).toBe(202);
+      expect(res.json().data.message).toBe(
+        'If an account exists, a verification code has been sent.',
+      );
+      expect(typeof res.json().data.token).toBe('string');
+      expect(smsSend).not.toHaveBeenCalled();
+      expect(flowTokenMock.issue).toHaveBeenCalledWith(
+        'sms_otp',
+        { userId: null, phone: SMS_PHONE, code: expect.any(String) },
+        300,
+      );
+    },
+  );
 
   it('invalid phone format (missing +) → 400', async () => {
     const res = await requestOtp('15551234567');
@@ -302,7 +309,9 @@ describe('POST /api/v1/auth/sms-otp/request', () => {
     const warnSpy = vi.spyOn(logger, 'warn');
     const res = await requestOtp(SMS_PHONE);
     expect(res.statusCode).toBe(202);
-    expect(res.json().data.message).toBe('If an account exists, a verification code has been sent.');
+    expect(res.json().data.message).toBe(
+      'If an account exists, a verification code has been sent.',
+    );
     expect(typeof res.json().data.token).toBe('string');
     expect(warnSpy).toHaveBeenCalled();
     expect(smsSend).not.toHaveBeenCalled();
@@ -497,7 +506,11 @@ describe('POST /api/v1/auth/sms-otp/verify', () => {
     // LockoutService reference at all (grep-level guarantee). This probe pins
     // the observable behavior: every failure stays in the 401/403 family —
     // a phone lockout regression would surface as 423 here.
-    await app.inject({ method: 'POST', url: VERIFY_URL, payload: { token: 'bad', code: '111111' } });
+    await app.inject({
+      method: 'POST',
+      url: VERIFY_URL,
+      payload: { token: 'bad', code: '111111' },
+    });
     const { token, payload } = await issueCapture();
     const wrong = await app.inject({
       method: 'POST',

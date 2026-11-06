@@ -23,7 +23,12 @@ vi.mock('@accessbase/identity', () => {
   };
 });
 
-import { getUserManager, getRoleManager, getTenantManager, resetManagers } from '../utils/managers.js';
+import {
+  getUserManager,
+  getRoleManager,
+  getTenantManager,
+  resetManagers,
+} from '../utils/managers.js';
 
 describe('manager singletons (Q2a A)', () => {
   it('caches one instance per getter until reset', async () => {

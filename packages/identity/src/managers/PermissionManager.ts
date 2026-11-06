@@ -26,11 +26,7 @@ export class PermissionManager {
   private readonly roleManager: RoleManager;
   private readonly cacheTtlMs: number;
 
-  constructor(
-    databaseUrl?: string,
-    roleManager?: RoleManager,
-    options?: { cacheTtlMs?: number },
-  ) {
+  constructor(databaseUrl?: string, roleManager?: RoleManager, options?: { cacheTtlMs?: number }) {
     this.db = createDb(databaseUrl);
     this.roleManager = roleManager ?? new RoleManager(databaseUrl);
     this.cacheTtlMs = options?.cacheTtlMs ?? PERMISSION_CACHE_TTL_MS;
@@ -221,11 +217,7 @@ export class PermissionManager {
   /**
    * Batch check permissions
    */
-  async hasPermissions(
-    userId: string,
-    permissions: string[],
-    tenantId: string,
-  ): Promise<boolean> {
+  async hasPermissions(userId: string, permissions: string[], tenantId: string): Promise<boolean> {
     logger.debug(`Checking permissions for user ${userId} in tenant: ${tenantId}`);
 
     const list = await this.getUserEffectivePermissions(userId, tenantId);

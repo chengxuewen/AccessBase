@@ -12,35 +12,104 @@ import { DEFAULT_TENANT } from '../utils/constants.js';
  * 21 builtin permissions — resource/action pairs must match
  * authorize.ts getRequiredPermission() mapping verbatim.
  */
-export const BUILTIN_PERMISSIONS: { name: string; resource: string; action: string; description: string }[] = [
+export const BUILTIN_PERMISSIONS: {
+  name: string;
+  resource: string;
+  action: string;
+  description: string;
+}[] = [
   { name: 'users:read', resource: 'users', action: 'read', description: 'View users' },
-  { name: 'users:write', resource: 'users', action: 'write', description: 'Create or update users' },
+  {
+    name: 'users:write',
+    resource: 'users',
+    action: 'write',
+    description: 'Create or update users',
+  },
   { name: 'users:delete', resource: 'users', action: 'delete', description: 'Delete users' },
   { name: 'roles:read', resource: 'roles', action: 'read', description: 'View roles' },
-  { name: 'roles:write', resource: 'roles', action: 'write', description: 'Create or update roles' },
+  {
+    name: 'roles:write',
+    resource: 'roles',
+    action: 'write',
+    description: 'Create or update roles',
+  },
   { name: 'roles:delete', resource: 'roles', action: 'delete', description: 'Delete roles' },
-  { name: 'permissions:read', resource: 'permissions', action: 'read', description: 'View permissions' },
-  { name: 'permissions:write', resource: 'permissions', action: 'write', description: 'Create or update permissions' },
-  { name: 'permissions:delete', resource: 'permissions', action: 'delete', description: 'Delete permissions' },
+  {
+    name: 'permissions:read',
+    resource: 'permissions',
+    action: 'read',
+    description: 'View permissions',
+  },
+  {
+    name: 'permissions:write',
+    resource: 'permissions',
+    action: 'write',
+    description: 'Create or update permissions',
+  },
+  {
+    name: 'permissions:delete',
+    resource: 'permissions',
+    action: 'delete',
+    description: 'Delete permissions',
+  },
   { name: 'audit:read', resource: 'audit', action: 'read', description: 'View audit logs' },
   { name: 'stats:read', resource: 'stats', action: 'read', description: 'View deployment stats' },
-  { name: 'options:read', resource: 'options', action: 'read', description: 'View runtime options' },
-  { name: 'options:write', resource: 'options', action: 'write', description: 'Modify runtime options' },
+  {
+    name: 'options:read',
+    resource: 'options',
+    action: 'read',
+    description: 'View runtime options',
+  },
+  {
+    name: 'options:write',
+    resource: 'options',
+    action: 'write',
+    description: 'Modify runtime options',
+  },
   { name: 'clients:read', resource: 'clients', action: 'read', description: 'View OIDC clients' },
-  { name: 'clients:write', resource: 'clients', action: 'write', description: 'Manage OIDC clients' },
+  {
+    name: 'clients:write',
+    resource: 'clients',
+    action: 'write',
+    description: 'Manage OIDC clients',
+  },
   { name: 'apikeys:read', resource: 'apikeys', action: 'read', description: 'View API keys' },
   { name: 'apikeys:write', resource: 'apikeys', action: 'write', description: 'Create API keys' },
   { name: 'apikeys:delete', resource: 'apikeys', action: 'delete', description: 'Revoke API keys' },
   { name: 'tenants:read', resource: 'tenants', action: 'read', description: 'View tenants' },
-  { name: 'tenants:write', resource: 'tenants', action: 'write', description: 'Create or update tenants' },
+  {
+    name: 'tenants:write',
+    resource: 'tenants',
+    action: 'write',
+    description: 'Create or update tenants',
+  },
   { name: 'tenants:delete', resource: 'tenants', action: 'delete', description: 'Delete tenants' },
   { name: 'groups:read', resource: 'groups', action: 'read', description: 'View user groups' },
-  { name: 'groups:write', resource: 'groups', action: 'write', description: 'Create or update user groups' },
-  { name: 'groups:delete', resource: 'groups', action: 'delete', description: 'Delete user groups' },
-  { name: 'webhooks:read', resource: 'webhooks', action: 'read', description: 'View webhook endpoints' },
-  { name: 'webhooks:write', resource: 'webhooks', action: 'write', description: 'Create or update webhook endpoints' },
+  {
+    name: 'groups:write',
+    resource: 'groups',
+    action: 'write',
+    description: 'Create or update user groups',
+  },
+  {
+    name: 'groups:delete',
+    resource: 'groups',
+    action: 'delete',
+    description: 'Delete user groups',
+  },
+  {
+    name: 'webhooks:read',
+    resource: 'webhooks',
+    action: 'read',
+    description: 'View webhook endpoints',
+  },
+  {
+    name: 'webhooks:write',
+    resource: 'webhooks',
+    action: 'write',
+    description: 'Create or update webhook endpoints',
+  },
 ];
-
 
 /**
  * First-writer insert of the default tenant row (R6). Idempotent via the slug
@@ -206,10 +275,16 @@ export async function selfHealSeed(
       return;
     } catch (err) {
       if (attempt === attempts) {
-        logger.error({ err }, 'permission seed self-heal failed — seed missing — guarded routes 403');
+        logger.error(
+          { err },
+          'permission seed self-heal failed — seed missing — guarded routes 403',
+        );
         return;
       }
-      logger.warn({ err, attempt, attempts }, 'permission seed self-heal attempt failed — retrying');
+      logger.warn(
+        { err, attempt, attempts },
+        'permission seed self-heal attempt failed — retrying',
+      );
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }

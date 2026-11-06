@@ -1,4 +1,4 @@
- /**
+/**
  * OidcClientManager — OIDC client CRUD with encrypted secrets.
  *
  * Client secrets are stored AES-256-GCM encrypted with a key derived via
@@ -16,13 +16,7 @@
  * encryptSecret / decryptSecret are exported for adapter reuse (Task 4a).
  */
 
-import {
-  randomBytes,
-  scryptSync,
-  createCipheriv,
-  createDecipheriv,
-  hkdfSync,
-} from 'node:crypto';
+import { randomBytes, scryptSync, createCipheriv, createDecipheriv, hkdfSync } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { logger } from '@accessbase/logging';
 import { createDb, type DrizzleDB } from '../db/index.js';
@@ -228,15 +222,17 @@ export class OidcClientManager {
   ): Promise<void> {
     const set: Record<string, unknown> = { updatedAt: new Date() };
     if (fields.jwks !== undefined) set['jwks'] = fields.jwks;
-    if (fields.backchannelLogoutUri !== undefined) set['backchannelLogoutUri'] = fields.backchannelLogoutUri;
-    await this.db
-      .update(oidcClients)
-      .set(set)
-      .where(eq(oidcClients.clientId, clientId));
+    if (fields.backchannelLogoutUri !== undefined)
+      set['backchannelLogoutUri'] = fields.backchannelLogoutUri;
+    await this.db.update(oidcClients).set(set).where(eq(oidcClients.clientId, clientId));
   }
 
   async get(clientId: string): Promise<OidcClientRow | undefined> {
-    const rows = await this.db.select().from(oidcClients).where(eq(oidcClients.clientId, clientId)).limit(1);
+    const rows = await this.db
+      .select()
+      .from(oidcClients)
+      .where(eq(oidcClients.clientId, clientId))
+      .limit(1);
     return rows[0] as OidcClientRow | undefined;
   }
 

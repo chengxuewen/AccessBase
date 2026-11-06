@@ -23,6 +23,7 @@ Back-Channel Logout 1.0 semantics, invalidating the affected local sessions
 when a verified `logout_token` arrives.
 
 **Non-goals (this batch):**
+
 - No front-channel logout changes (already shipped, batch logout-coherence).
 - No changes to our IdP sender path (already live-proven).
 - No Keycloak dependency for landing: unit + integration tests stand alone;
@@ -64,23 +65,23 @@ when a verified `logout_token` arrives.
 
 ## 1. Verified facts (PIT-076 discipline — checked same-session, re-verified by both Momus lanes)
 
-| # | Fact | Evidence |
-|---|---|---|
-| F1 | RP links persist per-login id_token: `oauth_accounts.id_token` (0012), `session_index` (SAML); both nullable — token-nulling needs NO migration | `packages/identity/src/db/schema.ts:267-293` |
-| F2 | RP end_session builder single-source `rp-end-session.ts`; skips links without id_token (`if (!row.idToken) continue`, ~:159-172) | `rp-end-session.ts:156-176` |
-| F3 | Link writes are UPSERTs refreshing id_token on EVERY generic login (R4) | `apps/server/src/routes/oauth.ts:336-367` (`upsertGenericLink`) |
-| F4 | Our RP does NOT persist the OIDC session id (`sid`) — zero `\bsid\b` hits in routes | grep, both lanes re-verified |
-| F5 | Registry = `loadDynamicProviders()` in `rp-end-session.ts`; config from `oauth_providers` options key (non-sensitive JSON) + `oauth_<name>_client_secret` masked keys; malformed entries skip-with-warn | `rp-end-session.ts:20-45` |
-| F6 | SETNX dedup idiom with `_resetSloDedupForTest` seam | `apps/server/src/utils/saml-logout.ts:125-162` |
-| F7 | jose 6.2.10 transitive-only (oidc-provider package.json `jose: ^6.2.10`); server does not declare it | `node_modules/.pnpm/jose@6.2.10` |
-| F8 | IdP sender reads `backchannel_logout_uri` from client rows; `backchannelLogoutEnabled` gates feature | `adapter.ts:246-247`, `provider.ts:26,134-135` |
-| F9 | `SessionManager.revokeAllUserSessions(userId)` exists (`managers/SessionManager.ts:265`); bearer kill = `bumpAuthState(db, {tenantId, userIds}, delAuthStateKeys?)` in `token-version.ts:22-25` — NOT root-exported, zero server imports | both lanes verified |
-| F10 | Route-level rate-limit override supported; /oidc space has its own guard | `rate-guard.ts`, M-batch conventions |
-| F11 | New wire codes need same-commit `error-codes-reality.md` rows (D126); vitest baseline flips same-commit | conventions Q0 + Q1 |
-| F12 | Global error handler wraps errors in `{success,data}` envelope and leaks `error.message` for <500 (`app.ts:258-272`); SCIM solved identical shape deviation with plugin-scoped `setErrorHandler` (`scim.ts:187-196`) | flows lane verified |
-| F13 | SAML registers a route-scoped urlencoded parser (`saml.ts:31-36`); `@fastify/formbody` absent from server deps; Fastify core 415s urlencoded; "no global addContentTypeParser" is a static invariant test | flows+blockers lanes verified |
-| F14 | Our IdP sender (oidc-provider 9.12.2) accepts ONLY 200/204 from RP backchannel endpoints | `models/client.js:433,462` |
-| F15 | `auth.*` events ride the sanctioned fire-and-forget telemetry lane (`auth-events.ts`); DomainEventType union lives in `packages/identity/src/services/events.ts:17` | R1-T3 + conventions Q4c |
+| #   | Fact                                                                                                                                                                                                                                     | Evidence                                                        |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| F1  | RP links persist per-login id_token: `oauth_accounts.id_token` (0012), `session_index` (SAML); both nullable — token-nulling needs NO migration                                                                                          | `packages/identity/src/db/schema.ts:267-293`                    |
+| F2  | RP end_session builder single-source `rp-end-session.ts`; skips links without id_token (`if (!row.idToken) continue`, ~:159-172)                                                                                                         | `rp-end-session.ts:156-176`                                     |
+| F3  | Link writes are UPSERTs refreshing id_token on EVERY generic login (R4)                                                                                                                                                                  | `apps/server/src/routes/oauth.ts:336-367` (`upsertGenericLink`) |
+| F4  | Our RP does NOT persist the OIDC session id (`sid`) — zero `\bsid\b` hits in routes                                                                                                                                                      | grep, both lanes re-verified                                    |
+| F5  | Registry = `loadDynamicProviders()` in `rp-end-session.ts`; config from `oauth_providers` options key (non-sensitive JSON) + `oauth_<name>_client_secret` masked keys; malformed entries skip-with-warn                                  | `rp-end-session.ts:20-45`                                       |
+| F6  | SETNX dedup idiom with `_resetSloDedupForTest` seam                                                                                                                                                                                      | `apps/server/src/utils/saml-logout.ts:125-162`                  |
+| F7  | jose 6.2.10 transitive-only (oidc-provider package.json `jose: ^6.2.10`); server does not declare it                                                                                                                                     | `node_modules/.pnpm/jose@6.2.10`                                |
+| F8  | IdP sender reads `backchannel_logout_uri` from client rows; `backchannelLogoutEnabled` gates feature                                                                                                                                     | `adapter.ts:246-247`, `provider.ts:26,134-135`                  |
+| F9  | `SessionManager.revokeAllUserSessions(userId)` exists (`managers/SessionManager.ts:265`); bearer kill = `bumpAuthState(db, {tenantId, userIds}, delAuthStateKeys?)` in `token-version.ts:22-25` — NOT root-exported, zero server imports | both lanes verified                                             |
+| F10 | Route-level rate-limit override supported; /oidc space has its own guard                                                                                                                                                                 | `rate-guard.ts`, M-batch conventions                            |
+| F11 | New wire codes need same-commit `error-codes-reality.md` rows (D126); vitest baseline flips same-commit                                                                                                                                  | conventions Q0 + Q1                                             |
+| F12 | Global error handler wraps errors in `{success,data}` envelope and leaks `error.message` for <500 (`app.ts:258-272`); SCIM solved identical shape deviation with plugin-scoped `setErrorHandler` (`scim.ts:187-196`)                     | flows lane verified                                             |
+| F13 | SAML registers a route-scoped urlencoded parser (`saml.ts:31-36`); `@fastify/formbody` absent from server deps; Fastify core 415s urlencoded; "no global addContentTypeParser" is a static invariant test                                | flows+blockers lanes verified                                   |
+| F14 | Our IdP sender (oidc-provider 9.12.2) accepts ONLY 200/204 from RP backchannel endpoints                                                                                                                                                 | `models/client.js:433,462`                                      |
+| F15 | `auth.*` events ride the sanctioned fire-and-forget telemetry lane (`auth-events.ts`); DomainEventType union lives in `packages/identity/src/services/events.ts:17`                                                                      | R1-T3 + conventions Q4c                                         |
 
 ---
 
@@ -177,7 +178,7 @@ All side effects are individually idempotent. Order:
    (`managers/SessionManager.ts:265`) for each linked user.
 3. **Bearer kill**: replicate the 3-line bump inside `backchannel-logout.ts`
    within the caller tx — `UPDATE users SET token_version = token_version + 1
-   WHERE tenant_id = $t AND id = $u RETURNING id` + `redis DEL authst:<userId>`
+WHERE tenant_id = $t AND id = $u RETURNING id` + `redis DEL authst:<userId>`
    (the `delAuthStateKeys` arm). **Chosen over identity-root re-export**
    (B3): no cross-package export/`identity build` ripple, the SQL shape gets
    a real-PG lock test per house rules, and tenantId comes from the same
@@ -223,12 +224,12 @@ the R2 fix: claim-first + crash = silently lost logout.
 
 ### 3.6 Error taxonomy (same-commit reality-catalog rows, F11)
 
-| Code | HTTP | Meaning |
-|---|---|---|
-| `AUTH_BCLO_001` | 400 | missing/malformed/oversized logout_token param |
-| `AUTH_BCLO_002` | 400 | signature/iss/aud/events/nonce/jti validation failed |
-| `AUTH_BCLO_003` | 400 | expired or beyond max token age |
-| — | 200 | benign no-op (unknown sub, sid-only, null-sub) — never an error |
+| Code            | HTTP | Meaning                                                         |
+| --------------- | ---- | --------------------------------------------------------------- |
+| `AUTH_BCLO_001` | 400  | missing/malformed/oversized logout_token param                  |
+| `AUTH_BCLO_002` | 400  | signature/iss/aud/events/nonce/jti validation failed            |
+| `AUTH_BCLO_003` | 400  | expired or beyond max token age                                 |
+| —               | 200  | benign no-op (unknown sub, sid-only, null-sub) — never an error |
 
 All 400s: identical `{"error":"invalid_request","error_description":...}` —
 codes live in LOGS not responses (BCL spec shape overrides our envelope
@@ -250,8 +251,9 @@ convention for this IdP-facing machine route; conventions addendum + M4).
 ## 4. Test matrix (RED-first per item)
 
 **Unit (mock jose verify / mock fetch):**
+
 - U1 happy path: valid sub token → 200, sessions revoked, tokenVersion bumped
-  + authst DEL, tokens nulled, event emitted.
+  - authst DEL, tokens nulled, event emitted.
 - U2 byte-identical replay → 200, side effects once (dedup hit).
 - U3 nonce present → 400 BCLO_002. U4: events member missing / non-object
   value → 400; extra members tolerated (R10).
@@ -265,6 +267,7 @@ convention for this IdP-facing machine route; conventions addendum + M4).
 - U12 redaction: logout_token never reaches audit/log rows (B5 belt-and-braces).
 
 **Integration (real PG+Redis, real jose, generated RSA keypair):**
+
 - I1 full loop: seed user+link → sign token → POST (urlencoded parser live) →
   sessions revoked + tokenVersion bumped + authst key gone + tokens NULL.
 - I2 replay → one observable effect set.
@@ -276,6 +279,7 @@ convention for this IdP-facing machine route; conventions addendum + M4).
   reprocesses → converges (R2).
 
 **Live-fire (Keycloak day — NOT this batch's gate):**
+
 - L1 Keycloak: kill IdP session → our RP session dies ≤30s (bearer included).
 - L2 self-loop: AccessBase-IdP → AccessBase-RP (scratch two-node recipe) —
   viable because our sender accepts 200/204 (F14) and we now return 200.
@@ -305,7 +309,7 @@ convention for this IdP-facing machine route; conventions addendum + M4).
 - **T0**: jose direct dep; `DynamicProviderConfig` + `issuer`/`jwksUri` +
   loader validation + issuer-map duplicate policy; redactor `logouttoken`;
   error-catalog rows; DomainEventType extension (`auth.backchannel_logout`)
-  + auth-events lane entry.
+  - auth-events lane entry.
 - **T1**: `apps/server/src/utils/backchannel-logout.ts` — verify pipeline +
   jwks cache + resolution + 3-line bump replication + dedup (claim-last,
   failure-release) (U1-U12).
@@ -324,17 +328,16 @@ vitest unit+integration green (new count flipped in conventions same-commit);
 only, 186+3); reality-catalog + redactor + vocabulary grep gates pass; scratch
 state destroyed after integration runs; this spec's §0 non-goals unchanged.
 
-
 ---
 
 ## 8. Adjudications (user-adjudicated one by one, 2026-10-12)
 
-| # | Decision | Ruling | Key note |
-|---|---|---|---|
-| A1 | Unresolvable-target tokens (sid-only / null-sub / unknown sub) | **A: 200 OK no-op + one-time warn** | protocol-valid tokens are a success posture; 400 invites IdP retry storms; Keycloak null-sub is a normal edge (BCL §2.4/2.6-2.8, dual-Momus R4+B6) |
-| A2 | Bearer-kill mechanism (tokenVersion bump) | **A: replicate 3-line UPDATE+DEL inside route tx** | real-PG lock test watches drift; identity package untouched (no rebuild ripple); B3 resolved |
-| A3 | Replay-dedup key + claim position | **A: jti-first (sha256 fallback), claim LAST, release on failure** | effects are idempotent — make repetition harmless instead of guarding it; claim-first crash window = silently lost logout (R2+B4) |
-| A4 | issuer/jwksUri config placement | **A: inside existing oauth_providers JSON blob** | zero allowlist keys touched; pair-natural; providers without the fields simply don't participate (B1) |
-| A5 | JWKS fetch failure posture | **A: fail-closed + unknown-kid forced refetch** | the token's power is kicking users out; unverified = forgery = free DoS. no-contest |
+| #   | Decision                                                       | Ruling                                                             | Key note                                                                                                                                           |
+| --- | -------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | Unresolvable-target tokens (sid-only / null-sub / unknown sub) | **A: 200 OK no-op + one-time warn**                                | protocol-valid tokens are a success posture; 400 invites IdP retry storms; Keycloak null-sub is a normal edge (BCL §2.4/2.6-2.8, dual-Momus R4+B6) |
+| A2  | Bearer-kill mechanism (tokenVersion bump)                      | **A: replicate 3-line UPDATE+DEL inside route tx**                 | real-PG lock test watches drift; identity package untouched (no rebuild ripple); B3 resolved                                                       |
+| A3  | Replay-dedup key + claim position                              | **A: jti-first (sha256 fallback), claim LAST, release on failure** | effects are idempotent — make repetition harmless instead of guarding it; claim-first crash window = silently lost logout (R2+B4)                  |
+| A4  | issuer/jwksUri config placement                                | **A: inside existing oauth_providers JSON blob**                   | zero allowlist keys touched; pair-natural; providers without the fields simply don't participate (B1)                                              |
+| A5  | JWKS fetch failure posture                                     | **A: fail-closed + unknown-kid forced refetch**                    | the token's power is kicking users out; unverified = forgery = free DoS. no-contest                                                                |
 
 All five rulings = option A, none skipped or deferred. rev.2 text already reflects every ruling; this section is the audit record.

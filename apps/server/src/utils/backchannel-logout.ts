@@ -88,20 +88,35 @@ export function providerByIss(
 }
 
 /** Static claim checks that do not need crypto (order: cheap rejects first). */
-export function checkClaims(payload: Record<string, unknown>, clientId: string): VerifiedToken | { error: 'AUTH_BCLO_002' | 'AUTH_BCLO_003'; detail: string } {
-  if (typeof payload['iss'] !== 'string' || payload['iss'] === '') return { error: 'AUTH_BCLO_002', detail: 'iss missing' };
+export function checkClaims(
+  payload: Record<string, unknown>,
+  clientId: string,
+): VerifiedToken | { error: 'AUTH_BCLO_002' | 'AUTH_BCLO_003'; detail: string } {
+  if (typeof payload['iss'] !== 'string' || payload['iss'] === '')
+    return { error: 'AUTH_BCLO_002', detail: 'iss missing' };
   const aud = payload['aud'];
   const audList = Array.isArray(aud) ? aud : [aud];
   if (!audList.includes(clientId)) return { error: 'AUTH_BCLO_002', detail: 'aud mismatch' };
   const events = payload['events'];
-  if (events === null || typeof events !== 'object' || Array.isArray(events) || !(BCLO_EVENT_URI in (events as object))) {
+  if (
+    events === null ||
+    typeof events !== 'object' ||
+    Array.isArray(events) ||
+    !(BCLO_EVENT_URI in (events as object))
+  ) {
     return { error: 'AUTH_BCLO_002', detail: 'events member missing or not an object' };
   }
-  if (payload['nonce'] !== undefined) return { error: 'AUTH_BCLO_002', detail: 'nonce PROHIBITED in logout tokens' };
-  if (typeof payload['jti'] !== 'string' || payload['jti'] === '') return { error: 'AUTH_BCLO_002', detail: 'jti REQUIRED (BCL 2.4)' };
+  if (payload['nonce'] !== undefined)
+    return { error: 'AUTH_BCLO_002', detail: 'nonce PROHIBITED in logout tokens' };
+  if (typeof payload['jti'] !== 'string' || payload['jti'] === '')
+    return { error: 'AUTH_BCLO_002', detail: 'jti REQUIRED (BCL 2.4)' };
   // sub: string or explicitly null (Keycloak client-initiated logout sends null).
   // ABSENT sub with a sid is sid-only — same benign no-op family (A1).
-  if (payload['sub'] !== undefined && payload['sub'] !== null && typeof payload['sub'] !== 'string') {
+  if (
+    payload['sub'] !== undefined &&
+    payload['sub'] !== null &&
+    typeof payload['sub'] !== 'string'
+  ) {
     return { error: 'AUTH_BCLO_002', detail: 'sub must be a string or null' };
   }
   const now = Math.floor(Date.now() / 1000);
@@ -133,7 +148,10 @@ export async function claimBackchannelLogout(jti: string, tokenBytes: string): P
 }
 
 /** Release a claimed dedup key when an effect threw AFTER claiming (A3 failure-release). */
-export async function releaseBackchannelLogoutClaim(jti: string, tokenBytes: string): Promise<void> {
+export async function releaseBackchannelLogoutClaim(
+  jti: string,
+  tokenBytes: string,
+): Promise<void> {
   try {
     const redis = await getRedis();
     if (!redis) return;
@@ -164,7 +182,8 @@ export async function processBackchannelLogout(
     const parts = logoutToken.split('.');
     if (parts.length !== 3) return { kind: 'invalid', code: 'AUTH_BCLO_001', detail: 'not a JWT' };
     const payloadB64 = parts[1];
-    if (payloadB64 === undefined) return { kind: 'invalid', code: 'AUTH_BCLO_001', detail: 'not a JWT' };
+    if (payloadB64 === undefined)
+      return { kind: 'invalid', code: 'AUTH_BCLO_001', detail: 'not a JWT' };
     // base64url -> base64 normalization (root-tsc lib lacks the base64url
     // BufferEncoding overload; '-'/'_' differ from '+','/' only in the 62/63
     // alphabet positions, which the probe JSON may legitimately contain)
@@ -177,7 +196,12 @@ export async function processBackchannelLogout(
   }
   if (issProbe === null) return { kind: 'invalid', code: 'AUTH_BCLO_002', detail: 'iss missing' };
   const matched = providerByIss(deps.providers, issProbe);
-  if (!matched) return { kind: 'invalid', code: 'AUTH_BCLO_002', detail: 'no provider configured for this issuer' };
+  if (!matched)
+    return {
+      kind: 'invalid',
+      code: 'AUTH_BCLO_002',
+      detail: 'no provider configured for this issuer',
+    };
 
   // 2. Verify — jose enforces exp/nbf; iss/aud re-checked against CONFIG (A5:
   // never trust the token's own pointers). Unknown kid => cooldownSingleUse
@@ -185,7 +209,8 @@ export async function processBackchannelLogout(
   let payload: Record<string, unknown>;
   try {
     const jwksUri = matched.config.jwksUri;
-    if (jwksUri === undefined) return { kind: 'invalid', code: 'AUTH_BCLO_002', detail: 'provider has no jwksUri' };
+    if (jwksUri === undefined)
+      return { kind: 'invalid', code: 'AUTH_BCLO_002', detail: 'provider has no jwksUri' };
     const { payload: verified } = await jwtVerify(logoutToken, jwksFor(jwksUri), {
       issuer: matched.config.issuer,
       audience: matched.config.clientId,
@@ -196,7 +221,11 @@ export async function processBackchannelLogout(
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'verify failed';
     const expired = /exp|temporal/i.test(msg);
-    return { kind: 'invalid', code: expired ? 'AUTH_BCLO_003' : 'AUTH_BCLO_002', detail: 'token verification failed' };
+    return {
+      kind: 'invalid',
+      code: expired ? 'AUTH_BCLO_003' : 'AUTH_BCLO_002',
+      detail: 'token verification failed',
+    };
   }
   const claims = checkClaims(payload, matched.config.clientId);
   if ('error' in claims) return { kind: 'invalid', code: claims.error, detail: claims.detail };
@@ -204,7 +233,10 @@ export async function processBackchannelLogout(
   // 3. Resolve — A1: unresolvable targets are benign 200s.
   const sub = claims.sub;
   if (sub === null) {
-    deps.logger.warn({ jti: claims.jti, iss: claims.iss, hasSid: claims.sid !== undefined }, 'bclo: null-sub token (Keycloak client-initiated edge) — benign no-op');
+    deps.logger.warn(
+      { jti: claims.jti, iss: claims.iss, hasSid: claims.sid !== undefined },
+      'bclo: null-sub token (Keycloak client-initiated edge) — benign no-op',
+    );
     return { kind: 'ok' };
   }
   const links = await deps.db
@@ -238,7 +270,12 @@ export async function processBackchannelLogout(
     await deps.db
       .update(oauthAccounts)
       .set({ accessToken: null, refreshToken: null, idToken: null })
-      .where(inArray(oauthAccounts.id, links.map((l) => l.id)));
+      .where(
+        inArray(
+          oauthAccounts.id,
+          links.map((l) => l.id),
+        ),
+      );
 
     // 5. Telemetry (fire-and-forget — never fails the response).
     for (const userId of userIds) {

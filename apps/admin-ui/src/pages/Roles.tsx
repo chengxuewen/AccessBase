@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, Form, Input, Modal, Popconfirm, Select, Tooltip, Transfer } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, LoadingOutlined, ReloadOutlined, LockOutlined } from '@ant-design/icons';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  LoadingOutlined,
+  ReloadOutlined,
+  LockOutlined,
+} from '@ant-design/icons';
 import EmptyState from '../components/EmptyState';
 import {
   listRoles,
@@ -13,7 +20,7 @@ import {
   type Role,
   type Permission,
   type DataScope,
-  } from '../api/roles';
+} from '../api/roles';
 import { fetchAllPermissions } from '../utils/fetchAll';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
@@ -72,7 +79,11 @@ export default function Roles() {
     try {
       const detail = await getRole(role.id);
       setEditingRole(detail);
-      form.setFieldsValue({ name: detail.name, description: detail.description, parentId: detail.parentId });
+      form.setFieldsValue({
+        name: detail.name,
+        description: detail.description,
+        parentId: detail.parentId,
+      });
       setTargetPermissionIds((detail.permissions ?? []).map((p) => p.id));
       const usersIds = (detail.permissions ?? [])
         .filter((p) => p.resource === 'users')
@@ -82,7 +93,7 @@ export default function Roles() {
       // B5: divergent users:* bindings are not representable by a single value — show
       // the disabled 'mixed' sentinel instead of silently picking one of them.
       setScopeMixed(distinct.length > 1);
-      setDataScope(distinct.length === 1 ? distinct[0] ?? 'all' : 'all');
+      setDataScope(distinct.length === 1 ? (distinct[0] ?? 'all') : 'all');
       setModalOpen(true);
     } catch {
       message.error(t('roles.loadDetailError'));
@@ -124,7 +135,9 @@ export default function Roles() {
       form.resetFields();
       actionRef.current?.reload();
     } catch (err) {
-      message.error(apiErrorMessage(err, editingRole ? t('roles.updateError') : t('roles.createError')));
+      message.error(
+        apiErrorMessage(err, editingRole ? t('roles.updateError') : t('roles.createError')),
+      );
     } finally {
       setSaving(false);
     }
@@ -169,7 +182,7 @@ export default function Roles() {
       title: t('roles.tenant'),
       dataIndex: 'tenantId',
       search: false,
-      render: (_, record) => record.tenantId ? <TenantCell tenantId={record.tenantId} /> : '—',
+      render: (_, record) => (record.tenantId ? <TenantCell tenantId={record.tenantId} /> : '—'),
     },
     {
       title: t('roles.createdAt'),
@@ -182,14 +195,20 @@ export default function Roles() {
       valueType: 'option',
       width: 140,
       render: (_, record) => [
-        <Button type="link" size="small" key="edit" disabled={record.isSystem} onClick={() => void openEdit(record)}>
+        <Button
+          type="link"
+          size="small"
+          key="edit"
+          disabled={record.isSystem}
+          onClick={() => void openEdit(record)}
+        >
           {editLoadingId === record.id ? (
             <LoadingOutlined />
           ) : record.isSystem ? (
             <LockOutlined />
           ) : (
             <EditOutlined />
-          )}{" "}
+          )}{' '}
           {t('common.edit')}
         </Button>,
         <Popconfirm
@@ -236,7 +255,13 @@ export default function Roles() {
           showIcon
           message={t('roles.loadError')}
           action={
-            <Button size="small" icon={<ReloadOutlined />} onClick={() => actionRef.current?.reload()}>{t('common.retry')}</Button>
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={() => actionRef.current?.reload()}
+            >
+              {t('common.retry')}
+            </Button>
           }
           data-testid="roles-load-error"
           style={{ marginBottom: 16 }}
@@ -320,7 +345,9 @@ export default function Roles() {
               showIcon
               message={t('roles.loadPermissionsError')}
               action={
-                <Button size="small" icon={<ReloadOutlined />} onClick={loadPerms}>{t('common.retry')}</Button>
+                <Button size="small" icon={<ReloadOutlined />} onClick={loadPerms}>
+                  {t('common.retry')}
+                </Button>
               }
               data-testid="perm-load-error"
               style={{ marginBottom: 12 }}

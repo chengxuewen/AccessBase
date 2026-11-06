@@ -17,15 +17,13 @@ vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 
 // Stable mock handles — tests drive them with mockResolvedValueOnce
-const findByEmailMock = vi.fn()
+const findByEmailMock = vi.fn();
 
 // Email-aware: guard fast path needs findByEmail(adminEmail) non-null;
 // register dup-check needs findByEmail(<new email>) null. Returns the admin
 // only for the default admin address (disabled-user.test precedent).
 findByEmailMock.mockImplementation((email: string) =>
-  Promise.resolve(
-    email === 'admin@accessbase.local' ? { id: 'u1', email } : null,
-  ),
+  Promise.resolve(email === 'admin@accessbase.local' ? { id: 'u1', email } : null),
 );
 const createMock = vi.fn();
 const changeStatusMock = vi.fn();
@@ -43,7 +41,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       changeStatus: changeStatusMock,
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
       getUserRoles: vi.fn().mockResolvedValue([]),
     })),
     PermissionManager: vi.fn().mockImplementation(() => ({
@@ -85,18 +85,23 @@ describe('POST /api/v1/auth/register', () => {
     vi.clearAllMocks();
     // Re-arm email-aware default (clearAllMocks wipes implementations)
     findByEmailMock.mockImplementation((email: string) =>
-      Promise.resolve(
-        email === 'admin@accessbase.local' ? { id: 'u1', email } : null,
-      ),
+      Promise.resolve(email === 'admin@accessbase.local' ? { id: 'u1', email } : null),
     );
     changeStatusMock.mockResolvedValue({
-      id: 'u9', email: 'new@x.io', name: 'New', isActive: false,
+      id: 'u9',
+      email: 'new@x.io',
+      name: 'New',
+      isActive: false,
     });
   });
 
   it('creates pending user on valid payload', async () => {
     createMock.mockResolvedValueOnce({
-      id: 'u9', email: 'new@x.io', name: 'New', isActive: true, tenantId: 't1',
+      id: 'u9',
+      email: 'new@x.io',
+      name: 'New',
+      isActive: true,
+      tenantId: 't1',
     });
     const res = await app.inject({
       method: 'POST',
@@ -111,16 +116,19 @@ describe('POST /api/v1/auth/register', () => {
       expect.any(String),
       expect.anything(), // Q2b tx handle
     );
-    expect(changeStatusMock).toHaveBeenCalledWith('u9', 'pending', expect.any(String), expect.anything());
+    expect(changeStatusMock).toHaveBeenCalledWith(
+      'u9',
+      'pending',
+      expect.any(String),
+      expect.anything(),
+    );
   });
 
   it('409 AUTH_REG_001 on duplicate email', async () => {
     // Re-arm implementation (not a Once: setup-guard already calls findByEmail
     // for its admin fast path, so a Once queue would be consumed by the guard,
     // not by the handler's dup-check): every non-admin address now exists.
-    findByEmailMock.mockImplementation((email: string) =>
-      Promise.resolve({ id: 'u1', email }),
-    );
+    findByEmailMock.mockImplementation((email: string) => Promise.resolve({ id: 'u1', email }));
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/register',

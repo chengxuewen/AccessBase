@@ -42,7 +42,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       verifyPassword: vi.fn().mockRejectedValue(new Error('nope')),
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
       findById: vi.fn().mockResolvedValue(null),
       create: vi.fn(),
       update: vi.fn(),
@@ -87,7 +89,10 @@ function scopedFixture() {
   ];
 }
 
-function authedInject(options: { method: 'GET'; url: string }, claims: Record<string, unknown> = {}) {
+function authedInject(
+  options: { method: 'GET'; url: string },
+  claims: Record<string, unknown> = {},
+) {
   const token = app.jwt.sign({ sub: '550e8400-e29b-41d4-a716-446655440000', ...claims });
   return app.inject({ ...options, headers: { authorization: `Bearer ${token}` } });
 }

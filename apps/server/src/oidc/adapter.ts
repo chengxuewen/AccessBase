@@ -61,10 +61,7 @@ export class OidcAdapter {
   private readonly getUser: GetUserFn;
   private readonly clockTolerance: number;
 
-  constructor(
-    databaseUrl: DrizzleDB,
-    deps?: { getUser?: GetUserFn; clockTolerance?: number },
-  ) {
+  constructor(databaseUrl: DrizzleDB, deps?: { getUser?: GetUserFn; clockTolerance?: number }) {
     this.db = databaseUrl;
     this.getUser = deps?.getUser ?? (async () => null);
     this.clockTolerance = deps?.clockTolerance ?? 0;
@@ -210,7 +207,9 @@ export class OidcAdapter {
     try {
       const gone = await this.db
         .delete(oidcAdapterState)
-        .where(and(isNotNull(oidcAdapterState.notAfter), lte(oidcAdapterState.notAfter, new Date())))
+        .where(
+          and(isNotNull(oidcAdapterState.notAfter), lte(oidcAdapterState.notAfter, new Date())),
+        )
         .returning({ kind: oidcAdapterState.kind, id: oidcAdapterState.id });
       if (gone.length > 0) {
         logger.debug({ swept: gone.length }, 'oidc adapter state sweep');

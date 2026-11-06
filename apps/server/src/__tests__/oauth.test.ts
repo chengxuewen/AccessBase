@@ -138,7 +138,7 @@ const sharedFlowTokens = {
     sharedFlowStore.set(token, { purpose, payload });
     return token;
   }),
-  consume: vi.fn(async <T,>(token: string, purpose: string): Promise<T | null> => {
+  consume: vi.fn(async <T>(token: string, purpose: string): Promise<T | null> => {
     const rec = sharedFlowStore.get(token);
     if (rec) sharedFlowStore.delete(token); // burn-first: mirrors FlowTokenService consume
     if (!rec || rec.purpose !== purpose) return null;
@@ -179,7 +179,9 @@ vi.mock('@accessbase/identity/db', () => ({
           const result = linkedAccounts.map((r) =>
             projection ? Object.fromEntries(Object.keys(projection).map((k) => [k, r[k]])) : r,
           );
-          const arr = result as Array<Record<string, unknown>> & { limit: () => Promise<Array<Record<string, unknown>>> };
+          const arr = result as Array<Record<string, unknown>> & {
+            limit: () => Promise<Array<Record<string, unknown>>>;
+          };
           arr.limit = async () => arr;
           return arr;
         },
@@ -201,7 +203,9 @@ vi.mock('@accessbase/identity/db', () => ({
           const n = linkedAccounts.length;
           linkedAccounts.length = 0;
           const rows = Array.from({ length: n }, (_, i) => ({ id: String(i) }));
-          const arr = rows as Array<{ id: string }> & { returning: () => Promise<Array<{ id: string }>> };
+          const arr = rows as Array<{ id: string }> & {
+            returning: () => Promise<Array<{ id: string }>>;
+          };
           arr.returning = async () => arr;
           return arr;
         },
@@ -223,7 +227,11 @@ const optionsStore = new Map<string, unknown>();
 const { setOptionsManager } = await import('../routes/options.js');
 setOptionsManager({
   get: async (key: string, envValue: unknown, defaultValue: unknown) =>
-    envValue !== undefined ? envValue : (optionsStore.has(key) ? optionsStore.get(key) : defaultValue),
+    envValue !== undefined
+      ? envValue
+      : optionsStore.has(key)
+        ? optionsStore.get(key)
+        : defaultValue,
 } as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');
@@ -393,9 +401,15 @@ describe('generic OIDC providers (options-driven)', () => {
     try {
       const good = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/my-oidc/authorize' });
       expect(good.statusCode).toBe(302);
-      const numScope = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/num-scope/authorize' });
+      const numScope = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/oauth/num-scope/authorize',
+      });
       expect(numScope.statusCode).toBe(404);
-      const insecure = await app.inject({ method: 'GET', url: '/api/v1/auth/oauth/insecure-idp/authorize' });
+      const insecure = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/oauth/insecure-idp/authorize',
+      });
       expect(insecure.statusCode).toBe(404);
     } finally {
       optionsStore.clear();
@@ -440,7 +454,10 @@ describe('generic OIDC providers (options-driven)', () => {
     const validateSpy = vi.spyOn(OAuth2Client.prototype, 'validateAuthorizationCode');
     const fetchMock = vi.fn().mockImplementation(async (url: string | URL) => {
       if (String(url).includes('idp.example.com/userinfo')) {
-        return { ok: true, json: async () => ({ sub: 'sub-123', email: 'gen@t.local', name: 'Gen User' }) };
+        return {
+          ok: true,
+          json: async () => ({ sub: 'sub-123', email: 'gen@t.local', name: 'Gen User' }),
+        };
       }
       throw new Error('unexpected fetch ' + String(url));
     });
@@ -456,10 +473,16 @@ describe('generic OIDC providers (options-driven)', () => {
       });
       expect(res.statusCode).toBe(302);
       expect(res.headers['location']).toContain('/login?oauthCode=');
-      expect(validateSpy).toHaveBeenCalledWith('https://idp.example.com/token', 'gen_code', 'test-verifier-456');
+      expect(validateSpy).toHaveBeenCalledWith(
+        'https://idp.example.com/token',
+        'gen_code',
+        'test-verifier-456',
+      );
       expect(fetchMock).toHaveBeenCalledWith(
         'https://idp.example.com/userinfo',
-        expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer generic-access-token' }) }),
+        expect.objectContaining({
+          headers: expect.objectContaining({ Authorization: 'Bearer generic-access-token' }),
+        }),
       );
     } finally {
       vi.unstubAllGlobals();
@@ -506,7 +529,9 @@ describe('GET /api/v1/auth/oauth/:provider/callback', () => {
       if (u.endsWith('/user/emails')) {
         return {
           ok: true,
-          json: async () => [{ email: 'gh@users.noreply.github.com', primary: true, verified: true }],
+          json: async () => [
+            { email: 'gh@users.noreply.github.com', primary: true, verified: true },
+          ],
         };
       }
       if (u.includes('api.github.com/user')) {
@@ -518,7 +543,9 @@ describe('GET /api/v1/auth/oauth/:provider/callback', () => {
       if (u.includes('api.github.com/user/emails')) {
         return {
           ok: true,
-          json: async () => [{ email: 'gh@users.noreply.github.com', primary: true, verified: true }],
+          json: async () => [
+            { email: 'gh@users.noreply.github.com', primary: true, verified: true },
+          ],
         };
       }
       throw new Error('unexpected fetch ' + u);
@@ -551,10 +578,18 @@ describe('GET /api/v1/auth/oauth/:provider/callback', () => {
         const u = String(url);
         // /user/emails must be matched BEFORE the broader /user prefix check
         if (u.endsWith('/user/emails')) {
-          return { ok: true, json: async () => [{ email: 'gh@users.noreply.github.com', primary: true, verified: true }] };
+          return {
+            ok: true,
+            json: async () => [
+              { email: 'gh@users.noreply.github.com', primary: true, verified: true },
+            ],
+          };
         }
         if (u.includes('api.github.com/user')) {
-          return { ok: true, json: async () => ({ id: 4242, login: 'ghuser', name: 'GH User', email: null }) };
+          return {
+            ok: true,
+            json: async () => ({ id: 4242, login: 'ghuser', name: 'GH User', email: null }),
+          };
         }
         throw new Error('unexpected fetch ' + u);
       }),
@@ -593,7 +628,11 @@ describe('GET /api/v1/auth/oauth/:provider/callback', () => {
 
 describe('POST /api/v1/auth/oauth/exchange', () => {
   it('returns 400 for missing code', async () => {
-    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: {} });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/exchange',
+      payload: {},
+    });
     expect(res.statusCode).toBe(400);
     expect(res.json().success).toBe(false);
   });
@@ -622,7 +661,10 @@ describe('POST /api/v1/auth/oauth/exchange', () => {
       vi.fn().mockImplementation(async (url: string | URL) => {
         const u = String(url);
         if (u.includes('api.github.com/user')) {
-          return { ok: true, json: async () => ({ id: 777, login: 'ex', name: 'Ex User', email: 'ex@t.local' }) };
+          return {
+            ok: true,
+            json: async () => ({ id: 777, login: 'ex', name: 'Ex User', email: 'ex@t.local' }),
+          };
         }
         throw new Error('unexpected ' + u);
       }),
@@ -634,10 +676,15 @@ describe('POST /api/v1/auth/oauth/exchange', () => {
       url: `/api/v1/auth/oauth/github/callback?code=c&state=${state}`,
       cookies: { oauth_state: state },
     });
-    const oauthCode = (cb.headers['location'] as string).split('oauthCode=')[1]?.split('&')[0] ?? '';
+    const oauthCode =
+      (cb.headers['location'] as string).split('oauthCode=')[1]?.split('&')[0] ?? '';
     expect(oauthCode).toBeTruthy();
 
-    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: { code: oauthCode } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/exchange',
+      payload: { code: oauthCode },
+    });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
@@ -647,7 +694,11 @@ describe('POST /api/v1/auth/oauth/exchange', () => {
     expect(body.data.user).toMatchObject({ email: testUser.email });
 
     // single-use: second consume fails
-    const res2 = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: { code: oauthCode } });
+    const res2 = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/exchange',
+      payload: { code: oauthCode },
+    });
     expect(res2.statusCode).toBe(401);
     vi.unstubAllGlobals();
   });
@@ -667,10 +718,16 @@ describe('OAuth MFA step-up (totpEnabled user)', () => {
       vi.fn().mockImplementation(async (url: string | URL) => {
         const u = String(url);
         if (u.endsWith('/user/emails')) {
-          return { ok: true, json: async () => [{ email: testUser.email, primary: true, verified: true }] };
+          return {
+            ok: true,
+            json: async () => [{ email: testUser.email, primary: true, verified: true }],
+          };
         }
         if (u.includes('api.github.com/user')) {
-          return { ok: true, json: async () => ({ id: 4242, login: 'ghuser', name: 'GH User', email: null }) };
+          return {
+            ok: true,
+            json: async () => ({ id: 4242, login: 'ghuser', name: 'GH User', email: null }),
+          };
         }
         throw new Error('unexpected fetch ' + u);
       }),
@@ -724,7 +781,11 @@ describe('OAuth MFA step-up (totpEnabled user)', () => {
   it('exchange for mfaPending user returns { mfaRequired, flowToken } instead of tokens', async () => {
     useTotpUser();
     const oauthCode = await runCallback();
-    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: { code: oauthCode } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/exchange',
+      payload: { code: oauthCode },
+    });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
@@ -740,9 +801,17 @@ describe('OAuth MFA step-up (totpEnabled user)', () => {
   it('issued mfa_verify flowToken completes via the untouched /auth/mfa/verify (R5)', async () => {
     useTotpUser();
     const oauthCode = await runCallback();
-    const ex = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: { code: oauthCode } });
+    const ex = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/exchange',
+      payload: { code: oauthCode },
+    });
     const { flowToken } = ex.json().data;
-    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/mfa/verify', payload: { flowToken, code: '123456' } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/mfa/verify',
+      payload: { flowToken, code: '123456' },
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json().data.accessToken).toBeTruthy();
     expect(res.json().data.refreshToken).toBe('test-refresh-token');
@@ -760,7 +829,10 @@ describe('OAuth non-TOTP regression', () => {
       vi.fn().mockImplementation(async (url: string | URL) => {
         const u = String(url);
         if (u.includes('api.github.com/user')) {
-          return { ok: true, json: async () => ({ id: 777, login: 'ex', name: 'Ex User', email: 'ex@t.local' }) };
+          return {
+            ok: true,
+            json: async () => ({ id: 777, login: 'ex', name: 'Ex User', email: 'ex@t.local' }),
+          };
         }
         throw new Error('unexpected fetch ' + u);
       }),
@@ -782,10 +854,15 @@ describe('OAuth non-TOTP regression', () => {
       cookies: { oauth_state: state },
     });
     expect(cb.statusCode).toBe(302);
-    const oauthCode = (cb.headers['location'] as string).split('oauthCode=')[1]?.split('&')[0] ?? '';
+    const oauthCode =
+      (cb.headers['location'] as string).split('oauthCode=')[1]?.split('&')[0] ?? '';
     expect(oauthCode).toBeTruthy();
 
-    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: { code: oauthCode } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/exchange',
+      payload: { code: oauthCode },
+    });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.data.accessToken).toBeTruthy();
@@ -802,7 +879,10 @@ describe('DELETE /api/v1/auth/oauth/:provider (unlink)', () => {
   });
 
   it('returns 400 AUTH_OAUTH_001 for unsupported provider (authed)', async () => {
-    const accessToken = app.jwt.sign({ sub: testUser.id, email: testUser.email }, { expiresIn: '15m' });
+    const accessToken = app.jwt.sign(
+      { sub: testUser.id, email: testUser.email },
+      { expiresIn: '15m' },
+    );
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/v1/auth/oauth/myspace',
@@ -813,7 +893,10 @@ describe('DELETE /api/v1/auth/oauth/:provider (unlink)', () => {
   });
 
   it('returns 404 AUTH_OAUTH_004 when link does not exist', async () => {
-    const accessToken = app.jwt.sign({ sub: testUser.id, email: testUser.email }, { expiresIn: '15m' });
+    const accessToken = app.jwt.sign(
+      { sub: testUser.id, email: testUser.email },
+      { expiresIn: '15m' },
+    );
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/v1/auth/oauth/github',
@@ -832,7 +915,10 @@ describe('GET /api/v1/auth/oauth/links', () => {
 
   it('returns linked providers list for authed user', async () => {
     linkedAccounts.push({ userId: testUser.id, provider: 'github', providerAccountId: '4242' });
-    const accessToken = app.jwt.sign({ sub: testUser.id, email: testUser.email }, { expiresIn: '15m' });
+    const accessToken = app.jwt.sign(
+      { sub: testUser.id, email: testUser.email },
+      { expiresIn: '15m' },
+    );
     const res = await app.inject({
       method: 'GET',
       url: '/api/v1/auth/oauth/links',
@@ -945,7 +1031,10 @@ describe('RP end_session — generic link upsert (R4)', () => {
       'fetch',
       vi.fn().mockImplementation(async (url: string | URL) => {
         if (String(url).includes('idp.example.com/userinfo')) {
-          return { ok: true, json: async () => ({ sub: 'sub-123', email: 'gen@t.local', name: 'Gen User' }) };
+          return {
+            ok: true,
+            json: async () => ({ sub: 'sub-123', email: 'gen@t.local', name: 'Gen User' }),
+          };
         }
         throw new Error('unexpected fetch ' + String(url));
       }),
@@ -970,7 +1059,8 @@ describe('RP end_session — generic link upsert (R4)', () => {
       accessToken: 'generic-access-token',
       idToken: 'generic-id-token',
     });
-    const update = upsertCalls[0]?.update as { target?: unknown; set?: Record<string, unknown> } | undefined;
+    const update = upsertCalls[0]?.update as
+      { target?: unknown; set?: Record<string, unknown> } | undefined;
     expect(update?.set).toMatchObject({
       userId: testUser.id,
       accessToken: 'generic-access-token',
@@ -995,7 +1085,10 @@ describe('RP end_session — generic link upsert (R4)', () => {
       vi.fn().mockImplementation(async (url: string | URL) => {
         const u = String(url);
         if (u.includes('api.github.com/user')) {
-          return { ok: true, json: async () => ({ id: 777, login: 'ex', name: 'Ex User', email: 'ex@t.local' }) };
+          return {
+            ok: true,
+            json: async () => ({ id: 777, login: 'ex', name: 'Ex User', email: 'ex@t.local' }),
+          };
         }
         throw new Error('unexpected fetch ' + u);
       }),
@@ -1068,7 +1161,10 @@ describe('GET /api/v1/auth/oauth/end-session-url', () => {
   };
 
   function authHeaders(): { authorization: string } {
-    const accessToken = app.jwt.sign({ sub: testUser.id, email: testUser.email }, { expiresIn: '15m' });
+    const accessToken = app.jwt.sign(
+      { sub: testUser.id, email: testUser.email },
+      { expiresIn: '15m' },
+    );
     return { authorization: `Bearer ${accessToken}` };
   }
 
@@ -1126,7 +1222,12 @@ describe('GET /api/v1/auth/oauth/end-session-url', () => {
       },
     });
     optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
-    linkedAccounts.push({ userId: testUser.id, provider: 'my-oidc', providerAccountId: 'sub-123', idToken: 'idtok' });
+    linkedAccounts.push({
+      userId: testUser.id,
+      provider: 'my-oidc',
+      providerAccountId: 'sub-123',
+      idToken: 'idtok',
+    });
     const res = await app.inject({
       method: 'GET',
       url: '/api/v1/auth/oauth/end-session-url?provider=my-oidc',
@@ -1139,7 +1240,12 @@ describe('GET /api/v1/auth/oauth/end-session-url', () => {
   it('stored id_token null -> null even with endSessionUrl configured', async () => {
     optionsStore.set('oauth_providers', endSessionProvider);
     optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
-    linkedAccounts.push({ userId: testUser.id, provider: 'my-oidc', providerAccountId: 'sub-123', idToken: null });
+    linkedAccounts.push({
+      userId: testUser.id,
+      provider: 'my-oidc',
+      providerAccountId: 'sub-123',
+      idToken: null,
+    });
     const res = await app.inject({
       method: 'GET',
       url: '/api/v1/auth/oauth/end-session-url?provider=my-oidc',
@@ -1153,7 +1259,12 @@ describe('GET /api/v1/auth/oauth/end-session-url', () => {
     optionsStore.set('oauth_providers', endSessionProvider);
     optionsStore.set('oauth_my-oidc_client_secret', 'yyy');
     const idTok = 'a b&c/d+e=f';
-    linkedAccounts.push({ userId: testUser.id, provider: 'my-oidc', providerAccountId: 'sub-123', idToken: idTok });
+    linkedAccounts.push({
+      userId: testUser.id,
+      provider: 'my-oidc',
+      providerAccountId: 'sub-123',
+      idToken: idTok,
+    });
     const res = await app.inject({
       method: 'GET',
       url: '/api/v1/auth/oauth/end-session-url?provider=my-oidc',

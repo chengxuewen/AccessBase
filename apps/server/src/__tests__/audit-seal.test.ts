@@ -71,8 +71,7 @@ const writeReq = (app: App): ReturnType<App['inject']> =>
 
 /** Recompute the expected hash from an entry (same D1 pick as the write path). */
 function expectedHash(e: AuditLog): string {
-  const requestBody =
-    typeof e.requestBody === 'string' ? JSON.parse(e.requestBody) : e.requestBody;
+  const requestBody = typeof e.requestBody === 'string' ? JSON.parse(e.requestBody) : e.requestBody;
   return computeRowHash({
     tenantId: e.tenantId ?? '',
     userId: e.userId ?? '',

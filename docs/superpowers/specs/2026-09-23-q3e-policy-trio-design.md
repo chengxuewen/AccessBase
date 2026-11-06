@@ -4,18 +4,21 @@
 **Facts**: mfa/setup + mfa/enable are bearer-only (auth.ts:1382/:1408 — `preHandler:[app.authenticate]`, payload.sub); mfa/verify consumes purpose 'mfa_verify' (bound-TOTP step-up); login arms returning `{mfaRequired, flowToken}` exist at the PIT-052 sites (password :275ish, oauth/saml/webauthn/sms/magic-verify). KNOWN_OPTION_KEYS options.ts:26 (16+password_*5). No captcha dep exists.
 
 ## E2 CIDR (pure, first)
+
 - `apps/server/src/utils/cidr.ts`: `ipInCidr(ip, cidr)` v4 full bit-mask + v6 nibble-prefix + bare-IP equality; malformed entries fail-open per-entry with one warn (garbage must not lock everyone out).
 - options `auth_cidr_allow` / `auth_cidr_deny` (comma lists; empty=disabled; deny wins) via OptionsManager env>option (env AUTH_CIDR_ALLOW/DENY).
 - `checkAuthCidr(request): 'ok'|'blocked'` called at login/register/forgot/magic-request/sms-request entry (NOT consume paths — post-email IPs shift, documented). 403 `AUTH_IP_002`.
 - allowlist: +2 keys.
 
 ## E1 captcha (svg-captcha, register/forgot/magic/sms-request)
+
 - dep svg-captcha (apps/server). `GET /auth/captcha` (public, rate 20/min): id=random12, text=lowercased answer → Redis `captcha:{id}` EX 300 (no Redis → endpoint 503 CAPTCHA_002 AND `GET /auth/captcha/status` reports enabled=false → UI hides widget); returns {id, svg}.
 - verify helper: GETDEL one-time + case-insensitive; wired BEFORE the existing enumeration-safe arms in the four endpoints, options key `captcha_enabled` (env CAPTCHA_ENABLED truthy + key set + Redis available; else skipped). 400 `CAPTCHA_001` bad/expired.
 - allowlist: +1 key. Frontend: shared `<CaptchaField>` component (fetch status+image, click-to-refresh, emits {captchaId, captchaAnswer}) mounted in Login magic form, Register, ForgotPassword, SMS phone step.
 - login itself: NO captcha (lockout already covers; recorded decision).
 
 ## E3 enforced MFA (flow-token enrollment chain)
+
 - options `mfa_enforcement` = off|admins|all (admins ⇒ subject holds ≥1 isSystem role via roleManager.getUserRoles effective isSystem flag — reuse existing per-user role fetch, no N+1 worry at login frequency).
 - Shared arm helper `enrollArm(request, user)`: when policy hits && !user.totpEnabled → issue `mfa_enroll` flow token (300s) → return `{ success:true, data:{ mfaRequired:true, enroll:true, flowToken } }` (NO session). Applied at ALL login-completion sites before the existing totpEnabled branch (password + oauth exchange + saml + webauthn + sms verify + magic consume = PIT-052 matrix stays uniform).
 - mfa/setup + mfa/enable gain OPTIONAL `flowToken` body field: present ⇒ skip bearer, consume purpose 'mfa_enroll': setup issues fresh mfa_enroll (chain) + returns {result..., flowToken}; enable on success issues the real session (issueTokenPair with freshly loaded user) and returns token pair. Bearer-only legacy behavior unchanged when flowToken absent (existing e2e/panel keep working).
@@ -40,6 +43,7 @@
 - KNOWN_OPTION_KEYS already carries the 4 keys (210b856); Settings generic CRUD suffices (no masking: SENSITIVE_KEY_PATTERN doesn't match them).
 
 ## Implementation note (E1/E2 shipped ahead of this record)
+
 server 608/608 green with CIDR+captcha lanes; captcha verify = GETDEL w/ get+del fallback (W1-3 discipline); config-plane/Redis failures = feature inert by design (fail-open documented at call sites).
 
 ## Execution record (2026-09-23)

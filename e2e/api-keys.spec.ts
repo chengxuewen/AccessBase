@@ -43,9 +43,21 @@ const FULL_PERMS_ME = {
   name: 'Administrator',
   roles: [{ id: 'r-1', name: 'admin' }],
   permissions: [
-    'stats:read', 'users:read', 'users:write', 'roles:read', 'roles:write', 'roles:delete',
-    'audit:read', 'audit:delete', 'stats:write', 'stats:delete', 'clients:read', 'clients:write',
-    'apikeys:read', 'apikeys:write', 'apikeys:delete',
+    'stats:read',
+    'users:read',
+    'users:write',
+    'roles:read',
+    'roles:write',
+    'roles:delete',
+    'audit:read',
+    'audit:delete',
+    'stats:write',
+    'stats:delete',
+    'clients:read',
+    'clients:write',
+    'apikeys:read',
+    'apikeys:write',
+    'apikeys:delete',
   ],
   mfaEnabled: false,
 };
@@ -97,25 +109,43 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
   // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
   await page.route('**/api/v1/auth/saml/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
 }
 
@@ -157,7 +187,11 @@ async function mockApiKeysApis(page: Page, keys: (typeof MOCK_KEYS)[number][]): 
   });
   await page.route('**/api/v1/auth/api-keys/*', async (route) => {
     if (route.request().method() === 'DELETE') {
-      const id = route.request().url().match(/api-keys\/([^/]+)$/)?.[1] ?? '';
+      const id =
+        route
+          .request()
+          .url()
+          .match(/api-keys\/([^/]+)$/)?.[1] ?? '';
       const idx = keys.findIndex((k) => k.id === id);
       if (idx >= 0) keys.splice(idx, 1);
       await route.fulfill({
@@ -196,7 +230,9 @@ test.describe('API keys management', () => {
     await expect(page.locator('body')).not.toContainText(PLAINTEXT);
   });
 
-  test('create flow: reveal modal shows plaintext once (format ab_[a-z0-9]{32})', async ({ page }) => {
+  test('create flow: reveal modal shows plaintext once (format ab_[a-z0-9]{32})', async ({
+    page,
+  }) => {
     const keys = structuredClone(MOCK_KEYS);
     await mockApiKeysApis(page, keys);
     await seedSessionWithMe(page, FULL_PERMS_ME);

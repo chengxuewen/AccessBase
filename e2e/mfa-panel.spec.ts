@@ -7,7 +7,8 @@ const QR_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
 const MOCK_SETUP_DATA = {
-  otpauthUrl: 'otpauth://totp/AccessBase:admin@accessbase.local?secret=JBSWY3DPEHPK3PXP&issuer=AccessBase',
+  otpauthUrl:
+    'otpauth://totp/AccessBase:admin@accessbase.local?secret=JBSWY3DPEHPK3PXP&issuer=AccessBase',
   qrDataUrl: QR_DATA_URL,
   recoveryCodes: ['kx7d-2mp4-qa10', 'zv3c-8hn6-rt92', 'b5qw-jl2f-yx48'],
 };
@@ -25,18 +26,33 @@ async function mockCommonApis(page: Page, state: MfaState): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
   await page.route('**/api/v1/auth/saml/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
 
   await page.route('**/api/v1/auth/login', async (route) => {
@@ -49,7 +65,13 @@ async function mockCommonApis(page: Page, state: MfaState): Promise<void> {
           accessToken: 'test-token',
           refreshToken: 'test-refresh',
           expiresIn: 900,
-          user: { id: 'u-1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }], mfaEnabled: state.mfaEnabled },
+          user: {
+            id: 'u-1',
+            email: 'admin@accessbase.local',
+            name: 'Administrator',
+            roles: [{ id: 'role-1', name: 'admin' }],
+            mfaEnabled: state.mfaEnabled,
+          },
         },
       }),
     });
@@ -62,23 +84,40 @@ async function mockCommonApis(page: Page, state: MfaState): Promise<void> {
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
-        data: { id: 'u-1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }], mfaEnabled: state.mfaEnabled },
+        data: {
+          id: 'u-1',
+          email: 'admin@accessbase.local',
+          name: 'Administrator',
+          roles: [{ id: 'role-1', name: 'admin' }],
+          mfaEnabled: state.mfaEnabled,
+        },
       }),
     });
   });
 
   // Settings page mounts these (empty samples, same boilerplate as ui-quality/settings)
   await page.route('**/api/v1/auth/sessions**', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [] }),
+    });
   });
   await page.route('**/api/v1/auth/webauthn/credentials', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [] }),
+    });
   });
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
 }
@@ -124,7 +163,9 @@ test.describe('Settings TOTP panel (mfa-card)', () => {
     }
   });
 
-  test('full enable flow: QR → verify code → recovery gate → card shows enabled', async ({ page }) => {
+  test('full enable flow: QR → verify code → recovery gate → card shows enabled', async ({
+    page,
+  }) => {
     const state: MfaState = { mfaEnabled: false };
     await mockCommonApis(page, state);
     await page.route('**/api/v1/auth/mfa/setup', async (route) => {
@@ -138,14 +179,22 @@ test.describe('Settings TOTP panel (mfa-card)', () => {
       const body = route.request().postDataJSON() as { code?: string };
       expect(body.code).toBe('123456');
       state.mfaEnabled = true;
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
     });
 
     await login(page);
     await openSecurityTab(page);
 
     // disabled state: description + setup button
-    await expect(page.getByText('登录时需要额外输入身份验证器动态码，建议开启以提升账号安全性。', { exact: true })).toBeVisible();
+    await expect(
+      page.getByText('登录时需要额外输入身份验证器动态码，建议开启以提升账号安全性。', {
+        exact: true,
+      }),
+    ).toBeVisible();
     await page.getByTestId('mfa-setup-btn').click();
 
     // setup modal: QR image + manual secret + code input
@@ -168,7 +217,9 @@ test.describe('Settings TOTP panel (mfa-card)', () => {
     await page.getByTestId('mfa-recovery-done').click();
 
     await expect(recovery).toHaveCount(0);
-    await expect(page.locator('.ant-message').getByText('双重验证已开启', { exact: true })).toBeVisible();
+    await expect(
+      page.locator('.ant-message').getByText('双重验证已开启', { exact: true }),
+    ).toBeVisible();
 
     // card flips to enabled state with a disable entry
     await expect(page.getByTestId('mfa-enabled-alert')).toBeVisible();
@@ -190,7 +241,10 @@ test.describe('Settings TOTP panel (mfa-card)', () => {
       await route.fulfill({
         status: 400,
         contentType: 'application/json',
-        body: JSON.stringify({ success: false, error: { code: 'AUTH_MFA_003', message: 'Invalid TOTP code' } }),
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'AUTH_MFA_003', message: 'Invalid TOTP code' },
+        }),
       });
     });
 
@@ -213,7 +267,11 @@ test.describe('Settings TOTP panel (mfa-card)', () => {
     await page.route('**/api/v1/auth/mfa/disable', async (route) => {
       disableBody = route.request().postDataJSON() as Record<string, unknown>;
       state.mfaEnabled = false;
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
     });
 
     await login(page);
@@ -228,7 +286,9 @@ test.describe('Settings TOTP panel (mfa-card)', () => {
     await page.getByTestId('mfa-disable-confirm').click();
 
     expect(disableBody).toEqual({ password: 'AdminPass123!' });
-    await expect(page.locator('.ant-message').getByText('双重验证已关闭', { exact: true })).toBeVisible();
+    await expect(
+      page.locator('.ant-message').getByText('双重验证已关闭', { exact: true }),
+    ).toBeVisible();
     await expect(page.getByTestId('mfa-enabled-alert')).toHaveCount(0);
     await expect(page.getByTestId('mfa-setup-btn')).toBeVisible();
   });

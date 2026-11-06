@@ -40,24 +40,24 @@ Three principles AccessBase found load-bearing:
 Nullable unless marked NOT NULL. Source: `packages/identity/src/db/schema.ts`
 (`audit_logs`, lines 190-213).
 
-| # | Field | Type | Notes |
-|---|-------|------|-------|
-| 1 | `id` | uuid, server-generated, PK | event handle — see §2a |
-| 2 | `tenant_id` | varchar(64) | scope boundary; `'system'` = platform-fired |
-| 3 | `user_id` | varchar(64) | actor id with fallback chain (§4) |
-| 4 | `action` | varchar(128), NOT NULL | dotted lowercase vocabulary (§5) |
-| 5 | `resource_type` | varchar(64) | e.g. `user`, `role`, `tenant` |
-| 6 | `resource_id` | varchar(64) | subject row id |
-| 7 | `request_body` | jsonb | evidence body, redacted at write time (§6) |
-| 8 | `response_status` | integer | HTTP status; failure rows are first-class |
-| 9 | `request_id` | varchar(64) | correlation handle (§6.2) |
-| 10 | `ip` | varchar(45) | v4 or v6 |
-| 11 | `user_agent` | text | raw header value |
-| 12 | `created_at` | timestamptz, NOT NULL | server clock at write (when) |
-| 13 | `row_hash` | text | per-row tamper chain link (§7) |
-| 14 | `anchor_id` | bigint | day-anchor pointer, FK-free (§7) |
-| 15 | `erased_at` | timestamptz | RTBF tombstone, both-or-none with #16 (§8.2) |
-| 16 | `erasure_id` | uuid | link to erasure ledger row (§8.2) |
+| #   | Field             | Type                       | Notes                                        |
+| --- | ----------------- | -------------------------- | -------------------------------------------- |
+| 1   | `id`              | uuid, server-generated, PK | event handle — see §2a                       |
+| 2   | `tenant_id`       | varchar(64)                | scope boundary; `'system'` = platform-fired  |
+| 3   | `user_id`         | varchar(64)                | actor id with fallback chain (§4)            |
+| 4   | `action`          | varchar(128), NOT NULL     | dotted lowercase vocabulary (§5)             |
+| 5   | `resource_type`   | varchar(64)                | e.g. `user`, `role`, `tenant`                |
+| 6   | `resource_id`     | varchar(64)                | subject row id                               |
+| 7   | `request_body`    | jsonb                      | evidence body, redacted at write time (§6)   |
+| 8   | `response_status` | integer                    | HTTP status; failure rows are first-class    |
+| 9   | `request_id`      | varchar(64)                | correlation handle (§6.2)                    |
+| 10  | `ip`              | varchar(45)                | v4 or v6                                     |
+| 11  | `user_agent`      | text                       | raw header value                             |
+| 12  | `created_at`      | timestamptz, NOT NULL      | server clock at write (when)                 |
+| 13  | `row_hash`        | text                       | per-row tamper chain link (§7)               |
+| 14  | `anchor_id`       | bigint                     | day-anchor pointer, FK-free (§7)             |
+| 15  | `erased_at`       | timestamptz                | RTBF tombstone, both-or-none with #16 (§8.2) |
+| 16  | `erasure_id`      | uuid                       | link to erasure ledger row (§8.2)            |
 
 ### 2a. Field semantics that matter to a consumer
 
@@ -77,12 +77,12 @@ Nullable unless marked NOT NULL. Source: `packages/identity/src/db/schema.ts`
 
 ## 3. Mapping to ModuKit D19's four elements
 
-| D19 element | AccessBase fields | Rationale |
-|---|---|---|
-| **who** | `user_id` (fallback chain §4) + `ip` + `user_agent` + `tenant_id` (scope) | actor identity, network origin, and authority boundary are separate concerns; keep all three |
-| **what** | `action` + `resource_type` + `resource_id` + `response_status` | verb + target + outcome; `response_status` is part of "what happened", not metadata |
-| **when** | `created_at` (timestamptz) + `request_id` (ordering aid) | wall clock for humans, correlation id for machines |
-| **evidence** | `request_body` (redacted) + `request_id` + `id` + chain fields (`row_hash`/`anchor_id`, optional §7) + `erasure_id` (RTBF proof §8) | payload + verifiable integrity; evidence must survive a tamper accusation |
+| D19 element  | AccessBase fields                                                                                                                   | Rationale                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **who**      | `user_id` (fallback chain §4) + `ip` + `user_agent` + `tenant_id` (scope)                                                           | actor identity, network origin, and authority boundary are separate concerns; keep all three |
+| **what**     | `action` + `resource_type` + `resource_id` + `response_status`                                                                      | verb + target + outcome; `response_status` is part of "what happened", not metadata          |
+| **when**     | `created_at` (timestamptz) + `request_id` (ordering aid)                                                                            | wall clock for humans, correlation id for machines                                           |
+| **evidence** | `request_body` (redacted) + `request_id` + `id` + chain fields (`row_hash`/`anchor_id`, optional §7) + `erasure_id` (RTBF proof §8) | payload + verifiable integrity; evidence must survive a tamper accusation                    |
 
 ---
 
@@ -273,30 +273,30 @@ a policy decision, not an accident of the pipe.
   "type": "object",
   "required": ["id", "action", "createdAt", "actor"],
   "properties": {
-    "id":             { "type": "string", "format": "uuid" },
-    "tenantId":       { "type": ["string", "null"] },
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": ["string", "null"] },
     "actor": {
       "type": "object",
       "required": ["userId"],
       "properties": {
-        "userId":    { "type": "string" },
-        "ip":        { "type": ["string", "null"] },
+        "userId": { "type": "string" },
+        "ip": { "type": ["string", "null"] },
         "userAgent": { "type": ["string", "null"] }
       }
     },
-    "action":         { "type": "string" },
-    "resourceType":   { "type": ["string", "null"] },
-    "resourceId":     { "type": ["string", "null"] },
-    "requestBody":    { "type": ["object", "null"] },
+    "action": { "type": "string" },
+    "resourceType": { "type": ["string", "null"] },
+    "resourceId": { "type": ["string", "null"] },
+    "requestBody": { "type": ["object", "null"] },
     "responseStatus": { "type": ["integer", "null"] },
-    "requestId":      { "type": ["string", "null"] },
-    "createdAt":      { "type": "string", "format": "date-time" },
+    "requestId": { "type": ["string", "null"] },
+    "createdAt": { "type": "string", "format": "date-time" },
     "chain": {
       "type": ["object", "null"],
       "properties": {
-        "rowHash":   { "type": "string" },
-        "anchorId":  { "type": "integer" },
-        "erasedAt":  { "type": ["string", "null"], "format": "date-time" },
+        "rowHash": { "type": "string" },
+        "anchorId": { "type": "integer" },
+        "erasedAt": { "type": ["string", "null"], "format": "date-time" },
         "erasureId": { "type": ["string", "null"], "format": "uuid" }
       }
     }
@@ -311,19 +311,19 @@ a policy decision, not an accident of the pipe.
 
 ## 11. Source-of-truth pointers
 
-| Topic | AccessBase authority |
-|---|---|
-| Table + chain columns | `packages/identity/src/db/schema.ts` (`audit_logs`) |
-| Actor fallback chain | `packages/audit/src/middleware.ts` (D1) |
-| Redaction list + recursion | `packages/audit/src/types.ts`, `logger.ts` |
-| Domain event vocabulary | `packages/identity/src/services/events.ts` |
-| Row hashing / sealing | `packages/audit/src/hashing.ts` |
-| Anchor worker | `apps/server/src/utils/audit-anchor.ts` |
-| Verify endpoint + report | `apps/server/src/utils/audit-verify.ts`, `routes/audit.ts` |
-| Retention sweeper | `apps/server/src/utils/retention-sweeper.ts` |
-| RTBF erasure funnel | `packages/identity/src/managers/UserManager.ts`, `apps/server/src/routes/users.ts` |
-| Read isolation | `apps/server/src/routes/audit.ts` (`buildWhere`) |
-| Design narrative | `docs/modules/audit-sdd.md`, `docs/modules/security.md` |
+| Topic                      | AccessBase authority                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| Table + chain columns      | `packages/identity/src/db/schema.ts` (`audit_logs`)                                |
+| Actor fallback chain       | `packages/audit/src/middleware.ts` (D1)                                            |
+| Redaction list + recursion | `packages/audit/src/types.ts`, `logger.ts`                                         |
+| Domain event vocabulary    | `packages/identity/src/services/events.ts`                                         |
+| Row hashing / sealing      | `packages/audit/src/hashing.ts`                                                    |
+| Anchor worker              | `apps/server/src/utils/audit-anchor.ts`                                            |
+| Verify endpoint + report   | `apps/server/src/utils/audit-verify.ts`, `routes/audit.ts`                         |
+| Retention sweeper          | `apps/server/src/utils/retention-sweeper.ts`                                       |
+| RTBF erasure funnel        | `packages/identity/src/managers/UserManager.ts`, `apps/server/src/routes/users.ts` |
+| Read isolation             | `apps/server/src/routes/audit.ts` (`buildWhere`)                                   |
+| Design narrative           | `docs/modules/audit-sdd.md`, `docs/modules/security.md`                            |
 
 Questions on any field or rule: route through the AccessBase maintainers —
 if this document and the code disagree, the code wins and this document gets

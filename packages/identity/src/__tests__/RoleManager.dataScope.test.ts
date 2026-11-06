@@ -175,7 +175,12 @@ describe('binding funnel — permissionScopes', () => {
       const chain: Record<string, ReturnType<typeof vi.fn>> = {};
       chain.values = vi.fn((rows: unknown) => {
         const list = Array.isArray(rows) ? rows : [rows];
-        if (list.length > 0 && typeof list[0] === 'object' && list[0] !== null && 'permissionId' in list[0]) {
+        if (
+          list.length > 0 &&
+          typeof list[0] === 'object' &&
+          list[0] !== null &&
+          'permissionId' in list[0]
+        ) {
           written.push(list as Array<Record<string, unknown>>);
         }
         return chain;
@@ -243,9 +248,7 @@ describe('binding funnel — permissionScopes', () => {
   it('a scope edit drops the tenant-wide effective-permission cache (B: propagation)', async () => {
     const { db, manager } = freshManager();
     captureJunctionInserts(db, [roleRow('r1')]);
-    db.select
-      .mockReturnValueOnce(makeChain([roleRow('r1')]))
-      .mockReturnValueOnce(makeChain([]));
+    db.select.mockReturnValueOnce(makeChain([roleRow('r1')])).mockReturnValueOnce(makeChain([]));
     db.update.mockReturnValue(makeChain([roleRow('r1')]));
     db.delete.mockReturnValue(makeChain(undefined));
     // Another tenant's entry must survive (tenant-scoped invalidation, not global).

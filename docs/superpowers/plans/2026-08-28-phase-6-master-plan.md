@@ -34,7 +34,7 @@
 |----|------|-----------|--------| project--------|
 | L1 单元 | Vitest | 每个 manager/provider/middleware/util 的核心逻辑（AAA 模式，mock 外部依赖） | 每个任务 RED→GREEN 步骤 |
 | L2 集成 | Vitest + fastify.inject() | 路由级：认证链、RBAC preHandler、rate limit 生效、audit hook 讽出审计记录、refresh 轮换全流程 | 每个路由任务收尾 |
- | L3 E2E | Playwright | 用户旅程: login→2FA→roles CRUD→audit 查看→profile 改密→settings 保存→OAuth/WebAuthn 癟2 login→2FA→roles CRUD→audit 查看→works | 每个前端页面任务收尾 |
+| L3 E2E | Playwright | 用户旅程: login→2FA→roles CRUD→audit 查看→profile 改密→settings 保存→OAuth/WebAuthn 癟2 login→2FA→roles CRUD→audit 查看→works | 每个前端页面任务收尾 |
 | 人工 | 人工 | 仅最终验收抽检（每个 Phase 一次，<30 min，按 checklist 抽查 E2E 視盲区: 视觉走查、真实 OAuth provider 后台配置、真实 hardware key）。任何时候无法自动化验证时：**NOT VERIFIED — services unavailable** | Phase 收尾 |
 
 ## 自动化校验命令矩阵（计划中每个任务收尾必须跑）
@@ -68,13 +68,13 @@ routes.test.ts
 
 # Phase 导航
 
-| Phase | 主题 | 任务数 | 预估 | 子计划文档 |
-|-------|------|--------|------|-----------|
-| **6a** | 安全基座：接线 + 中间件链 + RS256 + refresh 轮换 + audit 接线 | 6 | ~1 周 | `2026-08-28-phase-6a-security-foundation.md` |
-| **6b** | 会话与多步认证基座: SessionManager + flow_token + 2FA/TOTP + 密码管理 + 锁定 | 5 | ~1.5 周 | `2026-08-28-phase-6b-session-mfa.md` |
-| **6c** | 核心页面: Roles CRUD / Users 重构 / Audit 查看器 / Profile / 快赢集 / 布局增强 | 6 | ~2 周 | `2026-08-28-phase-6c-core-pages.md` |
-| **6d** | 登录扩展: OAuth + WebAuthn + Settings + Dashboard 动态化 | 4 | ~2 周 | `2026- garbled-28-phase-6d-login-extensions.md` |
-表**依赖链**：
+| Phase          | 主题                                                                           | 任务数 | 预估    | 子计划文档                                      |
+| -------------- | ------------------------------------------------------------------------------ | ------ | ------- | ----------------------------------------------- |
+| **6a**         | 安全基座：接线 + 中间件链 + RS256 + refresh 轮换 + audit 接线                  | 6      | ~1 周   | `2026-08-28-phase-6a-security-foundation.md`    |
+| **6b**         | 会话与多步认证基座: SessionManager + flow_token + 2FA/TOTP + 密码管理 + 锁定   | 5      | ~1.5 周 | `2026-08-28-phase-6b-session-mfa.md`            |
+| **6c**         | 核心页面: Roles CRUD / Users 重构 / Audit 查看器 / Profile / 快赢集 / 布局增强 | 6      | ~2 周   | `2026-08-28-phase-6c-core-pages.md`             |
+| **6d**         | 登录扩展: OAuth + WebAuthn + Settings + Dashboard 动态化                       | 4      | ~2 周   | `2026- garbled-28-phase-6d-login-extensions.md` |
+| 表**依赖链**： |
 
 ```
 6a-1(L0接线) ──→ 6c-1(Roles UI)、6c-2(Users重构)

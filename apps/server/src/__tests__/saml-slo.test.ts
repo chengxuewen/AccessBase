@@ -162,7 +162,11 @@ const optionsStore = new Map<string, unknown>();
 const { setOptionsManager } = await import('../routes/options.js');
 setOptionsManager({
   get: async (key: string, envValue: unknown, defaultValue: unknown) =>
-    envValue !== undefined ? envValue : (optionsStore.has(key) ? optionsStore.get(key) : defaultValue),
+    envValue !== undefined
+      ? envValue
+      : optionsStore.has(key)
+        ? optionsStore.get(key)
+        : defaultValue,
 } as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');
@@ -314,7 +318,9 @@ describe('GET /api/v1/auth/saml/slo — LogoutRequest arm (real crypto)', () => 
     expect(second.location).toBe('/login?error=SLO_FAILED');
     expect(sessionManagerMock.revokeAllUserSessions).toHaveBeenCalledTimes(1);
     // The claim key must carry the spec shape ab:saml:sreq:<RequestID>.
-    expect([...redisState.client.store.keys()].some((k) => k.startsWith('ab:saml:sreq:'))).toBe(true);
+    expect([...redisState.client.store.keys()].some((k) => k.startsWith('ab:saml:sreq:'))).toBe(
+      true,
+    );
   });
 
   it('unknown principal -> still answers LogoutResponse, zero revoke, zero event', async () => {
@@ -350,7 +356,9 @@ describe('GET /api/v1/auth/saml/slo — LogoutResponse arm (SP-initiated complet
     expect(issuedId.length).toBeGreaterThan(0);
     const idp = makeCounterparty();
 
-    const res = await getSlo(rawQuery(await idp.logoutResponseUrl({ id: issuedId, nameId: 'ignored' }, '')));
+    const res = await getSlo(
+      rawQuery(await idp.logoutResponseUrl({ id: issuedId, nameId: 'ignored' }, '')),
+    );
 
     expect(res.statusCode).toBe(302);
     expect(res.location).toBe('/login');

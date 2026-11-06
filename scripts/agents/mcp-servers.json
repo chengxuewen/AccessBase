@@ -5,7 +5,15 @@
     "local-playwright": { "package": "@playwright/mcp", "pin": "0.0.80" },
     "local-antd": { "package": "@jzone-mcp/antd-components-mcp", "pin": "1.0.45" },
     "local-drizzle": { "package": "@iflow-mcp/defrex-drizzle-mcp", "pin": "1.0.0" },
-    "local-postgres": { "package": "@vitalyostanin/postgres-mcp", "pin": "latest-known", "note": "disabled server; not installed is fine" },
-    "local-github": { "package": "@modelcontextprotocol/server-github", "pin": null, "note": "remote npx form; no local pin" }
+    "local-postgres": {
+      "package": "@vitalyostanin/postgres-mcp",
+      "pin": "latest-known",
+      "note": "disabled server; not installed is fine"
+    },
+    "local-github": {
+      "package": "@modelcontextprotocol/server-github",
+      "pin": null,
+      "note": "remote npx form; no local pin"
+    }
   }
 }

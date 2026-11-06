@@ -68,7 +68,10 @@ class MockSamlProvider {
     MockSamlProvider.sloInputs.push(input as Record<string, unknown>);
     const container = input.container ?? {};
     if (container['SAMLRequest'] === 'mock-req') {
-      return { kind: 'request', profile: { id: '_mock-1', nameId: 'saml@test.local', sessionIndex: 'idx-1' } };
+      return {
+        kind: 'request',
+        profile: { id: '_mock-1', nameId: 'saml@test.local', sessionIndex: 'idx-1' },
+      };
     }
     if (container['SAMLResponse'] === 'mock-resp') {
       return { kind: 'response' };
@@ -165,7 +168,7 @@ const sharedFlowTokens = {
     sharedFlowStore.set(token, { purpose, payload, ttl });
     return token;
   }),
-  consume: vi.fn(async <T,>(token: string, purpose: string): Promise<T | null> => {
+  consume: vi.fn(async <T>(token: string, purpose: string): Promise<T | null> => {
     const rec = sharedFlowStore.get(token);
     // Burn-first: the token is consumed even if the purpose mismatches.
     sharedFlowStore.delete(token);
@@ -212,7 +215,11 @@ const optionsStore = new Map<string, unknown>();
 const { setOptionsManager } = await import('../routes/options.js');
 setOptionsManager({
   get: async (key: string, envValue: unknown, defaultValue: unknown) =>
-    envValue !== undefined ? envValue : (optionsStore.has(key) ? optionsStore.get(key) : defaultValue),
+    envValue !== undefined
+      ? envValue
+      : optionsStore.has(key)
+        ? optionsStore.get(key)
+        : defaultValue,
 } as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');
@@ -385,7 +392,11 @@ describe('POST /api/v1/auth/saml/exchange', () => {
     enableSaml();
     userManagerState.existing = { ...testUser, totpEnabled: true };
     const code = await runAcs('valid');
-    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/saml/exchange', payload: { code } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/saml/exchange',
+      payload: { code },
+    });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
@@ -403,7 +414,11 @@ describe('POST /api/v1/auth/saml/exchange', () => {
   it('non-mfaPending variant: token-pair envelope with user roles (union arm 2)', async () => {
     enableSaml();
     const code = await runAcs('valid');
-    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/saml/exchange', payload: { code } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/saml/exchange',
+      payload: { code },
+    });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
@@ -411,12 +426,20 @@ describe('POST /api/v1/auth/saml/exchange', () => {
     expect(typeof body.data.accessToken).toBe('string');
     expect(body.data.refreshToken).toBe('test-refresh-token');
     expect(body.data.expiresIn).toBe(900);
-    expect(body.data.user).toMatchObject({ id: testUser.id, email: testUser.email, name: testUser.name });
+    expect(body.data.user).toMatchObject({
+      id: testUser.id,
+      email: testUser.email,
+      name: testUser.name,
+    });
     // Wire shape (R2 batch-E class): declared item properties must survive
     // fast-json-stringify — bare `items: {type:'object'}` would emit [{}].
     expect(body.data.user.roles).toEqual([{ id: 'r1', name: 'Admin' }]);
     // single-use: second exchange fails
-    const res2 = await app.inject({ method: 'POST', url: '/api/v1/auth/saml/exchange', payload: { code } });
+    const res2 = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/saml/exchange',
+      payload: { code },
+    });
     expect(res2.statusCode).toBe(401);
   });
 
@@ -425,7 +448,11 @@ describe('POST /api/v1/auth/saml/exchange', () => {
     // Arm 1 (mfaPending): fire through ACS → exchange and assert the raw body
     userManagerState.existing = { ...testUser, totpEnabled: true };
     const mfaCode = await runAcs('valid');
-    const mfaRes = await app.inject({ method: 'POST', url: '/api/v1/auth/saml/exchange', payload: { code: mfaCode } });
+    const mfaRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/saml/exchange',
+      payload: { code: mfaCode },
+    });
     expect(mfaRes.statusCode).toBe(200);
     const mfaData = JSON.parse(mfaRes.body as string).data;
     // Every arm key must survive serialization — an arm-only schema would strip
@@ -439,7 +466,11 @@ describe('POST /api/v1/auth/saml/exchange', () => {
     // Arm 2 (token pair): full shape incl. nested user projection
     userManagerState.existing = null;
     const pairCode = await runAcs('valid');
-    const pairRes = await app.inject({ method: 'POST', url: '/api/v1/auth/saml/exchange', payload: { code: pairCode } });
+    const pairRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/saml/exchange',
+      payload: { code: pairCode },
+    });
     expect(pairRes.statusCode).toBe(200);
     const pairData = JSON.parse(pairRes.body as string).data;
     for (const key of ['accessToken', 'refreshToken', 'expiresIn', 'user']) {
@@ -474,12 +505,12 @@ describe('static invariants (app.ts + options.ts source)', () => {
 
   it('app.ts excludes the SAML ACS route from audit (R10)', () => {
     const src = readFileSync(resolve(__dirname, '../app.ts'), 'utf-8');
-    expect(src).toContain("/api/v1/auth/saml/acs");
+    expect(src).toContain('/api/v1/auth/saml/acs');
   });
 
   it('app.ts excludes the SAML SLO route from audit (§3.2 R10 family)', () => {
     const src = readFileSync(resolve(__dirname, '../app.ts'), 'utf-8');
-    expect(src).toContain("/api/v1/auth/saml/slo");
+    expect(src).toContain('/api/v1/auth/saml/slo');
   });
 
   it('options allowlist carries the two SLO keys (B3)', () => {
@@ -530,14 +561,22 @@ describe('GET /api/v1/auth/saml/logout', () => {
   });
 
   it('returns 503 AUTH_SAML_001 when SAML is disabled', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/saml/logout', headers: AUTH() });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/saml/logout',
+      headers: AUTH(),
+    });
     expect(res.statusCode).toBe(503);
     expect(res.json().error.code).toBe('AUTH_SAML_001');
   });
 
   it('no saml link -> {logoutUrl: null}', async () => {
     enableSaml();
-    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/saml/logout', headers: AUTH() });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/saml/logout',
+      headers: AUTH(),
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ success: true, data: { logoutUrl: null } });
   });
@@ -545,7 +584,11 @@ describe('GET /api/v1/auth/saml/logout', () => {
   it('link present -> logoutUrl built from the stored nameId + sessionIndex', async () => {
     enableSaml();
     linkRows.push({ providerAccountId: 'user-1', sessionIndex: 'idx-1' });
-    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/saml/logout', headers: AUTH() });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/saml/logout',
+      headers: AUTH(),
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({
       success: true,
@@ -559,23 +602,24 @@ describe('GET /api/v1/auth/saml/logout', () => {
       // Q3A auth-state reader consults the SAME getRedis seam: answer the
       // authst: key with a matching state so authenticate passes with redis on.
       get: vi.fn(async (key: string) =>
-        key.startsWith('authst:')
-          ? JSON.stringify({ tokenVersion: 0, status: 'active' })
-          : null),
+        key.startsWith('authst:') ? JSON.stringify({ tokenVersion: 0, status: 'active' }) : null,
+      ),
       del: vi.fn(async () => 1),
     };
     optionsStore.set('saml_logout_url', 'https://idp.example.com/slo');
     optionsStore.set('saml_slo_callback_url', 'https://sp.example.com/slo');
     linkRows.push({ providerAccountId: 'user-1', sessionIndex: null });
-    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/saml/logout', headers: AUTH() });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/saml/logout',
+      headers: AUTH(),
+    });
     expect(res.statusCode).toBe(200);
     expect(MockSamlProvider.lastConfig['cacheProvider']).toBeDefined();
     expect(MockSamlProvider.lastConfig['logoutUrl']).toBe('https://idp.example.com/slo');
     expect(MockSamlProvider.lastConfig['logoutCallbackUrl']).toBe('https://sp.example.com/slo');
   });
 });
-
-
 
 // ---------------------------------------------------------------------------
 // Logout-coherence §3.2 — SLO route arms (mock-provider dispatch layer;
@@ -601,7 +645,9 @@ describe('POST /api/v1/auth/saml/slo (dispatch arms)', () => {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
     });
     expect(res.statusCode).toBe(302);
-    expect(String(res.headers['location'])).toContain('https://idp.example.com/slo?SAMLResponse=mock-_mock-1-relay-9');
+    expect(String(res.headers['location'])).toContain(
+      'https://idp.example.com/slo?SAMLResponse=mock-_mock-1-relay-9',
+    );
     expect(MockSamlProvider.sloInputs).toEqual([
       { binding: 'post', container: { SAMLRequest: 'mock-req', RelayState: 'relay-9' } },
     ]);

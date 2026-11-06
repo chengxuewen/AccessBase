@@ -135,17 +135,13 @@ describe('GET /api/v1/audit-logs/verify', () => {
   });
 
   it('window > 90 days → 400', async () => {
-    const res = await authedInject(
-      '/api/v1/audit-logs/verify?from=2026-01-01&to=2026-09-28',
-    );
+    const res = await authedInject('/api/v1/audit-logs/verify?from=2026-01-01&to=2026-09-28');
     expect(res.statusCode).toBe(400);
     expect(res.json().error.code).toBe('VALIDATION_001');
   });
 
   it('to < from (inverted window) → 400', async () => {
-    const res = await authedInject(
-      '/api/v1/audit-logs/verify?from=2026-09-28&to=2026-09-01',
-    );
+    const res = await authedInject('/api/v1/audit-logs/verify?from=2026-09-28&to=2026-09-01');
     expect(res.statusCode).toBe(400);
   });
 

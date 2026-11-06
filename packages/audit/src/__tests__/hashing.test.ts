@@ -72,7 +72,12 @@ describe('rowHash', () => {
   });
 
   it('ignores extra properties on the input object (picks D1 set explicitly)', () => {
-    const withExtra = { ...base, id: 'injected', success: true, username: 'x' } as AuditRowFields & {
+    const withExtra = {
+      ...base,
+      id: 'injected',
+      success: true,
+      username: 'x',
+    } as AuditRowFields & {
       id: string;
       success: boolean;
       username: string;
@@ -105,7 +110,15 @@ describe('rowHash', () => {
     for (const f of fields) {
       const mutated: AuditRowFields = { ...base };
       // every field must be required and covered — a missing field must not typecheck
-      mutated[f] = (f === 'requestBody' ? {} : f === 'createdAt' ? new Date(0) : f === 'responseStatus' ? 500 : 'zzz') as never;
+      mutated[f] = (
+        f === 'requestBody'
+          ? {}
+          : f === 'createdAt'
+            ? new Date(0)
+            : f === 'responseStatus'
+              ? 500
+              : 'zzz'
+      ) as never;
       expect(rowHash(mutated)).not.toBe(rowHash(base));
     }
   });

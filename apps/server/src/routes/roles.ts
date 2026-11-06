@@ -6,7 +6,6 @@ import { routeTx } from '../utils/tx.js';
 import { requirePermission } from '../utils/permission.js';
 import { sendConflictError } from '../utils/conflict-mapper.js';
 
-
 export async function roleRoutes(app: FastifyInstance) {
   // All role routes require authentication
   app.addHook('preHandler', app.authenticate);
@@ -34,7 +33,11 @@ export async function roleRoutes(app: FastifyInstance) {
       },
     },
     async (request) => {
-      const { page = 1, pageSize = 20, search } = request.query as {
+      const {
+        page = 1,
+        pageSize = 20,
+        search,
+      } = request.query as {
         page?: number;
         pageSize?: number;
         search?: string;
@@ -63,7 +66,10 @@ export async function roleRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const role = await roleManager.findById(request.params.id, request.tenantId ?? DEFAULT_TENANT);
+      const role = await roleManager.findById(
+        request.params.id,
+        request.tenantId ?? DEFAULT_TENANT,
+      );
       if (!role) {
         return reply.status(404).send({
           success: false,
@@ -191,7 +197,12 @@ export async function roleRoutes(app: FastifyInstance) {
           }
           return roleManager.update(
             id,
-            { name: body.name, description: body.description, permissionIds: body.permissionIds, permissionScopes: body.permissionScopes },
+            {
+              name: body.name,
+              description: body.description,
+              permissionIds: body.permissionIds,
+              permissionScopes: body.permissionScopes,
+            },
             tenantId,
             tx,
           );

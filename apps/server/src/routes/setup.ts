@@ -123,7 +123,7 @@ export async function setupRoutes(app: FastifyInstance) {
       ]);
       return {
         success: true,
-        data: { ...status, siteName, ...await getBranding() },
+        data: { ...status, siteName, ...(await getBranding()) },
       };
     },
   );
@@ -280,15 +280,18 @@ export async function setupRoutes(app: FastifyInstance) {
         let adminRole;
         try {
           adminRole = await roleManager.create(
-{
-name: 'admin',
+            {
+              name: 'admin',
               description: 'System administrator with full access',
               isSystem: true,
-},
+            },
             DEFAULT_TENANT,
           );
         } catch (roleErr: unknown) {
-          if (roleErr instanceof Error && roleErr.message === 'Role already exists in this tenant') {
+          if (
+            roleErr instanceof Error &&
+            roleErr.message === 'Role already exists in this tenant'
+          ) {
             // Find existing role by querying rolePermissions join
             // RoleManager doesn't expose findByName, so we create a temporary one with admin ID
             const DEFAULT_ADMIN_ROLE_ID = '00000000-0000-0000-0000-000000000002';
@@ -512,7 +515,13 @@ name: 'admin',
 
       // Generate tokens using Fastify JWT
       const accessToken = app.jwt.sign(
-        { sub: adminUser.id, email: adminUser.email, status: 'active', tenantId: adminUser.tenantId, tokenVersion: adminUser.tokenVersion },
+        {
+          sub: adminUser.id,
+          email: adminUser.email,
+          status: 'active',
+          tenantId: adminUser.tenantId,
+          tokenVersion: adminUser.tokenVersion,
+        },
         { expiresIn: '15m' },
       );
 

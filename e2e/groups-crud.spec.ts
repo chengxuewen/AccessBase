@@ -71,11 +71,27 @@ function trackConsoleErrors(page: Page): string[] {
 }
 
 const ADMIN_PERMS = [
-  'stats:read', 'users:read', 'users:write', 'roles:read', 'roles:write', 'roles:delete',
-  'audit:read', 'audit:delete', 'stats:write', 'stats:delete', 'clients:read', 'clients:write',
-  'apikeys:read', 'apikeys:write', 'apikeys:delete',
-  'tenants:read', 'tenants:write', 'tenants:delete',
-  'groups:read', 'groups:write', 'groups:delete',
+  'stats:read',
+  'users:read',
+  'users:write',
+  'roles:read',
+  'roles:write',
+  'roles:delete',
+  'audit:read',
+  'audit:delete',
+  'stats:write',
+  'stats:delete',
+  'clients:read',
+  'clients:write',
+  'apikeys:read',
+  'apikeys:write',
+  'apikeys:delete',
+  'tenants:read',
+  'tenants:write',
+  'tenants:delete',
+  'groups:read',
+  'groups:write',
+  'groups:delete',
 ];
 
 const FULL_PERMS_ME = {
@@ -115,7 +131,14 @@ function makeGroup(overrides: Partial<GroupRow> = {}): GroupRow {
 
 const MOCK_GROUPS = (): GroupRow[] => [
   makeGroup({ id: 'group-eng', name: 'Engineering', memberCount: 2, roleCount: 1 }),
-  makeGroup({ id: 'group-ops', name: 'Operations', description: undefined, memberCount: 0, roleCount: 0, kind: 'department' }),
+  makeGroup({
+    id: 'group-ops',
+    name: 'Operations',
+    description: undefined,
+    memberCount: 0,
+    roleCount: 0,
+    kind: 'department',
+  }),
 ];
 
 // Member rows for group-eng (routes/groups.ts listMembers projection).
@@ -128,19 +151,37 @@ const MOCK_MEMBERS = (): MemberRow[] => [
 // (shape copied from users-crud.spec.ts list rows).
 const MOCK_USERS = [
   {
-    id: 'u-alice', email: 'alice@acme.test', name: 'Alice', isActive: true, status: 'active',
-    tenantId: 'tenant-acme', tokenVersion: 0,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    id: 'u-alice',
+    email: 'alice@acme.test',
+    name: 'Alice',
+    isActive: true,
+    status: 'active',
+    tenantId: 'tenant-acme',
+    tokenVersion: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: 'u-bob', email: 'bob@acme.test', name: 'Bob', isActive: true, status: 'active',
-    tenantId: 'tenant-acme', tokenVersion: 0,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    id: 'u-bob',
+    email: 'bob@acme.test',
+    name: 'Bob',
+    isActive: true,
+    status: 'active',
+    tenantId: 'tenant-acme',
+    tokenVersion: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: 'u-carol', email: 'carol@acme.test', name: 'Carol', isActive: true, status: 'active',
-    tenantId: 'tenant-acme', tokenVersion: 0,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    id: 'u-carol',
+    email: 'carol@acme.test',
+    name: 'Carol',
+    isActive: true,
+    status: 'active',
+    tenantId: 'tenant-acme',
+    tokenVersion: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];
 
@@ -148,12 +189,19 @@ const MOCK_USERS = [
 // (RoleManager.mapToRole wire shape, roles-crud precedent).
 const MOCK_ROLES = [
   {
-    id: 'role-admin', name: 'admin', description: 'Full access', isSystem: true,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    id: 'role-admin',
+    name: 'admin',
+    description: 'Full access',
+    isSystem: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: 'role-member', name: 'member', description: 'Default member',
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    id: 'role-member',
+    name: 'member',
+    description: 'Default member',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];
 
@@ -162,25 +210,43 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
   // PIT-080 roster: /login-shell probes must be mocked in every spec.
   await page.route('**/api/v1/auth/saml/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   // Member picker + role binding sources
   await page.route('**/api/v1/users**', async (route) => {
@@ -218,7 +284,9 @@ async function mockGroupsApis(
     const method = request.method();
     const url = new URL(request.url());
     const segments = url.pathname.split('/').filter(Boolean); // api,v1,groups,<id>,<sub>,<userId>
-    const isCollection = segments[segments.length - 1] === 'groups' || (segments[2] === 'groups' && segments.length === 3);
+    const isCollection =
+      segments[segments.length - 1] === 'groups' ||
+      (segments[2] === 'groups' && segments.length === 3);
     const id = segments[3];
     const sub = segments[4];
 
@@ -246,21 +314,36 @@ async function mockGroupsApis(
         roleCount: 0,
       });
       groups.push(created);
-      stats.created = { name: created.name, ...(created.description !== undefined ? { description: created.description } : {}) };
+      stats.created = {
+        name: created.name,
+        ...(created.description !== undefined ? { description: created.description } : {}),
+      };
       stats.lastPost = body;
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: created.id, tenantId: created.tenantId, name: created.name, description: created.description, kind: created.kind, createdAt: created.createdAt, updatedAt: created.updatedAt },
+          data: {
+            id: created.id,
+            tenantId: created.tenantId,
+            name: created.name,
+            description: created.description,
+            kind: created.kind,
+            createdAt: created.createdAt,
+            updatedAt: created.updatedAt,
+          },
         }),
       });
       return;
     }
 
     if (method === 'GET' && sub === 'members') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: members }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: members }),
+      });
       return;
     }
 
@@ -271,12 +354,20 @@ async function mockGroupsApis(
         members.push({ userId: user.id, email: user.email, name: user.name });
       }
       stats.addedMembers.push({ groupId: id ?? '', userId: body.userId ?? '' });
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: null }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: null }),
+      });
       return;
     }
 
     if (method === 'GET' && sub === 'roles') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: boundRoles }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: boundRoles }),
+      });
       return;
     }
 
@@ -285,18 +376,29 @@ async function mockGroupsApis(
       boundRoles.length = 0;
       boundRoles.push(...(body.roleIds ?? []));
       stats.rolesPut = { groupId: id ?? '', roleIds: body.roleIds ?? [] };
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: null }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: null }),
+      });
       return;
     }
 
     if (method === 'PUT' && id && segments.length === 4) {
-      const body = JSON.parse(request.postData() ?? '{}') as { name?: string; description?: string; kind?: string };
+      const body = JSON.parse(request.postData() ?? '{}') as {
+        name?: string;
+        description?: string;
+        kind?: string;
+      };
       const row = groups.find((g) => g.id === id);
       if (!row) {
         await route.fulfill({
           status: 404,
           contentType: 'application/json',
-          body: JSON.stringify({ success: false, error: { code: 'GROUP_NOT_FOUND', message: 'Group not found' } }),
+          body: JSON.stringify({
+            success: false,
+            error: { code: 'GROUP_NOT_FOUND', message: 'Group not found' },
+          }),
         });
         return;
       }
@@ -307,7 +409,18 @@ async function mockGroupsApis(
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { id: row.id, tenantId: row.tenantId, name: row.name, description: row.description, kind: row.kind, createdAt: row.createdAt, updatedAt: row.updatedAt } }),
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: row.id,
+            tenantId: row.tenantId,
+            name: row.name,
+            description: row.description,
+            kind: row.kind,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+          },
+        }),
       });
       return;
     }
@@ -318,14 +431,24 @@ async function mockGroupsApis(
         await route.fulfill({
           status: 409,
           contentType: 'application/json',
-          body: JSON.stringify({ success: false, error: { code: 'LAST_ADMIN_GUARD', message: 'Operation would leave the tenant with no active administrator' } }),
+          body: JSON.stringify({
+            success: false,
+            error: {
+              code: 'LAST_ADMIN_GUARD',
+              message: 'Operation would leave the tenant with no active administrator',
+            },
+          }),
         });
         return;
       }
       const idx = groups.findIndex((g) => g.id === id);
       if (idx >= 0) groups.splice(idx, 1);
       stats.deleted = id;
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: null }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: null }),
+      });
       return;
     }
 
@@ -334,7 +457,15 @@ async function mockGroupsApis(
 }
 
 function freshStats(): GroupMockStats {
-  return { listRequests: 0, created: null, lastPost: null, lastPut: null, deleted: null, addedMembers: [], rolesPut: null };
+  return {
+    listRequests: 0,
+    created: null,
+    lastPost: null,
+    lastPut: null,
+    deleted: null,
+    addedMembers: [],
+    rolesPut: null,
+  };
 }
 
 test.describe('Groups admin page', () => {
@@ -353,7 +484,11 @@ test.describe('Groups admin page', () => {
     expect(consoleErrors, 'console errors should be empty').toEqual([]);
   });
 
-  async function gotoGroups(page: Page, me: Record<string, unknown> = FULL_PERMS_ME, deleteMode: 'success' | 'last-admin' = 'success'): Promise<void> {
+  async function gotoGroups(
+    page: Page,
+    me: Record<string, unknown> = FULL_PERMS_ME,
+    deleteMode: 'success' | 'last-admin' = 'success',
+  ): Promise<void> {
     groups = MOCK_GROUPS();
     members = MOCK_MEMBERS();
     boundRoles = ['role-member'];
@@ -371,7 +506,9 @@ test.describe('Groups admin page', () => {
     await expect(page.locator('.ant-menu').getByText('用户组', { exact: true })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Operations', exact: true })).toBeVisible();
     // count columns from the list projection
-    const engRow = page.locator('tr', { has: page.getByRole('cell', { name: 'Engineering', exact: true }) });
+    const engRow = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Engineering', exact: true }),
+    });
     await expect(engRow.getByRole('cell', { name: '2', exact: true })).toBeVisible();
     await expect(engRow.getByRole('cell', { name: '1', exact: true })).toBeVisible();
   });
@@ -382,20 +519,30 @@ test.describe('Groups admin page', () => {
     await page.getByTestId('groups-create').click();
     await page.getByTestId('groups-name-input').fill(unique);
     await page.getByTestId('groups-description-input').fill('created by e2e');
-    await page.getByTestId('groups-form-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+    await page
+      .getByTestId('groups-form-modal')
+      .locator('.ant-modal-footer .ant-btn-primary')
+      .click();
 
-    await expect.poll(() => stats.created, { timeout: 5000 }).toEqual({ name: unique, description: 'created by e2e' });
+    await expect
+      .poll(() => stats.created, { timeout: 5000 })
+      .toEqual({ name: unique, description: 'created by e2e' });
     await expect(page.locator('.ant-message')).toContainText('用户组已创建');
     await expect(page.getByRole('cell', { name: unique, exact: true })).toBeVisible();
   });
 
   test('edit group: PUT wire payload carries renamed name', async ({ page }) => {
     await gotoGroups(page);
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Engineering', exact: true }) });
+    const row = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Engineering', exact: true }),
+    });
     await row.getByTestId('groups-edit').click();
     await expect(page.getByTestId('groups-name-input')).toHaveValue('Engineering');
     await page.getByTestId('groups-name-input').fill('Engineering 2');
-    await page.getByTestId('groups-form-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+    await page
+      .getByTestId('groups-form-modal')
+      .locator('.ant-modal-footer .ant-btn-primary')
+      .click();
 
     await expect.poll(() => stats.lastPut, { timeout: 5000 }).not.toBeNull();
     expect(stats.lastPut?.body.name).toBe('Engineering 2');
@@ -408,13 +555,18 @@ test.describe('Groups admin page', () => {
     await expect(page.getByTestId('groups-kind-group-ops')).toHaveText('部门');
   });
 
-  test('create as department: POST body carries kind=department and the tag renders', async ({ page }) => {
+  test('create as department: POST body carries kind=department and the tag renders', async ({
+    page,
+  }) => {
     const unique = `Dept ${Date.now()}`;
     await gotoGroups(page);
     await page.getByTestId('groups-create').click();
     await page.getByTestId('groups-name-input').fill(unique);
     await page.getByTestId('groups-kind-switch').click();
-    await page.getByTestId('groups-form-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+    await page
+      .getByTestId('groups-form-modal')
+      .locator('.ant-modal-footer .ant-btn-primary')
+      .click();
 
     await expect.poll(() => stats.lastPost, { timeout: 5000 }).not.toBeNull();
     expect(stats.lastPost?.kind).toBe('department');
@@ -423,13 +575,20 @@ test.describe('Groups admin page', () => {
     await expect(page.getByText('部门', { exact: true })).toHaveCount(2);
   });
 
-  test('edit kind: switch prefills from the row kind and the PUT body carries the flip', async ({ page }) => {
+  test('edit kind: switch prefills from the row kind and the PUT body carries the flip', async ({
+    page,
+  }) => {
     await gotoGroups(page);
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Operations', exact: true }) });
+    const row = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Operations', exact: true }),
+    });
     await row.getByTestId('groups-edit').click();
     await expect(page.getByTestId('groups-kind-switch')).toBeChecked();
     await page.getByTestId('groups-kind-switch').click();
-    await page.getByTestId('groups-form-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+    await page
+      .getByTestId('groups-form-modal')
+      .locator('.ant-modal-footer .ant-btn-primary')
+      .click();
 
     await expect.poll(() => stats.lastPut, { timeout: 5000 }).not.toBeNull();
     expect(stats.lastPut?.body.kind).toBe('group');
@@ -438,18 +597,24 @@ test.describe('Groups admin page', () => {
 
   test('delete blocked by 409 LAST_ADMIN_GUARD: server message surfaces', async ({ page }) => {
     await gotoGroups(page, FULL_PERMS_ME, 'last-admin');
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Engineering', exact: true }) });
+    const row = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Engineering', exact: true }),
+    });
     await row.getByTestId('groups-delete').click();
     await page.locator('.ant-popconfirm .ant-btn-primary').click();
 
     // apiErrorMessage passes the server message through verbatim (K-R6)
-    await expect(page.locator('.ant-message')).toContainText('Operation would leave the tenant with no active administrator');
+    await expect(page.locator('.ant-message')).toContainText(
+      'Operation would leave the tenant with no active administrator',
+    );
     await expect(page.getByRole('cell', { name: 'Engineering', exact: true })).toBeVisible();
   });
 
   test('detail drawer: add member POST wire + bound roles PUT wire', async ({ page }) => {
     await gotoGroups(page);
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Engineering', exact: true }) });
+    const row = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Engineering', exact: true }),
+    });
     await row.getByTestId('groups-detail-group-eng').click();
     await expect(page.getByTestId('groups-members')).toBeVisible();
     await expect(page.getByTestId('groups-member-u-alice')).toBeVisible();
@@ -458,7 +623,11 @@ test.describe('Groups admin page', () => {
     const memberSelect = page.getByTestId('groups-member-select').getByRole('combobox');
     await memberSelect.click();
     await memberSelect.fill('Carol');
-    await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content', { hasText: /^Carol <carol@acme\.test>$/ }).click();
+    await page
+      .locator('.ant-select-dropdown:visible .ant-select-item-option-content', {
+        hasText: /^Carol <carol@acme\.test>$/,
+      })
+      .click();
     await page.getByTestId('groups-add-member').click();
     await expect.poll(() => stats.addedMembers.length, { timeout: 5000 }).toBeGreaterThan(0);
     expect(stats.addedMembers[0]).toEqual({ groupId: 'group-eng', userId: 'u-carol' });
@@ -479,7 +648,9 @@ test.describe('Groups admin page', () => {
   test('read-only user: create/edit/delete buttons hidden', async ({ page }) => {
     await gotoGroups(page, READONLY_ME);
     await expect(page.getByTestId('groups-create')).toHaveCount(0);
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Engineering', exact: true }) });
+    const row = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Engineering', exact: true }),
+    });
     await expect(row.getByTestId('groups-edit')).toHaveCount(0);
     await expect(row.getByTestId('groups-delete')).toHaveCount(0);
     // Manage (read view of members) stays available for groups:read

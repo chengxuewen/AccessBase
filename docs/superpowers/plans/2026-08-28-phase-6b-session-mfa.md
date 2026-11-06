@@ -34,31 +34,32 @@
 
 ## Existing Code Reference
 
-| Item | Location | Key Facts |
-|------|----------|-----------|
-| SessionManager stubs | `packages/identity/src/managers/SessionManager.ts` | All throw `Not implemented`; constructor takes `JwtConfig`; uses `jsonwebtoken` |
-| PasswordProvider | `packages/identity/src/providers/PasswordProvider.ts` | Uses `bcryptjs`; `authenticate` throws after email validation |
-| MfaManager stubs | `packages/identity/src/managers/MfaManager.ts` | All throw `Not implemented`; constructor takes `MfaConfig` |
-| UserManager | `packages/identity/src/managers/UserManager.ts` | `hash(password, 12)` for create; `verifyPassword` does bcrypt compare |
-| Auth routes | `apps/server/src/routes/auth.ts` | login/me/logout/refresh; login calls `UserManager.verifyPassword` then `app.jwt.sign`; logout stateless; refresh verifies JWT directly |
-| Drizzle schema | `packages/identity/src/db/schema.ts` | `users` (id/email/name/passwordHash/tenantId/status/tokenVersion); `sessions` (id/userId/token/expiresAt/createdAt) |
-| DB connection | `packages/identity/src/db/index.ts` | `createDb(databaseUrl?)` returns `drizzle(pool, { schema })`; type `DrizzleDB` |
-| Server config | `apps/server/src/config.ts` | Has `redisUrl`, `jwtSecret`, `databaseUrl` |
-| Identity defaults | `packages/identity/src/index.ts` | lockoutThreshold:5, lockoutDuration:900, passwordHistoryCount:5, bcryptRounds:12 |
+| Item                 | Location                                              | Key Facts                                                                                                                              |
+| -------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| SessionManager stubs | `packages/identity/src/managers/SessionManager.ts`    | All throw `Not implemented`; constructor takes `JwtConfig`; uses `jsonwebtoken`                                                        |
+| PasswordProvider     | `packages/identity/src/providers/PasswordProvider.ts` | Uses `bcryptjs`; `authenticate` throws after email validation                                                                          |
+| MfaManager stubs     | `packages/identity/src/managers/MfaManager.ts`        | All throw `Not implemented`; constructor takes `MfaConfig`                                                                             |
+| UserManager          | `packages/identity/src/managers/UserManager.ts`       | `hash(password, 12)` for create; `verifyPassword` does bcrypt compare                                                                  |
+| Auth routes          | `apps/server/src/routes/auth.ts`                      | login/me/logout/refresh; login calls `UserManager.verifyPassword` then `app.jwt.sign`; logout stateless; refresh verifies JWT directly |
+| Drizzle schema       | `packages/identity/src/db/schema.ts`                  | `users` (id/email/name/passwordHash/tenantId/status/tokenVersion); `sessions` (id/userId/token/expiresAt/createdAt)                    |
+| DB connection        | `packages/identity/src/db/index.ts`                   | `createDb(databaseUrl?)` returns `drizzle(pool, { schema })`; type `DrizzleDB`                                                         |
+| Server config        | `apps/server/src/config.ts`                           | Has `redisUrl`, `jwtSecret`, `databaseUrl`                                                                                             |
+| Identity defaults    | `packages/identity/src/index.ts`                      | lockoutThreshold:5, lockoutDuration:900, passwordHistoryCount:5, bcryptRounds:12                                                       |
 
 ## Intentional Existing Test Expectations That Will Change
 
-| File | Current | Change Reason | New |
-|------|---------|--------------|-----|
-| `apps/server/src/__tests__/routes.test.ts` | Login signs JWT via `app.jwt.sign` | Login calls `SessionManager.createSession` | Same response shape, internal wiring |
-| Same file | Logout stateless | Logout calls `SessionManager.revokeSession` | Same response shape, DB call added |
-| Same file | Refresh re-signs JWT | Refresh calls `SessionManager.rotateRefreshToken` | Same response shape, rotation logic |
+| File                                       | Current                            | Change Reason                                     | New                                  |
+| ------------------------------------------ | ---------------------------------- | ------------------------------------------------- | ------------------------------------ |
+| `apps/server/src/__tests__/routes.test.ts` | Login signs JWT via `app.jwt.sign` | Login calls `SessionManager.createSession`        | Same response shape, internal wiring |
+| Same file                                  | Logout stateless                   | Logout calls `SessionManager.revokeSession`       | Same response shape, DB call added   |
+| Same file                                  | Refresh re-signs JWT               | Refresh calls `SessionManager.rotateRefreshToken` | Same response shape, rotation logic  |
 
 ---
 
 ## Task 1: SessionManager Implementation
 
 **Files:**
+
 - Create: `packages/identity/src/__tests__/SessionManager.test.ts`
 - Modify: `packages/identity/src/managers/SessionManager.ts` (replace stubs)
 - Modify: `packages/identity/src/types.ts` (add `SessionManagerConfig`, `SessionRecord`)
@@ -67,6 +68,7 @@
 - Modify: `packages/identity/src/index.ts` (export `SessionManagerConfig`)
 
 **Interfaces:**
+
 - Consumes: `DrizzleDB` (DI), `sessions` schema, `bcryptjs` (existing), `jsonwebtoken` (existing), `ioredis` (existing)
 - Produces: `createSession(user:{id,email}, meta:{ip?,device?}) -> SessionTokens`, `rotateRefreshToken(oldToken, meta) -> SessionTokens`, `revokeSession(id) -> void`, `revokeAllSessions(userId) -> number`, `getUserSessions(userId) -> SessionRecord[]`, `validateRefreshToken(token) -> SessionRecord|null`
 
@@ -88,13 +90,22 @@ Also add to `packages/identity/src/types.ts`:
 
 ```typescript
 export interface SessionRecord {
-  id: string; userId: string; refreshTokenHash: string;
-  deviceInfo: string | null; ipAddress: string | null;
-  expiresAt: Date; revokedAt: Date | null; usedAt: Date | null; createdAt: Date;
+  id: string;
+  userId: string;
+  refreshTokenHash: string;
+  deviceInfo: string | null;
+  ipAddress: string | null;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  usedAt: Date | null;
+  createdAt: Date;
 }
 
 export interface SessionManagerConfig {
-  jwtSecret: string; issuer: string; accessTokenTTL: number; refreshTokenTTL: number;
+  jwtSecret: string;
+  issuer: string;
+  accessTokenTTL: number;
+  refreshTokenTTL: number;
 }
 ```
 
@@ -176,11 +187,19 @@ describe('SessionManager', () => {
       vi.mocked(mockDb.select).mockReturnValueOnce({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
-            limit: vi.fn(async () => [{
-              id: 'session-1', userId: 'user-1', refreshTokenHash: 'hash',
-              revokedAt: null, usedAt: null, expiresAt: new Date(Date.now() + 86400000),
-              deviceInfo: null, ipAddress: null, createdAt: new Date(),
-            }]),
+            limit: vi.fn(async () => [
+              {
+                id: 'session-1',
+                userId: 'user-1',
+                refreshTokenHash: 'hash',
+                revokedAt: null,
+                usedAt: null,
+                expiresAt: new Date(Date.now() + 86400000),
+                deviceInfo: null,
+                ipAddress: null,
+                createdAt: new Date(),
+              },
+            ]),
           })),
         })),
       } as never);
@@ -194,11 +213,19 @@ describe('SessionManager', () => {
       vi.mocked(mockDb.select).mockReturnValueOnce({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
-            limit: vi.fn(async () => [{
-              id: 's1', userId: 'u1', refreshTokenHash: 'hash',
-              revokedAt: null, usedAt: null, expiresAt: new Date(Date.now() - 1000),
-              deviceInfo: null, ipAddress: null, createdAt: new Date(),
-            }]),
+            limit: vi.fn(async () => [
+              {
+                id: 's1',
+                userId: 'u1',
+                refreshTokenHash: 'hash',
+                revokedAt: null,
+                usedAt: null,
+                expiresAt: new Date(Date.now() - 1000),
+                deviceInfo: null,
+                ipAddress: null,
+                createdAt: new Date(),
+              },
+            ]),
           })),
         })),
       } as never);
@@ -210,16 +237,25 @@ describe('SessionManager', () => {
       vi.mocked(mockDb.select).mockReturnValueOnce({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
-            limit: vi.fn(async () => [{
-              id: 's1', userId: 'u1', refreshTokenHash: 'hash',
-              revokedAt: null, usedAt: new Date(),
-              expiresAt: new Date(Date.now() + 86400000),
-              deviceInfo: null, ipAddress: null, createdAt: new Date(),
-            }]),
+            limit: vi.fn(async () => [
+              {
+                id: 's1',
+                userId: 'u1',
+                refreshTokenHash: 'hash',
+                revokedAt: null,
+                usedAt: new Date(),
+                expiresAt: new Date(Date.now() + 86400000),
+                deviceInfo: null,
+                ipAddress: null,
+                createdAt: new Date(),
+              },
+            ]),
           })),
         })),
       } as never);
-      await expect(manager.rotateRefreshToken(tokens.refreshToken, {})).rejects.toThrow(/used|reused|revoked/i);
+      await expect(manager.rotateRefreshToken(tokens.refreshToken, {})).rejects.toThrow(
+        /used|reused|revoked/i,
+      );
     });
   });
 
@@ -259,11 +295,19 @@ describe('SessionManager', () => {
       vi.mocked(mockDb.select).mockReturnValueOnce({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
-            limit: vi.fn(async () => [{
-              id: 's1', userId: 'u1', refreshTokenHash: 'hash',
-              revokedAt: null, expiresAt: new Date(Date.now() + 86400000),
-              usedAt: null, deviceInfo: null, ipAddress: null, createdAt: new Date(),
-            }]),
+            limit: vi.fn(async () => [
+              {
+                id: 's1',
+                userId: 'u1',
+                refreshTokenHash: 'hash',
+                revokedAt: null,
+                expiresAt: new Date(Date.now() + 86400000),
+                usedAt: null,
+                deviceInfo: null,
+                ipAddress: null,
+                createdAt: new Date(),
+              },
+            ]),
           })),
         })),
       } as never);
@@ -304,13 +348,22 @@ import type { DrizzleDB } from '../db/index.js';
 import type { SessionTokens } from '../types.js';
 
 export interface SessionRecord {
-  id: string; userId: string; refreshTokenHash: string;
-  deviceInfo: string | null; ipAddress: string | null;
-  expiresAt: Date; revokedAt: Date | null; usedAt: Date | null; createdAt: Date;
+  id: string;
+  userId: string;
+  refreshTokenHash: string;
+  deviceInfo: string | null;
+  ipAddress: string | null;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  usedAt: Date | null;
+  createdAt: Date;
 }
 
 export interface SessionManagerConfig {
-  jwtSecret: string; issuer: string; accessTokenTTL: number; refreshTokenTTL: number;
+  jwtSecret: string;
+  issuer: string;
+  accessTokenTTL: number;
+  refreshTokenTTL: number;
 }
 
 interface RedisLike {
@@ -319,7 +372,10 @@ interface RedisLike {
 }
 
 function signRefreshToken(sessionId: string, userId: string, secret: string): string {
-  const sig = createHmac('sha256', secret).update(`${sessionId}:${userId}`).digest('hex').slice(0, 16);
+  const sig = createHmac('sha256', secret)
+    .update(`${sessionId}:${userId}`)
+    .digest('hex')
+    .slice(0, 16);
   return `${sessionId}.${userId}.${sig}`;
 }
 
@@ -331,7 +387,10 @@ function decodeRefreshToken(token: string): { sessionId: string; userId: string 
 function verifyRefreshTokenSig(token: string, secret: string): boolean {
   const parts = token.split('.');
   if (parts.length !== 3) return false;
-  const expected = createHmac('sha256', secret).update(`${parts[0]}:${parts[1]}`).digest('hex').slice(0, 16);
+  const expected = createHmac('sha256', secret)
+    .update(`${parts[0]}:${parts[1]}`)
+    .digest('hex')
+    .slice(0, 16);
   return parts[2] === expected;
 }
 
@@ -342,30 +401,49 @@ export class SessionManager {
     private readonly redis?: RedisLike,
   ) {}
 
-  async createSession(user: { id: string; email: string }, meta: { ip?: string; device?: string }): Promise<SessionTokens> {
+  async createSession(
+    user: { id: string; email: string },
+    meta: { ip?: string; device?: string },
+  ): Promise<SessionTokens> {
     const refreshTokenHash = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + this.config.refreshTokenTTL * 1000);
-    const [session] = await this.db.insert(sessions).values({
-      userId: user.id, token: refreshTokenHash, refreshTokenHash,
-      expiresAt, ipAddress: meta.ip ?? null, deviceInfo: meta.device ?? null,
-    }).returning();
+    const [session] = await this.db
+      .insert(sessions)
+      .values({
+        userId: user.id,
+        token: refreshTokenHash,
+        refreshTokenHash,
+        expiresAt,
+        ipAddress: meta.ip ?? null,
+        deviceInfo: meta.device ?? null,
+      })
+      .returning();
     if (!session) throw new Error('Failed to create session');
-    const accessToken = jwt.sign(
-      { sub: user.id, email: user.email }, this.config.jwtSecret,
-      { expiresIn: `${this.config.accessTokenTTL}s`, issuer: this.config.issuer },
-    );
+    const accessToken = jwt.sign({ sub: user.id, email: user.email }, this.config.jwtSecret, {
+      expiresIn: `${this.config.accessTokenTTL}s`,
+      issuer: this.config.issuer,
+    });
     const refreshToken = signRefreshToken(session.id, user.id, this.config.jwtSecret);
     if (this.redis) {
-      this.redis.set(`session:${user.id}:${session.id}`, session.id, 'EX', this.config.refreshTokenTTL).catch(() => {});
+      this.redis
+        .set(`session:${user.id}:${session.id}`, session.id, 'EX', this.config.refreshTokenTTL)
+        .catch(() => {});
     }
     return { accessToken, refreshToken, expiresIn: this.config.accessTokenTTL };
   }
 
-  async rotateRefreshToken(oldRefreshToken: string, meta: { ip?: string; device?: string }): Promise<SessionTokens> {
-    if (!verifyRefreshTokenSig(oldRefreshToken, this.config.jwtSecret)) throw new Error('Invalid refresh token');
+  async rotateRefreshToken(
+    oldRefreshToken: string,
+    meta: { ip?: string; device?: string },
+  ): Promise<SessionTokens> {
+    if (!verifyRefreshTokenSig(oldRefreshToken, this.config.jwtSecret))
+      throw new Error('Invalid refresh token');
     const decoded = decodeRefreshToken(oldRefreshToken)!;
-    const [session] = await this.db.select().from(sessions)
-      .where(and(eq(sessions.id, decoded.sessionId), eq(sessions.userId, decoded.userId))).limit(1);
+    const [session] = await this.db
+      .select()
+      .from(sessions)
+      .where(and(eq(sessions.id, decoded.sessionId), eq(sessions.userId, decoded.userId)))
+      .limit(1);
     if (!session) throw new Error('Session not found');
     if (session.revokedAt) {
       logger.warn({ userId: decoded.userId }, 'Refresh token reuse detected');
@@ -379,7 +457,10 @@ export class SessionManager {
     }
     if (new Date(session.expiresAt) < new Date()) throw new Error('Refresh token expired');
     await this.db.update(sessions).set({ usedAt: new Date() }).where(eq(sessions.id, session.id));
-    return this.createSession({ id: decoded.userId, email: '' }, { ip: meta.ip, device: meta.device });
+    return this.createSession(
+      { id: decoded.userId, email: '' },
+      { ip: meta.ip, device: meta.device },
+    );
   }
 
   async revokeSession(sessionId: string): Promise<void> {
@@ -388,14 +469,18 @@ export class SessionManager {
   }
 
   async revokeAllSessions(userId: string): Promise<number> {
-    const result = await this.db.update(sessions).set({ revokedAt: new Date() })
+    const result = await this.db
+      .update(sessions)
+      .set({ revokedAt: new Date() })
       .where(and(eq(sessions.userId, userId), sql`${sessions.revokedAt} IS NULL`));
     if (this.redis) this.redis.del(`session:${userId}:*`).catch(() => {});
     return Array.isArray(result) ? result.length : 0;
   }
 
   async getUserSessions(userId: string): Promise<SessionRecord[]> {
-    return this.db.select().from(sessions)
+    return this.db
+      .select()
+      .from(sessions)
       .where(and(eq(sessions.userId, userId), sql`${sessions.revokedAt} IS NULL`))
       .orderBy(sessions.createdAt) as Promise<SessionRecord[]>;
   }
@@ -404,8 +489,11 @@ export class SessionManager {
     if (!verifyRefreshTokenSig(token, this.config.jwtSecret)) return null;
     const decoded = decodeRefreshToken(token);
     if (!decoded) return null;
-    const [session] = await this.db.select().from(sessions)
-      .where(and(eq(sessions.id, decoded.sessionId), eq(sessions.userId, decoded.userId))).limit(1);
+    const [session] = await this.db
+      .select()
+      .from(sessions)
+      .where(and(eq(sessions.id, decoded.sessionId), eq(sessions.userId, decoded.userId)))
+      .limit(1);
     if (!session || session.revokedAt || new Date(session.expiresAt) < new Date()) return null;
     return session as SessionRecord;
   }
@@ -422,6 +510,7 @@ Expected: PASS
 In `apps/server/src/routes/auth.ts`:
 
 **Login** (after `verifyPassword` succeeds, replace the `app.jwt.sign` block):
+
 ```typescript
 import { SessionManager, createDb } from '@accessbase/identity';
 import { config } from '../config.js';
@@ -429,16 +518,26 @@ import { config } from '../config.js';
 // Inside login handler:
 const db = createDb();
 const sessionManager = new SessionManager(
-  { jwtSecret: config.jwtSecret, issuer: 'accessbase', accessTokenTTL: 900, refreshTokenTTL: 604800 }, db,
+  {
+    jwtSecret: config.jwtSecret,
+    issuer: 'accessbase',
+    accessTokenTTL: 900,
+    refreshTokenTTL: 604800,
+  },
+  db,
 );
 const tokens = await sessionManager.createSession(
   { id: user.id, email: user.email },
   { ip: request.ip, device: request.headers['user-agent'] as string },
 );
-return { success: true, data: { ...tokens, user: { id: user.id, email: user.email, name: user.name, roles: [] } } };
+return {
+  success: true,
+  data: { ...tokens, user: { id: user.id, email: user.email, name: user.name, roles: [] } },
+};
 ```
 
 **Logout** (replace stateless return):
+
 ```typescript
 async (request, reply) => {
   const payload = request.user as { sub: string; sid?: string };
@@ -448,16 +547,21 @@ async (request, reply) => {
 ```
 
 **Refresh** (replace JWT re-sign with rotation):
+
 ```typescript
 async (request, reply) => {
   const { refreshToken } = request.body as { refreshToken: string };
   try {
     const tokens = await sessionManager.rotateRefreshToken(refreshToken, {
-      ip: request.ip, device: request.headers['user-agent'] as string,
+      ip: request.ip,
+      device: request.headers['user-agent'] as string,
     });
     return { success: true, data: tokens };
   } catch {
-    return reply.status(401).send({ success: false, error: { code: 'AUTH_003', message: 'Invalid or expired refresh token' } });
+    return reply.status(401).send({
+      success: false,
+      error: { code: 'AUTH_003', message: 'Invalid or expired refresh token' },
+    });
   }
 };
 ```
@@ -484,16 +588,22 @@ git commit -m "feat: implement SessionManager with DB authoritative session life
 ## Task 2: FlowToken Service
 
 **Files:**
+
 - Create: `packages/identity/src/services/FlowTokenService.ts`
 - Create: `packages/identity/src/__tests__/FlowTokenService.test.ts`
 - Modify: `packages/identity/src/index.ts` (add export)
 
 **Interfaces:**
+
 - Consumes: Redis `ioredis` (or in-memory `Map` fallback for tests)
 - Produces: consumed by Task 3 (MFA login step-up) and Task 4 (password reset)
 
 ```typescript
-export interface FlowTokenPayload { purpose: string; userId: string; [key: string]: unknown; }
+export interface FlowTokenPayload {
+  purpose: string;
+  userId: string;
+  [key: string]: unknown;
+}
 export class FlowTokenService {
   constructor(redis?: RedisLike | null);
   async issue(purpose: string, payload: FlowTokenPayload, ttlSeconds?: number): Promise<string>;
@@ -556,7 +666,7 @@ describe('FlowTokenService', () => {
 
   it('returns null for expired token', async () => {
     const token = await service.issue('mfa_verify', { purpose: 'mfa_verify', userId: 'u1' }, 0);
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
     expect(await service.consume(token, 'mfa_verify')).toBeNull();
   });
 });
@@ -575,7 +685,11 @@ Create `packages/identity/src/services/FlowTokenService.ts`:
 import { randomBytes, createHash } from 'node:crypto';
 import { logger } from '@accessbase/logging';
 
-export interface FlowTokenPayload { purpose: string; userId: string; [key: string]: unknown; }
+export interface FlowTokenPayload {
+  purpose: string;
+  userId: string;
+  [key: string]: unknown;
+}
 
 interface RedisLike {
   set(key: string, value: string, mode?: string, ttl?: number): Promise<unknown>;
@@ -583,20 +697,33 @@ interface RedisLike {
   del(key: string): Promise<unknown>;
 }
 
-interface StoredEntry { payload: FlowTokenPayload; expiresAt: number; }
+interface StoredEntry {
+  payload: FlowTokenPayload;
+  expiresAt: number;
+}
 const DEFAULT_TTL = 300;
 
 export class FlowTokenService {
   private readonly redis?: RedisLike;
   private readonly store = new Map<string, StoredEntry>();
 
-  constructor(redis?: RedisLike | null) { if (redis) this.redis = redis; }
+  constructor(redis?: RedisLike | null) {
+    if (redis) this.redis = redis;
+  }
 
-  async issue(purpose: string, payload: FlowTokenPayload, ttlSeconds = DEFAULT_TTL): Promise<string> {
+  async issue(
+    purpose: string,
+    payload: FlowTokenPayload,
+    ttlSeconds = DEFAULT_TTL,
+  ): Promise<string> {
     const token = randomBytes(32).toString('hex');
     const key = this.keyFor(token);
-    const entry: StoredEntry = { payload: { ...payload, purpose }, expiresAt: Date.now() + ttlSeconds * 1000 };
-    if (this.redis) await this.redis.set(key, JSON.stringify(entry), 'EX', ttlSeconds).catch(() => {});
+    const entry: StoredEntry = {
+      payload: { ...payload, purpose },
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    };
+    if (this.redis)
+      await this.redis.set(key, JSON.stringify(entry), 'EX', ttlSeconds).catch(() => {});
     this.store.set(key, entry);
     return token;
   }
@@ -607,9 +734,15 @@ export class FlowTokenService {
 
     if (this.redis) {
       const raw = await this.redis.get(key);
-      if (raw) { entry = JSON.parse(raw) as StoredEntry; await this.redis.del(key); }
+      if (raw) {
+        entry = JSON.parse(raw) as StoredEntry;
+        await this.redis.del(key);
+      }
     }
-    if (!entry) { entry = this.store.get(key); if (entry) this.store.delete(key); }
+    if (!entry) {
+      entry = this.store.get(key);
+      if (entry) this.store.delete(key);
+    }
 
     if (!entry) return null;
     if (Date.now() > entry.expiresAt) return null;
@@ -628,6 +761,7 @@ export class FlowTokenService {
 - [ ] **Step 4: Add export to index**
 
 In `packages/identity/src/index.ts`, add:
+
 ```typescript
 export { FlowTokenService } from './services/FlowTokenService.js';
 export type { FlowTokenPayload } from './services/FlowTokenService.js';
@@ -646,9 +780,11 @@ git commit -m "feat: add FlowTokenService for multi-step auth flows"
 ```
 
 ---
+
 ## Task 3: 2FA/TOTP
 
 **Files:**
+
 - Modify: `packages/identity/src/db/schema.ts` (add `mfa_recovery_codes` table; users columns: `totp_secret`, `totp_enabled`)
 - Modify: `packages/identity/src/managers/MfaManager.ts` (replace stubs)
 - Modify: `apps/server/src/routes/auth.ts` (add mfa endpoints, modify login flow)
@@ -657,10 +793,12 @@ git commit -m "feat: add FlowTokenService for multi-step auth flows"
 - New deps: `pnpm add -F @accessbase/identity otplib qrcode && pnpm add -D -F @accessbase/identity @types/qrcode`
 
 **Interfaces:**
+
 - Consumes: `FlowTokenService.issue/consume` (Task 2), `DrizzleDB`, `bcryptjs` (recovery code hashing)
 - Produces: `setup(userId) -> { otpauthUrl, qrDataUrl, recoveryCodes }`, `enable(userId, code) -> void`, `verify(userId, code) -> MfaVerifyResult`, `verifyRecoveryCode(userId, code) -> MfaVerifyResult`, `disable(userId, password) -> void`, `regenerateRecoveryCodes(userId) -> string[]`
 
 Auth route contract (UI is 6c scope):
+
 - `POST /api/v1/auth/mfa/setup` (auth required) -> `{ otpauthUrl, qrDataUrl, recoveryCodes }`
 - `POST /api/v1/auth/mfa/enable` (auth required, body: `{code}`) -> `{ success }`
 - `POST /api/v1/auth/mfa/verify` (body: `{flowToken, code}`) -> `{accessToken, refreshToken, expiresIn}`
@@ -691,11 +829,13 @@ Login flow change: if `user.totp_enabled`, response is `{ mfaRequired: true, flo
 > **AUDIT FIX (2026-08-28):** security.md 19.12 mandates min 12 chars + uppercase+lowercase+digit+special. change-password/reset-password MUST validate new passwords with Zod schema: `z.string().min(12).regex(/[A-Z]/).regex(/[a-z]/).regex(/\d/).regex(/[^A-Za-z0-9]/)`. Existing PasswordProvider.validatePassword stays for login-time checks.
 
 **Files:**
+
 - Modify: `packages/identity/src/db/schema.ts` (add `password_history` table)
 - Modify: `apps/server/src/routes/auth.ts` (add change-password, forgot-password, reset-password)
 - Create: `packages/identity/src/__tests__/PasswordManagement.test.ts`
 
 **Interfaces:**
+
 - Consumes: `FlowTokenService.issue/consume` (Task 2), `SessionManager.revokeAllSessions` (Task 1), `DrizzleDB`, `bcryptjs`
 - Produces: `POST /api/v1/auth/change-password` (auth, `{oldPassword, newPassword}`), `POST /api/v1/auth/forgot-password` (rate-limited, always 200), `POST /api/v1/auth/reset-password` (`{token, newPassword}`)
 
@@ -716,12 +856,14 @@ New table: `password_history (id, user_id, password_hash, created_at)` with user
 ## Task 5: Account Lockout + IP Blacklist
 
 **Files:**
+
 - Create: `packages/identity/src/services/AccountLockoutService.ts`
 - Create: `packages/identity/src/__tests__/AccountLockoutService.test.ts`
 - Modify: `packages/identity/src/index.ts` (export)
 - Modify: `apps/server/src/routes/auth.ts` (add lockout check at login, clear on success)
 
 **Interfaces:**
+
 - Consumes: Redis `ioredis` (or in-memory `Map` fallback)
 - Produces: `isLockedOut(id) -> boolean`, `recordFailure(id) -> {locked, remaining}`, `clearFailures(id) -> void`, `blacklistIp(ip, ttl?) -> void`, `isIpBlacklisted(ip) -> boolean`
 
@@ -744,6 +886,7 @@ Redis keys: `lockout:{email}` counter (5 fails in 900s -> lock 900s), `blacklist
 ## Task 6: Integration Closeout
 
 **Files:**
+
 - Create: `apps/server/src/__tests__/auth-mfa-integration.test.ts` (true-backend E2E)
 
 **Goal:** Full gate verification + true-backend E2E for 2FA flow (login -> mfaRequired -> verify -> tokens) at API level.
@@ -766,32 +909,32 @@ Redis keys: `lockout:{email}` counter (5 fails in 900s -> lock 900s), `blacklist
 
 ## Test Case Count Summary
 
-| Task | Test File | Cases |
-|------|-----------|-------|
-| 1: SessionManager | `packages/identity/src/__tests__/SessionManager.test.ts` | 9 |
-| 2: FlowTokenService | `packages/identity/src/__tests__/FlowTokenService.test.ts` | 6 |
-| 3: MfaManager | `packages/identity/src/__tests__/MfaManager.test.ts` | 5 |
-| 4: Password Mgmt | `packages/identity/src/__tests__/PasswordManagement.test.ts` | 3 |
-| 5: Lockout | `packages/identity/src/__tests__/AccountLockoutService.test.ts` | 5 |
-| 6: Integration | `apps/server/src/__tests__/auth-mfa-integration.test.ts` | 1 |
-| **Total** | **6 files** | **29 new** |
+| Task                | Test File                                                       | Cases      |
+| ------------------- | --------------------------------------------------------------- | ---------- |
+| 1: SessionManager   | `packages/identity/src/__tests__/SessionManager.test.ts`        | 9          |
+| 2: FlowTokenService | `packages/identity/src/__tests__/FlowTokenService.test.ts`      | 6          |
+| 3: MfaManager       | `packages/identity/src/__tests__/MfaManager.test.ts`            | 5          |
+| 4: Password Mgmt    | `packages/identity/src/__tests__/PasswordManagement.test.ts`    | 3          |
+| 5: Lockout          | `packages/identity/src/__tests__/AccountLockoutService.test.ts` | 5          |
+| 6: Integration      | `apps/server/src/__tests__/auth-mfa-integration.test.ts`        | 1          |
+| **Total**           | **6 files**                                                     | **29 new** |
 
 ## Signature Consistency Check
 
-| Class | Method | Consumed By | Task |
-|-------|--------|-------------|------|
-| `SessionManager` | `createSession(user, meta) -> SessionTokens` | Auth routes login, Task 3 MFA verify, Phase 6d WebAuthn/OAuth | 1 |
-| `SessionManager` | `rotateRefreshToken(oldToken, meta) -> SessionTokens` | Auth routes /refresh | 1 |
-| `SessionManager` | `revokeSession(id) -> void` | Auth routes logout | 1 |
-| `SessionManager` | `revokeAllSessions(userId) -> number` | Task 4 reset-password, Phase 6d | 1 |
-| `FlowTokenService` | `issue(purpose, payload, ttl?) -> string` | Task 3 MFA login step-up, Task 4 forgot-password | 2 |
-| `FlowTokenService` | `consume(token, purpose) -> payload\|null` | Task 3 /mfa/verify, Task 4 /reset-password | 2 |
-| `MfaManager` | `setup(userId, email) -> MfaSetupResult` | Auth routes /mfa/setup | 3 |
-| `MfaManager` | `enable(userId, code) -> void` | Auth routes /mfa/enable | 3 |
-| `MfaManager` | `verify(userId, code) -> MfaVerifyResult` | Auth routes /mfa/verify | 3 |
-| `AccountLockoutService` | `isLockedOut(id) -> boolean` | Auth routes login | 5 |
-| `AccountLockoutService` | `recordFailure(id) -> {locked, remaining}` | Auth routes login failure | 5 |
-| `AccountLockoutService` | `clearFailures(id) -> void` | Auth routes login success | 5 |
+| Class                   | Method                                                | Consumed By                                                   | Task |
+| ----------------------- | ----------------------------------------------------- | ------------------------------------------------------------- | ---- |
+| `SessionManager`        | `createSession(user, meta) -> SessionTokens`          | Auth routes login, Task 3 MFA verify, Phase 6d WebAuthn/OAuth | 1    |
+| `SessionManager`        | `rotateRefreshToken(oldToken, meta) -> SessionTokens` | Auth routes /refresh                                          | 1    |
+| `SessionManager`        | `revokeSession(id) -> void`                           | Auth routes logout                                            | 1    |
+| `SessionManager`        | `revokeAllSessions(userId) -> number`                 | Task 4 reset-password, Phase 6d                               | 1    |
+| `FlowTokenService`      | `issue(purpose, payload, ttl?) -> string`             | Task 3 MFA login step-up, Task 4 forgot-password              | 2    |
+| `FlowTokenService`      | `consume(token, purpose) -> payload\|null`            | Task 3 /mfa/verify, Task 4 /reset-password                    | 2    |
+| `MfaManager`            | `setup(userId, email) -> MfaSetupResult`              | Auth routes /mfa/setup                                        | 3    |
+| `MfaManager`            | `enable(userId, code) -> void`                        | Auth routes /mfa/enable                                       | 3    |
+| `MfaManager`            | `verify(userId, code) -> MfaVerifyResult`             | Auth routes /mfa/verify                                       | 3    |
+| `AccountLockoutService` | `isLockedOut(id) -> boolean`                          | Auth routes login                                             | 5    |
+| `AccountLockoutService` | `recordFailure(id) -> {locked, remaining}`            | Auth routes login failure                                     | 5    |
+| `AccountLockoutService` | `clearFailures(id) -> void`                           | Auth routes login success                                     | 5    |
 
 ## Deviations
 

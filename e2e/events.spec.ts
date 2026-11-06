@@ -17,9 +17,30 @@ interface EventRow {
 const TENANT_A = '11111111-1111-1111-1111-111111111111';
 
 const MOCK_EVENTS = (): EventRow[] => [
-  { id: 3, tenantId: TENANT_A, type: 'user.created', payload: { id: 'u-1', email: 'a@acme.test', name: 'Alice' }, createdAt: '2026-09-18T10:00:00.000Z', fanoutComplete: true },
-  { id: 2, tenantId: TENANT_A, type: 'role.changed', payload: { id: 'r-1', op: 'set', userId: 'u-2' }, createdAt: '2026-09-18T09:00:00.000Z', fanoutComplete: false },
-  { id: 1, tenantId: TENANT_A, type: 'group.changed', payload: { id: 'g-1', op: 'member', userId: 'u-3' }, createdAt: '2026-09-18T08:00:00.000Z', fanoutComplete: false },
+  {
+    id: 3,
+    tenantId: TENANT_A,
+    type: 'user.created',
+    payload: { id: 'u-1', email: 'a@acme.test', name: 'Alice' },
+    createdAt: '2026-09-18T10:00:00.000Z',
+    fanoutComplete: true,
+  },
+  {
+    id: 2,
+    tenantId: TENANT_A,
+    type: 'role.changed',
+    payload: { id: 'r-1', op: 'set', userId: 'u-2' },
+    createdAt: '2026-09-18T09:00:00.000Z',
+    fanoutComplete: false,
+  },
+  {
+    id: 1,
+    tenantId: TENANT_A,
+    type: 'group.changed',
+    payload: { id: 'g-1', op: 'member', userId: 'u-3' },
+    createdAt: '2026-09-18T08:00:00.000Z',
+    fanoutComplete: false,
+  },
 ];
 
 async function seedSession(page: Page, me: Record<string, unknown>): Promise<void> {
@@ -32,7 +53,11 @@ async function seedSession(page: Page, me: Record<string, unknown>): Promise<voi
     window.localStorage.setItem('auth-storage', value);
   }, persisted);
   await page.route('**/api/v1/auth/me', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: me }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: me }),
+    });
   });
 }
 
@@ -42,23 +67,31 @@ function trackConsoleErrors(page: Page): string[] {
     if (msg.type() !== 'error') return;
     const text = msg.text();
     const isNoise =
-      text.includes('findDOMNode') || text.includes('chrome-extension') || text.includes('moz-extension') ||
-      text.includes('ResizeObserver loop') || text.includes('Failed to load resource') ||
-      text.includes('[antd: compatible]') || text.includes('[antd: message]');
+      text.includes('findDOMNode') ||
+      text.includes('chrome-extension') ||
+      text.includes('moz-extension') ||
+      text.includes('ResizeObserver loop') ||
+      text.includes('Failed to load resource') ||
+      text.includes('[antd: compatible]') ||
+      text.includes('[antd: message]');
     if (!isNoise) errors.push(text);
   });
   return errors;
 }
 
 const AUDIT_ME = {
-  id: '1', email: 'auditor@accessbase.local', name: 'Auditor',
+  id: '1',
+  email: 'auditor@accessbase.local',
+  name: 'Auditor',
   roles: [{ id: 'r-audit', name: 'auditor' }],
   permissions: ['audit:read', 'stats:read'],
   mfaEnabled: false,
 };
 // No audit:read → the /events route + menu entry must not be reachable.
 const NO_AUDIT_ME = {
-  id: '2', email: 'plain@accessbase.local', name: 'Plain',
+  id: '2',
+  email: 'plain@accessbase.local',
+  name: 'Plain',
   roles: [{ id: 'r-viewer', name: 'viewer' }],
   permissions: ['users:read', 'stats:read'],
   mfaEnabled: false,
@@ -66,15 +99,33 @@ const NO_AUDIT_ME = {
 
 async function mockCommon(page: Page): Promise<void> {
   await page.route('**/api/v1/setup/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
+    });
   });
   await page.route('**/api/v1/stats', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
+    });
   });
   // PIT-080 roster: /login-shell probes mocked everywhere.
   for (const p of ['saml', 'sms', 'captcha']) {
     await page.route(`**/api/v1/auth/${p}/status`, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
   }
 }
@@ -91,14 +142,22 @@ async function mockEvents(page: Page, events: EventRow[]): Promise<void> {
       await route.fulfill({
         status: row ? 200 : 404,
         contentType: 'application/json',
-        body: JSON.stringify(row ? { success: true, data: row } : { success: false, error: { code: 'EVENT_NOT_FOUND', message: 'Event not found' } }),
+        body: JSON.stringify(
+          row
+            ? { success: true, data: row }
+            : { success: false, error: { code: 'EVENT_NOT_FOUND', message: 'Event not found' } },
+        ),
       });
       return;
     }
     // server-side type filter (ilike substring) — emulate so the filter test is meaningful
     const type = url.searchParams.get('type');
     const data = type ? events.filter((e) => e.type.includes(type)) : events;
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data, total: data.length }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data, total: data.length }),
+    });
   });
 }
 
@@ -146,7 +205,9 @@ test.describe('Events history read surface (Q4d)', () => {
     expect(errors).toEqual([]);
   });
 
-  test('audit:read is required — no code, no menu entry and direct nav blocked', async ({ page }) => {
+  test('audit:read is required — no code, no menu entry and direct nav blocked', async ({
+    page,
+  }) => {
     await seedSession(page, NO_AUDIT_ME);
     await mockCommon(page);
     await mockEvents(page, MOCK_EVENTS());

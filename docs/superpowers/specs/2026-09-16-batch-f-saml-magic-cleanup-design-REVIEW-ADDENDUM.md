@@ -17,7 +17,7 @@ options `site_url` 是幽灵键：全库唯一 site 键是 `site.name`（setup.t
 
 ## R4 (F3-4, H — env 透传是实作任务非验证)
 
-现状：native dev 无 .env 加载（config.ts 直读 process.env，tsx watch 无 --env-file，accessbase.sh dev 路径不 source）；container 模式 `docker run` 显式列表只传 JWT_SECRET+NODE_ENV（accessbase.sh:461-463）；deploy 模式已 `set -a; source .env`（start.sh:12-14）——唯一覆盖模式。**裁定**：F3-4 实作 = ① accessbase.sh dev/native 路径加 `set -a; [ -f .env ] && . ./.env; set +a`（在启动 server 前）；② container 模式 `docker run` 改用 `--env-file .env`（存在时），或补 -e 清单（MFA_ENCRYPTION_KEY/SMTP_*/SAML_*/SITE_URL/OAUTH_PROVIDERS）；③ compose 文件 env_file 校验。验收：四种模式下 server 进程能读到 .env 中 MFA_ENCRYPTION_KEY。
+现状：native dev 无 .env 加载（config.ts 直读 process.env，tsx watch 无 --env-file，accessbase.sh dev 路径不 source）；container 模式 `docker run` 显式列表只传 JWT_SECRET+NODE_ENV（accessbase.sh:461-463）；deploy 模式已 `set -a; source .env`（start.sh:12-14）——唯一覆盖模式。**裁定**：F3-4 实作 = ① accessbase.sh dev/native 路径加 `set -a; [ -f .env ] && . ./.env; set +a`（在启动 server 前）；② container 模式 `docker run` 改用 `--env-file .env`（存在时），或补 -e 清单（MFA_ENCRYPTION_KEY/SMTP__/SAML__/SITE_URL/OAUTH_PROVIDERS）；③ compose 文件 env_file 校验。验收：四种模式下 server 进程能读到 .env 中 MFA_ENCRYPTION_KEY。
 
 ## R5 (F1, M — SamlProvider lazy import)
 

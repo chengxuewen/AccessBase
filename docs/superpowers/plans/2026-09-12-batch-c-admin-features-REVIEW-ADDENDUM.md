@@ -81,10 +81,10 @@ T6 补 Step 1.5：前端 e2e 先写失败测试（导入 Modal 报告展示 / �
 
 ## 审核结论汇总
 
-| 审核人 | 裁决 | 吸收 |
-|---|---|---|
-| cross-checker | 1 MED + 1 LOW + 2 INFO | R12 / R14 / R2 文件清单附注 / test.fail 登记 |
-| critic-correctness | NEEDS-FIXES 3M+4m | R1 / R5 / R4 / R10 / R2 映射键形态 / R8 勿新增映射 / R11 |
-| critic-blockers | NEEDS-FIXES 6 BLOCKER + 3 MEDIUM + 3 LOW | R1-R9、R11、R13（与 correctness 独立复现互证，加 RESOURCES/journal/行号层细节） |
+| 审核人             | 裁决                                     | 吸收                                                                            |
+| ------------------ | ---------------------------------------- | ------------------------------------------------------------------------------- |
+| cross-checker      | 1 MED + 1 LOW + 2 INFO                   | R12 / R14 / R2 文件清单附注 / test.fail 登记                                    |
+| critic-correctness | NEEDS-FIXES 3M+4m                        | R1 / R5 / R4 / R10 / R2 映射键形态 / R8 勿新增映射 / R11                        |
+| critic-blockers    | NEEDS-FIXES 6 BLOCKER + 3 MEDIUM + 3 LOW | R1-R9、R11、R13（与 correctness 独立复现互证，加 RESOURCES/journal/行号层细节） |
 
 冲突裁定：R15>R2 式歧义本批无；R4/R5/R6/R10 为 lead 拍板项（已内联标注）。

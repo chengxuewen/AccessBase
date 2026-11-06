@@ -44,8 +44,20 @@ vi.mock('../utils/redis.js', () => ({
 }));
 
 // --- fake db: oauth_accounts rows + users rows, records effect calls ---
-interface LinkRow { id: string; userId: string; provider: string; providerAccountId: string; accessToken: string | null; refreshToken: string | null; idToken: string | null }
-interface UserRow { id: string; tenantId: string; tokenVersion: number }
+interface LinkRow {
+  id: string;
+  userId: string;
+  provider: string;
+  providerAccountId: string;
+  accessToken: string | null;
+  refreshToken: string | null;
+  idToken: string | null;
+}
+interface UserRow {
+  id: string;
+  tenantId: string;
+  tokenVersion: number;
+}
 const state = {
   links: [] as LinkRow[],
   users: [] as UserRow[],
@@ -69,7 +81,12 @@ function makeDb() {
       from: (table: unknown) => ({
         where: async () => {
           const isLinks = (table as { _?: string })?._ === 'oauth_accounts-marker';
-          return isLinks ? state.links.filter((l) => l.provider === currentCall.provider && l.providerAccountId === currentCall.sub) : state.users.filter((u) => currentCall.linkUserIds.includes(u.id));
+          return isLinks
+            ? state.links.filter(
+                (l) =>
+                  l.provider === currentCall.provider && l.providerAccountId === currentCall.sub,
+              )
+            : state.users.filter((u) => currentCall.linkUserIds.includes(u.id));
         },
       }),
     }),
@@ -100,7 +117,13 @@ function makeDb() {
   };
 }
 
-let currentCall: { provider: string; sub: string; linkUserIds: string[]; linkIds: string[]; bumpKey?: [string, string] } = {
+let currentCall: {
+  provider: string;
+  sub: string;
+  linkUserIds: string[];
+  linkIds: string[];
+  bumpKey?: [string, string];
+} = {
   provider: '',
   sub: '',
   linkUserIds: [],
@@ -119,7 +142,12 @@ const providers = {
   },
 };
 
-import { processBackchannelLogout, providerByIss, checkClaims, BCLO_EVENT_URI } from '../utils/backchannel-logout.js';
+import {
+  processBackchannelLogout,
+  providerByIss,
+  checkClaims,
+  BCLO_EVENT_URI,
+} from '../utils/backchannel-logout.js';
 import type { BackchannelLogoutDeps } from '../utils/backchannel-logout.js';
 
 function makeDeps(): BackchannelLogoutDeps {
@@ -166,7 +194,17 @@ beforeEach(() => {
   redisCalls.sets = [];
   redisCalls.dels = [];
   redisUp = true;
-  state.links = [{ id: 'L1', userId: 'u1', provider: 'keycloak-x', providerAccountId: 'subject-1', accessToken: 'at', refreshToken: 'rt', idToken: 'idt' }];
+  state.links = [
+    {
+      id: 'L1',
+      userId: 'u1',
+      provider: 'keycloak-x',
+      providerAccountId: 'subject-1',
+      accessToken: 'at',
+      refreshToken: 'rt',
+      idToken: 'idt',
+    },
+  ];
   state.users = [{ id: 'u1', tenantId: 't1', tokenVersion: 1 }];
   state.revokedFor = [];
   state.authstDeleted = [];
@@ -178,9 +216,14 @@ afterEach(() => {
 });
 
 /** Drive the pipeline with the mock db wired to this call's resolution data. */
-async function drive(payload: Record<string, unknown>, opts: { verifyPayload?: Record<string, unknown> } = {}) {
+async function drive(
+  payload: Record<string, unknown>,
+  opts: { verifyPayload?: Record<string, unknown> } = {},
+) {
   const sub = typeof payload['sub'] === 'string' ? payload['sub'] : '';
-  const links = state.links.filter((l) => l.provider === 'keycloak-x' && l.providerAccountId === sub);
+  const links = state.links.filter(
+    (l) => l.provider === 'keycloak-x' && l.providerAccountId === sub,
+  );
   currentCall = {
     provider: 'keycloak-x',
     sub,
@@ -201,10 +244,37 @@ describe('provider selection (A4 exact iss)', () => {
     expect(providerByIss(providers, 'https://kc.example.com/realms/x/')).toBeNull();
   });
   it('U-sel3: provider without issuer/jwksUri pair never participates', () => {
-    const partial = { ...providers, 'no-bclo': { ...providers['keycloak-x']!, issuer: undefined, jwksUri: undefined } };
-    expect(providerByIss(partial as typeof providers, 'https://kc.example.com/realms/x')?.name).toBe('keycloak-x'); // only the paired one matches
-    expect(providerByIss({ 'no-bclo': { ...providers['keycloak-x']!, issuer: 'https://kc.example.com/realms/x', jwksUri: undefined } } as unknown as typeof providers, 'https://kc.example.com/realms/x')).toBeNull(); // issuer without jwksUri never participates
-    expect(providerByIss({ 'no-bclo2': { ...providers['keycloak-x']!, issuer: undefined, jwksUri: 'https://x/certs' } } as unknown as typeof providers, 'https://kc.example.com/realms/x')).toBeNull(); // jwksUri without issuer ditto
+    const partial = {
+      ...providers,
+      'no-bclo': { ...providers['keycloak-x']!, issuer: undefined, jwksUri: undefined },
+    };
+    expect(
+      providerByIss(partial as typeof providers, 'https://kc.example.com/realms/x')?.name,
+    ).toBe('keycloak-x'); // only the paired one matches
+    expect(
+      providerByIss(
+        {
+          'no-bclo': {
+            ...providers['keycloak-x']!,
+            issuer: 'https://kc.example.com/realms/x',
+            jwksUri: undefined,
+          },
+        } as unknown as typeof providers,
+        'https://kc.example.com/realms/x',
+      ),
+    ).toBeNull(); // issuer without jwksUri never participates
+    expect(
+      providerByIss(
+        {
+          'no-bclo2': {
+            ...providers['keycloak-x']!,
+            issuer: undefined,
+            jwksUri: 'https://x/certs',
+          },
+        } as unknown as typeof providers,
+        'https://kc.example.com/realms/x',
+      ),
+    ).toBeNull(); // jwksUri without issuer ditto
   });
 });
 
@@ -214,7 +284,10 @@ describe('claim checks', () => {
     expect('error' in r && r.error).toBe('AUTH_BCLO_002');
   });
   it('U4b: events with extra members still valid (lenient, R10)', () => {
-    const r = checkClaims(basePayload({ events: { [BCLO_EVENT_URI]: {}, 'https://other': {} } }), 'accessbase-rp');
+    const r = checkClaims(
+      basePayload({ events: { [BCLO_EVENT_URI]: {}, 'https://other': {} } }),
+      'accessbase-rp',
+    );
     expect('error' in r).toBe(false);
   });
   it('U4c: events non-object -> 002', () => {
@@ -234,7 +307,9 @@ describe('claim checks', () => {
     expect('error' in checkClaims(basePayload({ iat: now() - 610 }), 'accessbase-rp')).toBe(false);
   });
   it('aud array form accepted', () => {
-    expect('error' in checkClaims(basePayload({ aud: ['other', 'accessbase-rp'] }), 'accessbase-rp')).toBe(false);
+    expect(
+      'error' in checkClaims(basePayload({ aud: ['other', 'accessbase-rp'] }), 'accessbase-rp'),
+    ).toBe(false);
   });
 });
 
@@ -299,7 +374,13 @@ describe('pipeline (A1/A2/A3 semantics)', () => {
 
   it('I6-shape: effect failure -> 400-family outcome + dedup key RELEASED (A3 failure-release)', async () => {
     state.effectFailure = true;
-    currentCall = { provider: 'keycloak-x', sub: 'subject-1', linkUserIds: ['u1'], linkIds: ['L1'], bumpKey: ['t1', 'u1'] };
+    currentCall = {
+      provider: 'keycloak-x',
+      sub: 'subject-1',
+      linkUserIds: ['u1'],
+      linkIds: ['L1'],
+      bumpKey: ['t1', 'u1'],
+    };
     jwtVerifyState.impl = async () => ({ payload: basePayload() });
     const r = await processBackchannelLogout(token(basePayload()), makeDeps());
     expect(r.kind === 'invalid' && r.code).toBe('AUTH_BCLO_002');

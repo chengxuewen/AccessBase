@@ -31,36 +31,47 @@
 ## Task 1 — Roles CRUD Page + Permissions API
 
 **Files:**
-| Action | Path |
-|--------|------|
-| Create | `apps/admin-ui/src/api/roles.ts` |
-| Create | `apps/admin-ui/src/pages/Roles.tsx` |
-| Modify | `apps/admin-ui/src/App.tsx` (add /roles route) |
-| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add roles.* keys) |
-| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (add roles.* keys) |
-| Create | `e2e/roles-crud.spec.ts` |
+
+| Action | Path                                                           |
+| ------ | -------------------------------------------------------------- |
+| Create | `apps/admin-ui/src/api/roles.ts`                               |
+| Create | `apps/admin-ui/src/pages/Roles.tsx`                            |
+| Modify | `apps/admin-ui/src/App.tsx` (add /roles route)                 |
+| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add roles.* keys)    |
+| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (add roles.* keys)    |
+| Create | `e2e/roles-crud.spec.ts`                                       |
 | Create | `apps/server/src/routes/permissions.ts` (minimal GET endpoint) |
-| Modify | `apps/server/src/app.ts` (register permissions route) |
-| Create | `apps/server/src/__tests__/permissions.test.ts` (backend TDD) |
+| Modify | `apps/server/src/app.ts` (register permissions route)          |
+| Create | `apps/server/src/__tests__/permissions.test.ts` (backend TDD)  |
 
 **Consumes backend endpoints:**
-| Method | Path | Query/Body | Response |
-|--------|------|------------|----------|
-| GET | `/api/v1/roles` | `?page=&pageSize=&search=` | `{ success, data: Role[], total }` |
-| GET | `/api/v1/roles/:id` | — | `{ success, data: Role }` |
-| POST | `/api/v1/roles` | `{ name, description?, parentId?, permissionIds? }` | `{ success, data: Role }` |
-| PUT | `/api/v1/roles/:id` | `{ name?, description?, permissionIds? }` | `{ success, data: Role }` |
-| DELETE | `/api/v1/roles/:id` | — | `{ success: true }` |
-| GET | `/api/v1/permissions` | `?page=&pageSize=` | `{ success, data: Permission[], total }` |
+
+| Method | Path                  | Query/Body                                          | Response                                 |
+| ------ | --------------------- | --------------------------------------------------- | ---------------------------------------- |
+| GET    | `/api/v1/roles`       | `?page=&pageSize=&search=`                          | `{ success, data: Role[], total }`       |
+| GET    | `/api/v1/roles/:id`   | —                                                   | `{ success, data: Role }`                |
+| POST   | `/api/v1/roles`       | `{ name, description?, parentId?, permissionIds? }` | `{ success, data: Role }`                |
+| PUT    | `/api/v1/roles/:id`   | `{ name?, description?, permissionIds? }`           | `{ success, data: Role }`                |
+| DELETE | `/api/v1/roles/:id`   | —                                                   | `{ success: true }`                      |
+| GET    | `/api/v1/permissions` | `?page=&pageSize=`                                  | `{ success, data: Permission[], total }` |
 
 **Role response shape:**
+
 ```ts
 interface Role {
-  id: string; name: string; description?: string; parentId?: string;
-  permissionIds?: string[]; createdAt: string; updatedAt: string;
+  id: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+  permissionIds?: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 interface Permission {
-  id: string; resource: string; action: string; description?: string;
+  id: string;
+  resource: string;
+  action: string;
+  description?: string;
 }
 ```
 
@@ -112,35 +123,44 @@ interface Permission {
 ## Task 2 — Users Page Refactor (Dedicated Routes)
 
 **Files:**
-| Action | Path |
-|--------|------|
-| Modify | `apps/admin-ui/src/pages/Users.tsx` (list-only, remove modals) |
-| Create | `apps/admin-ui/src/pages/users/UserCreate.tsx` |
-| Create | `apps/admin-ui/src/pages/users/UserDetail.tsx` |
-| Create | `apps/admin-ui/src/pages/users/UserEdit.tsx` |
-| Modify | `apps/admin-ui/src/App.tsx` (nested /users routes) |
-| Modify | `apps/admin-ui/src/api/users.ts` (no changes needed, functions exist) |
-| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add users.detail.* keys) |
-| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (add users.detail.* keys) |
-| Rewrite | `e2e/users-crud.spec.ts` (update navigation paths) |
+
+| Action  | Path                                                                  |
+| ------- | --------------------------------------------------------------------- |
+| Modify  | `apps/admin-ui/src/pages/Users.tsx` (list-only, remove modals)        |
+| Create  | `apps/admin-ui/src/pages/users/UserCreate.tsx`                        |
+| Create  | `apps/admin-ui/src/pages/users/UserDetail.tsx`                        |
+| Create  | `apps/admin-ui/src/pages/users/UserEdit.tsx`                          |
+| Modify  | `apps/admin-ui/src/App.tsx` (nested /users routes)                    |
+| Modify  | `apps/admin-ui/src/api/users.ts` (no changes needed, functions exist) |
+| Modify  | `apps/admin-ui/src/i18n/locales/en.json` (add users.detail.* keys)    |
+| Modify  | `apps/admin-ui/src/i18n/locales/zh.json` (add users.detail.* keys)    |
+| Rewrite | `e2e/users-crud.spec.ts` (update navigation paths)                    |
 
 **Consumes backend endpoints (all existing):**
-| Method | Path | Body | Response |
-|--------|------|------|----------|
-| GET | `/api/v1/users` | `?page=&pageSize=&search=` | `{ success, data: User[], total }` |
-| GET | `/api/v1/users/:id` | — | `{ success, data: User }` |
-| POST | `/api/v1/users` | `{ email, name, password }` | `{ success, data: User }` |
-| PUT | `/api/v1/users/:id` | `{ name?, avatarUrl? }` | `{ success, data: User }` |
-| PATCH | `/api/v1/users/:id/status` | `{ status: 'active'|'suspended' }` | `{ success, data: User }` |
-| DELETE | `/api/v1/users/:id` | — | `{ success: true }` |
-| GET | `/api/v1/roles` | `?page=&pageSize=` | `{ success, data: Role[], total }` (Task 1 backend) |
+
+| Method | Path                       | Body                        | Response                                            |
+| ------ | -------------------------- | --------------------------- | --------------------------------------------------- |
+| GET    | `/api/v1/users`            | `?page=&pageSize=&search=`  | `{ success, data: User[], total }`                  |
+| GET    | `/api/v1/users/:id`        | —                           | `{ success, data: User }`                           |
+| POST   | `/api/v1/users`            | `{ email, name, password }` | `{ success, data: User }`                           |
+| PUT    | `/api/v1/users/:id`        | `{ name?, avatarUrl? }`     | `{ success, data: User }`                           |
+| PATCH  | `/api/v1/users/:id/status` | `{ status: 'active'         | 'suspended' }`                                      | `{ success, data: User }` |
+| DELETE | `/api/v1/users/:id`        | —                           | `{ success: true }`                                 |
+| GET    | `/api/v1/roles`            | `?page=&pageSize=`          | `{ success, data: Role[], total }` (Task 1 backend) |
 
 **User shape (from existing api/users.ts):**
+
 ```ts
 interface User {
-  id: string; email: string; name: string; avatar?: string;
-  isActive: boolean; tenantId: string; tokenVersion: number;
-  createdAt: string; updatedAt: string;
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  isActive: boolean;
+  tenantId: string;
+  tokenVersion: number;
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 
@@ -174,6 +194,7 @@ interface User {
   - Submit -> `updateUser(id, values)` -> navigate `/users/:id`
 
 - [ ] Modify `apps/admin-ui/src/App.tsx`:
+
   ```tsx
   <Route path="users" element={<Users />} />
   <Route path="users/create" element={<UserCreate />} />
@@ -195,28 +216,36 @@ interface User {
 > **AUDIT FIX (2026-08-28):** backend GET /api/v1/audit-logs must be a REAL drizzle-backed implementation (filters: action/actor/startDate/endDate; pagination), NOT a stub — 6a wires persistence, this task owns the query API + 2 integration tests (write-then-read, filter). Response shape per api.md: flat `{ success, data, total }` (do NOT use api.md 23.3 meta wrapper; add spec-update note to decisions during closeout).
 
 **Files:**
-| Action | Path |
-|--------|------|
-| Create | `apps/admin-ui/src/api/audit.ts` |
-| Create | `apps/admin-ui/src/pages/Audit.tsx` |
-| Modify | `apps/admin-ui/src/App.tsx` (add /audit route) |
-| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add audit.* keys) |
-| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (add audit.* keys) |
-| Create | `e2e/audit-viewer.spec.ts` |
-| Create | `apps/server/src/routes/audit.ts` (GET endpoint) |
-| Modify | `apps/server/src/app.ts` (register audit route) |
+
+| Action | Path                                                           |
+| ------ | -------------------------------------------------------------- |
+| Create | `apps/admin-ui/src/api/audit.ts`                               |
+| Create | `apps/admin-ui/src/pages/Audit.tsx`                            |
+| Modify | `apps/admin-ui/src/App.tsx` (add /audit route)                 |
+| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add audit.* keys)    |
+| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (add audit.* keys)    |
+| Create | `e2e/audit-viewer.spec.ts`                                     |
+| Create | `apps/server/src/routes/audit.ts` (GET endpoint)               |
+| Modify | `apps/server/src/app.ts` (register audit route)                |
 | Create | `apps/server/src/__tests__/audit-routes.test.ts` (backend TDD) |
 
 **Consumes backend endpoints:**
-| Method | Path | Query | Response |
-|--------|------|-------|----------|
-| GET | `/api/v1/audit-logs` | `?page=&pageSize=&action=&actor=&startDate=&endDate=` | `{ success, data: AuditLog[], total }` |
+
+| Method | Path                 | Query                                                 | Response                               |
+| ------ | -------------------- | ----------------------------------------------------- | -------------------------------------- |
+| GET    | `/api/v1/audit-logs` | `?page=&pageSize=&action=&actor=&startDate=&endDate=` | `{ success, data: AuditLog[], total }` |
 
 **AuditLog shape:**
+
 ```ts
 interface AuditLog {
-  id: string; action: string; actor: string; target?: string;
-  details?: Record<string, unknown>; ipAddress?: string; createdAt: string;
+  id: string;
+  action: string;
+  actor: string;
+  target?: string;
+  details?: Record<string, unknown>;
+  ipAddress?: string;
+  createdAt: string;
 }
 ```
 
@@ -261,24 +290,26 @@ interface AuditLog {
 ## Task 4 — Profile Center
 
 **Files:**
-| Action | Path |
-|--------|------|
-| Create | `apps/admin-ui/src/api/auth.ts` |
-| Create | `apps/admin-ui/src/pages/Profile.tsx` |
-| Modify | `apps/admin-ui/src/App.tsx` (add /profile route) |
-| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add profile.* keys) |
-| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (add profile.* keys) |
-| Create | `e2e/profile.spec.ts` |
+
+| Action | Path                                                                |
+| ------ | ------------------------------------------------------------------- |
+| Create | `apps/admin-ui/src/api/auth.ts`                                     |
+| Create | `apps/admin-ui/src/pages/Profile.tsx`                               |
+| Modify | `apps/admin-ui/src/App.tsx` (add /profile route)                    |
+| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add profile.* keys)       |
+| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (add profile.* keys)       |
+| Create | `e2e/profile.spec.ts`                                               |
 | Modify | `apps/server/src/routes/auth.ts` (add POST /sessions/revoke-others) |
-| Create | `apps/server/src/__tests__/auth-sessions.test.ts` (backend TDD) |
+| Create | `apps/server/src/__tests__/auth-sessions.test.ts` (backend TDD)     |
 
 **Consumes backend endpoints:**
-| Method | Path | Body | Response |
-|--------|------|------|----------|
-| GET | `/api/v1/users/me` | — | `{ success, data: { id, email, name, isActive } }` (existing) |
-| PUT | `/api/v1/users/:id` | `{ name? }` | `{ success, data: User }` (existing) |
-| POST | `/api/v1/auth/change-password` | `{ currentPassword, newPassword }` | `{ success: true }` (from 6b) |
-| POST | `/api/v1/auth/sessions/revoke-others` | — | `{ success: true }` (new in this task) |
+
+| Method | Path                                  | Body                               | Response                                                      |
+| ------ | ------------------------------------- | ---------------------------------- | ------------------------------------------------------------- |
+| GET    | `/api/v1/users/me`                    | —                                  | `{ success, data: { id, email, name, isActive } }` (existing) |
+| PUT    | `/api/v1/users/:id`                   | `{ name? }`                        | `{ success, data: User }` (existing)                          |
+| POST   | `/api/v1/auth/change-password`        | `{ currentPassword, newPassword }` | `{ success: true }` (from 6b)                                 |
+| POST   | `/api/v1/auth/sessions/revoke-others` | —                                  | `{ success: true }` (new in this task)                        |
 
 **Decision:** Profile edit reuses `PUT /api/v1/users/:id` — no new endpoint needed.
 
@@ -322,18 +353,19 @@ interface AuditLog {
 ## Task 5 — Quick Wins: Error Pages, ErrorBoundary, EmptyState, Breadcrumbs
 
 **Files:**
-| Action | Path |
-|--------|------|
-| Create | `apps/admin-ui/src/pages/errors/Forbidden.tsx` (403) |
-| Create | `apps/admin-ui/src/pages/errors/NotFound.tsx` (404) |
-| Create | `apps/admin-ui/src/components/GlobalErrorBoundary.tsx` |
-| Create | `apps/admin-ui/src/components/EmptyState.tsx` |
-| Create | `apps/admin-ui/src/components/Breadcrumbs.tsx` |
-| Modify | `apps/admin-ui/src/App.tsx` (error routes + ErrorBoundary + catch-all 404) |
+
+| Action | Path                                                                        |
+| ------ | --------------------------------------------------------------------------- |
+| Create | `apps/admin-ui/src/pages/errors/Forbidden.tsx` (403)                        |
+| Create | `apps/admin-ui/src/pages/errors/NotFound.tsx` (404)                         |
+| Create | `apps/admin-ui/src/components/GlobalErrorBoundary.tsx`                      |
+| Create | `apps/admin-ui/src/components/EmptyState.tsx`                               |
+| Create | `apps/admin-ui/src/components/Breadcrumbs.tsx`                              |
+| Modify | `apps/admin-ui/src/App.tsx` (error routes + ErrorBoundary + catch-all 404)  |
 | Modify | `apps/admin-ui/src/layouts/AdminLayout.tsx` (add Breadcrumbs below content) |
-| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add errors.* + empty.* keys) |
-| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (add errors.* + empty.* keys) |
-| Create | `e2e/error-pages.spec.ts` |
+| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add errors.* + empty.* keys)      |
+| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (add errors.* + empty.* keys)      |
+| Create | `e2e/error-pages.spec.ts`                                                   |
 
 **No new backend endpoints.**
 
@@ -386,13 +418,14 @@ interface AuditLog {
 > **AUDIT FIX (2026-08-28):** add Settings to sidebar menu (D1 divergence: ui.md §14.5.1 has it; plans omitted). UserDropdown 'settings' entry links to /settings (NOT /settings/preferences — ui.md bugfix).
 
 **Files:**
-| Action | Path |
-|--------|------|
+
+| Action | Path                                                                                  |
+| ------ | ------------------------------------------------------------------------------------- |
 | Modify | `apps/admin-ui/src/layouts/AdminLayout.tsx` (menu items + UserDropdown + page header) |
-| Modify | `apps/admin-ui/src/App.tsx` (add route meta for titles) |
-| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add menu.profile, menu.logout keys) |
-| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (same) |
-| Create | `e2e/layout.spec.ts` (new E2E for sidebar nav) |
+| Modify | `apps/admin-ui/src/App.tsx` (add route meta for titles)                               |
+| Modify | `apps/admin-ui/src/i18n/locales/en.json` (add menu.profile, menu.logout keys)         |
+| Modify | `apps/admin-ui/src/i18n/locales/zh.json` (same)                                       |
+| Create | `e2e/layout.spec.ts` (new E2E for sidebar nav)                                        |
 
 **No new backend endpoints.**
 
@@ -412,11 +445,26 @@ interface AuditLog {
     ```
   - Replace bare `LogoutOutlined` in `actionsRender` with `Dropdown`:
     ```tsx
-    <Dropdown menu={{ items: [
-      { key: 'profile', label: t('menu.profile'), icon: <UserOutlined />, onClick: () => navigate('/profile') },
-      { type: 'divider' },
-      { key: 'logout', label: t('menu.logout'), icon: <LogoutOutlined />, danger: true, onClick: handleLogout },
-    ] }}>
+    <Dropdown
+      menu={{
+        items: [
+          {
+            key: 'profile',
+            label: t('menu.profile'),
+            icon: <UserOutlined />,
+            onClick: () => navigate('/profile'),
+          },
+          { type: 'divider' },
+          {
+            key: 'logout',
+            label: t('menu.logout'),
+            icon: <LogoutOutlined />,
+            danger: true,
+            onClick: handleLogout,
+          },
+        ],
+      }}
+    >
       <span>{user?.name || 'Admin'}</span>
     </Dropdown>
     ```
@@ -434,10 +482,11 @@ interface AuditLog {
 ## Task 7 — Closeout: 4-Step Gate + E2E Regression + Memory Update
 
 **Files:**
-| Action | Path |
-|--------|------|
-| Verify | All modified files (no new files) |
-| Update | `.agents/memorys/status.md` |
+
+| Action | Path                                              |
+| ------ | ------------------------------------------------- |
+| Verify | All modified files (no new files)                 |
+| Update | `.agents/memorys/status.md`                       |
 | Update | `.agents/memorys/decisions.md` (if new decisions) |
 
 **No new backend endpoints.**
@@ -481,45 +530,45 @@ interface AuditLog {
 
 ## File Modification Summary
 
-| File | Tasks |
-|------|-------|
-| `apps/admin-ui/src/App.tsx` | 1, 2, 3, 4, 5, 6 |
-| `apps/admin-ui/src/i18n/locales/en.json` | 1, 2, 3, 4, 5, 6 |
-| `apps/admin-ui/src/i18n/locales/zh.json` | 1, 2, 3, 4, 5, 6 |
-| `apps/admin-ui/src/layouts/AdminLayout.tsx` | 5, 6 |
-| `apps/admin-ui/src/pages/Users.tsx` | 2 (modify) |
-| `apps/server/src/app.ts` | 1, 3 |
-| `apps/server/src/routes/auth.ts` | 4 (add endpoint) |
-| `.agents/memorys/status.md` | 7 |
+| File                                        | Tasks            |
+| ------------------------------------------- | ---------------- |
+| `apps/admin-ui/src/App.tsx`                 | 1, 2, 3, 4, 5, 6 |
+| `apps/admin-ui/src/i18n/locales/en.json`    | 1, 2, 3, 4, 5, 6 |
+| `apps/admin-ui/src/i18n/locales/zh.json`    | 1, 2, 3, 4, 5, 6 |
+| `apps/admin-ui/src/layouts/AdminLayout.tsx` | 5, 6             |
+| `apps/admin-ui/src/pages/Users.tsx`         | 2 (modify)       |
+| `apps/server/src/app.ts`                    | 1, 3             |
+| `apps/server/src/routes/auth.ts`            | 4 (add endpoint) |
+| `.agents/memorys/status.md`                 | 7                |
 
 ## New Files Created (25)
 
-| File | Task |
-|------|------|
-| `apps/admin-ui/src/api/roles.ts` | 1 |
-| `apps/admin-ui/src/api/audit.ts` | 3 |
-| `apps/admin-ui/src/api/auth.ts` | 4 |
-| `apps/admin-ui/src/pages/Roles.tsx` | 1 |
-| `apps/admin-ui/src/pages/Audit.tsx` | 3 |
-| `apps/admin-ui/src/pages/Profile.tsx` | 4 |
-| `apps/admin-ui/src/pages/users/UserCreate.tsx` | 2 |
-| `apps/admin-ui/src/pages/users/UserDetail.tsx` | 2 |
-| `apps/admin-ui/src/pages/users/UserEdit.tsx` | 2 |
-| `apps/admin-ui/src/pages/errors/Forbidden.tsx` | 5 |
-| `apps/admin-ui/src/pages/errors/NotFound.tsx` | 5 |
-| `apps/admin-ui/src/components/GlobalErrorBoundary.tsx` | 5 |
-| `apps/admin-ui/src/components/EmptyState.tsx` | 5 |
-| `apps/admin-ui/src/components/Breadcrumbs.tsx` | 5 |
-| `apps/server/src/routes/permissions.ts` | 1 |
-| `apps/server/src/routes/audit.ts` | 3 |
-| `apps/server/src/__tests__/permissions.test.ts` | 1 |
-| `apps/server/src/__tests__/audit-routes.test.ts` | 3 |
-| `apps/server/src/__tests__/auth-sessions.test.ts` | 4 |
-| `e2e/roles-crud.spec.ts` | 1 |
-| `e2e/audit-viewer.spec.ts` | 3 |
-| `e2e/profile.spec.ts` | 4 |
-| `e2e/error-pages.spec.ts` | 5 |
-| `e2e/layout.spec.ts` | 6 |
+| File                                                   | Task |
+| ------------------------------------------------------ | ---- |
+| `apps/admin-ui/src/api/roles.ts`                       | 1    |
+| `apps/admin-ui/src/api/audit.ts`                       | 3    |
+| `apps/admin-ui/src/api/auth.ts`                        | 4    |
+| `apps/admin-ui/src/pages/Roles.tsx`                    | 1    |
+| `apps/admin-ui/src/pages/Audit.tsx`                    | 3    |
+| `apps/admin-ui/src/pages/Profile.tsx`                  | 4    |
+| `apps/admin-ui/src/pages/users/UserCreate.tsx`         | 2    |
+| `apps/admin-ui/src/pages/users/UserDetail.tsx`         | 2    |
+| `apps/admin-ui/src/pages/users/UserEdit.tsx`           | 2    |
+| `apps/admin-ui/src/pages/errors/Forbidden.tsx`         | 5    |
+| `apps/admin-ui/src/pages/errors/NotFound.tsx`          | 5    |
+| `apps/admin-ui/src/components/GlobalErrorBoundary.tsx` | 5    |
+| `apps/admin-ui/src/components/EmptyState.tsx`          | 5    |
+| `apps/admin-ui/src/components/Breadcrumbs.tsx`         | 5    |
+| `apps/server/src/routes/permissions.ts`                | 1    |
+| `apps/server/src/routes/audit.ts`                      | 3    |
+| `apps/server/src/__tests__/permissions.test.ts`        | 1    |
+| `apps/server/src/__tests__/audit-routes.test.ts`       | 3    |
+| `apps/server/src/__tests__/auth-sessions.test.ts`      | 4    |
+| `e2e/roles-crud.spec.ts`                               | 1    |
+| `e2e/audit-viewer.spec.ts`                             | 3    |
+| `e2e/profile.spec.ts`                                  | 4    |
+| `e2e/error-pages.spec.ts`                              | 5    |
+| `e2e/layout.spec.ts`                                   | 6    |
 
 ## Files NOT Modified (explicit)
 
@@ -532,9 +581,9 @@ interface AuditLog {
 
 ## Test Count Summary
 
-| Type | Count | Files |
-|------|-------|-------|
-| Backend (vitest) | 3 new files, ~8 tests | permissions.test.ts, audit-routes.test.ts, auth-sessions.test.ts |
+| Type             | Count                                                          | Files                                                                     |
+| ---------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Backend (vitest) | 3 new files, ~8 tests                                          | permissions.test.ts, audit-routes.test.ts, auth-sessions.test.ts          |
 | E2E (Playwright) | 5 new + 1 rewritten + 1 existing = 7 total, ~25 new test cases | roles-crud, users-crud, audit-viewer, profile, error-pages, layout, setup |
 
 ## Deviations

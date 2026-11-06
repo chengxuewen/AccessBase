@@ -48,7 +48,9 @@ export interface BootstrapTenantResult {
 }
 
 /** List tenants (paginated) */
-export async function fetchTenants(params: ListTenantsParams = {}): Promise<{ data: Tenant[]; total: number }> {
+export async function fetchTenants(
+  params: ListTenantsParams = {},
+): Promise<{ data: Tenant[]; total: number }> {
   const { data } = await client.get<PaginatedEnvelope<Tenant>>('/v1/tenants', { params });
   return { data: data.data, total: data.total };
 }

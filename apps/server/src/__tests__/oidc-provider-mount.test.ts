@@ -56,11 +56,14 @@ describe('buildOidcProvider', () => {
     const cfg = readFileSync(root + '/apps/server/src/config.ts', 'utf-8');
     const app = readFileSync(root + '/apps/server/src/app.ts', 'utf-8');
     const prov = readFileSync(root + '/apps/server/src/oidc/provider.ts', 'utf-8');
-    expect(cfg).toContain("oidcBackchannelLogout: ['1', 'true'].includes(process.env['OIDC_BACKCHANNEL_LOGOUT'] ?? '')");
+    expect(cfg).toContain(
+      "oidcBackchannelLogout: ['1', 'true'].includes(process.env['OIDC_BACKCHANNEL_LOGOUT'] ?? '')",
+    );
     expect(app).toContain('backchannelLogoutEnabled: config.oidcBackchannelLogout');
-    expect(prov).toContain('backchannelLogout: { enabled: opts.backchannelLogoutEnabled === true }');
+    expect(prov).toContain(
+      'backchannelLogout: { enabled: opts.backchannelLogoutEnabled === true }',
+    );
   });
-
 
   it('constructs a provider with the adapter class and pkce required', async () => {
     const { provider, oidcHandler } = await buildOidcProvider({
@@ -109,7 +112,6 @@ describe('oidc mount via onRequest hijack', () => {
     // app.inject host is 'localhost' (no port) — assert prefix + path shape
     expect(body.authorization_endpoint).toBe('http://localhost/oidc/auth');
   });
-
 
   it('B1 regression lock: POST urlencoded to /oidc/token reaches provider (not 415)', async () => {
     const res = await app.inject({

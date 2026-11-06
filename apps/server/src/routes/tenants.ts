@@ -85,7 +85,11 @@ export async function tenantRoutes(app: FastifyInstance) {
       },
     },
     async (request) => {
-      const { page = 1, pageSize = 20, search } = request.query as Record<string, string | undefined>;
+      const {
+        page = 1,
+        pageSize = 20,
+        search,
+      } = request.query as Record<string, string | undefined>;
       const result = await tenantManager.findAll({
         page: Number(page),
         pageSize: Number(pageSize),
@@ -183,7 +187,11 @@ export async function tenantRoutes(app: FastifyInstance) {
       const belt = platformBelt(request, reply);
       if (belt) return belt;
       const { id } = request.params;
-      const { name, slug, status } = request.body as { name?: string; slug?: string; status?: string };
+      const { name, slug, status } = request.body as {
+        name?: string;
+        slug?: string;
+        status?: string;
+      };
       try {
         // R1-T2: suspend runs a multi-write cascade (tenant row + token bump +
         // sessions/api_keys revokes + outbox event) — only that arm goes through
@@ -373,7 +381,6 @@ export async function tenantRoutes(app: FastifyInstance) {
             alreadyBootstrapped: replayArm,
           },
         });
-
       } catch (err) {
         return sendTenantError(reply, err);
       }

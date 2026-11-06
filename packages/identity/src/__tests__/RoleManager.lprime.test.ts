@@ -79,9 +79,9 @@ describe('X1 binding funnel — non-default tenants capped at TENANT_BINDABLE', 
       .mockReturnValueOnce(makeChain([roleRow()])) // existence
       .mockReturnValueOnce(makeChain([{ id: 'p-plat', name: 'tenants:write' }])); // funnel
 
-    await expect(
-      manager.update('r1', { permissionIds: ['p-plat'] }, TENANT),
-    ).rejects.toThrow(/^PERMISSION_NOT_BINDABLE: tenants:write/);
+    await expect(manager.update('r1', { permissionIds: ['p-plat'] }, TENANT)).rejects.toThrow(
+      /^PERMISSION_NOT_BINDABLE: tenants:write/,
+    );
     // binding must NOT have been touched (delete is the first writer step)
     expect(db.delete).not.toHaveBeenCalled();
   });
@@ -96,9 +96,7 @@ describe('X1 binding funnel — non-default tenants capped at TENANT_BINDABLE', 
     db.delete.mockReturnValue(makeChain(undefined));
     db.insert.mockReturnValue(makeChain(undefined));
 
-    await expect(
-      manager.update('r1', { permissionIds: ['p-ok'] }, TENANT),
-    ).resolves.toBeDefined();
+    await expect(manager.update('r1', { permissionIds: ['p-ok'] }, TENANT)).resolves.toBeDefined();
     expect(db.insert).toHaveBeenCalled();
   });
 
@@ -127,9 +125,7 @@ describe('X1 binding funnel — non-default tenants capped at TENANT_BINDABLE', 
     db.delete.mockReturnValue(makeChain(undefined));
     db.insert.mockReturnValue(makeChain(undefined));
 
-    await expect(
-      manager.update('r1', { permissionIds: ['ghost'] }, TENANT),
-    ).resolves.toBeDefined();
+    await expect(manager.update('r1', { permissionIds: ['ghost'] }, TENANT)).resolves.toBeDefined();
     expect(db.delete).toHaveBeenCalledTimes(1);
   });
 
@@ -140,12 +136,9 @@ describe('X1 binding funnel — non-default tenants capped at TENANT_BINDABLE', 
       .mockReturnValueOnce(makeChain([{ id: 'p2', name: 'options:write' }])); // funnel
     db.insert.mockReturnValue(makeChain([{ id: 'new-role' }]));
 
-    await expect(
-      manager.create(
-        { name: 'x', permissionIds: ['p2'] },
-        TENANT,
-      ),
-    ).rejects.toThrow(/^PERMISSION_NOT_BINDABLE: options:write/);
+    await expect(manager.create({ name: 'x', permissionIds: ['p2'] }, TENANT)).rejects.toThrow(
+      /^PERMISSION_NOT_BINDABLE: options:write/,
+    );
     // exactly ONE insert happened: the roles row; the binding insert never ran
     expect(db.insert).toHaveBeenCalledTimes(1);
   });
@@ -168,9 +161,7 @@ describe('X3/R6 setParent — real cycle detection + system-role moat', () => {
       .mockReturnValueOnce(makeChain([a])) // role lookup
       .mockReturnValueOnce(makeChain([a])); // parent lookup (same row: id=A)
 
-    await expect(manager.setParent('A', 'A', TENANT)).rejects.toThrow(
-      /Inheritance cycle detected/,
-    );
+    await expect(manager.setParent('A', 'A', TENANT)).rejects.toThrow(/Inheritance cycle detected/);
     expect(db.update).not.toHaveBeenCalled();
   });
 
@@ -183,9 +174,7 @@ describe('X3/R6 setParent — real cycle detection + system-role moat', () => {
       .mockReturnValueOnce(makeChain([a])) // parent exists
       .mockReturnValueOnce(makeChain([a])); // walk: A -> parentId B === roleId
 
-    await expect(manager.setParent('B', 'A', TENANT)).rejects.toThrow(
-      /Inheritance cycle detected/,
-    );
+    await expect(manager.setParent('B', 'A', TENANT)).rejects.toThrow(/Inheritance cycle detected/);
     expect(db.update).not.toHaveBeenCalled();
   });
 
@@ -230,7 +219,7 @@ describe('partition lists (G-2 counts)', () => {
 
 describe('G-3 password policy user_create callsite', () => {
   it('defaults follow the register profile when nothing is configured', async () => {
-    const getOption = <T,>(_key: string, _env: T | undefined, def: T) => Promise.resolve(def);
+    const getOption = <T>(_key: string, _env: T | undefined, def: T) => Promise.resolve(def);
     const policy = await readPasswordPolicy(getOption, 'user_create');
     expect(policy).toEqual({
       minLength: 8,

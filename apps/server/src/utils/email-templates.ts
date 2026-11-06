@@ -150,7 +150,10 @@ const warnedPlaceholders = new Set<string>();
 function warnOncePlaceholder(name: string): void {
   if (warnedPlaceholders.has(name)) return;
   warnedPlaceholders.add(name);
-  logger.warn({ placeholder: name }, 'email template references unknown placeholder — left literal');
+  logger.warn(
+    { placeholder: name },
+    'email template references unknown placeholder — left literal',
+  );
 }
 
 /** String arm that wins over a fallback unless it is missing/empty/non-string. */
@@ -182,10 +185,13 @@ export function renderEmail(
   const htmlEn = pickArm(ov?.html?.en, base.html.en);
   // Per-arm merge over DEFAULTS; a missing zh arm (possible once DEFAULTS grew
   // partial zh coverage) falls back to the effective en arm.
-  const subject = locale === 'zh' ? pickArm(ov?.subject?.zh, base.subject.zh || subjectEn) : subjectEn;
+  const subject =
+    locale === 'zh' ? pickArm(ov?.subject?.zh, base.subject.zh || subjectEn) : subjectEn;
   const html = locale === 'zh' ? pickArm(ov?.html?.zh, base.html.zh || htmlEn) : htmlEn;
 
-  const map = new Map<string, string>([['siteName', escapeHtml(opts.siteName ?? SITE_NAME_FALLBACK)]]);
+  const map = new Map<string, string>([
+    ['siteName', escapeHtml(opts.siteName ?? SITE_NAME_FALLBACK)],
+  ]);
   for (const [key, value] of Object.entries(vars)) {
     if (value !== undefined) map.set(key, escapeHtml(value));
   }
@@ -238,7 +244,8 @@ export function validateEmailTemplate(value: unknown): string | null {
   }
   const v = value as Record<string, unknown>;
   for (const field of Object.keys(v)) {
-    if (field !== 'subject' && field !== 'html') return `email template has unknown field '${field}'`;
+    if (field !== 'subject' && field !== 'html')
+      return `email template has unknown field '${field}'`;
   }
   let arms = 0;
   for (const field of ['subject', 'html'] as const) {
@@ -249,14 +256,16 @@ export function validateEmailTemplate(value: unknown): string | null {
     }
     const b = block as Record<string, unknown>;
     for (const locale of Object.keys(b)) {
-      if (locale !== 'en' && locale !== 'zh') return `email template ${field} has unknown locale '${locale}'`;
+      if (locale !== 'en' && locale !== 'zh')
+        return `email template ${field} has unknown locale '${locale}'`;
       const arm = b[locale];
       if (typeof arm !== 'string') return `email template ${field}.${locale} must be a string`;
       if (arm.trim().length === 0) return `email template ${field}.${locale} must not be empty`;
       const cap = field === 'subject' ? 200 : 20000;
       if (arm.length > cap) return `email template ${field}.${locale} exceeds ${cap} characters`;
       if (/<script/i.test(arm)) return `email template ${field}.${locale} must not contain <script`;
-      if (/\son[a-z0-9_]*\s*=/i.test(arm)) return `email template ${field}.${locale} must not contain inline event handlers (on…=)`;
+      if (/\son[a-z0-9_]*\s*=/i.test(arm))
+        return `email template ${field}.${locale} must not contain inline event handlers (on…=)`;
       arms += 1;
     }
   }

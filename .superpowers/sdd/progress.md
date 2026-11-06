@@ -7,19 +7,19 @@
 
 ## Commits
 
-| Hash | Message | Tasks |
-|------|---------|-------|
-| d358767 | feat: add pixi.toml for native build mode | T1 |
-| c077774 | feat: add native mode lifecycle scripts (ports, pg, redis) | T2-5 |
-| c0e6377 | feat: add native build mode commands to accessbase.sh | T6-7 |
-| (fix commits) | fix: _ports.sh SCRIPT_DIR, pg-init.sh user/db bugs | T8 |
-| c55e814 | feat: add container mode commands, deprecate docker aliases | T9 |
-| 73d353f | feat: improve dev container entrypoint with health checks | T10 |
-| 57f104e | feat: externalize prod compose environment variables | T11 |
-| be5b5e8 | feat: add health checks to dev compose services | T12 |
-| b693ef9 | feat: add compose mode commands to CLI | T13 |
-| fa4640f | feat: add backward-compatible command aliases | T14 |
-| 8029f63 | docs: update README with three build modes | T15 |
+| Hash          | Message                                                     | Tasks |
+| ------------- | ----------------------------------------------------------- | ----- |
+| d358767       | feat: add pixi.toml for native build mode                   | T1    |
+| c077774       | feat: add native mode lifecycle scripts (ports, pg, redis)  | T2-5  |
+| c0e6377       | feat: add native build mode commands to accessbase.sh       | T6-7  |
+| (fix commits) | fix: _ports.sh SCRIPT_DIR, pg-init.sh user/db bugs          | T8    |
+| c55e814       | feat: add container mode commands, deprecate docker aliases | T9    |
+| 73d353f       | feat: improve dev container entrypoint with health checks   | T10   |
+| 57f104e       | feat: externalize prod compose environment variables        | T11   |
+| be5b5e8       | feat: add health checks to dev compose services             | T12   |
+| b693ef9       | feat: add compose mode commands to CLI                      | T13   |
+| fa4640f       | feat: add backward-compatible command aliases               | T14   |
+| 8029f63       | docs: update README with three build modes                  | T15   |
 
 ## Task progress
 

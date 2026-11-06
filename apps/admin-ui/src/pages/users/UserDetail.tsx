@@ -2,7 +2,14 @@ import { useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Descriptions, Popconfirm, Space, Spin, Switch, Tag } from 'antd';
-import { adminResetUserPassword, deleteUser, changeUserStatus, getUser, inviteUser, type User } from '../../api/users';
+import {
+  adminResetUserPassword,
+  deleteUser,
+  changeUserStatus,
+  getUser,
+  inviteUser,
+  type User,
+} from '../../api/users';
 import { message } from '../../api/feedback';
 import EmptyState from '../../components/EmptyState';
 
@@ -65,13 +72,20 @@ export default function UserDetail() {
         <EmptyState
           variant="error"
           action={
-            <Button type="primary" onClick={refetch}>{t('common.retry')}</Button>
+            <Button type="primary" onClick={refetch}>
+              {t('common.retry')}
+            </Button>
           }
         />
       </Card>
     );
   }
-  if (!user) return <Card><Spin /></Card>;
+  if (!user)
+    return (
+      <Card>
+        <Spin />
+      </Card>
+    );
 
   return (
     <Card
@@ -94,7 +108,10 @@ export default function UserDetail() {
             size="small"
             onClick={() => {
               const pw = window.prompt('New temporary password for this user');
-              if (pw) void adminResetUserPassword(user.id, pw).then(() => message.success('Password reset — user must change at next login'));
+              if (pw)
+                void adminResetUserPassword(user.id, pw).then(() =>
+                  message.success('Password reset — user must change at next login'),
+                );
             }}
             data-testid="user-admin-reset"
           >
@@ -102,7 +119,11 @@ export default function UserDetail() {
           </Button>
           <Button
             size="small"
-            onClick={() => void inviteUser(user.id).then((m) => message.success(m)).catch(() => message.error('Invite not eligible'))}
+            onClick={() =>
+              void inviteUser(user.id)
+                .then((m) => message.success(m))
+                .catch(() => message.error('Invite not eligible'))
+            }
             data-testid="user-invite"
           >
             Send invite

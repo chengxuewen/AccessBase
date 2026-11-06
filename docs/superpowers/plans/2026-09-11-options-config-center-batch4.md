@@ -28,9 +28,11 @@
 ### Task 1: options table in identity schema
 
 **Files:**
+
 - Modify: `packages/identity/src/db/schema.ts` (append after `webauthnCredentials`)
 
 **Interfaces:**
+
 - Produces: `export const options = pgTable('options', { key: text('key').primaryKey(), value: jsonb('value').notNull(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow() })` — consumed by Task 2 (manager) and Task 3 (routes).
 
 - [ ] **Step 1: Append the table definition**
@@ -65,10 +67,12 @@ git commit -m "feat(identity): add options key-value table to schema"
 ### Task 2: OptionsManager with cache + priority resolution
 
 **Files:**
+
 - Create: `packages/identity/src/managers/OptionsManager.ts`
 - Create: `packages/identity/src/__tests__/OptionsManager.test.ts`
 
 **Interfaces:**
+
 - Consumes: `options` table (Task 1).
 - Produces (consumed by Task 4 and future batches):
   - `class OptionsManager { constructor(databaseUrl?: string | DrizzleDB) }` — MFA-Manager-style overload, matching all six existing managers (review M3: NOT bare `DrizzleDB`; internally `databaseUrl is string ? createDb(url) : url ?? createDefaultDb()` — follow MfaManager's exact pattern)
@@ -117,11 +121,13 @@ git commit -m "feat(identity): OptionsManager with cache and env>option>default 
 ### Task 3: Seed options:read/options:write + route mappings
 
 **Files:**
+
 - Modify: `apps/server/src/routes/permissions-seed.ts` (BUILTIN_PERMISSIONS + RESOURCES + the THREE count comments: now 13)
 - Modify: `apps/server/src/__tests__/permissions-seed.test.ts` (EXPECTED_PERMISSION_COUNT 11→13)
 - Modify: `packages/identity/src/hooks/authorize.ts` (routePermissions +2)
 
 **Interfaces:**
+
 - Produces: `options:read` / `options:write` codes wired for Task 4's route guards.
 
 - [ ] **Step 1: Seed entries + RESOURCES**
@@ -157,11 +163,13 @@ git commit -m "feat(server): seed options permission codes and map option routes
 ### Task 4: /v1/options routes with masking + audit redaction
 
 **Files:**
+
 - Create: `apps/server/src/routes/options.ts`
 - Modify: `apps/server/src/app.ts` (register route module with prefix `/api/v1`)
 - Test: `apps/server/src/__tests__/options-routes.test.ts` (create — follow existing route test patterns)
 
 **Interfaces:**
+
 - Consumes: OptionsManager (Task 2, `listAll`/`set`/`delete`), permission codes (Task 3), `config`.
 - Produces:
   - `GET /api/v1/options` → `{ success, data: Array<{ key, value, updatedAt }> }` — sensitive keys masked as `'******'` (mask rule: key matches `SENSITIVE_KEY_PATTERN = /secret|password|token|key/i`)
@@ -177,6 +185,7 @@ Follow the existing route-test pattern in `apps/server/src/__tests__/` (build ap
 - [ ] **Step 2: RED → implement → GREEN**
 
 Implementation notes:
+
 - OptionsManager via the stats.ts lazy-singleton + seam pattern (above).
 - `SENSITIVE_KEY_PATTERN` named constant with comment: single source of truth for both server masking and PUT rejection; the UI mirrors it for display only.
 - **Audit redaction (review M6):** the global audit onResponse hook records non-GET bodies — `PUT /api/v1/options` with a secret would leak plaintext into `audit_logs.requestBody`. Add `/api/v1/options` to the audit hook's exclusion list (same mechanism as the existing `/api/v1/setup` exclusion) — simpler than sanitization; note this decision in the options.ts header comment.
@@ -203,11 +212,13 @@ git commit -m "feat(server): options CRUD routes with masking and audit redactio
 ### Task 5: siteName — wizard becomes the first options WRITER (final-review fix: the 'setup stored value' layer does not exist)
 
 **Files:**
+
 - Modify: `apps/server/src/routes/setup.ts` — TWO changes: (1) the config step (:362-384, currently a log-and-return STUB that only logger.info's siteName and returns {saved:true} without persisting anything) additionally calls `optionsManager.set('site.name', siteName)` — the wizard becomes the first writer; (2) the status endpoint additionally returns `siteName` resolved via `optionsManager.get('site.name', undefined, 'AccessBase')` — chain is simply option > default (no middle layer).
 - Modify: `apps/server/src/index.ts` (startup log after OptionsManager cache warm): `[options] site.name resolved from <option|default>`
 - Test: extend the existing setup route test
 
 **Interfaces:**
+
 - Consumes: OptionsManager.set/get.
 - Produces: wizard config step persists siteName into options; `/api/v1/setup/status` returns resolved `siteName`.
 
@@ -233,11 +244,13 @@ git commit -m "feat(server): setup wizard persists site name into options; statu
 ### Task 6: Admin UI — Options tab in Settings
 
 **Files:**
+
 - Create: `apps/admin-ui/src/api/options.ts` (list/set/delete via ApiEnvelope generics — Phase 7 convention)
 - Modify: `apps/admin-ui/src/pages/Settings.tsx` (third tab "Options")
 - Modify: `apps/admin-ui/src/i18n/locales/{en,zh}.json` (new keys, symmetric)
 
 **Interfaces:**
+
 - Consumes: `/v1/options` endpoints (Task 4), feedback bridge for toasts, `AppBridge` modal instance.
 - Produces: Options tab with a table of key/value/updatedAt + "Add option" modal form (key input + JSON value textarea with parse-error inline validation) + edit + delete (Popconfirm, danger okButton) + masked display for sensitive keys.
 
@@ -247,10 +260,16 @@ git commit -m "feat(server): setup wizard persists site name into options; statu
 import client from './client';
 import type { ApiEnvelope } from './types';
 
-export interface OptionRow { key: string; value: unknown; updatedAt: string; }
+export interface OptionRow {
+  key: string;
+  value: unknown;
+  updatedAt: string;
+}
 export const listOptions = () => client.get<ApiEnvelope<OptionRow[]>>('/v1/options');
-export const setOption = (key: string, value: unknown) => client.put<ApiEnvelope<OptionRow>>('/v1/options', { key, value });
-export const deleteOption = (key: string) => client.delete<ApiEnvelope<void>>(`/v1/options/${encodeURIComponent(key)}`);
+export const setOption = (key: string, value: unknown) =>
+  client.put<ApiEnvelope<OptionRow>>('/v1/options', { key, value });
+export const deleteOption = (key: string) =>
+  client.delete<ApiEnvelope<void>>(`/v1/options/${encodeURIComponent(key)}`);
 ```
 
 (client.ts has ONLY a default export — review m8; ApiEnvelope lives in api/types.ts:6.)
@@ -284,6 +303,7 @@ git commit -m "feat(admin-ui): options management tab in settings"
 ### Task 7: Final verification + memory
 
 **Files:**
+
 - Modify: `.agents/memorys/status.md`, `.agents/memorys/conventions.md` (count expectations 11→13)
 
 - [ ] **Step 1: Full gates**

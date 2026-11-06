@@ -5,7 +5,10 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
 
@@ -19,7 +22,12 @@ async function mockCommonApis(page: Page): Promise<void> {
           accessToken: 'test-token',
           refreshToken: 'test-refresh',
           expiresIn: 900,
-          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
+          user: {
+            id: '1',
+            email: 'admin@accessbase.local',
+            name: 'Administrator',
+            roles: [{ id: 'role-1', name: 'admin' }],
+          },
         },
       }),
     });
@@ -29,7 +37,10 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
   // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
@@ -39,7 +50,20 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: [{ id: '00000000-0000-0000-0000-000000000001', name: 'Default', slug: 'default', status: 'active', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+      body: JSON.stringify({
+        success: true,
+        data: [
+          {
+            id: '00000000-0000-0000-0000-000000000001',
+            name: 'Default',
+            slug: 'default',
+            status: 'active',
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+          },
+        ],
+        total: 1,
+      }),
     });
   });
 
@@ -57,24 +81,37 @@ async function mockCommonApis(page: Page): Promise<void> {
           name: 'Administrator',
           roles: [],
           permissions: [
-            'users:read', 'users:write', 'users:delete',
-            'roles:read', 'roles:write', 'roles:delete',
-            'permissions:read', 'permissions:write', 'permissions:delete',
-            'audit:read', 'stats:read',
+            'users:read',
+            'users:write',
+            'users:delete',
+            'roles:read',
+            'roles:write',
+            'roles:delete',
+            'permissions:read',
+            'permissions:write',
+            'permissions:delete',
+            'audit:read',
+            'stats:read',
             // 'Full admin permission set' per the comment above — the breadcrumb
             // cases below land on tenants/clients/api-keys; without these codes
             // AdminLayout's fetchUser re-hydration 403s those pages (Q1 timing
             // exposed the mock's own inconsistency).
-            'tenants:read', 'tenants:write', 'tenants:delete',
-            'clients:read', 'clients:write', 'clients:delete',
-            'apikeys:read', 'apikeys:write', 'apikeys:delete',
-            'options:read', 'options:write',
+            'tenants:read',
+            'tenants:write',
+            'tenants:delete',
+            'clients:read',
+            'clients:write',
+            'clients:delete',
+            'apikeys:read',
+            'apikeys:write',
+            'apikeys:delete',
+            'options:read',
+            'options:write',
           ],
         },
       }),
     });
   });
-
 }
 
 // Data mocks for each admin page so page mounts don't fire 401s (axios interceptor logs out on 401)
@@ -153,10 +190,10 @@ async function login(page: Page): Promise<void> {
 
 // Sidebar menu items: label (en) → expected path
 const MENU_ITEMS: Array<[string, string]> = [
-['Dashboard', '/dashboard'],
-['Users', '/users'],
-['Roles', '/roles'],
-['Audit', '/audit'],
+  ['Dashboard', '/dashboard'],
+  ['Users', '/users'],
+  ['Roles', '/roles'],
+  ['Audit', '/audit'],
   ['Profile', '/profile'],
   ['Settings', '/settings'], // Phase 6d Task 4: Settings page added (6c TODO closed)
 ];

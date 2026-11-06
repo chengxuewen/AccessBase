@@ -88,7 +88,11 @@ beforeAll(async () => {
   execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`]);
   execFileSync(PS, [ADMIN_URL, '-qc', `CREATE DATABASE ${SCRATCH}`]);
   execFileSync('bash', [MIGRATE, path.join(ROOT, 'packages/migration/drizzle')], {
-    env: { ...process.env, DATABASE_URL: URL, PATH: `${path.join(ROOT, '.pixi/envs/native/bin')}:${process.env['PATH'] ?? ''}` },
+    env: {
+      ...process.env,
+      DATABASE_URL: URL,
+      PATH: `${path.join(ROOT, '.pixi/envs/native/bin')}:${process.env['PATH'] ?? ''}`,
+    },
   });
   pool = new pg.Pool({ connectionString: URL });
 
@@ -135,7 +139,9 @@ afterAll(async () => {
   if (pgUp) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`], { stdio: 'ignore' });
+        execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`], {
+          stdio: 'ignore',
+        });
         break;
       } catch {
         if (attempt === 2) break;
@@ -157,7 +163,10 @@ async function seedLink(sub: string, userId: string): Promise<void> {
   );
 }
 
-async function post(tokenStr: string, remoteAddress?: string): Promise<{ status: number; body: string; headers: Record<string, unknown> }> {
+async function post(
+  tokenStr: string,
+  remoteAddress?: string,
+): Promise<{ status: number; body: string; headers: Record<string, unknown> }> {
   if (!app) throw new Error('app not built');
   const res = await app.inject({
     method: 'POST',
@@ -192,7 +201,10 @@ describe.skipIf(!pgUp)('backchannel logout integration (real PG + real RSA)', ()
     expect(sess[0]?.['revoked_at']).not.toBeNull();
     const u = await rows(`select token_version, id from users where id = $1`, [uid]);
     expect(Number(u[0]?.['token_version'])).toBe(2);
-    const link = await rows(`select access_token, id_token from oauth_accounts where provider_account_id = $1`, [sub]);
+    const link = await rows(
+      `select access_token, id_token from oauth_accounts where provider_account_id = $1`,
+      [sub],
+    );
     expect(link[0]?.['access_token']).toBeNull();
     expect(link[0]?.['id_token']).toBeNull();
   });
@@ -204,9 +216,13 @@ describe.skipIf(!pgUp)('backchannel logout integration (real PG + real RSA)', ()
     await seedLink(sub, uid);
     const tok = signToken(payload({ sub }));
     expect((await post(tok)).status).toBe(200);
-    const v1 = Number((await rows(`select token_version from users where id = $1`, [uid]))[0]?.['token_version']);
+    const v1 = Number(
+      (await rows(`select token_version from users where id = $1`, [uid]))[0]?.['token_version'],
+    );
     expect((await post(tok)).status).toBe(200);
-    const v2 = Number((await rows(`select token_version from users where id = $1`, [uid]))[0]?.['token_version']);
+    const v2 = Number(
+      (await rows(`select token_version from users where id = $1`, [uid]))[0]?.['token_version'],
+    );
     // Claim-LAST (A3): the replay DOES re-run effects (idempotent); the bump is
     // observable, revocation converges. Assert convergence, not immutability.
     expect(v2).toBeGreaterThanOrEqual(v1);
@@ -218,9 +234,14 @@ describe.skipIf(!pgUp)('backchannel logout integration (real PG + real RSA)', ()
     const uid = randomUUID();
     await seedLink(sub, uid);
     const tok = signToken(payload({ sub }));
-    const results = await Promise.all(Array.from({ length: 10 }, (_, i) => post(tok, `10.4.0.${i + 1}`)));
+    const results = await Promise.all(
+      Array.from({ length: 10 }, (_, i) => post(tok, `10.4.0.${i + 1}`)),
+    );
     expect(results.every((r) => r.status === 200)).toBe(true);
-    const link = await rows(`select access_token from oauth_accounts where provider_account_id = $1`, [sub]);
+    const link = await rows(
+      `select access_token from oauth_accounts where provider_account_id = $1`,
+      [sub],
+    );
     expect(link[0]?.['access_token']).toBeNull();
   });
 
@@ -285,10 +306,18 @@ describe.skipIf(!pgUp)('backchannel logout integration (real PG + real RSA)', ()
 
   it('I6: sid-only / null-sub -> 200, zero effects (A1)', async () => {
     counter += 1;
-    const before = Number((await rows(`select count(*)::int as n from events where type = 'auth.backchannel_logout'`))[0]?.['n']);
+    const before = Number(
+      (
+        await rows(`select count(*)::int as n from events where type = 'auth.backchannel_logout'`)
+      )[0]?.['n'],
+    );
     const res = await post(signToken(payload({ sub: null, sid: 'sid-1' })));
     expect(res.status).toBe(200);
-    const after = Number((await rows(`select count(*)::int as n from events where type = 'auth.backchannel_logout'`))[0]?.['n']);
+    const after = Number(
+      (
+        await rows(`select count(*)::int as n from events where type = 'auth.backchannel_logout'`)
+      )[0]?.['n'],
+    );
     expect(after).toBe(before);
   });
 });

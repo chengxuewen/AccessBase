@@ -114,6 +114,7 @@ interface DesignTokens {
 ### 14.3 主题机制
 
 > **Phase 7+ (deferred).** Dark theme not implemented in Phase 6 — light mode only.
+
 #### 14.3.1 亮暗主题
 
 ```typescript
@@ -398,6 +399,7 @@ function useBreadcrumbs() {
 ```
 
 > **Phase 7+ (deferred).** Tab navigation not implemented in Phase 6.
+
 #### 14.5.3 标签页导航
 
 ```typescript
@@ -714,6 +716,7 @@ function DataTable<T extends { id: string }>({
 ```
 
 > **Phase 7+ (deferred).** Responsive/mobile layout not implemented in Phase 6.
+
 ### 14.8 响应式设计
 
 ```scss
@@ -2039,6 +2042,7 @@ $dark-link-color: #40a9ff; // 对比度 5.2:1 (vs #141414)
 ```
 
 > **Phase 7+ (deferred).** Global search not implemented in Phase 6.
+
 ### 14.17 全局搜索
 
 ```typescript
@@ -2132,6 +2136,7 @@ function GlobalSearch() {
 ```
 
 > **Phase 7+ (deferred).** Notification center not implemented in Phase 6.
+
 ### 14.18 通知中心
 
 ```typescript
@@ -2234,6 +2239,7 @@ function NotificationCenter() {
 > **Gap note:** ui.md has no Profile page spec. 6c Task 4 builds /profile (name edit, change password, revoke sessions); 6d Task 2 adds OAuth linked-accounts card.
 
 > **Implementation note (2026-09-11):** Settings/Profile pages use fluid full-width card shells. Inner form column capped at 400px via `maxWidth: 400`. User-ratified 2026-09-10; supersedes the 720px centered-column approach (ref: conventions.md Settings/Profile width strategy)
+
 ### 14.19 用户个人中心
 
 ```typescript

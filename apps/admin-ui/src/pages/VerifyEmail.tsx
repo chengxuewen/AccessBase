@@ -32,41 +32,56 @@ export default function VerifyEmail() {
 
   return (
     <ConfigProvider theme={brandTheme}>
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: themeToken.colorBgLayout,
-      }}
-    >
-      {branding.logoUrl && (
-        <img src={branding.logoUrl} alt="logo" data-testid="branding-logo"
-             style={{ display: 'block', margin: '0 auto 16px', maxHeight: 56, maxWidth: '80%', objectFit: 'contain' }} />
-      )}
-      <Card
-        title={t('verifyEmail.title')}
-        style={{ width: '100%', maxWidth: 400 }}
-        styles={{ header: { textAlign: 'center' } }}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          background: themeToken.colorBgLayout,
+        }}
       >
-        {state === 'busy' && <Spin data-testid="verify-busy" />}
-        {state === 'ok' && (
-          <Alert
-            type="success"
-            showIcon
-            message={t('verifyEmail.success')}
-            data-testid="verify-success"
+        {branding.logoUrl && (
+          <img
+            src={branding.logoUrl}
+            alt="logo"
+            data-testid="branding-logo"
+            style={{
+              display: 'block',
+              margin: '0 auto 16px',
+              maxHeight: 56,
+              maxWidth: '80%',
+              objectFit: 'contain',
+            }}
           />
         )}
-        {state === 'fail' && (
-          <Alert type="error" showIcon message={t('verifyEmail.fail')} data-testid="verify-fail" />
-        )}
-        <div style={{ marginTop: 16 }}>
-          <Link to="/login">{t('verifyEmail.goLogin')}</Link>
-        </div>
-      </Card>
-    </div>
+        <Card
+          title={t('verifyEmail.title')}
+          style={{ width: '100%', maxWidth: 400 }}
+          styles={{ header: { textAlign: 'center' } }}
+        >
+          {state === 'busy' && <Spin data-testid="verify-busy" />}
+          {state === 'ok' && (
+            <Alert
+              type="success"
+              showIcon
+              message={t('verifyEmail.success')}
+              data-testid="verify-success"
+            />
+          )}
+          {state === 'fail' && (
+            <Alert
+              type="error"
+              showIcon
+              message={t('verifyEmail.fail')}
+              data-testid="verify-fail"
+            />
+          )}
+          <div style={{ marginTop: 16 }}>
+            <Link to="/login">{t('verifyEmail.goLogin')}</Link>
+          </div>
+        </Card>
+      </div>
     </ConfigProvider>
   );
 }

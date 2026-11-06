@@ -4,7 +4,8 @@ import { isAxiosError } from 'axios';
  *  调用方对 401/429 可先查 apiErrorStatus() 做专门文案。 */
 export function apiErrorMessage(err: unknown, fallback: string): string {
   if (isAxiosError(err)) {
-    const msg = (err.response?.data as { error?: { message?: string } } | undefined)?.error?.message;
+    const msg = (err.response?.data as { error?: { message?: string } } | undefined)?.error
+      ?.message;
     if (typeof msg === 'string' && msg.length > 0) return msg;
   }
   return fallback;

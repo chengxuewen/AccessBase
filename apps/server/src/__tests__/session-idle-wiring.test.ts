@@ -33,7 +33,11 @@ describe('session-idle wiring (SL-2)', () => {
     const { resolveIdleSeconds } = await import('../utils/session-idle-wiring.js');
     setOptionsManager({
       get: async (key: string, envValue: unknown, defaultValue: unknown) =>
-        envValue !== undefined ? envValue : (key === 'session.idle_timeout_seconds' ? 7200 : defaultValue),
+        envValue !== undefined
+          ? envValue
+          : key === 'session.idle_timeout_seconds'
+            ? 7200
+            : defaultValue,
     } as never);
     expect(await resolveIdleSeconds()).toBe(7200);
   });

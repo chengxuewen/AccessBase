@@ -79,10 +79,14 @@ export async function loadDynamicProviders(): Promise<
     }
     const c = (value ?? {}) as Partial<DynamicProviderConfig>;
     if (
-      typeof c.authUrl !== 'string' || c.authUrl === '' ||
-      typeof c.tokenUrl !== 'string' || c.tokenUrl === '' ||
-      typeof c.userinfoUrl !== 'string' || c.userinfoUrl === '' ||
-      typeof c.clientId !== 'string' || c.clientId === ''
+      typeof c.authUrl !== 'string' ||
+      c.authUrl === '' ||
+      typeof c.tokenUrl !== 'string' ||
+      c.tokenUrl === '' ||
+      typeof c.userinfoUrl !== 'string' ||
+      c.userinfoUrl === '' ||
+      typeof c.clientId !== 'string' ||
+      c.clientId === ''
     ) {
       logger.warn(`oauth: dynamic provider '${name}' is missing required fields — skipped`);
       continue;
@@ -100,19 +104,29 @@ export async function loadDynamicProviders(): Promise<
         return false;
       }
     };
-    const clientSecretRaw = await options.get<unknown>(`oauth_${name}_client_secret`, undefined, '');
+    const clientSecretRaw = await options.get<unknown>(
+      `oauth_${name}_client_secret`,
+      undefined,
+      '',
+    );
     // Secret option values may arrive as a jsonb string (UI sends a quoted
     // JSON string) or as a bare value — coerce only real strings through.
     const clientSecret = typeof clientSecretRaw === 'string' ? clientSecretRaw : '';
     if (
       (c.scope !== undefined && typeof c.scope !== 'string') ||
-      !httpsUrl(c.authUrl) || !httpsUrl(c.tokenUrl) || !httpsUrl(c.userinfoUrl)
+      !httpsUrl(c.authUrl) ||
+      !httpsUrl(c.tokenUrl) ||
+      !httpsUrl(c.userinfoUrl)
     ) {
-      logger.warn(`oauth: dynamic provider '${name}' has invalid fields (scope must be a string, URLs must be https or loopback-http) — skipped`);
+      logger.warn(
+        `oauth: dynamic provider '${name}' has invalid fields (scope must be a string, URLs must be https or loopback-http) — skipped`,
+      );
       continue;
     }
     if (clientSecret === '') {
-      logger.warn(`oauth: dynamic provider '${name}' has no oauth_${name}_client_secret option — skipped`);
+      logger.warn(
+        `oauth: dynamic provider '${name}' has no oauth_${name}_client_secret option — skipped`,
+      );
       continue;
     }
     // endSessionUrl: invalid value drops the FIELD, not the provider — login
@@ -122,7 +136,9 @@ export async function loadDynamicProviders(): Promise<
       if (typeof c.endSessionUrl === 'string' && httpsUrl(c.endSessionUrl)) {
         endSessionUrl = c.endSessionUrl;
       } else {
-        logger.warn(`oauth: dynamic provider '${name}' has invalid endSessionUrl (must be an https string) — field dropped, provider kept`);
+        logger.warn(
+          `oauth: dynamic provider '${name}' has invalid endSessionUrl (must be an https string) — field dropped, provider kept`,
+        );
       }
     }
     // issuer/jwksUri (Q3D, A4/A5): invalid values drop the FIELDS, not the
@@ -131,13 +147,16 @@ export async function loadDynamicProviders(): Promise<
     let issuer: string | undefined;
     let jwksUri: string | undefined;
     if (c.issuer !== undefined || c.jwksUri !== undefined) {
-      const issuerOk = typeof c.issuer === 'string' && c.issuer.length > 0 && c.issuer.length <= 512;
+      const issuerOk =
+        typeof c.issuer === 'string' && c.issuer.length > 0 && c.issuer.length <= 512;
       const jwksOk = typeof c.jwksUri === 'string' && httpsUrl(c.jwksUri);
       if (issuerOk && jwksOk) {
         issuer = c.issuer;
         jwksUri = c.jwksUri;
       } else {
-        logger.warn(`oauth: dynamic provider '${name}' has invalid issuer/jwksUri (issuer must be a non-empty string, jwksUri must be https-or-loopback) - back-channel fields dropped, provider kept`);
+        logger.warn(
+          `oauth: dynamic provider '${name}' has invalid issuer/jwksUri (issuer must be a non-empty string, jwksUri must be https-or-loopback) - back-channel fields dropped, provider kept`,
+        );
       }
     }
     out[name] = {
@@ -166,7 +185,10 @@ export async function loadDynamicProviders(): Promise<
  *   rows ordered by created_at DESC; the first row whose id_token is stored
  *   AND whose provider is registered with an endSessionUrl wins.
  */
-export async function resolveRpEndSessionUrl(userId: string, provider?: string): Promise<string | null> {
+export async function resolveRpEndSessionUrl(
+  userId: string,
+  provider?: string,
+): Promise<string | null> {
   const db = authDb();
   const columns = { provider: oauthAccounts.provider, idToken: oauthAccounts.idToken };
   const rows = provider

@@ -143,7 +143,6 @@ describe('RoleManager', () => {
       expect(typeof roleManager.getUserRoles).toBe('function');
     });
   });
-
 });
 
 describe('findAll permissions fetch', () => {
@@ -248,7 +247,9 @@ describe('K-T2 isSystem flag + guards', () => {
 
   it('update on a system role throws ROLE_PROTECTED-prefixed error', async () => {
     db.select.mockReturnValueOnce(makeChain([{ ...dbRole('r-admin'), isSystem: true }]));
-    await expect(manager.update('r-admin', { name: 'hijack' }, 't1')).rejects.toThrow(/^ROLE_PROTECTED:/);
+    await expect(manager.update('r-admin', { name: 'hijack' }, 't1')).rejects.toThrow(
+      /^ROLE_PROTECTED:/,
+    );
     expect(db.update).not.toHaveBeenCalled();
   });
 
@@ -312,10 +313,11 @@ describe('K-T2 isSystem flag + guards', () => {
       .mockReturnValueOnce(makeChain([holderRow('u1')]))
       .mockReturnValueOnce(makeChain([]));
 
-    await expect(manager.revokeFromUser('u1', 'r-admin', 't1')).rejects.toThrow(/^LAST_ADMIN_GUARD:/);
+    await expect(manager.revokeFromUser('u1', 'r-admin', 't1')).rejects.toThrow(
+      /^LAST_ADMIN_GUARD:/,
+    );
     expect(db.delete).not.toHaveBeenCalled();
   });
-
 
   it('revokeFromUser of a non-system role proceeds without the census', async () => {
     db.select.mockReturnValueOnce(makeChain([{ isSystem: false }]));
@@ -341,8 +343,12 @@ describe('Q4b getEffectiveRoles (R1 union)', () => {
   });
 
   const directRole = {
-    id: 'r1', name: 'role-r1', tenantId: 't1', permissions: [],
-    createdAt: new Date(0), updatedAt: new Date(0),
+    id: 'r1',
+    name: 'role-r1',
+    tenantId: 't1',
+    permissions: [],
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
   };
 
   it('unions group-granted roles with the direct set', async () => {

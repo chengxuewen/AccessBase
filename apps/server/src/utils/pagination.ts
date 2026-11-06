@@ -24,12 +24,17 @@ export function parsePageQuery(query: PageQuery): PageOpts {
   const rawPage = Number.parseInt(query.page ?? '', 10);
   const rawSize = Number.parseInt(query.pageSize ?? '', 10);
   const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
-  const pageSize = Number.isFinite(rawSize) && rawSize >= 1 ? Math.min(rawSize, PAGE_MAX_SIZE) : PAGE_DEFAULT_SIZE;
+  const pageSize =
+    Number.isFinite(rawSize) && rawSize >= 1 ? Math.min(rawSize, PAGE_MAX_SIZE) : PAGE_DEFAULT_SIZE;
   return { page, pageSize, offset: (page - 1) * pageSize };
 }
 
 /** Envelope siblings per the events.ts precedent. Callers spread into their reply. */
-export function paginatedReply<T>(rows: T[], total: number, opts: PageOpts): {
+export function paginatedReply<T>(
+  rows: T[],
+  total: number,
+  opts: PageOpts,
+): {
   success: true;
   data: T[];
   total: number;

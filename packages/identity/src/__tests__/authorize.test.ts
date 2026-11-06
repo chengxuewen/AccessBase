@@ -16,7 +16,9 @@ describe('getRequiredPermission (prefix matching)', () => {
   });
 
   it('strips query string before matching', () => {
-    expect(getRequiredPermission('GET', '/api/v1/roles/11111111-1111-1111-1111-111111111111?page=2')).toBe('roles:read');
+    expect(
+      getRequiredPermission('GET', '/api/v1/roles/11111111-1111-1111-1111-111111111111?page=2'),
+    ).toBe('roles:read');
   });
 
   it('matches resource root exactly', () => {

@@ -24,12 +24,15 @@ describe('retention sweeper (Q2a E)', () => {
       // session tx wrap) — the transactional handle carries the statements,
       // so the assertion surface is the tx-level execute relay.
       const execute = vi.fn(async () => ({ rowCount: 2 }));
-      const makeDb = vi.fn(() => ({
-        execute,
-        transaction: vi.fn(async (fn: (tx: { execute: typeof execute }) => Promise<void>) =>
-          fn({ execute }),
-        ),
-      }) as never);
+      const makeDb = vi.fn(
+        () =>
+          ({
+            execute,
+            transaction: vi.fn(async (fn: (tx: { execute: typeof execute }) => Promise<void>) =>
+              fn({ execute }),
+            ),
+          }) as never,
+      );
       const log = { info: vi.fn(), warn: vi.fn() };
       const sweeper = startRetentionSweeper(makeDb, 45, log);
       expect(makeDb).not.toHaveBeenCalled(); // health-pool premise: nothing dials at registration
@@ -56,16 +59,21 @@ describe('retention sweeper (Q2a E)', () => {
     vi.useFakeTimers();
     try {
       const execute = vi.fn(async () => ({ rowCount: 0 }));
-      const makeDb = vi.fn(() => ({
-        execute,
-        transaction: vi.fn(async (fn: (tx: { execute: typeof execute }) => Promise<void>) =>
-          fn({ execute }),
-        ),
-      }) as never);
+      const makeDb = vi.fn(
+        () =>
+          ({
+            execute,
+            transaction: vi.fn(async (fn: (tx: { execute: typeof execute }) => Promise<void>) =>
+              fn({ execute }),
+            ),
+          }) as never,
+      );
       const sweeper = startRetentionSweeper(makeDb, 0, { info: vi.fn(), warn: vi.fn() });
       await vi.advanceTimersByTimeAsync(60_000);
       expect(execute).toHaveBeenCalledTimes(1);
-      expect(new PgDialect().sqlToQuery(execute.mock.calls[0]?.[0] as never).sql).toContain('sessions');
+      expect(new PgDialect().sqlToQuery(execute.mock.calls[0]?.[0] as never).sql).toContain(
+        'sessions',
+      );
       await sweeper.stop();
     } finally {
       vi.useRealTimers();

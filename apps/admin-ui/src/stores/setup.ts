@@ -55,7 +55,8 @@ export const useSetupStore = create<SetupState>()(
       isLoading: false,
 
       setCurrentStep: (step) => set({ currentStep: step }),
-      setAdminData: ({ name, email }) => set((state) => ({ formData: { ...state.formData, admin: { name, email } } })),
+      setAdminData: ({ name, email }) =>
+        set((state) => ({ formData: { ...state.formData, admin: { name, email } } })),
       setConfigData: (data) => set((state) => ({ formData: { ...state.formData, config: data } })),
       setSystemChecks: (checks) => set({ systemChecks: checks }),
       setError: (error) => set({ error }),
@@ -75,7 +76,8 @@ export const useSetupStore = create<SetupState>()(
       name: 'accessbase-setup-store',
       partialize: (state) => {
         const { admin } = state.formData;
-        const { smtpPassword: _omitSmtpPassword, ...configWithoutPassword } = state.formData.config ?? {};
+        const { smtpPassword: _omitSmtpPassword, ...configWithoutPassword } =
+          state.formData.config ?? {};
         return {
           formData: {
             ...(admin ? { admin: { name: admin.name, email: admin.email } } : {}),

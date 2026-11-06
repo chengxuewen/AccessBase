@@ -60,7 +60,8 @@ export type SamlSloInput =
   | { binding: 'redirect'; query: Record<string, unknown>; originalQuery: string }
   | { binding: 'post'; container: Record<string, string> };
 /** SLO validation outcome: request (with profile), response (nothing to echo), or uniform error. */
-export type SamlSloResult = { kind: 'request'; profile: SamlSloProfile } | { kind: 'response' } | SamlValidationError;
+export type SamlSloResult =
+  { kind: 'request'; profile: SamlSloProfile } | { kind: 'response' } | SamlValidationError;
 
 /** Uniform failure result: validateResponse NEVER throws. */
 export interface SamlValidationError {
@@ -119,7 +120,9 @@ export class SamlProvider {
       if (this.config.cacheProvider) options['cacheProvider'] = this.config.cacheProvider;
       // LogoutRequest/Response destination; node-saml defaults it to entryPoint (saml.js:95).
       if (this.config.logoutUrl) options['logoutUrl'] = this.config.logoutUrl;
-      this.samlInstance = new mod.SAML(options as unknown as ConstructorParameters<typeof mod.SAML>[0]);
+      this.samlInstance = new mod.SAML(
+        options as unknown as ConstructorParameters<typeof mod.SAML>[0],
+      );
     }
     return this.samlInstance;
   }

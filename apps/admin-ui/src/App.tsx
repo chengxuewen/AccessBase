@@ -34,7 +34,13 @@ import Forbidden from './pages/errors/Forbidden';
 import NotFound from './pages/errors/NotFound';
 import GlobalErrorBoundary from './components/GlobalErrorBoundary';
 
-function PrivateRoute({ children, permission }: { children: React.ReactNode; permission?: string }) {
+function PrivateRoute({
+  children,
+  permission,
+}: {
+  children: React.ReactNode;
+  permission?: string;
+}) {
   const { token, isAuthenticated } = useAuthStore();
   const permissions = useAuthStore((s) => s.user?.permissions);
   // Check token directly — isAuthenticated may not be rehydrated yet
@@ -75,11 +81,15 @@ function GlobalGuard({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const [i18nReady, setI18nReady] = useState(false);
-  useEffect(() => { i18nReadyPromise.then(() => setI18nReady(true)); }, []);
+  useEffect(() => {
+    i18nReadyPromise.then(() => setI18nReady(true));
+  }, []);
 
   if (!i18nReady) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
         <Spin size="large" />
       </div>
     );
@@ -87,74 +97,195 @@ export default function App() {
 
   return (
     <GlobalErrorBoundary>
-    <Routes>
-      <Route
-        path="/setup"
-        element={
-          <SetupGuard>
-            <SetupWizard />
-          </SetupGuard>
-        }
-      />
-      <Route
-        path="/consent"
-        element={
-          <Consent />
-        }
-      />
-      <Route
-        path="/login"
-        element={
-          <GlobalGuard>
-            <Login />
-          </GlobalGuard>
-        }
-      />
-      <Route
-        path="/login/magic"
-        element={
-          <GlobalGuard>
-            <MagicLogin />
-          </GlobalGuard>
-        }
-      />
-      {/* Q1 public self-service surface (GlobalGuard = same setup-status contract as /login) */}
-      <Route path="/forgot-password" element={<GlobalGuard><ForgotPassword /></GlobalGuard>} />
-      <Route path="/reset-password" element={<GlobalGuard><ResetPassword /></GlobalGuard>} />
-      <Route path="/register" element={<GlobalGuard><Register /></GlobalGuard>} />
-      <Route path="/verify-email" element={<GlobalGuard><VerifyEmail /></GlobalGuard>} />
-      <Route path="/enroll-mfa" element={<GlobalGuard><EnrollMfa /></GlobalGuard>} />
-      <Route
-        path="/"
-        element={
-          <GlobalGuard>
-            <PrivateRoute>
-              <AdminLayout />
-            </PrivateRoute>
-          </GlobalGuard>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<PrivateRoute permission="stats:read"><Dashboard /></PrivateRoute>} />
-        <Route path="users" element={<PrivateRoute permission="users:read"><Users /></PrivateRoute>} />
-        <Route path="users/create" element={<PrivateRoute permission="users:write"><UserCreate /></PrivateRoute>} />
-        <Route path="users/:id" element={<PrivateRoute permission="users:read"><UserDetail /></PrivateRoute>} />
-        <Route path="users/:id/edit" element={<PrivateRoute permission="users:write"><UserEdit /></PrivateRoute>} />
-        <Route path="roles" element={<PrivateRoute permission="roles:read"><Roles /></PrivateRoute>} />
-        <Route path="groups" element={<PrivateRoute permission="groups:read"><Groups /></PrivateRoute>} />
-        <Route path="audit" element={<PrivateRoute permission="audit:read"><Audit /></PrivateRoute>} />
-        <Route path="events" element={<PrivateRoute permission="audit:read"><Events /></PrivateRoute>} />
-        <Route path="clients" element={<PrivateRoute permission="clients:read"><Clients /></PrivateRoute>} />
-        <Route path="tenants" element={<PrivateRoute permission="tenants:read"><Tenants /></PrivateRoute>} />
-        <Route path="api-keys" element={<PrivateRoute permission="apikeys:read"><ApiKeys /></PrivateRoute>} />
-        <Route path="webhooks" element={<PrivateRoute permission="webhooks:read"><Webhooks /></PrivateRoute>} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-      <Route path="403" element={<Forbidden />} />
-      <Route path="404" element={<NotFound />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+      <Routes>
+        <Route
+          path="/setup"
+          element={
+            <SetupGuard>
+              <SetupWizard />
+            </SetupGuard>
+          }
+        />
+        <Route path="/consent" element={<Consent />} />
+        <Route
+          path="/login"
+          element={
+            <GlobalGuard>
+              <Login />
+            </GlobalGuard>
+          }
+        />
+        <Route
+          path="/login/magic"
+          element={
+            <GlobalGuard>
+              <MagicLogin />
+            </GlobalGuard>
+          }
+        />
+        {/* Q1 public self-service surface (GlobalGuard = same setup-status contract as /login) */}
+        <Route
+          path="/forgot-password"
+          element={
+            <GlobalGuard>
+              <ForgotPassword />
+            </GlobalGuard>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <GlobalGuard>
+              <ResetPassword />
+            </GlobalGuard>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <GlobalGuard>
+              <Register />
+            </GlobalGuard>
+          }
+        />
+        <Route
+          path="/verify-email"
+          element={
+            <GlobalGuard>
+              <VerifyEmail />
+            </GlobalGuard>
+          }
+        />
+        <Route
+          path="/enroll-mfa"
+          element={
+            <GlobalGuard>
+              <EnrollMfa />
+            </GlobalGuard>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <GlobalGuard>
+              <PrivateRoute>
+                <AdminLayout />
+              </PrivateRoute>
+            </GlobalGuard>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="dashboard"
+            element={
+              <PrivateRoute permission="stats:read">
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="users"
+            element={
+              <PrivateRoute permission="users:read">
+                <Users />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="users/create"
+            element={
+              <PrivateRoute permission="users:write">
+                <UserCreate />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="users/:id"
+            element={
+              <PrivateRoute permission="users:read">
+                <UserDetail />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="users/:id/edit"
+            element={
+              <PrivateRoute permission="users:write">
+                <UserEdit />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="roles"
+            element={
+              <PrivateRoute permission="roles:read">
+                <Roles />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="groups"
+            element={
+              <PrivateRoute permission="groups:read">
+                <Groups />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="audit"
+            element={
+              <PrivateRoute permission="audit:read">
+                <Audit />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="events"
+            element={
+              <PrivateRoute permission="audit:read">
+                <Events />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="clients"
+            element={
+              <PrivateRoute permission="clients:read">
+                <Clients />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="tenants"
+            element={
+              <PrivateRoute permission="tenants:read">
+                <Tenants />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="api-keys"
+            element={
+              <PrivateRoute permission="apikeys:read">
+                <ApiKeys />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="webhooks"
+            element={
+              <PrivateRoute permission="webhooks:read">
+                <Webhooks />
+              </PrivateRoute>
+            }
+          />
+          <Route path="profile" element={<Profile />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+        <Route path="403" element={<Forbidden />} />
+        <Route path="404" element={<NotFound />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </GlobalErrorBoundary>
   );
 }

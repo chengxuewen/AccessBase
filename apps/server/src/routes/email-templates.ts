@@ -35,7 +35,10 @@ function asOverride(value: unknown): TemplateOverride | undefined {
     : undefined;
 }
 
-function mergeArms(stored: LocalizedArms | undefined, fallback: { en: string; zh: string }): { en: string; zh: string } {
+function mergeArms(
+  stored: LocalizedArms | undefined,
+  fallback: { en: string; zh: string },
+): { en: string; zh: string } {
   return {
     en: typeof stored?.en === 'string' && stored.en ? stored.en : fallback.en,
     zh: typeof stored?.zh === 'string' && stored.zh ? stored.zh : fallback.zh,
@@ -55,9 +58,7 @@ const SAMPLE_VARS: Record<TemplateId, Record<string, string>> = {
 };
 
 function badRequest(reply: FastifyReply, message: string) {
-  return reply
-    .status(400)
-    .send({ success: false, error: { code: 'TEMPLATE_INVALID', message } });
+  return reply.status(400).send({ success: false, error: { code: 'TEMPLATE_INVALID', message } });
 }
 
 export async function emailTemplateRoutes(app: FastifyInstance): Promise<void> {
@@ -77,7 +78,9 @@ export async function emailTemplateRoutes(app: FastifyInstance): Promise<void> {
       const om = getOptionsManager();
       const data = [];
       for (const id of TEMPLATE_IDS) {
-        const override = asOverride(await om.get<unknown>(`email_tmpl_${id}`, undefined, undefined));
+        const override = asOverride(
+          await om.get<unknown>(`email_tmpl_${id}`, undefined, undefined),
+        );
         data.push({
           id,
           subject: mergeArms(override?.subject, DEFAULTS[id].subject),
@@ -106,7 +109,10 @@ export async function emailTemplateRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const { id } = request.params;
       if (!isTemplateId(id)) {
-        return badRequest(reply, `Unknown template id '${id}' (expected ${TEMPLATE_IDS.join('|')})`);
+        return badRequest(
+          reply,
+          `Unknown template id '${id}' (expected ${TEMPLATE_IDS.join('|')})`,
+        );
       }
       const value = request.body;
       if (value === null || value === undefined || value === '') {
@@ -141,7 +147,10 @@ export async function emailTemplateRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const { id } = request.params;
       if (!isTemplateId(id)) {
-        return badRequest(reply, `Unknown template id '${id}' (expected ${TEMPLATE_IDS.join('|')})`);
+        return badRequest(
+          reply,
+          `Unknown template id '${id}' (expected ${TEMPLATE_IDS.join('|')})`,
+        );
       }
       const body = (request.body ?? {}) as {
         locale?: string;
@@ -170,13 +179,14 @@ export async function emailTemplateRoutes(app: FastifyInstance): Promise<void> {
         draftOverride = body.overrides as TemplateOverride;
       }
       const om = getOptionsManager();
-      const storedOverride = asOverride(await om.get<unknown>(`email_tmpl_${id}`, undefined, undefined));
+      const storedOverride = asOverride(
+        await om.get<unknown>(`email_tmpl_${id}`, undefined, undefined),
+      );
       const merged: TemplateOverride = {
         subject: { ...storedOverride?.subject, ...draftOverride?.subject },
         html: { ...storedOverride?.html, ...draftOverride?.html },
       };
-      const locale =
-        body.locale ?? (await om.get<string>('email_locale_default', undefined, 'en'));
+      const locale = body.locale ?? (await om.get<string>('email_locale_default', undefined, 'en'));
       const siteName = await om.get<string>('site.name', undefined, 'AccessBase');
       const rendered = renderEmail(id, vars, {
         locale,
@@ -210,7 +220,10 @@ export async function emailTemplateRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const { id } = request.params;
       if (!isTemplateId(id)) {
-        return badRequest(reply, `Unknown template id '${id}' (expected ${TEMPLATE_IDS.join('|')})`);
+        return badRequest(
+          reply,
+          `Unknown template id '${id}' (expected ${TEMPLATE_IDS.join('|')})`,
+        );
       }
       const om = getOptionsManager();
       const mailer = await getSmtpMailer(om);

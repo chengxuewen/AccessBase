@@ -43,8 +43,18 @@ const FULL_PERMS_ME = {
   name: 'Administrator',
   roles: [{ id: 'r-1', name: 'admin' }],
   permissions: [
-    'stats:read', 'users:read', 'users:write', 'roles:read', 'roles:write', 'roles:delete',
-    'audit:read', 'audit:delete', 'stats:write', 'stats:delete', 'clients:read', 'clients:write',
+    'stats:read',
+    'users:read',
+    'users:write',
+    'roles:read',
+    'roles:write',
+    'roles:delete',
+    'audit:read',
+    'audit:delete',
+    'stats:write',
+    'stats:delete',
+    'clients:read',
+    'clients:write',
   ],
   mfaEnabled: false,
 };
@@ -95,31 +105,48 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
   // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
   await page.route('**/api/v1/auth/saml/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
 }
 
 // POST bodies captured by mockClientsApis (per-test arrays via beforeEach reset below).
 let capturedCreateBodies: Record<string, unknown>[] = [];
-
 
 /** GET /api/v1/clients backed by a mutable list so create/delete mutate the "DB". */
 async function mockClientsApis(
@@ -163,7 +190,11 @@ async function mockClientsApis(
   });
   await page.route('**/api/v1/clients/*/rotate-secret', async (route) => {
     if (route.request().method() === 'POST') {
-      const clientId = route.request().url().match(/clients\/([^/]+)\/rotate-secret/)?.[1] ?? '';
+      const clientId =
+        route
+          .request()
+          .url()
+          .match(/clients\/([^/]+)\/rotate-secret/)?.[1] ?? '';
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -175,7 +206,11 @@ async function mockClientsApis(
   });
   await page.route('**/api/v1/clients/*', async (route) => {
     if (route.request().method() === 'DELETE') {
-      const clientId = route.request().url().match(/clients\/([^/]+)$/)?.[1] ?? '';
+      const clientId =
+        route
+          .request()
+          .url()
+          .match(/clients\/([^/]+)$/)?.[1] ?? '';
       const idx = clients.findIndex((c) => c.clientId === clientId);
       if (idx >= 0) clients.splice(idx, 1);
       await route.fulfill({ status: 204, body: '' });
@@ -221,7 +256,9 @@ test.describe('OIDC clients management', () => {
     await page.getByTestId('clients-name-input').fill('Gamma App');
     await page.getByTestId('clients-redirect-uris-input').fill('https://gamma.example.com/cb');
     await page.getByTestId('clients-scope-input').fill('openid profile email');
-    await page.getByTestId('clients-backchannel-input').fill('https://gamma.example.com/backchannel-logout');
+    await page
+      .getByTestId('clients-backchannel-input')
+      .fill('https://gamma.example.com/backchannel-logout');
     const reveal = page.locator('.ant-modal', { has: page.getByTestId('secret-reveal-value') });
     await page.locator('.ant-modal-footer .ant-btn-primary').click();
     await expect(reveal).toBeVisible();
@@ -236,9 +273,15 @@ test.describe('OIDC clients management', () => {
 
     // Round-trip: the create POST carried the optional field and the list echoes it back.
     const createBody = capturedCreateBodies.find((b) => b['name'] === 'Gamma App');
-    expect(createBody?.['backchannelLogoutUri']).toBe('https://gamma.example.com/backchannel-logout');
-    await expect(page.getByRole('cell', { name: 'https://beta.example.com/backchannel-logout' })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'https://gamma.example.com/backchannel-logout' })).toBeVisible();
+    expect(createBody?.['backchannelLogoutUri']).toBe(
+      'https://gamma.example.com/backchannel-logout',
+    );
+    await expect(
+      page.getByRole('cell', { name: 'https://beta.example.com/backchannel-logout' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('cell', { name: 'https://gamma.example.com/backchannel-logout' }),
+    ).toBeVisible();
   });
 
   test('after close, the list does NOT contain the plaintext secret', async ({ page }) => {

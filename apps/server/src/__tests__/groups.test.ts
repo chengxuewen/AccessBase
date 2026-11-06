@@ -112,7 +112,10 @@ describe('groups CRUD', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().data[0]).toMatchObject({ name: 'Eng', memberCount: 2, roleCount: 1 });
     // T3: route passes explicit pagination opts; no-opts = full set (SCIM guard)
-    expect(groupInstance.list).toHaveBeenCalledWith(TENANT, { limit: expect.any(Number), offset: expect.any(Number) });
+    expect(groupInstance.list).toHaveBeenCalledWith(TENANT, {
+      limit: expect.any(Number),
+      offset: expect.any(Number),
+    });
   });
 
   it('GET /:id → 200 with the group', async () => {
@@ -137,7 +140,10 @@ describe('groups CRUD', () => {
       payload: { name: 'New' },
     });
     expect(res.statusCode).toBe(201);
-    expect(groupInstance.create).toHaveBeenCalledWith({ name: 'New', description: undefined }, TENANT);
+    expect(groupInstance.create).toHaveBeenCalledWith(
+      { name: 'New', description: undefined },
+      TENANT,
+    );
   });
 
   it('POST / → 409 on GROUP_NAME_EXISTS', async () => {
@@ -165,13 +171,21 @@ describe('groups CRUD', () => {
 
   it('DELETE /:id → 409 on LAST_ADMIN_GUARD (conflict-mapper)', async () => {
     armFail('delete', 'LAST_ADMIN_GUARD: group is the only admin source of the tenant');
-    const res = await app.inject({ method: 'DELETE', url: `/api/v1/groups/${GID}`, headers: AUTH() });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/groups/${GID}`,
+      headers: AUTH(),
+    });
     expect(res.statusCode).toBe(409);
     expect(res.json().error.code).toBe('LAST_ADMIN_GUARD');
   });
 
   it('DELETE /:id → 200 happy', async () => {
-    const res = await app.inject({ method: 'DELETE', url: `/api/v1/groups/${GID}`, headers: AUTH() });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/groups/${GID}`,
+      headers: AUTH(),
+    });
     expect(res.statusCode).toBe(200);
     expect(groupInstance.delete).toHaveBeenCalledWith(GID, TENANT);
   });
@@ -253,7 +267,12 @@ describe('groups role bindings', () => {
     });
     expect(res.statusCode).toBe(200);
     // tx handle is the 4th positional arg (Q2b routeTx discipline).
-    expect(groupInstance.setGroupRoles).toHaveBeenCalledWith(GID, [RID1, RID2], TENANT, expect.anything());
+    expect(groupInstance.setGroupRoles).toHaveBeenCalledWith(
+      GID,
+      [RID1, RID2],
+      TENANT,
+      expect.anything(),
+    );
   });
 
   it('PUT /:id/roles → 400 on GROUP_ROLE_TENANT_MISMATCH', async () => {
@@ -292,11 +311,12 @@ describe('groups guards', () => {
     expect(getRequiredPermission('GET', '/api/v1/groups')).toBe('groups:read');
     expect(getRequiredPermission('POST', `/api/v1/groups/${GID}/members`)).toBe('groups:write');
     expect(getRequiredPermission('PUT', `/api/v1/groups/${GID}/roles`)).toBe('groups:write');
-    expect(getRequiredPermission('DELETE', `/api/v1/groups/${GID}/members/${UID}`)).toBe('groups:delete');
+    expect(getRequiredPermission('DELETE', `/api/v1/groups/${GID}/members/${UID}`)).toBe(
+      'groups:delete',
+    );
     expect(getRequiredPermission('DELETE', `/api/v1/groups/${GID}`)).toBe('groups:delete');
   });
 });
-
 
 // DG-6d data-scope T-SERVER: groups kind passthrough (A5 — editable at the
 // route; the GroupManager clamp is the belt; SCIM never passes kind).

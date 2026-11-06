@@ -23,7 +23,10 @@ export interface RetentionSweeper {
 }
 
 /** env override wins; `configured` = the AuditStorage archive default. 0 disables. */
-export function resolveRetentionDays(raw: string | undefined, configured: number | undefined): number {
+export function resolveRetentionDays(
+  raw: string | undefined,
+  configured: number | undefined,
+): number {
   const n = raw !== undefined && raw !== '' ? Number(raw) : (configured ?? 365);
   if (!Number.isFinite(n) || n <= 0) return 0;
   return Math.floor(n);

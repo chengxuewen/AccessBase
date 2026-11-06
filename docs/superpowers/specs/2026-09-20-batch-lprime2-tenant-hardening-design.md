@@ -44,6 +44,7 @@
 ### D1: replay-arm condition = membership, not existence
 
 In `routes/tenants.ts` bootstrap:
+
 - `existingUser && existingUser.tenantId !== id` → 409 EMAIL_EXISTS (unchanged).
 - `existingUser ∈ tenant`:
   - query membership: `roleManager.getUserRoles(existingUser.id, id)` → any role

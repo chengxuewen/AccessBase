@@ -83,7 +83,11 @@ export default function Settings() {
     } catch {
       return; // field-level errors are rendered inline by antd
     }
-    const values = siteForm.getFieldsValue() as { siteName?: string; logoUrl?: string; primaryColor?: string };
+    const values = siteForm.getFieldsValue() as {
+      siteName?: string;
+      logoUrl?: string;
+      primaryColor?: string;
+    };
     await saveBranding(values.siteName ?? '', values.logoUrl ?? '', values.primaryColor ?? '');
     setSiteSaved(true);
   };
@@ -214,7 +218,11 @@ export default function Settings() {
     loadSessions();
     loadPasskeys();
     void fetchBranding(true).then((b) => {
-      siteForm.setFieldsValue({ siteName: b.siteName, logoUrl: b.logoUrl, primaryColor: b.primaryColor });
+      siteForm.setFieldsValue({
+        siteName: b.siteName,
+        logoUrl: b.logoUrl,
+        primaryColor: b.primaryColor,
+      });
     });
   }, [loadSessions, loadPasskeys, siteForm]);
 
@@ -222,7 +230,13 @@ export default function Settings() {
     <Space direction="vertical" size="large" style={{ display: 'flex', width: '100%' }}>
       <Card title={t('settings.activeSessions')} data-testid="active-sessions">
         {sessionsError && (
-          <Alert type="error" showIcon message={sessionsError} style={{ marginBottom: 16 }} data-testid="sessions-error" />
+          <Alert
+            type="error"
+            showIcon
+            message={sessionsError}
+            style={{ marginBottom: 16 }}
+            data-testid="sessions-error"
+          />
         )}
         <Spin spinning={sessionsLoading}>
           {sessions.length === 0 && !sessionsLoading ? (
@@ -236,7 +250,11 @@ export default function Settings() {
                   actions={
                     item.current
                       ? [
-                          <Tag key="current" color="blue" data-testid={`session-current-${item.id}`}>
+                          <Tag
+                            key="current"
+                            color="blue"
+                            data-testid={`session-current-${item.id}`}
+                          >
                             {t('settings.currentSession')}
                           </Tag>,
                         ]
@@ -268,7 +286,10 @@ export default function Settings() {
 
       <Card title={t('settings.idleTimeout.label')} data-testid="idle-timeout">
         <Form layout="vertical" style={{ maxWidth: 400 }}>
-          <Form.Item label={t('settings.idleTimeout.label')} extra={t('settings.idleTimeout.helper')}>
+          <Form.Item
+            label={t('settings.idleTimeout.label')}
+            extra={t('settings.idleTimeout.helper')}
+          >
             <Select
               data-testid="idle-timeout-select"
               value={idleSeconds ?? undefined}
@@ -286,7 +307,13 @@ export default function Settings() {
 
       <Card title={t('settings.passkeys')} data-testid="passkeys">
         {passkeysError && (
-          <Alert type="error" showIcon message={passkeysError} style={{ marginBottom: 16 }} data-testid="passkeys-error" />
+          <Alert
+            type="error"
+            showIcon
+            message={passkeysError}
+            style={{ marginBottom: 16 }}
+            data-testid="passkeys-error"
+          />
         )}
         <Spin spinning={passkeysLoading}>
           {passkeys.length === 0 && !passkeysLoading ? (
@@ -305,7 +332,12 @@ export default function Settings() {
                       okText={t('common.confirm')}
                       cancelText={t('common.cancel')}
                     >
-                      <Button danger size="small" icon={<DeleteOutlined />} data-testid={`delete-passkey-${item.id}`}>
+                      <Button
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        data-testid={`delete-passkey-${item.id}`}
+                      >
                         {t('common.delete')}
                       </Button>
                     </Popconfirm>,
@@ -321,7 +353,9 @@ export default function Settings() {
                         ))}
                         <span>
                           {t('settings.lastUsed')}:{' '}
-                          {item.lastUsedAt ? new Date(item.lastUsedAt).toLocaleString() : t('settings.never')}
+                          {item.lastUsedAt
+                            ? new Date(item.lastUsedAt).toLocaleString()
+                            : t('settings.never')}
                         </span>
                       </Space>
                     }
@@ -348,9 +382,20 @@ export default function Settings() {
   const generalTab = (
     <Card title={t('settings.general')} style={{ width: '100%' }} data-testid="general-settings">
       {siteSaved && (
-        <Alert type="success" showIcon message={t('settings.saveSuccess')} style={{ marginBottom: 16, maxWidth: 400 }} data-testid="site-save-success" />
+        <Alert
+          type="success"
+          showIcon
+          message={t('settings.saveSuccess')}
+          style={{ marginBottom: 16, maxWidth: 400 }}
+          data-testid="site-save-success"
+        />
       )}
-      <Form form={siteForm} layout="vertical" onValuesChange={() => setSiteSaved(false)} style={{ maxWidth: 400 }}>
+      <Form
+        form={siteForm}
+        layout="vertical"
+        onValuesChange={() => setSiteSaved(false)}
+        style={{ maxWidth: 400 }}
+      >
         <Form.Item name="siteName" label={t('settings.siteName')}>
           <Input placeholder={t('settings.siteNamePlaceholder')} />
         </Form.Item>
@@ -364,7 +409,12 @@ export default function Settings() {
         <Form.Item name="primaryColor" label={t('settings.primaryColor')}>
           <Input type="color" style={{ width: 64, height: 32 }} placeholder="#1677ff" />
         </Form.Item>
-        <Button type="primary" htmlType="submit" onClick={handleSaveSite} data-testid="save-site-settings">
+        <Button
+          type="primary"
+          htmlType="submit"
+          onClick={handleSaveSite}
+          data-testid="save-site-settings"
+        >
           {t('common.save')}
         </Button>
       </Form>
@@ -431,9 +481,14 @@ export default function Settings() {
       const saved = data.data;
       setOptions((prev) => {
         const rest = prev.filter((o) => o.key !== key);
-        return [...rest, { key, value: saved?.value ?? parsed, updatedAt: saved ? saved.updatedAt : new Date().toISOString() }].sort(
-          (a, b) => a.key.localeCompare(b.key),
-        );
+        return [
+          ...rest,
+          {
+            key,
+            value: saved?.value ?? parsed,
+            updatedAt: saved ? saved.updatedAt : new Date().toISOString(),
+          },
+        ].sort((a, b) => a.key.localeCompare(b.key));
       });
       message.success(t('settings.options.saveSuccess'));
       setOptionModalOpen(false);
@@ -493,7 +548,13 @@ export default function Settings() {
             okText={t('common.confirm')}
             cancelText={t('common.cancel')}
           >
-            <Button danger type="link" size="small" icon={<DeleteOutlined />} data-testid={`delete-option-${record.key}`}>
+            <Button
+              danger
+              type="link"
+              size="small"
+              icon={<DeleteOutlined />}
+              data-testid={`delete-option-${record.key}`}
+            >
               {t('common.delete')}
             </Button>
           </Popconfirm>
@@ -505,16 +566,27 @@ export default function Settings() {
   const optionsTab = (
     <Card
       title={t('settings.options.title')}
-      extra={(
-        <Button type="primary" icon={<PlusOutlined />} onClick={openAddOption} data-testid="add-option">
+      extra={
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={openAddOption}
+          data-testid="add-option"
+        >
           {t('settings.options.add')}
         </Button>
-      )}
+      }
       style={{ width: '100%' }}
       data-testid="options-settings"
     >
       {optionsError && (
-        <Alert type="error" showIcon message={optionsError} style={{ marginBottom: 16 }} data-testid="options-error" />
+        <Alert
+          type="error"
+          showIcon
+          message={optionsError}
+          style={{ marginBottom: 16 }}
+          data-testid="options-error"
+        />
       )}
       <Table<OptionRow>
         rowKey="key"
@@ -552,10 +624,18 @@ export default function Settings() {
               data-testid="option-key-input"
             />
           </Form.Item>
-          <Form.Item name="valueText" label={t('settings.options.value')} extra={editingOption ? t('settings.options.editValueHint') : undefined}>
+          <Form.Item
+            name="valueText"
+            label={t('settings.options.value')}
+            extra={editingOption ? t('settings.options.editValueHint') : undefined}
+          >
             <Input.TextArea
               rows={4}
-              placeholder={editingOption ? t('settings.options.editValuePlaceholder') : t('settings.options.valuePlaceholder')}
+              placeholder={
+                editingOption
+                  ? t('settings.options.editValuePlaceholder')
+                  : t('settings.options.valuePlaceholder')
+              }
               data-testid="option-value-input"
             />
           </Form.Item>

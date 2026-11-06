@@ -155,7 +155,10 @@ export async function registerInteractionRoutes(
         return;
       }
       if (interaction.prompt.name === 'consent' && decision === 'approve') {
-        const grant = new provider.Grant({ accountId: subject, clientId: interaction.params['client_id'] });
+        const grant = new provider.Grant({
+          accountId: subject,
+          clientId: interaction.params['client_id'],
+        });
         grant.addOIDCScope(scopes.join(' '));
         const grantId = await grant.save();
         await provider.interactionFinished(request.raw, res, { consent: { grantId } });
@@ -177,7 +180,10 @@ export async function registerInteractionRoutes(
       res.end(
         JSON.stringify({
           success: false,
-          error: { code: 'OIDC_003', message: `decision ${decision} not valid for prompt ${interaction.prompt.name}` },
+          error: {
+            code: 'OIDC_003',
+            message: `decision ${decision} not valid for prompt ${interaction.prompt.name}`,
+          },
         }),
       );
     },

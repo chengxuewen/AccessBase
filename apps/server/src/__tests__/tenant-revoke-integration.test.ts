@@ -54,10 +54,11 @@ const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
 
 async function mkTenant(name: string): Promise<string> {
   const id = randomUUID();
-  await pool.query(
-    `INSERT INTO tenants (id, name, slug, status) VALUES ($1,$2,$3,'active')`,
-    [id, name, `${name}-${id.slice(0, 8)}`],
-  );
+  await pool.query(`INSERT INTO tenants (id, name, slug, status) VALUES ($1,$2,$3,'active')`, [
+    id,
+    name,
+    `${name}-${id.slice(0, 8)}`,
+  ]);
   return id;
 }
 
@@ -91,7 +92,9 @@ async function mkApiKey(tenantId: string): Promise<string> {
 }
 
 async function revoked(table: 'sessions' | 'api_keys', id: string): Promise<boolean> {
-  const r = await pool.query(`SELECT revoked_at IS NOT NULL AS r FROM ${table} WHERE id = $1`, [id]);
+  const r = await pool.query(`SELECT revoked_at IS NOT NULL AS r FROM ${table} WHERE id = $1`, [
+    id,
+  ]);
   return r.rows[0]?.r === true;
 }
 

@@ -22,9 +22,7 @@
  */
 import { promises as dns } from 'node:dns';
 
-export type WebhookUrlVerdict =
-  | { ok: true; hostname: string }
-  | { ok: false; reason: string };
+export type WebhookUrlVerdict = { ok: true; hostname: string } | { ok: false; reason: string };
 
 /** DNS answers cache — TTL per spec §5.5 (≤30s). */
 const DNS_CACHE_TTL_MS = 30_000;
@@ -171,33 +169,54 @@ export function assertWebhookUrl(raw: string): WebhookUrlVerdict {
  */
 export async function resolveDeniedIps(
   hostname: string,
-  lookup?: (host: string, opts: { all: true }) => Promise<Array<{ address: string; family: number }>>,
+  lookup?: (
+    host: string,
+    opts: { all: true },
+  ) => Promise<Array<{ address: string; family: number }>>,
 ): Promise<WebhookUrlVerdict> {
   const cached = dnsCache.get(hostname);
   if (cached && cached.expiresAt > Date.now()) {
-    return cached.ok ? { ok: true, hostname } : { ok: false, reason: cached.reason ?? 'cached-deny' };
+    return cached.ok
+      ? { ok: true, hostname }
+      : { ok: false, reason: cached.reason ?? 'cached-deny' };
   }
   const fn = lookup ?? ((h: string, o: { all: true }) => dns.lookup(h, o));
   let answers: Array<{ address: string; family: number }>;
   try {
     answers = await fn(hostname, { all: true });
   } catch {
-    dnsCache.set(hostname, { ok: false, reason: 'dns-lookup-failed', expiresAt: Date.now() + DNS_CACHE_TTL_MS });
+    dnsCache.set(hostname, {
+      ok: false,
+      reason: 'dns-lookup-failed',
+      expiresAt: Date.now() + DNS_CACHE_TTL_MS,
+    });
     return { ok: false, reason: 'dns-lookup-failed' };
   }
   if (answers.length === 0) {
-    dnsCache.set(hostname, { ok: false, reason: 'dns-empty', expiresAt: Date.now() + DNS_CACHE_TTL_MS });
+    dnsCache.set(hostname, {
+      ok: false,
+      reason: 'dns-empty',
+      expiresAt: Date.now() + DNS_CACHE_TTL_MS,
+    });
     return { ok: false, reason: 'dns-empty' };
   }
   for (const a of answers) {
     const cls = classifyHost(a.address);
     // Every answer must be a literal (never another hostname) AND not denied.
     if (cls.kind === 'deny' || cls.kind === 'hostname') {
-      dnsCache.set(hostname, { ok: false, reason: 'dns-answer-unclassifiable', expiresAt: Date.now() + DNS_CACHE_TTL_MS });
+      dnsCache.set(hostname, {
+        ok: false,
+        reason: 'dns-answer-unclassifiable',
+        expiresAt: Date.now() + DNS_CACHE_TTL_MS,
+      });
       return { ok: false, reason: 'dns-answer-unclassifiable' };
     }
     if (cls.denyIf()) {
-      dnsCache.set(hostname, { ok: false, reason: 'dns-answer-denied', expiresAt: Date.now() + DNS_CACHE_TTL_MS });
+      dnsCache.set(hostname, {
+        ok: false,
+        reason: 'dns-answer-denied',
+        expiresAt: Date.now() + DNS_CACHE_TTL_MS,
+      });
       return { ok: false, reason: 'dns-answer-denied' };
     }
   }

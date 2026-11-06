@@ -24,7 +24,9 @@ test.describe.serial('Setup real backend flow', () => {
     await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 });
     await expect(page.locator('h2#welcome-title')).toBeVisible();
     await page.locator('button:has-text("Start Setup")').click();
-    await expect(page.locator('[role="listitem"] .anticon-check-circle').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[role="listitem"] .anticon-check-circle').first()).toBeVisible({
+      timeout: 15_000,
+    });
     await page.locator('button:has-text("Next")').click();
 
     const unique = `admin-${Date.now()}@test.local`;
@@ -46,10 +48,9 @@ test.describe.serial('Setup real backend flow', () => {
     // Complete step: button goes loading + page navigates — wait for URL, don't click a spinner
     const completeBtn = page.locator('button:has-text("Enter Dashboard")');
     await expect(completeBtn).toBeVisible({ timeout: 5_000 });
-    const completeResp = page.waitForResponse(
-      (r) => r.url().includes('/setup/complete'),
-      { timeout: 15_000 },
-    );
+    const completeResp = page.waitForResponse((r) => r.url().includes('/setup/complete'), {
+      timeout: 15_000,
+    });
     await completeBtn.click({ trial: true }).catch(() => {}); // may detach mid-click (loading → navigation)
     // If the click didn't land (detached), the navigation has already started; wait for either tokens fetch or URL
     // Complete → tokens → client-side redirects land on /dashboard
@@ -88,7 +89,11 @@ test.describe.serial('Setup real backend flow', () => {
     // no CONFIRM env + non-interactive stdin → read fails → reset exits non-zero
     let threw = false;
     try {
-      execSync('bash accessbase.sh reset', { cwd: resolve(__dirname, '..'), stdio: 'pipe', input: '' });
+      execSync('bash accessbase.sh reset', {
+        cwd: resolve(__dirname, '..'),
+        stdio: 'pipe',
+        input: '',
+      });
     } catch {
       threw = true;
     }
@@ -105,19 +110,26 @@ test.describe.serial('Setup real backend flow', () => {
       r.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: false, adminExists: false, configComplete: false } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: false, adminExists: false, configComplete: false },
+        }),
       }),
     );
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 }); // GlobalGuard redirect
 
     // 503: mock status 503 → frontend must not crash (no ErrorBoundary)
-    await page.route('**/api/v1/setup/status', (r) => r.fulfill({ status: 503, body: '{"success":false}' }));
+    await page.route('**/api/v1/setup/status', (r) =>
+      r.fulfill({ status: 503, body: '{"success":false}' }),
+    );
     await page.goto('/');
     await expect(page.locator('body')).toBeVisible();
   });
 
-  test('T5.4 backend down → guard shows retry state, NOT login; recovers when backend returns', async ({ page }) => {
+  test('T5.4 backend down → guard shows retry state, NOT login; recovers when backend returns', async ({
+    page,
+  }) => {
     // abort status 请求模拟后端不可达（不依赖真实杀进程——CI 友好）
     await page.route('**/api/v1/setup/status', (r) => r.abort());
     await page.goto('/');
@@ -127,10 +139,16 @@ test.describe.serial('Setup real backend flow', () => {
     await expect(page.getByTestId('setup-guard-retry')).toBeVisible({ timeout: 5000 });
     // 恢复后端 → 自动重试应把用户带进 setup（DB 当前为未初始化状态时）
     await page.unroute('**/api/v1/setup/status');
-    await page.route('**/api/v1/setup/status', (r) => r.fulfill({
-      status: 200, contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: false, adminExists: false, configComplete: false } }),
-    }));
+    await page.route('**/api/v1/setup/status', (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: false, adminExists: false, configComplete: false },
+        }),
+      }),
+    );
     await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 }); // 3s 重试间隔 + 断言余量
   });
 });

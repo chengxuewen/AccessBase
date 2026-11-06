@@ -38,11 +38,7 @@ export default function Breadcrumbs() {
         const isLast = i === segments.length - 1;
         const path = '/' + segments.slice(0, i + 1).join('/');
         return {
-          title: isLast ? (
-            label
-          ) : (
-            <Link to={path}>{label}</Link>
-          ),
+          title: isLast ? label : <Link to={path}>{label}</Link>,
           key: path,
         };
       })}

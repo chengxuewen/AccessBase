@@ -54,11 +54,22 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       })),
       findById: vi.fn(async (id: string) =>
         id === '550e8400-e29b-41d4-a716-446655440001'
-          ? { id: '550e8400-e29b-41d4-a716-446655440001', email: 'armed@test.local', name: 'A', status: 'active', mustChangePassword: state.mustChange, tenantId: '00000000-0000-0000-0000-000000000001' }
+          ? {
+              id: '550e8400-e29b-41d4-a716-446655440001',
+              email: 'armed@test.local',
+              name: 'A',
+              status: 'active',
+              mustChangePassword: state.mustChange,
+              tenantId: '00000000-0000-0000-0000-000000000001',
+            }
           : null,
       ),
       // setup-guard fast path (users.test precedent)
-      findByEmail: vi.fn(async (email: string) => (email === 'admin@accessbase.local' ? { id: '550e8400-e29b-41d4-a716-446655440001', email } : null)),
+      findByEmail: vi.fn(async (email: string) =>
+        email === 'admin@accessbase.local'
+          ? { id: '550e8400-e29b-41d4-a716-446655440001', email }
+          : null,
+      ),
       hasPassword: vi.fn(async () => state.hasPassword),
       adminResetPassword: state.adminReset,
       resetPassword: vi.fn().mockResolvedValue(undefined),
@@ -95,7 +106,13 @@ vi.mock('@accessbase/identity/db', () => ({
   userRoles: { _: 'ur' },
   roles: { _: 'r' },
   createDb: () => ({
-    select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ tenantId: '00000000-0000-0000-0000-000000000001' }] }) }) }),
+    select: () => ({
+      from: () => ({
+        where: () => ({
+          limit: async () => [{ tenantId: '00000000-0000-0000-0000-000000000001' }],
+        }),
+      }),
+    }),
     update: () => ({ set: () => ({ where: async () => undefined }) }),
     transaction: async (fn: (tx: unknown) => unknown) => fn({}),
   }),
@@ -125,7 +142,9 @@ beforeEach(() => {
 });
 
 async function bearer(): Promise<Record<string, string>> {
-  return { authorization: `Bearer ${app.jwt.sign({ sub: 'admin-1', email: 'admin@accessbase.local', status: 'active' })}` };
+  return {
+    authorization: `Bearer ${app.jwt.sign({ sub: 'admin-1', email: 'admin@accessbase.local', status: 'active' })}`,
+  };
 }
 
 describe('Q4a login force-change arm', () => {
@@ -140,7 +159,11 @@ describe('Q4a login force-change arm', () => {
     expect(body.data.passwordChangeRequired).toBe(true); // survives fast-json ONLY if schema-declared
     expect(typeof body.data.flowToken).toBe('string');
     expect(body.data.accessToken).toBeUndefined();
-    expect(flowTokenMock.issue).toHaveBeenCalledWith('password_reset', { userId: '550e8400-e29b-41d4-a716-446655440001' }, 1800);
+    expect(flowTokenMock.issue).toHaveBeenCalledWith(
+      'password_reset',
+      { userId: '550e8400-e29b-41d4-a716-446655440001' },
+      1800,
+    );
   });
   it('unarmed user proceeds past the arm', async () => {
     state.mustChange = false;
@@ -150,7 +173,9 @@ describe('Q4a login force-change arm', () => {
       payload: { email: 'armed@test.local', password: 'Anything-1!' },
     });
     expect(res.statusCode).toBe(200);
-    expect((res.json() as { data: Record<string, unknown> }).data.passwordChangeRequired).toBeUndefined();
+    expect(
+      (res.json() as { data: Record<string, unknown> }).data.passwordChangeRequired,
+    ).toBeUndefined();
   });
 });
 
@@ -177,17 +202,33 @@ describe('Q4a admin reset + invite', () => {
   });
   it('invite: passwordless user → 202 + mail carries 72h password_reset token', async () => {
     process.env['SMTP_HOST'] = 'mail.test.local';
-    const res = await app.inject({ method: 'POST', url: '/api/v1/users/550e8400-e29b-41d4-a716-446655440001/invite', headers: await bearer(), payload: {} });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/550e8400-e29b-41d4-a716-446655440001/invite',
+      headers: await bearer(),
+      payload: {},
+    });
     delete process.env['SMTP_HOST'];
     expect(res.statusCode).toBe(202);
     expect(state.mailSend).toHaveBeenCalledTimes(1);
-    expect(String(state.mailSend.mock.calls[0]?.[2])).toContain('/reset-password?token=tok-password_reset-0');
-    expect(flowTokenMock.issue).toHaveBeenCalledWith('password_reset', { userId: '550e8400-e29b-41d4-a716-446655440001' }, 72 * 3600);
+    expect(String(state.mailSend.mock.calls[0]?.[2])).toContain(
+      '/reset-password?token=tok-password_reset-0',
+    );
+    expect(flowTokenMock.issue).toHaveBeenCalledWith(
+      'password_reset',
+      { userId: '550e8400-e29b-41d4-a716-446655440001' },
+      72 * 3600,
+    );
   });
   it('invite: user WITH a password (not armed) → 409 pointing to reset', async () => {
     state.hasPassword = true;
     state.mustChange = false; // findById stays armed via shared state? see fixture below
-    const res = await app.inject({ method: 'POST', url: '/api/v1/users/550e8400-e29b-41d4-a716-446655440001/invite', headers: await bearer(), payload: {} });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/550e8400-e29b-41d4-a716-446655440001/invite',
+      headers: await bearer(),
+      payload: {},
+    });
     expect(res.statusCode).toBe(409);
   });
 });

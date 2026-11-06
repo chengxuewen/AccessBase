@@ -35,9 +35,7 @@ export function sendConflictError(reply: FastifyReply, err: unknown): FastifyRep
   const message = err instanceof Error ? err.message : String(err);
   for (const { tag, message: readable } of CONFLICT_TAGS) {
     if (message.startsWith(tag)) {
-      return reply
-        .status(409)
-        .send({ success: false, error: { code: tag, message: readable } });
+      return reply.status(409).send({ success: false, error: { code: tag, message: readable } });
     }
   }
   return null;

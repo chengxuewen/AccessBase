@@ -70,6 +70,7 @@ Fail-closed same-tx rule (tx-passing callers only): event insert failure ⇒ mut
 **Step 0 (every tick, BEFORE kill-switch):** age prune (§3).
 **Step 1 fan-out:** INSERT…SELECT delivery rows for events with `fanout_complete_at IS NULL`, JOIN pinned `w.tenant_id = e.tenant_id AND w.active AND e.type <> 'webhook.test'` (R3 — test events never fan out) AND subscription filter (`'*' = ANY(w.subscribed_events) OR e.type = ANY(w.subscribed_events)`) AND tenant-live predicate (B7: join `tenants` ON status='active'; DEFAULT tenant always live — exact shape verified in T2). Then terminalize per the §3 vacuous rule (single UPDATE…NOT EXISTS).
 **Step 2 claim (canonical CTE — R1):**
+
 ```sql
 WITH cte AS (
   SELECT id FROM webhook_deliveries
@@ -82,24 +83,27 @@ SET attempts = attempts + 1, next_attempt_at = now() + make_interval(secs => 60)
 FROM cte WHERE d.id = cte.id
 RETURNING d.id, d.event_id, d.endpoint_id, d.attempts;
 ```
+
 Lease = 60s push; crash ⇒ self-heal re-claim ≤60s later; re-claim increments attempts (a crashed attempt WAS an attempt — off-by-one against the 10-cap documented in tests, B8).
 **Step 3 sign+POST:** body `{id, type, createdAt, data}`; headers `Content-Type: application/json`, `User-Agent: AccessBase-Webhooks/1`, `X-AccessBase-Event`, `X-AccessBase-Type`, `X-AccessBase-Signature: sha256=<hex(HMAC-SHA256(rawBody, secret))>`; `AbortSignal.timeout(10_000)`; `redirect:'manual'` — any 3xx = failure. **Secrets decrypted ONCE per endpoint per tick** into a `Map<endpointId, plaintextSecret>` built from the tick's claimed rows (R4 — never per-delivery scrypt).
 **Step 4 outcome:** 2xx → `status='delivered', delivered_at, response_status`. Else stamp `last_error/response_status`, `next_attempt_at = now() + make_interval(secs => 30 * (2 ^ LEAST(attempts, 10)))` (PG `^` = exponentiation on doubles; scalar-min is `LEAST` — rev.1's `min()` was invalid SQL); `attempts >= 10 → status='dead'`.
 **Step 5 SSRF — dedicated parser, FAIL-CLOSED (B2/R6 — ipInCidr is NOT reused as the guard; its fail-open posture is inverted for this use):** `assertWebhookUrl(url)`:
-  - protocol http(s); no userinfo; no fragment; strip `[]` brackets from IPv6 hosts;
-  - classify: dotted-quad IPv4 (exactly 4 decimal parts) | IPv6 literal — **v4-mapped expansion** (`::ffff:a.b.c.d` AND `::ffff:HHHH:HHHH`) canonicalized to IPv4 BEFORE deny-matching; ANY unparseable host shape ⇒ REJECT (fail-closed, opposite of cidr.ts warnBad — cite in code comment);
-  - deny-set on canonical forms: `127.0.0.0/8`, `0.0.0.0/8`, `::1`, `::`, `169.254.0.0/16`, `fe80::/10`;
-  - hostname ⇒ `dns.promises.lookup(all)`, every answer family-normalized + re-checked against the same deny-set (un-classifiable answer ⇒ reject); cached ≤30s; re-checked at dispatch time;
-  - RFC1918/unique-local IPv4 ALLOWED per ruling. Residual `ponytail:` comment: TOCTOU rebinding (connect-time pin needs custom undici dispatcher — integration day).
+
+- protocol http(s); no userinfo; no fragment; strip `[]` brackets from IPv6 hosts;
+- classify: dotted-quad IPv4 (exactly 4 decimal parts) | IPv6 literal — **v4-mapped expansion** (`::ffff:a.b.c.d` AND `::ffff:HHHH:HHHH`) canonicalized to IPv4 BEFORE deny-matching; ANY unparseable host shape ⇒ REJECT (fail-closed, opposite of cidr.ts warnBad — cite in code comment);
+- deny-set on canonical forms: `127.0.0.0/8`, `0.0.0.0/8`, `::1`, `::`, `169.254.0.0/16`, `fe80::/10`;
+- hostname ⇒ `dns.promises.lookup(all)`, every answer family-normalized + re-checked against the same deny-set (un-classifiable answer ⇒ reject); cached ≤30s; re-checked at dispatch time;
+- RFC1918/unique-local IPv4 ALLOWED per ruling. Residual `ponytail:` comment: TOCTOU rebinding (connect-time pin needs custom undici dispatcher — integration day).
   Registration violation → 400 `WEBHOOK_URL_DENIED`; dispatch-time → delivery fail `last_error='ssrf-denied'` (counts toward the 10-cap; bounded).
-**Step 6 kill-switch:** `webhooks_enabled` — env `WEBHOOKS_ENABLED` > option (**added to KNOWN_OPTION_KEYS**, R7) > default true. Off ⇒ steps 1-4 no-op (prune already ran; backlog dispatches on re-enable within retention horizon).
-**Step 7 test-env gate (B3 — HARD):** the loop is NOT registered when `process.env.NODE_ENV === 'test'` — keeps every vitest suite (incl. real-PG integration files running >15s on shared DEV PG, and dev-machine outbound fetch) dispatcher-free. Boot delay 60s (sweeper-aligned) + interval 5s (`WEBHOOK_DISPATCH_INTERVAL_MS`); running-boolean guard one tick at a time. Static lock in T2: app.ts registers dispatcher behind the env gate; runtime assertion no tick under NODE_ENV=test.
+  **Step 6 kill-switch:** `webhooks_enabled` — env `WEBHOOKS_ENABLED` > option (**added to KNOWN_OPTION_KEYS**, R7) > default true. Off ⇒ steps 1-4 no-op (prune already ran; backlog dispatches on re-enable within retention horizon).
+  **Step 7 test-env gate (B3 — HARD):** the loop is NOT registered when `process.env.NODE_ENV === 'test'` — keeps every vitest suite (incl. real-PG integration files running >15s on shared DEV PG, and dev-machine outbound fetch) dispatcher-free. Boot delay 60s (sweeper-aligned) + interval 5s (`WEBHOOK_DISPATCH_INTERVAL_MS`); running-boolean guard one tick at a time. Static lock in T2: app.ts registers dispatcher behind the env gate; runtime assertion no tick under NODE_ENV=test.
 
 ## 6. Admin surface + codes
 
 Codes **24→26**: `webhooks:read`, `webhooks:write` → seed + TENANT_BINDABLE 12→14 + authorize routePermissions, same commit (convention check-command expectations flip same-commit).
 
 `/api/v1/webhooks` (authenticate + requirePermission):
+
 - `GET /` — NEVER projects secret/secret_encrypted (type-level row exclusion, `OidcClientListRow` precedent); pending/dead counts per endpoint (2 aggregates).
 - `POST /` {url, description?, subscribedEvents[]} — `assertWebhookUrl`; dup = PRE-CHECK SELECT (tenant,url) → 409 `WEBHOOK_EXISTS` (F16, no 23505 reliance); entries each `'*'` OR `^[a-z]+\.[a-z_]+$` (rev.1's pattern wrongly rejected the `'*'` literal); plaintext secret returned ONCE.
 - `PUT /:id` (url re-guarded) / `DELETE /:id` (deliveries cascade; events untouched) / `POST /:id/rotate-secret` (secret once).

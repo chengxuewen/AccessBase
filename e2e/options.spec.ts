@@ -41,7 +41,14 @@ const FULL_PERMS_ME = {
   email: 'admin@accessbase.local',
   name: 'Administrator',
   roles: [{ id: 'r-1', name: 'admin' }],
-  permissions: ['options:read', 'options:write', 'options:delete', 'users:read', 'audit:read', 'stats:read'],
+  permissions: [
+    'options:read',
+    'options:write',
+    'options:delete',
+    'users:read',
+    'audit:read',
+    'stats:read',
+  ],
   mfaEnabled: false,
 };
 
@@ -71,14 +78,20 @@ async function mockOptionsApis(
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
   await page.route('**/api/v1/auth/sessions**', async (route) => {
@@ -133,13 +146,25 @@ test.describe('Settings Options tab', () => {
     consoleErrors = trackConsoleErrors(page);
     // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
     await page.route('**/api/v1/auth/saml/status', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
     await page.route('**/api/v1/auth/sms/status', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
     await page.route('**/api/v1/auth/captcha/status', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
   });
 
@@ -180,7 +205,9 @@ test.describe('Settings Options tab', () => {
     await expect(page.getByTestId('option-value-site.api_key')).toHaveText('******');
   });
 
-  test('editing a sensitive row with blank value does not fire PUT (mask write-back guard)', async ({ page }) => {
+  test('editing a sensitive row with blank value does not fire PUT (mask write-back guard)', async ({
+    page,
+  }) => {
     const putCalls: string[] = [];
     // single LIFO-final route: tracks AND fulfills PUTs (registering a tracking
     // route before mockOptionsApis would be swallowed by its echo route —
@@ -208,7 +235,10 @@ test.describe('Settings Options tab', () => {
     await expect(page.getByTestId('option-value-site.banner')).toBeVisible();
 
     await page.getByTestId('delete-option-site.banner').click();
-    await page.locator('.ant-popconfirm .ant-btn-primary, .ant-popover .ant-btn-primary').first().click();
+    await page
+      .locator('.ant-popconfirm .ant-btn-primary, .ant-popover .ant-btn-primary')
+      .first()
+      .click();
     await expect(page.getByTestId('option-value-site.banner')).toHaveCount(0);
   });
 

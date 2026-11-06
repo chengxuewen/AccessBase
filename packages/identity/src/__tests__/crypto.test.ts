@@ -28,8 +28,7 @@ describe('crypto (AES-256-GCM)', () => {
 describe('crypto envelope versioning (R-B)', () => {
   // Fixture generated with the PRE-EDIT algorithm (base64(iv|tag|ct), raw hex key),
   // frozen before any implementation change — proves backward compatibility.
-  const FIXTURE =
-    'Ui0HNFIWovZK5lI7wvB1Zx9+TcoR69uPyXt9FIfIW9UBNmXC8q+SW3POZMyyCiUSo5bKZg==';
+  const FIXTURE = 'Ui0HNFIWovZK5lI7wvB1Zx9+TcoR69uPyXt9FIfIW9UBNmXC8q+SW3POZMyyCiUSo5bKZg==';
   const FIXTURE_PLAINTEXT = 'fixture-totp-secret-JK3M';
 
   it('decrypts the frozen pre-edit ciphertext as bare legacy input', () => {

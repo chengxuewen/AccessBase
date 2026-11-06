@@ -86,7 +86,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@accessbase/identity')>()),
   TenantManager: vi.fn().mockImplementation(() => ({
     findById: mockTenantFindById,
-    findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 1 }),
+    findAll: vi
+      .fn()
+      .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 1 }),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -104,7 +106,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
     // admin role (the replay cases below). Plain-user test overrides once.
     getUserRoles: mockGetUserRoles,
   })),
-  
+
   PermissionManager: vi.fn().mockImplementation(() => ({
     hasPermission: mockHasPermission,
   })),
@@ -115,7 +117,7 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
 import type { OptionsManager } from '@accessbase/identity';
 const { setOptionsManager } = await import('../routes/options.js');
 setOptionsManager({
-  get: <T,>(_key: string, _env: T | undefined, def: T) => Promise.resolve(def),
+  get: <T>(_key: string, _env: T | undefined, def: T) => Promise.resolve(def),
 } as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');

@@ -31,11 +31,17 @@ export async function mfaSetupRoutes(app: FastifyInstance, ctx: AuthContext) {
     async (request, reply) => {
       const body = (request.body ?? {}) as { flowToken?: string };
       if (typeof body.flowToken === 'string' && body.flowToken !== '') {
-        const enrolled = await ctx.flowTokens.consume<{ userId: string }>(body.flowToken, 'mfa_enroll');
+        const enrolled = await ctx.flowTokens.consume<{ userId: string }>(
+          body.flowToken,
+          'mfa_enroll',
+        );
         if (!enrolled) {
           return reply.status(401).send({
             success: false,
-            error: { code: 'AUTH_MFA_004', message: 'Invalid or expired enrollment session — sign in again' },
+            error: {
+              code: 'AUTH_MFA_004',
+              message: 'Invalid or expired enrollment session — sign in again',
+            },
           });
         }
         const um = await getUserManager();
@@ -76,7 +82,6 @@ export async function mfaSetupRoutes(app: FastifyInstance, ctx: AuthContext) {
   );
 }
 
-
 export async function mfaEnableRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/mfa/enable — confirm setup with a live TOTP code
   app.post<{ Body: { code: string } }>(
@@ -105,7 +110,10 @@ export async function mfaEnableRoutes(app: FastifyInstance, ctx: AuthContext) {
         if (!enrolled) {
           return reply.status(401).send({
             success: false,
-            error: { code: 'AUTH_MFA_004', message: 'Invalid or expired enrollment session — sign in again' },
+            error: {
+              code: 'AUTH_MFA_004',
+              message: 'Invalid or expired enrollment session — sign in again',
+            },
           });
         }
         const um = await getUserManager();
@@ -113,7 +121,10 @@ export async function mfaEnableRoutes(app: FastifyInstance, ctx: AuthContext) {
         if (!wizard) {
           return reply.status(401).send({
             success: false,
-            error: { code: 'AUTH_MFA_004', message: 'Invalid or expired enrollment session — sign in again' },
+            error: {
+              code: 'AUTH_MFA_004',
+              message: 'Invalid or expired enrollment session — sign in again',
+            },
           });
         }
         if (wizard.status !== 'active') {
@@ -158,7 +169,6 @@ export async function mfaEnableRoutes(app: FastifyInstance, ctx: AuthContext) {
     },
   );
 }
-
 
 export async function mfaVerifyRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/mfa/verify — complete MFA login step-up
@@ -205,7 +215,9 @@ export async function mfaVerifyRoutes(app: FastifyInstance, ctx: AuthContext) {
 
       const mfa = getMfaManager();
       const totpOk = (await mfa.verify(payload.userId, code)).success;
-      const recoveryOk = totpOk ? false : (await mfa.verifyRecoveryCode(payload.userId, code)).success;
+      const recoveryOk = totpOk
+        ? false
+        : (await mfa.verifyRecoveryCode(payload.userId, code)).success;
       if (!totpOk && !recoveryOk) {
         return reply.status(401).send({
           success: false,
@@ -216,10 +228,7 @@ export async function mfaVerifyRoutes(app: FastifyInstance, ctx: AuthContext) {
       try {
         // userId round-trips through flow token payload (never trust client identity)
         const userManager = await getUserManager();
-        const user = await userManager.findById(
-          payload.userId,
-          request.tenantId ?? DEFAULT_TENANT,
-        );
+        const user = await userManager.findById(payload.userId, request.tenantId ?? DEFAULT_TENANT);
         if (!user) {
           return reply.status(401).send({
             success: false,
@@ -268,7 +277,6 @@ export async function mfaVerifyRoutes(app: FastifyInstance, ctx: AuthContext) {
     },
   );
 }
-
 
 export async function mfaDisableRoutes(app: FastifyInstance, _ctx: AuthContext) {
   // POST /api/v1/auth/mfa/disable — verify password, then wipe MFA

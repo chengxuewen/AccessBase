@@ -14,7 +14,10 @@ export default function Forbidden() {
       title="403"
       subTitle={t('errors.forbidden.subTitle')}
       extra={
-        <Button type="primary" onClick={() => navigate(landingPath(useAuthStore.getState().user?.permissions))}>
+        <Button
+          type="primary"
+          onClick={() => navigate(landingPath(useAuthStore.getState().user?.permissions))}
+        >
           {t('errors.backToDashboard')}
         </Button>
       }

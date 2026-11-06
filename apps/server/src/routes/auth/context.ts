@@ -34,9 +34,12 @@ export interface AuthContext {
   lockout: LockoutService;
   flowTokens: FlowTokenService;
   /** Q3E-CIDR network admission on the public auth surface (deny wins). */
-  cidrGate(request: { ip: string }, reply: {
-    status: (c: number) => { send: (b: unknown) => unknown };
-  }): Promise<boolean>;
+  cidrGate(
+    request: { ip: string },
+    reply: {
+      status: (c: number) => { send: (b: unknown) => unknown };
+    },
+  ): Promise<boolean>;
   /** Issue access JWT + refresh token (fail-closed tenant gate inside). */
   issueTokenPair(
     request: { ip: string; headers: Record<string, unknown> },

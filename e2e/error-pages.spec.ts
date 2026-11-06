@@ -6,7 +6,10 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
 
@@ -20,7 +23,12 @@ async function mockCommonApis(page: Page): Promise<void> {
           accessToken: 'test-token',
           refreshToken: 'test-refresh',
           expiresIn: 900,
-          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
+          user: {
+            id: '1',
+            email: 'admin@accessbase.local',
+            name: 'Administrator',
+            roles: [{ id: 'role-1', name: 'admin' }],
+          },
         },
       }),
     });
@@ -30,7 +38,10 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
   // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
@@ -38,14 +49,23 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] } }),
+      body: JSON.stringify({
+        success: true,
+        data: {
+          id: '1',
+          email: 'admin@accessbase.local',
+          name: 'Administrator',
+          roles: [{ id: 'role-1', name: 'admin' }],
+        },
+      }),
     });
   });
-
 }
 
 test.describe('Error Pages', () => {
-  test('404 page renders for unknown URL and back button navigates to dashboard', async ({ page }) => {
+  test('404 page renders for unknown URL and back button navigates to dashboard', async ({
+    page,
+  }) => {
     await mockCommonApis(page);
     await page.goto('/nonexistent-url-xyz');
     await expect(page.locator('.ant-result-404')).toBeVisible();

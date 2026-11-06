@@ -23,7 +23,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
     await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
@@ -38,7 +41,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
     await page.locator('button[type="submit"]').click();
@@ -52,7 +58,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
     await page.locator('input[id="email"]').fill('invalid@example.com');
@@ -60,7 +69,9 @@ test.describe('Authentication', () => {
     await page.locator('button[type="submit"]').click();
     // Inline Alert (antd static message API doesn't render under React 19)
     await expect(page.getByTestId('login-error')).toBeVisible();
-    await expect(page.getByTestId('login-error')).toContainText(/Login failed|Invalid email or password|Account temporarily locked/);
+    await expect(page.getByTestId('login-error')).toContainText(
+      /Login failed|Invalid email or password|Account temporarily locked/,
+    );
   });
 
   test('successful login redirects to dashboard', async ({ page }) => {
@@ -69,7 +80,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
     // Stub the login API
@@ -94,7 +108,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+        }),
       });
     });
 
@@ -103,7 +120,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [] },
+        }),
       });
     });
 
@@ -122,7 +142,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
     // Stub login
@@ -146,7 +169,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+        }),
       });
     });
 
@@ -155,7 +181,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [] },
+        }),
       });
     });
 
@@ -169,7 +198,12 @@ test.describe('Authentication', () => {
     const trigger = page.getByTestId('user-dropdown');
     await expect(trigger).toBeVisible();
     await trigger.hover();
-    await page.locator('.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")').first().click();
+    await page
+      .locator(
+        '.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")',
+      )
+      .first()
+      .click();
     await page.waitForURL('/login');
   });
 
@@ -178,14 +212,20 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
     await page.route('**/api/v1/auth/register', async (route) => {
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { id: 'u9', email: 'n@x.io', name: 'N', status: 'pending' } }),
+        body: JSON.stringify({
+          success: true,
+          data: { id: 'u9', email: 'n@x.io', name: 'N', status: 'pending' },
+        }),
       });
     });
     await page.goto('/login');
@@ -210,7 +250,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
     // Regression lock for real server mapping: 403 AUTH_004 (no recordFailure on suspended)
@@ -218,7 +261,10 @@ test.describe('Authentication', () => {
       await route.fulfill({
         status: 403,
         contentType: 'application/json',
-        body: JSON.stringify({ success: false, error: { code: 'AUTH_004', message: 'Account suspended' } }),
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'AUTH_004', message: 'Account suspended' },
+        }),
       });
     });
     await page.goto('/login');

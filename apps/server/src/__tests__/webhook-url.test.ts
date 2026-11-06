@@ -4,11 +4,7 @@
  * runs against fake lookups only (dispatcher invariant 6: dial nothing).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  assertWebhookUrl,
-  resolveDeniedIps,
-  _resetWebhookUrlCache,
-} from '../utils/webhook-url.js';
+import { assertWebhookUrl, resolveDeniedIps, _resetWebhookUrlCache } from '../utils/webhook-url.js';
 
 beforeEach(() => {
   _resetWebhookUrlCache();

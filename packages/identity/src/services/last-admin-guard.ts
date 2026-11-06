@@ -56,11 +56,7 @@ export async function collectAdminHolders(db: DbLike, tenantId: string): Promise
     .innerJoin(roles, eq(groupRoles.roleId, roles.id))
     .innerJoin(users, and(eq(users.id, groupUsers.userId), eq(users.tenantId, tenantId)))
     .where(
-      and(
-        eq(groupUsers.tenantId, tenantId),
-        eq(roles.isSystem, true),
-        eq(users.status, 'active'),
-      ),
+      and(eq(groupUsers.tenantId, tenantId), eq(roles.isSystem, true), eq(users.status, 'active')),
     );
   const set = new Set<string>();
   for (const r of direct as Array<{ userId: string }>) set.add(r.userId);
@@ -80,7 +76,9 @@ export async function holdsIsSystemExceptViaGroup(
     .select({ x: userRoles.userId })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
-    .where(and(eq(userRoles.userId, userId), eq(userRoles.tenantId, tenantId), eq(roles.isSystem, true)))
+    .where(
+      and(eq(userRoles.userId, userId), eq(userRoles.tenantId, tenantId), eq(roles.isSystem, true)),
+    )
     .limit(1);
   if (directHit) return true;
   const [otherGroupHit] = await db
@@ -112,7 +110,13 @@ export async function holdsSystemRoleViaGroup(
     .from(groupUsers)
     .innerJoin(groupRoles, eq(groupUsers.groupId, groupRoles.groupId))
     .innerJoin(roles, eq(groupRoles.roleId, roles.id))
-    .where(and(eq(groupUsers.userId, userId), eq(groupRoles.tenantId, tenantId), eq(roles.isSystem, true)))
+    .where(
+      and(
+        eq(groupUsers.userId, userId),
+        eq(groupRoles.tenantId, tenantId),
+        eq(roles.isSystem, true),
+      ),
+    )
     .limit(1);
   return Boolean(hit);
 }

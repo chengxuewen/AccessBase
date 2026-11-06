@@ -28,14 +28,18 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
       findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
       findById: vi.fn().mockResolvedValue(null),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
     })),
     RoleManager: vi.fn().mockImplementation(() => ({
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
       findById: vi.fn().mockResolvedValue(null),
       create: vi.fn(),
       update: vi.fn(),
@@ -45,8 +49,12 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
 });
 
 const { buildApp } = await import('../app.js');
-const { users: usersTable, roles: rolesTable, sessions: sessionsTable, auditLogs: auditLogsTable } =
-  await import('@accessbase/identity/db');
+const {
+  users: usersTable,
+  roles: rolesTable,
+  sessions: sessionsTable,
+  auditLogs: auditLogsTable,
+} = await import('@accessbase/identity/db');
 
 type Awaited<T> = T extends Promise<infer U> ? U : T;
 type App = Awaited<ReturnType<typeof buildApp>>;
@@ -59,7 +67,10 @@ let roleRows: Record<string, unknown>[] = [];
 let sessionRows: Record<string, unknown>[] = []; // join-result rows: carry users.tenantId
 let auditRows: Record<string, unknown>[] = [];
 
-function authedInject(options: { method: 'GET'; url: string }, claims: Record<string, unknown> = {}) {
+function authedInject(
+  options: { method: 'GET'; url: string },
+  claims: Record<string, unknown> = {},
+) {
   const token = app.jwt.sign({ sub: '550e8400-e29b-41d4-a716-446655440000', ...claims });
   return app.inject({ ...options, headers: { authorization: `Bearer ${token}` } });
 }
@@ -68,11 +79,15 @@ beforeAll(async () => {
   dbMock.select.mockImplementation((selection?: Record<string, unknown>) => ({
     from: (table: unknown) => {
       const rows =
-        table === usersTable ? userRows :
-        table === rolesTable ? roleRows :
-        table === sessionsTable ? sessionRows :
-        table === auditLogsTable ? auditRows :
-        [];
+        table === usersTable
+          ? userRows
+          : table === rolesTable
+            ? roleRows
+            : table === sessionsTable
+              ? sessionRows
+              : table === auditLogsTable
+                ? auditRows
+                : [];
       const isCount = selection === undefined || 'value' in selection;
       const node = (rs: Record<string, unknown>[]): unknown =>
         isCount

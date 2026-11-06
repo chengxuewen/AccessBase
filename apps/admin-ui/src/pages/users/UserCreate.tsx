@@ -133,7 +133,9 @@ export default function UserCreate() {
             mode="multiple"
             options={roleOptions}
             loading={rolesLoading}
-            placeholder={roleOptions.length === 0 ? t('users.rolesEmpty') : t('users.rolesPlaceholder')}
+            placeholder={
+              roleOptions.length === 0 ? t('users.rolesEmpty') : t('users.rolesPlaceholder')
+            }
           />
         </Form.Item>
         {rolesError && (

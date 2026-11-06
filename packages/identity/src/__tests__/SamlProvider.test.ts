@@ -243,7 +243,11 @@ describe('SamlProvider constructor options', () => {
 
   it('includes privateKey/publicCert/idpIssuer when provided', async () => {
     const provider = new SamlProvider(
-      makeConfig({ privateKey: 'KEY', publicCert: 'CERT', idpIssuer: 'https://idp.example.com/metadata' }),
+      makeConfig({
+        privateKey: 'KEY',
+        publicCert: 'CERT',
+        idpIssuer: 'https://idp.example.com/metadata',
+      }),
     );
     await provider['getSaml']();
 
@@ -320,7 +324,10 @@ describe('SamlProvider.validateSlo (§3.2)', () => {
   });
 
   it('redirect binding LogoutResponse (null profile): returns {kind: response}', async () => {
-    mockSamlInstance.validateRedirectAsync.mockResolvedValueOnce({ profile: null, loggedOut: true });
+    mockSamlInstance.validateRedirectAsync.mockResolvedValueOnce({
+      profile: null,
+      loggedOut: true,
+    });
 
     const result = await provider.validateSlo({
       binding: 'redirect',
@@ -350,14 +357,19 @@ describe('SamlProvider.validateSlo (§3.2)', () => {
   });
 
   it('post binding SAMLResponse: routes to validatePostResponseAsync and reports {kind: response}', async () => {
-    mockSamlInstance.validatePostResponseAsync.mockResolvedValueOnce({ profile: null, loggedOut: true });
+    mockSamlInstance.validatePostResponseAsync.mockResolvedValueOnce({
+      profile: null,
+      loggedOut: true,
+    });
 
     const result = await provider.validateSlo({
       binding: 'post',
       container: { SAMLResponse: 'blob' },
     });
 
-    expect(mockSamlInstance.validatePostResponseAsync).toHaveBeenCalledWith({ SAMLResponse: 'blob' });
+    expect(mockSamlInstance.validatePostResponseAsync).toHaveBeenCalledWith({
+      SAMLResponse: 'blob',
+    });
     expect(result).toEqual({ kind: 'response' });
   });
 
@@ -396,7 +408,9 @@ describe('SamlProvider.logoutUrl / logoutResponseUrl (§3.1/§3.2)', () => {
   });
 
   it('logoutUrl generates a LogoutRequest URL with the email-format NameID + sessionIndex', async () => {
-    mockSamlInstance.getLogoutUrlAsync.mockResolvedValueOnce('https://idp.example.com/slo?SAMLRequest=abc');
+    mockSamlInstance.getLogoutUrlAsync.mockResolvedValueOnce(
+      'https://idp.example.com/slo?SAMLRequest=abc',
+    );
 
     const url = await provider.logoutUrl('alice@example.com', 'idx-1');
 
@@ -413,7 +427,9 @@ describe('SamlProvider.logoutUrl / logoutResponseUrl (§3.1/§3.2)', () => {
   });
 
   it('logoutUrl omits sessionIndex when the link has none', async () => {
-    mockSamlInstance.getLogoutUrlAsync.mockResolvedValueOnce('https://idp.example.com/slo?SAMLRequest=abc');
+    mockSamlInstance.getLogoutUrlAsync.mockResolvedValueOnce(
+      'https://idp.example.com/slo?SAMLRequest=abc',
+    );
 
     await provider.logoutUrl('alice@example.com', null);
 
@@ -428,12 +444,22 @@ describe('SamlProvider.logoutUrl / logoutResponseUrl (§3.1/§3.2)', () => {
   });
 
   it('logoutResponseUrl echoes the request ID back with success=true (RelayState passthrough)', async () => {
-    mockSamlInstance.getLogoutResponseUrlAsync.mockResolvedValueOnce('https://idp.example.com/slo?SAMLResponse=xyz');
+    mockSamlInstance.getLogoutResponseUrlAsync.mockResolvedValueOnce(
+      'https://idp.example.com/slo?SAMLResponse=xyz',
+    );
 
-    const url = await provider.logoutResponseUrl({ id: '_req1', nameId: 'alice@example.com' }, 'relay-7');
+    const url = await provider.logoutResponseUrl(
+      { id: '_req1', nameId: 'alice@example.com' },
+      'relay-7',
+    );
 
     expect(url).toBe('https://idp.example.com/slo?SAMLResponse=xyz');
-    expect(mockSamlInstance.getLogoutResponseUrlAsync).toHaveBeenCalledWith({ ID: '_req1' }, 'relay-7', {}, true);
+    expect(mockSamlInstance.getLogoutResponseUrlAsync).toHaveBeenCalledWith(
+      { ID: '_req1' },
+      'relay-7',
+      {},
+      true,
+    );
   });
 });
 
@@ -474,7 +500,9 @@ describe('SamlProvider SLO constructor options + metadata', () => {
 
   it('metadataXml passes logoutCallbackUrl when configured so SingleLogoutService is emitted (B3)', async () => {
     mockGenerateMetadata.mockReturnValueOnce('<EntityDescriptor/>');
-    const provider = new SamlProvider(makeConfig({ logoutCallbackUrl: 'https://sp.example.com/slo' }));
+    const provider = new SamlProvider(
+      makeConfig({ logoutCallbackUrl: 'https://sp.example.com/slo' }),
+    );
 
     await provider.metadataXml();
 

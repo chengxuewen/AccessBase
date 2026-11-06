@@ -115,12 +115,12 @@ logger.error('Operation failed', error); // ❌
 
 ## 构建模式约定
 
-| 模式 | 命令前缀 | 数据目录 | 启动方式 |
-|------|----------|----------|----------|
-| Native | `dev:native` | `.pixi/data/` | Pixi 管理 PG/Redis |
-| Container | `dev:container` | Docker volumes | Dockerfile.dev |
-| Compose | `dev:compose` | Docker volumes | docker-compose.dev.yml |
-| Deploy | `build:deploy` + `start:deploy` | `data/` | node out/server/index.js |
+| 模式      | 命令前缀                        | 数据目录       | 启动方式                 |
+| --------- | ------------------------------- | -------------- | ------------------------ |
+| Native    | `dev:native`                    | `.pixi/data/`  | Pixi 管理 PG/Redis       |
+| Container | `dev:container`                 | Docker volumes | Dockerfile.dev           |
+| Compose   | `dev:compose`                   | Docker volumes | docker-compose.dev.yml   |
+| Deploy    | `build:deploy` + `start:deploy` | `data/`        | node out/server/index.js |
 
 ### API 路径规范
 
@@ -146,7 +146,6 @@ logger.error('Operation failed', error); // ❌
 - 禁止从 `'antd'` 直接导入静态 `message`/`notification`（React 19 渲染器下不挂载，见 PIT-023；R11 E2E 验证 bridge 渲染）
 - 断言 mount effect 触发的硬导航（window.location.assign on load）用 `expect(page).toHaveURL(/re/, { timeout })` 轮询，不用 `waitForURL`：StrictMode 双发 effect 会连续两次 assign 使首次导航 ERR_ABORTED、waitForURL 的 load/commit 事件竞态报假失败（J-T3 实测；waitForURL 仅适用于用户手势后页面已稳定的 assign）；同理 mount effect 里的 POST 次数断言用 `>=1` 不用 `===1`
 
-
 ## Setup 状态语义约束（D113，2026-09-02）
 
 ### DB 推导下的向导时序不变量
@@ -155,7 +154,6 @@ logger.error('Operation failed', error); // ❌
 - guard `SETUP_WRITE_PATHS` 只允许 `/setup/admin`（防重复建 admin）；config/complete 的防重由 handler 内部业务检查负责（complete 幂等重发 token）
 - 前端 `checkSetupStatus` 三态（`{needsSetup, ok}`）：**catch 分支禁止直接映射为路由决策**——后端不可达须走重试页（useSetupGuardState，3s），不能落 /login（PIT-029）
 - 检查命令: `grep -n "isInitialized" apps/server/src/routes/setup.ts` 只应出现在 /admin handler 与 status 推导；`grep -rn "catch(() => set" apps/admin-ui/src/App.tsx` 应零命中（已由 useSetupGuardState 替代）
-
 
 ## Phase 7 审查追加约束（2026-09-03）
 
@@ -175,7 +173,6 @@ logger.error('Operation failed', error); // ❌
 ### Zustand persist 敏感字段
 
 - 密码/密钥类字段绝不入 persist：向导类表单走"直传 API 不落 store"（AdminStep T3-1 先例）
-
 
 ## Phase 8a 授权接线约束（2026-09-04）
 
@@ -203,6 +200,7 @@ logger.error('Operation failed', error); // ❌
 - DEFAULT_TENANT 唯一写入 keep-list = `constants.ts` / `permissions-seed.ts` / `setup.ts` / `init.ts` 四件套
 - 路由层回退形态 `request.tenantId ?? DEFAULT_TENANT`（公共路由无 authenticate → 回退 DEFAULT，语义即 spec G2）
 - 检查命令：`grep -rn "00000000-0000-0000-0000-000000000001" apps/server/src --include="*.ts" | grep -v __tests__ | grep -v constants.ts | grep -v permissions-seed.ts | grep -v setup.ts | grep -v init.ts` 应零命中
+
 ## 设置/资料类页面宽度策略（2026-09-10 用户实测终裁）
 
 - 卡片壳与列表页一致：流式全宽（width:100%，不封顶不居中）——720 居中列方案已被用户屏幕实测后推翻，勿改回
@@ -318,9 +316,9 @@ logger.error('Operation failed', error); // ❌
 - **terminality = NOT EXISTS pending delivery** (vacuous on zero subscribers, `events.fanout_complete_at`); prune is AGE-ONLY (`WEBHOOK_RETENTION_DAYS`, runs EVERY dispatcher tick BEFORE the kill-switch early-return). Do not re-couple either to delivery outcomes (Q4c B1/R2 growth brick).
 - **dispatcher is fully dependency-injected + NODE_ENV=test never registers it** (B3: suites + shared DEV PG stay tick-free); `webhook_endpoints` admin pool is LAZY in the plugin (eager createDb tripped health-pool counts AND forced every partial `@accessbase/identity/db` mock to export closeDb — PIT-082 recurrence).
 - **SSRF guard = dedicated FAIL-CLOSED parser** (`apps/server/src/utils/webhook-url.ts`): unparseable/DNS-fail ⇒ deny; v4-mapped IPv6 (`::ffff:127.0.0.1` and `::ffff:7f00:1`) canonicalized before the deny-set. Do not reuse `ipInCidr` for this (its fail-open posture inverts into a bypass). RFC1918 allowed per ruling; TOCTOU rebinding is the documented residual.
-- **email_tmpl_* value = jsonb OBJECT** `{subject:{en?,zh?},html:{en?,zh?}}` — single validate function shared by options PUT and email-templates PUT (dual-write closure R8); renderer HTML-escapes every {{var}}; senders pass locale undefined.
+- _\*email_tmpl_* value = jsonb OBJECT_* `{subject:{en?,zh?},html:{en?,zh?}}` — single validate function shared by options PUT and email-templates PUT (dual-write closure R8); renderer HTML-escapes every {{var}}; senders pass locale undefined.
 - **webhook secrets**: reveal-once (create/rotate only), AES-GCM envelope at rest (same store shape as OIDC client secrets — plaintext-compare needs decrypt), decrypt per-tick-per-endpoint in the dispatcher (36.6ms scryptSync each — never per delivery).
-- **auth.* telemetry lane (R1-T3) is the ONE sanctioned swallow exception** to the NEVER-swallow rule above: `apps/server/src/utils/auth-events.ts` emits `auth.login.success` / `auth.login.failure` / `auth.logout` fire-and-forget (body try/catch + floating-promise `.catch` → logger.warn) because a login/logout is already settled when we emit — a failed telemetry insert must never fail or delay the response, and the audit log remains the security record of choice. Scoped to that file; every mutating manager funnel still emits on the caller tx handle and MUST NOT swallow.
+- _*auth.* telemetry lane (R1-T3) is the ONE sanctioned swallow exception_* to the NEVER-swallow rule above: `apps/server/src/utils/auth-events.ts` emits `auth.login.success` / `auth.login.failure` / `auth.logout` fire-and-forget (body try/catch + floating-promise `.catch` → logger.warn) because a login/logout is already settled when we emit — a failed telemetry insert must never fail or delay the response, and the audit log remains the security record of choice. Scoped to that file; every mutating manager funnel still emits on the caller tx handle and MUST NOT swallow.
 
 ## Phase Q4b groups constraints (2026-09-24)
 
@@ -336,7 +334,6 @@ logger.error('Operation failed', error); // ❌
 - `resetManagers()` is the test seam: any spec asserting per-test constructor results (`mock.results`) on route-driven managers must `await resetManagers()` in `beforeEach`.
 - migrate.sh is ONE psql session: advisory key 727241, per-file `\gset`+`\if` pending probes INSIDE the lock (bash-side pre-computation is the race that this design kills), absolute `\ir`, stamp folded+atomic. New chain files still need the SENTINELS entry (unchanged discipline).
 - /login-shell mock roster: sms/status joined saml/status — same PIT-080 rule covers both (`grep -L "sms/status" e2e/*.spec.ts` = the no-login roster).
-
 
 ## Phase multi-node constraints (2026-10-08, batch multi-node R-A/R-B)
 
@@ -367,6 +364,7 @@ logger.error('Operation failed', error); // ❌
 
 - Multi-option rulings default to the **adjudication-walkthrough** skill: ONE ruling per message, seven-part template (details / options with paired pros+cons / sources / impact / recommendation / reply line), never a batched table, never the question tool. Check: skill exists at .agents/skills/adjudication-walkthrough/ and was used for data-scope A1-A6.
 - Progress reports and rulings prose in **plain language** (说人话): every paragraph must survive being read aloud to a non-domain colleague; jargon pileups banned; when the user says 说人话, re-issue the same content plainly rather than translating progressively.
+
 ## Phase Q3D backchannel-logout constraints (2026-10-12)
 
 - **The receiver is an IdP-facing machine route — NO house envelope**: responses are BCL spec-shape (200 empty + `Cache-Control: no-store`; 400 `{"error","error_description"}`). The route-scoped setErrorHandler must keep the global `{success,data}` envelope OFF this surface (scim.ts precedent). Check: `grep -c "setErrorHandler" apps/server/src/routes/oauth-backchannel-logout.ts` ≥ 1.

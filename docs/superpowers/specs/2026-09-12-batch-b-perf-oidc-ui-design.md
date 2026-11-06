@@ -13,6 +13,7 @@ runs 2+2N SQL per request (getUserRoles + per-role resolveInheritedPermissions r
 zero caching. Hottest path in the system — every guarded request pays it.
 
 Change:
+
 - PermissionManager gains a per-(userId, tenantId) in-memory TTL cache (default 30s).
 - Invalidation hooks on every write path that can change effective permissions:
   - RoleManager.update / delete → invalidate affected tenant's entries
@@ -32,8 +33,9 @@ getProvider switch, providerConfigured if/else. arctic already ships these + a g
 OAuth2 class.
 
 Change:
+
 - New options-table key `oauth_providers` (JSON): `{ name: { issuer?, authUrl, tokenUrl,
-  userinfoUrl, clientId, clientSecret, scope } }` — admins configure via existing
+userinfoUrl, clientId, clientSecret, scope } }` — admins configure via existing
   Settings→Options page (JSON editing), no new UI page.
 - Runtime: merge built-in github/google (env-config) + options-configured generic
   providers at request time. Generic providers use arctic's OAuth2 class with explicit

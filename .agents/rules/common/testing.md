@@ -99,7 +99,6 @@ test('throws error when API key is missing', () => {});
 test('falls back to substring search when Redis is unavailable', () => {});
 ```
 
-
 ## Live-fire battery (verification days) — what mock lanes structurally cannot cover
 
 Behavior classes invisible to unit + real-PG-vitest + mock-API e2e; require a live multi-process battery (see PIT-084/085/086):

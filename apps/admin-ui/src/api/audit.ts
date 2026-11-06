@@ -59,7 +59,9 @@ export interface PaginatedAuditLogs {
 
 /** Run the tamper-chain verification (platform tenant only). */
 export async function verifyAudit(params: VerifyAuditParams = {}): Promise<AuditVerifyReport> {
-  const { data } = await client.get<ApiEnvelope<AuditVerifyReport>>('/v1/audit-logs/verify', { params });
+  const { data } = await client.get<ApiEnvelope<AuditVerifyReport>>('/v1/audit-logs/verify', {
+    params,
+  });
   return data.data;
 }
 

@@ -73,7 +73,11 @@ export class GroupManager {
   }
 
   async findById(id: string, tenantId: string): Promise<Group | null> {
-    const [row] = await this.db.select().from(groups).where(and(eq(groups.id, id), eq(groups.tenantId, tenantId))).limit(1);
+    const [row] = await this.db
+      .select()
+      .from(groups)
+      .where(and(eq(groups.id, id), eq(groups.tenantId, tenantId)))
+      .limit(1);
     return row ? this.map(row) : null;
   }
 
@@ -84,20 +88,36 @@ export class GroupManager {
    * LIMIT/OFFSET page; enrichment (memberCount/roleCount) runs on the PAGE
    * slice so the per-row subqueries stay bounded.
    */
-  async list(tenantId: string, opts?: { limit?: number; offset?: number }): Promise<Array<Group & { memberCount: number; roleCount: number }>> {
-    const base = this.db.select().from(groups).where(eq(groups.tenantId, tenantId)).orderBy(groups.name);
+  async list(
+    tenantId: string,
+    opts?: { limit?: number; offset?: number },
+  ): Promise<Array<Group & { memberCount: number; roleCount: number }>> {
+    const base = this.db
+      .select()
+      .from(groups)
+      .where(eq(groups.tenantId, tenantId))
+      .orderBy(groups.name);
     const rows = opts ? await base.limit(opts.limit ?? 20).offset(opts.offset ?? 0) : await base;
     const out: Array<Group & { memberCount: number; roleCount: number }> = [];
     for (const r of rows) {
-      const [mc] = await this.db.select({ n: sql<number>`count(*)::int` }).from(groupUsers).where(eq(groupUsers.groupId, r.id));
-      const [rc] = await this.db.select({ n: sql<number>`count(*)::int` }).from(groupRoles).where(eq(groupRoles.groupId, r.id));
+      const [mc] = await this.db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(groupUsers)
+        .where(eq(groupUsers.groupId, r.id));
+      const [rc] = await this.db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(groupRoles)
+        .where(eq(groupRoles.groupId, r.id));
       out.push({ ...this.map(r), memberCount: mc?.n ?? 0, roleCount: rc?.n ?? 0 });
     }
     return out;
   }
 
   async count(tenantId: string): Promise<number> {
-    const [row] = await this.db.select({ n: sql<number>`count(*)::int` }).from(groups).where(eq(groups.tenantId, tenantId));
+    const [row] = await this.db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(groups)
+      .where(eq(groups.tenantId, tenantId));
     return row?.n ?? 0;
   }
 
@@ -125,11 +145,22 @@ export class GroupManager {
 
   async create(input: CreateGroupInput, tenantId: string): Promise<Group> {
     const kind = clampKind(input.kind ?? 'group');
-    const [dup] = await this.db.select({ id: groups.id }).from(groups).where(and(eq(groups.tenantId, tenantId), eq(groups.name, input.name))).limit(1);
+    const [dup] = await this.db
+      .select({ id: groups.id })
+      .from(groups)
+      .where(and(eq(groups.tenantId, tenantId), eq(groups.name, input.name)))
+      .limit(1);
     if (dup) throw new Error('GROUP_NAME_EXISTS');
-    const [row] = await this.db.insert(groups).values({ name: input.name, description: input.description ?? null, kind, tenantId }).returning();
+    const [row] = await this.db
+      .insert(groups)
+      .values({ name: input.name, description: input.description ?? null, kind, tenantId })
+      .returning();
     if (!row) throw new Error('Failed to create group');
-    await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id: row.id, op: 'lifecycle', name: row.name } });
+    await emitEvent(this.db as DbLike, {
+      tenantId,
+      type: 'group.changed',
+      payload: { id: row.id, op: 'lifecycle', name: row.name },
+    });
     logger.info({ groupId: row.id, tenantId }, 'group created');
     return this.map(row);
   }
@@ -140,15 +171,28 @@ export class GroupManager {
     const g = await this.findById(id, tenantId);
     if (!g) throw new Error('GROUP_NOT_FOUND');
     if (patch.name && patch.name !== g.name) {
-      const [dup] = await this.db.select({ id: groups.id }).from(groups).where(and(eq(groups.tenantId, tenantId), eq(groups.name, patch.name))).limit(1);
+      const [dup] = await this.db
+        .select({ id: groups.id })
+        .from(groups)
+        .where(and(eq(groups.tenantId, tenantId), eq(groups.name, patch.name)))
+        .limit(1);
       if (dup) throw new Error('GROUP_NAME_EXISTS');
     }
     const [row] = await this.db
       .update(groups)
-      .set({ name: patch.name ?? g.name, description: patch.description ?? g.description ?? null, kind: kind ?? g.kind, updatedAt: new Date() })
+      .set({
+        name: patch.name ?? g.name,
+        description: patch.description ?? g.description ?? null,
+        kind: kind ?? g.kind,
+        updatedAt: new Date(),
+      })
       .where(eq(groups.id, id))
       .returning();
-    await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id, op: 'lifecycle' } });
+    await emitEvent(this.db as DbLike, {
+      tenantId,
+      type: 'group.changed',
+      payload: { id, op: 'lifecycle' },
+    });
     return this.map(row as typeof groups.$inferSelect);
   }
 
@@ -159,11 +203,16 @@ export class GroupManager {
     const before = await collectAdminHolders(this.db, tenantId);
     if (before.size > 0) {
       const after = await this.holdersExcludingGroup(tenantId, id);
-      if (after.size === 0) throw new Error(`${LAST_ADMIN_GUARD}: group is the only admin source of the tenant`);
+      if (after.size === 0)
+        throw new Error(`${LAST_ADMIN_GUARD}: group is the only admin source of the tenant`);
     }
     const members = await this.memberIds(id); // capture BEFORE cascade wipes group_users rows
     await this.db.delete(groups).where(eq(groups.id, id)); // cascades membership+bindings
-    await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id, op: 'lifecycle', deleted: true } });
+    await emitEvent(this.db as DbLike, {
+      tenantId,
+      type: 'group.changed',
+      payload: { id, op: 'lifecycle', deleted: true },
+    });
     for (const u of members) invalidatePermissionCache(tenantId, u);
     if (members.length > 0) {
       await bumpAuthState(this.db as DbLike, { tenantId, userIds: members }, delAuthState);
@@ -177,14 +226,23 @@ export class GroupManager {
       .from(userRoles)
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
       .innerJoin(users, and(eq(users.id, userRoles.userId), eq(users.tenantId, tenantId)))
-      .where(and(eq(userRoles.tenantId, tenantId), eq(roles.isSystem, true), eq(users.status, 'active')));
+      .where(
+        and(eq(userRoles.tenantId, tenantId), eq(roles.isSystem, true), eq(users.status, 'active')),
+      );
     const otherGroups = await this.db
       .select({ userId: groupUsers.userId })
       .from(groupUsers)
       .innerJoin(groupRoles, eq(groupUsers.groupId, groupRoles.groupId))
       .innerJoin(roles, eq(groupRoles.roleId, roles.id))
       .innerJoin(users, and(eq(users.id, groupUsers.userId), eq(users.tenantId, tenantId)))
-      .where(and(eq(groupUsers.tenantId, tenantId), eq(roles.isSystem, true), eq(users.status, 'active'), sql`${groupUsers.groupId} <> ${groupId}`));
+      .where(
+        and(
+          eq(groupUsers.tenantId, tenantId),
+          eq(roles.isSystem, true),
+          eq(users.status, 'active'),
+          sql`${groupUsers.groupId} <> ${groupId}`,
+        ),
+      );
     const set = new Set<string>();
     for (const r of direct as Array<{ userId: string }>) set.add(r.userId);
     for (const r of otherGroups as Array<{ userId: string }>) set.add(r.userId);
@@ -192,7 +250,10 @@ export class GroupManager {
   }
 
   private async memberIds(groupId: string): Promise<string[]> {
-    const rows = await this.db.select({ userId: groupUsers.userId }).from(groupUsers).where(eq(groupUsers.groupId, groupId));
+    const rows = await this.db
+      .select({ userId: groupUsers.userId })
+      .from(groupUsers)
+      .where(eq(groupUsers.groupId, groupId));
     return (rows as Array<{ userId: string }>).map((r) => r.userId);
   }
 
@@ -205,7 +266,10 @@ export class GroupManager {
     }
   }
 
-  async listMembers(groupId: string, tenantId: string): Promise<Array<{ userId: string; email: string; name: string }>> {
+  async listMembers(
+    groupId: string,
+    tenantId: string,
+  ): Promise<Array<{ userId: string; email: string; name: string }>> {
     if (!(await this.findById(groupId, tenantId))) throw new Error('GROUP_NOT_FOUND');
     const rows = await this.db
       .select({ userId: users.id, email: users.email, name: users.name })
@@ -220,10 +284,18 @@ export class GroupManager {
     if (!g) throw new Error('GROUP_NOT_FOUND');
     // R5: member must live in the GROUP's tenant — cross-tenant rows would be
     // invisible to the user's own request context yet leak in member lists.
-    const [u] = await this.db.select({ id: users.id }).from(users).where(and(eq(users.id, userId), eq(users.tenantId, tenantId))).limit(1);
+    const [u] = await this.db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)))
+      .limit(1);
     if (!u) throw new Error('GROUP_MEMBER_TENANT_MISMATCH');
     await this.db.insert(groupUsers).values({ groupId, userId, tenantId }).onConflictDoNothing();
-    await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id: groupId, userId, op: 'member', added: true } });
+    await emitEvent(this.db as DbLike, {
+      tenantId,
+      type: 'group.changed',
+      payload: { id: groupId, userId, op: 'member', added: true },
+    });
     invalidatePermissionCache(tenantId, userId);
     await bumpAuthState(this.db as DbLike, { tenantId, userIds: [userId] }, delAuthState);
   }
@@ -235,21 +307,36 @@ export class GroupManager {
     if (before.has(userId) && before.size <= 1) {
       // sole admin via (also) this group — does another path keep them admin?
       const keeps = await holdsIsSystemExceptViaGroup(this.db, tenantId, userId, groupId);
-      if (!keeps) throw new Error(`${LAST_ADMIN_GUARD}: would remove the tenant's last administrator`);
+      if (!keeps)
+        throw new Error(`${LAST_ADMIN_GUARD}: would remove the tenant's last administrator`);
     }
-    await this.db.delete(groupUsers).where(and(eq(groupUsers.groupId, groupId), eq(groupUsers.userId, userId)));
-    await emitEvent(this.db as DbLike, { tenantId, type: 'group.changed', payload: { id: groupId, userId, op: 'member', added: false } });
+    await this.db
+      .delete(groupUsers)
+      .where(and(eq(groupUsers.groupId, groupId), eq(groupUsers.userId, userId)));
+    await emitEvent(this.db as DbLike, {
+      tenantId,
+      type: 'group.changed',
+      payload: { id: groupId, userId, op: 'member', added: false },
+    });
     invalidatePermissionCache(tenantId, userId);
     await bumpAuthState(this.db as DbLike, { tenantId, userIds: [userId] }, delAuthState);
   }
 
   async getGroupRoles(groupId: string, tenantId: string): Promise<string[]> {
-    const rows = await this.db.select({ roleId: groupRoles.roleId }).from(groupRoles).where(and(eq(groupRoles.groupId, groupId), eq(groupRoles.tenantId, tenantId)));
+    const rows = await this.db
+      .select({ roleId: groupRoles.roleId })
+      .from(groupRoles)
+      .where(and(eq(groupRoles.groupId, groupId), eq(groupRoles.tenantId, tenantId)));
     return (rows as Array<{ roleId: string }>).map((r) => r.roleId);
   }
 
   /** Full replacement of the group's role bindings (admin surface). */
-  async setGroupRoles(groupId: string, roleIds: string[], tenantId: string, db?: DbLike): Promise<void> {
+  async setGroupRoles(
+    groupId: string,
+    roleIds: string[],
+    tenantId: string,
+    db?: DbLike,
+  ): Promise<void> {
     const d: DbLike = db ?? (this.db as DbLike);
     const g = await this.findById(groupId, tenantId);
     if (!g) throw new Error('GROUP_NOT_FOUND');
@@ -265,11 +352,13 @@ export class GroupManager {
     const members = await this.memberIds(groupId);
     const newIsSystemPresent =
       roleIds.length > 0 &&
-      (await this.db
-        .select({ id: roles.id })
-        .from(roles)
-        .where(and(inArray(roles.id, roleIds), eq(roles.isSystem, true)))
-        .limit(1))[0] !== undefined;
+      (
+        await this.db
+          .select({ id: roles.id })
+          .from(roles)
+          .where(and(inArray(roles.id, roleIds), eq(roles.isSystem, true)))
+          .limit(1)
+      )[0] !== undefined;
     if (before.size > 0 && !newIsSystemPresent) {
       // the group stops granting isSystem — anyone left?
       const others = await this.holdersExcludingGroup(tenantId, groupId);
@@ -278,13 +367,18 @@ export class GroupManager {
         if (await holdsIsSystemExceptViaGroup(this.db, tenantId, m, groupId)) keptSelf.add(m);
       }
       const after = new Set([...others, ...keptSelf]);
-      if (after.size === 0) throw new Error(`${LAST_ADMIN_GUARD}: unbinding group roles would orphan the tenant`);
+      if (after.size === 0)
+        throw new Error(`${LAST_ADMIN_GUARD}: unbinding group roles would orphan the tenant`);
     }
     await d.delete(groupRoles).where(eq(groupRoles.groupId, groupId));
     for (const roleId of roleIds) {
       await d.insert(groupRoles).values({ groupId, roleId, tenantId }).onConflictDoNothing();
     }
-    await emitEvent(d, { tenantId, type: 'group.changed', payload: { id: groupId, op: 'roles', roleCount: roleIds.length } });
+    await emitEvent(d, {
+      tenantId,
+      type: 'group.changed',
+      payload: { id: groupId, op: 'roles', roleCount: roleIds.length },
+    });
     await this.invalidateMembers(groupId, tenantId);
     logger.info({ groupId, roleIds: roleIds.length }, 'group roles replaced');
   }

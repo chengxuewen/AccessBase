@@ -21,11 +21,7 @@ import { DEFAULT_TENANT } from '../../utils/constants.js';
 import { logger } from '@accessbase/logging';
 import { emitAuthEvent } from '../../utils/auth-events.js';
 import type { AuthContext, LoginBody, RegisterBody } from './context.js';
-import {
-  getSmtpMailer,
-  resolvePublicOrigin,
-  verifiedEmailRequired,
-} from './shared.js';
+import { getSmtpMailer, resolvePublicOrigin, verifiedEmailRequired } from './shared.js';
 
 export async function loginRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/login
@@ -137,19 +133,23 @@ export async function loginRoutes(app: FastifyInstance, ctx: AuthContext) {
         }
 
         // MFA step-up: user with TOTP enabled gets a flow token, not a session
-// Q3E-E3 enforced-MFA arm (rev.2: BEFORE step-up — unbound users never see a session)
-{
-  const enroll = await enrollGate({
-    getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
-    issueEnroll: async (uid) => ctx.flowTokens.issue('mfa_enroll', { userId: uid }, 300),
-    isSystemAdmin: async () =>
-      (await (await getRoleManager()).getEffectiveRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
-        (r) => r.isSystem === true,
-      ),
-    user,
-  });
-  if (enroll) return { success: true, data: enroll };
-}
+        // Q3E-E3 enforced-MFA arm (rev.2: BEFORE step-up — unbound users never see a session)
+        {
+          const enroll = await enrollGate({
+            getOption: optionGetter(
+              getOptionsManager() as unknown as Parameters<typeof optionGetter>[0],
+            ),
+            issueEnroll: async (uid) => ctx.flowTokens.issue('mfa_enroll', { userId: uid }, 300),
+            isSystemAdmin: async () =>
+              (
+                await (
+                  await getRoleManager()
+                ).getEffectiveRoles(user.id, user.tenantId ?? DEFAULT_TENANT)
+              ).some((r) => r.isSystem === true),
+            user,
+          });
+          if (enroll) return { success: true, data: enroll };
+        }
         if (user.totpEnabled) {
           const flowToken = await ctx.flowTokens.issue('mfa_verify', { userId: user.id }, 300);
           return {
@@ -194,39 +194,39 @@ export async function loginRoutes(app: FastifyInstance, ctx: AuthContext) {
             },
           },
         };
-    } catch (err) {
-      // P0: suspended/pending accounts map to a distinct 403 — not a credential
-      // failure, so it must not feed the lockout counter either.
-      if (err instanceof Error && err.message === 'ACCOUNT_SUSPENDED') {
-        emitAuthEvent({
-          type: 'auth.login.failure',
-          tenantId: loginRow?.tenantId ?? request.tenantId ?? DEFAULT_TENANT,
-          userId: loginRow?.id,
-          email,
-          method: 'password',
-          reason: 'suspended',
-        });
-        return reply.status(403).send({
-          success: false,
-          error: { code: 'AUTH_004', message: 'Account suspended' },
-        });
-      }
-      // Tenant gate (G): propagate before lockout counting (same family).
-      if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') {
-        emitAuthEvent({
-          type: 'auth.login.failure',
-          tenantId: request.tenantId ?? DEFAULT_TENANT,
-          email,
-          method: 'password',
-          // Tenant-suspended login: not a credential failure and no per-row attribution
-          reason: 'other',
-        });
-        return reply.status(403).send({
-          success: false,
-          error: { code: 'AUTH_TENANT_001', message: 'Access denied' },
-        });
-      }
-      await ctx.lockout.recordFailure(email);
+      } catch (err) {
+        // P0: suspended/pending accounts map to a distinct 403 — not a credential
+        // failure, so it must not feed the lockout counter either.
+        if (err instanceof Error && err.message === 'ACCOUNT_SUSPENDED') {
+          emitAuthEvent({
+            type: 'auth.login.failure',
+            tenantId: loginRow?.tenantId ?? request.tenantId ?? DEFAULT_TENANT,
+            userId: loginRow?.id,
+            email,
+            method: 'password',
+            reason: 'suspended',
+          });
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_004', message: 'Account suspended' },
+          });
+        }
+        // Tenant gate (G): propagate before lockout counting (same family).
+        if (err instanceof Error && 'code' in err && err.code === 'AUTH_TENANT_001') {
+          emitAuthEvent({
+            type: 'auth.login.failure',
+            tenantId: request.tenantId ?? DEFAULT_TENANT,
+            email,
+            method: 'password',
+            // Tenant-suspended login: not a credential failure and no per-row attribution
+            reason: 'other',
+          });
+          return reply.status(403).send({
+            success: false,
+            error: { code: 'AUTH_TENANT_001', message: 'Access denied' },
+          });
+        }
+        await ctx.lockout.recordFailure(email);
         // R1-T3: wrong password AND unknown user both land here (verifyPassword throws alike)
         emitAuthEvent({
           type: 'auth.login.failure',
@@ -247,7 +247,6 @@ export async function loginRoutes(app: FastifyInstance, ctx: AuthContext) {
     },
   );
 }
-
 
 export async function registerRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/register
@@ -334,7 +333,12 @@ export async function registerRoutes(app: FastifyInstance, ctx: AuthContext) {
           request.tenantId ?? DEFAULT_TENANT,
           tx,
         );
-        await userManager.changeStatus(created.id, 'pending', request.tenantId ?? DEFAULT_TENANT, tx);
+        await userManager.changeStatus(
+          created.id,
+          'pending',
+          request.tenantId ?? DEFAULT_TENANT,
+          tx,
+        );
         return created;
       });
 
@@ -346,7 +350,11 @@ export async function registerRoutes(app: FastifyInstance, ctx: AuthContext) {
           const vtoken = await ctx.flowTokens.issue('email_verify', { userId: user.id }, 86400);
           const origin = await resolvePublicOrigin(request, getOptionsManager());
           const link = `${origin}/verify-email?token=${vtoken}`;
-          const rendered = await renderEmailFor('verify', { link, name: user.name }, getOptionsManager());
+          const rendered = await renderEmailFor(
+            'verify',
+            { link, name: user.name },
+            getOptionsManager(),
+          );
           await mailer.send(user.email, rendered.subject, rendered.html);
         })
         .catch((err: unknown) => {
@@ -362,7 +370,6 @@ export async function registerRoutes(app: FastifyInstance, ctx: AuthContext) {
     },
   );
 }
-
 
 export async function verifyEmailRequestRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/verify-email/request — authenticated self-service (Q1-b2,
@@ -402,7 +409,11 @@ export async function verifyEmailRequestRoutes(app: FastifyInstance, ctx: AuthCo
       const origin = await resolvePublicOrigin(request, options);
       const link = `${origin}/verify-email?token=${token}`;
       mailer
-        .send(user.email, 'Verify your email', `<p>Confirm your address: <a href="${link}">${link}</a></p>`)
+        .send(
+          user.email,
+          'Verify your email',
+          `<p>Confirm your address: <a href="${link}">${link}</a></p>`,
+        )
         .catch((err: unknown) => {
           logger.warn({ err }, 'Verify-email delivery failed (degraded to log)');
         });
@@ -413,7 +424,6 @@ export async function verifyEmailRequestRoutes(app: FastifyInstance, ctx: AuthCo
     },
   );
 }
-
 
 export async function verifyEmailConsumeRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/verify-email — PUBLIC consume (token-only). Note rev.2 F1:

@@ -28,8 +28,22 @@ const makeUser = (overrides: Partial<UserFixture> = {}): UserFixture => ({
 });
 
 const MOCK_ROLES = [
-  { id: 'role-1', name: 'Admin', description: 'Full access', permissionIds: [], createdAt: nowIso(), updatedAt: nowIso() },
-  { id: 'role-2', name: 'Viewer', description: 'Read-only', permissionIds: [], createdAt: nowIso(), updatedAt: nowIso() },
+  {
+    id: 'role-1',
+    name: 'Admin',
+    description: 'Full access',
+    permissionIds: [],
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  },
+  {
+    id: 'role-2',
+    name: 'Viewer',
+    description: 'Read-only',
+    permissionIds: [],
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  },
 ];
 
 /** Console error gate — per testing.md, filtered noise is not app errors */
@@ -62,7 +76,10 @@ test.describe('Users CRUD (dedicated routes)', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
 
@@ -77,7 +94,12 @@ test.describe('Users CRUD (dedicated routes)', () => {
             accessToken: 'test-token',
             refreshToken: 'test-refresh',
             expiresIn: 900,
-            user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
+            user: {
+              id: '1',
+              email: 'admin@accessbase.local',
+              name: 'Administrator',
+              roles: [{ id: 'role-1', name: 'admin' }],
+            },
           },
         }),
       });
@@ -88,36 +110,67 @@ test.describe('Users CRUD (dedicated routes)', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+        }),
       });
     });
-  // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
-  await page.route('**/api/v1/auth/saml/status', async (route) => {
-  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
-  // unmocked → console-error net failure (R4 discipline)
-  await page.route('**/api/v1/tenants**', async (route) => {
-    if (route.request().method() !== 'GET') return route.fallback();
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: [{ id: '00000000-0000-0000-0000-000000000001', name: 'Default', slug: 'default', status: 'active', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+    // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
+    await page.route('**/api/v1/auth/saml/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
-  });
+    await page.route('**/api/v1/auth/sms/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    await page.route('**/api/v1/auth/captcha/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
+    // unmocked → console-error net failure (R4 discipline)
+    await page.route('**/api/v1/tenants**', async (route) => {
+      if (route.request().method() !== 'GET') return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: '00000000-0000-0000-0000-000000000001',
+              name: 'Default',
+              slug: 'default',
+              status: 'active',
+              createdAt: '2026-01-01T00:00:00Z',
+              updatedAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 1,
+        }),
+      });
+    });
 
     // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
     await page.route('**/api/v1/auth/me', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] },
+        }),
       });
     });
 
@@ -180,7 +233,10 @@ test.describe('Users CRUD (dedicated routes)', () => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ success: false, error: { code: 'INTERNAL', message: 'Internal server error' } }),
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'INTERNAL', message: 'Internal server error' },
+        }),
       });
     });
 
@@ -198,7 +254,10 @@ test.describe('Users CRUD (dedicated routes)', () => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ success: false, error: { code: 'INTERNAL', message: 'Internal server error' } }),
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'INTERNAL', message: 'Internal server error' },
+        }),
       });
     });
 
@@ -214,16 +273,22 @@ test.describe('Users CRUD (dedicated routes)', () => {
       const url = new URL(route.request().url());
       const pageNum = parseInt(url.searchParams.get('page') || '1');
       const pageSize = parseInt(url.searchParams.get('pageSize') || '10');
-      const users = Array.from({ length: 25 }, (_, i) => makeUser({
-        id: String(i + 1),
-        name: `User ${i + 1}`,
-        email: `user${i + 1}@example.com`,
-      }));
+      const users = Array.from({ length: 25 }, (_, i) =>
+        makeUser({
+          id: String(i + 1),
+          name: `User ${i + 1}`,
+          email: `user${i + 1}@example.com`,
+        }),
+      );
       const start = (pageNum - 1) * pageSize;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: users.slice(start, start + pageSize), total: users.length }),
+        body: JSON.stringify({
+          success: true,
+          data: users.slice(start, start + pageSize),
+          total: users.length,
+        }),
       });
     });
 
@@ -259,7 +324,10 @@ test.describe('Users CRUD (dedicated routes)', () => {
     });
 
     await page.goto('/users');
-    await page.locator('button:has-text("Create User"), button:has-text("创建用户")').first().click();
+    await page
+      .locator('button:has-text("Create User"), button:has-text("创建用户")')
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/users\/create/);
 
     const card = page.locator('.ant-card');
@@ -279,7 +347,9 @@ test.describe('Users CRUD (dedicated routes)', () => {
     expect(postBody).toHaveProperty('isActive');
     expect(postBody).toHaveProperty('roleIds');
     expect(postBody?.roleIds).toEqual([]);
-    expect(postBody, 'confirmPassword is UI-only and never sent').not.toHaveProperty('confirmPassword');
+    expect(postBody, 'confirmPassword is UI-only and never sent').not.toHaveProperty(
+      'confirmPassword',
+    );
   });
 
   test('delete user success renders visible .ant-message feedback', async ({ page }) => {
@@ -305,13 +375,24 @@ test.describe('Users CRUD (dedicated routes)', () => {
 
     await page.goto('/users');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
-    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
-    await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
+    await page
+      .locator('tbody tr.ant-table-row')
+      .first()
+      .locator('button:has-text("Delete"), button:has-text("删除")')
+      .click();
+    await page
+      .locator(
+        '.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")',
+      )
+      .first()
+      .click();
     await expect.poll(() => deleted).toBe(true);
 
     // Static antd message.* never mounts (PIT-023) — after the T1-6 feedback bridge
     // fix the toast renders inside App context and this locator becomes visible.
-    await expect(page.locator('.ant-message .ant-message-notice-content')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.ant-message .ant-message-notice-content')).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test('create user via dedicated /users/create page', async ({ page }) => {
@@ -341,7 +422,10 @@ test.describe('Users CRUD (dedicated routes)', () => {
     });
 
     await page.goto('/users');
-    await page.locator('button:has-text("Create User"), button:has-text("创建用户")').first().click();
+    await page
+      .locator('button:has-text("Create User"), button:has-text("创建用户")')
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/users\/create/);
 
     const card = page.locator('.ant-card');
@@ -399,7 +483,12 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await page.goto('/users');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
-    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Edit"), button:has-text("编辑")').first().click();
+    await page
+      .locator('tbody tr.ant-table-row')
+      .first()
+      .locator('button:has-text("Edit"), button:has-text("编辑")')
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/users\/1\/edit/);
 
     // Prefilled name
@@ -431,7 +520,11 @@ test.describe('Users CRUD (dedicated routes)', () => {
     const searchInput = page.locator('input[placeholder]').first();
     await searchInput.fill('admin');
     // AntD renders CJK 2-char labels with a space ("查 询") — allow optional whitespace
-    await page.locator('button').filter({ hasText: /search|查\s*询|submit/i }).first().click();
+    await page
+      .locator('button')
+      .filter({ hasText: /search|查\s*询|submit/i })
+      .first()
+      .click();
 
     // Search param reached the API and table still renders.
     // expect.poll (not sync expect): the click → request dispatch is async —
@@ -465,11 +558,22 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await page.goto('/users');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
-    await page.locator('tbody tr.ant-table-row').first().locator('button:has-text("Delete"), button:has-text("删除")').click();
-    await page.locator('.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")').first().click();
+    await page
+      .locator('tbody tr.ant-table-row')
+      .first()
+      .locator('button:has-text("Delete"), button:has-text("删除")')
+      .click();
+    await page
+      .locator(
+        '.ant-popconfirm button:has-text("Confirm"), .ant-popconfirm button:has-text("OK"), .ant-popconfirm button:has-text("Yes"), .ant-popconfirm button:has-text("确认")',
+      )
+      .first()
+      .click();
 
     // AntD placeholder row ("暂无数据") lives in tbody — assert on the empty description
-    await expect(page.locator('.ant-table-tbody .ant-empty-description')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.ant-table-tbody .ant-empty-description')).toBeVisible({
+      timeout: 10000,
+    });
     expect(deleted, 'DELETE was called').toBe(true);
   });
 
@@ -494,7 +598,10 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await card.locator('button[type="submit"]').click();
 
     await expect(
-      card.locator('.ant-form-item-explain-error').filter({ hasText: /At least 8 characters|至少 8 位/ }).first(),
+      card
+        .locator('.ant-form-item-explain-error')
+        .filter({ hasText: /At least 8 characters|至少 8 位/ })
+        .first(),
     ).toBeVisible();
     await expect(page).toHaveURL(/\/users\/create/);
     expect(posted, 'no POST issued while the form is invalid').toBe(false);
@@ -521,14 +628,19 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await card.locator('button[type="submit"]').click();
 
     await expect(
-      card.locator('.ant-form-item-explain-error').filter({ hasText: /Passwords do not match|两次输入的密码不一致/ }).first(),
+      card
+        .locator('.ant-form-item-explain-error')
+        .filter({ hasText: /Passwords do not match|两次输入的密码不一致/ })
+        .first(),
     ).toBeVisible();
     await expect(page).toHaveURL(/\/users\/create/);
     expect(posted, 'no POST issued while the form is invalid').toBe(false);
   });
 
   // Faithful to POST /users 409 envelope in apps/server/src/routes/users.ts
-  test('duplicate email 409 surfaces inline email error without success toast', async ({ page }) => {
+  test('duplicate email 409 surfaces inline email error without success toast', async ({
+    page,
+  }) => {
     await page.route('**/api/v1/users', async (route) => {
       if (route.request().method() !== 'POST') return route.fallback();
       await route.fulfill({
@@ -550,7 +662,10 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await card.locator('button[type="submit"]').click();
 
     await expect(
-      card.locator('.ant-form-item-explain-error').filter({ hasText: 'User with this email already exists' }).first(),
+      card
+        .locator('.ant-form-item-explain-error')
+        .filter({ hasText: 'User with this email already exists' })
+        .first(),
     ).toBeVisible();
     await expect(page).toHaveURL(/\/users\/create/);
     await expect(page.locator('.ant-message-success')).toHaveCount(0);
@@ -564,12 +679,17 @@ test.describe('Users CRUD (dedicated routes)', () => {
       await route.fulfill({
         status: 404,
         contentType: 'application/json',
-        body: JSON.stringify({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } }),
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'User not found' },
+        }),
       });
     });
 
     await page.goto('/users/00000000-0000-0000-0000-000000000099');
     await expect(page.getByTestId('detail-error')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('detail-error').getByRole('button', { name: /Retry|重试/ })).toBeVisible();
+    await expect(
+      page.getByTestId('detail-error').getByRole('button', { name: /Retry|重试/ }),
+    ).toBeVisible();
   });
 });

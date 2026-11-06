@@ -12,7 +12,10 @@ test.describe('Health Endpoints', () => {
       .get(`${BASE_URL}/health/live`, { timeout: 2000 })
       .then((r) => r.ok())
       .catch(() => false);
-    test.skip(!reachable, 'Real backend on :5101 not running — real-backend smoke tests skipped (NOT VERIFIED per testing.md)');
+    test.skip(
+      !reachable,
+      'Real backend on :5101 not running — real-backend smoke tests skipped (NOT VERIFIED per testing.md)',
+    );
   });
 
   test('GET /health/live returns 200', async ({ request }) => {

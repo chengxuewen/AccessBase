@@ -26,7 +26,9 @@ function resolveTenantSlugs(): Promise<Map<string, string>> {
 
 /** Read-only table cell showing the tenant slug (or '—' if unavailable). */
 export default function TenantCell({ tenantId }: { tenantId: string }) {
-  const [slug, setSlug] = useState<string | undefined>(() => (cache ? cache.get(tenantId) : undefined));
+  const [slug, setSlug] = useState<string | undefined>(() =>
+    cache ? cache.get(tenantId) : undefined,
+  );
 
   useEffect(() => {
     if (cache && cache.has(tenantId)) return;

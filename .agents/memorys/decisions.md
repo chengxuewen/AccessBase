@@ -2239,12 +2239,12 @@ const brandTokens = {
 
 **决策**: 支持四种独立构建模式：
 
-| 模式 | 依赖 | 场景 |
-|------|------|------|
-| Native (pixi) | pixi + conda-forge | 开发、CI、无 Docker |
-| Single Container | Docker | 快速体验 |
-| Compose | Docker Compose | 团队开发、生产 |
-| Deploy | Node.js only | 构建到 out/，单端口部署 |
+| 模式             | 依赖               | 场景                    |
+| ---------------- | ------------------ | ----------------------- |
+| Native (pixi)    | pixi + conda-forge | 开发、CI、无 Docker     |
+| Single Container | Docker             | 快速体验                |
+| Compose          | Docker Compose     | 团队开发、生产          |
+| Deploy           | Node.js only       | 构建到 out/，单端口部署 |
 
 **命令规范**: `<操作>:<模式>`，无后缀默认 native。
 
@@ -2257,6 +2257,7 @@ const brandTokens = {
 **决策**: Deploy 模式通过 `@fastify/static` 在同一端口 (5101) 服务 API + 前端静态资源。
 
 **关键约束**:
+
 - `@fastify/static` v6（Fastify v4 兼容）
 - `setupGuard` 的 `ALLOWED_PATHS` 必须包含 `/`, `/assets/` 等静态路径
 - `out/server/node_modules` 需 symlink 到 `apps/server/node_modules`（pnpm 幽灵依赖）
@@ -2268,6 +2269,7 @@ const brandTokens = {
 **决策**: `initializeAdmin()` 在 server 启动时自动创建 admin，并标记 `setupState.isInitialized=true`。
 
 **规则**:
+
 - 设置 `ADMIN_EMAIL` + `ADMIN_PASSWORD` → 使用指定凭据
 - 未设置 → 使用默认邮箱 + 随机密码
 - 只要 admin 创建成功或已存在 → 标记 setup 完成 → 不显示 wizard
@@ -2287,6 +2289,7 @@ const brandTokens = {
 **决策**: User 实体无 `status` 字段（使用 `isActive: boolean`），无 `roles` 字段。
 
 **约束**:
+
 - 后端返回 `isActive: boolean`，前端映射为 Tag 颜色
 - `PATCH /users/:id/status` 独立端点调用 `UserManager.changeStatus()`
 - `roles` 不在 User 列表/表单中展示
@@ -2298,6 +2301,7 @@ const brandTokens = {
 **决策**: CRUD E2E 测试使用 mock API（`page.route`），setup E2E 测试使用真后端。
 
 **理由**:
+
 - CRUD 测试关注 UI 交互逻辑，mock 更稳定、更快
 - Setup 测试关注完整初始化流程，需要真后端验证
 - 真后端 E2E 受 bash timeout / Vite 进程生命周期影响，不适合 CI
@@ -2311,12 +2315,12 @@ const brandTokens = {
 - **决策**: 1) JWT 支持 RS256（JWT_PRIVATE_KEY_PATH/JWT_PUBLIC_KEY_PATH），未配置时回退 HMAC（开发友好，生产必须配密钥）。2) Refresh token 为不透明随机串，DB sessions 表权威（bcrypt 哈希存储、rotation、reuse 检测→吊销全部会话），access token 仍由 @fastify/jwt 签发。3) AuditLogger 通过 AuditStorage 接口注入存储实现，server 默认用 drizzle 写 audit_logs 表，测试注入内存实现。4) 错误 envelope 补全 timestamp/requestId/path（Sec 19.13/D52）。
 - **理由**: 兼顾开发体验（零配置启动）与生产安全（非对称签名+可吊销会话+完整审计）；DB 权威使多设备/吊销语义清晰；接口注入避免 audit 包依赖 drizzle。
 - **参考**: security.md 19.13/19.18/25.4/25.5, database.md 22.1, PIT-020/021
+
 ## D111: FlowTokenService 单次用途 token 作为多步认证主干 (2026-08-31)
 
 - **决策**: FlowTokenService（单次消费、purpose 限定、短 TTL、Redis+内存双后备）作为多步认证流的通用 token 层：MFA step-up（purpose=mfa_verify）现已接入，password_reset（6a）复用同一服务，6d WebAuthn/OAuth 交换将复用同一机制。
 - **理由**: 单次消费 + purpose 绑定 + 短 TTL 三重防护使 flow token 不能重放/跨流滥用；服务端存储意味着颁发后的授权状态变化即时生效；统一层避免每种认证流各造一套 token 语义。
 - **参考**: 6b Task 2/3（FlowTokenService、/auth/mfa/*），security.md 19.x，D110
-
 
 ## D109: GitHub OAuth 豁免 PKCE（经典 OAuth App 限制） (2026-08-31)
 
@@ -2336,7 +2340,6 @@ const brandTokens = {
 - **理由**: DB-as-truth 使 reset/新环境天然回向导，无状态漂移；双变量设计防半配置意外旁路；随机密码进日志的隐患一并消除
 - **参考**: docs/superpowers/plans/2026-09-01-setup-wizard-unification.md
 
-
 ## D114: 已知 bug 用 E2E RED 回归网锁定（test.fail 标注法） (2026-09-03)
 
 - **背景**: Phase 7 审查发现 11 个真 bug 全部零测试覆盖；若直接加普通断言测试，套件立刻红，阻塞其它门禁验收
@@ -2344,7 +2347,6 @@ const brandTokens = {
 - **效果**: Phase 1-3 每次修复即验；本轮 11 条 RED 全部成功转正且 0 意外通过；建网同时坐实了 mock 漂移掩盖的 B7 权限清空与 C7 裸 key 两个隐藏 bug
 - **参考**: docs/superpowers/plans/2026-09-03-admin-ui-fix-plan.md Phase 0
 - **备选**: test.skip —— 被跳过的用例永不执行，无法证明 bug 存在或已修；否决
-
 
 ## D115: 授权强制走 requirePermission preHandler（偏离 identity-sdd §3.3 plugin 路线） (2026-09-04)
 

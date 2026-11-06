@@ -16,7 +16,17 @@ const MOCK_ME = {
 
 function mockShell(page: import('@playwright/test').Page) {
   const routes: Record<string, string> = {
-    '**/api/v1/setup/status': JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true, siteName: 'T3', logoUrl: '', primaryColor: '' } }),
+    '**/api/v1/setup/status': JSON.stringify({
+      success: true,
+      data: {
+        isInitialized: true,
+        adminExists: true,
+        configComplete: true,
+        siteName: 'T3',
+        logoUrl: '',
+        primaryColor: '',
+      },
+    }),
     '**/api/v1/auth/sms/status': JSON.stringify({ success: true, data: { enabled: false } }),
     '**/api/v1/auth/saml/status': JSON.stringify({ success: true, data: { enabled: false } }),
     '**/api/v1/auth/captcha/status': JSON.stringify({ success: true, data: { enabled: false } }),
@@ -24,12 +34,44 @@ function mockShell(page: import('@playwright/test').Page) {
     '**/api/v1/auth/oauth/providers': JSON.stringify({ success: true, data: [] }),
     '**/api/v1/auth/me': JSON.stringify({ success: true, data: MOCK_ME }),
   };
-  void page.route('**/api/v1/setup/status', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: routes['**/api/v1/setup/status'] }));
-  void page.route('**/api/v1/auth/sms/status', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: routes['**/api/v1/auth/sms/status'] }));
-  void page.route('**/api/v1/auth/saml/status', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: routes['**/api/v1/auth/saml/status'] }));
-  void page.route('**/api/v1/auth/captcha/status', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: routes['**/api/v1/auth/captcha/status'] }));
-  void page.route('**/api/v1/auth/oauth/providers', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: routes['**/api/v1/auth/oauth/providers'] }));
-  void page.route('**/api/v1/auth/me', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: routes['**/api/v1/auth/me'] }));
+  void page.route('**/api/v1/setup/status', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: routes['**/api/v1/setup/status'],
+    }),
+  );
+  void page.route('**/api/v1/auth/sms/status', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: routes['**/api/v1/auth/sms/status'],
+    }),
+  );
+  void page.route('**/api/v1/auth/saml/status', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: routes['**/api/v1/auth/saml/status'],
+    }),
+  );
+  void page.route('**/api/v1/auth/captcha/status', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: routes['**/api/v1/auth/captcha/status'],
+    }),
+  );
+  void page.route('**/api/v1/auth/oauth/providers', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: routes['**/api/v1/auth/oauth/providers'],
+    }),
+  );
+  void page.route('**/api/v1/auth/me', (r) =>
+    r.fulfill({ status: 200, contentType: 'application/json', body: routes['**/api/v1/auth/me'] }),
+  );
 }
 
 const envelope = (data: unknown[]) =>
@@ -41,14 +83,22 @@ test.describe('server-side pagination (T3)', () => {
   test.beforeEach(async ({ page }) => {
     consoleErrors = [];
     page.on('console', (msg) => {
-      if (msg.type() === 'error' && !/findDOMNode|chrome-extension|moz-extension|ResizeObserver/.test(msg.text())) {
+      if (
+        msg.type() === 'error' &&
+        !/findDOMNode|chrome-extension|moz-extension|ResizeObserver/.test(msg.text())
+      ) {
         consoleErrors.push(msg.text());
       }
     });
     mockShell(page);
     // Authenticated shell (api-keys.spec precedent): persist the store token.
     const persisted = JSON.stringify({
-      state: { token: 'test-token', refreshToken: 'test-refresh', user: MOCK_ME, isAuthenticated: true },
+      state: {
+        token: 'test-token',
+        refreshToken: 'test-refresh',
+        user: MOCK_ME,
+        isAuthenticated: true,
+      },
       version: 0,
     });
     await page.addInitScript((value) => {
@@ -60,12 +110,26 @@ test.describe('server-side pagination (T3)', () => {
     const urls: string[] = [];
     await page.route('**/api/v1/clients*', async (route) => {
       urls.push(route.request().url());
-      await route.fulfill({ status: 200, contentType: 'application/json', body: envelope([{ clientId: 'c1', name: 'One' }]) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: envelope([{ clientId: 'c1', name: 'One' }]),
+      });
     });
-    await page.route('**/api/v1/auth/webauthn/credentials', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) }));
+    await page.route('**/api/v1/auth/webauthn/credentials', (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      }),
+    );
     await page.goto('/clients');
     await expect(page.locator('[data-testid="clients-table"]')).toBeVisible();
-    await expect.poll(() => urls.some((u) => u.includes('page=') && u.includes('pageSize=')), { timeout: 10_000 }).toBe(true);
+    await expect
+      .poll(() => urls.some((u) => u.includes('page=') && u.includes('pageSize=')), {
+        timeout: 10_000,
+      })
+      .toBe(true);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -73,11 +137,19 @@ test.describe('server-side pagination (T3)', () => {
     const urls: string[] = [];
     await page.route('**/api/v1/auth/api-keys*', async (route) => {
       urls.push(route.request().url());
-      await route.fulfill({ status: 200, contentType: 'application/json', body: envelope([{ id: 'k1', name: 'Key' }]) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: envelope([{ id: 'k1', name: 'Key' }]),
+      });
     });
     await page.goto('/api-keys');
     await expect(page.locator('[data-testid="api-keys-table"]')).toBeVisible();
-    await expect.poll(() => urls.some((u) => u.includes('page=') && u.includes('pageSize=')), { timeout: 10_000 }).toBe(true);
+    await expect
+      .poll(() => urls.some((u) => u.includes('page=') && u.includes('pageSize=')), {
+        timeout: 10_000,
+      })
+      .toBe(true);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -86,11 +158,19 @@ test.describe('server-side pagination (T3)', () => {
     await page.route('**/api/v1/groups**', async (route) => {
       const url = route.request().url();
       urls.push(url);
-      await route.fulfill({ status: 200, contentType: 'application/json', body: envelope([{ id: 'g1', name: 'Eng', memberCount: 1, roleCount: 0 }]) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: envelope([{ id: 'g1', name: 'Eng', memberCount: 1, roleCount: 0 }]),
+      });
     });
     await page.goto('/groups');
     await expect(page.locator('[data-testid="groups-table"]')).toBeVisible();
-    await expect.poll(() => urls.some((u) => u.includes('page=') && u.includes('pageSize=')), { timeout: 10_000 }).toBe(true);
+    await expect
+      .poll(() => urls.some((u) => u.includes('page=') && u.includes('pageSize=')), {
+        timeout: 10_000,
+      })
+      .toBe(true);
     expect(consoleErrors).toEqual([]);
   });
 });

@@ -113,7 +113,9 @@ describe('PermissionManager', () => {
   describe('hasPermission', () => {
     beforeEach(() => {
       roleManager.getUserRoles.mockResolvedValue([role('r1')]);
-      roleManager.resolveInheritedPermissions.mockResolvedValue([permission('p1', 'users', 'read')]);
+      roleManager.resolveInheritedPermissions.mockResolvedValue([
+        permission('p1', 'users', 'read'),
+      ]);
     });
 
     it('returns true when resource:action is granted', async () => {
@@ -128,7 +130,9 @@ describe('PermissionManager', () => {
   describe('hasPermissions', () => {
     beforeEach(() => {
       roleManager.getUserRoles.mockResolvedValue([role('r1')]);
-      roleManager.resolveInheritedPermissions.mockResolvedValue([permission('p1', 'users', 'read')]);
+      roleManager.resolveInheritedPermissions.mockResolvedValue([
+        permission('p1', 'users', 'read'),
+      ]);
     });
 
     it('returns true when any requested permission is granted', async () => {
@@ -172,7 +176,9 @@ describe('PermissionManager', () => {
     it('throws when permission does not exist', async () => {
       db.update.mockReturnValue(makeChain([]));
 
-      await expect(manager.update('missing', { name: 'x' })).rejects.toThrow('Permission not found');
+      await expect(manager.update('missing', { name: 'x' })).rejects.toThrow(
+        'Permission not found',
+      );
     });
   });
 
@@ -256,7 +262,9 @@ describe('permission cache', () => {
     try {
       manager = makeManager(50);
       roleManager.getUserRoles.mockResolvedValue([role('r1')]);
-      roleManager.resolveInheritedPermissions.mockResolvedValue([permission('p1', 'users', 'read')]);
+      roleManager.resolveInheritedPermissions.mockResolvedValue([
+        permission('p1', 'users', 'read'),
+      ]);
 
       await manager.getUserEffectivePermissions('u1', 't1');
       vi.advanceTimersByTime(60);

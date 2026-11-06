@@ -26,7 +26,18 @@ const WID = '11111111-1111-1111-1111-111111111111';
 const insertValues: unknown[] = [];
 function makeChain(result: unknown) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-  for (const m of ['from', 'where', 'innerJoin', 'limit', 'set', 'returning', 'orderBy', 'groupBy', 'offset', 'onConflictDoNothing']) {
+  for (const m of [
+    'from',
+    'where',
+    'innerJoin',
+    'limit',
+    'set',
+    'returning',
+    'orderBy',
+    'groupBy',
+    'offset',
+    'onConflictDoNothing',
+  ]) {
     chain[m] = vi.fn(() => chain);
   }
   chain.values = vi.fn((v: unknown) => {
@@ -149,7 +160,10 @@ describe('POST /api/v1/webhooks', () => {
   });
 
   it('SSRF deny at registration → 400 WEBHOOK_URL_DENIED, zero writes', async () => {
-    assertWebhookUrlMock.mockReturnValue({ ok: false, reason: 'literal address is in the deny set' });
+    assertWebhookUrlMock.mockReturnValue({
+      ok: false,
+      reason: 'literal address is in the deny set',
+    });
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/webhooks',
@@ -241,7 +255,11 @@ describe('DELETE / rotate / ping / deliveries', () => {
   it('DELETE unknown 404; happy → data null', async () => {
     fakeDb.select.mockReturnValueOnce(makeChain([endpointRow]));
     fakeDb.delete.mockReturnValueOnce(makeChain(undefined));
-    const res = await app.inject({ method: 'DELETE', url: `/api/v1/webhooks/${WID}`, headers: AUTH() });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/webhooks/${WID}`,
+      headers: AUTH(),
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json().data).toBeNull();
   });
@@ -260,8 +278,14 @@ describe('DELETE / rotate / ping / deliveries', () => {
 
   it('ping inserts webhook.test event + a DIRECT delivery for :id only (R3)', async () => {
     fakeDb.select.mockReturnValueOnce(makeChain([endpointRow])); // findOwned
-    fakeDb.insert.mockReturnValueOnce(makeChain([{ id: 42 }])).mockReturnValueOnce(makeChain(undefined));
-    const res = await app.inject({ method: 'POST', url: `/api/v1/webhooks/${WID}/ping`, headers: AUTH() });
+    fakeDb.insert
+      .mockReturnValueOnce(makeChain([{ id: 42 }]))
+      .mockReturnValueOnce(makeChain(undefined));
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/webhooks/${WID}/ping`,
+      headers: AUTH(),
+    });
     expect(res.statusCode).toBe(202);
     expect(res.json().data).toMatchObject({ deliveryQueued: true, eventId: 42 });
     const eventValues = insertValues[0] as Record<string, unknown>;
@@ -279,7 +303,10 @@ describe('DELETE / rotate / ping / deliveries', () => {
       headers: AUTH(),
     });
     expect(res.statusCode).toBe(200);
-    const limitCall = fakeDb.select.mock.results[1]?.value as Record<string, ReturnType<typeof vi.fn>>;
+    const limitCall = fakeDb.select.mock.results[1]?.value as Record<
+      string,
+      ReturnType<typeof vi.fn>
+    >;
     expect(limitCall.limit).toHaveBeenCalledWith(100);
   });
 });
@@ -296,6 +323,8 @@ describe('guards', () => {
     expect(getRequiredPermission('POST', `/api/v1/webhooks/${WID}/ping`)).toBe('webhooks:write');
     expect(getRequiredPermission('DELETE', `/api/v1/webhooks/${WID}`)).toBe('webhooks:write');
     expect(getRequiredPermission('GET', '/api/v1/email-templates')).toBe('options:read');
-    expect(getRequiredPermission('POST', '/api/v1/email-templates/verify/test')).toBe('options:write');
+    expect(getRequiredPermission('POST', '/api/v1/email-templates/verify/test')).toBe(
+      'options:write',
+    );
   });
 });

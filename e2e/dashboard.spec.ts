@@ -8,8 +8,20 @@ const MOCK_STATS = {
     activeSessions: 2,
     audits: 42,
     recentActivity: [
-      { id: 'a-1', userId: 'u-1', action: 'POST /api/v1/users', resourceType: 'user', createdAt: new Date().toISOString() },
-      { id: 'a-2', userId: 'u-2', action: 'DELETE /api/v1/roles/1', resourceType: 'role', createdAt: new Date(Date.now() - 3600_000).toISOString() },
+      {
+        id: 'a-1',
+        userId: 'u-1',
+        action: 'POST /api/v1/users',
+        resourceType: 'user',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'a-2',
+        userId: 'u-2',
+        action: 'DELETE /api/v1/roles/1',
+        resourceType: 'role',
+        createdAt: new Date(Date.now() - 3600_000).toISOString(),
+      },
     ],
   },
 };
@@ -24,7 +36,12 @@ test.describe('Dashboard', () => {
           state: {
             token: 'test-token',
             refreshToken: 'test-refresh',
-            user: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [{ id: 'role-1', name: 'admin' }] },
+            user: {
+              id: '1',
+              email: 'admin@example.com',
+              name: 'Admin',
+              roles: [{ id: 'role-1', name: 'admin' }],
+            },
             isAuthenticated: true,
           },
           version: 0,
@@ -37,7 +54,10 @@ test.describe('Dashboard', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
     // Stub user fetch
@@ -80,8 +100,12 @@ test.describe('Dashboard', () => {
   test('stat cards show real values from /stats', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('.ant-statistic')).toHaveCount(4);
-    await expect(page.locator('text=Total Users').locator('..').locator('.ant-statistic-content-value')).toHaveText('5');
-    await expect(page.locator('text=Audit Logs').locator('..').locator('.ant-statistic-content-value')).toHaveText('42');
+    await expect(
+      page.locator('text=Total Users').locator('..').locator('.ant-statistic-content-value'),
+    ).toHaveText('5');
+    await expect(
+      page.locator('text=Audit Logs').locator('..').locator('.ant-statistic-content-value'),
+    ).toHaveText('42');
   });
 
   test('recent activity list renders mocked entries', async ({ page }) => {

@@ -16,8 +16,8 @@ vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 // Module-level Mailer mock (addendum #3): no real SMTP is ever attempted. send is
 // a shared vi.fn so forgot-password tests can assert delivery/degradation.
 const mailerSend = vi.fn().mockResolvedValue(undefined);
-const mailerFromConfig = vi.fn(
-  (cfg: { host?: string } | null | undefined) => (cfg && cfg.host ? { send: mailerSend } : null),
+const mailerFromConfig = vi.fn((cfg: { host?: string } | null | undefined) =>
+  cfg && cfg.host ? { send: mailerSend } : null,
 );
 
 let loginPasswordInvalid = false;
@@ -71,9 +71,11 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
         return { ...pwUser };
       }),
       findById: vi.fn().mockResolvedValue({ ...pwUser }),
-      findByEmail: vi.fn().mockImplementation(async (email: string) =>
-        email === pwUser.email || email === 'admin@accessbase.local' ? { ...pwUser } : null,
-      ),
+      findByEmail: vi
+        .fn()
+        .mockImplementation(async (email: string) =>
+          email === pwUser.email || email === 'admin@accessbase.local' ? { ...pwUser } : null,
+        ),
       changePassword: changePasswordMock.mockImplementation(
         async (_userId: string, oldPassword: string) => {
           if (oldPassword !== 'Current!Pass456') throw new Error('Invalid credentials');
@@ -138,11 +140,7 @@ describe('POST /api/v1/auth/change-password', () => {
     expect(typeof body.data.accessToken).toBe('string');
     expect(body.data.refreshToken).toBe('fresh-refresh-token');
     expect(body.data.expiresIn).toBe(900);
-    expect(changePasswordMock).toHaveBeenCalledWith(
-      pwUser.id,
-      'Current!Pass456',
-      STRONG_NEW,
-    );
+    expect(changePasswordMock).toHaveBeenCalledWith(pwUser.id, 'Current!Pass456', STRONG_NEW);
   });
 
   it('wrong oldPassword → 401 (changePassword contract rejects)', async () => {

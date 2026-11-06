@@ -61,7 +61,13 @@ const makeAdapter = async () => {
 describe.skipIf(!pgUp)('oidc_adapter_state — real PG round-trips', () => {
   it('upsert→find returns the verbatim payload; re-upsert replaces (ON CONFLICT)', async () => {
     const a = await makeAdapter();
-    const payload = { jti: 'g-1', kind: 'Grant', accountId: 'u-1', clientId: 'rp-1', openid: { scope: 'openid' } };
+    const payload = {
+      jti: 'g-1',
+      kind: 'Grant',
+      accountId: 'u-1',
+      clientId: 'rp-1',
+      openid: { scope: 'openid' },
+    };
     await a.upsert('Grant', 'g-1', payload, undefined);
     expect(await a.find('Grant', 'g-1')).toEqual(payload);
     const updated = { ...payload, accountId: 'u-2' };
@@ -96,7 +102,7 @@ describe.skipIf(!pgUp)('oidc_adapter_state — real PG round-trips', () => {
     expect(q.rowCount).toBe(0);
   });
 
-  it('revokeByGrantId is kind-scoped: kills only that kind\'s grant rows; Grant/Interaction rows survive (B1)', async () => {
+  it("revokeByGrantId is kind-scoped: kills only that kind's grant rows; Grant/Interaction rows survive (B1)", async () => {
     const a = await makeAdapter();
     await a.upsert('AccessToken', 'at-c', { grantId: 'g-c' }, 60);
     await a.upsert('RefreshToken', 'rt-c', { grantId: 'g-c' }, 60);
@@ -114,10 +120,14 @@ describe.skipIf(!pgUp)('oidc_adapter_state — real PG round-trips', () => {
   it('findByUserCode lower-cases both sides; Session uid index populated only for Session', async () => {
     const a = await makeAdapter();
     await a.upsert('Interaction', 'i-1', { userCode: 'QQ-QQ-QQ', params: {} }, 120);
-    expect(await a.findByUserCode('Interaction', 'qq-qq-qq')).toMatchObject({ userCode: 'QQ-QQ-QQ' });
+    expect(await a.findByUserCode('Interaction', 'qq-qq-qq')).toMatchObject({
+      userCode: 'QQ-QQ-QQ',
+    });
     await a.upsert('Session', 'ss-1', { uid: 'uid-7' }, 3600);
     expect(await a.findByUid('Session', 'uid-7')).toMatchObject({ uid: 'uid-7' });
-    const q = await pool.query("SELECT uid FROM oidc_adapter_state WHERE kind='Interaction' AND id='i-1'");
+    const q = await pool.query(
+      "SELECT uid FROM oidc_adapter_state WHERE kind='Interaction' AND id='i-1'",
+    );
     expect(q.rows[0].uid).toBeNull();
   });
 });

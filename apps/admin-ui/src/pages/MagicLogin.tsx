@@ -44,50 +44,65 @@ export default function MagicLogin() {
         return useAuthStore
           .getState()
           .fetchUser()
-          .then(() => navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true }));
+          .then(() =>
+            navigate(landingPath(useAuthStore.getState().user?.permissions), { replace: true }),
+          );
       })
       .catch((err: unknown) => {
-        const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+        const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response
+          ?.data?.error?.code;
         setError(code === 'AUTH_004' ? 'suspended' : 'invalid');
       });
   }, [searchParams, setSearchParams, navigate]);
 
   return (
     <ConfigProvider theme={brandTheme}>
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: themeToken.colorBgLayout,
-      }}
-    >
-      {branding.logoUrl && (
-        <img src={branding.logoUrl} alt="logo" data-testid="branding-logo"
-             style={{ display: 'block', margin: '0 auto 16px', maxHeight: 56, maxWidth: '80%', objectFit: 'contain' }} />
-      )}
-      <Card title={t('login.magicTitle')} style={{ width: '100%', maxWidth: 400 }}>
-        {error ? (
-          <>
-            <Alert
-              type="error"
-              showIcon
-              message={error === 'suspended' ? t('login.accountSuspended') : t('login.magicInvalid')}
-              style={{ marginBottom: 16 }}
-              data-testid="magic-error"
-            />
-            <Link to="/login" replace>
-              <Button block size="large">
-                {t('login.magicBackToLogin')}
-              </Button>
-            </Link>
-          </>
-        ) : (
-          <Spin data-testid="magic-busy" style={{ display: 'block', margin: '24px auto' }} />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          background: themeToken.colorBgLayout,
+        }}
+      >
+        {branding.logoUrl && (
+          <img
+            src={branding.logoUrl}
+            alt="logo"
+            data-testid="branding-logo"
+            style={{
+              display: 'block',
+              margin: '0 auto 16px',
+              maxHeight: 56,
+              maxWidth: '80%',
+              objectFit: 'contain',
+            }}
+          />
         )}
-      </Card>
-    </div>
+        <Card title={t('login.magicTitle')} style={{ width: '100%', maxWidth: 400 }}>
+          {error ? (
+            <>
+              <Alert
+                type="error"
+                showIcon
+                message={
+                  error === 'suspended' ? t('login.accountSuspended') : t('login.magicInvalid')
+                }
+                style={{ marginBottom: 16 }}
+                data-testid="magic-error"
+              />
+              <Link to="/login" replace>
+                <Button block size="large">
+                  {t('login.magicBackToLogin')}
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <Spin data-testid="magic-busy" style={{ display: 'block', margin: '24px auto' }} />
+          )}
+        </Card>
+      </div>
     </ConfigProvider>
   );
 }

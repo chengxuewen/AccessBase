@@ -9,16 +9,19 @@ const probed = isBrowser && navigator.language.startsWith('zh') ? 'zh' : 'en';
 const raw = isStorage ? localStorage.getItem('lng') : null;
 const stored = raw === 'zh' || raw === 'en' ? raw : probed;
 
-export const i18nReady = i18n.use(initReactI18next).init({
-  resources: {
-    en: { translation: en },
-    zh: { translation: zh },
-  },
-  lng: stored,
-  fallbackLng: 'en',
-  interpolation: {
-    escapeValue: false,
-  },
-}).then(() => i18n);
+export const i18nReady = i18n
+  .use(initReactI18next)
+  .init({
+    resources: {
+      en: { translation: en },
+      zh: { translation: zh },
+    },
+    lng: stored,
+    fallbackLng: 'en',
+    interpolation: {
+      escapeValue: false,
+    },
+  })
+  .then(() => i18n);
 
 export default i18n;

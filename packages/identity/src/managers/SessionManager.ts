@@ -104,9 +104,11 @@ export class SessionManager {
     const list: SafeSession[] = rows.map((row) => ({
       id: row.id,
       userAgent:
-        (typeof row.deviceInfo === 'object' && row.deviceInfo !== null && 'userAgent' in row.deviceInfo
+        typeof row.deviceInfo === 'object' &&
+        row.deviceInfo !== null &&
+        'userAgent' in row.deviceInfo
           ? String((row.deviceInfo as Record<string, unknown>)['userAgent'] ?? '')
-          : ''),
+          : '',
       ip: row.ipAddress ?? '',
       createdAt: row.createdAt,
       expiresAt: row.expiresAt,
@@ -117,7 +119,12 @@ export class SessionManager {
 
   async validateSession(sessionId: string, opts?: IdleCheckOpts): Promise<boolean> {
     const [session] = await this.db
-      .select({ id: sessions.id, revokedAt: sessions.revokedAt, expiresAt: sessions.expiresAt, lastUsedAt: sessions.lastUsedAt })
+      .select({
+        id: sessions.id,
+        revokedAt: sessions.revokedAt,
+        expiresAt: sessions.expiresAt,
+        lastUsedAt: sessions.lastUsedAt,
+      })
       .from(sessions)
       .where(eq(sessions.id, sessionId))
       .limit(1);
@@ -195,7 +202,9 @@ export class SessionManager {
       gt(sessions.expiresAt, new Date()),
     ];
     if (opts?.idleCutoffSeconds) {
-      guardConds.push(gt(sessions.lastUsedAt, new Date(Date.now() - opts.idleCutoffSeconds * 1000)));
+      guardConds.push(
+        gt(sessions.lastUsedAt, new Date(Date.now() - opts.idleCutoffSeconds * 1000)),
+      );
     }
     const burned = await this.db
       .update(sessions)
@@ -271,10 +280,7 @@ export class SessionManager {
   }
 
   async revokeSession(id: string): Promise<void> {
-    await this.db
-      .update(sessions)
-      .set({ revokedAt: new Date() })
-      .where(eq(sessions.id, id));
+    await this.db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.id, id));
     await this.cacheInvalidateUser(await this.findUserIdBySession(id));
   }
 

@@ -3,7 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, Popconfirm, Select, Tag } from 'antd';
-import { PlusOutlined, DeleteOutlined, ReloadOutlined, ImportOutlined, ExportOutlined, LogoutOutlined } from '@ant-design/icons';
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+  ImportOutlined,
+  ExportOutlined,
+  LogoutOutlined,
+} from '@ant-design/icons';
 import { listUsers, deleteUser, forceLogoutUser, exportUsersCsv, type User } from '../api/users';
 import ImportUsersModal from './users/ImportUsersModal';
 import EmptyState from '../components/EmptyState';
@@ -18,16 +25,16 @@ export default function Users() {
   const actionRef = useRef<ActionType>(null);
   const [loadError, setLoadError] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'active' | 'suspended' | 'pending' | undefined>();
+  const [statusFilter, setStatusFilter] = useState<
+    'active' | 'suspended' | 'pending' | undefined
+  >();
 
   const columns: ProColumns<User>[] = [
     {
       title: t('users.name'),
       dataIndex: 'name',
       sorter: true,
-      render: (_, record) => (
-        <Link to={`/users/${record.id}`}>{record.name}</Link>
-      ),
+      render: (_, record) => <Link to={`/users/${record.id}`}>{record.name}</Link>,
     },
     {
       title: t('users.email'),
@@ -72,7 +79,12 @@ export default function Users() {
       valueType: 'option',
       width: 160,
       render: (_, record) => [
-        <Button type="link" size="small" key="edit" onClick={() => navigate(`/users/${record.id}/edit`)}>
+        <Button
+          type="link"
+          size="small"
+          key="edit"
+          onClick={() => navigate(`/users/${record.id}/edit`)}
+        >
           {t('common.edit')}
         </Button>,
         <Popconfirm
@@ -129,7 +141,12 @@ export default function Users() {
           showIcon
           message={t('users.loadError')}
           action={
-            <Button size="small" icon={<ReloadOutlined />} onClick={handleRetry} data-testid="users-load-retry">
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={handleRetry}
+              data-testid="users-load-retry"
+            >
               {t('common.retry')}
             </Button>
           }

@@ -52,14 +52,20 @@ function mockSetupAndStats(page: Page): void {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   void page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
 }
@@ -107,7 +113,11 @@ test.describe('OIDC consent page + login redirect glue', () => {
     await page.route('**/api/v1/oidc/interaction/uid-123', async (route) => {
       if (route.request().method() === 'POST') {
         postedDecision = route.request().postDataJSON()?.decision;
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { ok: true } }) });
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: { ok: true } }),
+        });
         return;
       }
       await route.fulfill({
@@ -129,7 +139,11 @@ test.describe('OIDC consent page + login redirect glue', () => {
     await page.route('**/api/v1/oidc/interaction/uid-123', async (route) => {
       if (route.request().method() === 'POST') {
         postedDecision = route.request().postDataJSON()?.decision;
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { ok: true } }) });
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: { ok: true } }),
+        });
         return;
       }
       await route.fulfill({
@@ -180,7 +194,12 @@ test.describe('OIDC consent page + login redirect glue', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { clientName: 'Third Party App', requestedScopes: ['openid'], promptName: 'login', uid: 'xyz' },
+          data: {
+            clientName: 'Third Party App',
+            requestedScopes: ['openid'],
+            promptName: 'login',
+            uid: 'xyz',
+          },
         }),
       });
     });
@@ -192,7 +211,9 @@ test.describe('OIDC consent page + login redirect glue', () => {
     await page.waitForURL('/oidc/auth/xyz');
   });
 
-  test('redirect param not matching /oidc/auth/ is ignored — lands on landingPath', async ({ page }) => {
+  test('redirect param not matching /oidc/auth/ is ignored — lands on landingPath', async ({
+    page,
+  }) => {
     await page.route('**/api/v1/auth/login', async (route) => {
       await route.fulfill({
         status: 200,
@@ -238,13 +259,19 @@ test.describe('login-prompt auto-approve effect', () => {
     expect(consoleErrors, 'console errors should be empty').toEqual([]);
   });
 
-  test('auto-approves a login prompt and resumes /oidc/auth/:uid once approve resolves', async ({ page }) => {
+  test('auto-approves a login prompt and resumes /oidc/auth/:uid once approve resolves', async ({
+    page,
+  }) => {
     await seedSession(page);
     let postCount = 0;
     await page.route('**/api/v1/oidc/interaction/uid-123', async (route) => {
       if (route.request().method() === 'POST') {
         postCount += 1;
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {} }) });
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: {} }),
+        });
         return;
       }
       await route.fulfill({
@@ -258,13 +285,19 @@ test.describe('login-prompt auto-approve effect', () => {
     expect(postCount).toBeGreaterThanOrEqual(1);
   });
 
-  test('consent prompt is never auto-approved — hands off to /consent with zero POST', async ({ page }) => {
+  test('consent prompt is never auto-approved — hands off to /consent with zero POST', async ({
+    page,
+  }) => {
     await seedSession(page);
     let postCount = 0;
     await page.route('**/api/v1/oidc/interaction/uid-123', async (route) => {
       if (route.request().method() === 'POST') {
         postCount += 1;
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {} }) });
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: {} }),
+        });
         return;
       }
       await route.fulfill({

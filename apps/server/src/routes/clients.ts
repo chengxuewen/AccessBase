@@ -53,8 +53,7 @@ function usableJwks(value: unknown): { keys: unknown[] } | undefined {
 function isPublicJwk(key: unknown): boolean {
   if (typeof key !== 'object' || key === null || Array.isArray(key)) return false;
   const record = key as Record<string, unknown>;
-  const allowed =
-    typeof record['kty'] === 'string' ? PUBLIC_JWK_MEMBERS[record['kty']] : undefined;
+  const allowed = typeof record['kty'] === 'string' ? PUBLIC_JWK_MEMBERS[record['kty']] : undefined;
   if (!allowed) return false;
   const members = Object.keys(record);
   return members.length === allowed.length && members.every((m) => allowed.includes(m));
@@ -110,7 +109,8 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
       const redirectUris = Array.isArray(body['redirectUris']) ? body['redirectUris'] : undefined;
       const grantTypes = Array.isArray(body['grantTypes']) ? body['grantTypes'] : undefined;
       const scope = typeof body['scope'] === 'string' ? body['scope'] : undefined;
-      const tokenAuthMethod = typeof body['tokenAuthMethod'] === 'string' ? body['tokenAuthMethod'] : undefined;
+      const tokenAuthMethod =
+        typeof body['tokenAuthMethod'] === 'string' ? body['tokenAuthMethod'] : undefined;
       // Q3D: optional back-channel logout endpoint — http(s) only, else dropped.
       const bcRaw = body['backchannelLogoutUri'];
       const backchannelLogoutUri =
@@ -132,13 +132,23 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
       if (!redirectUris.every(isValidRedirectUri)) {
         return reply.status(400).send({
           success: false,
-          error: { code: 'CLIENT_003', message: 'redirectUris must use https (or http://localhost for dev)' },
+          error: {
+            code: 'CLIENT_003',
+            message: 'redirectUris must use https (or http://localhost for dev)',
+          },
         });
       }
-      if (!grantTypes || grantTypes.length === 0 || !grantTypes.every((g: unknown) => ALLOWED_GRANT_TYPES.has(g as string))) {
+      if (
+        !grantTypes ||
+        grantTypes.length === 0 ||
+        !grantTypes.every((g: unknown) => ALLOWED_GRANT_TYPES.has(g as string))
+      ) {
         return reply.status(400).send({
           success: false,
-          error: { code: 'CLIENT_004', message: 'grantTypes must be one of: authorization_code, client_credentials' },
+          error: {
+            code: 'CLIENT_004',
+            message: 'grantTypes must be one of: authorization_code, client_credentials',
+          },
         });
       }
       if (!scope || scope.trim().length === 0) {
@@ -151,7 +161,11 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
       if (!scopeTokens.every((s: string) => ALLOWED_SCOPES.has(s))) {
         return reply.status(400).send({
           success: false,
-          error: { code: 'CLIENT_006', message: 'scope contains disallowed values; allowed: openid profile email offline_access' },
+          error: {
+            code: 'CLIENT_006',
+            message:
+              'scope contains disallowed values; allowed: openid profile email offline_access',
+          },
         });
       }
 
@@ -159,7 +173,11 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
       if (tokenAuthMethod !== undefined && !ALLOWED_TOKEN_AUTH_METHODS.has(tokenAuthMethod)) {
         return reply.status(400).send({
           success: false,
-          error: { code: 'CLIENT_008', message: 'tokenAuthMethod must be one of: client_secret_basic, client_secret_post, private_key_jwt, none' },
+          error: {
+            code: 'CLIENT_008',
+            message:
+              'tokenAuthMethod must be one of: client_secret_basic, client_secret_post, private_key_jwt, none',
+          },
         });
       }
       if (
@@ -168,7 +186,11 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
       ) {
         return reply.status(400).send({
           success: false,
-          error: { code: 'CLIENT_009', message: 'tokenAuthMethod "none" cannot be combined with client_credentials or device_code grants' },
+          error: {
+            code: 'CLIENT_009',
+            message:
+              'tokenAuthMethod "none" cannot be combined with client_credentials or device_code grants',
+          },
         });
       }
       let jwksForCreate: { keys: unknown[] } | undefined;
@@ -177,13 +199,20 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
         if (!usable) {
           return reply.status(400).send({
             success: false,
-            error: { code: 'CLIENT_010', message: 'private_key_jwt requires jwks with a non-empty keys array' },
+            error: {
+              code: 'CLIENT_010',
+              message: 'private_key_jwt requires jwks with a non-empty keys array',
+            },
           });
         }
         if (!usable.keys.every(isPublicJwk)) {
           return reply.status(400).send({
             success: false,
-            error: { code: 'CLIENT_011', message: 'jwks may only contain public key members (RSA: kty/n/e, EC: kty/crv/x/y, OKP: kty/crv/x)' },
+            error: {
+              code: 'CLIENT_011',
+              message:
+                'jwks may only contain public key members (RSA: kty/n/e, EC: kty/crv/x/y, OKP: kty/crv/x)',
+            },
           });
         }
         jwksForCreate = usable;
@@ -235,7 +264,10 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
   // PUT /clients/:clientId/rotation-surface — G3: jwks rollover + bclo URI
   // (the create-only pair). Identity/secret/grants untouched; jwks re-uses the
   // create-time validators (CLIENT_010/011).
-  app.put<{ Params: { clientId: string }; Body: { jwks?: unknown; backchannelLogoutUri?: string | null } }>(
+  app.put<{
+    Params: { clientId: string };
+    Body: { jwks?: unknown; backchannelLogoutUri?: string | null };
+  }>(
     '/clients/:clientId/rotation-surface',
     {
       schema: {
@@ -253,9 +285,12 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
       const { clientId } = request.params;
       const mgr = getClientManager();
       if (!(await mgr.get(clientId))) {
-        return reply.status(404).send({ success: false, error: { code: 'CLIENT_NOT_FOUND', message: 'Unknown client' } });
+        return reply
+          .status(404)
+          .send({ success: false, error: { code: 'CLIENT_NOT_FOUND', message: 'Unknown client' } });
       }
-      const fields: { jwks?: { keys: unknown[] } | null; backchannelLogoutUri?: string | null } = {};
+      const fields: { jwks?: { keys: unknown[] } | null; backchannelLogoutUri?: string | null } =
+        {};
 
       if (request.body?.jwks !== undefined) {
         if (request.body.jwks === null) {
@@ -265,7 +300,11 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
           if (!jwks || !jwks.keys.every(isPublicJwk)) {
             return reply.status(400).send({
               success: false,
-              error: { code: 'CLIENT_011', message: 'jwks may only contain public key members (RSA: kty/n/e, EC: kty/crv/x/y, OKP: kty/crv/x)' },
+              error: {
+                code: 'CLIENT_011',
+                message:
+                  'jwks may only contain public key members (RSA: kty/n/e, EC: kty/crv/x/y, OKP: kty/crv/x)',
+              },
             });
           }
           fields.jwks = jwks;
@@ -281,7 +320,10 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
         } else {
           return reply.status(400).send({
             success: false,
-            error: { code: 'CLIENT_012', message: 'backchannelLogoutUri must be an https URL or null' },
+            error: {
+              code: 'CLIENT_012',
+              message: 'backchannelLogoutUri must be an https URL or null',
+            },
           });
         }
       }
@@ -289,7 +331,10 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
       if (Object.keys(fields).length === 0) {
         return reply.status(400).send({
           success: false,
-          error: { code: 'CLIENT_013', message: 'Nothing to rotate: provide jwks and/or backchannelLogoutUri' },
+          error: {
+            code: 'CLIENT_013',
+            message: 'Nothing to rotate: provide jwks and/or backchannelLogoutUri',
+          },
         });
       }
 

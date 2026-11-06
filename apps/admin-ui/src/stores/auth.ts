@@ -58,14 +58,16 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
-          const { data } = await client.post<ApiEnvelope<{
-            mfaRequired?: boolean;
-            passwordChangeRequired?: boolean;
-            flowToken?: string;
-            accessToken?: string;
-            refreshToken?: string;
-            user?: User | null;
-          }>>('/v1/auth/login', {
+          const { data } = await client.post<
+            ApiEnvelope<{
+              mfaRequired?: boolean;
+              passwordChangeRequired?: boolean;
+              flowToken?: string;
+              accessToken?: string;
+              refreshToken?: string;
+              user?: User | null;
+            }>
+          >('/v1/auth/login', {
             email,
             password,
           });
@@ -164,7 +166,9 @@ export const useAuthStore = create<AuthState>()(
         if (!mfaFlowToken) return false;
         set({ isLoading: true, error: null });
         try {
-          const { data } = await client.post<ApiEnvelope<{ accessToken: string; refreshToken: string }>>('/v1/auth/mfa/verify', {
+          const { data } = await client.post<
+            ApiEnvelope<{ accessToken: string; refreshToken: string }>
+          >('/v1/auth/mfa/verify', {
             flowToken: mfaFlowToken,
             code,
           });
@@ -215,21 +219,23 @@ export const useAuthStore = create<AuthState>()(
       },
 
       exchangeOAuthCode: async (code: string) => {
-        const { data } = await client.post<ApiEnvelope<{
-          mfaRequired?: boolean;
-          flowToken?: string;
-          accessToken?: string;
-          refreshToken?: string;
-          user?: User | null;
-        }>>('/v1/auth/oauth/exchange', { code });
+        const { data } = await client.post<
+          ApiEnvelope<{
+            mfaRequired?: boolean;
+            flowToken?: string;
+            accessToken?: string;
+            refreshToken?: string;
+            user?: User | null;
+          }>
+        >('/v1/auth/oauth/exchange', { code });
         if (!data.success) throw new Error(data.error?.message ?? 'OAuth exchange failed');
         const payload = data.data;
         if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
-            // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
-            // survives the redirect; J14 precedent)
-            if ((payload as { enroll?: boolean }).enroll === true) {
-              sessionStorage.setItem('mfaEnrollToken', payload.flowToken);
-            }
+          // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
+          // survives the redirect; J14 precedent)
+          if ((payload as { enroll?: boolean }).enroll === true) {
+            sessionStorage.setItem('mfaEnrollToken', payload.flowToken);
+          }
           set({
             mfaFlowToken: payload.flowToken,
             isAuthenticated: false,
@@ -255,21 +261,23 @@ export const useAuthStore = create<AuthState>()(
       // SAML exchange — same contract as exchangeOAuthCode. MFA branch wipes any
       // persisted session at birth (hygiene fix; the oauth twin is retrofitted by T5).
       exchangeSamlCode: async (code: string) => {
-        const { data } = await client.post<ApiEnvelope<{
-          mfaRequired?: boolean;
-          flowToken?: string;
-          accessToken?: string;
-          refreshToken?: string;
-          user?: User | null;
-        }>>('/v1/auth/saml/exchange', { code });
+        const { data } = await client.post<
+          ApiEnvelope<{
+            mfaRequired?: boolean;
+            flowToken?: string;
+            accessToken?: string;
+            refreshToken?: string;
+            user?: User | null;
+          }>
+        >('/v1/auth/saml/exchange', { code });
         if (!data.success) throw new Error(data.error?.message ?? 'SAML exchange failed');
         const payload = data.data;
         if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
-            // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
-            // survives the redirect; J14 precedent)
-            if ((payload as { enroll?: boolean }).enroll === true) {
-              sessionStorage.setItem('mfaEnrollToken', payload.flowToken);
-            }
+          // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
+          // survives the redirect; J14 precedent)
+          if ((payload as { enroll?: boolean }).enroll === true) {
+            sessionStorage.setItem('mfaEnrollToken', payload.flowToken);
+          }
           set({
             mfaFlowToken: payload.flowToken,
             isAuthenticated: false,
@@ -294,21 +302,23 @@ export const useAuthStore = create<AuthState>()(
 
       // Magic link consume — same contract as exchangeSamlCode (shared MFA TOTP step).
       consumeMagicLink: async (token: string) => {
-        const { data } = await client.post<ApiEnvelope<{
-          mfaRequired?: boolean;
-          flowToken?: string;
-          accessToken?: string;
-          refreshToken?: string;
-          user?: User | null;
-        }>>('/v1/auth/magic/consume', { token });
+        const { data } = await client.post<
+          ApiEnvelope<{
+            mfaRequired?: boolean;
+            flowToken?: string;
+            accessToken?: string;
+            refreshToken?: string;
+            user?: User | null;
+          }>
+        >('/v1/auth/magic/consume', { token });
         if (!data.success) throw new Error(data.error?.message ?? 'Magic link sign-in failed');
         const payload = data.data;
         if (payload.mfaRequired === true && typeof payload.flowToken === 'string') {
-            // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
-            // survives the redirect; J14 precedent)
-            if ((payload as { enroll?: boolean }).enroll === true) {
-              sessionStorage.setItem('mfaEnrollToken', payload.flowToken);
-            }
+          // Q3E-E3: enrollment step-up hands off to the wizard (sessionStorage
+          // survives the redirect; J14 precedent)
+          if ((payload as { enroll?: boolean }).enroll === true) {
+            sessionStorage.setItem('mfaEnrollToken', payload.flowToken);
+          }
           set({
             mfaFlowToken: payload.flowToken,
             isAuthenticated: false,

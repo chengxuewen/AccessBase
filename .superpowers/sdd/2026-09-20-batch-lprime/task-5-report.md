@@ -1,6 +1,7 @@
 # Task 5 report — roles config-surface tails (L′) — controller-audited salvage
 
 Commits 15272ca + c53e040 (attempt-3 session, no report). Audit:
+
 - roles.ts PUT: body parentId nullable-uuid; 'parentId' in body → setParent BEFORE
   update (all parent/cycle validation ahead of any field write — rev.3 ordering fix);
   ROLE_PROTECTED/LAST_ADMIN via sendConflictError; cycle → ROLE_INHERITANCE_CYCLE

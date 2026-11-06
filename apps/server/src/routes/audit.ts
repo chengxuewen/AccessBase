@@ -20,7 +20,6 @@ function getDb() {
   return db;
 }
 
-
 /** Verify window: default last 30 days, hard cap 90 days per request (D7). */
 const VERIFY_DEFAULT_DAYS = 30;
 const VERIFY_MAX_DAYS = 90;
@@ -79,15 +78,21 @@ export async function auditRoutes(app: FastifyInstance) {
       },
     },
     async (request) => {
-      const { page = 1, pageSize = 20, action, actor, startDate, endDate } =
-        request.query as {
-          page?: number;
-          pageSize?: number;
-          action?: string;
-          actor?: string;
-          startDate?: string;
-          endDate?: string;
-        };
+      const {
+        page = 1,
+        pageSize = 20,
+        action,
+        actor,
+        startDate,
+        endDate,
+      } = request.query as {
+        page?: number;
+        pageSize?: number;
+        action?: string;
+        actor?: string;
+        startDate?: string;
+        endDate?: string;
+      };
 
       const where = buildWhere(
         { action, actor, startDate, endDate },
@@ -95,10 +100,7 @@ export async function auditRoutes(app: FastifyInstance) {
       );
 
       const database = getDb();
-      const [countRow] = await database
-        .select({ total: count() })
-        .from(auditLogs)
-        .where(where);
+      const [countRow] = await database.select({ total: count() }).from(auditLogs).where(where);
 
       const total = countRow?.total ?? 0;
 
@@ -189,7 +191,10 @@ export async function auditRoutes(app: FastifyInstance) {
 
       const csv = toCsv(headers, csvRows);
       reply.header('Content-Type', 'text/csv; charset=utf-8');
-      reply.header('Content-Disposition', `attachment; filename="audit-${new Date().toISOString().slice(0, 10)}.csv"`);
+      reply.header(
+        'Content-Disposition',
+        `attachment; filename="audit-${new Date().toISOString().slice(0, 10)}.csv"`,
+      );
       return reply.send(csv);
     },
   );
@@ -202,7 +207,8 @@ export async function auditRoutes(app: FastifyInstance) {
     '/verify',
     {
       schema: {
-        description: 'Verify the audit tamper-evidence chain (platform tenant only; chainOk:false is still a 200 — health-report posture)',
+        description:
+          'Verify the audit tamper-evidence chain (platform tenant only; chainOk:false is still a 200 — health-report posture)',
         tags: ['audit'],
         security: [{ bearerAuth: [] }],
         querystring: {
@@ -231,9 +237,7 @@ export async function auditRoutes(app: FastifyInstance) {
       const isoDay = (d: Date): string => d.toISOString().slice(0, 10);
       const { from, to } = request.query as { from?: string; to?: string };
       const toDay = to ?? isoDay(today);
-      const fromDay =
-        from ??
-        isoDay(new Date(today.getTime() - VERIFY_DEFAULT_DAYS * 86_400_000));
+      const fromDay = from ?? isoDay(new Date(today.getTime() - VERIFY_DEFAULT_DAYS * 86_400_000));
       if (!ISO_DATE.test(fromDay) || !ISO_DATE.test(toDay)) {
         return reply.status(400).send({
           success: false,

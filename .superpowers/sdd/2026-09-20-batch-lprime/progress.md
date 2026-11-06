@@ -8,9 +8,11 @@
 - Branch: master (batches A-L precedent)
 
 ## Dispatch log
+
 (awaiting re-review verdict)
 
 ## Task reviews
+
 (empty)
 
 - Scoped re-review: bg_b0b51d2a → GAPS x4; G-1/G-3/G-4 absorbed into rev.3 (8100916), G-2 REJECTED with counter-evidence (users.ts:292/309 belong to '/import' route, POST :204 has no policy call — controller-verified). Treated ALL-ADDRESSED.
@@ -18,9 +20,9 @@
 - rev.3.1 1824e74: G-5 data-driven isDefault (zero frontend literals) absorbed pre-dispatch.
 - DISPATCH Group-1 (background, parallel, file-disjoint):
   - T1 identity hardening = bg_8d8d84e4 / ses_f4265ae60ffe9TFRoduonmpGcF (deep, TDD)
-  - T3 /me exposure    = bg_8d08388d / ses_f42658221ffeFH2YEWUxEEiACs (unspecified-high, TDD)
-  - T4 Tenants page    = bg_0e3c30ea / ses_f42654253ffe4f4IBUVyqbZ0TR (visual-engineering, design-system+frontend)
-  - T5 roles tails     = bg_a7be7755 / ses_f4265095affeJwhR6DX8NhZh4T (unspecified-high, TDD)
+  - T3 /me exposure = bg_8d08388d / ses_f42658221ffeFH2YEWUxEEiACs (unspecified-high, TDD)
+  - T4 Tenants page = bg_0e3c30ea / ses_f42654253ffe4f4IBUVyqbZ0TR (visual-engineering, design-system+frontend)
+  - T5 roles tails = bg_a7be7755 / ses_f4265095affeJwhR6DX8NhZh4T (unspecified-high, TDD)
 - GATE: T2 (bootstrap) dispatch after T1 GREEN (consumes partition constants + strict bind + conflict tag).
 - All four: e2e authored-not-run (controller serial window); no_proxy discipline; identity dist rebuild owned by T1 only.
 - T2 controller-direct (dispatch channel quota-dead, H-T4c precedent): bootstrap+belt+force-logout. apps/server 518/0. Commit next.

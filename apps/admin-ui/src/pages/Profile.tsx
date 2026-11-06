@@ -14,7 +14,15 @@ import {
   Typography,
   Divider,
 } from 'antd';
-import { EditOutlined, LogoutOutlined, CheckOutlined, CloseOutlined, LinkOutlined, GithubOutlined, GoogleOutlined } from '@ant-design/icons';
+import {
+  EditOutlined,
+  LogoutOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  LinkOutlined,
+  GithubOutlined,
+  GoogleOutlined,
+} from '@ant-design/icons';
 import { getCurrentUser, updateUser } from '../api/users';
 import {
   changePassword,
@@ -71,7 +79,13 @@ export default function Profile() {
     setLoadError(false);
     getCurrentUser()
       .then((u) => {
-        setUser({ id: u.id, email: u.email, name: u.name, isActive: u.isActive, emailVerified: u.emailVerified });
+        setUser({
+          id: u.id,
+          email: u.email,
+          name: u.name,
+          isActive: u.isActive,
+          emailVerified: u.emailVerified,
+        });
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
@@ -159,7 +173,9 @@ export default function Profile() {
         <EmptyState
           variant="error"
           action={
-            <Button type="primary" onClick={refetch}>{t('common.retry')}</Button>
+            <Button type="primary" onClick={refetch}>
+              {t('common.retry')}
+            </Button>
           }
         />
       </Card>
@@ -168,166 +184,233 @@ export default function Profile() {
 
   return (
     <Spin spinning={loading}>
-    <Space direction="vertical" size="large" style={{ display: 'flex', width: '100%' }}>
-      {!loading && user && !user.emailVerified && (
-        <Alert
-          type="warning"
-          showIcon
-          message={t('profile.emailUnverified')}
-          description={verifyMsg ?? undefined}
-          action={
-            <Button
-              size="small"
-              loading={verifyBusy}
-              onClick={handleSendVerify}
-              data-testid="profile-send-verify"
+      <Space direction="vertical" size="large" style={{ display: 'flex', width: '100%' }}>
+        {!loading && user && !user.emailVerified && (
+          <Alert
+            type="warning"
+            showIcon
+            message={t('profile.emailUnverified')}
+            description={verifyMsg ?? undefined}
+            action={
+              <Button
+                size="small"
+                loading={verifyBusy}
+                onClick={handleSendVerify}
+                data-testid="profile-send-verify"
+              >
+                {t('profile.sendVerification')}
+              </Button>
+            }
+            data-testid="profile-verify-banner"
+          />
+        )}
+        <Card
+          title={t('profile.personalInfo')}
+          extra={
+            <Popconfirm
+              title={t('profile.logoutOtherDevicesConfirm')}
+              onConfirm={handleRevokeOthers}
+              okText={t('common.confirm')}
+              cancelText={t('common.cancel')}
             >
-              {t('profile.sendVerification')}
-            </Button>
+              <Button icon={<LogoutOutlined />} danger className="profile-revoke-others">
+                {t('profile.logoutOtherDevices')}
+              </Button>
+            </Popconfirm>
           }
-          data-testid="profile-verify-banner"
-        />
-      )}
-      <Card
-        title={t('profile.personalInfo')}
-        extra={
-          <Popconfirm
-            title={t('profile.logoutOtherDevicesConfirm')}
-            onConfirm={handleRevokeOthers}
-            okText={t('common.confirm')}
-            cancelText={t('common.cancel')}
+        >
+          <Descriptions column={1}>
+            <Descriptions.Item label={t('profile.name')}>
+              {editingName ? (
+                <Form form={nameForm} layout="inline" className="profile-name-form">
+                  <Form.Item
+                    name="name"
+                    rules={[{ required: true, message: t('profile.nameRequired') }]}
+                  >
+                    <Input style={{ width: 200 }} />
+                  </Form.Item>
+                  <Button
+                    type="link"
+                    icon={<CheckOutlined />}
+                    loading={savingName}
+                    onClick={handleSaveName}
+                    className="profile-name-save"
+                    aria-label={t('common.confirmEdit')}
+                  />
+                  <Button
+                    type="link"
+                    icon={<CloseOutlined />}
+                    onClick={() => setEditingName(false)}
+                    aria-label={t('common.cancelEdit')}
+                  />
+                </Form>
+              ) : (
+                <Space>
+                  <span className="profile-name">{user?.name}</span>
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<EditOutlined />}
+                    onClick={() => {
+                      nameForm.setFieldsValue({ name: user?.name });
+                      setEditingName(true);
+                    }}
+                    className="profile-name-edit"
+                  >
+                    {t('profile.editName')}
+                  </Button>
+                </Space>
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('profile.email')}>{user?.email}</Descriptions.Item>
+            <Descriptions.Item label={t('profile.status')}>
+              <Tag color={user?.isActive ? 'green' : 'red'}>
+                {user?.isActive ? t('profile.statusActive') : t('profile.statusSuspended')}
+              </Tag>
+            </Descriptions.Item>
+          </Descriptions>
+        </Card>
+
+        <Card title={t('profile.changePassword')}>
+          {/* UI-level min 8 for usability; the backend enforces the real policy (12 + classes) */}
+          <Alert
+            type="info"
+            showIcon
+            message={t('profile.passwordPolicyHint')}
+            style={{ marginBottom: 16, maxWidth: 400 }}
+          />
+          {pwdError && (
+            <Alert
+              type="error"
+              showIcon
+              message={pwdError}
+              style={{ marginBottom: 16, maxWidth: 400 }}
+              className="profile-pwd-error"
+            />
+          )}
+          <Form
+            form={pwdForm}
+            layout="vertical"
+            onFinish={handleChangePassword}
+            style={{ maxWidth: 400 }}
           >
-            <Button icon={<LogoutOutlined />} danger className="profile-revoke-others">
-              {t('profile.logoutOtherDevices')}
+            <Form.Item
+              name="oldPassword"
+              label={t('profile.currentPassword')}
+              rules={[{ required: true, message: t('profile.currentPasswordRequired') }]}
+            >
+              <Input.Password autoComplete="current-password" />
+            </Form.Item>
+            <Form.Item
+              name="newPassword"
+              label={t('profile.newPassword')}
+              rules={[
+                { required: true, message: t('profile.newPasswordRequired') },
+                { min: 8, message: t('profile.newPasswordMinLength') },
+              ]}
+            >
+              <Input.Password autoComplete="new-password" />
+            </Form.Item>
+            <Form.Item
+              name="confirmPassword"
+              label={t('profile.confirmPassword')}
+              dependencies={['newPassword']}
+              rules={[
+                { required: true, message: t('profile.confirmPasswordRequired') },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('newPassword') === value) return Promise.resolve();
+                    return Promise.reject(new Error(t('profile.confirmPasswordMismatch')));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password autoComplete="new-password" />
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={changingPwd}
+              className="profile-password-submit"
+            >
+              {t('profile.changePassword')}
             </Button>
-          </Popconfirm>
-        }
-      >
-        <Descriptions column={1}>
-          <Descriptions.Item label={t('profile.name')}>
-            {editingName ? (
-              <Form form={nameForm} layout="inline" className="profile-name-form">
-                <Form.Item
-                  name="name"
-                  rules={[{ required: true, message: t('profile.nameRequired') }]}
-                >
-                  <Input style={{ width: 200 }} />
-                </Form.Item>
-                <Button type="link" icon={<CheckOutlined />} loading={savingName} onClick={handleSaveName} className="profile-name-save" aria-label={t('common.confirmEdit')} />
-                <Button type="link" icon={<CloseOutlined />} onClick={() => setEditingName(false)} aria-label={t('common.cancelEdit')} />
-              </Form>
+          </Form>
+        </Card>
+
+        <Card title={t('oauth.linkedAccounts')} data-testid="linked-accounts">
+          {linksError && (
+            <Alert
+              type="error"
+              showIcon
+              message={linksError}
+              style={{ marginBottom: 16 }}
+              data-testid="oauth-links-error"
+            />
+          )}
+          <Spin spinning={linksLoading}>
+            {links.length === 0 && !linksLoading ? (
+              <Typography.Text type="secondary">{t('oauth.noLinks')}</Typography.Text>
             ) : (
-              <Space>
-                <span className="profile-name">{user?.name}</span>
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={() => {
-                    nameForm.setFieldsValue({ name: user?.name });
-                    setEditingName(true);
-                  }}
-                  className="profile-name-edit"
-                >
-                  {t('profile.editName')}
-                </Button>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {links.map((link) => (
+                  <Space
+                    key={link.provider + link.providerAccountId}
+                    style={{ width: '100%', justifyContent: 'space-between' }}
+                  >
+                    <Space>
+                      {link.provider === 'github' ? (
+                        <GithubOutlined />
+                      ) : link.provider === 'google' ? (
+                        <GoogleOutlined />
+                      ) : (
+                        <LinkOutlined />
+                      )}
+                      <span>
+                        {t('oauth.linkedAs', {
+                          provider: link.provider,
+                          account: link.providerAccountId,
+                        })}
+                      </span>
+                    </Space>
+                    <Popconfirm
+                      title={t('oauth.unlinkConfirm', { provider: link.provider })}
+                      onConfirm={() => handleUnlink(link.provider)}
+                      okText={t('common.confirm')}
+                      cancelText={t('common.cancel')}
+                    >
+                      <Button danger size="small" data-testid={`oauth-unlink-${link.provider}`}>
+                        {t('oauth.unlink')}
+                      </Button>
+                    </Popconfirm>
+                  </Space>
+                ))}
               </Space>
             )}
-          </Descriptions.Item>
-          <Descriptions.Item label={t('profile.email')}>{user?.email}</Descriptions.Item>
-          <Descriptions.Item label={t('profile.status')}>
-            <Tag color={user?.isActive ? 'green' : 'red'}>
-              {user?.isActive ? t('profile.statusActive') : t('profile.statusSuspended')}
-            </Tag>
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
-
-      <Card title={t('profile.changePassword')}>
-        {/* UI-level min 8 for usability; the backend enforces the real policy (12 + classes) */}
-        <Alert type="info" showIcon message={t('profile.passwordPolicyHint')} style={{ marginBottom: 16, maxWidth: 400 }} />
-        {pwdError && <Alert type="error" showIcon message={pwdError} style={{ marginBottom: 16, maxWidth: 400 }} className="profile-pwd-error" />}
-        <Form form={pwdForm} layout="vertical" onFinish={handleChangePassword} style={{ maxWidth: 400 }}>
-          <Form.Item
-            name="oldPassword"
-            label={t('profile.currentPassword')}
-            rules={[{ required: true, message: t('profile.currentPasswordRequired') }]}
-          >
-            <Input.Password autoComplete="current-password" />
-          </Form.Item>
-          <Form.Item
-            name="newPassword"
-            label={t('profile.newPassword')}
-            rules={[
-              { required: true, message: t('profile.newPasswordRequired') },
-              { min: 8, message: t('profile.newPasswordMinLength') },
-            ]}
-          >
-            <Input.Password autoComplete="new-password" />
-          </Form.Item>
-          <Form.Item
-            name="confirmPassword"
-            label={t('profile.confirmPassword')}
-            dependencies={['newPassword']}
-            rules={[
-              { required: true, message: t('profile.confirmPasswordRequired') },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('newPassword') === value) return Promise.resolve();
-                  return Promise.reject(new Error(t('profile.confirmPasswordMismatch')));
-                },
-              }),
-            ]}
-          >
-            <Input.Password autoComplete="new-password" />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" loading={changingPwd} className="profile-password-submit">
-            {t('profile.changePassword')}
-          </Button>
-        </Form>
-      </Card>
-
-      <Card title={t('oauth.linkedAccounts')} data-testid="linked-accounts">
-        {linksError && (
-          <Alert type="error" showIcon message={linksError} style={{ marginBottom: 16 }} data-testid="oauth-links-error" />
-        )}
-        <Spin spinning={linksLoading}>
-          {links.length === 0 && !linksLoading ? (
-            <Typography.Text type="secondary">{t('oauth.noLinks')}</Typography.Text>
-          ) : (
-            <Space direction="vertical" style={{ width: '100%' }}>
-              {links.map((link) => (
-                <Space key={link.provider + link.providerAccountId} style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <Space>
-                    {link.provider === 'github' ? <GithubOutlined /> : link.provider === 'google' ? <GoogleOutlined /> : <LinkOutlined />}
-                    <span>{t('oauth.linkedAs', { provider: link.provider, account: link.providerAccountId })}</span>
-                  </Space>
-                  <Popconfirm
-                    title={t('oauth.unlinkConfirm', { provider: link.provider })}
-                    onConfirm={() => handleUnlink(link.provider)}
-                    okText={t('common.confirm')}
-                    cancelText={t('common.cancel')}
-                  >
-                    <Button danger size="small" data-testid={`oauth-unlink-${link.provider}`}>
-                      {t('oauth.unlink')}
-                    </Button>
-                  </Popconfirm>
-                </Space>
-              ))}
-            </Space>
-          )}
-        </Spin>
-        <Divider style={{ margin: '16px 0' }} />
-        <Space>
-          <Button icon={<GithubOutlined />} onClick={() => { window.location.href = '/api/v1/auth/oauth/github/authorize'; }} data-testid="oauth-bind-github">
-            {t('oauth.bindGithub')}
-          </Button>
-          <Button icon={<GoogleOutlined />} onClick={() => { window.location.href = '/api/v1/auth/oauth/google/authorize'; }} data-testid="oauth-bind-google">
-            {t('oauth.bindGoogle')}
-          </Button>
-        </Space>
-      </Card>
-    </Space>
+          </Spin>
+          <Divider style={{ margin: '16px 0' }} />
+          <Space>
+            <Button
+              icon={<GithubOutlined />}
+              onClick={() => {
+                window.location.href = '/api/v1/auth/oauth/github/authorize';
+              }}
+              data-testid="oauth-bind-github"
+            >
+              {t('oauth.bindGithub')}
+            </Button>
+            <Button
+              icon={<GoogleOutlined />}
+              onClick={() => {
+                window.location.href = '/api/v1/auth/oauth/google/authorize';
+              }}
+              data-testid="oauth-bind-google"
+            >
+              {t('oauth.bindGoogle')}
+            </Button>
+          </Space>
+        </Card>
+      </Space>
     </Spin>
   );
 }

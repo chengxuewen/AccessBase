@@ -1,7 +1,19 @@
 /**
  * UserManager - User management with Drizzle ORM (SDD 2.2)
  */
-import { eq, and, or, like, sql, count, asc, desc, inArray, notInArray, type SQL } from 'drizzle-orm';
+import {
+  eq,
+  and,
+  or,
+  like,
+  sql,
+  count,
+  asc,
+  desc,
+  inArray,
+  notInArray,
+  type SQL,
+} from 'drizzle-orm';
 import { closeDb, createDb, type DbLike, type DrizzleDB } from '../db/index.js';
 import {
   users,
@@ -98,7 +110,7 @@ export class UserManager {
     const user = result[0];
     return user ? this.mapToUser(user) : null;
   }
-  
+
   /**
    * Find user by ID across ALL tenants (no tenantId predicate).
    * For flows that hold only a user id from a token/session row and cannot
@@ -107,11 +119,7 @@ export class UserManager {
   async findByIdAny(id: string): Promise<User | null> {
     logger.debug(`Finding user by ID across tenants: ${id}`);
 
-    const result = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
+    const result = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
 
     const user = result[0];
     return user ? this.mapToUser(user) : null;
@@ -235,16 +243,18 @@ export class UserManager {
     const selfArm = eq(users.id, scope.userId);
     // or() only yields undefined for an all-undefined argument list; the ?? arm
     // keeps the return narrowing-safe without a non-null assertion.
-    return or(
-      selfArm,
-      inArray(
-        users.id,
-        this.db
-          .select({ userId: groupUsers.userId })
-          .from(groupUsers)
-          .where(inArray(groupUsers.groupId, scope.groupIds)),
-      ),
-    ) ?? selfArm;
+    return (
+      or(
+        selfArm,
+        inArray(
+          users.id,
+          this.db
+            .select({ userId: groupUsers.userId })
+            .from(groupUsers)
+            .where(inArray(groupUsers.groupId, scope.groupIds)),
+        ),
+      ) ?? selfArm
+    );
   }
 
   /**
@@ -417,10 +427,7 @@ export class UserManager {
           sql`${events.payload}->>'email' = ${opts.email}`,
         ),
       ),
-      and(
-        like(events.type, 'auth.login.%'),
-        sql`${events.payload}->>'email' = ${opts.email}`,
-      ),
+      and(like(events.type, 'auth.login.%'), sql`${events.payload}->>'email' = ${opts.email}`),
     );
     const tombstoned = await d
       .update(events)
@@ -445,12 +452,7 @@ export class UserManager {
   /**
    * Change user status (active / suspended / pending)
    */
-  async changeStatus(
-    id: string,
-    status: UserStatus,
-    tenantId: string,
-    db?: DbLike,
-  ): Promise<User> {
+  async changeStatus(id: string, status: UserStatus, tenantId: string, db?: DbLike): Promise<User> {
     const d: DbLike = db ?? this.db;
     logger.info(`Changing user ${id} status to ${status} in tenant: ${tenantId}`);
 
@@ -544,7 +546,11 @@ export class UserManager {
       const newHash = await hash(newPassword, 12);
       await d
         .update(users)
-        .set({ passwordHash: newHash, mustChangePassword: opts?.requireChange === true, updatedAt: new Date() })
+        .set({
+          passwordHash: newHash,
+          mustChangePassword: opts?.requireChange === true,
+          updatedAt: new Date(),
+        })
         .where(eq(users.id, userId));
       return;
     }
@@ -554,7 +560,11 @@ export class UserManager {
   /** Q4a: password-set predicate for the invite gate (NEVER exposed on User). */
   async hasPassword(userId: string, db?: DbLike): Promise<boolean> {
     const d: DbLike = db ?? this.db;
-    const [row] = await d.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, userId)).limit(1);
+    const [row] = await d
+      .select({ passwordHash: users.passwordHash })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
     return Boolean(row?.passwordHash);
   }
 
@@ -566,7 +576,11 @@ export class UserManager {
   async adminResetPassword(userId: string, newPassword: string, db?: DbLike): Promise<void> {
     const d: DbLike = db ?? this.db;
     await this.resetPassword(userId, newPassword, { requireChange: true }, db);
-    const [row] = await d.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId)).limit(1);
+    const [row] = await d
+      .select({ tenantId: users.tenantId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
     if (row) await bumpAuthState(d, { tenantId: row.tenantId, userIds: [userId] }, delAuthState);
   }
 
@@ -579,7 +593,8 @@ export class UserManager {
     db?: DbLike,
   ): Promise<void> {
     const d: DbLike = db ?? this.db;
-    const recent = await d.select()
+    const recent = await d
+      .select()
       .from(passwordHistory)
       .where(eq(passwordHistory.userId, userId))
       .orderBy(desc(passwordHistory.createdAt))
@@ -594,17 +609,28 @@ export class UserManager {
     // only the admin-reset lane passes requireChange:true to (re)arm it.
     await d
       .update(users)
-      .set({ passwordHash: newHash, mustChangePassword: opts?.requireChange === true, updatedAt: new Date() })
+      .set({
+        passwordHash: newHash,
+        mustChangePassword: opts?.requireChange === true,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, userId));
     await d.insert(passwordHistory).values({ userId, passwordHash: currentHash });
     // Prune beyond last 5 (keep the just-inserted + 4 newest)
-    const keep = await d.select({ id: passwordHistory.id })
+    const keep = await d
+      .select({ id: passwordHistory.id })
       .from(passwordHistory)
       .where(eq(passwordHistory.userId, userId))
       .orderBy(desc(passwordHistory.createdAt))
       .limit(5);
     await d.delete(passwordHistory).where(
-      and(eq(passwordHistory.userId, userId), notInArray(passwordHistory.id, keep.map((k) => k.id))),
+      and(
+        eq(passwordHistory.userId, userId),
+        notInArray(
+          passwordHistory.id,
+          keep.map((k) => k.id),
+        ),
+      ),
     );
     logger.info({ userId }, 'Password rotated, history updated');
   }
@@ -651,7 +677,6 @@ export class UserManager {
   async markEmailVerified(id: string): Promise<void> {
     await this.db.update(users).set({ emailVerified: true }).where(eq(users.id, id));
   }
-
 
   /**
    * Map database user to application user type

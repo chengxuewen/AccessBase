@@ -86,10 +86,7 @@ export function SmsSection({
             style={{ marginBottom: 12 }}
             data-testid="sms-sent"
           />
-          <Form.Item
-            name="code"
-            rules={[{ required: true, message: t('login.smsCodeRequired') }]}
-          >
+          <Form.Item name="code" rules={[{ required: true, message: t('login.smsCodeRequired') }]}>
             <Input
               prefix={<KeyOutlined />}
               placeholder={t('login.smsCodePlaceholder')}

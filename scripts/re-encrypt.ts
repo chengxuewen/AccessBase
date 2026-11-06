@@ -119,9 +119,8 @@ function readEnv(name: string): string {
  */
 async function realCodecs(): Promise<CodecBundle> {
   const { encrypt, decrypt } = await import('../packages/identity/src/services/crypto.js');
-  const { encryptSecret, decryptSecret } = await import(
-    '../packages/identity/src/managers/OidcClientManager.js'
-  );
+  const { encryptSecret, decryptSecret } =
+    await import('../packages/identity/src/managers/OidcClientManager.js');
   return {
     mfa: {
       decode: (stored) => decrypt(stored, readEnv('MFA_ENCRYPTION_KEY')),

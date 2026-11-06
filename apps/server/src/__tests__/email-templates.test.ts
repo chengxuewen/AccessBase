@@ -76,15 +76,23 @@ describe('renderEmail', () => {
   });
 
   it('per-arm merge: en-only override is ignored under zh (default zh wins); zh override honored', () => {
-    const onlyEn = renderEmail('reset', { link: 'https://x.test/r' }, {
-      locale: 'zh',
-      overrides: { reset: { subject: { en: 'Only English' } } },
-    });
+    const onlyEn = renderEmail(
+      'reset',
+      { link: 'https://x.test/r' },
+      {
+        locale: 'zh',
+        overrides: { reset: { subject: { en: 'Only English' } } },
+      },
+    );
     expect(onlyEn.subject).toBe(DEFAULTS.reset.subject.zh);
-    const withZh = renderEmail('reset', { link: 'https://x.test/r' }, {
-      locale: 'zh',
-      overrides: { reset: { subject: { zh: '中文覆盖' } } },
-    });
+    const withZh = renderEmail(
+      'reset',
+      { link: 'https://x.test/r' },
+      {
+        locale: 'zh',
+        overrides: { reset: { subject: { zh: '中文覆盖' } } },
+      },
+    );
     expect(withZh.subject).toBe('中文覆盖');
   });
 
@@ -115,18 +123,28 @@ describe('renderEmail', () => {
   it('unknown placeholder stays literal and warns once', () => {
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
     const id = `zquant${Math.random().toString(36).slice(2, 8)}` as never;
-    const r = renderEmail('reset', { link: 'https://x.test/r' }, {
-      overrides: { reset: { html: { en: `{{${id}}} {{${id}}}` } } },
-    });
+    const r = renderEmail(
+      'reset',
+      { link: 'https://x.test/r' },
+      {
+        overrides: { reset: { html: { en: `{{${id}}} {{${id}}}` } } },
+      },
+    );
     expect(r.html).toBe(`{{${id}}} {{${id}}}`);
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
 
   it('override merges per arm; non-string junk arms fall back', () => {
-    const r = renderEmail('reset', { link: 'https://x.test/r' }, {
-      overrides: { reset: { subject: { en: 'Custom subject' }, html: { en: 42 as unknown as string } } },
-    });
+    const r = renderEmail(
+      'reset',
+      { link: 'https://x.test/r' },
+      {
+        overrides: {
+          reset: { subject: { en: 'Custom subject' }, html: { en: 42 as unknown as string } },
+        },
+      },
+    );
     expect(r.subject).toBe('Custom subject');
     expect(r.html).toContain('Reset your password'); // default html shell headline
   });
@@ -145,40 +163,60 @@ describe('renderEmailFor', () => {
   });
 
   it('stored object override is consumed', async () => {
-    const r = await renderEmailFor('reset', { link: 'https://x.test/r' }, fakeOm({
-      email_tmpl_reset: { subject: { en: 'Stored reset' } },
-    }));
+    const r = await renderEmailFor(
+      'reset',
+      { link: 'https://x.test/r' },
+      fakeOm({
+        email_tmpl_reset: { subject: { en: 'Stored reset' } },
+      }),
+    );
     expect(r.subject).toBe('Stored reset');
     expect(r.html).toContain('Reset your password'); // html still default
   });
 
   it('legacy STRING stored value is ignored (object shape pinned)', async () => {
-    const r = await renderEmailFor('magic', { link: 'https://x.test/m' }, fakeOm({
-      email_tmpl_magic: '{"subject":{"en":"nope"}}',
-    }));
+    const r = await renderEmailFor(
+      'magic',
+      { link: 'https://x.test/m' },
+      fakeOm({
+        email_tmpl_magic: '{"subject":{"en":"nope"}}',
+      }),
+    );
     expect(r.subject).toBe('Your sign-in link');
   });
 
   it('email_locale_default drives the arm', async () => {
-    const r = await renderEmailFor('magic', { link: 'https://x.test/m' }, fakeOm({
-      email_locale_default: 'zh',
-    }));
+    const r = await renderEmailFor(
+      'magic',
+      { link: 'https://x.test/m' },
+      fakeOm({
+        email_locale_default: 'zh',
+      }),
+    );
     expect(r.subject).toBe(DEFAULTS.magic.subject.zh);
   });
 
   it('site.name option reaches the shell', async () => {
-    const r = await renderEmailFor('verify', { link: 'https://x.test/v', name: 'Bo' }, fakeOm({
+    const r = await renderEmailFor(
+      'verify',
+      { link: 'https://x.test/v', name: 'Bo' },
+      fakeOm({
         'site.name': 'ACME',
-    }));
+      }),
+    );
     expect(r.html).toContain('>ACME<');
   });
 
   it('invite lane substitutes invitee/inviter', async () => {
-    const r = await renderEmailFor('invite', {
-      link: 'https://x.test/i',
-      invitee: 'new@test.io',
-      inviter: 'An administrator',
-    }, fakeOm({}));
+    const r = await renderEmailFor(
+      'invite',
+      {
+        link: 'https://x.test/i',
+        invitee: 'new@test.io',
+        inviter: 'An administrator',
+      },
+      fakeOm({}),
+    );
     expect(r.subject).toBe('Set your password');
     expect(r.html).toContain('An administrator invited new@test.io');
     expect(r.html).not.toContain('{{invitee}}');
@@ -196,8 +234,12 @@ describe('renderEmailFor', () => {
 describe('validateEmailTemplate', () => {
   it('accepts valid shapes', () => {
     expect(validateEmailTemplate({ subject: { en: 'Hi' }, html: { en: '<p>x</p>' } })).toBeNull();
-    expect(validateEmailTemplate({ subject: { zh: '你好' }, html: { zh: '<p>哈</p>' } })).toBeNull();
-    expect(validateEmailTemplate({ subject: { en: 'A', zh: 'B' }, html: { en: 'C', zh: 'D' } })).toBeNull();
+    expect(
+      validateEmailTemplate({ subject: { zh: '你好' }, html: { zh: '<p>哈</p>' } }),
+    ).toBeNull();
+    expect(
+      validateEmailTemplate({ subject: { en: 'A', zh: 'B' }, html: { en: 'C', zh: 'D' } }),
+    ).toBeNull();
     expect(validateEmailTemplate({ html: { en: 'only html' } })).toBeNull();
   });
 
@@ -229,8 +271,12 @@ describe('validateEmailTemplate', () => {
   });
 
   it('rejects inline event handlers (on…=)', () => {
-    expect(validateEmailTemplate({ html: { en: '<img src=x onerror=alert(1)>' } })).toContain('event handler');
-    expect(validateEmailTemplate({ html: { en: '<a href="x" ONCLICK = y >z</a>' } })).toContain('event handler');
+    expect(validateEmailTemplate({ html: { en: '<img src=x onerror=alert(1)>' } })).toContain(
+      'event handler',
+    );
+    expect(validateEmailTemplate({ html: { en: '<a href="x" ONCLICK = y >z</a>' } })).toContain(
+      'event handler',
+    );
     // no leading-space word-internal "on" must NOT trip the guard
     expect(validateEmailTemplate({ html: { en: 'the button bone=size matters' } })).toBeNull();
   });

@@ -127,24 +127,24 @@ pass was fed a previous pass's conclusions.
 
 ## Merge (single pass, lead)
 
-| # | Grade | Finding | Origin | Status |
-|---|---|---|---|---|
-| C-1 | CRITICAL | 7d's new lint hits 22 files; fix list covers 5; book-to-skill's host tables are its function | pass 1 + pass 2 (E-3 corroborates) | OPEN — needs a subject-matter-vs-assertion policy + exemption list before 7d can land |
-| C-2 | CRITICAL | 7c acceptance #7 (byte-identical) contradicts 20 intra-step cross-references | pass 1 | OPEN — narrow the invariance claim or keep the split in one file |
-| D-2 | HIGH | No D-number reservation; parallel session already moved PIT 089→090; `duplicateNumbers` is hard red | pass 3 | OPEN — reserve D127-D130 for Batch 7 |
-| E-1 | HIGH | "Qoder loads `.agents/skills`" asserted as fact on elimination evidence; breaks the conduct rule added in the same pass | pass 2 | OPEN — re-label evidence class (grading disputed → X-3) |
-| E-2 | HIGH | Node "≥22.18" boundary is recalled, not measured; written into Global constraints as a CI premise | pass 2 | OPEN — measure or de-specialize |
-| C-3 | MEDIUM | No machine-independence invariant for the now-tracked `.qoder/rules` face | pass 1 | OPEN — add to 7j deliverables |
-| C-4 | MEDIUM | `hostMemoryProbe` lacks the executable-fix that makes hooksProbe's shape work | pass 1 | OPEN |
-| E-3 | MEDIUM | Fix lists short: `question()` ×2 sites; eleven per-language hooks.md | pass 2 | OPEN (overlaps C-1) |
-| E-4 | MEDIUM | Gitee-mirror PR-invalidation is inference, not observation | pass 2 | OPEN — mark assumed or observe |
-| E-5 | MEDIUM | "active" in the 100,000-char budget undefined, yet 7b states it as hard premise | pass 2 | OPEN — see X-2 |
-| D-1 | MEDIUM | Batch 2 AMENDED cites "(ruling 7b)" where the note is about 7j | pass 3 | FIXABLE NOW (one-line) |
-| D-3 | MEDIUM | Acceptance list missing 2 demos (7a revival, 7h heuristic lint) | pass 3 | OPEN — add demos #8/#9 |
-| D-4 | LOW | Header says "two 'Adjudication results' sections"; second title differs and says "candidates" | pass 3 | FIXABLE NOW |
-| D-5 | LOW | Dependency graph drops 7g/7h/7i/7k present in the body order | pass 3 | FIXABLE NOW |
-| D-6 | LOW | 7d mixes lintable path strings with non-lintable capability naming | pass 3 | OPEN — split the deliverable |
-| E-6 | — | All 11 file:line citations in the revision pass verified correct | pass 2 | CLEAN |
+| #   | Grade    | Finding                                                                                                                 | Origin                             | Status                                                                                |
+| --- | -------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------- |
+| C-1 | CRITICAL | 7d's new lint hits 22 files; fix list covers 5; book-to-skill's host tables are its function                            | pass 1 + pass 2 (E-3 corroborates) | OPEN — needs a subject-matter-vs-assertion policy + exemption list before 7d can land |
+| C-2 | CRITICAL | 7c acceptance #7 (byte-identical) contradicts 20 intra-step cross-references                                            | pass 1                             | OPEN — narrow the invariance claim or keep the split in one file                      |
+| D-2 | HIGH     | No D-number reservation; parallel session already moved PIT 089→090; `duplicateNumbers` is hard red                     | pass 3                             | OPEN — reserve D127-D130 for Batch 7                                                  |
+| E-1 | HIGH     | "Qoder loads `.agents/skills`" asserted as fact on elimination evidence; breaks the conduct rule added in the same pass | pass 2                             | OPEN — re-label evidence class (grading disputed → X-3)                               |
+| E-2 | HIGH     | Node "≥22.18" boundary is recalled, not measured; written into Global constraints as a CI premise                       | pass 2                             | OPEN — measure or de-specialize                                                       |
+| C-3 | MEDIUM   | No machine-independence invariant for the now-tracked `.qoder/rules` face                                               | pass 1                             | OPEN — add to 7j deliverables                                                         |
+| C-4 | MEDIUM   | `hostMemoryProbe` lacks the executable-fix that makes hooksProbe's shape work                                           | pass 1                             | OPEN                                                                                  |
+| E-3 | MEDIUM   | Fix lists short: `question()` ×2 sites; eleven per-language hooks.md                                                    | pass 2                             | OPEN (overlaps C-1)                                                                   |
+| E-4 | MEDIUM   | Gitee-mirror PR-invalidation is inference, not observation                                                              | pass 2                             | OPEN — mark assumed or observe                                                        |
+| E-5 | MEDIUM   | "active" in the 100,000-char budget undefined, yet 7b states it as hard premise                                         | pass 2                             | OPEN — see X-2                                                                        |
+| D-1 | MEDIUM   | Batch 2 AMENDED cites "(ruling 7b)" where the note is about 7j                                                          | pass 3                             | FIXABLE NOW (one-line)                                                                |
+| D-3 | MEDIUM   | Acceptance list missing 2 demos (7a revival, 7h heuristic lint)                                                         | pass 3                             | OPEN — add demos #8/#9                                                                |
+| D-4 | LOW      | Header says "two 'Adjudication results' sections"; second title differs and says "candidates"                           | pass 3                             | FIXABLE NOW                                                                           |
+| D-5 | LOW      | Dependency graph drops 7g/7h/7i/7k present in the body order                                                            | pass 3                             | FIXABLE NOW                                                                           |
+| D-6 | LOW      | 7d mixes lintable path strings with non-lintable capability naming                                                      | pass 3                             | OPEN — split the deliverable                                                          |
+| E-6 | —        | All 11 file:line citations in the revision pass verified correct                                                        | pass 2                             | CLEAN                                                                                 |
 
 Dedup note: C-1 and E-3 are the same defect seen from two briefs (mechanism vs completeness);
 merged as one item with both origins, not counted twice.

@@ -63,13 +63,17 @@ async function delAuthStateKeys(userIds: string[]): Promise<void> {
 export async function backchannelLogoutRoutes(app: FastifyInstance) {
   // Scoped urlencoded parser (saml.ts precedent): only this plugin's routes
   // parse forms; app.ts must NEVER gain a global addContentTypeParser.
-  app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_req, body, done) => {
-    try {
-      done(null, Object.fromEntries(new URLSearchParams(body as string)));
-    } catch (e) {
-      done(e as Error, undefined);
-    }
-  });
+  app.addContentTypeParser(
+    'application/x-www-form-urlencoded',
+    { parseAs: 'string' },
+    (_req, body, done) => {
+      try {
+        done(null, Object.fromEntries(new URLSearchParams(body as string)));
+      } catch (e) {
+        done(e as Error, undefined);
+      }
+    },
+  );
 
   // Scoped error handler: BCL spec-shape responses only — the global
   // {success,data} envelope must never leak onto this machine route (M4/R5).

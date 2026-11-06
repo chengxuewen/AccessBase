@@ -37,18 +37,27 @@ export async function listApiKeys(params?: { page?: number; pageSize?: number })
   if (params?.page) qs.set('page', String(params.page));
   if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
-  const { data } = await client.get<ApiEnvelope<ApiKey[]> & { total?: number; page?: number; pageSize?: number }>(
-    `/v1/auth/api-keys${suffix}`,
-  );
-    // T3 compat: new envelope {data,total,...} OR legacy plain-array data (older mocks/clients)
-  const payload = data as unknown as { data?: ApiKey[]; total?: number; page?: number; pageSize?: number } | ApiKey[];
+  const { data } = await client.get<
+    ApiEnvelope<ApiKey[]> & { total?: number; page?: number; pageSize?: number }
+  >(`/v1/auth/api-keys${suffix}`);
+  // T3 compat: new envelope {data,total,...} OR legacy plain-array data (older mocks/clients)
+  const payload = data as unknown as
+    { data?: ApiKey[]; total?: number; page?: number; pageSize?: number } | ApiKey[];
   const arr = Array.isArray(payload) ? payload : (payload.data ?? []);
-  return { data: arr, total: Array.isArray(payload) ? arr.length : (payload.total ?? arr.length), page: Array.isArray(payload) ? 1 : (payload.page ?? 1), pageSize: Array.isArray(payload) ? arr.length : (payload.pageSize ?? 20) };
+  return {
+    data: arr,
+    total: Array.isArray(payload) ? arr.length : (payload.total ?? arr.length),
+    page: Array.isArray(payload) ? 1 : (payload.page ?? 1),
+    pageSize: Array.isArray(payload) ? arr.length : (payload.pageSize ?? 20),
+  };
 }
 
 /** POST /v1/auth/api-keys — create; response carries the plaintext ONCE */
 export async function createApiKey(payload: CreateApiKeyPayload): Promise<CreateApiKeyResponse> {
-  const { data } = await client.post<ApiEnvelope<CreateApiKeyResponse>>('/v1/auth/api-keys', payload);
+  const { data } = await client.post<ApiEnvelope<CreateApiKeyResponse>>(
+    '/v1/auth/api-keys',
+    payload,
+  );
   return data.data;
 }
 

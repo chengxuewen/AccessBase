@@ -107,34 +107,55 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
   // Settings page mount fetches (roster copied from options.spec.ts)
   await page.route('**/api/v1/auth/sessions**', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [] }),
+    });
   });
   await page.route('**/api/v1/auth/webauthn/credentials', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: [] }),
+    });
   });
   await page.route('**/api/v1/options', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: [{ key: 'site.name', value: 'Acme', updatedAt: new Date().toISOString() }] }),
+      body: JSON.stringify({
+        success: true,
+        data: [{ key: 'site.name', value: 'Acme', updatedAt: new Date().toISOString() }],
+      }),
     });
   });
 }
 
 /** Backs /v1/email-templates off one mutable in-browser "DB". */
-async function mockTemplateApis(page: Page, templates: TemplateRow[], stats: TemplateMockStats): Promise<void> {
+async function mockTemplateApis(
+  page: Page,
+  templates: TemplateRow[],
+  stats: TemplateMockStats,
+): Promise<void> {
   await page.route('**/api/v1/email-templates**', async (route) => {
     const request = route.request();
     const method = request.method();
@@ -145,18 +166,29 @@ async function mockTemplateApis(page: Page, templates: TemplateRow[], stats: Tem
 
     if (method === 'GET' && segments.length === 3) {
       stats.listRequests += 1;
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: templates }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: templates }),
+      });
       return;
     }
 
     if (method === 'PUT' && row && segments.length === 4) {
-      const body = JSON.parse(request.postData() ?? '{}') as { subject?: TemplateRow['subject']; html?: TemplateRow['html'] };
+      const body = JSON.parse(request.postData() ?? '{}') as {
+        subject?: TemplateRow['subject'];
+        html?: TemplateRow['html'];
+      };
       // server merge semantics: arms replace what is sent, absent arms kept
       row.subject = { ...row.subject, ...(body.subject ?? {}) };
       row.html = { ...row.html, ...(body.html ?? {}) };
       row.overridden = true;
       stats.lastPut = { id: row.id, body };
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: row }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: row }),
+      });
       return;
     }
 
@@ -167,7 +199,10 @@ async function mockTemplateApis(page: Page, templates: TemplateRow[], stats: Tem
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { subject: `PREVIEW SUBJECT ${locale}`, html: `<p>preview html ${locale}</p>` } }),
+        body: JSON.stringify({
+          success: true,
+          data: { subject: `PREVIEW SUBJECT ${locale}`, html: `<p>preview html ${locale}</p>` },
+        }),
       });
       return;
     }
@@ -179,7 +214,10 @@ async function mockTemplateApis(page: Page, templates: TemplateRow[], stats: Tem
       await route.fulfill({
         status: 502,
         contentType: 'application/json',
-        body: JSON.stringify({ success: false, error: { code: 'SMTP_UNAVAILABLE', message: 'SMTP is not configured' } }),
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'SMTP_UNAVAILABLE', message: 'SMTP is not configured' },
+        }),
       });
       return;
     }
@@ -206,7 +244,10 @@ test.describe('Email Templates tab', () => {
     expect(consoleErrors, 'console errors should be empty').toEqual([]);
   });
 
-  async function gotoTemplatesTab(page: Page, me: Record<string, unknown> = FULL_PERMS_ME): Promise<void> {
+  async function gotoTemplatesTab(
+    page: Page,
+    me: Record<string, unknown> = FULL_PERMS_ME,
+  ): Promise<void> {
     templates = MOCK_TEMPLATES();
     stats = freshStats();
     await mockTemplateApis(page, templates, stats);
@@ -272,7 +313,9 @@ test.describe('Email Templates tab', () => {
       inviter: 'Ada',
       hours: 24,
     });
-    await expect(page.getByTestId('email-templates-preview-subject')).toHaveText('PREVIEW SUBJECT zh');
+    await expect(page.getByTestId('email-templates-preview-subject')).toHaveText(
+      'PREVIEW SUBJECT zh',
+    );
     await expect(page.getByTestId('email-templates-preview-frame')).toBeAttached();
   });
 

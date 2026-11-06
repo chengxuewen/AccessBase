@@ -169,7 +169,9 @@ describe('findAll scope arms', () => {
   it('list meta is scoped by construction: count and page share one predicate', async () => {
     const { chains } = await runFindAll({ kind: 'dept', userId: CALLER, groupIds: ['d1'] });
     expect(chains).toHaveLength(3); // subquery + count + page
-    expect(whereOf(chainAt(chains, 1), 'last').sql).toEqual(whereOf(chainAt(chains, 2), 'last').sql);
+    expect(whereOf(chainAt(chains, 1), 'last').sql).toEqual(
+      whereOf(chainAt(chains, 2), 'last').sql,
+    );
   });
 
   it('existing filters still compose with the scope predicate (search + status)', async () => {

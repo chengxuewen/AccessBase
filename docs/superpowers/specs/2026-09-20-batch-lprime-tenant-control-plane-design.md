@@ -9,7 +9,7 @@
 
 ## 1. Problem
 
-Batch G shipped the multi-tenant *data plane* but left the *control plane* missing.
+Batch G shipped the multi-tenant _data plane_ but left the _control plane_ missing.
 A freshly created tenant is a dead island: `POST /v1/tenants` inserts a row and nothing
 else — no roles, no users, nobody can ever be provisioned. There is no Tenants UI
 (api/tenants.ts is list-only; no route/menu despite tenants:* dual-registration).
@@ -122,7 +122,7 @@ tenant existence/state to non-platform callers):
    dual-registration surface; re-review G-3 pin). Failure → 400 register-family
    envelope (AUTH_REG_002 pattern, code string copied from the register callsite).
 6. Role find-or-create: `roleManager.create({ name:'admin', description, isSystem:true },
-   tenantId)` — create() is ALREADY find-or-create on (name,tenantId) (RoleManager:42-54;
+tenantId)` — create() is ALREADY find-or-create on (name,tenantId) (RoleManager:42-54;
    X7/B6 — the findAll/ILIKE substring approach is RETRACTED). Then UNCONDITIONALLY
    stamp: `UPDATE roles SET is_system=true WHERE id=?` direct SQL (idempotent; closes
    the early-return-non-system window where the last-admin guard (keys on isSystem)
@@ -183,7 +183,6 @@ Frontend: MeResponse gains the fields; top-bar Tag renders only when
 `tenantIsDefault === false && tenantName`; Tag text is the tenantName DATA —
 no new locale key, no label (label strings would be the real i18n burden).
 
-
 ### D5: Tenants page + api layer
 
 Five-piece precedent (Clients/ApiKeys) + K-T3 LockOutlined for the default-tenant row.
@@ -219,7 +218,7 @@ Route/menu: `tenants` under `PrivateRoute permission="tenants:read"`, TeamOutlin
 - Count column: `record.permissions?.length ?? 0` (findAll batch-resolves
   `permissions[]` — verified). Zero backend change.
 - T5 owns `packages/identity` + dist-rebuild note (`pnpm --filter @accessbase/identity
-  build` before server typecheck — dist-sync convention).
+build` before server typecheck — dist-sync convention).
 
 ## 5. Success criteria
 
@@ -246,9 +245,9 @@ Route/menu: `tenants` under `PrivateRoute permission="tenants:read"`, TeamOutlin
    mutual A→B then B→A → 409; isSystem row parent edit → 409 (manager guard) AND
    UI-locked.
 7. `/me` additive; e2e GlobalGuard mock families updated in-T3; tenant singleton used.
-8. Gates: vitest (+~30: partition invariant, funnel RED×2, bootstrap matrix,
+8. Gates: vitest (+~~30: partition invariant, funnel RED×2, bootstrap matrix,
    cycle self/mutual, me fields, roles wiring), root+admin tsc, identity rebuild,
-   eslint changed-surface 0 error, e2e workers=1 +8~10 green atop 126, coverage PASS,
+   eslint changed-surface 0 error, e2e workers=1 +8~~10 green atop 126, coverage PASS,
    `no_proxy` export per PIT-031 in all test invocations.
 
 ## 6. Absorption status of review findings

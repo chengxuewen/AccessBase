@@ -37,7 +37,10 @@ async function readDb(sub: string): Promise<AuthState | null> {
     const now = Date.now();
     if (now - lastReadErrorWarn > 60_000) {
       lastReadErrorWarn = now;
-      logger.warn({ rate: '1/min cap' }, 'auth-state reader: DB read failing — revocation checks FAIL-OPEN');
+      logger.warn(
+        { rate: '1/min cap' },
+        'auth-state reader: DB read failing — revocation checks FAIL-OPEN',
+      );
     }
     return null; // DB error → fail-open
   }

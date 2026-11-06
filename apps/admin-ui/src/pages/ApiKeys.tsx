@@ -14,12 +14,7 @@ import {
   Typography,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, ReloadOutlined, CopyOutlined } from '@ant-design/icons';
-import {
-  listApiKeys,
-  createApiKey,
-  revokeApiKey,
-  type ApiKey,
-} from '../api/apiKeys';
+import { listApiKeys, createApiKey, revokeApiKey, type ApiKey } from '../api/apiKeys';
 import EmptyState from '../components/EmptyState';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
@@ -189,7 +184,12 @@ export default function ApiKeys() {
           showIcon
           message={t('apiKeys.loadError')}
           action={
-            <Button size="small" icon={<ReloadOutlined />} onClick={handleRetry} data-testid="api-keys-load-retry">
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={handleRetry}
+              data-testid="api-keys-load-retry"
+            >
               {t('common.retry')}
             </Button>
           }

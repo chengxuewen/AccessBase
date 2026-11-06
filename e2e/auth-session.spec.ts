@@ -51,7 +51,10 @@ async function mockInitialized(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
 }
@@ -61,7 +64,10 @@ async function mockStats(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
 }
@@ -91,13 +97,25 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     await mockStats(page);
     // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
     await page.route('**/api/v1/auth/saml/status', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
     await page.route('**/api/v1/auth/sms/status', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
     await page.route('**/api/v1/auth/captcha/status', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
     // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
     await page.route('**/api/v1/auth/me', async (route) => {
@@ -107,23 +125,38 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
         body: JSON.stringify({ success: true, data: MOCK_ME_USER }),
       });
     });
-  // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
-  // unmocked → console-error net failure (R4 discipline)
-  await page.route('**/api/v1/tenants**', async (route) => {
-    if (route.request().method() !== 'GET') return route.fallback();
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: [{ id: '00000000-0000-0000-0000-000000000001', name: 'Default', slug: 'default', status: 'active', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+    // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
+    // unmocked → console-error net failure (R4 discipline)
+    await page.route('**/api/v1/tenants**', async (route) => {
+      if (route.request().method() !== 'GET') return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: '00000000-0000-0000-0000-000000000001',
+              name: 'Default',
+              slug: 'default',
+              status: 'active',
+              createdAt: '2026-01-01T00:00:00Z',
+              updatedAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 1,
+        }),
+      });
     });
-  });
   });
 
   test.afterEach(async () => {
     expect(consoleErrors, 'console errors should be empty').toEqual([]);
   });
 
-  test('R1: 401 refresh adopts the envelope token and the retry carries it — session survives', async ({ page }) => {
+  test('R1: 401 refresh adopts the envelope token and the retry carries it — session survives', async ({
+    page,
+  }) => {
     await seedSession(page, 'stale-token', 'refresh-1');
 
     let refreshCalls = 0;
@@ -135,7 +168,10 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
         status: 200,
         contentType: 'application/json',
         // Real shape (routes/auth.ts:374-377): envelope {success, data:{accessToken,refreshToken,expiresIn}}
-        body: JSON.stringify({ success: true, data: { accessToken: 't2', refreshToken: 'r2', expiresIn: 900 } }),
+        body: JSON.stringify({
+          success: true,
+          data: { accessToken: 't2', refreshToken: 'r2', expiresIn: 900 },
+        }),
       });
     });
 
@@ -152,7 +188,11 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
         });
         return;
       }
-      await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify(UNAUTHORIZED_401) });
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify(UNAUTHORIZED_401),
+      });
     });
 
     await page.goto('/users');
@@ -160,15 +200,15 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     // Refresh must fire, then the retried business request must carry the NEW token
     await expect.poll(() => refreshCalls, { timeout: 10000 }).toBeGreaterThan(0);
     expect(refreshBody).toEqual({ refreshToken: 'refresh-1' });
-    await expect
-      .poll(() => usersAuthHeaders.includes('Bearer t2'), { timeout: 10000 })
-      .toBe(true);
+    await expect.poll(() => usersAuthHeaders.includes('Bearer t2'), { timeout: 10000 }).toBe(true);
     // ...and the user must NOT have been logged out of the protected page
     await expect(page).toHaveURL(/\/users/);
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
   });
 
-  test('R2: three concurrent 401s trigger exactly ONE /auth/refresh (single-flight)', async ({ page }) => {
+  test('R2: three concurrent 401s trigger exactly ONE /auth/refresh (single-flight)', async ({
+    page,
+  }) => {
     await seedSession(page, 'stale-token', 'refresh-1');
 
     const hold = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -179,7 +219,10 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { accessToken: 't2', refreshToken: 'r2', expiresIn: 900 } }),
+        body: JSON.stringify({
+          success: true,
+          data: { accessToken: 't2', refreshToken: 'r2', expiresIn: 900 },
+        }),
       });
     });
 
@@ -195,7 +238,11 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
         return;
       }
       await hold(600); // stagger the 401s into a tight burst
-      await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify(UNAUTHORIZED_401) });
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify(UNAUTHORIZED_401),
+      });
     };
 
     // Settings mounts TWO concurrent requests (sessions + passkeys)...
@@ -212,7 +259,9 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     await expect.poll(() => refreshCalls, { timeout: 10000 }).toBe(1);
   });
 
-  test('R3: change-password adopts the returned token pair — later requests use the NEW access token', async ({ page }) => {
+  test('R3: change-password adopts the returned token pair — later requests use the NEW access token', async ({
+    page,
+  }) => {
     await seedSession(page, 'old-token', 'old-refresh');
 
     await page.route('**/api/v1/users/me', async (route) => {
@@ -223,7 +272,11 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
       });
     });
     await page.route('**/api/v1/auth/oauth/links', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      });
     });
     await page.route('**/api/v1/auth/change-password', async (route) => {
       await route.fulfill({
@@ -231,12 +284,22 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
         contentType: 'application/json',
         // Real shape (routes/auth.ts:436): the server revokes ALL sessions and hands this
         // client a fresh pair — the app must store it.
-        body: JSON.stringify({ success: true, data: { accessToken: 'new-a', refreshToken: 'new-r', expiresIn: 900 } }),
+        body: JSON.stringify({
+          success: true,
+          data: { accessToken: 'new-a', refreshToken: 'new-r', expiresIn: 900 },
+        }),
       });
     });
     // All pre-change sessions are gone server-side: refreshing with the old pair fails.
     await page.route('**/api/v1/auth/refresh', async (route) => {
-      await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false, error: { code: 'AUTH_003', message: 'Invalid refresh token' } }) });
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'AUTH_003', message: 'Invalid refresh token' },
+        }),
+      });
     });
 
     const usersAuthHeaders: string[] = [];
@@ -252,7 +315,11 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
         });
         return;
       }
-      await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify(UNAUTHORIZED_401) });
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify(UNAUTHORIZED_401),
+      });
     });
 
     await page.goto('/profile');
@@ -270,38 +337,18 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     await expect(page).toHaveURL(/\/users/); // never logged out
   });
 
-  test('R4: logout notifies the server with POST /auth/logout carrying the refreshToken', async ({ page }) => {
+  test('R4: logout notifies the server with POST /auth/logout carrying the refreshToken', async ({
+    page,
+  }) => {
     await seedSession(page, 'test-token', 'test-refresh');
 
     let logoutBody: Record<string, unknown> | undefined;
     await page.route('**/api/v1/auth/logout', async (route) => {
       logoutBody = route.request().postDataJSON() as Record<string, unknown>;
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
-    });
-
-    await page.goto('/dashboard');
-    const trigger = page.getByTestId('user-dropdown');
-    await expect(trigger).toBeVisible();
-    await trigger.hover();
-    await page.locator('.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")').first().click();
-    await expect(page).toHaveURL(/\/login/);
-
-    // The server MUST have been told to revoke the DB session (routes/auth.ts:244-268)
-    expect(logoutBody, 'logout() never called POST /auth/logout — session left alive server-side').toBeDefined();
-    expect(logoutBody).toEqual({ refreshToken: 'test-refresh' });
-  });
-
-  // Logout-coherence §3.4 SPA leg: a non-null idpLogoutUrl from the composer
-  // hands the TOP-LEVEL window to the IdP; null keeps the SPA-side /login
-  // navigation exactly as before (no redirect churn).
-  test('LC-1: idpLogoutUrl from /auth/logout drives a top-level window.location.assign', async ({ page }) => {
-    await seedSession(page, 'test-token', 'test-refresh');
-    // Same-origin sentinel path (App.tsx '*' -> NotFound, URL stays observable).
-    await page.route('**/api/v1/auth/logout', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { idpLogoutUrl: 'http://localhost:5173/slo-land' } }),
+        body: JSON.stringify({ success: true }),
       });
     });
 
@@ -309,7 +356,51 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     const trigger = page.getByTestId('user-dropdown');
     await expect(trigger).toBeVisible();
     await trigger.hover();
-    await page.locator('.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")').first().click();
+    await page
+      .locator(
+        '.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")',
+      )
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/login/);
+
+    // The server MUST have been told to revoke the DB session (routes/auth.ts:244-268)
+    expect(
+      logoutBody,
+      'logout() never called POST /auth/logout — session left alive server-side',
+    ).toBeDefined();
+    expect(logoutBody).toEqual({ refreshToken: 'test-refresh' });
+  });
+
+  // Logout-coherence §3.4 SPA leg: a non-null idpLogoutUrl from the composer
+  // hands the TOP-LEVEL window to the IdP; null keeps the SPA-side /login
+  // navigation exactly as before (no redirect churn).
+  test('LC-1: idpLogoutUrl from /auth/logout drives a top-level window.location.assign', async ({
+    page,
+  }) => {
+    await seedSession(page, 'test-token', 'test-refresh');
+    // Same-origin sentinel path (App.tsx '*' -> NotFound, URL stays observable).
+    await page.route('**/api/v1/auth/logout', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { idpLogoutUrl: 'http://localhost:5173/slo-land' },
+        }),
+      });
+    });
+
+    await page.goto('/dashboard');
+    const trigger = page.getByTestId('user-dropdown');
+    await expect(trigger).toBeVisible();
+    await trigger.hover();
+    await page
+      .locator(
+        '.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")',
+      )
+      .first()
+      .click();
     // Async assign after an awaited POST - toHaveURL polling (waitForURL forbidden for this chain).
     await expect(page).toHaveURL(/slo-land/, { timeout: 15000 });
   });
@@ -328,12 +419,19 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     const trigger = page.getByTestId('user-dropdown');
     await expect(trigger).toBeVisible();
     await trigger.hover();
-    await page.locator('.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")').first().click();
+    await page
+      .locator(
+        '.ant-dropdown-menu li:has-text("Logout"), .ant-dropdown-menu li:has-text("退出登录")',
+      )
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
     await expect(page).not.toHaveURL(/slo-land/);
   });
 
-  test('R5: a 500 from /auth/me during session boot keeps the session and shows an error, no forced logout', async ({ page }) => {
+  test('R5: a 500 from /auth/me during session boot keeps the session and shows an error, no forced logout', async ({
+    page,
+  }) => {
     // Drive fetchUser through the OAuth-exchange path (the only mount-time caller without a
     // browser ceremony): exchange succeeds → /auth/me 500 → store must keep the session.
     await page.route('**/api/v1/auth/oauth/exchange', async (route) => {
@@ -341,11 +439,26 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
         status: 200,
         contentType: 'application/json',
         // Real shape (routes/oauth.ts:327-335)
-        body: JSON.stringify({ success: true, data: { accessToken: 'tok-a', refreshToken: 'tok-r', expiresIn: 900, user: { id: '1', email: 'admin@accessbase.local' } } }),
+        body: JSON.stringify({
+          success: true,
+          data: {
+            accessToken: 'tok-a',
+            refreshToken: 'tok-r',
+            expiresIn: 900,
+            user: { id: '1', email: 'admin@accessbase.local' },
+          },
+        }),
       });
     });
     await page.route('**/api/v1/auth/me', async (route) => {
-      await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ success: false, error: { code: 'INTERNAL', message: 'transient failure' } }) });
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'INTERNAL', message: 'transient failure' },
+        }),
+      });
     });
 
     await page.goto('/login?oauthCode=e2e-transient-code');
@@ -357,7 +470,9 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     await expect(page.locator('.ant-alert-error')).toBeVisible();
   });
 
-  test('R6: login with mfaRequired shows the TOTP step and /mfa/verify completes the session', async ({ page }) => {
+  test('R6: login with mfaRequired shows the TOTP step and /mfa/verify completes the session', async ({
+    page,
+  }) => {
     await page.route('**/api/v1/auth/login', async (route) => {
       await route.fulfill({
         status: 200,
@@ -373,7 +488,10 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
         status: 200,
         contentType: 'application/json',
         // Real shape (routes/auth.ts:664-667)
-        body: JSON.stringify({ success: true, data: { accessToken: 't-mfa', refreshToken: 'r-mfa', expiresIn: 900 } }),
+        body: JSON.stringify({
+          success: true,
+          data: { accessToken: 't-mfa', refreshToken: 'r-mfa', expiresIn: 900 },
+        }),
       });
     });
 
@@ -383,7 +501,9 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     await page.locator('button[type="submit"]').click();
 
     // Step-up UI must appear and the user must stay on /login (no session yet)
-    const codeInput = page.locator('[data-testid="mfa-code-input"], input#code, input[name="code"]').first();
+    const codeInput = page
+      .locator('[data-testid="mfa-code-input"], input#code, input[name="code"]')
+      .first();
     await expect(codeInput).toBeVisible({ timeout: 10000 });
     await expect(page).toHaveURL(/\/login/);
 
@@ -396,7 +516,9 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
   });
 
-  test('F3-5: oauth exchange mfaRequired shows the TOTP step (flow token held, no session)', async ({ page }) => {
+  test('F3-5: oauth exchange mfaRequired shows the TOTP step (flow token held, no session)', async ({
+    page,
+  }) => {
     await page.route('**/api/v1/auth/oauth/exchange', async (route) => {
       await route.fulfill({
         status: 200,
@@ -409,12 +531,16 @@ test.describe('Auth session lifecycle (RED regression net)', () => {
     await page.goto('/login?oauthCode=e2e-oauth-mfa-code');
 
     // Step-up UI must appear and the user must stay on /login (no session yet)
-    const codeInput = page.locator('[data-testid="mfa-code-input"], input#code, input[name="code"]').first();
+    const codeInput = page
+      .locator('[data-testid="mfa-code-input"], input#code, input[name="code"]')
+      .first();
     await expect(codeInput).toBeVisible({ timeout: 10000 });
     await expect(page).toHaveURL(/\/login/);
     // No session must exist while only the flow token is held
     const stored = await page.evaluate(() => localStorage.getItem('auth-storage'));
-    const parsed = JSON.parse(stored ?? '{}') as { state?: { token?: string | null; isAuthenticated?: boolean } };
+    const parsed = JSON.parse(stored ?? '{}') as {
+      state?: { token?: string | null; isAuthenticated?: boolean };
+    };
     expect(parsed.state?.token ?? null).toBeNull();
     expect(parsed.state?.isAuthenticated ?? false).toBe(false);
   });

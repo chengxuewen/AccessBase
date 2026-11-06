@@ -36,7 +36,11 @@ beforeAll(async () => {
   execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`]);
   execFileSync(PS, [ADMIN_URL, '-qc', `CREATE DATABASE ${SCRATCH}`]);
   execFileSync('bash', [MIGRATE, path.join(ROOT, 'packages/migration/drizzle')], {
-    env: { ...process.env, DATABASE_URL: URL, PATH: `${path.join(ROOT, '.pixi/envs/native/bin')}:${process.env['PATH'] ?? ''}` },
+    env: {
+      ...process.env,
+      DATABASE_URL: URL,
+      PATH: `${path.join(ROOT, '.pixi/envs/native/bin')}:${process.env['PATH'] ?? ''}`,
+    },
   });
   pool = new pg.Pool({ connectionString: URL });
   process.env['DATABASE_URL'] = URL;
@@ -47,7 +51,9 @@ afterAll(async () => {
   if (pgUp) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`], { stdio: 'ignore' });
+        execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH}`], {
+          stdio: 'ignore',
+        });
         break;
       } catch {
         if (attempt === 2) break;

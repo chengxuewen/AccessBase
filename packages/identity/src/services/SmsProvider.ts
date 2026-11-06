@@ -84,7 +84,6 @@ async function getOpenApiModule(): Promise<any> {
   return cachedOpenApi;
 }
 
-
 export class AliyunSmsAdapter implements SmsProvider {
   private readonly config: SmsConfig;
   private client: any = null;

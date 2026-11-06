@@ -133,14 +133,25 @@ export default function MfaCard() {
         destroyOnHidden
       >
         {modalError && (
-          <Alert type="error" showIcon message={modalError} style={{ marginBottom: 16 }} data-testid="mfa-enable-error" />
+          <Alert
+            type="error"
+            showIcon
+            message={modalError}
+            style={{ marginBottom: 16 }}
+            data-testid="mfa-enable-error"
+          />
         )}
         <Spin spinning={setupLoading}>
           {setupData && (
             <>
               <Typography.Paragraph>{t('settings.mfa.scanHint')}</Typography.Paragraph>
               <div style={{ textAlign: 'center', margin: '16px 0' }}>
-                <img src={setupData.qrDataUrl} alt={t('settings.mfa.qrAlt')} data-testid="mfa-qr" style={{ width: 200, height: 200 }} />
+                <img
+                  src={setupData.qrDataUrl}
+                  alt={t('settings.mfa.qrAlt')}
+                  data-testid="mfa-qr"
+                  style={{ width: 200, height: 200 }}
+                />
               </div>
               <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
                 {t('settings.mfa.secretHint')}
@@ -180,13 +191,22 @@ export default function MfaCard() {
         destroyOnHidden
       >
         <div data-testid="mfa-recovery-modal">
-          <Alert type="warning" showIcon message={t('settings.mfa.recoveryWarning')} style={{ marginBottom: 16 }} />
+          <Alert
+            type="warning"
+            showIcon
+            message={t('settings.mfa.recoveryWarning')}
+            style={{ marginBottom: 16 }}
+          />
           {recoveryCodes.map((rc) => (
             <Typography.Paragraph key={rc} code copyable={{ text: rc }}>
               {rc}
             </Typography.Paragraph>
           ))}
-          <Checkbox checked={codesSaved} onChange={(e) => setCodesSaved(e.target.checked)} data-testid="mfa-saved-confirm">
+          <Checkbox
+            checked={codesSaved}
+            onChange={(e) => setCodesSaved(e.target.checked)}
+            data-testid="mfa-saved-confirm"
+          >
             {t('settings.mfa.savedConfirm')}
           </Checkbox>
           <Button
@@ -211,7 +231,13 @@ export default function MfaCard() {
       >
         <Typography.Paragraph>{t('settings.mfa.disableNeedPassword')}</Typography.Paragraph>
         {disableError && (
-          <Alert type="error" showIcon message={disableError} style={{ marginBottom: 16 }} data-testid="mfa-disable-error" />
+          <Alert
+            type="error"
+            showIcon
+            message={disableError}
+            style={{ marginBottom: 16 }}
+            data-testid="mfa-disable-error"
+          />
         )}
         <Input.Password
           value={password}
@@ -220,7 +246,14 @@ export default function MfaCard() {
           data-testid="mfa-password-input"
           style={{ marginBottom: 16 }}
         />
-        <Button danger type="primary" loading={disabling} disabled={password.length === 0} onClick={() => void handleDisable()} data-testid="mfa-disable-confirm">
+        <Button
+          danger
+          type="primary"
+          loading={disabling}
+          disabled={password.length === 0}
+          onClick={() => void handleDisable()}
+          data-testid="mfa-disable-confirm"
+        >
           {t('settings.mfa.disableConfirm')}
         </Button>
       </Modal>

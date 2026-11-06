@@ -11,6 +11,7 @@ Design-doc mismatch: identity-sdd.md promised idle+absolute ("30 min idle / 14 d
 ## 2. Goals / Non-goals
 
 **Goals**
+
 - G1: Inactive sessions die: a refresh token unused for `sessionIdleSeconds` becomes unusable (401 family), even though its absolute expiry has not passed.
 - G2: Active sessions keep living: any successful refresh SLIDES the idle window forward (updates a `last_used_at` column; refresh is the only idle touchpoint — see D2 ruling).
 - G3: Absolute ceiling survives: sliding NEVER extends past `expiresAt` (7d from issuance). Idle expiry ⊆ absolute expiry, always.
@@ -18,6 +19,7 @@ Design-doc mismatch: identity-sdd.md promised idle+absolute ("30 min idle / 14 d
 - G5: The knob is REAL and visible: Settings + wizard render it (restoring an honest version of the UI R1-T11 deleted), backed by a live reader.
 
 **Non-goals**
+
 - No per-tenant overrides (the T11-retired tenantOverrides shape stays retired; single global knob).
 - No absolute-TTL configurability (7d stays a constant; changing it is a one-line PR, not a knob — YAGNI until a customer asks).
 - No access-token changes (15-min JWT expiry already bounds it).
@@ -55,16 +57,16 @@ Design-doc mismatch: identity-sdd.md promised idle+absolute ("30 min idle / 14 d
 
 ## 4. Testing matrix (RED-first per site)
 
-| # | Lock | Layer |
-|---|---|---|
-| T-1 | rotate slides: refresh at T0+idle-1s succeeds AND last_used_at advanced (real-PG integration, cranked idle=2s) | integration |
-| T-2 | idle kill: refresh at T0+idle+1s → 401, same envelope as absolute-expired; absolute ceiling still respected at 7d | integration |
-| T-3 | 0 = off: idle=0 → refresh succeeds arbitrarily late (before absolute) | integration |
-| T-4 | config-plane failure (reader throws) → enforcement off, login+refresh unaffected | unit |
-| T-5 | default 86400 via 3-tier reader (env>option>default) | unit |
-| T-6 | migration 0011 + SENTINELS + ops flip 11→12 | ops test |
-| T-7 | Settings render + PUT option + e2e mock (select visible, option wired) | e2e mock |
-| T-8 | revocation-stack battery unchanged (idle predicate does not disturb revocation paths) | existing suite |
+| #   | Lock                                                                                                              | Layer          |
+| --- | ----------------------------------------------------------------------------------------------------------------- | -------------- |
+| T-1 | rotate slides: refresh at T0+idle-1s succeeds AND last_used_at advanced (real-PG integration, cranked idle=2s)    | integration    |
+| T-2 | idle kill: refresh at T0+idle+1s → 401, same envelope as absolute-expired; absolute ceiling still respected at 7d | integration    |
+| T-3 | 0 = off: idle=0 → refresh succeeds arbitrarily late (before absolute)                                             | integration    |
+| T-4 | config-plane failure (reader throws) → enforcement off, login+refresh unaffected                                  | unit           |
+| T-5 | default 86400 via 3-tier reader (env>option>default)                                                              | unit           |
+| T-6 | migration 0011 + SENTINELS + ops flip 11→12                                                                       | ops test       |
+| T-7 | Settings render + PUT option + e2e mock (select visible, option wired)                                            | e2e mock       |
+| T-8 | revocation-stack battery unchanged (idle predicate does not disturb revocation paths)                             | existing suite |
 
 ## 5. Risks for review
 

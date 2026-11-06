@@ -3,20 +3,21 @@
  * Based on database.md §22 and identity-sdd.md
  */
 import {
-pgTable,
-  bigint,bigserial,
-uuid,
-varchar,
-text,
+  pgTable,
+  bigint,
+  bigserial,
+  uuid,
+  varchar,
+  text,
   boolean,
   integer,
   date,
   timestamp,
   jsonb,
-primaryKey,
-index,uniqueIndex,
-
-unique,
+  primaryKey,
+  index,
+  uniqueIndex,
+  unique,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -54,8 +55,12 @@ export const users = pgTable(
     tenantIdx: index('idx_users_tenant').on(table.tenantId),
     statusIdx: index('idx_users_status').on(table.status),
     // Batch O: canonical declarations for the batch-I partial indexes (migration 0004) — snapshot & schema must match
-    phoneIdx: index('idx_users_phone').on(table.phone).where(sql`${table.phone} IS NOT NULL`),
-    phoneUniqueIdx: uniqueIndex('idx_users_phone_unique').on(table.phone).where(sql`${table.phone} IS NOT NULL`),
+    phoneIdx: index('idx_users_phone')
+      .on(table.phone)
+      .where(sql`${table.phone} IS NOT NULL`),
+    phoneUniqueIdx: uniqueIndex('idx_users_phone_unique')
+      .on(table.phone)
+      .where(sql`${table.phone} IS NOT NULL`),
   }),
 );
 
@@ -163,12 +168,12 @@ export const sessions = pgTable(
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     usedAt: timestamp('used_at', { withTimezone: true }),
   },
-(table) => ({
-userIdIdx: index('idx_sessions_user').on(table.userId),
-tokenIdx: index('idx_sessions_token').on(table.token),
-expiresIdx: index('idx_sessions_expires').on(table.expiresAt),
-refreshTokenHashIdx: index('idx_sessions_refresh_hash').on(table.refreshTokenHash),
-}),
+  (table) => ({
+    userIdIdx: index('idx_sessions_user').on(table.userId),
+    tokenIdx: index('idx_sessions_token').on(table.token),
+    expiresIdx: index('idx_sessions_expires').on(table.expiresAt),
+    refreshTokenHashIdx: index('idx_sessions_refresh_hash').on(table.refreshTokenHash),
+  }),
 );
 
 /**
@@ -357,30 +362,52 @@ export const oidcClients = pgTable('oidc_clients', {
  * memberships via group_users. All fks CASCADE (users/roles hard-delete paths;
  * RoleManager.delete census counts group_roles before allowing).
  */
-export const groups = pgTable('groups', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  description: text('description'),
-  /** DG-6d: 'group' | 'department' — department groups ARE the dept source (A1 ruling) */
-  kind: text('kind').notNull().default('group'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [unique().on(t.tenantId, t.name)]);
+export const groups = pgTable(
+  'groups',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    /** DG-6d: 'group' | 'department' — department groups ARE the dept source (A1 ruling) */
+    kind: text('kind').notNull().default('group'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.tenantId, t.name)],
+);
 
-export const groupUsers = pgTable('group_users', {
-  groupId: uuid('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  tenantId: uuid('tenant_id').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [primaryKey({ columns: [t.groupId, t.userId] })]);
+export const groupUsers = pgTable(
+  'group_users',
+  {
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.userId] })],
+);
 
-export const groupRoles = pgTable('group_roles', {
-  groupId: uuid('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
-  roleId: uuid('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
-  tenantId: uuid('tenant_id').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [primaryKey({ columns: [t.groupId, t.roleId] })]);
+export const groupRoles = pgTable(
+  'group_roles',
+  {
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    roleId: uuid('role_id')
+      .notNull()
+      .references(() => roles.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.roleId] })],
+);
 
 export type GroupRow = typeof groups.$inferSelect;
 
@@ -429,8 +456,12 @@ export const oidcAdapterState = pgTable(
   },
   (t) => ({
     pk: primaryKey({ columns: [t.kind, t.id] }),
-    uidIdx: index('oidc_adapter_state_uid_idx').on(t.kind, t.uid).where(sql`${t.uid} IS NOT NULL`),
-    userCodeIdx: index('oidc_adapter_state_user_code_idx').on(t.kind, t.userCode).where(sql`${t.userCode} IS NOT NULL`),
+    uidIdx: index('oidc_adapter_state_uid_idx')
+      .on(t.kind, t.uid)
+      .where(sql`${t.uid} IS NOT NULL`),
+    userCodeIdx: index('oidc_adapter_state_user_code_idx')
+      .on(t.kind, t.userCode)
+      .where(sql`${t.userCode} IS NOT NULL`),
     grantIdx: index('oidc_adapter_state_grant_idx').on(t.grantId),
     ttlIdx: index('oidc_adapter_state_ttl_idx').on(t.notAfter),
   }),
@@ -465,7 +496,6 @@ export const apiKeys = pgTable(
 
 export type ApiKeyRow = typeof apiKeys.$inferSelect;
 export type NewApiKeyRow = typeof apiKeys.$inferInsert;
-
 
 /**
  * Tenants table (Batch G Task 1). Hard-tenant rows; the bootstrap seed writes
@@ -527,11 +557,16 @@ export const webhookEndpoints = pgTable(
   'webhook_endpoints',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
     url: text('url').notNull(),
     description: text('description'),
     secretEncrypted: text('secret_encrypted').notNull(),
-    subscribedEvents: text('subscribed_events').array().notNull().default(sql`'{*}'::text[]`),
+    subscribedEvents: text('subscribed_events')
+      .array()
+      .notNull()
+      .default(sql`'{*}'::text[]`),
     active: boolean('active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -565,7 +600,9 @@ export const webhookDeliveries = pgTable(
   },
   (t) => [
     unique().on(t.eventId, t.endpointId),
-    index('idx_deliveries_due').on(t.nextAttemptAt).where(sql`${t.status} = 'pending'`),
+    index('idx_deliveries_due')
+      .on(t.nextAttemptAt)
+      .where(sql`${t.status} = 'pending'`),
   ],
 );
 

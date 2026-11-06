@@ -47,7 +47,11 @@ export function useCaptchaField() {
     challenge ? { captchaId: challenge.id, captchaAnswer: answer } : {};
 
   const node = on ? (
-    <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }} data-testid="captcha-field">
+    <Space
+      direction="vertical"
+      style={{ width: '100%', marginBottom: 16 }}
+      data-testid="captcha-field"
+    >
       {challenge ? (
         <span
           style={{ cursor: 'pointer', display: 'inline-block' }}

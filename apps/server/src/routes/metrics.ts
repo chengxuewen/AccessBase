@@ -92,14 +92,15 @@ async function metricsRoutesImpl(app: FastifyInstance): Promise<void> {
     if (start === undefined) return;
     httpInFlight.dec();
     const route = request.routeOptions.url || 'unmatched';
-    httpDuration.observe(
-      { method: request.method, route },
-      (performance.now() - start) / 1000,
-    );
+    httpDuration.observe({ method: request.method, route }, (performance.now() - start) / 1000);
     // Q2a(F): auth-failure telemetry derived from the response code — no
     // handler-site instrumentation (single source, no cardinality risk:
     // reason is a closed enum).
-    if (route === '/api/v1/auth/login' || route === '/api/v1/auth/ldap/login' || route === '/api/v1/auth/sms-otp/verify') {
+    if (
+      route === '/api/v1/auth/login' ||
+      route === '/api/v1/auth/ldap/login' ||
+      route === '/api/v1/auth/sms-otp/verify'
+    ) {
       const code = reply.statusCode;
       if (code === 401) authFailures.inc({ reason: 'bad_credentials' });
       else if (code === 403) authFailures.inc({ reason: 'suspended' });

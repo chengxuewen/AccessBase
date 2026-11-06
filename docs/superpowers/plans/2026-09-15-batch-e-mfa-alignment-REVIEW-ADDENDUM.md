@@ -18,9 +18,10 @@ auth.ts:854-878 的 LDAP 200 response schema 只声明 accessToken/refreshToken/
 ## R4 (T2, "无前端改动"全局约束修正 — 双 critic 独立推翻)
 
 exchangeOAuthCode（stores/auth.ts:172-183）对响应无条件解构 token 并 `set({isAuthenticated:true})`——mfaRequired 响应会写 undefined token + 假认证态且被 persist；Login.tsx:53-60 换发后无条件 fetchUser+navigate。**修正（采纳 flows 方案 a）**：Task 2 Files 补两个前端文件——
+
 1. `apps/admin-ui/src/stores/auth.ts` exchangeOAuthCode：响应含 `mfaRequired` 时 `set({mfaFlowToken, isAuthenticated:false})`，不写 token（复用既有 login() 的 mfaFlowToken 状态位，auth.ts store:63）；
 2. `apps/admin-ui/src/pages/Login.tsx` oauthCode effect：mfaFlowToken 已设时跳过 fetchUser/navigateAfterAuth（交由既有 TOTP 表单渲染，stores/auth.ts:117-142 的 verifyMfa action 直接复用——TOTP 提交后既有逻辑接管）。
-约 10 行。验收清单第 4 条改口："WebAuthn/LDAP 零前端改动；OAuth 仅 exchangeOAuthCode + Login 两处分支"。
+   约 10 行。验收清单第 4 条改口："WebAuthn/LDAP 零前端改动；OAuth 仅 exchangeOAuthCode + Login 两处分支"。
 
 ## R5 (T2, 接缝预裁断：verify 不动)
 
@@ -37,9 +38,9 @@ callback **只发 oauth_exchange** code（payload = `{userId, mfaPending: true}`
 
 ## 审核结论汇总
 
-| 审核人 | 裁决 | 吸收 |
-|---|---|---|
-| critic-flows | NEEDS-FIXES 2M+3m | R4 / R5 / R1(m1) / R2(m2) / R6(m3) |
+| 审核人          | 裁决                    | 吸收                                                        |
+| --------------- | ----------------------- | ----------------------------------------------------------- |
+| critic-flows    | NEEDS-FIXES 2M+3m       | R4 / R5 / R1(m1) / R2(m2) / R6(m3)                          |
 | critic-blockers | NEEDS-FIXES 3H+1H+1M+1L | R1 / R2 / R3 / R4 / R6(MED 来源标记→并入 R6)/ R7(L ow 注释) |
 
 冲突裁定：双 critic 对"前端改动"结论一致采纳方案 (a)；R6 定死签发位置（吸收 flows m3 + blockers MED 的来源标记）；webauthn 投影问题双路独立实锤（R1）。

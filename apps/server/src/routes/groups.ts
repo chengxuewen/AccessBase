@@ -43,13 +43,19 @@ export async function groupRoutes(app: FastifyInstance) {
     if (message === 'GROUP_MEMBER_TENANT_MISMATCH') {
       return reply.status(400).send({
         success: false,
-        error: { code: 'GROUP_MEMBER_TENANT_MISMATCH', message: 'User does not belong to this tenant' },
+        error: {
+          code: 'GROUP_MEMBER_TENANT_MISMATCH',
+          message: 'User does not belong to this tenant',
+        },
       });
     }
     if (message === 'GROUP_ROLE_TENANT_MISMATCH') {
       return reply.status(400).send({
         success: false,
-        error: { code: 'GROUP_ROLE_TENANT_MISMATCH', message: 'Role does not belong to this tenant' },
+        error: {
+          code: 'GROUP_ROLE_TENANT_MISMATCH',
+          message: 'Role does not belong to this tenant',
+        },
       });
     }
     return null;
@@ -138,7 +144,11 @@ export async function groupRoutes(app: FastifyInstance) {
     async (request, reply) => {
       try {
         const group = await groupManager.create(
-          { name: String(request.body.name), description: request.body.description, kind: request.body.kind },
+          {
+            name: String(request.body.name),
+            description: request.body.description,
+            kind: request.body.kind,
+          },
           tenantOf(request),
         );
         return reply.status(201).send({ success: true, data: group });
@@ -151,7 +161,10 @@ export async function groupRoutes(app: FastifyInstance) {
   );
 
   // PUT /api/v1/groups/:id
-  app.put<{ Params: { id: string }; Body: { name?: string; description?: string; kind?: GroupKind } }>(
+  app.put<{
+    Params: { id: string };
+    Body: { name?: string; description?: string; kind?: GroupKind };
+  }>(
     '/:id',
     {
       schema: {
@@ -176,7 +189,11 @@ export async function groupRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const group = await groupManager.update(request.params.id, request.body ?? {}, tenantOf(request));
+        const group = await groupManager.update(
+          request.params.id,
+          request.body ?? {},
+          tenantOf(request),
+        );
         return { success: true, data: group };
       } catch (err) {
         const sent = sendGroupError(reply, err);
@@ -262,7 +279,11 @@ export async function groupRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        await groupManager.addMember(request.params.id, String(request.body.userId), tenantOf(request));
+        await groupManager.addMember(
+          request.params.id,
+          String(request.body.userId),
+          tenantOf(request),
+        );
         return { success: true, data: null };
       } catch (err) {
         const sent = sendGroupError(reply, err);
@@ -283,13 +304,20 @@ export async function groupRoutes(app: FastifyInstance) {
         params: {
           type: 'object',
           required: ['id', 'userId'],
-          properties: { id: { type: 'string', format: 'uuid' }, userId: { type: 'string', format: 'uuid' } },
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            userId: { type: 'string', format: 'uuid' },
+          },
         },
       },
     },
     async (request, reply) => {
       try {
-        await groupManager.removeMember(request.params.id, request.params.userId, tenantOf(request));
+        await groupManager.removeMember(
+          request.params.id,
+          request.params.userId,
+          tenantOf(request),
+        );
         return { success: true, data: null };
       } catch (err) {
         const sent = sendGroupError(reply, err);
@@ -350,7 +378,9 @@ export async function groupRoutes(app: FastifyInstance) {
       try {
         const roleIds = Array.isArray(request.body.roleIds) ? request.body.roleIds : [];
         // Q2b discipline: delete+insert loop atomic in one transaction.
-        await routeTx((tx) => groupManager.setGroupRoles(request.params.id, roleIds, tenantOf(request), tx));
+        await routeTx((tx) =>
+          groupManager.setGroupRoles(request.params.id, roleIds, tenantOf(request), tx),
+        );
         return { success: true, data: null };
       } catch (err) {
         const sent = sendGroupError(reply, err);

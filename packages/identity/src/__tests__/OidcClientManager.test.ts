@@ -15,11 +15,7 @@ const TEST_JWT_SECRET = 'test-jwt-secret-for-oidc-32bytes!!';
 
 let savedJwt: string | undefined;
 
-import {
-  OidcClientManager,
-  encryptSecret,
-  decryptSecret,
-} from '../managers/OidcClientManager.js';
+import { OidcClientManager, encryptSecret, decryptSecret } from '../managers/OidcClientManager.js';
 import type { DrizzleDB } from '../db/index.js';
 
 /**
@@ -282,8 +278,30 @@ describe('OidcClientManager', () => {
   describe('list', () => {
     it('returns rows without secretEncrypted column', async () => {
       const rows = [
-        { id: 'id-1', clientId: 'ab_a', name: 'A', scope: 'openid', grantTypes: ['authorization_code'], redirectUris: ['https://a.com'], postLogoutRedirectUris: [], tokenAuthMethod: 'client_secret_basic', createdAt: new Date(), updatedAt: new Date() },
-        { id: 'id-2', clientId: 'ab_b', name: 'B', scope: 'profile', grantTypes: ['client_credentials'], redirectUris: ['https://b.com'], postLogoutRedirectUris: [], tokenAuthMethod: 'client_secret_basic', createdAt: new Date(), updatedAt: new Date() },
+        {
+          id: 'id-1',
+          clientId: 'ab_a',
+          name: 'A',
+          scope: 'openid',
+          grantTypes: ['authorization_code'],
+          redirectUris: ['https://a.com'],
+          postLogoutRedirectUris: [],
+          tokenAuthMethod: 'client_secret_basic',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'id-2',
+          clientId: 'ab_b',
+          name: 'B',
+          scope: 'profile',
+          grantTypes: ['client_credentials'],
+          redirectUris: ['https://b.com'],
+          postLogoutRedirectUris: [],
+          tokenAuthMethod: 'client_secret_basic',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ];
       db.select.mockReturnValue(makeChain(rows));
 

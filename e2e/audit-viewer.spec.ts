@@ -45,7 +45,10 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
 
@@ -59,7 +62,12 @@ async function mockCommonApis(page: Page): Promise<void> {
           accessToken: 'test-token',
           refreshToken: 'test-refresh',
           expiresIn: 900,
-          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
+          user: {
+            id: '1',
+            email: 'admin@accessbase.local',
+            name: 'Administrator',
+            roles: [{ id: 'role-1', name: 'admin' }],
+          },
         },
       }),
     });
@@ -69,29 +77,46 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
-    });
+  });
   // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
   await page.route('**/api/v1/auth/saml/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
 
-    // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
-    await page.route('**/api/v1/auth/me', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] } }),
-      });
+  // ST-1: AdminLayout fetchUser fires on mount — mock /auth/me
+  await page.route('**/api/v1/auth/me', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] },
+      }),
     });
-
+  });
 }
 
 async function login(page: Page): Promise<void> {
@@ -206,7 +231,9 @@ test.describe('Audit Log Viewer', () => {
     await page.goto('/audit');
     // Static message API is broken under React 19 (pre-existing: auth.spec toast tests fail too) — assert inline Alert instead
     await expect(page.locator('.audit-load-error')).toBeVisible();
-    await expect(page.locator('.audit-load-error')).toContainText(/Failed to load audit logs|加载审计日志失败/);
+    await expect(page.locator('.audit-load-error')).toContainText(
+      /Failed to load audit logs|加载审计日志失败/,
+    );
     // error state: zero real data rows (measure-row/placeholder excluded by .ant-table-row)
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(0);
   });
@@ -324,7 +351,13 @@ test.describe('Audit chain verification', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           success: true,
-          data: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [], permissions: [] },
+          data: {
+            id: '1',
+            email: 'admin@accessbase.local',
+            name: 'Administrator',
+            roles: [],
+            permissions: [],
+          },
         }),
       });
     });

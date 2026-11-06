@@ -97,7 +97,9 @@ describe('CORS whitelist', () => {
     let allowed = false;
     (originFn as (origin: string | undefined, cb: (err: null, allow: boolean) => void) => void)(
       'http://evil.com',
-      (_err, allow) => { allowed = allow; },
+      (_err, allow) => {
+        allowed = allow;
+      },
     );
     expect(allowed).toBe(false);
 
@@ -105,7 +107,9 @@ describe('CORS whitelist', () => {
     let allowedWhitelisted = false;
     (originFn as (origin: string | undefined, cb: (err: null, allow: boolean) => void) => void)(
       'http://localhost:5173',
-      (_err, allow) => { allowedWhitelisted = allow; },
+      (_err, allow) => {
+        allowedWhitelisted = allow;
+      },
     );
     expect(allowedWhitelisted).toBe(true);
   });

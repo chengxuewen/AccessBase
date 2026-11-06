@@ -14,7 +14,9 @@ const SCOPE_I18N = ['openid', 'profile', 'email', 'offline_access'] as const;
 export default function Consent() {
   const { t } = useTranslation();
   const branding = useBranding();
-  const brandTheme = branding.primaryColor ? { token: { colorPrimary: branding.primaryColor } } : undefined;
+  const brandTheme = branding.primaryColor
+    ? { token: { colorPrimary: branding.primaryColor } }
+    : undefined;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = useAuthStore((s) => s.token);
@@ -34,7 +36,9 @@ export default function Consent() {
 
   useEffect(() => {
     if (!token) {
-      navigate(`/login?redirect=${encodeURIComponent(`/oidc/auth/${uid ?? ''}`)}`, { replace: true });
+      navigate(`/login?redirect=${encodeURIComponent(`/oidc/auth/${uid ?? ''}`)}`, {
+        replace: true,
+      });
       return;
     }
     if (!uid) {
@@ -64,7 +68,11 @@ export default function Consent() {
       // Full page navigation so the provider's interaction cookies ride along
       // Q3B: prefer the provider-declared resume target (device interactions
       // live at /oidc/device/:uid); the query param comes from interactions.url.
-      window.location.assign(safeResume(interaction?.resumePath) ?? safeResume(searchParams.get('resume')) ?? `/oidc/auth/${uid}`);
+      window.location.assign(
+        safeResume(interaction?.resumePath) ??
+          safeResume(searchParams.get('resume')) ??
+          `/oidc/auth/${uid}`,
+      );
     } catch (err: unknown) {
       setDecisionError(apiErrorMessage(err, t('consent.error')));
     } finally {
@@ -72,12 +80,14 @@ export default function Consent() {
     }
   };
 
-
   if (loadError) {
     return (
       <CenteredCard title={t('consent.title')}>
         <Card data-testid="consent-error">
-          <EmptyState variant="error" action={<Button onClick={() => window.location.reload()}>{t('common.retry')}</Button>} />
+          <EmptyState
+            variant="error"
+            action={<Button onClick={() => window.location.reload()}>{t('common.retry')}</Button>}
+          />
         </Card>
       </CenteredCard>
     );
@@ -93,61 +103,76 @@ export default function Consent() {
 
   return (
     <ConfigProvider theme={brandTheme}>
-    {branding.logoUrl && (
-      <img
-        src={branding.logoUrl}
-        alt={branding.siteName || 'logo'}
-        style={{ display: 'block', margin: '0 auto 12px', maxHeight: 56, maxWidth: '80%', objectFit: 'contain' }}
-        data-testid="branding-logo"
-      />
-    )}
-    <CenteredCard title={branding.siteName || t('consent.title')}>
-      <Space direction="vertical" size="middle" style={{ display: 'flex', width: '100%' }}>
-        {decisionError && (
-          <Alert type="error" showIcon message={decisionError} data-testid="consent-decision-error" />
-        )}
-        {done && (
-          <Alert type="info" showIcon message={t('consent.redirecting')} data-testid="consent-redirecting" />
-        )}
-        <div data-testid="consent-client-name">
-          {t('consent.clientName')}: <strong>{interaction.clientName}</strong>
-        </div>
-        <div>
-          <div style={{ marginBottom: 8 }}>{t('consent.requestedScopes')}:</div>
-          <Space direction="vertical" data-testid="consent-scopes">
-            {interaction.requestedScopes.map((scope) => (
-              <Checkbox key={scope} checked disabled>
-                {SCOPE_I18N.includes(scope as (typeof SCOPE_I18N)[number])
-                  ? t(`scope.${scope}`)
-                  : scope}
-              </Checkbox>
-            ))}
+      {branding.logoUrl && (
+        <img
+          src={branding.logoUrl}
+          alt={branding.siteName || 'logo'}
+          style={{
+            display: 'block',
+            margin: '0 auto 12px',
+            maxHeight: 56,
+            maxWidth: '80%',
+            objectFit: 'contain',
+          }}
+          data-testid="branding-logo"
+        />
+      )}
+      <CenteredCard title={branding.siteName || t('consent.title')}>
+        <Space direction="vertical" size="middle" style={{ display: 'flex', width: '100%' }}>
+          {decisionError && (
+            <Alert
+              type="error"
+              showIcon
+              message={decisionError}
+              data-testid="consent-decision-error"
+            />
+          )}
+          {done && (
+            <Alert
+              type="info"
+              showIcon
+              message={t('consent.redirecting')}
+              data-testid="consent-redirecting"
+            />
+          )}
+          <div data-testid="consent-client-name">
+            {t('consent.clientName')}: <strong>{interaction.clientName}</strong>
+          </div>
+          <div>
+            <div style={{ marginBottom: 8 }}>{t('consent.requestedScopes')}:</div>
+            <Space direction="vertical" data-testid="consent-scopes">
+              {interaction.requestedScopes.map((scope) => (
+                <Checkbox key={scope} checked disabled>
+                  {SCOPE_I18N.includes(scope as (typeof SCOPE_I18N)[number])
+                    ? t(`scope.${scope}`)
+                    : scope}
+                </Checkbox>
+              ))}
+            </Space>
+          </div>
+          <Space>
+            <Button
+              type="primary"
+              loading={submitting}
+              onClick={() => decide('approve')}
+              data-testid="consent-approve"
+            >
+              {t('consent.approve')}
+            </Button>
+            <Button
+              danger
+              loading={submitting}
+              onClick={() => decide('deny')}
+              data-testid="consent-deny"
+            >
+              {t('consent.deny')}
+            </Button>
           </Space>
-        </div>
-        <Space>
-          <Button
-            type="primary"
-            loading={submitting}
-            onClick={() => decide('approve')}
-            data-testid="consent-approve"
-          >
-            {t('consent.approve')}
-          </Button>
-          <Button
-            danger
-            loading={submitting}
-            onClick={() => decide('deny')}
-            data-testid="consent-deny"
-          >
-            {t('consent.deny')}
-          </Button>
         </Space>
-      </Space>
-    </CenteredCard>
+      </CenteredCard>
     </ConfigProvider>
   );
 }
-
 
 function CenteredCard({ title, children }: { title: string; children: React.ReactNode }) {
   const { token: themeToken } = theme.useToken();
@@ -161,7 +186,11 @@ function CenteredCard({ title, children }: { title: string; children: React.Reac
         background: themeToken.colorBgLayout,
       }}
     >
-      <Card title={title} style={{ width: '100%', maxWidth: 400 }} styles={{ header: { textAlign: 'center' } }}>
+      <Card
+        title={title}
+        style={{ width: '100%', maxWidth: 400 }}
+        styles={{ header: { textAlign: 'center' } }}
+      >
         {children}
       </Card>
     </div>

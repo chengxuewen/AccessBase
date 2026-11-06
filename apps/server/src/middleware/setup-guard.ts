@@ -16,10 +16,10 @@ const ALLOWED_PATHS = [
   '/health',
   '/metrics', // L-M D2: scrape must not pay the admin-census DB roundtrip (nor be gated pre-setup)
   '/docs',
-  '/',           // Frontend entry point (exact match only)
+  '/', // Frontend entry point (exact match only)
   '/index.html', // Direct index access
-  '/assets/',    // Vite hashed assets (JS/CSS/images)
-  '/favicon',    // Favicon
+  '/assets/', // Vite hashed assets (JS/CSS/images)
+  '/favicon', // Favicon
 ];
 
 // Only /admin is guard-blocked once initialized. /config and /complete are legal

@@ -31,10 +31,13 @@ let brandingCacheAt = 0;
 const BRANDING_TTL_MS = 60_000;
 
 /** Fail-soft branding read (60s cache — these pages are cold entry points). */
-async function readBranding(getOption: (k: string, env: unknown, d: string) => Promise<string>): Promise<{ logoUrl: string; primaryColor: string }> {
+async function readBranding(
+  getOption: (k: string, env: unknown, d: string) => Promise<string>,
+): Promise<{ logoUrl: string; primaryColor: string }> {
   if (brandingCache && Date.now() - brandingCacheAt < BRANDING_TTL_MS) return brandingCache;
   try {
-    const om = (globalThis as Record<string, unknown>)['__bclo_options_manager'] as OptionsManager | undefined;
+    const om = (globalThis as Record<string, unknown>)['__bclo_options_manager'] as
+      OptionsManager | undefined;
     void om; // options manager is injected via setDeviceFlowOptionsManager (below)
     brandingCache = { logoUrl: '', primaryColor: '' };
   } catch {
@@ -47,7 +50,9 @@ void readBranding;
 
 /** Injectable options reader (wired in provider.ts where OptionsManager lives). */
 let brandingReader: (() => Promise<{ logoUrl: string; primaryColor: string }>) | null = null;
-export function setDeviceFlowBrandingReader(reader: () => Promise<{ logoUrl: string; primaryColor: string }>): void {
+export function setDeviceFlowBrandingReader(
+  reader: () => Promise<{ logoUrl: string; primaryColor: string }>,
+): void {
   brandingReader = reader;
 }
 
@@ -120,19 +125,34 @@ function isZh(ctx: DeviceFlowCtx): boolean {
 
 /** Escape the bare minimum (client names are operator-set; codes are charset-constrained). */
 function esc(s: string): string {
-  return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+  return s
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 
-export async function deviceUserCodeInputSource(ctx: DeviceFlowCtx, form: string, out: unknown, err: { userCode?: unknown; name?: string } | undefined): Promise<void> {
+export async function deviceUserCodeInputSource(
+  ctx: DeviceFlowCtx,
+  form: string,
+  out: unknown,
+  err: { userCode?: unknown; name?: string } | undefined,
+): Promise<void> {
   const zh = isZh(ctx);
   const b = await branding();
   let msg: string;
   if (err && (err.userCode || err.name === 'NoCodeError')) {
-    msg = zh ? '<p class="err">验证码不正确，请重试</p>' : '<p class="err">The code you entered is incorrect. Try again</p>';
+    msg = zh
+      ? '<p class="err">验证码不正确，请重试</p>'
+      : '<p class="err">The code you entered is incorrect. Try again</p>';
   } else if (err && err.name === 'AbortedError') {
-    msg = zh ? '<p class="err">登录请求已中断</p>' : '<p class="err">The sign-in request was interrupted</p>';
+    msg = zh
+      ? '<p class="err">登录请求已中断</p>'
+      : '<p class="err">The sign-in request was interrupted</p>';
   } else if (err) {
-    msg = zh ? '<p class="err">处理请求时出错</p>' : '<p class="err">There was an error processing your request</p>';
+    msg = zh
+      ? '<p class="err">处理请求时出错</p>'
+      : '<p class="err">There was an error processing your request</p>';
   } else {
     msg = zh ? '<p>输入设备上显示的代码</p>' : '<p>Enter the code displayed on your device</p>';
   }
@@ -152,7 +172,13 @@ export async function deviceUserCodeInputSource(ctx: DeviceFlowCtx, form: string
   });
 }
 
-export async function deviceUserCodeConfirmSource(ctx: DeviceFlowCtx, form: string, client: { clientName?: string; clientId?: string }, _deviceInfo: unknown, userCode: string): Promise<void> {
+export async function deviceUserCodeConfirmSource(
+  ctx: DeviceFlowCtx,
+  form: string,
+  client: { clientName?: string; clientId?: string },
+  _deviceInfo: unknown,
+  userCode: string,
+): Promise<void> {
   const zh = isZh(ctx);
   const b = await branding();
   const display = esc(client?.clientName || client?.clientId || '');
@@ -168,15 +194,22 @@ export async function deviceUserCodeConfirmSource(ctx: DeviceFlowCtx, form: stri
     ${form}
     <button autofocus type="submit" form="op.deviceConfirmForm">${zh ? '继续' : 'Continue'}</button>
     <button type="submit" form="op.deviceConfirmForm" value="yes" name="abort" class="linkish">${zh ? '取消' : 'Abort'}</button>
-    <small>${zh ? '若非你本人操作，请勿继续并关闭此窗口。' : "If you did not initiate this action, do not continue and close this window."}</small>`,
+    <small>${zh ? '若非你本人操作，请勿继续并关闭此窗口。' : 'If you did not initiate this action, do not continue and close this window.'}</small>`,
   });
 }
 
-export async function deviceRenderError(ctx: DeviceFlowCtx, out: unknown, error: unknown): Promise<void> {
+export async function deviceRenderError(
+  ctx: DeviceFlowCtx,
+  out: unknown,
+  error: unknown,
+): Promise<void> {
   const zh = isZh(ctx);
   const b = await branding();
   const errRec = (error ?? {}) as Partial<Record<'error_description' | 'error', string>>;
-  const detail = typeof errRec.error_description === 'string' && errRec.error_description ? esc(errRec.error_description) : '';
+  const detail =
+    typeof errRec.error_description === 'string' && errRec.error_description
+      ? esc(errRec.error_description)
+      : '';
   ctx.body = shell({
     title: zh ? '出错了' : 'Error',
     heading: zh ? '请求无法完成' : 'Request cannot be completed',

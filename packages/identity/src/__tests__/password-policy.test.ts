@@ -155,10 +155,7 @@ describe('readPasswordPolicy — jsonb-typed seams (R12/PIT-045)', () => {
   });
 
   it('partial overrides keep other dimensions at callsite defaults', async () => {
-    const policy = await readPasswordPolicy(
-      optsFrom({ password_min_length: 16 }).get,
-      'register',
-    );
+    const policy = await readPasswordPolicy(optsFrom({ password_min_length: 16 }).get, 'register');
     expect(policy).toEqual({
       minLength: 16,
       requireUpper: true,

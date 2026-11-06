@@ -33,7 +33,9 @@ let tenantManager: TenantManager | undefined;
  * a static named import would throw at link time for missing keys (tenant-gate
  * collection failure). `await import` resolves the proxy per-key.
  */
-async function resolveClass(key: 'UserManager' | 'RoleManager' | 'TenantManager'): Promise<new () => unknown> {
+async function resolveClass(
+  key: 'UserManager' | 'RoleManager' | 'TenantManager',
+): Promise<new () => unknown> {
   const mod = (await import('@accessbase/identity')) as unknown as Record<string, unknown>;
   return mod[key] as new () => unknown;
 }
@@ -43,7 +45,11 @@ async function resolveClass(key: 'UserManager' | 'RoleManager' | 'TenantManager'
 // (+pool) before the first assignment lands — live-fired as 24 pools per burst.
 // The memoed promise is created once; awaiters all share it. Rejections reset
 // the slot so a transient boot failure is not cached forever.
-function memo<T>(read: () => Promise<T> | undefined, write: (p: Promise<T> | undefined) => void, make: () => Promise<T>): () => Promise<T> {
+function memo<T>(
+  read: () => Promise<T> | undefined,
+  write: (p: Promise<T> | undefined) => void,
+  make: () => Promise<T>,
+): () => Promise<T> {
   return () => {
     const existing = read();
     if (existing) return existing;
@@ -62,20 +68,26 @@ let tenantManagerP: Promise<TenantManager> | undefined;
 
 export const getUserManager = memo<UserManager>(
   () => userManagerP,
-  (p) => { userManagerP = p; },
+  (p) => {
+    userManagerP = p;
+  },
   async () => (userManager = new (await resolveClass('UserManager'))() as UserManager),
 );
 
 export const getRoleManager = memo<RoleManager>(
   () => roleManagerP,
-  (p) => { roleManagerP = p; },
+  (p) => {
+    roleManagerP = p;
+  },
   async () => (roleManager = new (await resolveClass('RoleManager'))() as RoleManager),
 );
 
 /** Moved from auth.ts's closure-local holder (rev.2 F-A4: it was never importable). */
 export const getTenantManager = memo<TenantManager>(
   () => tenantManagerP,
-  (p) => { tenantManagerP = p; },
+  (p) => {
+    tenantManagerP = p;
+  },
   async () => (tenantManager = new (await resolveClass('TenantManager'))() as TenantManager),
 );
 

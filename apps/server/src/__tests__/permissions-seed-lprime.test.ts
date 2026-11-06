@@ -14,10 +14,7 @@ import {
   bindPermissions,
   seedBuiltinPermissions,
 } from '../routes/permissions-seed.js';
-import {
-  TENANT_BINDABLE_PERMISSIONS,
-  PLATFORM_ONLY_PERMISSIONS,
-} from '@accessbase/identity';
+import { TENANT_BINDABLE_PERMISSIONS, PLATFORM_ONLY_PERMISSIONS } from '@accessbase/identity';
 import { logger } from '@accessbase/logging';
 
 function makeChain(result: unknown) {

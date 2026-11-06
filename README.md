@@ -21,17 +21,20 @@ Enterprise access control foundation (IAM) providing authentication, authorizati
 ### Quick Start
 
 **Native (recommended for development):**
+
 ```bash
 pixi install -e native
 pixi run dev
 ```
 
 **Single Container:**
+
 ```bash
 bash accessbase.sh dev:container
 ```
 
 **Docker Compose:**
+
 ```bash
 bash accessbase.sh dev:compose
 ```

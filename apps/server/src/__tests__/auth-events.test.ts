@@ -13,7 +13,12 @@ process.env.REDIS_URL = 'redis://localhost:6379';
 
 const warnSpy = vi.fn();
 vi.mock('@accessbase/logging', () => ({
-  logger: { warn: (...args: unknown[]) => warnSpy(...args), info: vi.fn(), error: vi.fn(), debug: vi.fn() },
+  logger: {
+    warn: (...args: unknown[]) => warnSpy(...args),
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
 
 interface CapturedInsert {
@@ -84,7 +89,11 @@ describe('emitAuthEvent', () => {
     });
     const row = inserts[0];
     expect(row?.values.type).toBe('auth.login.failure');
-    expect(row?.values.payload).toEqual({ email: 'a@b.c', method: 'password', reason: 'bad_credentials' });
+    expect(row?.values.payload).toEqual({
+      email: 'a@b.c',
+      method: 'password',
+      reason: 'bad_credentials',
+    });
   });
 
   it('swallows insert rejection: no throw, no unhandled rejection, warn logged', async () => {
@@ -93,7 +102,13 @@ describe('emitAuthEvent', () => {
     process.on('unhandledRejection', onUnhandled);
     try {
       expect(() =>
-        emitAuthEvent({ type: 'auth.logout', tenantId: 't-1', userId: 'u-1', email: 'a@b.c', method: 'password' }),
+        emitAuthEvent({
+          type: 'auth.logout',
+          tenantId: 't-1',
+          userId: 'u-1',
+          email: 'a@b.c',
+          method: 'password',
+        }),
       ).not.toThrow();
       await flush();
       expect(warnSpy).toHaveBeenCalled();
@@ -105,12 +120,19 @@ describe('emitAuthEvent', () => {
 
   it('swallows synchronous authDb boot failure (whole body in try/catch)', async () => {
     await closeAuthDb(); // clear the memoized handle so the next authDb() re-dials
-    const dbMod = (await import('@accessbase/identity/db')) as { createDb: ReturnType<typeof vi.fn> };
+    const dbMod = (await import('@accessbase/identity/db')) as {
+      createDb: ReturnType<typeof vi.fn>;
+    };
     dbMod.createDb.mockImplementationOnce(() => {
       throw new Error('pool boot failed');
     });
     expect(() =>
-      emitAuthEvent({ type: 'auth.login.success', tenantId: 't-1', email: 'a@b.c', method: 'totp' }),
+      emitAuthEvent({
+        type: 'auth.login.success',
+        tenantId: 't-1',
+        email: 'a@b.c',
+        method: 'totp',
+      }),
     ).not.toThrow();
     await flush();
     expect(warnSpy).toHaveBeenCalled();

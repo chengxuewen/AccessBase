@@ -372,27 +372,27 @@ team_create(inline_spec={
 
 ### AccessBase 文档体系总览
 
-| 文档          | 路径                                        | 受众            | 审计维度     |
-| ------------- | ------------------------------------------- | --------------- | ------------ |
-| 项目知识库    | `AGENTS.md`                                 | AI/Agent        | 一致性、缺口 |
-| 活计划        | `docs/implementation-plan.md`               | AI/Agent        | 一致性、缺口 |
-| 项目状态      | `.agents/memorys/status.md`                 | AI/Agent        | 决策、缺口   |
-| 编码约定      | `.agents/memorys/conventions.md`            | AI/Agent        | 决策、一致性 |
-| 架构决策      | `.agents/memorys/decisions.md`              | AI/Agent        | 决策验证     |
-| 踩坑记录      | `.agents/memorys/pitfalls.md`               | AI/Agent        | 踩坑验证     |
-| 编码规则      | `.agents/rules/**/*.md`                     | AI/Agent        | 一致性       |
-| 技能定义      | `.agents/skills/*/SKILL.md`                 | AI/Agent        | 一致性       |
-| 架构索引      | `docs/architecture.md` → `docs/modules/`    | AI/Agent + 人类 | 一致性、缺口 |
+| 文档          | 路径                                                 | 受众            | 审计维度     |
+| ------------- | ---------------------------------------------------- | --------------- | ------------ |
+| 项目知识库    | `AGENTS.md`                                          | AI/Agent        | 一致性、缺口 |
+| 活计划        | `docs/implementation-plan.md`                        | AI/Agent        | 一致性、缺口 |
+| 项目状态      | `.agents/memorys/status.md`                          | AI/Agent        | 决策、缺口   |
+| 编码约定      | `.agents/memorys/conventions.md`                     | AI/Agent        | 决策、一致性 |
+| 架构决策      | `.agents/memorys/decisions.md`                       | AI/Agent        | 决策验证     |
+| 踩坑记录      | `.agents/memorys/pitfalls.md`                        | AI/Agent        | 踩坑验证     |
+| 编码规则      | `.agents/rules/**/*.md`                              | AI/Agent        | 一致性       |
+| 技能定义      | `.agents/skills/*/SKILL.md`                          | AI/Agent        | 一致性       |
+| 架构索引      | `docs/architecture.md` → `docs/modules/`             | AI/Agent + 人类 | 一致性、缺口 |
 | 模块文档      | `docs/modules/*.md`（含 *-sdd.md，数量以 glob 为准） | AI/Agent + 人类 | 一致性、阶段 |
-| 参考画像      | `docs/reference/*.md`                       | AI/Agent + 人类 | 参考验证     |
-| 参考实现      | `.refinfo/*`（READ ONLY）                   | AI/Agent        | 参考验证     |
-| API 契约      | `docs/modules/api.md` + `docs/openapi.json` | AI/Agent        | 一致性       |
-| 数据库 Schema | `docs/modules/database.md`                  | AI/Agent        | 一致性       |
-| Runbook       | `docs/runbooks/*.md`                        | AI/Agent + 人类 | 一致性       |
-| 批次计划/报告 | `docs/superpowers/{plans,reports}/`         | AI/Agent        | 阶段审计     |
-| OpenCode 配置 | `.opencode/opencode.json`                   | AI/Agent        | 一致性       |
-| Agent 指南    | `.opencode/agent-guide.md`                  | AI/Agent        | 一致性       |
-| 模型层级      | `.opencode/agent-model-tiers.md`            | AI/Agent        | 一致性       |
+| 参考画像      | `docs/reference/*.md`                                | AI/Agent + 人类 | 参考验证     |
+| 参考实现      | `.refinfo/*`（READ ONLY）                            | AI/Agent        | 参考验证     |
+| API 契约      | `docs/modules/api.md` + `docs/openapi.json`          | AI/Agent        | 一致性       |
+| 数据库 Schema | `docs/modules/database.md`                           | AI/Agent        | 一致性       |
+| Runbook       | `docs/runbooks/*.md`                                 | AI/Agent + 人类 | 一致性       |
+| 批次计划/报告 | `docs/superpowers/{plans,reports}/`                  | AI/Agent        | 阶段审计     |
+| OpenCode 配置 | `.opencode/opencode.json`                            | AI/Agent        | 一致性       |
+| Agent 指南    | `.opencode/agent-guide.md`                           | AI/Agent        | 一致性       |
+| 模型层级      | `.opencode/agent-model-tiers.md`                     | AI/Agent        | 一致性       |
 
 ### 审计建议频率
 

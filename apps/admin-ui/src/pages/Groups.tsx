@@ -129,7 +129,9 @@ export default function Groups() {
       setEditingGroup(null);
       actionRef.current?.reload();
     } catch (err) {
-      message.error(apiErrorMessage(err, editingGroup ? t('groups.updateError') : t('groups.createError')));
+      message.error(
+        apiErrorMessage(err, editingGroup ? t('groups.updateError') : t('groups.createError')),
+      );
     } finally {
       setSaving(false);
     }
@@ -146,17 +148,14 @@ export default function Groups() {
     }
   };
 
-  const refreshDrawer = useCallback(
-    async (group: Group): Promise<DrawerState> => {
-      const [members, boundRoleIds, rolesResult] = await Promise.all([
-        fetchGroupMembers(group.id),
-        fetchGroupRoles(group.id),
-        listRoles({ page: 1, pageSize: 100 }),
-      ]);
-      return { group, members, roles: rolesResult.data, boundRoleIds };
-    },
-    [],
-  );
+  const refreshDrawer = useCallback(async (group: Group): Promise<DrawerState> => {
+    const [members, boundRoleIds, rolesResult] = await Promise.all([
+      fetchGroupMembers(group.id),
+      fetchGroupRoles(group.id),
+      listRoles({ page: 1, pageSize: 100 }),
+    ]);
+    return { group, members, roles: rolesResult.data, boundRoleIds };
+  }, []);
 
   const openDetail = async (record: GroupListItem) => {
     try {
@@ -239,7 +238,9 @@ export default function Groups() {
       // antd preset tag colors are theme-token derived (dark-mode safe; Events/Tenants precedent)
       render: (_, record) =>
         record.kind === 'department' ? (
-          <Tag color="blue" data-testid={`groups-kind-${record.id}`}>{t('groups.kindDepartment')}</Tag>
+          <Tag color="blue" data-testid={`groups-kind-${record.id}`}>
+            {t('groups.kindDepartment')}
+          </Tag>
         ) : (
           <Tag data-testid={`groups-kind-${record.id}`}>{t('groups.kindGroup')}</Tag>
         ),
@@ -268,53 +269,59 @@ export default function Groups() {
   // Actions column is always present: manage (read drawer) needs only groups:read;
   // the write/delete codes gate the individual buttons inside (spec gating).
   columns.push({
-      title: t('groups.actions'),
-      valueType: 'option',
-      width: 280,
-      render: (_, record) => {
-        const actions: React.ReactNode[] = [
+    title: t('groups.actions'),
+    valueType: 'option',
+    width: 280,
+    render: (_, record) => {
+      const actions: React.ReactNode[] = [
+        <Button
+          key="detail"
+          type="link"
+          size="small"
+          icon={<TeamOutlined />}
+          onClick={() => void openDetail(record)}
+          data-testid={`groups-detail-${record.id}`}
+        >
+          {t('groups.manage')}
+        </Button>,
+      ];
+      if (canWrite) {
+        actions.push(
           <Button
-            key="detail"
+            key="edit"
             type="link"
             size="small"
-            icon={<TeamOutlined />}
-            onClick={() => void openDetail(record)}
-            data-testid={`groups-detail-${record.id}`}
+            icon={<EditOutlined />}
+            onClick={() => openEdit(record)}
+            data-testid="groups-edit"
           >
-            {t('groups.manage')}
+            {t('common.edit')}
           </Button>,
-        ];
-        if (canWrite) {
-          actions.push(
+        );
+      }
+      if (canDelete) {
+        actions.push(
+          <Popconfirm
+            key="delete"
+            title={t('groups.deleteConfirm')}
+            onConfirm={() => void handleDelete(record)}
+            okText={t('common.confirm')}
+            cancelText={t('common.cancel')}
+          >
             <Button
-              key="edit"
               type="link"
               size="small"
-              icon={<EditOutlined />}
-              onClick={() => openEdit(record)}
-              data-testid="groups-edit"
+              danger
+              icon={<DeleteOutlined />}
+              data-testid="groups-delete"
             >
-              {t('common.edit')}
-            </Button>,
-          );
-        }
-        if (canDelete) {
-          actions.push(
-            <Popconfirm
-              key="delete"
-              title={t('groups.deleteConfirm')}
-              onConfirm={() => void handleDelete(record)}
-              okText={t('common.confirm')}
-              cancelText={t('common.cancel')}
-            >
-              <Button type="link" size="small" danger icon={<DeleteOutlined />} data-testid="groups-delete">
-                {t('common.delete')}
-              </Button>
-            </Popconfirm>,
-          );
-        }
-        return actions;
-      },
+              {t('common.delete')}
+            </Button>
+          </Popconfirm>,
+        );
+      }
+      return actions;
+    },
   });
 
   return (
@@ -325,7 +332,12 @@ export default function Groups() {
           showIcon
           message={t('groups.loadError')}
           action={
-            <Button size="small" icon={<ReloadOutlined />} onClick={() => actionRef.current?.reload()} data-testid="groups-load-retry">
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={() => actionRef.current?.reload()}
+              data-testid="groups-load-retry"
+            >
               {t('common.retry')}
             </Button>
           }
@@ -363,7 +375,13 @@ export default function Groups() {
         toolBarRender={
           canWrite
             ? () => [
-                <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate} data-testid="groups-create">
+                <Button
+                  key="create"
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={openCreate}
+                  data-testid="groups-create"
+                >
                   {t('groups.create')}
                 </Button>,
               ]
@@ -397,11 +415,7 @@ export default function Groups() {
           <Form.Item name="description" label={t('groups.description')}>
             <Input data-testid="groups-description-input" />
           </Form.Item>
-          <Form.Item
-            name="isDepartment"
-            valuePropName="checked"
-            label={t('groups.isDepartment')}
-          >
+          <Form.Item name="isDepartment" valuePropName="checked" label={t('groups.isDepartment')}>
             <Switch data-testid="groups-kind-switch" />
           </Form.Item>
         </Form>
@@ -441,7 +455,12 @@ export default function Groups() {
                                     okText={t('common.confirm')}
                                     cancelText={t('common.cancel')}
                                   >
-                                    <Button type="link" size="small" danger data-testid="groups-remove-member">
+                                    <Button
+                                      type="link"
+                                      size="small"
+                                      danger
+                                      data-testid="groups-remove-member"
+                                    >
                                       {t('groups.removeMember')}
                                     </Button>
                                   </Popconfirm>,
@@ -463,7 +482,9 @@ export default function Groups() {
                           placeholder={t('groups.memberPickerPlaceholder')}
                           value={memberPicker}
                           onSearch={(kw) => void loadMemberCandidates(kw)}
-                          onOpenChange={(open) => { if (open) void loadMemberCandidates(''); }}
+                          onOpenChange={(open) => {
+                            if (open) void loadMemberCandidates('');
+                          }}
                           onChange={(value: string) => setMemberPicker(value)}
                           options={memberCandidates.map((u) => ({
                             value: u.id,

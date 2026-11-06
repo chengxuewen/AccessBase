@@ -76,23 +76,43 @@ export async function readPasswordPolicy(
 ): Promise<PasswordPolicy> {
   const def = DEFAULTS[callsite];
   const minLength = asInt(
-    await getOption<unknown>('password_min_length', process.env['PASSWORD_MIN_LENGTH'], def.minLength),
+    await getOption<unknown>(
+      'password_min_length',
+      process.env['PASSWORD_MIN_LENGTH'],
+      def.minLength,
+    ),
     def.minLength,
   );
   const requireUpper = asBool(
-    await getOption<unknown>('password_require_upper', process.env['PASSWORD_REQUIRE_UPPER'], def.requireUpper),
+    await getOption<unknown>(
+      'password_require_upper',
+      process.env['PASSWORD_REQUIRE_UPPER'],
+      def.requireUpper,
+    ),
     def.requireUpper,
   );
   const requireLower = asBool(
-    await getOption<unknown>('password_require_lower', process.env['PASSWORD_REQUIRE_LOWER'], def.requireLower),
+    await getOption<unknown>(
+      'password_require_lower',
+      process.env['PASSWORD_REQUIRE_LOWER'],
+      def.requireLower,
+    ),
     def.requireLower,
   );
   const requireDigit = asBool(
-    await getOption<unknown>('password_require_digit', process.env['PASSWORD_REQUIRE_DIGIT'], def.requireDigit),
+    await getOption<unknown>(
+      'password_require_digit',
+      process.env['PASSWORD_REQUIRE_DIGIT'],
+      def.requireDigit,
+    ),
     def.requireDigit,
   );
   const requireSpecial = asBool(
-    await getOption<unknown>('password_require_special', process.env['PASSWORD_REQUIRE_SPECIAL'], def.requireSpecial),
+    await getOption<unknown>(
+      'password_require_special',
+      process.env['PASSWORD_REQUIRE_SPECIAL'],
+      def.requireSpecial,
+    ),
     def.requireSpecial,
   );
   return { minLength, requireUpper, requireLower, requireDigit, requireSpecial };
@@ -103,7 +123,9 @@ export function assertPasswordPolicy(
   password: string,
   policy: PasswordPolicy,
   code?: string,
-): { ok: true; code?: undefined; message?: undefined } | { ok: false; code?: string; message: string } {
+):
+  | { ok: true; code?: undefined; message?: undefined }
+  | { ok: false; code?: string; message: string } {
   if (password.length < policy.minLength) {
     return {
       ok: false,
@@ -111,9 +133,13 @@ export function assertPasswordPolicy(
       message: `Password needs ${policy.minLength}+ chars with${policy.requireUpper ? ' upper,' : ''}${policy.requireLower ? ' lower,' : ''}${policy.requireDigit ? ' digit' : ''}${policy.requireSpecial ? ' and special' : ''}`,
     };
   }
-  if (policy.requireUpper && !/[A-Z]/.test(password)) return { ok: false, code, message: 'Password must contain an uppercase letter' };
-  if (policy.requireLower && !/[a-z]/.test(password)) return { ok: false, code, message: 'Password must contain a lowercase letter' };
-  if (policy.requireDigit && !/\d/.test(password)) return { ok: false, code, message: 'Password must contain a digit' };
-  if (policy.requireSpecial && !/[^A-Za-z0-9]/.test(password)) return { ok: false, code, message: 'Password must contain a special character' };
+  if (policy.requireUpper && !/[A-Z]/.test(password))
+    return { ok: false, code, message: 'Password must contain an uppercase letter' };
+  if (policy.requireLower && !/[a-z]/.test(password))
+    return { ok: false, code, message: 'Password must contain a lowercase letter' };
+  if (policy.requireDigit && !/\d/.test(password))
+    return { ok: false, code, message: 'Password must contain a digit' };
+  if (policy.requireSpecial && !/[^A-Za-z0-9]/.test(password))
+    return { ok: false, code, message: 'Password must contain a special character' };
   return { ok: true };
 }

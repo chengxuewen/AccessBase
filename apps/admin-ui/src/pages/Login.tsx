@@ -30,8 +30,17 @@ import { getInteraction, postInteractionDecision, safeOidcRedirect } from '../ap
 export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { login, isLoading, exchangeOAuthCode, exchangeSamlCode, fetchUser, mfaFlowToken, verifyMfa, cancelMfa, passwordChangeToken } =
-    useAuthStore();
+  const {
+    login,
+    isLoading,
+    exchangeOAuthCode,
+    exchangeSamlCode,
+    fetchUser,
+    mfaFlowToken,
+    verifyMfa,
+    cancelMfa,
+    passwordChangeToken,
+  } = useAuthStore();
   const [form] = Form.useForm();
   const [mfaForm] = Form.useForm();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -179,7 +188,8 @@ export default function Login() {
     let cancelled = false;
     getInteraction(uid)
       .then((details) => {
-        if (details.promptName === 'login') return postInteractionDecision(uid, 'approve').then(() => true);
+        if (details.promptName === 'login')
+          return postInteractionDecision(uid, 'approve').then(() => true);
         // Consent (or unknown prompt) must never be auto-granted — render the consent page
         window.location.assign(`/consent?uid=${encodeURIComponent(uid)}`);
         return undefined;
@@ -332,7 +342,9 @@ export default function Login() {
   // Q4a (B5): forced password change handoff — token arrives via the store.
   useEffect(() => {
     if (passwordChangeToken) {
-      navigate(`/reset-password?token=${encodeURIComponent(passwordChangeToken)}&mode=force`, { replace: true });
+      navigate(`/reset-password?token=${encodeURIComponent(passwordChangeToken)}&mode=force`, {
+        replace: true,
+      });
     }
   }, [passwordChangeToken, navigate]);
 
@@ -345,7 +357,9 @@ export default function Login() {
   }, [mfaFlowToken, navigate]);
 
   const branding = useBranding();
-  const brandTheme = branding.primaryColor ? { token: { colorPrimary: branding.primaryColor } } : undefined;
+  const brandTheme = branding.primaryColor
+    ? { token: { colorPrimary: branding.primaryColor } }
+    : undefined;
 
   if (mfaFlowToken && !sessionStorage.getItem('mfaEnrollToken')) {
     return (
@@ -373,130 +387,67 @@ export default function Login() {
         <img
           src={branding.logoUrl}
           alt={branding.siteName || 'logo'}
-          style={{ display: 'block', margin: '0 auto 16px', maxHeight: 64, maxWidth: '80%', objectFit: 'contain' }}
+          style={{
+            display: 'block',
+            margin: '0 auto 16px',
+            maxHeight: 64,
+            maxWidth: '80%',
+            objectFit: 'contain',
+          }}
           data-testid="branding-logo"
         />
       )}
       <ConfigProvider theme={brandTheme}>
-      <Card
-        title={branding.siteName || t('login.title')}
-        style={{ width: '100%', maxWidth: 400 }}
-        styles={{ header: { textAlign: 'center' } }}
-      >
-        {authBusy && <Spin data-testid="auth-busy" style={{ display: 'block', marginBottom: 16 }} />}
-
-        {oauthError && (
-          <Alert
-            type="error"
-            showIcon
-            message={t('oauth.failed', { reason: oauthError })}
-            style={{ marginBottom: 16 }}
-            data-testid="oauth-error"
-          />
-        )}
-
-        {loginError && (
-          <Alert
-            type="error"
-            showIcon
-            message={loginError}
-            style={{ marginBottom: 16 }}
-            data-testid="login-error"
-          />
-        )}
-
-        {samlError && (
-          <Alert
-            type="error"
-            showIcon
-            message={t('login.samlFailed', { reason: samlError })}
-            style={{ marginBottom: 16 }}
-            data-testid="saml-error"
-          />
-        )}
-
-        {passkeyError && (
-          <Alert
-            type="error"
-            showIcon
-            message={t('login.passkeyError')}
-            style={{ marginBottom: 16 }}
-            data-testid="passkey-error"
-          />
-        )}
-
-        <Form form={form} onFinish={handleSubmit} layout="vertical">
-          <Form.Item
-            name="email"
-            rules={[
-              { required: true, message: t('login.emailRequired') },
-              { type: 'email', message: t('login.emailInvalid') },
-            ]}
-          >
-            <Input
-              prefix={<MailOutlined />}
-              placeholder={t('login.emailPlaceholder')}
-              size="large"
-              autoComplete="username"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: t('login.passwordRequired') }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder={t('login.passwordPlaceholder')}
-              size="large"
-              autoComplete="current-password"
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={isLoading} block size="large">
-              {t('login.submit')}
-            </Button>
-          </Form.Item>
-        </Form>
-
-        <Button
-          block
-          size="large"
-          icon={<KeyOutlined />}
-          loading={passkeyBusy}
-          onClick={handlePasskeyLogin}
-          style={{ marginBottom: 16 }}
-          data-testid="passkey-login"
+        <Card
+          title={branding.siteName || t('login.title')}
+          style={{ width: '100%', maxWidth: 400 }}
+          styles={{ header: { textAlign: 'center' } }}
         >
-          {t('login.passkey')}
-        </Button>
+          {authBusy && (
+            <Spin data-testid="auth-busy" style={{ display: 'block', marginBottom: 16 }} />
+          )}
 
-        <OAuthButtons />
-        {samlEnabled && (
-          <a href="/api/v1/auth/saml/login" style={{ display: 'block' }} data-testid="saml-login">
-            <Button block size="large" icon={<SafetyCertificateOutlined />}>
-              {t('login.samlButton')}
-            </Button>
-          </a>
-        )}
+          {oauthError && (
+            <Alert
+              type="error"
+              showIcon
+              message={t('oauth.failed', { reason: oauthError })}
+              style={{ marginBottom: 16 }}
+              data-testid="oauth-error"
+            />
+          )}
 
-        {!magicOpen && !magicMessage && (
-          <Button
-            block
-            size="large"
-            type="text"
-            icon={<MailOutlined />}
-            onClick={() => setMagicOpen(true)}
-            style={{ marginTop: samlEnabled ? 16 : 0 }}
-            data-testid="magic-trigger"
-          >
-            {t('login.magicTrigger')}
-          </Button>
-        )}
+          {loginError && (
+            <Alert
+              type="error"
+              showIcon
+              message={loginError}
+              style={{ marginBottom: 16 }}
+              data-testid="login-error"
+            />
+          )}
 
-        {magicOpen && !magicMessage && (
-          <Form onFinish={handleMagicRequest} layout="vertical" style={{ marginTop: 16 }}>
+          {samlError && (
+            <Alert
+              type="error"
+              showIcon
+              message={t('login.samlFailed', { reason: samlError })}
+              style={{ marginBottom: 16 }}
+              data-testid="saml-error"
+            />
+          )}
+
+          {passkeyError && (
+            <Alert
+              type="error"
+              showIcon
+              message={t('login.passkeyError')}
+              style={{ marginBottom: 16 }}
+              data-testid="passkey-error"
+            />
+          )}
+
+          <Form form={form} onFinish={handleSubmit} layout="vertical">
             <Form.Item
               name="email"
               rules={[
@@ -506,57 +457,128 @@ export default function Login() {
             >
               <Input
                 prefix={<MailOutlined />}
-                placeholder={t('login.magicEmailPlaceholder')}
+                placeholder={t('login.emailPlaceholder')}
                 size="large"
                 autoComplete="username"
-                data-testid="magic-email-input"
               />
             </Form.Item>
-            {captcha.node}
+
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: t('login.passwordRequired') }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder={t('login.passwordPlaceholder')}
+                size="large"
+                autoComplete="current-password"
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <Button type="primary" htmlType="submit" loading={isLoading} block size="large">
+                {t('login.submit')}
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <Button
+            block
+            size="large"
+            icon={<KeyOutlined />}
+            loading={passkeyBusy}
+            onClick={handlePasskeyLogin}
+            style={{ marginBottom: 16 }}
+            data-testid="passkey-login"
+          >
+            {t('login.passkey')}
+          </Button>
+
+          <OAuthButtons />
+          {samlEnabled && (
+            <a href="/api/v1/auth/saml/login" style={{ display: 'block' }} data-testid="saml-login">
+              <Button block size="large" icon={<SafetyCertificateOutlined />}>
+                {t('login.samlButton')}
+              </Button>
+            </a>
+          )}
+
+          {!magicOpen && !magicMessage && (
             <Button
-              type="primary"
-              htmlType="submit"
-              loading={magicBusy}
               block
               size="large"
-              data-testid="magic-submit"
+              type="text"
+              icon={<MailOutlined />}
+              onClick={() => setMagicOpen(true)}
+              style={{ marginTop: samlEnabled ? 16 : 0 }}
+              data-testid="magic-trigger"
             >
-              {t('login.magicSubmit')}
+              {t('login.magicTrigger')}
             </Button>
-          </Form>
-        )}
+          )}
 
-        {magicMessage && (
-          <Alert
-            type="success"
-            showIcon
-            message={magicMessage}
-            style={{ marginTop: 16 }}
-            data-testid="magic-success"
+          {magicOpen && !magicMessage && (
+            <Form onFinish={handleMagicRequest} layout="vertical" style={{ marginTop: 16 }}>
+              <Form.Item
+                name="email"
+                rules={[
+                  { required: true, message: t('login.emailRequired') },
+                  { type: 'email', message: t('login.emailInvalid') },
+                ]}
+              >
+                <Input
+                  prefix={<MailOutlined />}
+                  placeholder={t('login.magicEmailPlaceholder')}
+                  size="large"
+                  autoComplete="username"
+                  data-testid="magic-email-input"
+                />
+              </Form.Item>
+              {captcha.node}
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={magicBusy}
+                block
+                size="large"
+                data-testid="magic-submit"
+              >
+                {t('login.magicSubmit')}
+              </Button>
+            </Form>
+          )}
+
+          {magicMessage && (
+            <Alert
+              type="success"
+              showIcon
+              message={magicMessage}
+              style={{ marginTop: 16 }}
+              data-testid="magic-success"
+            />
+          )}
+
+          <SmsSection
+            smsEnabled={smsEnabled}
+            smsOpen={smsOpen}
+            smsToken={smsToken}
+            smsBusy={smsBusy}
+            smsMessage={smsMessage}
+            captchaNode={captcha.node}
+            setSmsOpen={setSmsOpen}
+            handleSmsRequest={handleSmsRequest}
+            handleSmsVerify={handleSmsVerify}
           />
-        )}
 
-        <SmsSection
-          smsEnabled={smsEnabled}
-          smsOpen={smsOpen}
-          smsToken={smsToken}
-          smsBusy={smsBusy}
-          smsMessage={smsMessage}
-          captchaNode={captcha.node}
-          setSmsOpen={setSmsOpen}
-          handleSmsRequest={handleSmsRequest}
-          handleSmsVerify={handleSmsVerify}
-        />
-
-        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <Link to="/forgot-password" data-testid="forgot-link">
-            {t('login.forgotPassword')}
-          </Link>
-          <Link to="/register" data-testid="register-link">
-            {t('login.register')}
-          </Link>
-        </div>
-      </Card>
+          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between' }}>
+            <Link to="/forgot-password" data-testid="forgot-link">
+              {t('login.forgotPassword')}
+            </Link>
+            <Link to="/register" data-testid="register-link">
+              {t('login.register')}
+            </Link>
+          </div>
+        </Card>
       </ConfigProvider>
     </div>
   );

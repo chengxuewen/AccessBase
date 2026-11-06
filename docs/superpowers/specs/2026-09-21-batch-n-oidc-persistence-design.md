@@ -63,6 +63,7 @@ not_after   timestamp(tz) NULL               -- NULL = no expiresIn passed. Only
 created_at / updated_at defaults
 PK (kind, id)
 ```
+
 Indexes: `(kind, user_code)` partial WHERE user_code IS NOT NULL;
 `(kind, uid)` partial; `grant_id` plain; `not_after` plain (sweep).
 `payload` stores the EXACT object oidc-provider passed (cross-model refs are plain
@@ -75,7 +76,7 @@ the whole round-trip problem reduces to: store JSON, return JSON, honor TTL.
 
 - upsert(kind,id,payload,expiresInSeconds): derive columns from payload
   (uid/userCode.toLowerCase()/grantId), `INSERT … ON CONFLICT (kind,id) DO
-  UPDATE SET payload/excluded…, not_after = now() + make_interval(secs => n)`;
+UPDATE SET payload/excluded…, not_after = now() + make_interval(secs => n)`;
   expiresInSeconds absent ⇒ not_after NULL; 0 ⇒ now() (expired, NOT immortal). n = expiresIn + clockTolerance
   (official storageOptions formula; provider clockTolerance unset ⇒ 0 — if a
   future config sets it, the shim must pass it through).
@@ -106,10 +107,11 @@ the whole round-trip problem reduces to: store JSON, return JSON, honor TTL.
 keeps `(db, {getUser})`. No provider config change (adapter interface is the
 contract). The memory Map's absence means the OIDC interaction-resume test
 seam (flow_token/batch E precedent: FlowTokenService shared-Map test seam) is
-UNAFFECTED — interaction *storage* moves to PG, interaction *contract
-endpoints* unchanged.
+UNAFFECTED — interaction _storage_ moves to PG, interaction _contract
+endpoints_ unchanged.
 
 ### D4: test matrix (vitest, fake-db chain fidelity per PIT lesson: mocks must
+
 honor both keys kind+id)
 
 1. upsert→find round-trip verbatim payload (key-order/case untouched).

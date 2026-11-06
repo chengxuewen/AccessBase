@@ -50,7 +50,18 @@ const emitMock = vi.mocked(emitEvent);
 
 function makeChain(result: unknown) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-  for (const m of ['from', 'where', 'innerJoin', 'limit', 'set', 'values', 'returning', 'orderBy', 'offset', 'onConflictDoNothing']) {
+  for (const m of [
+    'from',
+    'where',
+    'innerJoin',
+    'limit',
+    'set',
+    'values',
+    'returning',
+    'orderBy',
+    'offset',
+    'onConflictDoNothing',
+  ]) {
     chain[m] = vi.fn(() => chain);
   }
   chain.then = vi.fn(
@@ -62,11 +73,24 @@ function makeChain(result: unknown) {
 
 /** One row shape satisfying user/role/tenant/group mappers + perm joins. */
 const ROW = {
-  id: 'x1', tenantId: 't1', email: 'a@b.c', name: 'X', slug: 's', status: 'active',
-  passwordHash: null, avatarUrl: null, tokenVersion: 0, isSystem: false, parentId: null,
-  description: null, revokedAt: null, count: 0, userId: 'x1',
+  id: 'x1',
+  tenantId: 't1',
+  email: 'a@b.c',
+  name: 'X',
+  slug: 's',
+  status: 'active',
+  passwordHash: null,
+  avatarUrl: null,
+  tokenVersion: 0,
+  isSystem: false,
+  parentId: null,
+  description: null,
+  revokedAt: null,
+  count: 0,
+  userId: 'x1',
   permissions: { id: 'p1', resource: 'users', action: 'read', createdAt: new Date(0) },
-  createdAt: new Date(0), updatedAt: new Date(0),
+  createdAt: new Date(0),
+  updatedAt: new Date(0),
 };
 
 /**
@@ -84,7 +108,9 @@ function makeDb(selectQueue: unknown[] = []) {
 }
 
 function emitsOn(handle: unknown) {
-  return emitMock.mock.calls.filter((c) => c[0] === handle).map((c) => c[1] as { type: string; payload: Record<string, unknown> });
+  return emitMock.mock.calls
+    .filter((c) => c[0] === handle)
+    .map((c) => c[1] as { type: string; payload: Record<string, unknown> });
 }
 
 beforeEach(() => {
@@ -103,7 +129,11 @@ describe('UserManager emit legs', () => {
     await um.changeStatus('x1', 'suspended', 't1');
     await um.changeStatus('x1', 'active', 't1');
     expect(emitsOn(db).map((e) => e.type)).toEqual([
-      'user.created', 'user.updated', 'user.deleted', 'user.suspended', 'user.updated',
+      'user.created',
+      'user.updated',
+      'user.deleted',
+      'user.suspended',
+      'user.updated',
     ]);
   });
 });
@@ -124,7 +154,13 @@ describe('RoleManager emit legs', () => {
     const legs = emitsOn(db);
     expect(legs.map((l) => l.type)).toEqual(Array(7).fill('role.changed'));
     expect(legs.map((l) => l.payload.op)).toEqual([
-      'created', 'updated', 'deleted', 'parent', 'assigned', 'unassigned', 'set',
+      'created',
+      'updated',
+      'deleted',
+      'parent',
+      'assigned',
+      'unassigned',
+      'set',
     ]);
   });
 });
@@ -141,7 +177,10 @@ describe('TenantManager emit legs', () => {
     ROW.status = 'active';
     await tm.delete('t2'); // deleteOp → tenant.deleted
     expect(emitsOn(db).map((e) => e.type)).toEqual([
-      'tenant.created', 'tenant.updated', 'tenant.suspended', 'tenant.deleted',
+      'tenant.created',
+      'tenant.updated',
+      'tenant.suspended',
+      'tenant.deleted',
     ]);
   });
 });
@@ -151,7 +190,9 @@ describe('ApiKeyManager + GroupManager emit legs', () => {
     const db = makeDb();
     const akm = new ApiKeyManager(db as unknown as DbLike);
     await akm.revoke('k1', 't1');
-    expect(emitsOn(db)).toEqual([{ tenantId: 't1', type: 'apikey.revoked', payload: { id: 'k1' } }]);
+    expect(emitsOn(db)).toEqual([
+      { tenantId: 't1', type: 'apikey.revoked', payload: { id: 'k1' } },
+    ]);
   });
 
   it('group funnels emit group.changed with lifecycle/member/roles ops', async () => {
@@ -168,7 +209,12 @@ describe('ApiKeyManager + GroupManager emit legs', () => {
     const legs = emitsOn(db);
     expect(legs.map((l) => l.type)).toEqual(Array(6).fill('group.changed'));
     expect(legs.map((l) => l.payload.op)).toEqual([
-      'lifecycle', 'lifecycle', 'member', 'member', 'roles', 'lifecycle',
+      'lifecycle',
+      'lifecycle',
+      'member',
+      'member',
+      'roles',
+      'lifecycle',
     ]);
   });
 });
@@ -179,7 +225,11 @@ describe('tx-handle threading', () => {
     const tx = makeDb();
     createDbMock.mockReturnValue(db);
     const um = new UserManager();
-    await um.create({ email: 'a@b.c', name: 'X', password: 'Passw0rd-123' }, 't1', tx as unknown as DbLike);
+    await um.create(
+      { email: 'a@b.c', name: 'X', password: 'Passw0rd-123' },
+      't1',
+      tx as unknown as DbLike,
+    );
     expect(emitsOn(tx).map((e) => e.type)).toEqual(['user.created']);
     expect(emitsOn(db)).toEqual([]);
   });

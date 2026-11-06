@@ -38,7 +38,9 @@ function cryptoRandom(): string {
   // id doubles as the redis key salt — reuse node crypto via dynamic import cache
   const bytes = new Uint8Array(9);
   globalThis.crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(36).padStart(2, '0')).join('').slice(0, 12);
+  return Array.from(bytes, (b) => b.toString(36).padStart(2, '0'))
+    .join('')
+    .slice(0, 12);
 }
 
 /** Store the answer under captcha:{id}. Call right after newCaptcha(). */
@@ -60,7 +62,9 @@ export async function checkCaptcha(body: Record<string, unknown>): Promise<strin
   if (!on || !redis) {
     if (!warnedNoRedis) {
       warnedNoRedis = true;
-      logger.warn('captcha_enabled set but Redis is unavailable — captcha checks skipped (fail-open)');
+      logger.warn(
+        'captcha_enabled set but Redis is unavailable — captcha checks skipped (fail-open)',
+      );
     }
     return null;
   }

@@ -42,36 +42,40 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       pageSize: 10,
       totalPages: 1,
     }),
-    findById: vi.fn().mockImplementation((id: string) =>
-      id === '11111111-1111-1111-1111-111111111111'
-        ? Promise.resolve(Role())
-        : Promise.resolve(null),
-    ),
-    create: vi.fn().mockImplementation((data: { name: string; description?: string }) =>
-      Promise.resolve(Role({ name: data.name, description: data.description })),
-    ),
+    findById: vi
+      .fn()
+      .mockImplementation((id: string) =>
+        id === '11111111-1111-1111-1111-111111111111'
+          ? Promise.resolve(Role())
+          : Promise.resolve(null),
+      ),
+    create: vi
+      .fn()
+      .mockImplementation((data: { name: string; description?: string }) =>
+        Promise.resolve(Role({ name: data.name, description: data.description })),
+      ),
     update: vi
       .fn()
       .mockImplementation((id: string, data: { name?: string; description?: string }) => {
         callLog.push('update');
-        return Promise.resolve(Role({ id, name: data.name ?? 'seed', description: data.description }));
+        return Promise.resolve(
+          Role({ id, name: data.name ?? 'seed', description: data.description }),
+        );
       }),
     delete: vi.fn().mockResolvedValue(undefined),
-    setParent: vi
-      .fn()
-      .mockImplementation((id: string, parentId: string | null) => {
-        callLog.push(`setParent:${String(parentId)}`);
-        return Promise.resolve(Role({ id, parentId: parentId ?? undefined }));
-      }),
+    setParent: vi.fn().mockImplementation((id: string, parentId: string | null) => {
+      callLog.push(`setParent:${String(parentId)}`);
+      return Promise.resolve(Role({ id, parentId: parentId ?? undefined }));
+    }),
   };
   return {
     ...actual,
     // D113: the setup guard queries the users table via UserManager on every request —
     // mock admin as existing so guarded routes are reachable.
     UserManager: vi.fn().mockImplementation(() => ({
-    // Q2b routeTx seam: run the callback with a dummy handle (mocked
-    // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
-    transaction: (fn: (d: unknown) => unknown) => fn({}),
+      // Q2b routeTx seam: run the callback with a dummy handle (mocked
+      // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
+      transaction: (fn: (d: unknown) => unknown) => fn({}),
       findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
     })),
     RoleManager: vi.fn().mockImplementation(() => instance),
@@ -246,15 +250,15 @@ describe('DELETE /api/v1/roles/:id', () => {
   });
 });
 
-
 // K-T2: manager guard tags (ROLE_PROTECTED:) must map to a 409 envelope via the
 // shared conflict mapper — never a 500.
 describe('system role protection mapping (K-T2)', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const roleManagerInstance = () => (identity as any).RoleManager.mock.results[0].value as {
-    update: ReturnType<typeof vi.fn>;
-    delete: ReturnType<typeof vi.fn>;
-  };
+  const roleManagerInstance = () =>
+    (identity as any).RoleManager.mock.results[0].value as {
+      update: ReturnType<typeof vi.fn>;
+      delete: ReturnType<typeof vi.fn>;
+    };
 
   it('PUT maps ROLE_PROTECTED manager error to 409 {code: ROLE_PROTECTED}', async () => {
     roleManagerInstance().update.mockRejectedValueOnce(
@@ -292,15 +296,16 @@ describe('system role protection mapping (K-T2)', () => {
 // L'-T5: PUT body parentId must route through RoleManager.setParent (cycle +
 // same-tenant + isSystem guards live there) BEFORE any field write, so a rejected
 // parent leaves name/description/permissions untouched.
-describe('PUT /api/v1/roles/:id — parentId wiring (L\'-T5)', () => {
+describe("PUT /api/v1/roles/:id — parentId wiring (L'-T5)", () => {
   const ROLE_ID = '11111111-1111-1111-1111-111111111111';
   const PARENT_ID = '22222222-2222-2222-2222-222222222222';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rm = () => (identity as any).RoleManager.mock.results[0].value as {
-    setParent: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-    callLog: string[];
-  };
+  const rm = () =>
+    (identity as any).RoleManager.mock.results[0].value as {
+      setParent: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+      callLog: string[];
+    };
   beforeEach(() => {
     rm().callLog.length = 0;
     rm().setParent.mockClear();
@@ -318,7 +323,12 @@ describe('PUT /api/v1/roles/:id — parentId wiring (L\'-T5)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(rm().callLog).toEqual([`setParent:${PARENT_ID}`, 'update']);
-    expect(rm().setParent).toHaveBeenCalledWith(ROLE_ID, PARENT_ID, '00000000-0000-0000-0000-000000000001', expect.anything());
+    expect(rm().setParent).toHaveBeenCalledWith(
+      ROLE_ID,
+      PARENT_ID,
+      '00000000-0000-0000-0000-000000000001',
+      expect.anything(),
+    );
   });
 
   it('explicit null clears the parent (setParent receives null)', async () => {
@@ -331,7 +341,12 @@ describe('PUT /api/v1/roles/:id — parentId wiring (L\'-T5)', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(rm().setParent).toHaveBeenCalledWith(ROLE_ID, null, '00000000-0000-0000-0000-000000000001', expect.anything());
+    expect(rm().setParent).toHaveBeenCalledWith(
+      ROLE_ID,
+      null,
+      '00000000-0000-0000-0000-000000000001',
+      expect.anything(),
+    );
   });
 
   it('leaves the parent untouched when the key is absent', async () => {
@@ -411,7 +426,6 @@ describe('PUT /api/v1/roles/:id — parentId wiring (L\'-T5)', () => {
   });
 });
 
-
 // DG-6d data-scope T-SERVER: roles PUT carries per-binding permissionScopes
 // (keyed by permissionId, enum all|dept|self) into the update funnel, and
 // GET /:id projects the users:* binding scopes back for the UI's fan Select.
@@ -419,7 +433,11 @@ describe('DG-6d permissionScopes (roles)', () => {
   const ROLE_ID = '11111111-1111-1111-1111-111111111111';
   const roleManagerInstance = () => {
     const ctor = identity.RoleManager as unknown as {
-      mock: { results: Array<{ value: { update: ReturnType<typeof vi.fn>; findById: ReturnType<typeof vi.fn> } }> };
+      mock: {
+        results: Array<{
+          value: { update: ReturnType<typeof vi.fn>; findById: ReturnType<typeof vi.fn> };
+        }>;
+      };
     };
     return ctor.mock.results[0].value;
   };
@@ -430,7 +448,10 @@ describe('DG-6d permissionScopes (roles)', () => {
       method: 'PUT',
       url: `/api/v1/roles/${ROLE_ID}`,
       headers: AUTH(token),
-      payload: { permissionIds: ['p-ur', 'p-uw'], permissionScopes: { 'p-ur': 'dept', 'p-uw': 'self' } },
+      payload: {
+        permissionIds: ['p-ur', 'p-uw'],
+        permissionScopes: { 'p-ur': 'dept', 'p-uw': 'self' },
+      },
     });
     expect(res.statusCode).toBe(200);
     expect(roleManagerInstance().update).toHaveBeenCalledWith(
@@ -465,13 +486,25 @@ describe('DG-6d permissionScopes (roles)', () => {
       createdAt: new Date('2026-01-01T00:00:00Z'),
       updatedAt: new Date('2026-01-01T00:00:00Z'),
     });
-    const res = await app.inject({ method: 'GET', url: `/api/v1/roles/${ROLE_ID}`, headers: AUTH(token) });
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+    });
     expect(res.statusCode).toBe(200);
-    expect(res.json().data.permissionScopes).toEqual({ 'p-ur': 'dept', 'p-uw': 'self', 'p-ud': 'all' });
+    expect(res.json().data.permissionScopes).toEqual({
+      'p-ur': 'dept',
+      'p-uw': 'self',
+      'p-ud': 'all',
+    });
   });
 
   it('GET /:id keeps the envelope and emits an empty map when no users:* bindings exist', async () => {
-    const res = await app.inject({ method: 'GET', url: `/api/v1/roles/${ROLE_ID}`, headers: AUTH(token) });
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/roles/${ROLE_ID}`,
+      headers: AUTH(token),
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json().success).toBe(true);
     expect(res.json().data.permissionScopes).toEqual({});

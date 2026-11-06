@@ -27,10 +27,12 @@
 ## Task 1: audit actor 归属修复（D1）
 
 **Files:**
+
 - Modify: `packages/audit/src/middleware.ts`（:86/:124/:130/:157 四处 user?.id）
 - Test: `packages/audit/src/__tests__/middleware.test.ts`（既有文件更新/追加）
 
 **Interfaces:**
+
 - Produces: actor 解析顺序 user.id → user.sub → 'anonymous'（:130 resourceId 处 user.id → user.sub → 'unknown'；:157 system 语义处保持 'system' 兜底不动，仅前置 sub 读取）
 - 注意 :157 是 system-job 上下文（字面 'system' 兜底），:86/:124 是通用请求上下文——修法相同但兜底语义不同，测试分别断言
 
@@ -44,6 +46,7 @@
 ## Task 2: LdapProvider 真实现（D2 核心）
 
 **Files:**
+
 - Modify: `packages/identity/package.json`（+ldapts）+ lockfile
 - Modify: `packages/identity/src/types.ts`（LdapConfig 补全：url/baseDn/bindDn/bindPassword/userFilter/attributeMap）
 - Modify: `packages/identity/src/providers/LdapProvider.ts`（五方法真实现）
@@ -51,6 +54,7 @@
 - Test: `packages/identity/src/__tests__/LdapProvider.test.ts`（new，mock ldapts）
 
 **Interfaces:**
+
 - Consumes: ldapts `Client`（connect(url)、client.bind(dn,password)、client.search(dn,{scope:'sub',filter})、unbind）
 - Produces: authenticate({username,password}) → AuthResult{success,userId?,email?,name?}；AUTH_063 连接/绑定失败、AUTH_064 用户 DN 查找无果或 user bind 拒绝（Error.message 带码，路由层映射 HTTP）；syncAttributes 映射 mail→email、displayName→name；autoProvision 落 users（status:'active'）
 - 配置形态：constructor(config: LdapConfig)——config 由路由层从 options/env 读（Task 3 接线），provider 只吃纯类型
@@ -65,11 +69,13 @@
 ## Task 3: 配置通道 + 登录路由（D2 接线）
 
 **Files:**
+
 - Modify: `apps/server/src/routes/auth.ts`（POST /auth/ldap/login）
 - Modify: `apps/server/src/config.ts`（ldap options/env 读取形态确认——或直接 getOptionsManager 三参，照 C2 模式）
 - Test: `apps/server/src/__tests__/ldap-login.test.ts`（new）
 
 **Interfaces:**
+
 - Consumes: Task 2 LdapProvider；getOptionsManager 三参（auth.ts:582 先例）；issueTokenPair（含 status claim）
 - Produces: POST /api/v1/auth/ldap/login {username,password} → 200 {accessToken,refreshToken,...}（照 login 信封）；LdapProvider 未配置（enabled false/缺 url）→ 503 AUTH_063 语义；认证失败 → 401 AUTH_064；属性同步失败 → 500 AUTH_065（登录降级失败）；自动供给用户 login 链复用 issueTokenPair（带 status claim）
 - 路由公开（无权限码——照 login/register 公开形态，零双注册负担）
@@ -83,10 +89,12 @@
 ## Task 4: e2e + 收官门禁（D2 前端零改动说明）
 
 **Files:**
+
 - Test: `e2e/ldap-login.spec.ts`（new，mock-API）
 - 验证性任务
 
 **Interfaces:**
+
 - Consumes: Task 3 路由
 
 - [ ] **Step 1: e2e**——GlobalGuard mock + login helper；mock `/api/v1/auth/ldap/login` 200 token 形状 → 登录成功进 Dashboard；401 场景 inline 错误。RED（路由前端无专属 UI，Login 页现有表单不受影响——本 e2e 直接 API 级断言 + 复用现有登录流回归即可，若无需前端改动则此条降为 API e2e 形态并注明）

@@ -8,7 +8,9 @@ import { importUsers, type ImportReport } from '../../api/users';
  * newlines. Requires header line `email,name,password`. Any JSON array of
  * row objects is accepted verbatim.
  */
-export function parseImportInput(text: string): Array<{ email: string; name: string; password: string }> | null {
+export function parseImportInput(
+  text: string,
+): Array<{ email: string; name: string; password: string }> | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
   if (trimmed.startsWith('[')) {
@@ -129,13 +131,23 @@ export default function ImportUsersModal({ open, onClose }: ImportModalProps) {
         data-testid="import-csv-limitation"
       />
       {parseError && (
-        <Alert style={{ marginTop: 8 }} type="error" showIcon message={t('users.importParseError')} />
+        <Alert
+          style={{ marginTop: 8 }}
+          type="error"
+          showIcon
+          message={t('users.importParseError')}
+        />
       )}
       <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
         <Button onClick={runCheck} disabled={busy} data-testid="import-check">
           {t('users.importCheck')}
         </Button>
-        <Button type="primary" onClick={runCommit} disabled={busy || !report} data-testid="import-commit">
+        <Button
+          type="primary"
+          onClick={runCommit}
+          disabled={busy || !report}
+          data-testid="import-commit"
+        >
           {t('users.importCommit')}
         </Button>
       </div>

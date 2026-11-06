@@ -78,10 +78,10 @@ async function insertUser(email: string, tenant: string): Promise<string> {
 }
 
 async function ensurePermission(name: string, resource: string, action: string): Promise<string> {
-  const existing = await pool.query('SELECT id FROM permissions WHERE resource = $1 AND action = $2', [
-    resource,
-    action,
-  ]);
+  const existing = await pool.query(
+    'SELECT id FROM permissions WHERE resource = $1 AND action = $2',
+    [resource, action],
+  );
   if ((existing.rowCount ?? 0) > 0) return existing.rows[0].id as string;
   const ins = await pool.query(
     'INSERT INTO permissions (name, resource, action, description) VALUES ($1, $2, $3, $4) RETURNING id',
@@ -104,8 +104,12 @@ beforeAll(async () => {
 
   // tenants: groups.tenant_id carries an FK — both tenants must exist.
   await pool.query('INSERT INTO tenants (id, name, slug) VALUES ($1, $2, $3), ($4, $5, $6)', [
-    TENANT, 'ds-it-default', `ds-it-default-${Date.now()}`,
-    TENANT2, 'ds-it-second', `ds-it-second-${Date.now()}`,
+    TENANT,
+    'ds-it-default',
+    `ds-it-default-${Date.now()}`,
+    TENANT2,
+    'ds-it-second',
+    `ds-it-second-${Date.now()}`,
   ]);
 
   ids.caller = await insertUser('ds-caller@it.local', TENANT);
@@ -118,11 +122,26 @@ beforeAll(async () => {
 
   await pool.query(
     "INSERT INTO groups (id, tenant_id, name, kind) VALUES ($1, $2, 'ds-dept-1', 'department'), ($3, $2, 'ds-dept-2', 'department'), ($4, $2, 'ds-plain-group', 'group')",
-    [(ids.dept1 = randomUUID()), TENANT, (ids.dept2 = randomUUID()), (ids.plainGroup = randomUUID())],
+    [
+      (ids.dept1 = randomUUID()),
+      TENANT,
+      (ids.dept2 = randomUUID()),
+      (ids.plainGroup = randomUUID()),
+    ],
   );
   await pool.query(
     'INSERT INTO group_users (group_id, user_id, tenant_id) VALUES ($1,$2,$3),($1,$4,$3),($1,$5,$3),($6,$2,$3),($6,$7,$3),($8,$9,$3)',
-    [ids.dept1, ids.caller, TENANT, ids.memberA, ids.memberB, ids.dept2, ids.otherDeptMember, ids.plainGroup, ids.outsider],
+    [
+      ids.dept1,
+      ids.caller,
+      TENANT,
+      ids.memberA,
+      ids.memberB,
+      ids.dept2,
+      ids.otherDeptMember,
+      ids.plainGroup,
+      ids.outsider,
+    ],
   );
   // outsider sits in a kind='group' group ONLY — plain groups must NOT widen dept.
 
@@ -135,21 +154,21 @@ beforeAll(async () => {
   );
   const roleRes = await pool.query("SELECT id FROM roles WHERE name = 'ds-dept-role'");
   const deptRoleId = roleRes.rows[0].id as string;
-  for (const [resource, action] of [['users', 'read'], ['users', 'write'], ['users', 'delete']] as const) {
+  for (const [resource, action] of [
+    ['users', 'read'],
+    ['users', 'write'],
+    ['users', 'delete'],
+  ] as const) {
     const pid = await ensurePermission(`${resource}:${action}`, resource, action);
-    await pool.query('INSERT INTO role_permissions (role_id, permission_id, data_scope) VALUES ($1, $2, $3)', [
-      deptRoleId,
-      pid,
-      'dept',
-    ]);
+    await pool.query(
+      'INSERT INTO role_permissions (role_id, permission_id, data_scope) VALUES ($1, $2, $3)',
+      [deptRoleId, pid, 'dept'],
+    );
   }
-  await pool.query('INSERT INTO user_roles (user_id, role_id, tenant_id) VALUES ($1,$2,$3),($4,$2,$3),($1,$5,$3)', [
-    ids.caller,
-    deptRoleId,
-    TENANT,
-    ids.emptyDept,
-    adminRoleId,
-  ]);
+  await pool.query(
+    'INSERT INTO user_roles (user_id, role_id, tenant_id) VALUES ($1,$2,$3),($4,$2,$3),($1,$5,$3)',
+    [ids.caller, deptRoleId, TENANT, ids.emptyDept, adminRoleId],
+  );
 
   app = await buildApp();
   callerToken = app.jwt.sign({ sub: ids.caller });
@@ -162,7 +181,9 @@ afterAll(async () => {
   if (pgUp) {
     // WITH (FORCE): the data-scope util's lazy PermissionManager/GroupManager
     // singletons still hold backends to the scratch DB inside THIS process.
-    execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH} WITH (FORCE)`], { stdio: 'ignore' });
+    execFileSync(PS, [ADMIN_URL, '-qc', `DROP DATABASE IF EXISTS ${SCRATCH} WITH (FORCE)`], {
+      stdio: 'ignore',
+    });
   }
 });
 
@@ -170,7 +191,11 @@ const auth = (token: string) => ({ authorization: `Bearer ${token}` });
 
 describe.skipIf(!pgUp)('data-scope users wiring (real PG)', () => {
   it('dept caller list = members + self across BOTH departments exactly', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/v1/users?pageSize=100', headers: auth(callerToken) });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users?pageSize=100',
+      headers: auth(callerToken),
+    });
     expect(res.statusCode).toBe(200);
     const got = (res.json().data as Array<{ id: string }>).map((u) => u.id).sort();
     expect(got).toEqual([ids.caller, ids.memberA, ids.memberB, ids.otherDeptMember].sort());
@@ -178,31 +203,51 @@ describe.skipIf(!pgUp)('data-scope users wiring (real PG)', () => {
   });
 
   it('empty-dept caller with a dept binding sees ONLY self [B4 end-to-end]', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/v1/users?pageSize=100', headers: auth(emptyDeptToken) });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users?pageSize=100',
+      headers: auth(emptyDeptToken),
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json().data.map((u: { id: string }) => u.id)).toEqual([ids.emptyDept]);
   });
 
   it('outsider row read is 403 DATA_SCOPE (exists but out-of-scope)', async () => {
-    const res = await app.inject({ method: 'GET', url: `/api/v1/users/${ids.outsider}`, headers: auth(callerToken) });
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${ids.outsider}`,
+      headers: auth(callerToken),
+    });
     expect(res.statusCode).toBe(403);
     expect(res.json().error.code).toBe('DATA_SCOPE');
   });
 
   it('in-scope row read is 200', async () => {
-    const res = await app.inject({ method: 'GET', url: `/api/v1/users/${ids.memberA}`, headers: auth(callerToken) });
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${ids.memberA}`,
+      headers: auth(callerToken),
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json().data.id).toBe(ids.memberA);
   });
 
   it('unknown id stays 404 under a narrowed scope (404-first posture)', async () => {
-    const res = await app.inject({ method: 'GET', url: `/api/v1/users/${randomUUID()}`, headers: auth(callerToken) });
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${randomUUID()}`,
+      headers: auth(callerToken),
+    });
     expect(res.statusCode).toBe(404);
     expect(res.json().error.code).toBe('NOT_FOUND');
   });
 
   it('cross-tenant user id reads 404, never 403 (tenant scoping precedes scope)', async () => {
-    const res = await app.inject({ method: 'GET', url: `/api/v1/users/${ids.crossTenant}`, headers: auth(callerToken) });
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${ids.crossTenant}`,
+      headers: auth(callerToken),
+    });
     expect(res.statusCode).toBe(404);
   });
 
@@ -237,14 +282,22 @@ describe.skipIf(!pgUp)('data-scope users wiring (real PG)', () => {
     });
     expect(res.statusCode).toBe(403);
     expect(res.json().error.code).toBe('DATA_SCOPE');
-    const probe = await pool.query('SELECT count(*)::int AS n FROM users WHERE id = $1', [ids.memberA]);
+    const probe = await pool.query('SELECT count(*)::int AS n FROM users WHERE id = $1', [
+      ids.memberA,
+    ]);
     expect(Number(probe.rows[0]?.n ?? 0)).toBe(1);
   });
 
   it('plain delete of an in-scope member succeeds (dept reach is real, not decorative)', async () => {
-    const res = await app.inject({ method: 'DELETE', url: `/api/v1/users/${ids.memberB}`, headers: auth(callerToken) });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/users/${ids.memberB}`,
+      headers: auth(callerToken),
+    });
     expect(res.statusCode).toBe(200);
-    const probe = await pool.query('SELECT count(*)::int AS n FROM users WHERE id = $1', [ids.memberB]);
+    const probe = await pool.query('SELECT count(*)::int AS n FROM users WHERE id = $1', [
+      ids.memberB,
+    ]);
     expect(Number(probe.rows[0]?.n ?? 0)).toBe(0);
   });
 });

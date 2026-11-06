@@ -6,28 +6,28 @@ correctness batch (options coherence + envelope key versioning + dispatcher drai
 
 ## 1. Hard prerequisites
 
-| Item | Requirement |
-| --- | --- |
-| JWT signing | Identical `JWT_PRIVATE_KEY_PATH`/`JWT_PUBLIC_KEY_PATH` (RS256) on every node. All nodes share one `JWT_SECRET`; OIDC interaction cookies derive from it, so divergent keys break cross-node interactions. Key rotation: `key-rotation.md`. |
-| `REDIS_URL` | Effectively mandatory (see §2 degradation table). |
-| `NODE_ENV=production` | Arms the fail-fast key checks (JWT/CORS/METRICS warn lines). |
-| `TRUST_PROXY` | Must be set only when a real L7 proxy is in front; drives client-IP correctness for rate limits and the `/oidc` per-IP guard. |
-| `FRONTEND_ORIGIN` / `SITE_URL` | Identical on all nodes (CSP `form-action`, magic-link origin arms). |
-| `METRICS_TOKEN` | One shared token; Prometheus scrapes aggregate per-node counters. |
+| Item                           | Requirement                                                                                                                                                                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| JWT signing                    | Identical `JWT_PRIVATE_KEY_PATH`/`JWT_PUBLIC_KEY_PATH` (RS256) on every node. All nodes share one `JWT_SECRET`; OIDC interaction cookies derive from it, so divergent keys break cross-node interactions. Key rotation: `key-rotation.md`. |
+| `REDIS_URL`                    | Effectively mandatory (see §2 degradation table).                                                                                                                                                                                          |
+| `NODE_ENV=production`          | Arms the fail-fast key checks (JWT/CORS/METRICS warn lines).                                                                                                                                                                               |
+| `TRUST_PROXY`                  | Must be set only when a real L7 proxy is in front; drives client-IP correctness for rate limits and the `/oidc` per-IP guard.                                                                                                              |
+| `FRONTEND_ORIGIN` / `SITE_URL` | Identical on all nodes (CSP `form-action`, magic-link origin arms).                                                                                                                                                                        |
+| `METRICS_TOKEN`                | One shared token; Prometheus scrapes aggregate per-node counters.                                                                                                                                                                          |
 
 ## 2. What Redis coordinates (behavior WITHOUT it)
 
-| Subsystem | Posture when Redis is absent |
-| --- | --- |
-| Rate limiting | `skipOnError` fail-open → per-process buckets only (limits effectively ×N). |
-| Flow tokens (MFA step-up, magic link, SMS OTP, password reset) | Falls back to per-process memory — a chain started on node A cannot be consumed on node B. **Broken cross-node.** |
-| Auth-state revocation memo (`authst`) | Reader fails-open: force-logout/role-bump latency degrades to token TTL. |
-| Captcha (`CAPTCHA_ENABLED`) | Fail-open (no challenge) on infra loss. |
-| Session list cache | Per-process; idle sweeps still correct (DB is truth). |
-| Permission cache invalidation (`ab:perm:invalidate`) | Silent single-node; 30s TTL still bounds staleness. |
-| Options cache invalidation (`ab:options:invalidate`) | Silent single-node; options cache is cache-until-write, so a node can serve **stale options indefinitely** until it sees a local write. |
-| SAML InResponseTo cache (`ab:saml:req:*`) | Falls back to node-saml's per-instance in-memory cache + one warn — since providers are constructed per request, cross-hop (login->acs, logout->response) validation **breaks cross-node AND single-node** without Redis. Treat Redis as mandatory for SAML. |
-| SAML SLO replay dedup (`ab:saml:sreq:*`) | Falls back to an in-process Map: replays are only caught on the node that saw the original request (documented ceiling). |
+| Subsystem                                                      | Posture when Redis is absent                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Rate limiting                                                  | `skipOnError` fail-open → per-process buckets only (limits effectively ×N).                                                                                                                                                                                  |
+| Flow tokens (MFA step-up, magic link, SMS OTP, password reset) | Falls back to per-process memory — a chain started on node A cannot be consumed on node B. **Broken cross-node.**                                                                                                                                            |
+| Auth-state revocation memo (`authst`)                          | Reader fails-open: force-logout/role-bump latency degrades to token TTL.                                                                                                                                                                                     |
+| Captcha (`CAPTCHA_ENABLED`)                                    | Fail-open (no challenge) on infra loss.                                                                                                                                                                                                                      |
+| Session list cache                                             | Per-process; idle sweeps still correct (DB is truth).                                                                                                                                                                                                        |
+| Permission cache invalidation (`ab:perm:invalidate`)           | Silent single-node; 30s TTL still bounds staleness.                                                                                                                                                                                                          |
+| Options cache invalidation (`ab:options:invalidate`)           | Silent single-node; options cache is cache-until-write, so a node can serve **stale options indefinitely** until it sees a local write.                                                                                                                      |
+| SAML InResponseTo cache (`ab:saml:req:*`)                      | Falls back to node-saml's per-instance in-memory cache + one warn — since providers are constructed per request, cross-hop (login->acs, logout->response) validation **breaks cross-node AND single-node** without Redis. Treat Redis as mandatory for SAML. |
+| SAML SLO replay dedup (`ab:saml:sreq:*`)                       | Falls back to an in-process Map: replays are only caught on the node that saw the original request (documented ceiling).                                                                                                                                     |
 
 ## 3. Per-node background workers (all safe to run everywhere)
 
@@ -66,8 +66,8 @@ Both setups are silent no-ops when Redis is absent or the identity lane is mocke
       suspend/role-changes emit the ≤30s AUTH_005 path; verification-day live, 2026-10-08).
       Want a hard bearer kill? Suspend the user instead (bumps tokenVersion).
 - [x] **Flow-token cross-node battery** — PASSED live-fire 2026-10-12, two nodes (5101/5102) sharing dev PG + Redis, 21/21 assertions green ×2 runs (driver archived at /tmp/opencode/ft-battery.mjs): forgot issued on A → reset completed on B → new-password login OK; replay + 1-char tamper both 400 AUTH_RESET_001; concurrent A+B reset → exactly one 200 (GETDEL); mfa step-up issued on A → TOTP verified on B → session issued by B. Shared-Redis flow tokens are cross-node sound.
-  Pass criteria (2026-10 protocol): (T1) A-issued reset token consumed on B → 200, new password logs in; (T2) replay same token on B → 400 AUTH_RESET_001, zero new session; (T3) tampered token (1 char) → 400 AUTH_RESET_001; (T4) concurrent reset POSTs to A and B with the same token → EXACTLY one 200 (GETDEL atomicity); (T5) mfa_verify chain: login mfaRequired on A → verify TOTP on B → session issued by B (same Redis flow token).
-  Rate-limit discipline (live code): forgot-password is 5/hour per IP (F-batch R7), reset/verify ride the default bucket — the battery driver clears the scratch forgot bucket between legs (production batteries behind an LB must rotate caller IPs instead); lockout is 5 bad passwords/15min — count every login attempt.
+      Pass criteria (2026-10 protocol): (T1) A-issued reset token consumed on B → 200, new password logs in; (T2) replay same token on B → 400 AUTH_RESET_001, zero new session; (T3) tampered token (1 char) → 400 AUTH_RESET_001; (T4) concurrent reset POSTs to A and B with the same token → EXACTLY one 200 (GETDEL atomicity); (T5) mfa_verify chain: login mfaRequired on A → verify TOTP on B → session issued by B (same Redis flow token).
+      Rate-limit discipline (live code): forgot-password is 5/hour per IP (F-batch R7), reset/verify ride the default bucket — the battery driver clears the scratch forgot bucket between legs (production batteries behind an LB must rotate caller IPs instead); lockout is 5 bad passwords/15min — count every login attempt.
 - [ ] Kill one dispatcher mid-delivery → delivery re-appears as `pending` on another node (at-least-once), never `dead`-on-timeout.
 
 ## 7. Known residues (honest list)

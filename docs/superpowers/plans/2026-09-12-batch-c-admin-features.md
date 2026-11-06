@@ -27,6 +27,7 @@
 ## Task 1: api_keys 表 + ApiKeyManager（C1 核心）
 
 **Files:**
+
 - Modify: `packages/identity/src/db/schema.ts`（apiKeys 表定义）
 - Create: `packages/identity/drizzle/00XX_api_keys.sql`（drizzle-kit generate 或手写对齐现有迁移风格——先看既有迁移文件形态）
 - Create: `packages/identity/src/managers/ApiKeyManager.ts`
@@ -34,7 +35,8 @@
 - Test: `packages/identity/src/__tests__/ApiKeyManager.test.ts`（new）
 
 **Interfaces:**
-- Produces: 
+
+- Produces:
   - `generateApiKey(): { plaintext: string; hash: string; prefix: string }`（plaintext=`ab_`+crypto.randomBytes(24).toString('base64url')→32+ 字符；hash=sha256(plaintext) hex；prefix=前 8 字符用于列表识别）
   - `class ApiKeyManager { create(name, scopes, tenantId, expiresAt?): Promise<SafeApiKey & { plaintext }> ; revoke(id, tenantId): Promise<void>; list(tenantId): Promise<SafeApiKey[]>; findByHash(hash): Promise<ApiKeyRow | null> }`——SafeApiKey 无 hash 字段（一次性揭示同 OidcClientManager 先例）
 - Consumes: 既有 createDb/schema 模式（照 UserManager 形态）
@@ -49,6 +51,7 @@
 ## Task 2: 认证双读 + API Key CRUD 路由 + 权限码双注册（C1 接线）
 
 **Files:**
+
 - Modify: `apps/server/src/app.ts`（authenticate 装饰器双读分支）
 - Create: `apps/server/src/routes/api-keys.ts`
 - Modify: `apps/server/src/app.ts`（注册路由 + authorize 映射）
@@ -57,6 +60,7 @@
 - Test: `apps/server/src/__tests__/api-keys.test.ts`（new）、`api-keys-auth.test.ts`（new）
 
 **Interfaces:**
+
 - Consumes: Task 1 ApiKeyManager；requirePermission（utils/permission.ts）；getRequiredPermission（映射表位置按现状——先 grep 确认映射文件）
 - Produces: authenticate 双读：token.startsWith('ab_') → sha256 查找 → revokedAt/expiresAt 校验 → request.user={sub:keyId,type:'apikey',scopes:['*'],tenantId}；非 ab_ → JWT 原路径不变。路由：GET/POST /api/v1/auth/api-keys（apikeys:read/write）、DELETE /:id（apikeys:delete）
 
@@ -70,12 +74,14 @@
 ## Task 3: Settings API Keys 管理页（C1 前端）
 
 **Files:**
+
 - Create: `apps/admin-ui/src/pages/ApiKeys.tsx`（照 Clients 页形态：表格+创建 Modal+一次性揭示 Alert+撤销 Popconfirm）
 - Modify: 路由注册 + Settings/菜单入口（照 Clients 页接线——先 grep Clients 在 router/menu 的三处注册点）
 - Modify: `apps/admin-ui/src/api/`（新增 apiKeys.ts：list/create/revoke 信封类型）
 - Test: `e2e/api-keys.spec.ts`（new）
 
 **Interfaces:**
+
 - Consumes: Task 2 路由；权限门 apikeys:read（菜单/路由门照 Clients 形态）
 - Produces: 管理页完整流（创建→揭示一次→列表→撤销）
 
@@ -88,12 +94,14 @@
 ## Task 4: PasswordPolicy 服务 + 三调用点收口（C2）
 
 **Files:**
+
 - Create: `packages/identity/src/services/password-policy.ts`
 - Modify: `packages/identity/src/index.ts`
 - Modify: `apps/server/src/routes/auth.ts`（register :225 区、changePassword、resetPassword 三处收口）
 - Test: `packages/identity/src/__tests__/password-policy.test.ts`（new）、auth 相关测试参数化补充
 
 **Interfaces:**
+
 - Produces: `assertPasswordPolicy(pw: string, opts: { minLength: number; requireUpper: boolean; requireLower: boolean; requireDigit: boolean }): { ok: boolean; code?: 'AUTH_REG_002'; message?: string }`；调用点从 options 三参读策略（`password_min_length` int env PASSWORD_MIN_LENGTH default 8；三个 require_* bool env 同名 default true）
 - 行为契约：默认 env/option 均缺省 → 与现行为逐字节一致（既有测试零改动通过 = 回归锁）
 
@@ -106,12 +114,14 @@
 ## Task 5: CSV 模块 + 审计/用户导出（C4 + C5a）
 
 **Files:**
+
 - Create: `apps/server/src/utils/csv.ts`（toCsv(rows, headers) + 注入防护 + escape）
 - Modify: `apps/server/src/routes/audit.ts`（GET /export）
 - Modify: `apps/server/src/routes/users.ts`（GET /export）
 - Test: `apps/server/src/__tests__/csv-export.test.ts`（new）
 
 **Interfaces:**
+
 - Produces: `toCsv(headers: string[], rows: Record<string,unknown>[]): string`（RFC4180 引号转义 + `=+-@` 前缀 `'` 注入防护）；audit export 复用 list 的过滤参数（actor/action/dateRange），OFFSET 循环全量；users export 全字段平铺（roles 列 join 逗号）；响应头 `text/csv; charset=utf-8` + `Content-Disposition: attachment; filename=audit-2026-09-12.csv`
 - 权限：audit:read / users:read（既有码，零新增）
 
@@ -123,11 +133,13 @@
 ## Task 6: 用户导入两段式 + 前端接线（C5b）+ 强制下线（C3）
 
 **Files:**
+
 - Modify: `apps/server/src/routes/users.ts`（POST /import；POST /:id/force-logout）
 - Modify: `apps/admin-ui/src/pages/Users.tsx`（导入/导出按钮 + 结果 Modal + 行操作 force-logout）
 - Test: `apps/server/src/__tests__/users-import.test.ts`（new）、e2e users 相关 spec 扩展
 
 **Interfaces:**
+
 - Consumes: Task 4 PasswordPolicy（导入行密码校验）；UserManager.create（pending 语义自动继承）；revokeAllUserSessions + invalidatePermissionCache（C3）
 - Produces: POST /import multipart 或 JSON rows（先 JSON rows 简化——`{rows:[{email,name,password}], commit?: boolean}`）：commit 缺省= dry-run 报告 `{valid: n, errors: [{row, field, message}]}`；commit=true → 逐行 create、成功计数+失败行报告（单行失败不回滚整体，报告呈现）。force-logout：`{success:true,data:{revoked: n}}`
 - CSV 解析：前端把 CSV 转 JSON rows 再调 API（后端不做 CSV 解析——保持后端单一职责；前端 papaparse 已有？先 grep——无则手写简版解析 20 行内）

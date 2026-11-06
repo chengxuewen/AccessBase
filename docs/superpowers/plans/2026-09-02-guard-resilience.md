@@ -25,12 +25,14 @@
 ### Task 1: useSetupGuardState hook（三态 + 重试）+ guard 接入
 
 **Files:**
+
 - Create: `apps/admin-ui/src/hooks/useSetupGuardState.ts`
 - Modify: `apps/admin-ui/src/api/setup.ts:28-32`（`checkSetupStatus` 返回 `{ needsSetup: boolean; ok: boolean }`，永不 reject——网络错误转为 `{ needsSetup: false, ok: false }`，调用方判 `ok`）
 - Modify: `apps/admin-ui/src/App.tsx`（删 GlobalGuard/SetupGuard 内的 useState+useEffect+catch，改用 hook；null 态渲染重试页）
 - Test: `e2e/setup-real-flow.spec.ts` T5.3 增强 + 新增 backend-down 用例
 
 **Interfaces:**
+
 - Produces: `useSetupGuardState(): { needsSetup: boolean | null }` — `null`=检查中或失败后重试中；`true`=需 setup；`false`=无需。内部：挂载即查；`ok=false` 时 3s 后自动重查（无限重试，无 toast/console 噪音）；返回前值（不闪跳）
 - Consumes: `client.get('/v1/setup/status')`（现有 axios client）
 
@@ -39,7 +41,9 @@
 `e2e/setup-real-flow.spec.ts` 新增（T5.3 后追加）：
 
 ```typescript
-test('T5.4 backend down → guard shows retry state, NOT login; recovers when backend returns', async ({ page }) => {
+test('T5.4 backend down → guard shows retry state, NOT login; recovers when backend returns', async ({
+  page,
+}) => {
   // abort status 请求模拟后端不可达（不依赖真实杀进程——CI 友好）
   await page.route('**/api/v1/setup/status', (r) => r.abort());
   await page.goto('/');
@@ -49,10 +53,16 @@ test('T5.4 backend down → guard shows retry state, NOT login; recovers when ba
   await expect(page.getByTestId('setup-guard-retry')).toBeVisible({ timeout: 5000 });
   // 恢复后端 → 自动重试应把用户带进 setup（DB 当前为未初始化状态时）
   await page.unroute('**/api/v1/setup/status');
-  await page.route('**/api/v1/setup/status', (r) => r.fulfill({
-    status: 200, contentType: 'application/json',
-    body: JSON.stringify({ success: true, data: { isInitialized: false, adminExists: false, configComplete: false } }),
-  }));
+  await page.route('**/api/v1/setup/status', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: false, adminExists: false, configComplete: false },
+      }),
+    }),
+  );
   await expect(page).toHaveURL(/\/setup/, { timeout: 10_000 }); // 3s 重试间隔 + 断言余量
 });
 ```
@@ -106,7 +116,10 @@ export function useSetupGuardState(): { needsSetup: boolean | null } {
     };
     poll();
 
-    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   return { needsSetup };
@@ -150,9 +163,11 @@ git commit -m "fix(ui): setup guard three-state + auto-retry — backend-down no
 ### Task 2: dev EXIT trap 不再停 infra
 
 **Files:**
+
 - Modify: `accessbase.sh:158-175`（`cleanup_native` 拆分：dev 进程击杀留 trap，infra 停止移除）
 
 **Interfaces:**
+
 - Consumes: `scripts/native/{pg-stop,redis-stop}.sh`（`stop` 命令继续直接调用它们）
 - Produces: `dev` 被杀/正常退出都**不再**碰 PG/Redis；infra 停止的唯一入口是 `bash accessbase.sh stop`；`wait -n` fail-fast 路径（accessbase.sh:199 附近）同步更新——进程崩了停另一个 dev 进程，但 infra 留给用户诊断/复用
 
@@ -229,6 +244,7 @@ git commit -m "fix(dev): EXIT trap kills dev servers only — infra lifecycle be
 ### Task 3: E2E 全量回归 + 文档
 
 **Files:**
+
 - Modify: `.agents/memorys/status.md`（近期工作行）
 - Modify: `.agents/memorys/pitfalls.md`（PIT-029: guard fail-open 陷阱）
 

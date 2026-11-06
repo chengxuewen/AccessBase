@@ -28,10 +28,12 @@
 ## Task 1: 禁用立即生效 — verifyPassword 拒绝非 active 用户
 
 **Files:**
+
 - Modify: `packages/identity/src/managers/UserManager.ts` (verifyPassword, 约 :189)
 - Test: `packages/identity/src/__tests__/UserManager.test.ts` (追加)
 
 **Interfaces:**
+
 - Consumes: 现有 `verifyPassword(email: string, password: string): Promise<User>`（UserManager.ts:189）
 - Produces: 非 active 状态抛 `Error('ACCOUNT_SUSPENDED')`；Task 2 的 auth 路由捕获此错误映射 403 AUTH_004；登录路径（verifyPassword 的所有调用方）行为变更
 
@@ -42,28 +44,53 @@ describe('verifyPassword status enforcement', () => {
   it('rejects suspended users before bcrypt compare', async () => {
     // Arrange: db mock returns user with status='suspended'
     const mgr = new UserManager();
-    vi.spyOn(mgr as unknown as { db: unknown }, 'db', 'get')
-      .mockReturnValue(makeDbReturning([{ id: 'u1', email: 'a@b.c', name: 'A',
-        status: 'suspended', passwordHash: '$2a$10$whatever', tokenVersion: 1 }]));
+    vi.spyOn(mgr as unknown as { db: unknown }, 'db', 'get').mockReturnValue(
+      makeDbReturning([
+        {
+          id: 'u1',
+          email: 'a@b.c',
+          name: 'A',
+          status: 'suspended',
+          passwordHash: '$2a$10$whatever',
+          tokenVersion: 1,
+        },
+      ]),
+    );
     // Act + Assert
-    await expect(mgr.verifyPassword('a@b.c', 'any-password'))
-      .rejects.toThrow('ACCOUNT_SUSPENDED');
+    await expect(mgr.verifyPassword('a@b.c', 'any-password')).rejects.toThrow('ACCOUNT_SUSPENDED');
   });
 
   it('rejects pending users with the same error', async () => {
     const mgr = new UserManager();
-    vi.spyOn(mgr as unknown as { db: unknown }, 'db', 'get')
-      .mockReturnValue(makeDbReturning([{ id: 'u2', email: 'p@b.c', name: 'P',
-        status: 'pending', passwordHash: '$2a$10$whatever', tokenVersion: 1 }]));
-    await expect(mgr.verifyPassword('p@b.c', 'any-password'))
-      .rejects.toThrow('ACCOUNT_SUSPENDED');
+    vi.spyOn(mgr as unknown as { db: unknown }, 'db', 'get').mockReturnValue(
+      makeDbReturning([
+        {
+          id: 'u2',
+          email: 'p@b.c',
+          name: 'P',
+          status: 'pending',
+          passwordHash: '$2a$10$whatever',
+          tokenVersion: 1,
+        },
+      ]),
+    );
+    await expect(mgr.verifyPassword('p@b.c', 'any-password')).rejects.toThrow('ACCOUNT_SUSPENDED');
   });
 
   it('still succeeds for active users (bcrypt path unchanged)', async () => {
     const mgr = new UserManager();
-    vi.spyOn(mgr as unknown as { db: unknown }, 'db', 'get')
-      .mockReturnValue(makeDbReturning([{ id: 'u3', email: 'ok@b.c', name: 'O',
-        status: 'active', passwordHash: '$2a$10$realhash', tokenVersion: 1 }]));
+    vi.spyOn(mgr as unknown as { db: unknown }, 'db', 'get').mockReturnValue(
+      makeDbReturning([
+        {
+          id: 'u3',
+          email: 'ok@b.c',
+          name: 'O',
+          status: 'active',
+          passwordHash: '$2a$10$realhash',
+          tokenVersion: 1,
+        },
+      ]),
+    );
     vi.mock('bcrypt', () => ({ compare: vi.fn().mockResolvedValue(true) }));
     const user = await mgr.verifyPassword('ok@b.c', 'right-password');
     expect(user.status).toBe('active');
@@ -74,7 +101,7 @@ describe('verifyPassword status enforcement', () => {
 （执行者注：`makeDbReturning` 是示意 helper——请按 UserManager.test.ts 现有 mock 写法实现同等效果的 db 桩；关键断言是 suspended/pending 在 bcrypt 之前抛 ACCOUNT_SUSPENDED，active 路径不回归。）
 
 - [ ] **Step 2: 跑测试确认失败** — `pixi run npx vitest run packages/identity/src/__tests__/UserManager.test.ts -t "status enforcement"`
-  预期：FAIL（现实现不做 status 检查，suspended 也走 bcrypt）
+      预期：FAIL（现实现不做 status 检查，suspended 也走 bcrypt）
 
 - [ ] **Step 3: 最小实现** — UserManager.ts verifyPassword 内，查到 user 后、bcrypt compare 之前插入：
 
@@ -98,12 +125,14 @@ git add -A && git commit -m "feat(identity): verifyPassword rejects non-active u
 ## Task 2: 禁用立即生效 — authenticate 复查 status claim + suspend 吊销会话
 
 **Files:**
+
 - Modify: `apps/server/src/app.ts` (authenticate decorator, 约 :115-125)
 - Modify: `apps/server/src/routes/auth.ts` (issueTokenPair — 签发时打 status claim)
 - Modify: `apps/server/src/routes/users.ts` (changeStatus 路由, 约 :275-280 — suspended 时吊销会话)
 - Test: `apps/server/src/__tests__/disabled-user.test.ts` (new)
 
 **Interfaces:**
+
 - Consumes: Task 1 的 ACCOUNT_SUSPENDED 错误；`SessionManager.revokeAllUserSessions(userId)`（SessionManager.ts 已有，:167 被复用检测调用）；`changeStatus(id, status, tenantId)`（UserManager.ts 已有）
 - Produces: JWT access token payload 新增 `status` claim；authenticate 对 `status!=='active'` 的已验签 token 返回 403 `AUTH_004`；PATCH /users/:id/status=suspended 时该用户全部 refresh 会话吊销
 - 向后兼容：旧 token（无 status claim）放行——15 分钟 TTL 自然淘汰，不强制断线
@@ -125,7 +154,8 @@ describe('disabled user enforcement (P0)', () => {
   it('authenticate returns 403 AUTH_004 when token carries status!=active', async () => {
     const token = app.jwt.sign({ sub: 'u1', email: 'a@b.c', status: 'suspended' });
     const res = await app.inject({
-      method: 'GET', url: '/api/v1/auth/me',
+      method: 'GET',
+      url: '/api/v1/auth/me',
       headers: { authorization: `Bearer ${token}` },
     });
     expect(res.statusCode).toBe(403);
@@ -136,19 +166,22 @@ describe('disabled user enforcement (P0)', () => {
     const token = app.jwt.sign({ sub: 'u1', email: 'a@b.c' });
     // me 会因 db mock 返回失败或 200——只断言不是 403 AUTH_004
     const res = await app.inject({
-      method: 'GET', url: '/api/v1/auth/me',
+      method: 'GET',
+      url: '/api/v1/auth/me',
       headers: { authorization: `Bearer ${token}` },
     });
     expect(res.json().error?.code).not.toBe('AUTH_004');
   });
 
   it('PATCH status=suspended calls revokeAllUserSessions', async () => {
-    const spy = vi.spyOn(SessionManager.prototype, 'revokeAllUserSessions')
+    const spy = vi
+      .spyOn(SessionManager.prototype, 'revokeAllUserSessions')
       .mockResolvedValue(undefined);
     // 认证 token + users route 的 db mock 按 users.test.ts 现有模式
     const token = app.jwt.sign({ sub: 'admin1', email: 'ad@x.io', status: 'active' });
     await app.inject({
-      method: 'PATCH', url: '/api/v1/users/u1/status',
+      method: 'PATCH',
+      url: '/api/v1/users/u1/status',
       payload: { status: 'suspended' },
       headers: { authorization: `Bearer ${token}` },
     });
@@ -160,7 +193,7 @@ describe('disabled user enforcement (P0)', () => {
 （执行者注：SessionManager import 自 '@accessbase/identity'；users 路由依赖的 db 层 mock 复制 users.test.ts 现有写法，本任务只断言 revoke 调用发生。）
 
 - [ ] **Step 2: 跑测试确认失败** — `pixi run npx vitest run apps/server/src/__tests__/disabled-user.test.ts`
-  预期：3 个用例中前 1/3 FAIL（现 authenticate 只验签名）、第 3 个 FAIL（无 revoke 调用）
+      预期：3 个用例中前 1/3 FAIL（现 authenticate 只验签名）、第 3 个 FAIL（无 revoke 调用）
 
 - [ ] **Step 3: authenticate 加 claim 复查** — app.ts authenticate 装饰器，jwtVerify 成功后追加：
 
@@ -206,10 +239,12 @@ git add -A && git commit -m "feat(server): authenticate re-checks status claim; 
 ## Task 3: register 501 stub → 真注册（pending 语义）
 
 **Files:**
+
 - Modify: `apps/server/src/routes/auth.ts` (register handler, 约 :200-235)
 - Test: `apps/server/src/__tests__/register.test.ts` (new)
 
 **Interfaces:**
+
 - Consumes: `UserManager.findByEmail(email)`、`UserManager.create({...})`（users.ts:181 现有调用签名）；bcrypt hash（AuthManager/UserManager 内已有 bcrypt 先例）
 - Produces: `POST /api/v1/auth/register` → 201 `{success:true,data:{id,email,name,status:'pending'}}`；重复邮箱 409 `AUTH_REG_001`；密码策略不合格 400 `AUTH_REG_002`（≥8 位 + 小写 + 大写 + 数字）
 - 决策：注册后 status='pending'（邮箱验证未上线的过渡语义——admin 在 Users 页手动 activate；SMTP 落地后改为验证邮件激活）。前端 /register 入口保持隐藏（ui.md:511 Deferred 不动）
@@ -241,7 +276,10 @@ describe('POST /api/v1/auth/register', () => {
     vi.clearAllMocks();
     findByEmailMock.mockResolvedValue(null);
     createMock.mockResolvedValue({
-      id: 'u9', email: 'new@x.io', name: 'New', status: 'pending',
+      id: 'u9',
+      email: 'new@x.io',
+      name: 'New',
+      status: 'pending',
     });
     app = await buildApp();
     await app.ready();
@@ -249,7 +287,8 @@ describe('POST /api/v1/auth/register', () => {
 
   it('creates pending user on valid payload', async () => {
     const res = await app.inject({
-      method: 'POST', url: '/api/v1/auth/register',
+      method: 'POST',
+      url: '/api/v1/auth/register',
       payload: { email: 'new@x.io', name: 'New', password: 'Passw0rd!' },
     });
     expect(res.statusCode).toBe(201);
@@ -259,7 +298,8 @@ describe('POST /api/v1/auth/register', () => {
   it('409 AUTH_REG_001 on duplicate email', async () => {
     findByEmailMock.mockResolvedValueOnce({ id: 'u1' });
     const res = await app.inject({
-      method: 'POST', url: '/api/v1/auth/register',
+      method: 'POST',
+      url: '/api/v1/auth/register',
       payload: { email: 'dup@x.io', name: 'D', password: 'Passw0rd!' },
     });
     expect(res.statusCode).toBe(409);
@@ -268,7 +308,8 @@ describe('POST /api/v1/auth/register', () => {
 
   it('400 AUTH_REG_002 on weak password (no uppercase)', async () => {
     const res = await app.inject({
-      method: 'POST', url: '/api/v1/auth/register',
+      method: 'POST',
+      url: '/api/v1/auth/register',
       payload: { email: 'w@x.io', name: 'W', password: 'weakpass1' },
     });
     expect(res.statusCode).toBe(400);
@@ -277,7 +318,8 @@ describe('POST /api/v1/auth/register', () => {
 
   it('400 AUTH_REG_002 on short password', async () => {
     const res = await app.inject({
-      method: 'POST', url: '/api/v1/auth/register',
+      method: 'POST',
+      url: '/api/v1/auth/register',
       payload: { email: 's@x.io', name: 'S', password: 'Aa1' },
     });
     expect(res.statusCode).toBe(400);
@@ -288,7 +330,7 @@ describe('POST /api/v1/auth/register', () => {
 （执行者注：若 register handler 内还有 flowTokens/audit 等依赖，按 auth-sessions.test.ts 现有 mock 模式补充；bcrypt.hash 需 mock 为固定串。）
 
 - [ ] **Step 2: 跑测试确认失败** — `pixi run npx vitest run apps/server/src/__tests__/register.test.ts`
-  预期：FAIL（现 handler 返回 501 "Identity package not yet wired"）
+      预期：FAIL（现 handler 返回 501 "Identity package not yet wired"）
 
 - [ ] **Step 3: 实现 handler** — auth.ts register handler 替换 501 段为：
 
@@ -321,7 +363,9 @@ if (!policyOk) {
 const bcrypt = await import('bcrypt');
 const passwordHash = await bcrypt.hash(password, 10);
 const user = await userManager.create({
-  email, name, passwordHash,
+  email,
+  name,
+  passwordHash,
   status: 'pending',
   tenantId: DEFAULT_TENANT,
 });
@@ -347,9 +391,11 @@ git add -A && git commit -m "feat(server): wire register endpoint — pending-us
 ## Task 4: .env.example 补全（21 keys）
 
 **Files:**
+
 - Create: `.env.example`（仓库根目录，当前不存在）
 
 **Interfaces:**
+
 - Produces: 新环境部署模板；.gitignore 若含 .env.example 需排除（检查 `git check-ignore .env.example`）
 
 - [ ] **Step 1: 从代码提取真实 key 清单**
@@ -359,7 +405,7 @@ grep -rhoE "process\.env\[[A-Z_']+\]|env\('[A-Z_]+'" apps/server/src --include='
   | grep -oE "[A-Z_]{3,}" | sort -u
 ```
 
-- [ ] **Step 2: 写 .env.example** — 按 Step 1 输出全量罗列，每 key 带英文注释（required/optional + 格式示例）。必须包含（quality 报告确认的漂移键）：`DATABASE_URL, REDIS_URL, JWT_SECRET, JWT_PRIVATE_KEY_PATH, JWT_PUBLIC_KEY_PATH, MFA_ENCRYPTION_KEY, JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN, PORT, HOST, NODE_ENV, LOG_LEVEL, ADMIN_EMAIL, ADMIN_PASSWORD, STATIC_DIR, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, OAUTH_REDIRECT_BASE, CORS_ORIGINS`（+ Step 1 若发现 WEBAUTHN_*/LOCKOUT_* 等一并补）
+- [ ] **Step 2: 写 .env.example** — 按 Step 1 输出全量罗列，每 key 带英文注释（required/optional + 格式示例）。必须包含（quality 报告确认的漂移键）：`DATABASE_URL, REDIS_URL, JWT_SECRET, JWT_PRIVATE_KEY_PATH, JWT_PUBLIC_KEY_PATH, MFA_ENCRYPTION_KEY, JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN, PORT, HOST, NODE_ENV, LOG_LEVEL, ADMIN_EMAIL, ADMIN_PASSWORD, STATIC_DIR, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, OAUTH_REDIRECT_BASE, CORS_ORIGINS`（+ Step 1 若发现 WEBAUTHN__/LOCKOUT__ 等一并补）
 
 - [ ] **Step 3: 验证** — `git check-ignore .env.example` 应无输出（未被忽略）；对照检查命令 `grep -c '=' .env.example` ≥ 21
 
@@ -374,6 +420,7 @@ git add .env.example && git commit -m "chore(ops): add complete .env.example cov
 ## Task 5: Redis 收口 — SessionManager 接线 + rate-limit Redis storage + health 真 ping
 
 **Files:**
+
 - Create: `apps/server/src/utils/redis.ts`（getRedis() 单例 helper）
 - Modify: `apps/server/src/routes/auth.ts:20`（SessionManager 接 redis）
 - Modify: `apps/server/src/app.ts:89-92`（rateLimit 加 redis storage）
@@ -381,6 +428,7 @@ git add .env.example && git commit -m "chore(ops): add complete .env.example cov
 - Test: `apps/server/src/__tests__/redis-wiring.test.ts` (new)
 
 **Interfaces:**
+
 - Consumes: `SessionManager(databaseUrl?, redis?)`（SessionManager.ts:35）；`getRedisClient()`（packages/identity/src/services/redis.ts 已有，set 签名 `set(key, value, ...args)`）
 - Produces: `getRedis(): Promise<RedisLike|null>`（apps/server/src/utils/redis.ts 导出，失败返回 null 不抛）；rate-limit 多实例共享计数；/health/ready 报告真实 Redis 状态
 
@@ -448,11 +496,11 @@ export async function getRedis(): Promise<RedisLike | null> {
 await app.register(rateLimit, {
   max: 100,
   timeWindow: '1 minute',
-  redis: await getRedis() ?? undefined,
+  redis: (await getRedis()) ?? undefined,
 });
 ```
 
-  3. health.ts 的 redis 检查改为 `getRedis()` 有实例 → `ping()` 成功 → `redis: true`；失败 → `redis: false`（不再恒报 not_configured）
+3. health.ts 的 redis 检查改为 `getRedis()` 有实例 → `ping()` 成功 → `redis: true`；失败 → `redis: false`（不再恒报 not_configured）
 
 - [ ] **Step 5: 跑测试确认通过 + 全量无回归** — `pixi run npx vitest run`（注：oauth.ts 已有自己的 safeRedis 注入，不动）
 
@@ -467,12 +515,14 @@ git add -A && git commit -m "feat(server): consolidate redis wiring — session 
 ## Task 6: Mailer 服务（nodemailer + options 表配置 + env 回退）
 
 **Files:**
+
 - Create: `packages/identity/src/services/mailer.ts`
 - Modify: `packages/identity/src/index.ts`（导出 Mailer）
 - Modify: `apps/server/src/routes/auth.ts`（forgot-password 真投递替换 log）
 - Test: `packages/identity/src/__tests__/mailer.test.ts` (new)
 
 **Interfaces:**
+
 - Consumes: OptionsManager（批 4 已有，三级优先 env>option>default）；nodemailer.createTransport
 - Produces: `class Mailer { constructor(opts: {host,port,user,pass,from}); send(to,subject,html): Promise<void>; static fromConfig(cfg): Mailer | null }` — `fromConfig` 在 smtp host 缺失时返回 null（调用方降级打 log，行为与现状一致）；导出经 @accessbase/identity index
 - 依赖：`pnpm --filter @accessbase/identity add nodemailer && pnpm --filter @accessbase/identity add -D @types/nodemailer`
@@ -505,7 +555,11 @@ describe('Mailer', () => {
 
   it('fromConfig builds transport with full config', () => {
     const m = Mailer.fromConfig({
-      host: 'smtp.x.io', port: 587, user: 'u', pass: 'p', from: 'no-reply@x.io',
+      host: 'smtp.x.io',
+      port: 587,
+      user: 'u',
+      pass: 'p',
+      from: 'no-reply@x.io',
     });
     expect(m).not.toBeNull();
     expect(createTransport).toHaveBeenCalledWith(
@@ -515,7 +569,11 @@ describe('Mailer', () => {
 
   it('send delivers to recipient with subject and html', async () => {
     const m = Mailer.fromConfig({
-      host: 'smtp.x.io', port: 587, user: 'u', pass: 'p', from: 'no-reply@x.io',
+      host: 'smtp.x.io',
+      port: 587,
+      user: 'u',
+      pass: 'p',
+      from: 'no-reply@x.io',
     })!;
     await m.send('a@b.c', 'Reset', '<b>link</b>');
     const transport = (createTransport as ReturnType<typeof vi.fn>).mock.results[0].value;
@@ -529,7 +587,11 @@ describe('Mailer', () => {
       sendMail: vi.fn().mockRejectedValue(new Error('SMTP down')),
     }));
     const m = Mailer.fromConfig({
-      host: 'smtp.x.io', port: 587, user: 'u', pass: 'p', from: 'no@x.io',
+      host: 'smtp.x.io',
+      port: 587,
+      user: 'u',
+      pass: 'p',
+      from: 'no@x.io',
     })!;
     await expect(m.send('a@b.c', 'S', 'h')).rejects.toThrow('SMTP down');
   });
@@ -545,7 +607,11 @@ import { createTransport, type Transporter } from 'nodemailer';
 import { logger } from '@accessbase/logging';
 
 export interface SmtpConfig {
-  host?: string; port?: number; user?: string; pass?: string; from?: string;
+  host?: string;
+  port?: number;
+  user?: string;
+  pass?: string;
+  from?: string;
 }
 
 export class Mailer {
@@ -586,17 +652,19 @@ export class Mailer {
 
 ```typescript
 const mailer = Mailer.fromConfig({
-  host: await options.get('smtp_host') ?? process.env['SMTP_HOST'],
-  port: Number(await options.get('smtp_port') ?? process.env['SMTP_PORT'] ?? 587),
-  user: await options.get('smtp_user') ?? process.env['SMTP_USER'],
-  pass: await options.get('smtp_password') ?? process.env['SMTP_PASSWORD'],
-  from: await options.get('smtp_from') ?? process.env['SMTP_FROM'],
+  host: (await options.get('smtp_host')) ?? process.env['SMTP_HOST'],
+  port: Number((await options.get('smtp_port')) ?? process.env['SMTP_PORT'] ?? 587),
+  user: (await options.get('smtp_user')) ?? process.env['SMTP_USER'],
+  pass: (await options.get('smtp_password')) ?? process.env['SMTP_PASSWORD'],
+  from: (await options.get('smtp_from')) ?? process.env['SMTP_FROM'],
 });
 if (mailer) {
   const link = `${process.env['FRONTEND_ORIGIN'] ?? ''}/reset-password?token=${token}`;
-  await mailer.send(email, 'Reset your password', `<p>Click to reset: <a href="${link}">${link}</a></p>`).catch((err) => {
-    logger.warn({ err }, 'Reset email delivery failed (degraded to log)');
-  });
+  await mailer
+    .send(email, 'Reset your password', `<p>Click to reset: <a href="${link}">${link}</a></p>`)
+    .catch((err) => {
+      logger.warn({ err }, 'Reset email delivery failed (degraded to log)');
+    });
 }
 ```
 
@@ -614,10 +682,12 @@ git add -A && git commit -m "feat(identity,server): Mailer service with options-
 ## Task 7: E2E 回归收官 + 全局门禁
 
 **Files:**
+
 - Test: `e2e/auth.spec.ts`（追加 2 用例：register pending 流 / disabled 用户登录 403）— mock-API 模式
 - 验证性任务，无产物代码
 
 **Interfaces:**
+
 - Consumes: Task 1-6 全部路由行为（mock 按 routes 实际返回拷贝，conventions PIT-033）
 
 - [ ] **Step 1: 确认 5101 无真后端** — `curl -s -m 2 --noproxy '*' -o /dev/null -w '%{http_code}' http://localhost:5101/health/live` 应 000
@@ -626,12 +696,26 @@ git add -A && git commit -m "feat(identity,server): Mailer service with options-
 
 ```typescript
 test('register returns 201 with pending status (mock)', async ({ page }) => {
-  await page.route('**/api/v1/setup/status', (r) => r.fulfill({ status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }) }));
-  await page.route('**/api/v1/auth/register', (r) => r.fulfill({ status: 201,
-    contentType: 'application/json',
-    body: JSON.stringify({ success: true, data: { id: 'u9', email: 'n@x.io', name: 'N', status: 'pending' } }) }));
+  await page.route('**/api/v1/setup/status', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/auth/register', (r) =>
+    r.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { id: 'u9', email: 'n@x.io', name: 'N', status: 'pending' },
+      }),
+    }),
+  );
   const res = await page.request.post('/api/v1/auth/register', {
     data: { email: 'n@x.io', name: 'N', password: 'Passw0rd!' },
   });
@@ -639,12 +723,26 @@ test('register returns 201 with pending status (mock)', async ({ page }) => {
 });
 
 test('suspended user login shows ACCOUNT_SUSPENDED error', async ({ page }) => {
-  await page.route('**/api/v1/setup/status', (r) => r.fulfill({ status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }) }));
-  await page.route('**/api/v1/auth/login', (r) => r.fulfill({ status: 403,
-    contentType: 'application/json',
-    body: JSON.stringify({ success: false, error: { code: 'AUTH_004', message: 'Account suspended' } }) }));
+  await page.route('**/api/v1/setup/status', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
+    }),
+  );
+  await page.route('**/api/v1/auth/login', (r) =>
+    r.fulfill({
+      status: 403,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: false,
+        error: { code: 'AUTH_004', message: 'Account suspended' },
+      }),
+    }),
+  );
   await page.goto('/login');
   await page.fill('input[type="email"], #email', 'sus@x.io');
   await page.fill('input[type="password"], #password', 'Passw0rd!');

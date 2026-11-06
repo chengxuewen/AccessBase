@@ -91,9 +91,7 @@ const tenantRows: Array<{ id: string; status: string }> = [
   { id: SUSPENDED_TENANT_ID, status: 'suspended' },
 ];
 
-const tenantFindById = vi.fn(async (id: string) =>
-  tenantRows.find((t) => t.id === id) ?? null,
-);
+const tenantFindById = vi.fn(async (id: string) => tenantRows.find((t) => t.id === id) ?? null);
 
 const sessionManagerMock = {
   issueRefreshToken: vi.fn().mockResolvedValue({ refreshToken: 'test-refresh-token' }),
@@ -126,13 +124,15 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
       // Mock models the REAL scoping: findById is tenant-scoped in UserManager,
       // so a (id, tenantId) two-key lookup — a non-default-tenant user passed
       // with DEFAULT_TENANT returns null, exactly as production behaves.
-      findById: vi.fn(async (id: string, tenantId: string) =>
-        [defaultTenantUser, suspendedTenantUser].find(
-          (u) => u.id === id && u.tenantId === tenantId,
-        ) ?? null,
+      findById: vi.fn(
+        async (id: string, tenantId: string) =>
+          [defaultTenantUser, suspendedTenantUser].find(
+            (u) => u.id === id && u.tenantId === tenantId,
+          ) ?? null,
       ),
-      findByIdAny: vi.fn(async (id: string) =>
-        [defaultTenantUser, suspendedTenantUser].find((u) => u.id === id) ?? null,
+      findByIdAny: vi.fn(
+        async (id: string) =>
+          [defaultTenantUser, suspendedTenantUser].find((u) => u.id === id) ?? null,
       ),
       create: vi.fn(async (data: { email: string; name: string }) => ({
         ...defaultTenantUser,
@@ -163,9 +163,17 @@ vi.mock('@accessbase/identity/db', () => ({
     select: (projection?: Record<string, unknown>) => {
       // queryAdminExists fast path: an admin row must come back so the
       // setup guard reports initialized (otherwise every route 503s).
-      const adminRow = { id: defaultTenantUser.id, email: 'admin@accessbase.local', status: 'active' };
+      const adminRow = {
+        id: defaultTenantUser.id,
+        email: 'admin@accessbase.local',
+        status: 'active',
+      };
       const rows = projection
-        ? [Object.fromEntries(Object.keys(projection).map((k) => [k, adminRow[k as keyof typeof adminRow]]))]
+        ? [
+            Object.fromEntries(
+              Object.keys(projection).map((k) => [k, adminRow[k as keyof typeof adminRow]]),
+            ),
+          ]
         : [adminRow];
       const thenable = <T extends unknown[]>(arr: T): T & { limit: () => Promise<T> } => {
         (arr as T & { limit: () => Promise<T> }).limit = async () => arr;
@@ -213,7 +221,11 @@ const optionsStore = new Map<string, unknown>();
 const { setOptionsManager } = await import('../routes/options.js');
 setOptionsManager({
   get: async (key: string, envValue: unknown, defaultValue: unknown) =>
-    envValue !== undefined ? envValue : (optionsStore.has(key) ? optionsStore.get(key) : defaultValue),
+    envValue !== undefined
+      ? envValue
+      : optionsStore.has(key)
+        ? optionsStore.get(key)
+        : defaultValue,
 } as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');
@@ -354,7 +366,7 @@ describe('tenant suspension gate (AUTH_TENANT_001)', () => {
     // Door fires BEFORE rotation — the presented token is not consumed
     expect(sessionManagerMock.rotateRefreshToken).not.toHaveBeenCalled();
   });
-  
+
   // H1 regression: the gate's user resolution must be tenant-unfiltered.
   // findById is tenant-scoped — with the old DEFAULT_TENANT call a
   // non-default-tenant user resolves to null, the gate is SKIPPED, and
@@ -428,7 +440,12 @@ describe('tenant suspension gate (AUTH_TENANT_001)', () => {
   // to issueTokenPair so the gate checks the user's real tenant, not DEFAULT.
   it('change-password for suspended-tenant user → 403 AUTH_TENANT_001', async () => {
     const token = app.jwt.sign(
-      { sub: suspendedTenantUser.id, email: suspendedTenantUser.email, status: 'active', tenantId: SUSPENDED_TENANT_ID },
+      {
+        sub: suspendedTenantUser.id,
+        email: suspendedTenantUser.email,
+        status: 'active',
+        tenantId: SUSPENDED_TENANT_ID,
+      },
       { expiresIn: '15m' },
     );
 

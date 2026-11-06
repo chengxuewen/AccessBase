@@ -480,7 +480,10 @@ describe('AuditLogger', () => {
       await defaultLogger.log(entry);
 
       expect(written).toHaveLength(1);
-      const data = (written[0]?.responseBody as Record<string, unknown>)['data'] as Record<string, unknown>;
+      const data = (written[0]?.responseBody as Record<string, unknown>)['data'] as Record<
+        string,
+        unknown
+      >;
       expect(data['idpLogoutUrl']).toBe('[REDACTED]');
       expect((written[0]?.responseBody as Record<string, unknown>)['success']).toBe(true);
       expect(written[0]?.requestBody?.['refreshToken']).toBe('[REDACTED]');
@@ -730,7 +733,11 @@ describe('AuditLogger storage persistence', () => {
   it('batches entries through storage on flush (async mode)', async () => {
     vi.useFakeTimers();
     const written: AuditLog[] = [];
-    const storage: AuditStorage = { write: async (entries) => { written.push(...entries); } };
+    const storage: AuditStorage = {
+      write: async (entries) => {
+        written.push(...entries);
+      },
+    };
     const asyncConfig = { ...config, async: { ...config.async, enabled: true } };
     const asyncLogger = new AuditLogger(asyncConfig, { storage });
 

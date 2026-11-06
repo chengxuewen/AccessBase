@@ -12,15 +12,15 @@
 
 ## Measured baselines (2026-11-04, repo root — recount before trusting)
 
-| Fact | Value | How measured |
-|---|---|---|
-| rules-layer census (collectRules sense) | **79** files | `node scripts/agents/agent-links.mts check` → `rules-links: clean (79 rules)` |
-| find census (adds top-level `.agents/rules/README.md`) | 80 | `find .agents/rules -name '*.md' -not -path '*/zh/*' \| wc -l` |
-| language-dir READMEs | **0** | `find .agents/rules -mindepth 2 -name 'README.md' -not -path '*/zh/*'` → empty; the top-level README is the only one and is already excluded by `collectRules` (it only descends into directories) |
-| current handwritten face | 19 entries / **171,946 bytes** | `python3 -c` over `opencode.json` (status.md 76,830 + conventions.md 47,163 dominate) |
-| projected generated face | **291,106 bytes** (79 rules + 2 memory files + CONSTRAINTS.md 2,490; re-verified at review close-out — a panel claim of "drifted to 288,616 / −0.9%" was a measurement-scope artifact: the panel's re-run omitted CONSTRAINTS.md from its glob, difference = exactly 2,490) | `glob + os.path.getsize` |
-| `budget_warn_bytes` initial | **350,000** (~20% headroom over the projection; recalibrate in Task 2 Step 7 against the real sync output: measured × 1.2, rounded to 10K) | this plan |
-| `opencode.json` serialization | 2-space JSON, trailing `\n`; last bytes are `}\n` (od-verified) | `tail -c 4 .opencode/opencode.json` |
+| Fact                                                   | Value                                                                                                                                                                                                                                                                       | How measured                                                                                                                                                                                       |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| rules-layer census (collectRules sense)                | **79** files                                                                                                                                                                                                                                                                | `node scripts/agents/agent-links.mts check` → `rules-links: clean (79 rules)`                                                                                                                      |
+| find census (adds top-level `.agents/rules/README.md`) | 80                                                                                                                                                                                                                                                                          | `find .agents/rules -name '*.md' -not -path '*/zh/*' \| wc -l`                                                                                                                                     |
+| language-dir READMEs                                   | **0**                                                                                                                                                                                                                                                                       | `find .agents/rules -mindepth 2 -name 'README.md' -not -path '*/zh/*'` → empty; the top-level README is the only one and is already excluded by `collectRules` (it only descends into directories) |
+| current handwritten face                               | 19 entries / **171,946 bytes**                                                                                                                                                                                                                                              | `python3 -c` over `opencode.json` (status.md 76,830 + conventions.md 47,163 dominate)                                                                                                              |
+| projected generated face                               | **291,106 bytes** (79 rules + 2 memory files + CONSTRAINTS.md 2,490; re-verified at review close-out — a panel claim of "drifted to 288,616 / −0.9%" was a measurement-scope artifact: the panel's re-run omitted CONSTRAINTS.md from its glob, difference = exactly 2,490) | `glob + os.path.getsize`                                                                                                                                                                           |
+| `budget_warn_bytes` initial                            | **350,000** (~20% headroom over the projection; recalibrate in Task 2 Step 7 against the real sync output: measured × 1.2, rounded to 10K)                                                                                                                                  | this plan                                                                                                                                                                                          |
+| `opencode.json` serialization                          | 2-space JSON, trailing `\n`; last bytes are `}\n` (od-verified)                                                                                                                                                                                                             | `tail -c 4 .opencode/opencode.json`                                                                                                                                                                |
 
 ## Global Constraints
 
@@ -40,12 +40,14 @@
 ### Task 1: Shared base extraction + registry extension
 
 **Files:**
+
 - Modify: `scripts/agents/agent-common.mts` (fs imports; `Targets.instructions_face`; move in `deepEqual` + `collectRules`/`RuleFile`)
 - Modify: `scripts/agents/mcp-links.mts:42-53` (delete local `deepEqual`, import from agent-common)
 - Modify: `scripts/agents/rules-links.mts:17-30` (delete local `RuleFile`/`collectRules`, import from agent-common)
 - Modify: `scripts/agents/agent-targets.json` (opencode target gains `instructions_face`; note rewritten)
 
 **Interfaces:**
+
 - Consumes: nothing new (pure refactor + config).
 - Produces (Task 2 relies on these exact names):
   - `agent-common.mts`: `export interface RuleFile { lang: string; topic: string; src: string; }`
@@ -59,7 +61,14 @@
 Line 18 import becomes:
 
 ```ts
-import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync, lstatSync } from "node:fs";
+import {
+  readFileSync,
+  existsSync,
+  writeFileSync,
+  mkdirSync,
+  readdirSync,
+  lstatSync,
+} from 'node:fs';
 ```
 
 In the `Targets` interface, the `targets` array element type gains one optional field (append after `note?: string;`):
@@ -81,9 +90,11 @@ export function deepEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(sortKeys(a)) === JSON.stringify(sortKeys(b));
   function sortKeys(x: unknown): unknown {
     if (Array.isArray(x)) return x.map(sortKeys);
-    if (x && typeof x === "object") {
+    if (x && typeof x === 'object') {
       return Object.fromEntries(
-        Object.entries(x as Record<string, unknown>).sort(([k1], [k2]) => k1.localeCompare(k2)).map(([k, v]) => [k, sortKeys(v)]),
+        Object.entries(x as Record<string, unknown>)
+          .sort(([k1], [k2]) => k1.localeCompare(k2))
+          .map(([k, v]) => [k, sortKeys(v)]),
       );
     }
     return x;
@@ -98,7 +109,11 @@ Append after `deepEqual` (verbatim from `rules-links.mts:17-30` — no logic cha
 ```ts
 // --- rules collection (rules-links + instructions-links) --------------------
 
-export interface RuleFile { lang: string; topic: string; src: string; }
+export interface RuleFile {
+  lang: string;
+  topic: string;
+  src: string;
+}
 
 export function collectRules(rulesRoot: string, exclude: string[]): RuleFile[] {
   const out: RuleFile[] = [];
@@ -107,7 +122,8 @@ export function collectRules(rulesRoot: string, exclude: string[]): RuleFile[] {
     const langDir = path.join(rulesRoot, lang);
     if (!lstatSync(langDir).isDirectory()) continue;
     for (const f of readdirSync(langDir)) {
-      if (f.endsWith(".md")) out.push({ lang, topic: f.replace(/\.md$/, ""), src: path.join(langDir, f) });
+      if (f.endsWith('.md'))
+        out.push({ lang, topic: f.replace(/\.md$/, ''), src: path.join(langDir, f) });
     }
   }
   return out;
@@ -119,16 +135,31 @@ export function collectRules(rulesRoot: string, exclude: string[]): RuleFile[] {
 `mcp-links.mts`: delete lines 42-53 (the local `deepEqual`) and add `deepEqual` to the existing agent-common import (line 26):
 
 ```ts
-import { ROOT, EXIT_CLEAN, EXIT_FINDINGS, writeIfChanged, relRoot, deepEqual } from "./agent-common.mts";
+import {
+  ROOT,
+  EXIT_CLEAN,
+  EXIT_FINDINGS,
+  writeIfChanged,
+  relRoot,
+  deepEqual,
+} from './agent-common.mts';
 ```
 
 `rules-links.mts`: delete lines 17-30 (local `RuleFile` interface + `collectRules`) and add both to the existing agent-common import (lines 12-15):
 
 ```ts
 import {
-  ROOT, loadTargets, guard, sha256Short, writeIfChanged, relRoot,
-  EXIT_CLEAN, EXIT_FINDINGS, collectRules, type RuleFile,
-} from "./agent-common.mts";
+  ROOT,
+  loadTargets,
+  guard,
+  sha256Short,
+  writeIfChanged,
+  relRoot,
+  EXIT_CLEAN,
+  EXIT_FINDINGS,
+  collectRules,
+  type RuleFile,
+} from './agent-common.mts';
 ```
 
 (The `RuleFile` type is still used by `renderMdc`/`run` locals in rules-links — keep those references, they now resolve to the shared interface.)
@@ -140,15 +171,15 @@ import {
 Replace the opencode target entry (currently lines 29-33) with:
 
 ```json
-    {
-      "label": "opencode",
-      "enabled": true,
-      "instructions_face": {
-        "memory_files": [".agents/memorys/status.md", ".agents/memorys/conventions.md"],
-        "budget_warn_bytes": 350000
-      },
-      "note": "reads .agents/ directly; instructions[] GENERATED by instructions-links (Batch 8, ADJ-OC-1..4: full rules layer excl. zh/ + the two memory files + CONSTRAINTS.md first; warn-only budget ADJ-OC-3) — hand edits to the instructions key are erased by sync (RCH D20); mcp{} region generated by mcp-links (Batch 4)"
-    }
+{
+  "label": "opencode",
+  "enabled": true,
+  "instructions_face": {
+    "memory_files": [".agents/memorys/status.md", ".agents/memorys/conventions.md"],
+    "budget_warn_bytes": 350000
+  },
+  "note": "reads .agents/ directly; instructions[] GENERATED by instructions-links (Batch 8, ADJ-OC-1..4: full rules layer excl. zh/ + the two memory files + CONSTRAINTS.md first; warn-only budget ADJ-OC-3) — hand edits to the instructions key are erased by sync (RCH D20); mcp{} region generated by mcp-links (Batch 4)"
+}
 ```
 
 Also append to the `$comment` head: `Batch 8 adds the opencode instructions face (instructions-links layer).`
@@ -175,10 +206,12 @@ git commit -m "refactor(governance): extract collectRules/deepEqual to agent-com
 ### Task 2: instructions-links layer + dispatcher wiring + red/green demos
 
 **Files:**
+
 - Create: `scripts/agents/instructions-links.mts`
 - Modify: `scripts/agents/agent-links.mts:30-41,69-81` (import + GENERATORS + runLayers)
 
 **Interfaces:**
+
 - Consumes (from Task 1): `collectRules`, `deepEqual`, `RuleFile`, `Targets.instructions_face`, `writeIfChanged`, `EXIT_*`, `loadTargets`, `ROOT`.
 - Produces: `export function run(mode: "check" | "sync"): { code: number; summary: string }` — dispatcher contract identical to the other four generators. Owns the `instructions` key of `opencode.json`.
 
@@ -213,31 +246,41 @@ Expected: exit 0 — the pre-batch baseline with 8 layers, all green (rules cens
  * localeCompare (ICU drift = churn).
  */
 
-import { readFileSync, existsSync } from "node:fs";
-import * as path from "node:path";
+import { readFileSync, existsSync } from 'node:fs';
+import * as path from 'node:path';
 import {
-  ROOT, loadTargets, EXIT_CLEAN, EXIT_FINDINGS, writeIfChanged,
-  collectRules, deepEqual, type Targets,
-} from "./agent-common.mts";
+  ROOT,
+  loadTargets,
+  EXIT_CLEAN,
+  EXIT_FINDINGS,
+  writeIfChanged,
+  collectRules,
+  deepEqual,
+  type Targets,
+} from './agent-common.mts';
 
-const OPENCODE = path.join(ROOT, ".opencode", "opencode.json");
+const OPENCODE = path.join(ROOT, '.opencode', 'opencode.json');
 
 function wantInstructions(cfg: Targets): string[] {
-  const face = cfg.targets.find((t) => t.label === "opencode" && t.enabled)?.instructions_face;
+  const face = cfg.targets.find((t) => t.label === 'opencode' && t.enabled)?.instructions_face;
   if (!face) return [];
   const rulesRoot = path.join(ROOT, cfg.rules_root);
   const rules = collectRules(rulesRoot, cfg.rules_exclude_dirs)
-    .map((r) => path.relative(ROOT, r.src).split(path.sep).join("/"))
-    .filter((p) => path.posix.basename(p) !== "README.md")
+    .map((r) => path.relative(ROOT, r.src).split(path.sep).join('/'))
+    .filter((p) => path.posix.basename(p) !== 'README.md')
     .sort();
   return [cfg.constraints_hub, ...face.memory_files, ...rules];
 }
 
-export function run(mode: "check" | "sync"): { code: number; summary: string } {
+export function run(mode: 'check' | 'sync'): { code: number; summary: string } {
   const cfg = loadTargets();
-  const target = cfg.targets.find((t) => t.label === "opencode" && t.enabled);
+  const target = cfg.targets.find((t) => t.label === 'opencode' && t.enabled);
   const face = target?.instructions_face;
-  if (!target || !face) return { code: EXIT_CLEAN, summary: "instructions-links: no enabled opencode instructions_face, skip" };
+  if (!target || !face)
+    return {
+      code: EXIT_CLEAN,
+      summary: 'instructions-links: no enabled opencode instructions_face, skip',
+    };
 
   const want = wantInstructions(cfg);
 
@@ -245,33 +288,42 @@ export function run(mode: "check" | "sync"): { code: number; summary: string } {
   // either crash mid-read or write a face pointing at absent files).
   const missing = want.filter((p) => !existsSync(path.join(ROOT, p)));
   if (missing.length > 0) {
-    console.error("instructions-links: source files missing — restore them or fix the registry:");
+    console.error('instructions-links: source files missing — restore them or fix the registry:');
     for (const m of missing) console.error(`  ${m}`);
-    return { code: EXIT_FINDINGS, summary: `instructions-links: ${missing.length} source file(s) missing` };
+    return {
+      code: EXIT_FINDINGS,
+      summary: `instructions-links: ${missing.length} source file(s) missing`,
+    };
   }
 
-  const doc = JSON.parse(readFileSync(OPENCODE, "utf8")) as Record<string, unknown>;
-  if (mode === "sync") {
+  const doc = JSON.parse(readFileSync(OPENCODE, 'utf8')) as Record<string, unknown>;
+  if (mode === 'sync') {
     doc.instructions = want;
-    writeIfChanged(OPENCODE, JSON.stringify(doc, null, 2) + "\n");
+    writeIfChanged(OPENCODE, JSON.stringify(doc, null, 2) + '\n');
   } else if (!deepEqual(doc.instructions, want)) {
-    console.log("instructions-links: instructions[] drifted (hand-written entries, or sources changed without sync — RCH D20: this key is generated; register sources in .agents/)");
+    console.log(
+      'instructions-links: instructions[] drifted (hand-written entries, or sources changed without sync — RCH D20: this key is generated; register sources in .agents/)',
+    );
     const prevArr = Array.isArray(doc.instructions) ? doc.instructions : [];
     const wantSet = new Set(want);
-    for (const e of prevArr) if (typeof e === "string" && !wantSet.has(e)) console.log(`  orphan entry: ${e}`);
-    for (const e of want) if (!(prevArr as string[]).includes(e)) console.log(`  missing entry: ${e}`);
-    return { code: EXIT_FINDINGS, summary: "instructions-links: drift" };
+    for (const e of prevArr)
+      if (typeof e === 'string' && !wantSet.has(e)) console.log(`  orphan entry: ${e}`);
+    for (const e of want)
+      if (!(prevArr as string[]).includes(e)) console.log(`  missing entry: ${e}`);
+    return { code: EXIT_FINDINGS, summary: 'instructions-links: drift' };
   }
 
   // ADJ-OC-3: warn-only budget line — prints on both modes, never touches code.
-  const contents = want.map((p) => readFileSync(path.join(ROOT, p), "utf8"));
+  const contents = want.map((p) => readFileSync(path.join(ROOT, p), 'utf8'));
   const chars = contents.reduce((n, c) => n + [...c].length, 0);
-  const bytes = contents.reduce((n, c) => n + Buffer.byteLength(c, "utf8"), 0);
+  const bytes = contents.reduce((n, c) => n + Buffer.byteLength(c, 'utf8'), 0);
   const loc = `(${want.length} entries / ${chars} chars / ${bytes} bytes; warn ${face.budget_warn_bytes})`;
   if (bytes > face.budget_warn_bytes) {
-    console.log(`  instructions budget WARNING ${loc} — load cost is knowingly bought (ADJ-OC-2); act only if it keeps growing`);
+    console.log(
+      `  instructions budget WARNING ${loc} — load cost is knowingly bought (ADJ-OC-2); act only if it keeps growing`,
+    );
   }
-  return mode === "sync"
+  return mode === 'sync'
     ? { code: EXIT_CLEAN, summary: `instructions-links: face written ${loc}` }
     : { code: EXIT_CLEAN, summary: `instructions-links: clean ${loc}` };
 }
@@ -284,13 +336,19 @@ Three edits:
 Import block (after line 33, alphabetical among the generator imports):
 
 ```ts
-import * as instructionsLinks from "./instructions-links.mts";
+import * as instructionsLinks from './instructions-links.mts';
 ```
 
 `GENERATORS` constant (line 40) becomes:
 
 ```ts
-const GENERATORS = ["rules-links", "skills-index", "memory-aggregate", "instructions-links", "mcp-links"] as const;
+const GENERATORS = [
+  'rules-links',
+  'skills-index',
+  'memory-aggregate',
+  'instructions-links',
+  'mcp-links',
+] as const;
 ```
 
 `runLayers` (lines 69-81) — insert the call BETWEEN `memoryAggregate.run(mode)` and `mcpLinks.run(mode)` (fixed order per Global Constraints):
@@ -320,6 +378,7 @@ Run: `node scripts/agents/agent-links.mts sync` again.
 Expected: exit 0, same summary; the file is byte-identical to the Step 5 sync output (writeIfChanged no-op — compare with `git diff --stat` which, at this pre-commit point, shows the whole Step 5 face rewrite against HEAD, NOT zero; the idempotency assertion is "identical to Step 5 output", not "diff-empty").
 
 Hand-plant a ghost entry:
+
 ```bash
 python3 - <<'EOF'
 import json
@@ -331,6 +390,7 @@ open(p,'a').write('\n')
 EOF
 node scripts/agents/agent-links.mts check; echo "exit=$?"
 ```
+
 Expected: exit 1, `orphan entry: .agents/rules/common/ghost-rule.md` named.
 
 Run: `node scripts/agents/agent-links.mts sync && node scripts/agents/agent-links.mts check`
@@ -345,6 +405,7 @@ node scripts/agents/agent-links.mts check; echo "exit=$?"
 mv /tmp/opencode/conventions.md.moved .agents/memorys/conventions.md
 cmp /tmp/opencode/conventions.md.bak .agents/memorys/conventions.md && node scripts/agents/agent-links.mts check; echo "exit=$?"
 ```
+
 Expected: first check exit 1 with `instructions-links: source files missing` naming `.agents/memorys/conventions.md`. WHY conventions.md and NOT status.md: memory-aggregate (dispatcher position 3, BEFORE instructions-links) does an unguarded `readFileSync` of status.md — moving status.md crashes the dispatcher with an ENOENT traceback before the guard prints (exit code coincidentally 1, message wrong). conventions.md is read by NO earlier layer (memory-aggregate reads decisions/pitfalls/status only), so the guard message prints as designed. Restore + `cmp` → exit 0.
 
 RECALIBRATE the budget: read the real byte figure from the Step 5 output. If the projected 291,106 drifted by more than 5%, update `budget_warn_bytes` in `agent-targets.json` (target ≈ measured × 1.2, rounded to 10K) and re-run sync (the registry is the single source; the change rides the same commit).
@@ -366,11 +427,13 @@ git commit -m "feat(governance): generate the opencode instructions face (Batch 
 ### Task 3: Docs write-back
 
 **Files:**
+
 - Modify: `docs/superpowers/plans/2026-11-04-agent-governance-port.md` (append "Batch 8 execution log" after the existing Batch 7 log)
 - Modify: `.agents/memorys/status.md` (one line appended to the "recent work" list — the literal heading is 近期工作)
 - Modify: `.agents/memorys/conventions.md` (one governance constraints entry, ENGLISH — see the D121 note at Step 3)
 
 **Interfaces:**
+
 - Consumes: Task 2's real measured numbers (entries/bytes from the sync output).
 - Produces: the paper trail — findings referenced by future audits live here.
 

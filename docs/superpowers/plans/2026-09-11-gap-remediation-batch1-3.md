@@ -31,10 +31,12 @@
 ### Task 1: Seed `audit:read` + `stats:read` permission codes
 
 **Files:**
+
 - Modify: `apps/server/src/routes/permissions-seed.ts` (:15-24 BUILTIN_PERMISSIONS, :27 RESOURCES, :3/:12/:31 count comments)
 - Modify: `apps/server/src/__tests__/permissions-seed.test.ts` (:41 EXPECTED_PERMISSION_COUNT, :42 RESOURCES mirror)
 
 **Interfaces:**
+
 - Produces: two new entries in `BUILTIN_PERMISSIONS` **plus `'audit','stats'` added to `RESOURCES`** — consumed by Task 2's route mappings and by the seed read-back WHERE clause (permissions-seed.ts:44-47 `inArray(permissions.resource, RESOURCES)`) which binds the new codes to the admin role. Seed count 9 → 11.
 - ⚠️ CRITICAL (review B1): extending BUILTIN_PERMISSIONS WITHOUT extending `RESOURCES` inserts the rows but never binds them to admin → admin 403 on audit/stats. The two arrays MUST move together.
 
@@ -74,9 +76,11 @@ git commit -m "feat(server): seed audit:read and stats:read permission codes (9-
 ### Task 2: Map routes to the new codes (routePermissions)
 
 **Files:**
+
 - Modify: `packages/identity/src/hooks/authorize.ts` (routePermissions map, after existing entries)
 
 **Interfaces:**
+
 - Consumes: seed codes from Task 1.
 - Produces: `GET:/api/v1/audit-logs` → `audit:read`; `GET:/api/v1/stats` → `stats:read` enforcement via existing requirePermission hook.
 
@@ -102,11 +106,13 @@ git commit -m "feat(identity): map audit-logs and stats routes to new permission
 ### Task 3: Frontend gates — /audit route + menu + dashboard redirect
 
 **Files:**
+
 - Modify: `apps/admin-ui/src/App.tsx:111` (audit route), `apps/admin-ui/src/layouts/AdminLayout.tsx` (menu gating + :26 ponytail comment removal + dashboard menu `codeOf` mapping), `apps/admin-ui/src/pages/Login.tsx` (FOUR navigate('/') sites: :44 OAuth callback, :61 passkey, :72 MFA verify success, :89 password login)
 - Create: `apps/admin-ui/src/utils/landing.ts` + `apps/admin-ui/src/utils/landing.test.ts`
 - Modify (e2e fixtures, review B2): `e2e/auth-rbac-ui.spec.ts:5` FULL_PERMISSIONS 9→11, `e2e/layout.spec.ts` + `e2e/ui-quality.spec.ts` me-mocks (add stats:read/audit:read if permissions arrays are self-seeded), `e2e/roles-crud.spec.ts:39` permissions array
 
 **Interfaces:**
+
 - Consumes: `PrivateRoute permission=` (App.tsx:24-34, undefined-permissions-pass semantics), `useAuthStore` permissions array.
 - Produces: `landingPath(permissions: string[] | undefined): '/' | '/profile'` pure helper — imported by all four Login.tsx navigate sites.
 
@@ -127,7 +133,14 @@ export function landingPath(permissions: string[] | undefined): '/' | '/profile'
 - [ ] **Step 2: Gate the /audit route**
 
 ```tsx
-<Route path="audit" element={<PrivateRoute permission="audit:read"><Audit /></PrivateRoute>} />
+<Route
+  path="audit"
+  element={
+    <PrivateRoute permission="audit:read">
+      <Audit />
+    </PrivateRoute>
+  }
+/>
 ```
 
 - [ ] **Step 3: Gate the audit + dashboard menu items**
@@ -139,7 +152,14 @@ In `AdminLayout.tsx` menu config: wrap audit item with `hasPermission('audit:rea
 App.tsx:
 
 ```tsx
-<Route path="dashboard" element={<PrivateRoute permission="stats:read"><Dashboard /></PrivateRoute>} />
+<Route
+  path="dashboard"
+  element={
+    <PrivateRoute permission="stats:read">
+      <Dashboard />
+    </PrivateRoute>
+  }
+/>
 ```
 
 Login.tsx: import `landingPath`; before each of the four `navigate('/')` calls (:44 OAuth, :61 passkey, :72 MFA verify, :89 password), resolve the freshest permissions and navigate via the helper. Password path: `login()` response may not include permissions → `await fetchUser()` first. MFA path (review m-D): `verifyMfa` (stores/auth.ts) only sets the token and does NOT call fetchUser — at the :72 success branch add `await fetchUser()` BEFORE reading permissions, otherwise an MFA user without stats:read lands on '/' via undefined-pass and then eats a /stats 403 — inconsistent with the other three paths. OAuth/passkey paths already populate the store via fetchUser (:43/:60). Then `navigate(landingPath(perms), { replace: true })`.
@@ -163,11 +183,13 @@ git commit -m "feat(admin-ui): gate audit and dashboard routes behind audit:read
 ### Task 4: JWT_SECRET production fail-fast
 
 **Files:**
+
 - Modify: `apps/server/src/config.ts:44` (module-level `export const config`; jwtSecret property)
 - Test: `apps/server/src/__tests__/config.test.ts` (create)
 - Already done (review C6 confirmed): `accessbase.sh:463` passes JWT_SECRET through; `.env.example:8` has the entry — Step 5 is verify-only.
 
 **Interfaces:**
+
 - Produces: importing `../config` with NODE_ENV=production and no JWT_SECRET throws at module evaluation (config is a module-level const — dynamic import + `vi.resetModules()` is the test seam).
 
 - [ ] **Step 1: Write the failing test (env-safe, review M7)**
@@ -238,10 +260,12 @@ git commit -m "feat(server): fail fast when JWT_SECRET missing in production"
 ### Task 5: e2e regression locks for 403 behavior
 
 **Files:**
+
 - Create: `e2e/route-guard-403.spec.ts`
 - Modify (review m3): `apps/admin-ui/src/pages/Forbidden.tsx` — the "back to dashboard" button becomes a dead loop for stats:read-less users (dashboard now 403s them); change it to `navigate(landingPath(useAuthStore.getState().user?.permissions))` so it lands on '/' or '/profile' correctly. Also fix stale review m2 comment `e2e/auth-rbac-ui.spec.ts:4` ("The 9 codes" → 11 — also handled in Task 3 Step 5).
 
 **Interfaces:**
+
 - Consumes: Tasks 1-3 codes. Mock-API e2e (default convention).
 
 - [ ] **Step 1: Add mock-driven 403 cases**
@@ -283,9 +307,11 @@ git commit -m "test(e2e): lock 403 behavior for audit/dashboard permission gates
 ### Task 6: Update Phase-8a check commands in conventions + verify curl 403
 
 **Files:**
+
 - Modify: `.agents/memorys/conventions.md` (Phase 8a section count expectations 9 → 11)
 
 **Interfaces:**
+
 - Produces: updated expected count in the two check commands.
 
 - [ ] **Step 1: Update conventions counts**
@@ -313,9 +339,11 @@ git commit -m "docs(memory): update permission seed count expectations to 11"
 ### Task 7: Remove stray comma after delete buttons (Users + Roles)
 
 **Files:**
+
 - Modify: `apps/admin-ui/src/pages/Users.tsx:74`, `apps/admin-ui/src/pages/Roles.tsx:141`
 
 **Interfaces:**
+
 - Consumes: nothing. Pure JSX text-node fix.
 
 - [ ] **Step 1: Delete the comma inside Popconfirm children**
@@ -355,12 +383,14 @@ git commit -m "fix(admin-ui): remove stray comma rendered after delete buttons"
 ### Task 8: antd ConfigProvider locale + html lang sync
 
 **Files:**
+
 - Modify: `apps/admin-ui/src/main.tsx:15` (replace the existing `<AntdApp>` mount with LocaleGate — avoid double-mount, review C5)
 - Modify: `apps/admin-ui/src/layouts/AdminLayout.tsx` (language switch handler — no change expected; LocaleGate re-renders via useTranslation)
 - Create: `apps/admin-ui/src/utils/locale.ts` (pure lang resolver, testable under existing node-env vitest)
 - Test: `apps/admin-ui/src/utils/locale.test.ts`
 
 **Interfaces:**
+
 - Consumes: i18n `language` (i18next). antd locale packs are re-exported through LocaleGate.
 - Produces: `resolveLang(language: string | undefined): 'zh' | 'en'` pure helper; `<LocaleGate>` shell replacing `<AntdApp>` mount.
 - Dependency note (review M3): `dayjs` is NOT a direct dependency of apps/admin-ui (pnpm strict node_modules — verified absent). This task does NOT import dayjs; zh display locale for date components comes bundled with antd's zh_CN pack. If dayjs-level formatting is later needed, add `dayjs` to admin-ui deps in a separate commit.
@@ -442,10 +472,12 @@ git commit -m "feat(admin-ui): wire antd locale + html lang to i18n language"
 ### Task 9: Detail-page error states — EmptyState error variant ×3
 
 **Files:**
+
 - Modify: `apps/admin-ui/src/pages/users/UserDetail.tsx:55-57`, `apps/admin-ui/src/pages/users/UserEdit.tsx:37`, `apps/admin-ui/src/pages/Profile.tsx:44`
 - Reuse: `apps/admin-ui/src/components/EmptyState.tsx` — real props confirmed by review M5: `variant?: 'no-data'|'no-result'|'error'`, `action?: ReactNode`
 
 **Interfaces:**
+
 - Consumes: `EmptyState` REAL props (EmptyState.tsx:5-12, review M5): `variant?: 'no-data' | 'no-result' | 'error'`, `action?: ReactNode` (retry button injected via `action`, NOT an onRetry prop); description text is fixed internally via `t('empty.error')` — no `message` prop. `apiErrorMessage` from `src/api/errors.ts` if a server-specific line is needed (render it above EmptyState, not inside).
 
 - [ ] **Step 1: UserDetail — error empty-state with retry via action slot**
@@ -459,13 +491,20 @@ if (loadError) {
       <EmptyState
         variant="error"
         action={
-          <Button type="primary" onClick={refetch}>{t('common.retry')}</Button>
+          <Button type="primary" onClick={refetch}>
+            {t('common.retry')}
+          </Button>
         }
       />
     </Card>
   );
 }
-if (!user) return <Card><Spin /></Card>;
+if (!user)
+  return (
+    <Card>
+      <Spin />
+    </Card>
+  );
 ```
 
 (Verify `common.retry` exists in both locales; if absent add it en/zh symmetric.)
@@ -493,10 +532,12 @@ git commit -m "fix(admin-ui): unified error empty-states with retry on detail pa
 ### Task 10: a11y batch — aria-label ×4 + autoComplete ×6
 
 **Files:**
+
 - Modify: `apps/admin-ui/src/pages/Profile.tsx:148-149,189,196,208` (+ MFA inputs), `apps/admin-ui/src/pages/Dashboard.tsx:102`, `apps/admin-ui/src/pages/Audit.tsx:121`, `apps/admin-ui/src/pages/Login.tsx:~215` (password input)
 - Modify: `apps/admin-ui/src/i18n/locales/{en,zh}.json` (4 new keys, strict symmetry)
 
 **Interfaces:**
+
 - Consumes: existing i18n infra. Produces 4 new keys: `common.confirmEdit`, `common.cancelEdit`, `dashboard.refresh`, `audit.resetFilters` (names indicative — verify no collisions via `grep -rn "confirmEdit\|cancelEdit\|'dashboard.refresh'\|audit.resetFilters" apps/admin-ui/src/i18n/`).
 
 - [ ] **Step 1: i18n keys**
@@ -540,10 +581,12 @@ git commit -m "fix(admin-ui): a11y pass — aria-labels on icon buttons, passwor
 ### Task 11: Roles permission Transfer full-pagination fetch
 
 **Files:**
+
 - Modify: `apps/admin-ui/src/pages/Roles.tsx:33-35`
 - Create: `apps/admin-ui/src/utils/fetchAll.ts` + `apps/admin-ui/src/utils/fetchAll.test.ts`
 
 **Interfaces:**
+
 - Consumes: `listPermissions({ page, pageSize })` from **`api/roles.ts:76`** (NOT api/permissions — review M6), returning `Promise<{ data: Permission[]; total: number }>` (field is `data`, not `items`; element type is `Permission`).
 
 - [ ] **Step 1: Extract fetchAllPermissions helper with cap**
@@ -587,8 +630,14 @@ const row = (i: number) => ({ id: `p${i}`, name: `res:${i}` });
 describe('fetchAllPermissions', () => {
   it('pages until total reached', async () => {
     vi.mocked(listPermissions)
-      .mockResolvedValueOnce({ data: Array.from({ length: 100 }, (_, i) => row(i + 1)), total: 150 })
-      .mockResolvedValueOnce({ data: Array.from({ length: 50 }, (_, i) => row(i + 101)), total: 150 });
+      .mockResolvedValueOnce({
+        data: Array.from({ length: 100 }, (_, i) => row(i + 1)),
+        total: 150,
+      })
+      .mockResolvedValueOnce({
+        data: Array.from({ length: 50 }, (_, i) => row(i + 101)),
+        total: 150,
+      });
     const all = await fetchAllPermissions();
     expect(all).toHaveLength(150);
     expect(listPermissions).toHaveBeenCalledTimes(2);
@@ -628,9 +677,11 @@ git commit -m "fix(admin-ui): fetch all permissions with paged loop and hard cap
 ### Task 12: ui.md implementation-note backfill (4+1 items, English)
 
 **Files:**
+
 - Modify: `docs/modules/ui.md` (§14.11.1, §14.12.2, §14.8, settings-width section, §14.11.2 width values)
 
 **Interfaces:**
+
 - Consumes: ratified decisions from this session (antd rules over zod+RHF; apiErrorMessage over error-code map; scroll.x over table-to-card; fluid full-width + 400 form column).
 
 - [ ] **Step 1: Add English implementation notes at the five sites**

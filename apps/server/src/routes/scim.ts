@@ -19,7 +19,13 @@
  */
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { SafeApiKey } from '@accessbase/identity';
-import { ApiKeyManager, UserManager, SessionManager, GroupManager, hashApiKey } from '@accessbase/identity';
+import {
+  ApiKeyManager,
+  UserManager,
+  SessionManager,
+  GroupManager,
+  hashApiKey,
+} from '@accessbase/identity';
 import { assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
 import type { User, Group } from '@accessbase/identity';
 import { parse as parseFilter } from 'scim2-parse-filter';
@@ -47,12 +53,15 @@ function scimError(
   scimType: string | undefined,
   detail: string,
 ): void {
-  reply.status(status).header('content-type', SCIM_MEDIA_TYPE).send({
-    schemas: [ERROR_SCHEMA],
-    status: String(status),
-    ...(scimType ? { scimType } : {}),
-    detail,
-  });
+  reply
+    .status(status)
+    .header('content-type', SCIM_MEDIA_TYPE)
+    .send({
+      schemas: [ERROR_SCHEMA],
+      status: String(status),
+      ...(scimType ? { scimType } : {}),
+      detail,
+    });
 }
 
 /** Content type on every SCIM response, SCIM shape or not. */
@@ -93,7 +102,9 @@ function toScimUser(user: User): Record<string, unknown> {
  * rather than silently broadening the match.
  * Returns emailExact (userName, exact lowercase email match) or id filter.
  */
-function filterToQuery(filterStr: string): { search?: string; id?: string; emailExact?: string } | null {
+function filterToQuery(
+  filterStr: string,
+): { search?: string; id?: string; emailExact?: string } | null {
   let ast: ReturnType<typeof parseFilter>;
   try {
     ast = parseFilter(filterStr);
@@ -185,7 +196,8 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
   // validation errors → 400 SCIM Error (invalidSyntax); anything else in
   // this subtree → SCIM-shaped 500. Never the global {success,data} envelope.
   app.setErrorHandler((err, _request, reply) => {
-    const status = typeof err.statusCode === 'number' && err.statusCode >= 400 ? err.statusCode : 500;
+    const status =
+      typeof err.statusCode === 'number' && err.statusCode >= 400 ? err.statusCode : 500;
     const isSyntax = status === 400 || status === 422;
     scimError(
       reply,
@@ -223,7 +235,9 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
   // resolution — the request then never completes (inject hang).
   app.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
     const authHeader = request.headers.authorization;
-    const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : undefined;
+    const bearer = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice('Bearer '.length)
+      : undefined;
     if (!bearer) {
       scimError(reply, 401, undefined, 'Authentication required: provide a Bearer token');
       return;
@@ -236,7 +250,12 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     // ApiKeyRow.scopes is an untyped jsonb (unknown) — narrow before use.
     const scopes = Array.isArray(key.scopes) ? (key.scopes as string[]) : [];
     if (!scopes.includes('scim')) {
-      scimError(reply, 403, undefined, "Token scope does not permit SCIM provisioning (requires 'scim')");
+      scimError(
+        reply,
+        403,
+        undefined,
+        "Token scope does not permit SCIM provisioning (requires 'scim')",
+      );
       return;
     }
     request.tenantId = key.tenantId;
@@ -280,19 +299,102 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
           name: 'User',
           description: 'User Account',
           attributes: [
-            { name: 'userName', type: 'string', multiValued: false, required: true, caseExact: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
-            { name: 'externalId', type: 'string', multiValued: false, required: false, caseExact: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
-            { name: 'name', type: 'complex', multiValued: false, required: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none', subAttributes: [
-              { name: 'familyName', type: 'string', multiValued: false, required: false, caseExact: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
-              { name: 'givenName', type: 'string', multiValued: false, required: false, caseExact: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
-            ] },
-            { name: 'active', type: 'boolean', multiValued: false, required: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
-            { name: 'emails', type: 'complex', multiValued: true, required: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none', subAttributes: [
-              { name: 'value', type: 'string', multiValued: false, required: false, caseExact: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
-              { name: 'primary', type: 'boolean', multiValued: false, required: false, caseExact: false, mutability: 'readWrite', returned: 'default', uniqueness: 'none' },
-            ] },
+            {
+              name: 'userName',
+              type: 'string',
+              multiValued: false,
+              required: true,
+              caseExact: false,
+              mutability: 'readWrite',
+              returned: 'default',
+              uniqueness: 'none',
+            },
+            {
+              name: 'externalId',
+              type: 'string',
+              multiValued: false,
+              required: false,
+              caseExact: false,
+              mutability: 'readWrite',
+              returned: 'default',
+              uniqueness: 'none',
+            },
+            {
+              name: 'name',
+              type: 'complex',
+              multiValued: false,
+              required: false,
+              mutability: 'readWrite',
+              returned: 'default',
+              uniqueness: 'none',
+              subAttributes: [
+                {
+                  name: 'familyName',
+                  type: 'string',
+                  multiValued: false,
+                  required: false,
+                  caseExact: false,
+                  mutability: 'readWrite',
+                  returned: 'default',
+                  uniqueness: 'none',
+                },
+                {
+                  name: 'givenName',
+                  type: 'string',
+                  multiValued: false,
+                  required: false,
+                  caseExact: false,
+                  mutability: 'readWrite',
+                  returned: 'default',
+                  uniqueness: 'none',
+                },
+              ],
+            },
+            {
+              name: 'active',
+              type: 'boolean',
+              multiValued: false,
+              required: false,
+              mutability: 'readWrite',
+              returned: 'default',
+              uniqueness: 'none',
+            },
+            {
+              name: 'emails',
+              type: 'complex',
+              multiValued: true,
+              required: false,
+              mutability: 'readWrite',
+              returned: 'default',
+              uniqueness: 'none',
+              subAttributes: [
+                {
+                  name: 'value',
+                  type: 'string',
+                  multiValued: false,
+                  required: false,
+                  caseExact: false,
+                  mutability: 'readWrite',
+                  returned: 'default',
+                  uniqueness: 'none',
+                },
+                {
+                  name: 'primary',
+                  type: 'boolean',
+                  multiValued: false,
+                  required: false,
+                  caseExact: false,
+                  mutability: 'readWrite',
+                  returned: 'default',
+                  uniqueness: 'none',
+                },
+              ],
+            },
           ],
-          meta: { resourceType: 'Schema', location: '/api/v1/scim/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:User' },
+          meta: {
+            resourceType: 'Schema',
+            location: '/api/v1/scim/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:User',
+          },
         },
       ],
       startIndex: 1,
@@ -355,7 +457,9 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
 
     const startIndex = Math.max(1, Number.parseInt(query.startIndex ?? '1', 10) || 1);
     const countRaw = Number.parseInt(query.count ?? String(PAGE_SIZE_DEFAULT), 10);
-    const count = Number.isNaN(countRaw) ? PAGE_SIZE_DEFAULT : Math.min(Math.max(1, countRaw), PAGE_SIZE_MAX);
+    const count = Number.isNaN(countRaw)
+      ? PAGE_SIZE_DEFAULT
+      : Math.min(Math.max(1, countRaw), PAGE_SIZE_MAX);
 
     // id eq → direct lookup, list response with 0/1 result.
     if (id) {
@@ -372,7 +476,10 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     // H2: SCIM startIndex is a 1-based ROW OFFSET; findAll's page is 1-based
     // PAGES. startIndex=11&count=10 → page 2, not page 11.
     const page = Math.max(1, Math.ceil(startIndex / count));
-    const result = await userManager.findAll({ page, pageSize: count, search, emailExact }, tenantId);
+    const result = await userManager.findAll(
+      { page, pageSize: count, search, emailExact },
+      tenantId,
+    );
     return scimSend(reply, 200, {
       schemas: [LIST_RESPONSE_SCHEMA],
       totalResults: result.total,
@@ -403,9 +510,10 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     const body = (request.body ?? {}) as Record<string, unknown>;
 
     const emails = Array.isArray(body['emails']) ? body['emails'] : [];
-    const firstEmail = emails.length > 0 && typeof emails[0] === 'object' && emails[0] !== null
-      ? (emails[0] as { value?: unknown }).value
-      : undefined;
+    const firstEmail =
+      emails.length > 0 && typeof emails[0] === 'object' && emails[0] !== null
+        ? (emails[0] as { value?: unknown }).value
+        : undefined;
     const userName = normalizeUserName(body['userName']) ?? normalizeUserName(firstEmail);
     if (!userName) {
       return scimError(reply, 400, 'invalidValue', 'userName is required');
@@ -421,7 +529,9 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     const name =
       typeof scimName === 'string' && scimName.trim() !== ''
         ? scimName
-        : (typeof body['userName'] === 'string' ? body['userName'] : email);
+        : typeof body['userName'] === 'string'
+          ? body['userName']
+          : email;
 
     const externalId = typeof body['externalId'] === 'string' ? body['externalId'] : undefined;
 
@@ -431,12 +541,23 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
       return scimError(reply, 409, 'uniqueness', `User already exists: ${email}`);
     }
 
-    const password = typeof body['password'] === 'string' && body['password'] !== '' ? body['password'] : undefined;
+    const password =
+      typeof body['password'] === 'string' && body['password'] !== ''
+        ? body['password']
+        : undefined;
     if (password) {
-      const policy = await readPasswordPolicy(getOptionsManager().get.bind(getOptionsManager()), 'register');
+      const policy = await readPasswordPolicy(
+        getOptionsManager().get.bind(getOptionsManager()),
+        'register',
+      );
       const verdict = assertPasswordPolicy(password, policy);
       if (!verdict.ok) {
-        return scimError(reply, 400, 'invalidValue', verdict.message ?? 'Password does not meet policy');
+        return scimError(
+          reply,
+          400,
+          'invalidValue',
+          verdict.message ?? 'Password does not meet policy',
+        );
       }
     }
 
@@ -451,9 +572,11 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
       tenantId,
     );
     const location = `/api/v1/scim/v2/Users/${created.id}`;
-    return reply.status(201).header('content-type', SCIM_MEDIA_TYPE).header('location', location).send(
-      toScimUser(created),
-    );
+    return reply
+      .status(201)
+      .header('content-type', SCIM_MEDIA_TYPE)
+      .header('location', location)
+      .send(toScimUser(created));
   });
 
   /**
@@ -478,18 +601,21 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
       typeof body['name'] === 'object' && body['name'] !== null
         ? (body['name'] as { formatted?: unknown }).formatted
         : undefined;
-    const name =
-      typeof scimName === 'string' && scimName.trim() !== ''
-        ? scimName
-        : current.name;
+    const name = typeof scimName === 'string' && scimName.trim() !== '' ? scimName : current.name;
 
     const emails = Array.isArray(body['emails']) ? body['emails'] : [];
-    const firstEmail = emails.length > 0 && typeof emails[0] === 'object' && emails[0] !== null
-      ? (emails[0] as { value?: unknown }).value
-      : undefined;
+    const firstEmail =
+      emails.length > 0 && typeof emails[0] === 'object' && emails[0] !== null
+        ? (emails[0] as { value?: unknown }).value
+        : undefined;
     const emailFromEmails = normalizeUserName(firstEmail);
     if (emailFromEmails && emailFromEmails !== current.email.toLowerCase()) {
-      return scimError(reply, 400, 'invalidValue', 'emails[0].value is immutable (matches userName)');
+      return scimError(
+        reply,
+        400,
+        'invalidValue',
+        'emails[0].value is immutable (matches userName)',
+      );
     }
 
     // active=false → suspension parity (batch A): revoke all sessions so the
@@ -543,7 +669,12 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     // PatchOp envelope validation → 400 invalidValue (RFC 7644 §3.5.2).
     const operations = Array.isArray(body['Operations']) ? body['Operations'] : undefined;
     if (!operations || operations.length === 0) {
-      return scimError(reply, 400, 'invalidValue', 'Patch body must carry a non-empty Operations array');
+      return scimError(
+        reply,
+        400,
+        'invalidValue',
+        'Patch body must carry a non-empty Operations array',
+      );
     }
 
     // Pre-check BEFORE processing: an unknown id must 404 without writes.
@@ -587,7 +718,12 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
         return scimError(reply, 400, 'invalidPath', 'emails is immutable (matches userName)');
       } else {
         // R7: unknown attributes are explicitly rejected, never ignored.
-        return scimError(reply, 400, 'invalidPath', `Unsupported patch path: ${op.path === undefined ? '(missing)' : String(op.path)}`);
+        return scimError(
+          reply,
+          400,
+          'invalidPath',
+          `Unsupported patch path: ${op.path === undefined ? '(missing)' : String(op.path)}`,
+        );
       }
     }
 
@@ -615,7 +751,12 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
       return true;
     }
     if (message.startsWith(LAST_ADMIN_GUARD_TAG)) {
-      scimError(reply, 403, 'invalidValue', 'Operation would leave the tenant with no active administrator');
+      scimError(
+        reply,
+        403,
+        'invalidValue',
+        'Operation would leave the tenant with no active administrator',
+      );
       return true;
     }
     return false;
@@ -652,7 +793,9 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     }
     const startIndex = Math.max(1, Number.parseInt(query.startIndex ?? '1', 10) || 1);
     const countRaw = Number.parseInt(query.count ?? String(PAGE_SIZE_DEFAULT), 10);
-    const count = Number.isNaN(countRaw) ? PAGE_SIZE_DEFAULT : Math.min(Math.max(1, countRaw), PAGE_SIZE_MAX);
+    const count = Number.isNaN(countRaw)
+      ? PAGE_SIZE_DEFAULT
+      : Math.min(Math.max(1, countRaw), PAGE_SIZE_MAX);
     // ponytail: list-all-then-slice; per-tenant group counts are dozens. Add a
     // paginated manager query if a tenant ever approaches PAGE_SIZE_MAX.
     const offset = Math.max(0, startIndex - 1);
@@ -745,7 +888,8 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
       throw err;
     }
     const finalGroup = await groupManager.findById(id, tenantId);
-    if (!finalGroup) return scimError(reply, 500, undefined, `Group ${id} disappeared during update`);
+    if (!finalGroup)
+      return scimError(reply, 500, undefined, `Group ${id} disappeared during update`);
     const members = await groupManager.listMembers(id, tenantId);
     return scimSend(reply, 200, toScimGroup(finalGroup, members));
   });
@@ -757,7 +901,12 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     const body = (request.body ?? {}) as Record<string, unknown>;
     const operations = Array.isArray(body['Operations']) ? body['Operations'] : undefined;
     if (!operations || operations.length === 0) {
-      return scimError(reply, 400, 'invalidValue', 'Patch body must carry a non-empty Operations array');
+      return scimError(
+        reply,
+        400,
+        'invalidValue',
+        'Patch body must carry a non-empty Operations array',
+      );
     }
     if (!(await groupManager.findById(id, tenantId))) {
       return scimError(reply, 404, 'notFound', `Group ${id} not found`);
@@ -778,7 +927,12 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
         }
         if (path === 'displayname') {
           if (kind !== 'replace' || typeof op.value !== 'string' || op.value.trim() === '') {
-            return scimError(reply, 400, 'invalidPath', 'displayName requires a replace with a non-empty string');
+            return scimError(
+              reply,
+              400,
+              'invalidPath',
+              'displayName requires a replace with a non-empty string',
+            );
           }
           await groupManager.update(id, { name: op.value.trim() }, tenantId);
           continue;
@@ -800,7 +954,10 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
           if (kind === 'add') {
             for (const ref of refs) await groupManager.addMember(id, ref, tenantId);
           } else if (kind === 'remove') {
-            const targets = refs.length > 0 ? refs : (await groupManager.listMembers(id, tenantId)).map((m) => m.userId);
+            const targets =
+              refs.length > 0
+                ? refs
+                : (await groupManager.listMembers(id, tenantId)).map((m) => m.userId);
             for (const ref of targets) await groupManager.removeMember(id, ref, tenantId);
           } else {
             const current = await groupManager.listMembers(id, tenantId);
@@ -809,19 +966,26 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
               if (!wanted.has(m.userId)) await groupManager.removeMember(id, m.userId, tenantId);
             }
             for (const ref of refs) {
-              if (!current.some((m) => m.userId === ref)) await groupManager.addMember(id, ref, tenantId);
+              if (!current.some((m) => m.userId === ref))
+                await groupManager.addMember(id, ref, tenantId);
             }
           }
           continue;
         }
-        return scimError(reply, 400, 'invalidPath', `Unsupported patch path: ${op.path === undefined ? '(missing)' : String(op.path)}`);
+        return scimError(
+          reply,
+          400,
+          'invalidPath',
+          `Unsupported patch path: ${op.path === undefined ? '(missing)' : String(op.path)}`,
+        );
       }
     } catch (err) {
       if (scimGroupError(reply, err)) return;
       throw err;
     }
     const finalGroup = await groupManager.findById(id, tenantId);
-    if (!finalGroup) return scimError(reply, 500, undefined, `Group ${id} disappeared during update`);
+    if (!finalGroup)
+      return scimError(reply, 500, undefined, `Group ${id} disappeared during update`);
     const members = await groupManager.listMembers(id, tenantId);
     return scimSend(reply, 200, toScimGroup(finalGroup, members));
   });

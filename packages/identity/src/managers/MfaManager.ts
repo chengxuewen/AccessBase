@@ -55,18 +55,16 @@ export class MfaManager {
     const recoveryCodes = Array.from({ length: RECOVERY_CODE_COUNT }, () =>
       randomBytes(4).toString('hex'),
     );
-    const codeHashes = await Promise.all(
-      recoveryCodes.map((code) => hash(code, 10)),
-    );
+    const codeHashes = await Promise.all(recoveryCodes.map((code) => hash(code, 10)));
 
     await this.db
       .update(users)
       .set({ totpSecret: encrypt(secret, this.keyHex), totpEnabled: false })
       .where(eq(users.id, userId));
 
-    await this.db.insert(mfaRecoveryCodes).values(
-      codeHashes.map((codeHash) => ({ userId, codeHash, used: false })),
-    );
+    await this.db
+      .insert(mfaRecoveryCodes)
+      .values(codeHashes.map((codeHash) => ({ userId, codeHash, used: false })));
 
     logger.info({ userId }, 'MFA setup generated');
     return { secret, otpauthUrl, qrDataUrl, recoveryCodes };
@@ -78,7 +76,11 @@ export class MfaManager {
     if (!row?.totpSecret) {
       throw new Error('MFA not set up for user');
     }
-    const check = verifySync({ token: code, secret: decrypt(row.totpSecret, this.keyHex), epochTolerance: EPOCH_TOLERANCE });
+    const check = verifySync({
+      token: code,
+      secret: decrypt(row.totpSecret, this.keyHex),
+      epochTolerance: EPOCH_TOLERANCE,
+    });
     if (!check.valid) {
       throw new Error('Invalid TOTP code');
     }
@@ -94,7 +96,11 @@ export class MfaManager {
     }
     let valid = false;
     try {
-      const check = verifySync({ token: code, secret: decrypt(row.totpSecret, this.keyHex), epochTolerance: EPOCH_TOLERANCE });
+      const check = verifySync({
+        token: code,
+        secret: decrypt(row.totpSecret, this.keyHex),
+        epochTolerance: EPOCH_TOLERANCE,
+      });
       valid = check.valid;
     } catch {
       // otplib throws TokenLengthError for non-6-digit input (e.g. an 8-hex

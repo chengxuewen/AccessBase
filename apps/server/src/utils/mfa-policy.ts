@@ -55,7 +55,9 @@ export async function enrollGate(opts: {
 export interface LooseOptions {
   get(key: string, env?: unknown, def?: unknown): Promise<unknown>;
 }
-export function optionGetter(om: LooseOptions): (key: string, env?: unknown, def?: unknown) => Promise<unknown> {
+export function optionGetter(
+  om: LooseOptions,
+): (key: string, env?: unknown, def?: unknown) => Promise<unknown> {
   return (k, e, d) => om.get(k, e, d);
 }
 

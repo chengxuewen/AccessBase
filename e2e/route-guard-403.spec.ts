@@ -46,7 +46,10 @@ test.describe('Route guard 403 behavior', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
     // stats: Dashboard page mounts GET /api/v1/stats — must be mocked to avoid 401 cascade
@@ -54,19 +57,34 @@ test.describe('Route guard 403 behavior', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+        }),
       });
     });
-  // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
-  await page.route('**/api/v1/auth/saml/status', async (route) => {
-  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
+    // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
+    await page.route('**/api/v1/auth/saml/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    await page.route('**/api/v1/auth/sms/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    await page.route('**/api/v1/auth/captcha/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
   });
 
   test.afterEach(async () => {
@@ -75,8 +93,12 @@ test.describe('Route guard 403 behavior', () => {
 
   test('audit page shows 403 for user without audit:read', async ({ page }) => {
     await seedSessionWithMe(page, {
-      id: '1', email: 'limited@accessbase.local', name: 'Limited',
-      roles: [{ id: 'r-2', name: 'staff' }], permissions: ['users:read'], mfaEnabled: false,
+      id: '1',
+      email: 'limited@accessbase.local',
+      name: 'Limited',
+      roles: [{ id: 'r-2', name: 'staff' }],
+      permissions: ['users:read'],
+      mfaEnabled: false,
     }); // no audit:read
     await page.goto('/audit');
     await expect(page.locator('.ant-result-403')).toBeVisible();
@@ -84,8 +106,12 @@ test.describe('Route guard 403 behavior', () => {
 
   test('direct /dashboard shows 403 for user without stats:read', async ({ page }) => {
     await seedSessionWithMe(page, {
-      id: '1', email: 'limited@accessbase.local', name: 'Limited',
-      roles: [{ id: 'r-2', name: 'staff' }], permissions: ['users:read'], mfaEnabled: false,
+      id: '1',
+      email: 'limited@accessbase.local',
+      name: 'Limited',
+      roles: [{ id: 'r-2', name: 'staff' }],
+      permissions: ['users:read'],
+      mfaEnabled: false,
     });
     await page.goto('/dashboard');
     await expect(page.locator('.ant-result-403')).toBeVisible();

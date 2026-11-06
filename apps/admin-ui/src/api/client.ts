@@ -31,7 +31,9 @@ interface TokenPair {
 let refreshInFlight: Promise<TokenPair> | null = null;
 
 async function requestTokenPair(refreshToken: string): Promise<TokenPair> {
-  const { data } = await axios.post<ApiEnvelope<TokenPair>>('/api/v1/auth/refresh', { refreshToken });
+  const { data } = await axios.post<ApiEnvelope<TokenPair>>('/api/v1/auth/refresh', {
+    refreshToken,
+  });
   // Server envelope (routes/auth.ts:374-377): { success, data: { accessToken, refreshToken, expiresIn } }
   const pair: TokenPair | undefined = data?.data;
   if (typeof pair?.accessToken !== 'string' || typeof pair?.refreshToken !== 'string') {

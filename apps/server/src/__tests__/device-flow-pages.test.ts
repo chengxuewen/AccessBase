@@ -24,7 +24,10 @@ const ctx = (acceptLanguage?: string): Ctx => ({
 });
 
 beforeEach(() => {
-  setDeviceFlowBrandingReader(async () => ({ logoUrl: 'https://cdn.example.com/l.png', primaryColor: '#ff4400' }));
+  setDeviceFlowBrandingReader(async () => ({
+    logoUrl: 'https://cdn.example.com/l.png',
+    primaryColor: '#ff4400',
+  }));
 });
 
 describe('deviceUserCodeInputSource', () => {
@@ -55,7 +58,13 @@ describe('deviceUserCodeInputSource', () => {
 describe('deviceUserCodeConfirmSource', () => {
   it('client name + user code + confirm/abort buttons preserved', async () => {
     const c = ctx();
-    await deviceUserCodeConfirmSource(c, '<form id="op.deviceConfirmForm" action="/device/confirm"></form>', { clientName: 'TV App' }, undefined, 'ABCD-EFGH');
+    await deviceUserCodeConfirmSource(
+      c,
+      '<form id="op.deviceConfirmForm" action="/device/confirm"></form>',
+      { clientName: 'TV App' },
+      undefined,
+      'ABCD-EFGH',
+    );
     expect(c.body).toContain('TV App');
     expect(c.body).toContain('ABCD-EFGH');
     expect(c.body).toContain('op.deviceConfirmForm');
@@ -66,7 +75,11 @@ describe('deviceUserCodeConfirmSource', () => {
 describe('deviceRenderError', () => {
   it('error_description surfaces, out.error echoed small', async () => {
     const c = ctx();
-    await deviceRenderError(c, { error: 'expired_token' }, { error_description: 'the code expired' });
+    await deviceRenderError(
+      c,
+      { error: 'expired_token' },
+      { error_description: 'the code expired' },
+    );
     expect(c.body).toContain('the code expired');
     expect(c.body).toContain('expired_token');
   });

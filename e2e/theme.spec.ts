@@ -9,7 +9,12 @@ async function seedSession(page: Page): Promise<void> {
         state: {
           token: 'test-token',
           refreshToken: 'test-refresh',
-          user: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [{ id: 'role-1', name: 'admin' }] },
+          user: {
+            id: '1',
+            email: 'admin@example.com',
+            name: 'Admin',
+            roles: [{ id: 'role-1', name: 'admin' }],
+          },
           isAuthenticated: true,
         },
         version: 0,
@@ -22,21 +27,35 @@ async function seedSession(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   await page.route('**/api/v1/auth/me', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { id: '1', email: 'admin@example.com', name: 'Admin', roles: [{ id: 'role-1', name: 'admin' }] } }),
+      body: JSON.stringify({
+        success: true,
+        data: {
+          id: '1',
+          email: 'admin@example.com',
+          name: 'Admin',
+          roles: [{ id: 'role-1', name: 'admin' }],
+        },
+      }),
     });
   });
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
 }

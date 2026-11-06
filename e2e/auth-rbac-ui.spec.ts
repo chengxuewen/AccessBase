@@ -3,10 +3,17 @@ import { test, expect, type Page } from '@playwright/test';
 // Task 11 — menu/route permission gates fed by /auth/me permissions (Task 10 contract).
 // The 11 codes mirror BUILTIN_PERMISSIONS in apps/server/src/routes/permissions-seed.ts.
 const FULL_PERMISSIONS = [
-  'users:read', 'users:write', 'users:delete',
-  'roles:read', 'roles:write', 'roles:delete',
-  'permissions:read', 'permissions:write', 'permissions:delete',
-  'audit:read', 'stats:read',
+  'users:read',
+  'users:write',
+  'users:delete',
+  'roles:read',
+  'roles:write',
+  'roles:delete',
+  'permissions:read',
+  'permissions:write',
+  'permissions:delete',
+  'audit:read',
+  'stats:read',
 ];
 
 function trackConsoleErrors(page: Page): string[] {
@@ -53,14 +60,20 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
     await page.route('**/api/v1/stats', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+        }),
       });
     });
     // Users list for /users navigation in the users:read-holder test
@@ -71,36 +84,67 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
         body: JSON.stringify({ success: true, data: [], total: 0 }),
       });
     });
-  // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
-  await page.route('**/api/v1/auth/saml/status', async (route) => {
-  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
-  // unmocked → console-error net failure (R4 discipline)
-  await page.route('**/api/v1/tenants**', async (route) => {
-    if (route.request().method() !== 'GET') return route.fallback();
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: [{ id: '00000000-0000-0000-0000-000000000001', name: 'Default', slug: 'default', status: 'active', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+    // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
+    await page.route('**/api/v1/auth/saml/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
-  });
+    await page.route('**/api/v1/auth/sms/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    await page.route('**/api/v1/auth/captcha/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
+    // unmocked → console-error net failure (R4 discipline)
+    await page.route('**/api/v1/tenants**', async (route) => {
+      if (route.request().method() !== 'GET') return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: '00000000-0000-0000-0000-000000000001',
+              name: 'Default',
+              slug: 'default',
+              status: 'active',
+              createdAt: '2026-01-01T00:00:00Z',
+              updatedAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 1,
+        }),
+      });
+    });
   });
 
   test.afterEach(async () => {
     expect(consoleErrors, 'console errors should be empty').toEqual([]);
   });
 
-  test('user with only users:read: Roles entry hidden, direct /roles lands on 403', async ({ page }) => {
+  test('user with only users:read: Roles entry hidden, direct /roles lands on 403', async ({
+    page,
+  }) => {
     await seedSessionWithMe(page, {
-      id: '1', email: 'limited@accessbase.local', name: 'Limited',
-      roles: [{ id: 'r-2', name: 'staff' }], permissions: ['users:read'], mfaEnabled: false,
+      id: '1',
+      email: 'limited@accessbase.local',
+      name: 'Limited',
+      roles: [{ id: 'r-2', name: 'staff' }],
+      permissions: ['users:read'],
+      mfaEnabled: false,
     });
 
     await page.goto('/users'); // users:read holder → renders layout; /dashboard now 403s for this user
@@ -124,8 +168,12 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
   // Plan B gate alignment: /users/create + /users/:id/edit gate on users:write (backend enforces it)
   test('user with only users:read: direct /users/create lands on 403', async ({ page }) => {
     await seedSessionWithMe(page, {
-      id: '1', email: 'limited@accessbase.local', name: 'Limited',
-      roles: [{ id: 'r-2', name: 'staff' }], permissions: ['users:read'], mfaEnabled: false,
+      id: '1',
+      email: 'limited@accessbase.local',
+      name: 'Limited',
+      roles: [{ id: 'r-2', name: 'staff' }],
+      permissions: ['users:read'],
+      mfaEnabled: false,
     });
 
     await page.goto('/users/create');
@@ -137,8 +185,12 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
 
   test('user with all 11 codes sees the full menu', async ({ page }) => {
     await seedSessionWithMe(page, {
-      id: '1', email: 'admin@accessbase.local', name: 'Administrator',
-      roles: [{ id: 'r-1', name: 'admin' }], permissions: FULL_PERMISSIONS, mfaEnabled: false,
+      id: '1',
+      email: 'admin@accessbase.local',
+      name: 'Administrator',
+      roles: [{ id: 'r-1', name: 'admin' }],
+      permissions: FULL_PERMISSIONS,
+      mfaEnabled: false,
     });
 
     await page.goto('/dashboard');
@@ -154,7 +206,10 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
 
   test('legacy backend (no permissions field) keeps every menu visible', async ({ page }) => {
     await seedSessionWithMe(page, {
-      id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [],
+      id: '1',
+      email: 'admin@accessbase.local',
+      name: 'Administrator',
+      roles: [],
     });
 
     await page.goto('/dashboard');

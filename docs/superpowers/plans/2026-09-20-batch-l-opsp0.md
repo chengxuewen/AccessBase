@@ -28,20 +28,21 @@
 ## Task 1 (L-T1) 迁移接线（P0 核心，spec D1）
 
 **新建 `scripts/migrate.sh`**（纯 bash+psql，无新依赖）:
+
 - 入参 **[R3]**：`migrate.sh <chain-dir>` 第一位置参数必填（容器 `/app/packages/migration/drizzle`；deploy 仓库根路径——out/ 无链，已实锤，不改 build.sh）；缺参/目录缺/零 `NNNN_*.sql` ⇒ exit 1 响亮（绝不空 stamp）
 - 连接 **[R7]**：`psql "$DATABASE_URL"` 有值即用；无值裸 `psql` 吃 PG\* socket 环境（容器 trust）
 - 逻辑 **[H1][LOW-5]**：tracking 表 `(id, applied_at, note text)` IF NOT EXISTS → 空表且 `users` 存在 ⇒ baseline stamp（`note='stamped'`）**后跑链尾哨兵探测 `SELECT phone FROM users LIMIT 1`，列缺 → 响亮 error 行 `legacy DB behind chain head (0004) — run db:push to reconcile` 且 exit 0 不阻断** → 按字典序逐文件 `psql -v ON_ERROR_STOP=1 -1 -f` + 成功即插行 → 失败 exit 1 带文件名
-**改调用点**:
+  **改调用点**:
 - `docker/entrypoint.sh:32` → `bash /app/scripts/migrate.sh /app/packages/migration/drizzle`（删 `|| true`）
 - **[R4] Dockerfile** runtime 段补 `COPY --chmod=755 scripts/migrate.sh /app/scripts/migrate.sh`（镜像现无 scripts/，实锤）+ 顺手 **[L-4]** HEALTHCHECK 加 `--start-period=60s`
 - `scripts/deploy/start.sh:113` → `bash "${PROJECT_ROOT}/scripts/migrate.sh" "${PROJECT_ROOT}/packages/migration/drizzle" || { log_error "Migrations failed — aborting"; exit 1; }`
-**测试（RED 先行）[R5]**: `apps/server/src/__tests__/ops-migrate.test.ts`（vitest include 只收 packages/apps，scripts/ 不被收集）：
+  **测试（RED 先行）[R5]**: `apps/server/src/__tests__/ops-migrate.test.ts`（vitest include 只收 packages/apps，scripts/ 不被收集）：
 - fresh（skipIf PG probe）：临时库 → 跑 → 16 表 + tracking 5 行
 - legacy-behind：**裸建 users（无 phone 列）**→ 跑 → stamped + **error 行含 chain head 文案**、exit 0
 - 响亮失败：塞坏 .sql → exit ≠ 0 + stderr 含文件名
 - 幂等：三连跑 exit 0；缺目录 → exit 1
 - 静态：两调用点源文本不含 `cli.js up`/对 migrate 的 `|| true`；Dockerfile 含 COPY migrate.sh 行
-**验收**: 测试全绿；`bash -n`；container 镜像内 `/app/scripts/migrate.sh` 存在归 T6 docker build 验。
+  **验收**: 测试全绿；`bash -n`；container 镜像内 `/app/scripts/migrate.sh` 存在归 T6 docker build 验。
 
 ## Task 2 (L-T2) selfHealSeed 有界重试（spec D2）
 

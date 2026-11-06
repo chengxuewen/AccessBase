@@ -21,7 +21,11 @@ function sessionPayload(accessToken: string, refreshToken: string) {
   return {
     data: {
       success: true,
-      data: { accessToken, refreshToken, user: { id: 'u1', email: 'a@b.com', name: 'A', roles: [] } },
+      data: {
+        accessToken,
+        refreshToken,
+        user: { id: 'u1', email: 'a@b.com', name: 'A', roles: [] },
+      },
     },
   };
 }
@@ -70,7 +74,12 @@ describe('auth store — MFA branch hygiene', () => {
   it('login: mfaRequired wipes stale session (token/refresh/user/isAuthenticated) and sets flowToken', async () => {
     // Seed a stale authenticated session before calling login()
     useAuthStore.setState({
-      user: { id: 'stale-u', email: 'stale@test.local', name: 'Stale', roles: [{ id: 'r1', name: 'admin' }] },
+      user: {
+        id: 'stale-u',
+        email: 'stale@test.local',
+        name: 'Stale',
+        roles: [{ id: 'r1', name: 'admin' }],
+      },
       token: 'old-token',
       refreshToken: 'old-refresh',
       isAuthenticated: true,

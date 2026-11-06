@@ -16,9 +16,8 @@ vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
 
 // Mailer mock (R8: fromConfig keyed off host): shared send spy, host-gated null.
 const mailerSend = vi.fn().mockResolvedValue(undefined);
-const mailerFromConfig = vi.fn(
-  (cfg: { host?: string } | null | undefined) =>
-    cfg && cfg.host ? { send: mailerSend } : null,
+const mailerFromConfig = vi.fn((cfg: { host?: string } | null | undefined) =>
+  cfg && cfg.host ? { send: mailerSend } : null,
 );
 
 const MAGIC_EMAIL = 'magic-user@test.local';
@@ -37,7 +36,10 @@ const markEmailVerified = vi.fn(async () => {});
 
 // Per-test knobs
 let userByEmail: Record<string, typeof magicUser | null> = { [MAGIC_EMAIL]: magicUser };
-let userById: Record<string, (typeof magicUser & { status?: string; totpEnabled?: boolean }) | null> = {
+let userById: Record<
+  string,
+  (typeof magicUser & { status?: string; totpEnabled?: boolean }) | null
+> = {
   [magicUser.id]: magicUser,
 };
 
@@ -255,25 +257,22 @@ describe('POST /api/v1/auth/magic/request', () => {
     }
   });
 
-  it.each(['suspended', 'pending'] as const)(
-    '%s user: 202 identical + no send',
-    async (status) => {
-      process.env['SMTP_HOST'] = 'smtp.test.local';
-      try {
-        userByEmail = { [MAGIC_EMAIL]: { ...magicUser, status } };
-        const res = await requestMagic(MAGIC_EMAIL);
-        expect(res.statusCode).toBe(202);
-        expect(res.json()).toEqual({
-          success: true,
-          data: { message: 'If an account exists, a sign-in link has been sent.' },
-        });
-        expect(mailerSend).not.toHaveBeenCalled();
-        expect(flowTokenMock.issue).not.toHaveBeenCalled();
-      } finally {
-        delete process.env['SMTP_HOST'];
-      }
-    },
-  );
+  it.each(['suspended', 'pending'] as const)('%s user: 202 identical + no send', async (status) => {
+    process.env['SMTP_HOST'] = 'smtp.test.local';
+    try {
+      userByEmail = { [MAGIC_EMAIL]: { ...magicUser, status } };
+      const res = await requestMagic(MAGIC_EMAIL);
+      expect(res.statusCode).toBe(202);
+      expect(res.json()).toEqual({
+        success: true,
+        data: { message: 'If an account exists, a sign-in link has been sent.' },
+      });
+      expect(mailerSend).not.toHaveBeenCalled();
+      expect(flowTokenMock.issue).not.toHaveBeenCalled();
+    } finally {
+      delete process.env['SMTP_HOST'];
+    }
+  });
 
   it('invalid email format → 400', async () => {
     const res = await requestMagic('not-an-email');
@@ -300,7 +299,8 @@ describe('POST /api/v1/auth/magic/request', () => {
     const omPrev = getOptionsManager();
     setOptionsManager({
       get: async (key: string, envValue: unknown, defaultValue: unknown) => {
-        if (key === 'site.url') return envValue !== undefined ? envValue : 'https://idp.example.com';
+        if (key === 'site.url')
+          return envValue !== undefined ? envValue : 'https://idp.example.com';
         return envValue !== undefined ? envValue : defaultValue;
       },
     } as unknown as OptionsManager);

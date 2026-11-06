@@ -38,7 +38,10 @@ export async function updateEmailTemplate(
   id: EmailTemplateId,
   payload: EmailTemplatePayload,
 ): Promise<EmailTemplate> {
-  const { data } = await client.put<ApiEnvelope<EmailTemplate>>(`/v1/email-templates/${id}`, payload);
+  const { data } = await client.put<ApiEnvelope<EmailTemplate>>(
+    `/v1/email-templates/${id}`,
+    payload,
+  );
   return data.data;
 }
 
@@ -48,10 +51,13 @@ export async function previewEmailTemplate(
   locale?: 'en' | 'zh',
   vars?: Record<string, string | number>,
 ): Promise<TemplatePreview> {
-  const { data } = await client.post<ApiEnvelope<TemplatePreview>>(`/v1/email-templates/${id}/preview`, {
-    ...(locale ? { locale } : {}),
-    ...(vars ? { vars } : {}),
-  });
+  const { data } = await client.post<ApiEnvelope<TemplatePreview>>(
+    `/v1/email-templates/${id}/preview`,
+    {
+      ...(locale ? { locale } : {}),
+      ...(vars ? { vars } : {}),
+    },
+  );
   return data.data;
 }
 

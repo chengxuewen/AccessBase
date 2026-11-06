@@ -8,7 +8,10 @@ import { config } from './config.js';
 export function resolveCorsOrigin() {
   if (!config.corsOrigins) return true;
 
-  const whitelist = config.corsOrigins.split(',').map((s) => s.trim()).filter(Boolean);
+  const whitelist = config.corsOrigins
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   return (origin: string | undefined, cb: (err: Error | null, allow: boolean) => void) => {
     cb(null, origin !== undefined && whitelist.includes(origin));
   };

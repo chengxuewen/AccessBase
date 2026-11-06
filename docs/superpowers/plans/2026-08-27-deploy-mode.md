@@ -26,29 +26,31 @@
 
 ## 文件结构
 
-| 操作 | 文件 | 职责 |
-|------|------|------|
-| Modify | `apps/server/package.json` | 添加 `@fastify/static` 依赖 |
-| Modify | `apps/server/src/app.ts` | 注册 `@fastify/static`，SPA fallback |
-| Modify | `apps/server/src/config.ts` | 添加 `staticDir`、`adminEmail`、`adminPassword` 配置 |
-| Create | `scripts/deploy/build.sh` | 构建脚本：编译 server 到 `out/server/`，UI 到 `out/admin-ui/` |
-| Create | `scripts/deploy/start.sh` | 启动脚本：PG + Redis + 迁移 + 自动创建 admin + 启动 server |
-| Create | `scripts/deploy/stop.sh` | 停止脚本：优雅关闭 server + PG + Redis |
-| Create | `scripts/deploy/reset.sh` | 重置脚本：停服务 + 确认 + 清 data/ |
-| Modify | `accessbase.sh` | 添加 deploy 模式命令 |
-| Modify | `.gitignore` | 添加 `data/`, `out/` |
-| Modify | `.env.example` | 添加 deploy 模式变量 |
+| 操作   | 文件                        | 职责                                                          |
+| ------ | --------------------------- | ------------------------------------------------------------- |
+| Modify | `apps/server/package.json`  | 添加 `@fastify/static` 依赖                                   |
+| Modify | `apps/server/src/app.ts`    | 注册 `@fastify/static`，SPA fallback                          |
+| Modify | `apps/server/src/config.ts` | 添加 `staticDir`、`adminEmail`、`adminPassword` 配置          |
+| Create | `scripts/deploy/build.sh`   | 构建脚本：编译 server 到 `out/server/`，UI 到 `out/admin-ui/` |
+| Create | `scripts/deploy/start.sh`   | 启动脚本：PG + Redis + 迁移 + 自动创建 admin + 启动 server    |
+| Create | `scripts/deploy/stop.sh`    | 停止脚本：优雅关闭 server + PG + Redis                        |
+| Create | `scripts/deploy/reset.sh`   | 重置脚本：停服务 + 确认 + 清 data/                            |
+| Modify | `accessbase.sh`             | 添加 deploy 模式命令                                          |
+| Modify | `.gitignore`                | 添加 `data/`, `out/`                                          |
+| Modify | `.env.example`              | 添加 deploy 模式变量                                          |
 
 ---
 
 ### Task 1: 安装 @fastify/static 并配置静态资源服务
 
 **Files:**
+
 - Modify: `apps/server/package.json`
 - Modify: `apps/server/src/app.ts`
 - Modify: `apps/server/src/config.ts`
 
 **Interfaces:**
+
 - Produces: `config.staticDir` (string, default `out/admin-ui`), `config.adminEmail` (string), Fastify 静态资源路由 + SPA fallback
 
 - [ ] **Step 1: 安装依赖**
@@ -133,9 +135,11 @@ git commit -m "feat: add @fastify/static for deploy mode single-port serving"
 ### Task 2: 创建构建脚本 scripts/deploy/build.sh
 
 **Files:**
+
 - Create: `scripts/deploy/build.sh`
 
 **Interfaces:**
+
 - Produces: `out/server/`（编译后的 server）, `out/admin-ui/`（Vite 静态资源）
 
 - [ ] **Step 1: 创建 scripts/deploy/ 目录**
@@ -211,6 +215,7 @@ log_info "  UI:      $OUT_DIR/admin-ui/index.html"
 ```
 
 注意：如果 `pnpm install --prod` 在 `out/` 中因 workspace 协议失败，替代方案是：
+
 ```bash
 # 替代方案：直接从 monorepo node_modules 复制
 cp -r "$PROJECT_ROOT/node_modules" "$OUT_DIR/node_modules"
@@ -234,9 +239,11 @@ git commit -m "feat: add deploy build script"
 ### Task 3: 创建启动脚本 scripts/deploy/start.sh（含 admin 自动创建）
 
 **Files:**
+
 - Create: `scripts/deploy/start.sh`
 
 **Interfaces:**
+
 - 数据目录: `data/pg/`, `data/redis/`
 - 环境变量: `DATABASE_URL`, `REDIS_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `JWT_SECRET`, `NODE_ENV`
 - PID 文件: `data/.pids`
@@ -428,6 +435,7 @@ git commit -m "feat: deploy start script with admin auto-create and pre-flight c
 ### Task 4: 创建停止/重置脚本
 
 **Files:**
+
 - Create: `scripts/deploy/stop.sh`
 - Create: `scripts/deploy/reset.sh`
 
@@ -516,9 +524,11 @@ git commit -m "feat: deploy stop/reset scripts with confirmation and graceful sh
 ### Task 5: 在 accessbase.sh 中添加 deploy 模式命令
 
 **Files:**
+
 - Modify: `accessbase.sh`
 
 **Interfaces:**
+
 - Produces: `build:deploy`, `start:deploy`, `stop:deploy`, `reset:deploy`, `status:deploy`, `logs:deploy` 命令
 
 - [ ] **Step 1: 添加 deploy 命令函数**
@@ -618,6 +628,7 @@ git commit -m "feat: add deploy mode commands (build/start/stop/reset/status/log
 ### Task 6: 更新 .gitignore 和 .env.example
 
 **Files:**
+
 - Modify: `.gitignore`
 - Modify: `.env.example`
 
@@ -739,20 +750,20 @@ git commit -m "test: deploy mode end-to-end verification"
 
 本计划经过 3 人团队审核（completeness / technical / risk），以下为修复的关键问题：
 
-| # | 级别 | 问题 | 修复 |
-|---|------|------|------|
-| 1 | CRITICAL | Admin 自动创建逻辑缺失 | Task 3 start.sh 增加 curl 调用 setup API |
-| 2 | CRITICAL | @fastify/static 版本错误 | 改为 `^7.0.0` |
-| 3 | CRITICAL | decorateReply: false 破坏 SPA | 移除该选项，v7 自动装饰 |
-| 4 | CRITICAL | initdb --username=accessbase 后 psql -U postgres | 统一用 accessbase 用户 |
-| 5 | HIGH | build.sh workspace 协议解析失败 | 改为只复制 dist/ + package.json |
-| 6 | HIGH | out/ 缺失无预检 | start.sh 增加 pre-flight check |
-| 7 | HIGH | JWT_SECRET 未校验 | 生产模式必须设置 |
-| 8 | HIGH | NODE_ENV 未设置 | start.sh 默认 production |
-| 9 | HIGH | ADMIN_PASSWORD 为空无拦截 | 生产模式必须非空 |
-| 10 | HIGH | 缺端口冲突检测 | start.sh 增加 lsof 检查 |
-| 11 | HIGH | 无 graceful shutdown | start.sh 增加 trap cleanup |
-| 12 | HIGH | 缺 logs:deploy | 新增 cmd_logs_deploy |
-| 13 | MEDIUM | 无 server readiness wait | start.sh 增加 curl 循环等待 |
-| 14 | MEDIUM | reset 无确认 | 增加 read -p 确认 |
-| 15 | MEDIUM | SPA fallback 路径过滤不完整 | 只排除 /api/ /health /docs 前缀 |
+| #   | 级别     | 问题                                             | 修复                                     |
+| --- | -------- | ------------------------------------------------ | ---------------------------------------- |
+| 1   | CRITICAL | Admin 自动创建逻辑缺失                           | Task 3 start.sh 增加 curl 调用 setup API |
+| 2   | CRITICAL | @fastify/static 版本错误                         | 改为 `^7.0.0`                            |
+| 3   | CRITICAL | decorateReply: false 破坏 SPA                    | 移除该选项，v7 自动装饰                  |
+| 4   | CRITICAL | initdb --username=accessbase 后 psql -U postgres | 统一用 accessbase 用户                   |
+| 5   | HIGH     | build.sh workspace 协议解析失败                  | 改为只复制 dist/ + package.json          |
+| 6   | HIGH     | out/ 缺失无预检                                  | start.sh 增加 pre-flight check           |
+| 7   | HIGH     | JWT_SECRET 未校验                                | 生产模式必须设置                         |
+| 8   | HIGH     | NODE_ENV 未设置                                  | start.sh 默认 production                 |
+| 9   | HIGH     | ADMIN_PASSWORD 为空无拦截                        | 生产模式必须非空                         |
+| 10  | HIGH     | 缺端口冲突检测                                   | start.sh 增加 lsof 检查                  |
+| 11  | HIGH     | 无 graceful shutdown                             | start.sh 增加 trap cleanup               |
+| 12  | HIGH     | 缺 logs:deploy                                   | 新增 cmd_logs_deploy                     |
+| 13  | MEDIUM   | 无 server readiness wait                         | start.sh 增加 curl 循环等待              |
+| 14  | MEDIUM   | reset 无确认                                     | 增加 read -p 确认                        |
+| 15  | MEDIUM   | SPA fallback 路径过滤不完整                      | 只排除 /api/ /health /docs 前缀          |

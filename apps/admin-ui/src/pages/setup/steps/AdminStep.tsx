@@ -34,7 +34,8 @@ export default function AdminStep({ next, prev, stepTitleRef }: StepProps) {
       setAdminData({ name: values.name, email: values.email });
       next();
     } catch (err: unknown) {
-      const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+      const code = (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data
+        ?.error?.code;
       if (code === 'ADMIN_EXISTS') {
         notification.error({ message: t('setup.errors.adminExists') });
       } else {

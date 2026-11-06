@@ -51,12 +51,7 @@ import {
   captchaRoutes,
   smsOtpVerifyRoutes,
 } from './auth/passwordless.js';
-import {
-  mfaSetupRoutes,
-  mfaEnableRoutes,
-  mfaVerifyRoutes,
-  mfaDisableRoutes,
-} from './auth/mfa.js';
+import { mfaSetupRoutes, mfaEnableRoutes, mfaVerifyRoutes, mfaDisableRoutes } from './auth/mfa.js';
 import { ldapLoginRoutes } from './auth/ldap.js';
 
 // Test seam (sms-otp/verify-email/magic-login suites import it through this
@@ -76,9 +71,7 @@ export async function authRoutes(app: FastifyInstance) {
     maxFailures: config.lockoutMaxFailures,
     windowSeconds: config.lockoutWindowSeconds,
   });
-  const flowTokens = new FlowTokenService(
-    config.nodeEnv === 'test' ? undefined : safeRedis(),
-  );
+  const flowTokens = new FlowTokenService(config.nodeEnv === 'test' ? undefined : safeRedis());
 
   const ctx: AuthContext = {
     sessionManager,

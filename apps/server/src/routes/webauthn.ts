@@ -29,7 +29,12 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { createDb, webauthnCredentials, users } from '@accessbase/identity/db';
 import type { DrizzleDB } from '@accessbase/identity/db';
-import { SessionManager, FlowTokenService, getRedisClient, TenantManager } from '@accessbase/identity';
+import {
+  SessionManager,
+  FlowTokenService,
+  getRedisClient,
+  TenantManager,
+} from '@accessbase/identity';
 import { config } from '../config.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { getOptionsManager } from './options.js';
@@ -53,8 +58,18 @@ function parseTransports(raw: string | null): AuthenticatorTransportFuture[] | u
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return undefined;
-    const KNOWN: readonly string[] = ['ble', 'cable', 'hybrid', 'internal', 'nfc', 'smart-card', 'usb'];
-    const list = parsed.map(String).filter((t): t is AuthenticatorTransportFuture => KNOWN.includes(t));
+    const KNOWN: readonly string[] = [
+      'ble',
+      'cable',
+      'hybrid',
+      'internal',
+      'nfc',
+      'smart-card',
+      'usb',
+    ];
+    const list = parsed
+      .map(String)
+      .filter((t): t is AuthenticatorTransportFuture => KNOWN.includes(t));
     return list.length > 0 ? list : undefined;
   } catch {
     return undefined;
@@ -64,9 +79,7 @@ function parseTransports(raw: string | null): AuthenticatorTransportFuture[] | u
 export async function webauthnRoutes(app: FastifyInstance) {
   const db: DrizzleDB = createDb(config.databaseUrl);
   const sessionManager = new SessionManager();
-  const flowTokens = new FlowTokenService(
-    config.nodeEnv === 'test' ? undefined : safeRedis(),
-  );
+  const flowTokens = new FlowTokenService(config.nodeEnv === 'test' ? undefined : safeRedis());
 
   function safeRedis() {
     try {
@@ -76,12 +89,7 @@ export async function webauthnRoutes(app: FastifyInstance) {
     }
   }
 
-  function authError(
-    reply: FastifyReply,
-    status: number,
-    code: string,
-    message: string,
-  ): void {
+  function authError(reply: FastifyReply, status: number, code: string, message: string): void {
     void reply.status(status).send({
       success: false,
       error: { code, message },
@@ -113,17 +121,19 @@ export async function webauthnRoutes(app: FastifyInstance) {
     }
     // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
     const accessToken = app.jwt.sign(
-      { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT, tokenVersion: user.tokenVersion },
+      {
+        sub: user.id,
+        email: user.email,
+        status: user.status,
+        tenantId: user.tenantId ?? DEFAULT_TENANT,
+        tokenVersion: user.tokenVersion,
+      },
       { expiresIn: '15m' },
     );
-    const { refreshToken } = await sessionManager.issueRefreshToken(
-      crypto.randomUUID(),
-      user.id,
-      {
-        ip: request.ip,
-        userAgent: (request.headers['user-agent'] as string | undefined) ?? 'unknown',
-      },
-    );
+    const { refreshToken } = await sessionManager.issueRefreshToken(crypto.randomUUID(), user.id, {
+      ip: request.ip,
+      userAgent: (request.headers['user-agent'] as string | undefined) ?? 'unknown',
+    });
     return { accessToken, refreshToken };
   }
 
@@ -141,7 +151,10 @@ export async function webauthnRoutes(app: FastifyInstance) {
     async (request) => {
       const payload = request.user as { sub: string; email: string; name?: string };
       const existing = await db
-        .select({ credentialId: webauthnCredentials.credentialId, transports: webauthnCredentials.transports })
+        .select({
+          credentialId: webauthnCredentials.credentialId,
+          transports: webauthnCredentials.transports,
+        })
         .from(webauthnCredentials)
         .where(eq(webauthnCredentials.userId, payload.sub));
 
@@ -186,13 +199,15 @@ export async function webauthnRoutes(app: FastifyInstance) {
       };
 
       const consumed = flowToken
-        ? await flowTokens.consume<{ challenge: string }>(
-            flowToken,
-            `webauthn_reg:${payload.sub}`,
-          )
+        ? await flowTokens.consume<{ challenge: string }>(flowToken, `webauthn_reg:${payload.sub}`)
         : null;
       if (!consumed) {
-        return authError(reply, 400, 'AUTH_WEBAUTHN_001', 'Invalid, expired, or replayed registration token');
+        return authError(
+          reply,
+          400,
+          'AUTH_WEBAUTHN_001',
+          'Invalid, expired, or replayed registration token',
+        );
       }
 
       const verification = await verifyRegistrationResponse({
@@ -262,7 +277,12 @@ export async function webauthnRoutes(app: FastifyInstance) {
         ? await flowTokens.consume<{ challenge: string }>(flowToken, 'webauthn_login')
         : null;
       if (!consumed) {
-        return authError(reply, 401, 'AUTH_WEBAUTHN_004', 'Invalid, expired, or replayed challenge token');
+        return authError(
+          reply,
+          401,
+          'AUTH_WEBAUTHN_004',
+          'Invalid, expired, or replayed challenge token',
+        );
       }
       if (!response?.id) {
         return authError(reply, 401, 'AUTH_WEBAUTHN_004', 'Malformed assertion response');
@@ -296,7 +316,12 @@ export async function webauthnRoutes(app: FastifyInstance) {
       // Counter regression = cloned authenticator signal
       const newCounter = verification.authenticationInfo.newCounter;
       if (row.counter > 0 && newCounter > 0 && newCounter <= row.counter) {
-        return authError(reply, 400, 'AUTH_WEBAUTHN_003', 'Counter regression detected (possible cloned authenticator)');
+        return authError(
+          reply,
+          400,
+          'AUTH_WEBAUTHN_003',
+          'Counter regression detected (possible cloned authenticator)',
+        );
       }
 
       await db
@@ -329,12 +354,16 @@ export async function webauthnRoutes(app: FastifyInstance) {
       // Q3E-E3 enforced-MFA arm (rev.2 F-B5: BEFORE step-up)
       {
         const enroll = await enrollGate({
-          getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
+          getOption: optionGetter(
+            getOptionsManager() as unknown as Parameters<typeof optionGetter>[0],
+          ),
           issueEnroll: async (uid) => flowTokens.issue('mfa_enroll', { userId: uid }, 300),
           isSystemAdmin: async () =>
-            (await (await getRoleManager()).getEffectiveRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
-              (r) => r.isSystem === true,
-            ),
+            (
+              await (
+                await getRoleManager()
+              ).getEffectiveRoles(user.id, user.tenantId ?? DEFAULT_TENANT)
+            ).some((r) => r.isSystem === true),
           user,
         });
         if (enroll) return { success: true, data: enroll };

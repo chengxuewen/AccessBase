@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import {
-  verifyRegistrationResponse,
-  verifyAuthenticationResponse,
-} from '@simplewebauthn/server';
+import { verifyRegistrationResponse, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import type { IdentityService } from '@accessbase/identity';
 
 process.env.NODE_ENV = 'test';
@@ -127,7 +124,9 @@ vi.mock('@accessbase/identity/db', () => ({
           // route's WHERE, so here we emulate DB semantics: delete matches only
           // rows whose userId equals the authenticated user captured in authCtx.
           const deleted = credRows.splice(0);
-          return authCtx.userId === null ? deleted : deleted.filter((r) => r['userId'] === authCtx.userId);
+          return authCtx.userId === null
+            ? deleted
+            : deleted.filter((r) => r['userId'] === authCtx.userId);
         },
       }),
     }),
@@ -255,7 +254,12 @@ describe('POST /api/v1/auth/webauthn/register/options', () => {
 });
 
 describe('POST /api/v1/auth/webauthn/register/verify', () => {
-  const registration = { id: 'new-cred-id', rawId: 'new-cred-id', response: {}, type: 'public-key' };
+  const registration = {
+    id: 'new-cred-id',
+    rawId: 'new-cred-id',
+    response: {},
+    type: 'public-key',
+  };
 
   it('returns 401 without auth token', async () => {
     const res = await app.inject({
@@ -498,7 +502,10 @@ describe('GET /api/v1/auth/webauthn/credentials', () => {
 
 describe('DELETE /api/v1/auth/webauthn/credentials/:id', () => {
   it('returns 401 without auth token', async () => {
-    const res = await app.inject({ method: 'DELETE', url: '/api/v1/auth/webauthn/credentials/row-1' });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/auth/webauthn/credentials/row-1',
+    });
     expect(res.statusCode).toBe(401);
   });
 

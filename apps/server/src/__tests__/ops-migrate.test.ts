@@ -29,7 +29,13 @@ const MAINT_URL = 'postgresql://accessbase:accessbase@localhost:5432/postgres';
 
 const probe = new pg.Client({ connectionString: MAINT_URL });
 const pgAvailable = await (async () => {
-  try { await probe.connect(); await probe.end(); return true; } catch { return false; }
+  try {
+    await probe.connect();
+    await probe.end();
+    return true;
+  } catch {
+    return false;
+  }
 })();
 
 /** Run migrate.sh; returns { status, stdout, stderr }. */
@@ -127,7 +133,10 @@ describe('migrate wiring static locks', () => {
 
 describe('migrate.sh argument contract', () => {
   it('missing chain-dir argument exits 1', () => {
-    const r = spawnSync('bash', [SCRIPT], { encoding: 'utf8', env: { ...process.env, PATH: PATH_WITH_PSQL } });
+    const r = spawnSync('bash', [SCRIPT], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: PATH_WITH_PSQL },
+    });
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('chain-dir');
   });
@@ -155,21 +164,26 @@ describe('migrate.sh argument contract', () => {
 // ---------------------------------------------------------------------------
 
 describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
-  it('fresh DB: applies full chain — 25 chain tables + 14 tracking rows', { timeout: 30_000 }, async () => {
-    const url = await tmpDbUrl();
-    const r = migrate(CHAIN, url);
-    expect(r.stderr).toBe('');
-    expect(r.status).toBe(0);
+  it(
+    'fresh DB: applies full chain — 25 chain tables + 14 tracking rows',
+    { timeout: 30_000 },
+    async () => {
+      const url = await tmpDbUrl();
+      const r = migrate(CHAIN, url);
+      expect(r.stderr).toBe('');
+      expect(r.status).toBe(0);
 
-    const tables = await query(url,
-      "SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema='public' AND table_name <> 'schema_migrations'");
-    expect((tables[0] as { n: number }).n).toBe(25);
+      const tables = await query(
+        url,
+        "SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema='public' AND table_name <> 'schema_migrations'",
+      );
+      expect((tables[0] as { n: number }).n).toBe(25);
 
-    const tracked = await query(url,
-      "SELECT id FROM schema_migrations ORDER BY id");
-    expect(tracked).toHaveLength(14);
-    expect((tracked[0] as { id: string }).id).toMatch(/^0000_/);
-  });
+      const tracked = await query(url, 'SELECT id FROM schema_migrations ORDER BY id');
+      expect(tracked).toHaveLength(14);
+      expect((tracked[0] as { id: string }).id).toMatch(/^0000_/);
+    },
+  );
 
   it('legacy DB behind head: baseline stamps, warns chain-head sentinel, exits 0', async () => {
     const url = await tmpDbUrl();
@@ -202,14 +216,18 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
 
     // Stamped, NOT applied: tracking holds 14 note='stamped' rows and the
     // users table is still the legacy ad-hoc one (no phone column, no chain tables).
-    const rows = await query(url, "SELECT note FROM schema_migrations");
+    const rows = await query(url, 'SELECT note FROM schema_migrations');
     expect(rows).toHaveLength(14);
     expect(rows.every((x) => (x as { note: string }).note === 'stamped')).toBe(true);
-    const cols = await query(url,
-      "SELECT count(*)::int AS n FROM information_schema.columns WHERE table_name='users' AND column_name='phone'");
+    const cols = await query(
+      url,
+      "SELECT count(*)::int AS n FROM information_schema.columns WHERE table_name='users' AND column_name='phone'",
+    );
     expect((cols[0] as { n: number }).n).toBe(0);
-    const tables = await query(url,
-      "SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema='public'");
+    const tables = await query(
+      url,
+      "SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema='public'",
+    );
     expect((tables[0] as { n: number }).n).toBe(2); // users + schema_migrations
   });
 
@@ -236,26 +254,32 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     expect((rows[0] as { n: number }).n).toBe(14);
   });
 
-  it('concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 14', { timeout: 30_000 }, async () => {
-    const url = await tmpDbUrl();
-    const run = () =>
-      new Promise<number>((resolve, reject) => {
-        const p = spawn('bash', [SCRIPT, CHAIN], {
-          env: { ...process.env, PATH: PATH_WITH_PSQL, DATABASE_URL: url },
+  it(
+    'concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 14',
+    { timeout: 30_000 },
+    async () => {
+      const url = await tmpDbUrl();
+      const run = () =>
+        new Promise<number>((resolve, reject) => {
+          const p = spawn('bash', [SCRIPT, CHAIN], {
+            env: { ...process.env, PATH: PATH_WITH_PSQL, DATABASE_URL: url },
+          });
+          p.on('error', reject);
+          p.on('exit', (code) => resolve(code ?? -1));
         });
-        p.on('error', reject);
-        p.on('exit', (code) => resolve(code ?? -1));
-      });
-    const codes = await Promise.all([run(), run(), run()]);
-    expect(codes).toEqual([0, 0, 0]);
-    const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(14);
-    // no duplicate-application evidence: each id appears exactly once
-    const ids = await query(url, 'SELECT id, count(*)::int AS n FROM schema_migrations GROUP BY id HAVING count(*) > 1');
-    expect(ids).toEqual([]);
-  });
+      const codes = await Promise.all([run(), run(), run()]);
+      expect(codes).toEqual([0, 0, 0]);
+      const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
+      expect((rows[0] as { n: number }).n).toBe(14);
+      // no duplicate-application evidence: each id appears exactly once
+      const ids = await query(
+        url,
+        'SELECT id, count(*)::int AS n FROM schema_migrations GROUP BY id HAVING count(*) > 1',
+      );
+      expect(ids).toEqual([]);
+    },
+  );
 });
-
 
 // Batch P W2-2 (report F9): the prod image must boot from EMPTY data dirs —
 // build-time initdb baked state that named volumes shadow (crash-loop on first
@@ -281,7 +305,12 @@ describe('container boot design (W2-2/F9)', () => {
   });
 
   it('entrypoint + migrate.sh + backup.sh + restore.sh pass bash -n', () => {
-    for (const f of ['docker/entrypoint.sh', 'scripts/migrate.sh', 'scripts/backup.sh', 'scripts/restore.sh']) {
+    for (const f of [
+      'docker/entrypoint.sh',
+      'scripts/migrate.sh',
+      'scripts/backup.sh',
+      'scripts/restore.sh',
+    ]) {
       const r = spawnSync('bash', ['-n', path.join(ROOT, f)], { encoding: 'utf8' });
       expect(r.status, `${f}: ${r.stderr}`).toBe(0);
     }
@@ -295,21 +324,35 @@ describe('pg-url env parser (W2-3/F10)', () => {
   const LIB = path.join(ROOT, 'scripts/pg-url.sh');
 
   it('exports decoded PG* vars from a credential URL without touching argv', () => {
-    const r = spawnSync('bash', ['-c', [
-      `source ${JSON.stringify(LIB)}`,
-      `ab_pgurl_export 'postgresql://u:p%40ss@db.example:6000/mydb?sslmode=require'`,
-      'printf "%s\n" "$PGUSER" "$PGPASSWORD" "$PGHOST" "$PGPORT" "$PGDATABASE"',
-    ].join('; ')], { encoding: 'utf8' });
+    const r = spawnSync(
+      'bash',
+      [
+        '-c',
+        [
+          `source ${JSON.stringify(LIB)}`,
+          `ab_pgurl_export 'postgresql://u:p%40ss@db.example:6000/mydb?sslmode=require'`,
+          'printf "%s\n" "$PGUSER" "$PGPASSWORD" "$PGHOST" "$PGPORT" "$PGDATABASE"',
+        ].join('; '),
+      ],
+      { encoding: 'utf8' },
+    );
     expect(r.status, r.stderr).toBe(0);
     expect(r.stdout.trim().split('\n')).toEqual(['u', 'p@ss', 'db.example', '6000', 'mydb']);
   });
 
   it('defaults port and keeps unencoded passwords verbatim', () => {
-    const r = spawnSync('bash', ['-c', [
-      `source ${JSON.stringify(LIB)}`,
-      `ab_pgurl_export 'postgresql://accessbase:accessbase@localhost/accessbase'`,
-      'printf "%s\n" "$PGHOST" "$PGPORT" "$PGDATABASE" "$PGPASSWORD"',
-    ].join('; ')], { encoding: 'utf8' });
+    const r = spawnSync(
+      'bash',
+      [
+        '-c',
+        [
+          `source ${JSON.stringify(LIB)}`,
+          `ab_pgurl_export 'postgresql://accessbase:accessbase@localhost/accessbase'`,
+          'printf "%s\n" "$PGHOST" "$PGPORT" "$PGDATABASE" "$PGPASSWORD"',
+        ].join('; '),
+      ],
+      { encoding: 'utf8' },
+    );
     expect(r.status, r.stderr).toBe(0);
     expect(r.stdout.trim().split('\n')).toEqual(['localhost', '5432', 'accessbase', 'accessbase']);
   });
@@ -363,8 +406,12 @@ describe('network exposure hardening (W2-4/F11)', () => {
 describe('hygiene locks (W3-4)', () => {
   it('/docs swagger is dev-only (production registration skipped)', () => {
     const src = readFileSync(path.join(ROOT, 'apps/server/src/app.ts'), 'utf-8');
-    expect(src).toMatch(/if \(config\.nodeEnv !== 'production'\) await app\.register\(fastifySwagger,/);
-    expect(src).toMatch(/if \(config\.nodeEnv !== 'production'\) await app\.register\(fastifySwaggerUi,/);
+    expect(src).toMatch(
+      /if \(config\.nodeEnv !== 'production'\) await app\.register\(fastifySwagger,/,
+    );
+    expect(src).toMatch(
+      /if \(config\.nodeEnv !== 'production'\) await app\.register\(fastifySwaggerUi,/,
+    );
   });
 
   it('admin bootstrap never puts the password in curl argv (JSON via stdin)', () => {

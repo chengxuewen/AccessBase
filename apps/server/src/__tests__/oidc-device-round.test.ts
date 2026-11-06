@@ -38,7 +38,13 @@ import pg from 'pg';
 
 const pgProbe = new pg.Client({ connectionString: process.env.DATABASE_URL });
 const pgAvailable = await (async () => {
-  try { await pgProbe.connect(); await pgProbe.end(); return true; } catch { return false; }
+  try {
+    await pgProbe.connect();
+    await pgProbe.end();
+    return true;
+  } catch {
+    return false;
+  }
 })();
 
 vi.mock('@fastify/cors', () => ({ default: async () => {} }));
@@ -69,11 +75,13 @@ let bearer = '';
 let dvClient = { clientId: '', plaintextSecret: null as string | null };
 
 // Instance types via typeof (the classes come from the dynamic import above;
- // a static `import type` would defeat the env-priming order the suite relies on).
+// a static `import type` would defeat the env-priming order the suite relies on).
 type UserManagerLike = InstanceType<typeof UserManager>;
 type OidcClientManagerLike = InstanceType<typeof OidcClientManager>;
 const userManager: UserManagerLike = new (UserManager as unknown as new () => UserManagerLike)();
-const clientManager: OidcClientManagerLike = new (OidcClientManager as unknown as new () => OidcClientManagerLike)();
+const clientManager: OidcClientManagerLike = new (
+  OidcClientManager as unknown as new () => OidcClientManagerLike
+)();
 
 // --- helpers (jar copied from oidc-flow.test.ts — light-my-request has none) ---
 
@@ -100,8 +108,9 @@ type Jar = ReturnType<typeof makeJar>;
 
 /** Extract a hidden input value by name from a provider-rendered form page. */
 function hiddenValue(html: string, name: string): string {
-  const m = html.match(new RegExp(`name="${name}"[^>]*value="([^"]*)"`, 'i'))
-    ?? html.match(new RegExp(`value="([^"]*)"[^>]*name="${name}"`, 'i'));
+  const m =
+    html.match(new RegExp(`name="${name}"[^>]*value="([^"]*)"`, 'i')) ??
+    html.match(new RegExp(`value="([^"]*)"[^>]*name="${name}"`, 'i'));
   return m?.[1] ?? '';
 }
 
@@ -141,23 +150,36 @@ describe.skipIf(!pgAvailable)('OIDC device-flow browser handoff (no-browser roun
 
   afterAll(async () => {
     if (userId) {
-      try { await userManager.delete(userId, TENANT); } catch { /* best-effort */ }
+      try {
+        await userManager.delete(userId, TENANT);
+      } catch {
+        /* best-effort */
+      }
     }
-    try { await clientManager.remove(dvClient.clientId); } catch { /* best-effort */ }
+    try {
+      await clientManager.remove(dvClient.clientId);
+    } catch {
+      /* best-effort */
+    }
     await app.close();
     rmSync(keyDir, { recursive: true, force: true });
   });
 
   it('confirm POST → SPA login handoff → approve → consent → success + access_token', async () => {
     const jar = makeJar();
-    const basic = 'Basic ' + Buffer.from(`${dvClient.clientId}:${dvClient.plaintextSecret ?? ''}`).toString('base64');
+    const basic =
+      'Basic ' +
+      Buffer.from(`${dvClient.clientId}:${dvClient.plaintextSecret ?? ''}`).toString('base64');
 
     // 1. device_authorization
     const dev = await app.inject({
       method: 'POST',
       url: '/oidc/device/auth',
       headers: { 'content-type': 'application/x-www-form-urlencoded', authorization: basic },
-      payload: new URLSearchParams({ client_id: dvClient.clientId, scope: 'openid profile email' }).toString(),
+      payload: new URLSearchParams({
+        client_id: dvClient.clientId,
+        scope: 'openid profile email',
+      }).toString(),
     });
     expect(dev.statusCode).toBe(200);
     const { user_code: userCode, device_code: deviceCode } = dev.json();
@@ -199,7 +221,9 @@ describe.skipIf(!pgAvailable)('OIDC device-flow browser handoff (no-browser roun
     // live browser round; the helmet mock in this suite is a no-op so the
     // header is absent here by construction.
     const loginLocation = String(confirm.headers['location']);
-    const redirectParam = decodeURIComponent(new URL(loginLocation).searchParams.get('redirect') ?? '');
+    const redirectParam = decodeURIComponent(
+      new URL(loginLocation).searchParams.get('redirect') ?? '',
+    );
     expect(loginLocation).toBe(
       `${FRONTEND_ORIGIN}/login?redirect=${encodeURIComponent(redirectParam)}`,
     );
@@ -219,14 +243,21 @@ describe.skipIf(!pgAvailable)('OIDC device-flow browser handoff (no-browser roun
     const approve = await app.inject({
       method: 'POST',
       url: `/api/v1/oidc/interaction/${resumeUid}`,
-      headers: { cookie: jar.header(), authorization: `Bearer ${bearer}`, 'content-type': 'application/json' },
+      headers: {
+        cookie: jar.header(),
+        authorization: `Bearer ${bearer}`,
+        'content-type': 'application/json',
+      },
       payload: { decision: 'approve' },
     });
     jar.absorb(approve);
     // 303 Location = interaction.returnTo (ABSOLUTE issuer URL — issuer-derived;
     // compare path+query since the inject Host lacks the port a real request has).
     const approveLocation = String(approve.headers['location']);
-    expect(new URL(approveLocation, 'http://localhost:5101').pathname + new URL(approveLocation, 'http://localhost:5101').search).toBe(redirectParam);
+    expect(
+      new URL(approveLocation, 'http://localhost:5101').pathname +
+        new URL(approveLocation, 'http://localhost:5101').search,
+    ).toBe(redirectParam);
 
     // 7. resume → consent prompt
     const consentRedirect = await follow(jar, redirectParam);
@@ -247,7 +278,11 @@ describe.skipIf(!pgAvailable)('OIDC device-flow browser handoff (no-browser roun
     const consentApprove = await app.inject({
       method: 'POST',
       url: `/api/v1/oidc/interaction/${consentUid}`,
-      headers: { cookie: jar.header(), authorization: `Bearer ${bearer}`, 'content-type': 'application/json' },
+      headers: {
+        cookie: jar.header(),
+        authorization: `Bearer ${bearer}`,
+        'content-type': 'application/json',
+      },
       payload: { decision: 'approve' },
     });
     jar.absorb(consentApprove);
@@ -255,7 +290,9 @@ describe.skipIf(!pgAvailable)('OIDC device-flow browser handoff (no-browser roun
     const consentLocation = String(consentApprove.headers['location']);
     // The consent interaction's returnTo is ITS OWN resume route (each interaction
     // gets a fresh uid); the resume at that path carries login+consent results.
-    const consentReturnTo = new URL(consentLocation, 'http://localhost:5101').pathname + new URL(consentLocation, 'http://localhost:5101').search;
+    const consentReturnTo =
+      new URL(consentLocation, 'http://localhost:5101').pathname +
+      new URL(consentLocation, 'http://localhost:5101').search;
     expect(consentReturnTo).toMatch(/^\/oidc\/device\//);
 
     // 9. final resume → device success page

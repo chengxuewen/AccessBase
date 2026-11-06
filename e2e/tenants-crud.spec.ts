@@ -69,10 +69,24 @@ const FULL_PERMS_ME = {
   name: 'Administrator',
   roles: [{ id: 'r-1', name: 'admin' }],
   permissions: [
-    'stats:read', 'users:read', 'users:write', 'roles:read', 'roles:write', 'roles:delete',
-    'audit:read', 'audit:delete', 'stats:write', 'stats:delete', 'clients:read', 'clients:write',
-    'apikeys:read', 'apikeys:write', 'apikeys:delete',
-    'tenants:read', 'tenants:write', 'tenants:delete',
+    'stats:read',
+    'users:read',
+    'users:write',
+    'roles:read',
+    'roles:write',
+    'roles:delete',
+    'audit:read',
+    'audit:delete',
+    'stats:write',
+    'stats:delete',
+    'clients:read',
+    'clients:write',
+    'apikeys:read',
+    'apikeys:write',
+    'apikeys:delete',
+    'tenants:read',
+    'tenants:write',
+    'tenants:delete',
   ],
   mfaEnabled: false,
 };
@@ -92,7 +106,12 @@ function makeTenant(overrides: Partial<TenantRow> = {}): TenantRow {
 }
 
 const MOCK_TENANTS = (): TenantRow[] => [
-  makeTenant({ id: 'tenant-platform', name: 'Platform Home', slug: 'platform-home', isDefault: true }),
+  makeTenant({
+    id: 'tenant-platform',
+    name: 'Platform Home',
+    slug: 'platform-home',
+    isDefault: true,
+  }),
   makeTenant({ id: 'tenant-acme', name: 'Acme Corp', slug: 'acme-corp' }),
   makeTenant({ id: 'tenant-globex', name: 'Globex', slug: 'globex' }),
 ];
@@ -102,25 +121,43 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
   // F/T4 precedent: unmocked probes hit the vite proxy 500 → console-error net fails
   await page.route('**/api/v1/auth/saml/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
 }
 
@@ -148,7 +185,11 @@ async function mockTenantsApis(
       const term = url.searchParams.get('search');
       stats.searchTerm = term;
       const filtered = term
-        ? tenants.filter((tn) => tn.name.toLowerCase().includes(term.toLowerCase()) || tn.slug.includes(term.toLowerCase()))
+        ? tenants.filter(
+            (tn) =>
+              tn.name.toLowerCase().includes(term.toLowerCase()) ||
+              tn.slug.includes(term.toLowerCase()),
+          )
         : tenants;
       await route.fulfill({
         status: 200,
@@ -173,13 +214,20 @@ async function mockTenantsApis(
     }
 
     if (method === 'PUT' && id && segments.length === 4) {
-      const body = JSON.parse(request.postData() ?? '{}') as { name?: string; slug?: string; status?: string };
+      const body = JSON.parse(request.postData() ?? '{}') as {
+        name?: string;
+        slug?: string;
+        status?: string;
+      };
       const row = tenants.find((tn) => tn.id === id);
       if (!row) {
         await route.fulfill({
           status: 404,
           contentType: 'application/json',
-          body: JSON.stringify({ success: false, error: { code: 'NOT_FOUND', message: 'Tenant not found' } }),
+          body: JSON.stringify({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Tenant not found' },
+          }),
         });
         return;
       }
@@ -218,7 +266,10 @@ async function mockTenantsApis(
         await route.fulfill({
           status: 409,
           contentType: 'application/json',
-          body: JSON.stringify({ success: false, error: { code: 'EMAIL_EXISTS', message: 'Email already in use' } }),
+          body: JSON.stringify({
+            success: false,
+            error: { code: 'EMAIL_EXISTS', message: 'Email already in use' },
+          }),
         });
         return;
       }
@@ -227,7 +278,10 @@ async function mockTenantsApis(
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ success: true, data: { userId: 'u-boot', roleId: 'r-boot', tenantId: id, alreadyBootstrapped: true } }),
+          body: JSON.stringify({
+            success: true,
+            data: { userId: 'u-boot', roleId: 'r-boot', tenantId: id, alreadyBootstrapped: true },
+          }),
         });
         return;
       }
@@ -235,7 +289,10 @@ async function mockTenantsApis(
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { userId: 'u-boot', roleId: 'r-boot', tenantId: id, alreadyBootstrapped: false } }),
+        body: JSON.stringify({
+          success: true,
+          data: { userId: 'u-boot', roleId: 'r-boot', tenantId: id, alreadyBootstrapped: false },
+        }),
       });
       return;
     }
@@ -245,7 +302,14 @@ async function mockTenantsApis(
 }
 
 function freshStats(): TenantMockStats {
-  return { listRequests: 0, searchTerm: null, created: null, lastStatusPut: null, deleted: false, bootstrapAttempts: 0 };
+  return {
+    listRequests: 0,
+    searchTerm: null,
+    created: null,
+    lastStatusPut: null,
+    deleted: false,
+    bootstrapAttempts: 0,
+  };
 }
 
 test.describe('Tenants admin page', () => {
@@ -277,13 +341,25 @@ test.describe('Tenants admin page', () => {
     await expect(page.getByRole('cell', { name: 'Globex', exact: true })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Platform Home', exact: true })).toBeVisible();
     // status Tags from the projection
-    await expect(page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) }).getByText('正常', { exact: true })).toBeVisible();
-    await expect(page.locator('tr', { has: page.getByRole('cell', { name: 'Platform Home', exact: true }) }).getByText('已停用', { exact: true })).toHaveCount(0);
+    await expect(
+      page
+        .locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) })
+        .getByText('正常', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator('tr', { has: page.getByRole('cell', { name: 'Platform Home', exact: true }) })
+        .getByText('已停用', { exact: true }),
+    ).toHaveCount(0);
 
     const searchInput = page.locator('input[placeholder]').first();
     await searchInput.fill('Acme');
     // AntD renders CJK 2-char labels with a space ("查 询") — allow optional whitespace
-    await page.locator('button').filter({ hasText: /search|查\s*询|submit/i }).first().click();
+    await page
+      .locator('button')
+      .filter({ hasText: /search|查\s*询|submit/i })
+      .first()
+      .click();
 
     // expect.poll (not sync expect): click → request dispatch is async (K convention)
     await expect.poll(() => stats.searchTerm, { timeout: 5000 }).toBe('Acme');
@@ -297,7 +373,10 @@ test.describe('Tenants admin page', () => {
     await page.getByTestId('tenants-create').click();
     await page.getByTestId('tenants-name-input').fill(unique);
     await page.getByTestId('tenants-slug-input').fill(`tenant-${Date.now()}`);
-    await page.getByTestId('tenants-form-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+    await page
+      .getByTestId('tenants-form-modal')
+      .locator('.ant-modal-footer .ant-btn-primary')
+      .click();
 
     await expect.poll(() => stats.created, { timeout: 5000 }).not.toBeNull();
     await expect(page.locator('.ant-message')).toContainText('租户已创建');
@@ -306,7 +385,9 @@ test.describe('Tenants admin page', () => {
 
   test('init admin happy path: 201 → inline success alert', async ({ page }) => {
     await gotoTenants(page, 'success');
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) });
+    const row = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Acme Corp', exact: true }),
+    });
     await row.getByRole('button', { name: /初始化管理员/ }).click();
     // Assert the FORM field, not the ant-modal-root wrapper (root divs can stay
     // computed-hidden while the dialog body is fully interactive).
@@ -314,49 +395,73 @@ test.describe('Tenants admin page', () => {
     await page.getByTestId('init-admin-email').fill(`init-${Date.now()}@acme.test`);
     await page.getByTestId('init-admin-name').fill('Acme Admin');
     await page.getByTestId('init-admin-password').fill('Passw0rd123');
-    await page.getByTestId('tenants-init-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+    await page
+      .getByTestId('tenants-init-modal')
+      .locator('.ant-modal-footer .ant-btn-primary')
+      .click();
 
     await expect.poll(() => stats.bootstrapAttempts, { timeout: 5000 }).toBeGreaterThan(0);
     await expect(page.getByTestId('init-admin-success')).toBeVisible();
     await expect(page.getByTestId('init-admin-success')).toContainText('租户管理员已创建');
     // Done closes the modal (200-replay and 201 share the same dismiss path)
-    await page.getByTestId('tenants-init-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+    await page
+      .getByTestId('tenants-init-modal')
+      .locator('.ant-modal-footer .ant-btn-primary')
+      .click();
     await expect(page.getByTestId('tenants-init-modal')).toBeHidden();
   });
 
   test('init admin replay: 200 alreadyBootstrapped → inline replay alert', async ({ page }) => {
     await gotoTenants(page, 'replay');
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) });
+    const row = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Acme Corp', exact: true }),
+    });
     await row.getByRole('button', { name: /初始化管理员/ }).click();
     await page.getByTestId('init-admin-email').fill(`dup-${Date.now()}@acme.test`);
     await page.getByTestId('init-admin-name').fill('Acme Admin');
     await page.getByTestId('init-admin-password').fill('Passw0rd123');
-    await page.getByTestId('tenants-init-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+    await page
+      .getByTestId('tenants-init-modal')
+      .locator('.ant-modal-footer .ant-btn-primary')
+      .click();
 
     await expect.poll(() => stats.bootstrapAttempts, { timeout: 5000 }).toBeGreaterThan(0);
     await expect(page.getByTestId('init-admin-success')).toBeVisible();
-    await expect(page.getByTestId('init-admin-success')).toContainText(/管理员已初始化——角色绑定已重新校验/);
+    await expect(page.getByTestId('init-admin-success')).toContainText(
+      /管理员已初始化——角色绑定已重新校验/,
+    );
   });
 
-  test('init admin 409 EMAIL_EXISTS → server message inline on the email field', async ({ page }) => {
+  test('init admin 409 EMAIL_EXISTS → server message inline on the email field', async ({
+    page,
+  }) => {
     await gotoTenants(page, 'email-exists');
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) });
+    const row = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Acme Corp', exact: true }),
+    });
     await row.getByRole('button', { name: /初始化管理员/ }).click();
     await page.getByTestId('init-admin-email').fill(`taken-${Date.now()}@acme.test`);
     await page.getByTestId('init-admin-name').fill('Acme Admin');
     await page.getByTestId('init-admin-password').fill('Passw0rd123');
-    await page.getByTestId('tenants-init-modal').locator('.ant-modal-footer .ant-btn-primary').click();
+    await page
+      .getByTestId('tenants-init-modal')
+      .locator('.ant-modal-footer .ant-btn-primary')
+      .click();
 
     await expect.poll(() => stats.bootstrapAttempts, { timeout: 5000 }).toBeGreaterThan(0);
     // Mock body copies the spec D2 409 EMAIL_EXISTS envelope; frontend passes
     // the server message through verbatim (apiErrorMessage, K-R6).
-    await expect(page.locator('.ant-form-item-explain-error')).toContainText('Email already in use');
+    await expect(page.locator('.ant-form-item-explain-error')).toContainText(
+      'Email already in use',
+    );
     await expect(page.getByTestId('init-admin-success')).toHaveCount(0);
   });
 
   test('suspend toggle: PUT status suspended → tag flips → activate restores', async ({ page }) => {
     await gotoTenants(page);
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) });
+    const row = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Acme Corp', exact: true }),
+    });
     await row.getByRole('button', { name: '停用', exact: true }).click();
     await page.locator('.ant-popconfirm .ant-btn-primary').click();
 
@@ -372,14 +477,18 @@ test.describe('Tenants admin page', () => {
 
   test('default-tenant row: mutating actions disabled with lock icon', async ({ page }) => {
     await gotoTenants(page);
-    const row = page.locator('tr', { has: page.getByRole('cell', { name: 'Platform Home', exact: true }) });
+    const row = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Platform Home', exact: true }),
+    });
     await expect(row.getByRole('button', { name: /初始化管理员/ })).toBeDisabled();
     await expect(row.getByRole('button', { name: /编辑/ })).toBeDisabled();
     await expect(row.getByRole('button', { name: '停用', exact: true })).toBeDisabled();
     await expect(row.getByRole('button', { name: /删除/ })).toBeDisabled();
     await expect(row.locator('.anticon-lock').first()).toBeVisible();
     // Non-default rows keep the same actions enabled
-    const other = page.locator('tr', { has: page.getByRole('cell', { name: 'Acme Corp', exact: true }) });
+    const other = page.locator('tr', {
+      has: page.getByRole('cell', { name: 'Acme Corp', exact: true }),
+    });
     await expect(other.getByRole('button', { name: /编辑/ })).toBeEnabled();
   });
 });

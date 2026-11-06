@@ -27,10 +27,14 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
       findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
     })),
     // DG-6d seam: tenant-wide default keeps the pass-through case unchanged.
-    PermissionManager: vi.fn().mockImplementation(() => ({ hasPermission, getUserDataScope: vi.fn(async () => 'all') })),
+    PermissionManager: vi
+      .fn()
+      .mockImplementation(() => ({ hasPermission, getUserDataScope: vi.fn(async () => 'all') })),
   };
 });
 
@@ -141,13 +145,16 @@ describe('requirePermission preHandler', () => {
     let matched = 0;
     for (const [file, root] of files) {
       const src = readFileSync(file, 'utf8');
-      for (const m of src.matchAll(/app\.(get|post|put|delete|patch)(?:<[^>]*>)?\(\s*['"`]([^'"`]+)['"`]/g)) {
+      for (const m of src.matchAll(
+        /app\.(get|post|put|delete|patch)(?:<[^>]*>)?\(\s*['"`]([^'"`]+)['"`]/g,
+      )) {
         matched += 1;
         const method = m[1].toUpperCase();
         const sub = m[2];
         const url = `${root}${sub === '/' || sub.startsWith('/:') ? '' : sub}`;
         if (url === '/api/v1/users/me') continue; // self-service exempt
-        if (getRequiredPermission(method, url) === null) missing.push(`${file}: ${method} ${root}${sub}`);
+        if (getRequiredPermission(method, url) === null)
+          missing.push(`${file}: ${method} ${root}${sub}`);
       }
     }
     expect(missing).toEqual([]);

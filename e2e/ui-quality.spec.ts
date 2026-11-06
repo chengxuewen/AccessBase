@@ -2,12 +2,25 @@ import { test, expect, type Page } from '@playwright/test';
 
 // Mock response shapes copied from apps/server/src/routes/
 const ADMIN_PERMISSIONS = [
-  'users:read', 'users:write', 'users:delete',
-  'roles:read', 'roles:write', 'roles:delete',
-  'permissions:read', 'permissions:write', 'permissions:delete',
-  'audit:read', 'stats:read',
+  'users:read',
+  'users:write',
+  'users:delete',
+  'roles:read',
+  'roles:write',
+  'roles:delete',
+  'permissions:read',
+  'permissions:write',
+  'permissions:delete',
+  'audit:read',
+  'stats:read',
 ];
-const MOCK_ME_USER = { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [], permissions: ADMIN_PERMISSIONS };
+const MOCK_ME_USER = {
+  id: '1',
+  email: 'admin@accessbase.local',
+  name: 'Administrator',
+  roles: [],
+  permissions: ADMIN_PERMISSIONS,
+};
 
 function trackConsoleErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -56,7 +69,10 @@ test.describe('UI quality — language persistence', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+        body: JSON.stringify({
+          success: true,
+          data: { isInitialized: true, adminExists: true, configComplete: true },
+        }),
       });
     });
 
@@ -65,29 +81,57 @@ test.describe('UI quality — language persistence', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+        }),
       });
     });
-  // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
-  await page.route('**/api/v1/auth/saml/status', async (route) => {
-  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
-  });
-  // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
-  // unmocked → console-error net failure (R4 discipline)
-  await page.route('**/api/v1/tenants**', async (route) => {
-    if (route.request().method() !== 'GET') return route.fallback();
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: [{ id: '00000000-0000-0000-0000-000000000001', name: 'Default', slug: 'default', status: 'active', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+    // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
+    await page.route('**/api/v1/auth/saml/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
     });
-  });
+    await page.route('**/api/v1/auth/sms/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    await page.route('**/api/v1/auth/captcha/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { enabled: false } }),
+      });
+    });
+    // Batch G5: Users/Roles pages fetch tenants for the read-only Tenant column —
+    // unmocked → console-error net failure (R4 discipline)
+    await page.route('**/api/v1/tenants**', async (route) => {
+      if (route.request().method() !== 'GET') return route.fallback();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: '00000000-0000-0000-0000-000000000001',
+              name: 'Default',
+              slug: 'default',
+              status: 'active',
+              createdAt: '2026-01-01T00:00:00Z',
+              updatedAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 1,
+        }),
+      });
+    });
   });
 
   test.afterEach(async () => {
@@ -122,7 +166,9 @@ test.describe('UI quality — language persistence', () => {
     await expect(page.locator('.ant-layout-sider')).toContainText('用户管理');
   });
 
-  test('dashboard stats card shows loading skeleton before data arrives (ST-2)', async ({ page }) => {
+  test('dashboard stats card shows loading skeleton before data arrives (ST-2)', async ({
+    page,
+  }) => {
     await seedSession(page, 'test-token', 'test-refresh');
 
     // Mock stats with 300ms delay
@@ -131,7 +177,10 @@ test.describe('UI quality — language persistence', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: { users: 5, roles: 2, activeSessions: 3, audits: 10, recentActivity: [] } }),
+        body: JSON.stringify({
+          success: true,
+          data: { users: 5, roles: 2, activeSessions: 3, audits: 10, recentActivity: [] },
+        }),
       });
     });
 
@@ -158,7 +207,10 @@ test.describe('UI quality — language persistence', () => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
-        body: JSON.stringify({ success: false, error: { code: 'INTERNAL', message: 'Server error' } }),
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'INTERNAL', message: 'Server error' },
+        }),
       });
     });
 
@@ -188,7 +240,22 @@ test.describe('UI quality — language persistence', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: [{ id: '1', email: 'a@x.local', name: 'Admin', isActive: true, tenantId: 't1', tokenVersion: 0, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: '1',
+              email: 'a@x.local',
+              name: 'Admin',
+              isActive: true,
+              tenantId: 't1',
+              tokenVersion: 0,
+              createdAt: '2026-01-01T00:00:00Z',
+              updatedAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 1,
+        }),
       });
     });
 
@@ -202,7 +269,10 @@ test.describe('UI quality — language persistence', () => {
     // Wait for a new request carrying sort params (may be followed by trailing unsorted refetch)
     await expect
       .poll(
-        () => userUrls.slice(requestCountAfterLoad).some((u) => new URL(u).searchParams.get('sortBy') === 'name'),
+        () =>
+          userUrls
+            .slice(requestCountAfterLoad)
+            .some((u) => new URL(u).searchParams.get('sortBy') === 'name'),
         { timeout: 10000 },
       )
       .toBe(true);
@@ -221,7 +291,22 @@ test.describe('UI quality — language persistence', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: [{ id: '1', email: 'a@x.local', name: 'Admin', isActive: true, tenantId: 't1', tokenVersion: 0, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], total: 1 }),
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: '1',
+              email: 'a@x.local',
+              name: 'Admin',
+              isActive: true,
+              tenantId: 't1',
+              tokenVersion: 0,
+              createdAt: '2026-01-01T00:00:00Z',
+              updatedAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 1,
+        }),
       });
     });
 

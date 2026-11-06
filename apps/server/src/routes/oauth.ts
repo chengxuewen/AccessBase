@@ -9,11 +9,24 @@
  * Errors redirect to /login?oauthError=<reason> — no stack traces (anti-enumeration).
  */
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import { GitHub, Google, OAuth2Client, generateState, generateCodeVerifier, CodeChallengeMethod, type OAuth2Tokens } from 'arctic';
+import {
+  GitHub,
+  Google,
+  OAuth2Client,
+  generateState,
+  generateCodeVerifier,
+  CodeChallengeMethod,
+  type OAuth2Tokens,
+} from 'arctic';
 import { and, eq } from 'drizzle-orm';
 import { createDb, oauthAccounts, users } from '@accessbase/identity/db';
 import type { DrizzleDB } from '@accessbase/identity/db';
-import { SessionManager, FlowTokenService, getRedisClient, TenantManager } from '@accessbase/identity';
+import {
+  SessionManager,
+  FlowTokenService,
+  getRedisClient,
+  TenantManager,
+} from '@accessbase/identity';
 import { randomBytes } from 'node:crypto';
 import bcryptjs from 'bcryptjs';
 import { DEFAULT_TENANT } from '../utils/constants.js';
@@ -44,7 +57,6 @@ interface NormalizedProfile {
   name: string;
 }
 
-
 /** A provider resolved for the authorize/callback flow. */
 interface ResolvedProvider {
   kind: 'github' | 'google' | 'generic';
@@ -72,10 +84,7 @@ function getProvider(name: SupportedProvider): GitHub | Google {
 }
 
 function providerConfigured(name: SupportedProvider): boolean {
-  const creds =
-    name === 'github'
-      ? config.oauth.github
-      : config.oauth.google;
+  const creds = name === 'github' ? config.oauth.github : config.oauth.google;
   return creds.clientId !== '' && creds.clientSecret !== '';
 }
 
@@ -120,20 +129,32 @@ function cookieOptions() {
 }
 
 /** Built-in providers keep their native profile fetch; generic uses userinfoUrl. */
-async function fetchProviderProfile(provider: SupportedProvider, accessToken: string): Promise<NormalizedProfile> {
+async function fetchProviderProfile(
+  provider: SupportedProvider,
+  accessToken: string,
+): Promise<NormalizedProfile> {
   if (provider === 'github') {
     const res = await fetch('https://api.github.com/user', {
       headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/vnd.github+json' },
     });
     if (!res.ok) throw new Error('github_profile_fetch_failed');
-    const profile = (await res.json()) as { id: number; login: string; name: string | null; email: string | null };
+    const profile = (await res.json()) as {
+      id: number;
+      login: string;
+      name: string | null;
+      email: string | null;
+    };
     let email = profile.email;
     if (!email) {
       const emailsRes = await fetch('https://api.github.com/user/emails', {
         headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/vnd.github+json' },
       });
       if (emailsRes.ok) {
-        const emails = (await emailsRes.json()) as Array<{ email: string; primary: boolean; verified: boolean }>;
+        const emails = (await emailsRes.json()) as Array<{
+          email: string;
+          primary: boolean;
+          verified: boolean;
+        }>;
         email = emails.find((e) => e.primary && e.verified)?.email ?? null;
       }
     }
@@ -176,9 +197,7 @@ async function fetchGenericProfile(
 export async function oauthRoutes(app: FastifyInstance) {
   const db: DrizzleDB = createDb(config.databaseUrl);
   const sessionManager = new SessionManager();
-  const flowTokens = new FlowTokenService(
-    config.nodeEnv === 'test' ? undefined : safeRedis(),
-  );
+  const flowTokens = new FlowTokenService(config.nodeEnv === 'test' ? undefined : safeRedis());
 
   function safeRedis() {
     try {
@@ -217,17 +236,19 @@ export async function oauthRoutes(app: FastifyInstance) {
     }
     // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
     const accessToken = app.jwt.sign(
-      { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT, tokenVersion: user.tokenVersion },
+      {
+        sub: user.id,
+        email: user.email,
+        status: user.status,
+        tenantId: user.tenantId ?? DEFAULT_TENANT,
+        tokenVersion: user.tokenVersion,
+      },
       { expiresIn: '15m' },
     );
-    const { refreshToken } = await sessionManager.issueRefreshToken(
-      crypto.randomUUID(),
-      user.id,
-      {
-        ip: request.ip,
-        userAgent: (request.headers['user-agent'] as string | undefined) ?? 'unknown',
-      },
-    );
+    const { refreshToken } = await sessionManager.issueRefreshToken(crypto.randomUUID(), user.id, {
+      ip: request.ip,
+      userAgent: (request.headers['user-agent'] as string | undefined) ?? 'unknown',
+    });
     return { accessToken, refreshToken };
   }
 
@@ -240,7 +261,13 @@ export async function oauthRoutes(app: FastifyInstance) {
     tenantId?: string,
     /** §3.3 R4: generic providers UPSERT the link row on every login (built-ins: undefined). */
     genericCfg?: DynamicProviderConfig,
-  ): Promise<{ id: string; email: string; status: string; totpEnabled?: boolean; tenantId?: string }> {
+  ): Promise<{
+    id: string;
+    email: string;
+    status: string;
+    totpEnabled?: boolean;
+    tenantId?: string;
+  }> {
     const [existingLink] = await db
       .select({ userId: oauthAccounts.userId })
       .from(oauthAccounts)
@@ -254,7 +281,13 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     if (existingLink) {
       const [user] = await db
-        .select({ id: users.id, email: users.email, status: users.status, totpEnabled: users.totpEnabled, tenantId: users.tenantId })
+        .select({
+          id: users.id,
+          email: users.email,
+          status: users.status,
+          totpEnabled: users.totpEnabled,
+          tenantId: users.tenantId,
+        })
         .from(users)
         .where(eq(users.id, existingLink.userId))
         .limit(1);
@@ -269,7 +302,13 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     if (profile.email) {
       const [userByEmail] = await db
-        .select({ id: users.id, email: users.email, status: users.status, totpEnabled: users.totpEnabled, tenantId: users.tenantId })
+        .select({
+          id: users.id,
+          email: users.email,
+          status: users.status,
+          totpEnabled: users.totpEnabled,
+          tenantId: users.tenantId,
+        })
         .from(users)
         .where(eq(users.email, profile.email))
         .limit(1);
@@ -413,7 +452,9 @@ export async function oauthRoutes(app: FastifyInstance) {
       let authorizationURL: URL;
       if (resolved.kind === 'github') {
         // D109: no PKCE for GitHub OAuth Apps — state-cookie CSRF protection only
-        authorizationURL = (resolved.client as GitHub).createAuthorizationURL(state, ['user:email']);
+        authorizationURL = (resolved.client as GitHub).createAuthorizationURL(state, [
+          'user:email',
+        ]);
       } else if (resolved.kind === 'google') {
         const codeVerifier = generateCodeVerifier();
         reply.setCookie(VERIFIER_COOKIE, codeVerifier, cookieOpts);
@@ -473,7 +514,11 @@ export async function oauthRoutes(app: FastifyInstance) {
 
         const profile =
           resolved.kind === 'generic'
-            ? await fetchGenericProfile(provider, resolved.genericConfig!.userinfoUrl, tokens.accessToken())
+            ? await fetchGenericProfile(
+                provider,
+                resolved.genericConfig!.userinfoUrl,
+                tokens.accessToken(),
+              )
             : await fetchProviderProfile(provider as SupportedProvider, tokens.accessToken());
         const user = await findOrCreateOAuthUser(
           provider,
@@ -500,11 +545,15 @@ export async function oauthRoutes(app: FastifyInstance) {
         // Q3E-E3: enforced-MFA pre-check (redirect channel — issuance at exchange)
         if (
           await enforceHit({
-            getOption: optionGetter(getOptionsManager() as unknown as Parameters<typeof optionGetter>[0]),
+            getOption: optionGetter(
+              getOptionsManager() as unknown as Parameters<typeof optionGetter>[0],
+            ),
             isSystemAdmin: async () =>
-              (await (await getRoleManager()).getEffectiveRoles(user.id, user.tenantId ?? DEFAULT_TENANT)).some(
-                (r) => r.isSystem === true,
-              ),
+              (
+                await (
+                  await getRoleManager()
+                ).getEffectiveRoles(user.id, user.tenantId ?? DEFAULT_TENANT)
+              ).some((r) => r.isSystem === true),
             user,
           })
         ) {
@@ -565,7 +614,8 @@ export async function oauthRoutes(app: FastifyInstance) {
                 accessToken: string;
                 refreshToken: string;
                 user: { id: string; email: string };
-              }>(code, 'oauth_exchange')
+              }
+          >(code, 'oauth_exchange')
         : null;
       if (!payload) {
         return reply.status(401).send({
@@ -631,7 +681,10 @@ export async function oauthRoutes(app: FastifyInstance) {
     async (request) => {
       const payload = request.user as { sub: string };
       const rows = await db
-        .select({ provider: oauthAccounts.provider, providerAccountId: oauthAccounts.providerAccountId })
+        .select({
+          provider: oauthAccounts.provider,
+          providerAccountId: oauthAccounts.providerAccountId,
+        })
         .from(oauthAccounts)
         .where(eq(oauthAccounts.userId, payload.sub));
       return { success: true, data: rows };
@@ -645,7 +698,8 @@ export async function oauthRoutes(app: FastifyInstance) {
     {
       preHandler: [app.authenticate],
       schema: {
-        description: 'Resolve the generic OIDC end-session URL (id_token_hint) for the current user',
+        description:
+          'Resolve the generic OIDC end-session URL (id_token_hint) for the current user',
         tags: ['auth'],
         security: [{ bearerAuth: [] }],
       },

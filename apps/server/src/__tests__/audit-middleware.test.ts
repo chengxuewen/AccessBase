@@ -62,7 +62,6 @@ describe('audit middleware (integration, injected storage)', () => {
     // Login route exists (200/401/403/429 acceptable); audit entry must exist regardless.
     expect([200, 401, 403, 429]).toContain(res.statusCode);
 
-
     // audit onResponse hook writes synchronously (async disabled) — tiny settle window.
     await new Promise((r) => setTimeout(r, 20));
 

@@ -72,10 +72,10 @@ After all adjudications are walked:
 
 ## Anti-Patterns (forbidden)
 
-| Anti-pattern | Correct behavior |
-|---|---|
-| Listing 3+ adjudications in one message | One at a time; wait for the reply |
-| Presenting adjudications via the question tool | Plain text + "Reply: Adjudication N -- A / B / C" |
-| Pros/cons only for the recommended option | Every option gets paired pros AND cons; cons are not hidden |
-| Jargon pileup ("semantically isomorphic to") | Plain language: "the name says RUST but serves node -- that is technical debt" |
-| Adjudication results not written back | Closure protocol: summary table + plan/D-entry write-back |
+| Anti-pattern                                   | Correct behavior                                                               |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| Listing 3+ adjudications in one message        | One at a time; wait for the reply                                              |
+| Presenting adjudications via the question tool | Plain text + "Reply: Adjudication N -- A / B / C"                              |
+| Pros/cons only for the recommended option      | Every option gets paired pros AND cons; cons are not hidden                    |
+| Jargon pileup ("semantically isomorphic to")   | Plain language: "the name says RUST but serves node -- that is technical debt" |
+| Adjudication results not written back          | Closure protocol: summary table + plan/D-entry write-back                      |

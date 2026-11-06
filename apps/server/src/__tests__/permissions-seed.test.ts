@@ -17,7 +17,11 @@ function mockDb() {
   const db = {
     insert: vi.fn().mockImplementation((table: unknown) => {
       const tableName =
-        table === permissions ? 'permissions' : table === rolePermissions ? 'role_permissions' : 'unknown';
+        table === permissions
+          ? 'permissions'
+          : table === rolePermissions
+            ? 'role_permissions'
+            : 'unknown';
       return {
         values: vi.fn().mockImplementation((rows: unknown[]) => {
           if (tableName === 'permissions') insertedPermissions.push(rows);
@@ -98,7 +102,9 @@ describe('ensureSeedForAdmin system-role stamp (K-T2)', () => {
     const setCalls: unknown[] = [];
     const db = {
       insert: vi.fn().mockReturnValue({
-        values: vi.fn().mockReturnValue({ onConflictDoNothing: vi.fn().mockResolvedValue(undefined) }),
+        values: vi
+          .fn()
+          .mockReturnValue({ onConflictDoNothing: vi.fn().mockResolvedValue(undefined) }),
       }),
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
@@ -135,7 +141,9 @@ describe('ensureSeedForAdmin system-role stamp (K-T2)', () => {
     const { ensureSeedForAdmin } = await import('../routes/permissions-seed.js');
     const db = {
       insert: vi.fn().mockReturnValue({
-        values: vi.fn().mockReturnValue({ onConflictDoNothing: vi.fn().mockResolvedValue(undefined) }),
+        values: vi
+          .fn()
+          .mockReturnValue({ onConflictDoNothing: vi.fn().mockResolvedValue(undefined) }),
       }),
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
@@ -160,8 +168,8 @@ describe('selfHealSeed bounded retry (L-T2 / D2)', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => ({} as never));
-    errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => ({} as never));
+    warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => ({}) as never);
+    errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => ({}) as never);
   });
 
   afterEach(() => {

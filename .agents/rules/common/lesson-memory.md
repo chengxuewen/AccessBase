@@ -80,12 +80,12 @@
 Recording a pitfall is the FIRST step, not the last. Every pitfall must map to
 an executable check; "be careful next time" is not an artifact.
 
-| Repetition / cost signal | Required graduation |
-| --- | --- |
-| Low frequency, low cost | pitfalls.md entry only |
-| Same pitfall class ≥ 2 times, or > 3 failed attempts to localize | add a rule to the matching rules file (edit-safety / testing / patterns) |
-| A rule that keeps being missed in review | promote to a machine check: lint / gate / pre-commit hook |
-| A machine check exists but was bypassed | escalation incident: record as PIT + tighten the gate — never weaken the assertion (CONSTRAINTS.md "Fix the cause, not the gate") |
+| Repetition / cost signal                                         | Required graduation                                                                                                               |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Low frequency, low cost                                          | pitfalls.md entry only                                                                                                            |
+| Same pitfall class ≥ 2 times, or > 3 failed attempts to localize | add a rule to the matching rules file (edit-safety / testing / patterns)                                                          |
+| A rule that keeps being missed in review                         | promote to a machine check: lint / gate / pre-commit hook                                                                         |
+| A machine check exists but was bypassed                          | escalation incident: record as PIT + tighten the gate — never weaken the assertion (CONSTRAINTS.md "Fix the cause, not the gate") |
 
 ## Numbering discipline (RCH:C10 / RCH:PIT-241 lesson)
 
@@ -102,9 +102,9 @@ an executable check; "be careful next time" is not an artifact.
 
 ## Anti-patterns
 
-| Anti-pattern | Correct behavior |
-| --- | --- |
-| "Noted, will be careful" with no written artifact | Write the PIT / rule / check in the same turn |
-| Pitfall recorded with no prevention hook | Map it to an executable check, or name why none exists |
-| Fixing a red gate by weakening the check | Fix the cause; the gate is right until proven otherwise |
+| Anti-pattern                                      | Correct behavior                                          |
+| ------------------------------------------------- | --------------------------------------------------------- |
+| "Noted, will be careful" with no written artifact | Write the PIT / rule / check in the same turn             |
+| Pitfall recorded with no prevention hook          | Map it to an executable check, or name why none exists    |
+| Fixing a red gate by weakening the check          | Fix the cause; the gate is right until proven otherwise   |
 | Numbering from memory instead of reading the file | Read the current maximum first (see Numbering discipline) |

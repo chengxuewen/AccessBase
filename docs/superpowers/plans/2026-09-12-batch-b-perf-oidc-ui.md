@@ -26,10 +26,12 @@
 ## Task 1: PermissionManager TTL 缓存（命中/失效/隔离）
 
 **Files:**
+
 - Modify: `packages/identity/src/managers/PermissionManager.ts`（getUserEffectivePermissions 加缓存层）
 - Test: `packages/identity/src/__tests__/PermissionManager.test.ts`（追加缓存 describe）
 
 **Interfaces:**
+
 - Consumes: 现有 `getUserEffectivePermissions(userId, tenantId): Promise<Permission[]>`（PermissionManager.ts:146）
 - Produces: `invalidatePermissionCache(tenantId?: string, userId?: string): void`（公开方法——tenantId+userId 都传清单条；只传 tenantId 清该租户全量；都不传清全部）；缓存 TTL 常量 `PERMISSION_CACHE_TTL_MS = 30_000`；构造器可选参数 `options?: { cacheTtlMs?: number }`（测试注入短 TTL）
 
@@ -39,7 +41,16 @@
 describe('permission cache', () => {
   it('caches effective permissions within TTL (one db round for two calls)', async () => {
     const mgr = new PermissionManager(undefined, { cacheTtlMs: 1000 });
-    const spy = vi.spyOn(mgr as unknown as { roleManager: { getUserRoles: ReturnType<typeof vi.fn>; resolveInheritedPermissions: ReturnType<typeof vi.fn> } }, 'roleManager', 'get');
+    const spy = vi.spyOn(
+      mgr as unknown as {
+        roleManager: {
+          getUserRoles: ReturnType<typeof vi.fn>;
+          resolveInheritedPermissions: ReturnType<typeof vi.fn>;
+        };
+      },
+      'roleManager',
+      'get',
+    );
     // 按 PermissionManager.test.ts 既有 mock 风格设置 getUserRoles/resolveInherited 返回值
     await mgr.getUserEffectivePermissions('u1', 't1');
     await mgr.getUserEffectivePermissions('u1', 't1');
@@ -84,7 +95,10 @@ describe('permission cache', () => {
 ```typescript
 const DEFAULT_PERMISSION_CACHE_TTL_MS = 30_000;
 
-interface CacheEntry { permissions: Permission[]; expiresAt: number }
+interface CacheEntry {
+  permissions: Permission[];
+  expiresAt: number;
+}
 
 export class PermissionManager {
   private readonly permCache = new Map<string, CacheEntry>();
@@ -100,7 +114,10 @@ export class PermissionManager {
   }
 
   invalidatePermissionCache(tenantId?: string, userId?: string): void {
-    if (!tenantId) { this.permCache.clear(); return; }
+    if (!tenantId) {
+      this.permCache.clear();
+      return;
+    }
     if (!userId) {
       for (const k of this.permCache.keys()) {
         if (k.startsWith(`perm:${tenantId}:`)) this.permCache.delete(k);
@@ -119,7 +136,10 @@ export class PermissionManager {
     return permissions;
   }
 
-  private async computeEffectivePermissions(userId: string, tenantId: string): Promise<Permission[]> {
+  private async computeEffectivePermissions(
+    userId: string,
+    tenantId: string,
+  ): Promise<Permission[]> {
     // 原 getUserEffectivePermissions 方法体原样搬入
   }
 }
@@ -140,12 +160,14 @@ git add -A && git commit -m "feat(identity): permission resolution TTL cache wit
 ## Task 2: 写路径失效接线（缓存正确性的关键）
 
 **Files:**
+
 - Modify: `packages/identity/src/managers/RoleManager.ts`（update/delete → 失效）
 - Modify: `packages/identity/src/managers/UserManager.ts`（changeStatus → 失效该用户；角色分配写路径若有 → 同）
 - Modify: `packages/identity/src/managers/PermissionManager.ts`（自身 CUD → 失效租户）
 - Test: `packages/identity/src/__tests__/cache-invalidation.test.ts`（new）
 
 **Interfaces:**
+
 - Consumes: Task 1 的 `invalidatePermissionCache(tenantId?, userId?)`
 - Produces: 全部写路径调用失效后的最终一致性；跨 manager 调用方式 = 同进程同实例不可得（各 manager 独立实例），**采用静态/模块级共享缓存注册表**：Task 1 的缓存 Map 改为模块级 `export const permissionCache = new Map<...>()`（PermissionManager 实例持有引用），失效函数同为模块级 `export function invalidatePermissionCache(...)`——各 manager import 同一模块级函数，实例无关
 
@@ -160,8 +182,12 @@ describe('cache invalidation on write paths', () => {
     // act: roleManager.update('r1', {...}, 't1')
     // assert: getUserEffectivePermissions('u1','t1') 重新查库（db spy 计数 +1）
   });
-  it('RoleManager.delete clears tenant namespace', async () => { /* 同上形态 */ });
-  it('PermissionManager.create/update/delete clears tenant namespace', async () => { /* 三操作各一断言 */ });
+  it('RoleManager.delete clears tenant namespace', async () => {
+    /* 同上形态 */
+  });
+  it('PermissionManager.create/update/delete clears tenant namespace', async () => {
+    /* 三操作各一断言 */
+  });
   it('UserManager.changeStatus clears only that userId', async () => {
     // 预热 u1@t1 与 u2@t1；changeStatus('u1',...) 后仅 u1 重查
   });
@@ -185,10 +211,12 @@ describe('cache invalidation on write paths', () => {
 ## Task 3: RoleManager.findAll N+1 消除（JOIN 一次取回）
 
 **Files:**
+
 - Modify: `packages/identity/src/managers/RoleManager.ts:116-160`（findAll 的每角色 getRolePermissions 循环 → 单次 JOIN 查询 + 内存分组）
 - Test: `packages/identity/src/__tests__/RoleManager.test.ts`（追加 findAll 形状断言）
 
 **Interfaces:**
+
 - Consumes: drizzle `inArray`；rolePermissions 表 schema
 - Produces: findAll 返回形状不变（`PaginatedResult<Role>`，role.permissions 字段语义不变）——纯内部优化，调用方零感知
 
@@ -237,15 +265,26 @@ for (const p of perms) {
 ## Task 4: 通用 OIDC RP 后端（options 驱动 + arctic OAuth2Client）
 
 **Files:**
+
 - Modify: `apps/server/src/routes/oauth.ts`（provider 解析从硬编码 switch 改为注册表合并）
 - Test: `apps/server/src/__tests__/oauth.test.ts`（追加 generic provider 用例）
 
 **Interfaces:**
+
 - Consumes: OptionsManager（`get(key, envValue, defaultValue)` 三参，auth.ts 既有 getOptionsManager 单例先例）；arctic 3.7 `OAuth2Client`（显式 endpoints：`createAuthorizationURLWithPKCE(authEndpoint, state, 'S256', verifier, scopes)` / `validateAuthorizationCode(tokenEndpoint, code, verifier)`）；options 表读走 auth.ts 既有 getOptionsManager()
 - Produces: `resolveProviders(): Promise<Record<string, ResolvedProvider>>`（oauth.ts 模块内；ResolvedProvider = { client: OAuth2Client|GitHub|Google; pkce: boolean; scope: string[]; name: string }）——内置 github/google（env 凭据齐全时）+ options `oauth_providers` JSON 里的动态 provider 合并；options JSON 格式：
 
 ```json
-{ "my-oidc": { "authUrl": "https://idp.example.com/authorize", "tokenUrl": "https://idp.example.com/token", "userinfoUrl": "https://idp.example.com/userinfo", "clientId": "xxx", "clientSecret": "yyy", "scope": "openid profile email" } }
+{
+  "my-oidc": {
+    "authUrl": "https://idp.example.com/authorize",
+    "tokenUrl": "https://idp.example.com/token",
+    "userinfoUrl": "https://idp.example.com/userinfo",
+    "clientId": "xxx",
+    "clientSecret": "yyy",
+    "scope": "openid profile email"
+  }
+}
 ```
 
 - 行为契约：options JSON 畸形（非 JSON/缺字段）→ 该 provider 跳过 + warn 日志（不炸启动、不影响内置）；provider 名非法字符（非 `[a-z0-9-]`）→ 跳过；内置与动态同名 → 内置优先；`/oauth/:provider/authorize` 对未配置 provider → 404（现行为）；generic provider 走 PKCE（state cookie + verifier cookie 机制复用现有）；profile 标准化：userinfoUrl 响应 `{ sub, email?, name? }` → NormalizedProfile（email 缺省 `${sub}@${name}.oauth.invalid` 与现 fallback 一致）
@@ -278,8 +317,12 @@ describe('generic OIDC providers (options-driven)', () => {
 import { OAuth2Client, generateState, generateCodeVerifier } from 'arctic';
 
 interface DynamicProviderConfig {
-  authUrl: string; tokenUrl: string; userinfoUrl: string;
-  clientId: string; clientSecret: string; scope?: string;
+  authUrl: string;
+  tokenUrl: string;
+  userinfoUrl: string;
+  clientId: string;
+  clientSecret: string;
+  scope?: string;
 }
 
 async function loadDynamicProviders(): Promise<Record<string, DynamicProviderConfig>> {
@@ -294,6 +337,7 @@ async function resolveProvider(name: string): Promise<ResolvedProvider | null> {
 ```
 
 authorize/callback 两个 handler 的 provider 解析改走 `resolveProvider(params.provider)`；generic 分支：authorize 用 `createAuthorizationURLWithPKCE(authUrl, state, CodeChallengeMethod.S256, verifier, scopes)`；callback 用 `validateAuthorizationCode(tokenUrl, code, verifier)` 后 fetch userinfoUrl（Bearer token）→ 标准化。内置 GitHub/Google 分支原逻辑不动。
+
 - [ ] **Step 4: 确认 PASS**（含既有 github/google 用例零回归）+ 全量
 - [ ] **Step 5: Commit** — `feat(server): options-driven generic OIDC providers via arctic OAuth2Client (B2)`
 
@@ -302,12 +346,14 @@ authorize/callback 两个 handler 的 provider 解析改走 `resolveProvider(par
 ## Task 5: 登录页动态 provider 按钮（前端消费）
 
 **Files:**
+
 - Modify: `apps/server/src/routes/oauth.ts`（追加公开端点 GET /auth/oauth/providers → `{success:true,data:{providers:['github','google','my-oidc']}}`——仅返回已配置 provider 名，无任何凭据/URL 细节；无权限码需求，公开端点）
 - Modify: `apps/admin-ui/src/api/`（现有 oauth api 文件加 listOAuthProviders()）
 - Modify: `apps/admin-ui/src/pages/Login.tsx`（GitHub/Google 硬编码按钮区改为 map 渲染；空数组则不渲染该区块）
 - Test: `e2e/oauth-login.spec.ts`（追加 1 例：mock providers 端点返回含动态 provider → 按钮渲染）
 
 **Interfaces:**
+
 - Consumes: Task 4 的 resolveProviders
 - Produces: 前端零硬编码 provider 列表；新端点响应形状 `{success:true,data:{providers:string[]}}`（信封合规）
 
@@ -322,6 +368,7 @@ authorize/callback 两个 handler 的 provider 解析改走 `resolveProvider(par
 ## Task 6: 暗色模式（ConfigProvider + ui store + 空态/筛选快赢）
 
 **Files:**
+
 - Create: `apps/admin-ui/src/stores/ui.ts`（zustand persist：theme 'light'|'dark'|'auto'）
 - Modify: `apps/admin-ui/src/App.tsx`（ConfigProvider theme algorithm 切换 + html[data-theme] effect；locale 绑定处同层）
 - Modify: `apps/admin-ui/src/components/`（布局头部加主题切换按钮——先读布局组件定位文件）
@@ -330,6 +377,7 @@ authorize/callback 两个 handler 的 provider 解析改走 `resolveProvider(par
 - Test: `e2e/theme.spec.ts`（new）
 
 **Interfaces:**
+
 - Consumes: antd `theme`（darkAlgorithm/lightAlgorithm）、zustand persist 既有模式（auth.ts:37 先例——只持久化业务字段，theme 属用户偏好可持久化）
 - Produces: `useUiStore`：`{ theme: 'light'|'dark'|'auto'; setTheme(t): void }`；html 根元素 `data-theme` 属性同步（e2e 断言锚点）
 
@@ -353,9 +401,11 @@ test('theme toggle switches data-theme and persists across reload', async ({ pag
 ## Task 7: 全局收官门禁
 
 **Files:**
+
 - 无新产物（验证性任务）；如 e2e 暴露回归则修复归本任务
 
 **Interfaces:**
+
 - Consumes: Task 1-6 全部交付
 
 - [ ] **Step 1: 前置**——5101 后端停（curl 应 000）；`export no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1`

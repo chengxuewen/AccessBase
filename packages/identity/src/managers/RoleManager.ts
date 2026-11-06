@@ -76,11 +76,7 @@ export class RoleManager {
   /**
    * Create role (tenant-level)
    */
-  async create(
-    data: CreateRoleInput,
-    tenantId: string,
-    db?: DbLike,
-  ): Promise<Role> {
+  async create(data: CreateRoleInput, tenantId: string, db?: DbLike): Promise<Role> {
     const d: DbLike = db ?? this.db;
     logger.info(`Creating role: ${data.name} in tenant: ${tenantId}`);
 
@@ -140,7 +136,11 @@ export class RoleManager {
       );
     }
 
-    await emitEvent(d, { tenantId, type: 'role.changed', payload: { id: inserted.id, op: 'created', name: inserted.name } });
+    await emitEvent(d, {
+      tenantId,
+      type: 'role.changed',
+      payload: { id: inserted.id, op: 'created', name: inserted.name },
+    });
     return this.mapToRole(inserted, []);
   }
 
@@ -284,13 +284,7 @@ export class RoleManager {
     if (data.permissionIds !== undefined) {
       // permissionScopes ride the permissionIds replacement (full rebuild): a
       // scope for a code that is no longer bound is meaningless, not persisted.
-      await this.setRolePermissions(
-        id,
-        data.permissionIds,
-        tenantId,
-        db,
-        data.permissionScopes,
-      );
+      await this.setRolePermissions(id, data.permissionIds, tenantId, db, data.permissionScopes);
     }
 
     const perms = await this.getRolePermissions(id);
@@ -298,7 +292,11 @@ export class RoleManager {
     // Q3A: effective auth changed for the role's members -> bump + drop authst
     await bumpAuthState(d, { tenantId, roleIds: [id] }, delAuthState);
     invalidatePermissionCache(tenantId);
-    await emitEvent(d, { tenantId, type: 'role.changed', payload: { id: updated.id, op: 'updated', name: updated.name } });
+    await emitEvent(d, {
+      tenantId,
+      type: 'role.changed',
+      payload: { id: updated.id, op: 'updated', name: updated.name },
+    });
     return this.mapToRole(updated, perms);
   }
 
@@ -346,7 +344,11 @@ export class RoleManager {
     await d.delete(roles).where(and(eq(roles.id, id), eq(roles.tenantId, tenantId)));
     // (delete: guarded zero-member above -> no bearer can hold this role; no bump needed)
     invalidatePermissionCache(tenantId);
-    await emitEvent(d, { tenantId, type: 'role.changed', payload: { id, op: 'deleted', name: role.name } });
+    await emitEvent(d, {
+      tenantId,
+      type: 'role.changed',
+      payload: { id, op: 'deleted', name: role.name },
+    });
   }
 
   /**
@@ -414,7 +416,11 @@ export class RoleManager {
     // Q3A: inheritance change alters effective perms across the subtree — tenant-wide bump
     await bumpAuthState(d, { tenantId, allTenantUsers: true }, delAuthState);
     invalidatePermissionCache(tenantId);
-    await emitEvent(d, { tenantId, type: 'role.changed', payload: { id: updated.id, op: 'parent', parentId } });
+    await emitEvent(d, {
+      tenantId,
+      type: 'role.changed',
+      payload: { id: updated.id, op: 'parent', parentId },
+    });
     return this.mapToRole(updated, perms);
   }
 
@@ -477,13 +483,22 @@ export class RoleManager {
       .onConflictDoNothing();
     invalidatePermissionCache(tenantId, userId);
     await bumpAuthState(d, { tenantId, userIds: [userId] }, delAuthState);
-    await emitEvent(d, { tenantId, type: 'role.changed', payload: { userId, roleId, op: 'assigned' } });
+    await emitEvent(d, {
+      tenantId,
+      type: 'role.changed',
+      payload: { userId, roleId, op: 'assigned' },
+    });
   }
 
   /**
    * Revoke role from user
    */
-  async revokeFromUser(userId: string, roleId: string, tenantId: string, db?: DbLike): Promise<void> {
+  async revokeFromUser(
+    userId: string,
+    roleId: string,
+    tenantId: string,
+    db?: DbLike,
+  ): Promise<void> {
     const d: DbLike = db ?? this.db;
     logger.info(`Revoking role ${roleId} from user ${userId} in tenant: ${tenantId}`);
 
@@ -494,7 +509,11 @@ export class RoleManager {
       .from(roles)
       .where(eq(roles.id, roleId))
       .limit(1);
-    if (targetRole?.isSystem && !(await holdsSystemRoleViaGroup(d, tenantId, userId)) && (await wouldOrphanLastAdmin(d, tenantId, userId))) {
+    if (
+      targetRole?.isSystem &&
+      !(await holdsSystemRoleViaGroup(d, tenantId, userId)) &&
+      (await wouldOrphanLastAdmin(d, tenantId, userId))
+    ) {
       throw new Error(
         `${LAST_ADMIN_GUARD}: cannot revoke the last active administrator of the tenant`,
       );
@@ -511,7 +530,11 @@ export class RoleManager {
       );
     invalidatePermissionCache(tenantId, userId);
     await bumpAuthState(d, { tenantId, userIds: [userId] }, delAuthState);
-    await emitEvent(d, { tenantId, type: 'role.changed', payload: { userId, roleId, op: 'unassigned' } });
+    await emitEvent(d, {
+      tenantId,
+      type: 'role.changed',
+      payload: { userId, roleId, op: 'unassigned' },
+    });
   }
 
   /**
@@ -534,7 +557,11 @@ export class RoleManager {
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
       .where(and(eq(userRoles.userId, userId), eq(userRoles.tenantId, tenantId)));
     const dropsSystemRole = held.some((row) => row.isSystem && !roleIds.includes(row.roleId));
-    if (dropsSystemRole && !(await holdsSystemRoleViaGroup(d, tenantId, userId)) && (await wouldOrphanLastAdmin(d, tenantId, userId))) {
+    if (
+      dropsSystemRole &&
+      !(await holdsSystemRoleViaGroup(d, tenantId, userId)) &&
+      (await wouldOrphanLastAdmin(d, tenantId, userId))
+    ) {
       throw new Error(
         `${LAST_ADMIN_GUARD}: cannot remove the last active administrator of the tenant`,
       );
@@ -547,9 +574,7 @@ export class RoleManager {
 
     // Add new assignments
     if (roleIds.length > 0) {
-      await d.insert(userRoles).values(
-        roleIds.map((roleId) => ({ userId, roleId, tenantId })),
-      );
+      await d.insert(userRoles).values(roleIds.map((roleId) => ({ userId, roleId, tenantId })));
     }
     invalidatePermissionCache(tenantId, userId);
     await bumpAuthState(d, { tenantId, userIds: [userId] }, delAuthState);
@@ -771,5 +796,4 @@ export class RoleManager {
   async close(): Promise<void> {
     await closeDb(this.db);
   }
-
 }

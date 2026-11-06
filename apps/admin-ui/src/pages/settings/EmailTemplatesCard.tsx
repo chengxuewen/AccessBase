@@ -108,7 +108,10 @@ export default function EmailTemplatesCard() {
     setSaving(true);
     try {
       const merged = await updateEmailTemplate(editing.id, {
-        subject: { ...(subjectEn ? { en: subjectEn } : {}), ...(subjectZh ? { zh: subjectZh } : {}) },
+        subject: {
+          ...(subjectEn ? { en: subjectEn } : {}),
+          ...(subjectZh ? { zh: subjectZh } : {}),
+        },
         html: { ...(htmlEn ? { en: htmlEn } : {}), ...(htmlZh ? { zh: htmlZh } : {}) },
       });
       setTemplates((prev) => prev.map((row) => (row.id === merged.id ? merged : row)));
@@ -176,7 +179,12 @@ export default function EmailTemplatesCard() {
       title: t('settings.emailTemplates.actions'),
       render: (_, record) =>
         canWrite ? (
-          <Button type="link" size="small" onClick={() => openEdit(record)} data-testid="email-templates-edit">
+          <Button
+            type="link"
+            size="small"
+            onClick={() => openEdit(record)}
+            data-testid="email-templates-edit"
+          >
             {t('common.edit')}
           </Button>
         ) : null,
@@ -222,97 +230,116 @@ export default function EmailTemplatesCard() {
         onClose={closeEdit}
         destroyOnHidden
         extra={
-          <Button type="primary" loading={saving} onClick={() => void handleSave()} data-testid="email-templates-save">
+          <Button
+            type="primary"
+            loading={saving}
+            onClick={() => void handleSave()}
+            data-testid="email-templates-save"
+          >
             {t('common.save')}
           </Button>
         }
       >
         {editing && (
           <div data-testid="email-templates-drawer">
-          <Space direction="vertical" size="large" style={{ display: 'flex' }}>
-            <Form
-              form={form}
-              layout="vertical"
-              key={editing.id}
-              initialValues={{
-                subjectEn: editing.subject.en ?? '',
-                subjectZh: editing.subject.zh ?? '',
-                htmlEn: editing.html.en ?? '',
-                htmlZh: editing.html.zh ?? '',
-              }}
-            >
-              <Form.Item name="subjectEn" label={t('settings.emailTemplates.subjectEn')}>
-                <Input data-testid="email-templates-subject-en" />
-              </Form.Item>
-              <Form.Item name="subjectZh" label={t('settings.emailTemplates.subjectZh')}>
-                <Input data-testid="email-templates-subject-zh" />
-              </Form.Item>
-              <Form.Item name="htmlEn" label={t('settings.emailTemplates.htmlEn')}>
-                <Input.TextArea rows={6} data-testid="email-templates-html-en" />
-              </Form.Item>
-              <Form.Item name="htmlZh" label={t('settings.emailTemplates.htmlZh')}>
-                <Input.TextArea rows={6} data-testid="email-templates-html-zh" />
-              </Form.Item>
-            </Form>
+            <Space direction="vertical" size="large" style={{ display: 'flex' }}>
+              <Form
+                form={form}
+                layout="vertical"
+                key={editing.id}
+                initialValues={{
+                  subjectEn: editing.subject.en ?? '',
+                  subjectZh: editing.subject.zh ?? '',
+                  htmlEn: editing.html.en ?? '',
+                  htmlZh: editing.html.zh ?? '',
+                }}
+              >
+                <Form.Item name="subjectEn" label={t('settings.emailTemplates.subjectEn')}>
+                  <Input data-testid="email-templates-subject-en" />
+                </Form.Item>
+                <Form.Item name="subjectZh" label={t('settings.emailTemplates.subjectZh')}>
+                  <Input data-testid="email-templates-subject-zh" />
+                </Form.Item>
+                <Form.Item name="htmlEn" label={t('settings.emailTemplates.htmlEn')}>
+                  <Input.TextArea rows={6} data-testid="email-templates-html-en" />
+                </Form.Item>
+                <Form.Item name="htmlZh" label={t('settings.emailTemplates.htmlZh')}>
+                  <Input.TextArea rows={6} data-testid="email-templates-html-zh" />
+                </Form.Item>
+              </Form>
 
-            <div>
-              <Typography.Title level={5}>{t('settings.emailTemplates.preview')}</Typography.Title>
-              <Typography.Text type="secondary">{t('settings.emailTemplates.previewHint')}</Typography.Text>
-              <Space style={{ marginTop: 8, marginBottom: 8 }}>
-                <Radio.Group
-                  value={previewLocale}
-                  onChange={(e) => setPreviewLocale(e.target.value as 'en' | 'zh')}
-                  options={[
-                    { label: 'en', value: 'en' },
-                    { label: 'zh', value: 'zh' },
-                  ]}
-                  optionType="button"
-                  data-testid="email-templates-preview-locale"
-                />
-                <Button loading={previewing} onClick={() => void handlePreview()} data-testid="email-templates-preview-run">
-                  {t('settings.emailTemplates.previewRun')}
-                </Button>
-              </Space>
-              {preview && (
-                <div data-testid="email-templates-preview">
-                  <Typography.Paragraph strong data-testid="email-templates-preview-subject">
-                    {preview.subject}
-                  </Typography.Paragraph>
-                  <iframe
-                    title={t('settings.emailTemplates.preview')}
-                    sandbox=""
-                    srcDoc={preview.html}
-                    style={{ width: '100%', height: 240, border: '1px solid #d9d9d9' }}
-                    data-testid="email-templates-preview-frame"
+              <div>
+                <Typography.Title level={5}>
+                  {t('settings.emailTemplates.preview')}
+                </Typography.Title>
+                <Typography.Text type="secondary">
+                  {t('settings.emailTemplates.previewHint')}
+                </Typography.Text>
+                <Space style={{ marginTop: 8, marginBottom: 8 }}>
+                  <Radio.Group
+                    value={previewLocale}
+                    onChange={(e) => setPreviewLocale(e.target.value as 'en' | 'zh')}
+                    options={[
+                      { label: 'en', value: 'en' },
+                      { label: 'zh', value: 'zh' },
+                    ]}
+                    optionType="button"
+                    data-testid="email-templates-preview-locale"
                   />
-                </div>
-              )}
-            </div>
+                  <Button
+                    loading={previewing}
+                    onClick={() => void handlePreview()}
+                    data-testid="email-templates-preview-run"
+                  >
+                    {t('settings.emailTemplates.previewRun')}
+                  </Button>
+                </Space>
+                {preview && (
+                  <div data-testid="email-templates-preview">
+                    <Typography.Paragraph strong data-testid="email-templates-preview-subject">
+                      {preview.subject}
+                    </Typography.Paragraph>
+                    <iframe
+                      title={t('settings.emailTemplates.preview')}
+                      sandbox=""
+                      srcDoc={preview.html}
+                      style={{ width: '100%', height: 240, border: '1px solid #d9d9d9' }}
+                      data-testid="email-templates-preview-frame"
+                    />
+                  </div>
+                )}
+              </div>
 
-            <div>
-              <Typography.Title level={5}>{t('settings.emailTemplates.testSend')}</Typography.Title>
-              {smtpDown && (
-                <Alert
-                  type="warning"
-                  showIcon
-                  message={t('settings.emailTemplates.smtpUnavailable')}
-                  style={{ marginBottom: 8 }}
-                  data-testid="email-templates-smtp-alert"
-                />
-              )}
-              <Space.Compact style={{ width: '100%' }}>
-                <Input
-                  value={testTo}
-                  onChange={(e) => setTestTo(e.target.value)}
-                  placeholder={t('settings.emailTemplates.toPlaceholder')}
-                  data-testid="email-templates-test-to"
-                />
-                <Button loading={sending} onClick={() => void handleTestSend()} data-testid="email-templates-test-send">
-                  {t('settings.emailTemplates.sendTest')}
-                </Button>
-              </Space.Compact>
-            </div>
-          </Space>
+              <div>
+                <Typography.Title level={5}>
+                  {t('settings.emailTemplates.testSend')}
+                </Typography.Title>
+                {smtpDown && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    message={t('settings.emailTemplates.smtpUnavailable')}
+                    style={{ marginBottom: 8 }}
+                    data-testid="email-templates-smtp-alert"
+                  />
+                )}
+                <Space.Compact style={{ width: '100%' }}>
+                  <Input
+                    value={testTo}
+                    onChange={(e) => setTestTo(e.target.value)}
+                    placeholder={t('settings.emailTemplates.toPlaceholder')}
+                    data-testid="email-templates-test-to"
+                  />
+                  <Button
+                    loading={sending}
+                    onClick={() => void handleTestSend()}
+                    data-testid="email-templates-test-send"
+                  >
+                    {t('settings.emailTemplates.sendTest')}
+                  </Button>
+                </Space.Compact>
+              </div>
+            </Space>
           </div>
         )}
       </Drawer>

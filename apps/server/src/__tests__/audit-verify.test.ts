@@ -108,7 +108,14 @@ function scriptFrom(anchors: FakeAnchor[], rows: FakeRow[]): Script {
     if (r.anchorId !== null) (rowsByAnchor[r.anchorId] ??= []).push(r);
     if (r.erasureId) (rowsByErasure[r.erasureId] ??= []).push(r);
   }
-  return { anchors, rowsByAnchor, rowsByErasure, erasureReceipts: {}, unanchoredOldHashed: 0, totalHashed: rows.length };
+  return {
+    anchors,
+    rowsByAnchor,
+    rowsByErasure,
+    erasureReceipts: {},
+    unanchoredOldHashed: 0,
+    totalHashed: rows.length,
+  };
 }
 
 const dialect = new PgDialect();
@@ -144,11 +151,15 @@ function fakeDb(script: Script) {
           if (sql.includes('erasure_id')) {
             const eid = params.find((p): p is string => typeof p === 'string') ?? '';
             const rows = script.rowsByErasure[eid] ?? [];
-            return Promise.resolve(rows.map((r) => ({ rowHash: r.rowHash })) as unknown as Record<string, unknown>[]);
+            return Promise.resolve(
+              rows.map((r) => ({ rowHash: r.rowHash })) as unknown as Record<string, unknown>[],
+            );
           }
           if (sql.includes('anchor_id')) {
             const id = params.find((p): p is number => typeof p === 'number') ?? -1;
-            return Promise.resolve((script.rowsByAnchor[id] ?? []) as unknown as Record<string, unknown>[]);
+            return Promise.resolve(
+              (script.rowsByAnchor[id] ?? []) as unknown as Record<string, unknown>[],
+            );
           }
           return Promise.resolve([{ n: script.totalHashed }]);
         };
@@ -170,7 +181,16 @@ function fakeDb(script: Script) {
 const DAY = '2026-09-28';
 
 function anchor(id: number, over: Partial<FakeAnchor> = {}): FakeAnchor {
-  return { id, day: DAY, seq: 1, rowCount: 0, root: GENESIS, prevRoot: null, prunedAt: null, ...over };
+  return {
+    id,
+    day: DAY,
+    seq: 1,
+    rowCount: 0,
+    root: GENESIS,
+    prevRoot: null,
+    prunedAt: null,
+    ...over,
+  };
 }
 
 describe('verifyAuditChain', () => {
@@ -188,7 +208,9 @@ describe('verifyAuditChain', () => {
     // The anchor MEMBERSHIP fetch must not carry a created_at range predicate
     // (B1: a backdated row would slip between range boundaries). The budget/
     // watchdog COUNT queries legitimately filter by time — excluded here.
-    const membershipFetches = logQueries.filter((q) => q.includes('anchor_id') && !q.includes('is null'));
+    const membershipFetches = logQueries.filter(
+      (q) => q.includes('anchor_id') && !q.includes('is null'),
+    );
     expect(membershipFetches.length).toBeGreaterThan(0);
     for (const q of membershipFetches) {
       expect(q).not.toMatch(/created_at.*(>=|<=|between)/i);

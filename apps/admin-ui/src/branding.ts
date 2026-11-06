@@ -22,9 +22,10 @@ let cache: Branding | null = null;
 export async function fetchBranding(force = false): Promise<Branding> {
   if (cache && !force) return cache;
   try {
-    const { data } = await client.get<ApiEnvelope<{ siteName?: string; logoUrl?: string; primaryColor?: string }>>(
-      '/v1/setup/status',
-    );
+    const { data } =
+      await client.get<ApiEnvelope<{ siteName?: string; logoUrl?: string; primaryColor?: string }>>(
+        '/v1/setup/status',
+      );
     cache = {
       siteName: data.data?.siteName ?? '',
       logoUrl: data.data?.logoUrl ?? '',
@@ -46,9 +47,16 @@ export function useBranding(): Branding {
 }
 
 /** Settings save path: PUT both options (admin auth), then bust the cache. */
-export async function saveBranding(siteName: string, logoUrl: string, primaryColor: string): Promise<void> {
+export async function saveBranding(
+  siteName: string,
+  logoUrl: string,
+  primaryColor: string,
+): Promise<void> {
   await client.put<ApiEnvelope<unknown>>('/v1/options', { key: 'site.name', value: siteName });
   await client.put<ApiEnvelope<unknown>>('/v1/options', { key: 'site.logo_url', value: logoUrl });
-  await client.put<ApiEnvelope<unknown>>('/v1/options', { key: 'site.primary_color', value: primaryColor });
+  await client.put<ApiEnvelope<unknown>>('/v1/options', {
+    key: 'site.primary_color',
+    value: primaryColor,
+  });
   cache = null;
 }

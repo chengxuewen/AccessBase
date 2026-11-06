@@ -13,7 +13,7 @@ export interface Role {
   /** K-T2: built-in admin role is immutable — server rejects edits with 409
    * ROLE_PROTECTED; the table locks its row controls when true. */
   isSystem?: boolean;
-permissions?: Permission[];
+  permissions?: Permission[];
   /** data-scope batch: per-binding row scope keyed by permissionId — the projection
    * carries only users:* entries that are bound; an absent id means 'all'. */
   permissionScopes?: Record<string, DataScope>;
@@ -92,10 +92,12 @@ export async function deleteRole(id: string): Promise<void> {
 }
 
 /** List permissions (for role permission assignment) */
-export async function listPermissions(params: {
-  page?: number;
-  pageSize?: number;
-} = {}): Promise<{ data: Permission[]; total: number }> {
+export async function listPermissions(
+  params: {
+    page?: number;
+    pageSize?: number;
+  } = {},
+): Promise<{ data: Permission[]; total: number }> {
   const { data } = await client.get<PaginatedEnvelope<Permission>>('/v1/permissions', { params });
   return { data: data.data, total: data.total };
 }

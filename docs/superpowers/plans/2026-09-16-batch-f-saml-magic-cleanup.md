@@ -26,15 +26,16 @@
 - R11: node-saml named-import smoke test is T1's RED step; fallback `import nodeSaml from '@node-saml/node-saml'; const { SAML } = nodeSaml`
 
 ---
+
 - R8 (Mailer keys): T3's SMTP options keys MUST be exactly `smtp_host/smtp_port/smtp_user/smtp_password/smtp_from` + `SMTP_*` env fallback (auth.ts:576-581) — no second SMTP config source
 - R9 (audit events): NO named audit events — global onResponse hook covers new routes automatically; magic consume `{token}` body is auto-redacted by field name ('token' in audit redact list, packages/audit/src/types.ts:149); no explicit AuditLogger wiring anywhere in this batch
 - R12 (endpoint count): routes/saml.ts ships FIVE routes — login / acs / metadata / status / exchange (exchange is a first-class bullet, not an afterthought)
 - Suspended-gate semantics per route: ACS = browser navigation → 302 `/login?samlError=AUTH_004` (never raw 403 on a redirect flow); exchange + magic consume = API envelope → 403 AUTH_004 (JSON)
 
-
 ## Task 1: SamlProvider (identity package, lazy node-saml)
 
 **Files:**
+
 - Create: `packages/identity/src/providers/SamlProvider.ts`
 - Create: `packages/identity/src/__tests__/SamlProvider.test.ts`
 - Modify: `packages/identity/src/index.ts` (add export line)
@@ -42,6 +43,7 @@
 - Test: `packages/identity/src/__tests__/SamlProvider.test.ts`
 
 **Interfaces:**
+
 - Consumes: node-saml `SAML` class, `Profile` type (R11 fallback import pattern if named import fails at runtime)
 - Produces: `SamlProvider` class — `constructor(config: SamlProviderConfig)`, methods `async loginUrl(relayState: string, host?: string): Promise<string>` (redirect URL via getAuthorizeUrlAsync), `async validateResponse(container: Record<string, string>): Promise<{ email: string; nameId: string; displayName?: string } | { error: 'AUTH_SAML_002'; message: string }>` (wraps validatePostResponseAsync, extracts email from profile.email ?? profile.nameID, generic message on any validation failure — no IdP detail leak), `async metadataXml(): Promise<string>` (generateServiceProviderMetadata standalone with issuer/callbackUrl/logoutCallbackUrl omitted). Export type `SamlProviderConfig` — fields mirror the options keys in Task 2: `{ enabled: boolean; entryPoint: string; idpCert: string; entityId: string; idpIssuer?: string; privateKey?: string; publicCert?: string; clockSkewMs?: number }`
 - R5: NO top-level import of '@node-saml/node-saml' — module-level `let samlModule` cache + lazy `await import()` inside a private `async getSaml(): Promise<SAML>` helper
@@ -55,16 +57,18 @@
 ## Task 2: SAML routes plugin (5 endpoints + scoped parser + audit exclusion)
 
 **Files:**
+
 - Create: `apps/server/src/routes/saml.ts`
 - Create: `apps/server/src/__tests__/saml.test.ts`
 - Modify: `apps/server/src/app.ts` (register samlRoutes + audit exclusion list entry)
 - Test: `apps/server/src/__tests__/saml.test.ts`
 
 **Interfaces:**
+
 - Consumes: SamlProvider (Task 1), FlowTokenService shared-Map stub seam (batch-E R3 pattern from oauth.test.ts:130-163), issueTokenPair/rolesOf (re-define locally in plugin mirroring auth.ts:54-84 — routes are per-plugin functions)
 - Produces: routes — `GET /api/v1/auth/saml/login` (302 to IdP; 503 `{success:false,error:{code:'AUTH_SAML_001'}}` when disabled), `POST /api/v1/auth/saml/acs` (scoped urlencoded parser; consume → validate → find-or-provision → suspended gate 403 AUTH_004 → issue `saml_exchange` flowToken 60s payload `{userId, mfaPending}` or `{userId, accessToken, refreshToken, user}` dual-variant per R1 → 302 `/login?samlCode=<token>`; error → 302 `/login?samlError=AUTH_SAML_002`), `POST /api/v1/auth/saml/exchange` (JSON; consume `saml_exchange` → mfaPending variant issues `mfa_verify` {userId} 300s → `{success:true,data:{mfaRequired:true,flowToken}}`; non-mfaPending → token pair envelope; 200 union schema per R1; 401 AUTH_SAML_002 on invalid/expired), `GET /api/v1/auth/saml/metadata` (xml), `GET /api/v1/auth/saml/status` (`{success:true,data:{enabled:boolean}}`)
 - Rate limits (R6): ACS 10/min, login 30/min, exchange 20/min, metadata 30/min, status 60/min — route-level `config: { rateLimit: { max, timeWindow } }`
-- Options keys (R3 mask auto-covers private_key; idp_cert/public_cert intentionally unmasked — public material): `saml_enabled/SAML_ENABLED(false)`, `saml_entry_point/SAML_ENTRY_POINT`, `saml_idp_cert/SAML_IDP_CERT`, `saml_entity_id/SAML_ENTITY_ID(urn:accessbase:saml:sp)`, `saml_idp_issuer/SAML_IDP_ISSUER`, `saml_private_key/SAML_PRIVATE_KEY`, `saml_public_cert/SAML_PUBLIC_CERT`, `saml_clock_skew_ms/SAML_CLOCK_SKEW_MS(300000)`; callbackUrl derived `saml_entity_id`-independent: `String(await get('saml_acs_url','SAML_ACS_URL', \`${origin}/api/v1/auth/saml/acs\`))` — new key `saml_acs_url/SAML_ACS_URL` defaulting to request origin + fixed path
+- Options keys (R3 mask auto-covers private_key; idp_cert/public_cert intentionally unmasked — public material): `saml_enabled/SAML_ENABLED(false)`, `saml_entry_point/SAML_ENTRY_POINT`, `saml_idp_cert/SAML_IDP_CERT`, `saml_entity_id/SAML_ENTITY_ID(urn:accessbase:saml:sp)`, `saml_idp_issuer/SAML_IDP_ISSUER`, `saml_private_key/SAML_PRIVATE_KEY`, `saml_public_cert/SAML_PUBLIC_CERT`, `saml_clock_skew_ms/SAML_CLOCK_SKEW_MS(300000)`; callbackUrl derived `saml_entity_id`-independent: `String(await get('saml_acs_url','SAML_ACS_URL', \`${origin}/api/v1/auth/saml/acs\`))`— new key`saml_acs_url/SAML_ACS_URL` defaulting to request origin + fixed path
 - R2 ruling: ACS never reads RelayState; 302 target is always `/login?samlCode=…` or `/login?samlError=…`
 
 - [ ] **Step 1: RED — write failing route tests** (mirror oauth.test.ts: plugin mount via `app.register(samlRoutes)` after vi.mock '@accessbase/identity' returning {SamlProvider: mock class, UserManager, RoleManager}; shared FlowTokenService stub via module-level Map — copy the sharedFlowTokens seam from oauth.test.ts:130-163 with purpose-check-after-burn ordering per F3-3, since Task 6 fixes the real stub): cases — status disabled default 503→no wait, status returns {enabled:false}; login when disabled → 503 AUTH_SAML_001; login when enabled → 302 Location contains entryPoint host; acs happy non-totp → 302 `/login?samlCode=` (assert flowTokens.issue called with 'saml_exchange' + payload contains accessToken); acs totp user → 302 + payload has mfaPending:true + no accessToken; acs suspended existing user → 302 samlError (NOT 403 — browser navigation gets redirect; error code carried in query); acs invalid assertion (provider returns error) → 302 samlError; exchange mfaPending → {mfaRequired:true, flowToken} + assert mfa_verify issued {userId} 300s; exchange non-mfaPending → token pair envelope shape; exchange invalid token → 401 AUTH_SAML_002; union schema: exchange response includes flowToken AND accessToken variants both declared (R2); status enabled → {enabled:true}; app.ts grep invariant: `expect(appSource).not.toMatch(/addContentTypeParser/)` for app.ts (static assertion like route-guard.test)
@@ -76,10 +80,12 @@
 ## Task 3: Magic link (request + consume endpoints in routes/auth.ts)
 
 **Files:**
+
 - Modify: `apps/server/src/routes/auth.ts` (add POST /auth/magic/request + POST /auth/magic/consume after forgot-password route ~:556-640)
 - Test: `apps/server/src/__tests__/magic-login.test.ts` (new)
 
 **Interfaces:**
+
 - Consumes: flowTokens instance (auth.ts:32), Mailer.fromConfig (identity), issueTokenPair/rolesOf (auth.ts:54-84, in-file), options get() pattern
 - Produces: `POST /api/v1/auth/magic/request` {email:string} → **always 202 `{success:true,data:{message:'If an account exists, a sign-in link has been sent.'}}`** regardless of existence (enumeration resistance); rate limit 5/15min per IP (R7); body schema {email:{type:'string',format:'email'}} → 400 on invalid; internal: UserManager.findByEmail → if found && status==='active' → flowTokens.issue('magic_login', {userId, email}, 900) → Mailer.fromConfig(smtp options keys smtp_host/smtp_port/smtp_user/smtp_password/smtp_from + SMTP_* env, auth.ts:576-581 keys) → send html link `${origin}/login/magic?token=…` where origin = options `site.url` → env SITE_URL → request origin (R3); Mailer null → log warn, still 202; `POST /api/v1/auth/magic/consume` {token:string} → rate limit 10/15min per IP → flowTokens.consume(token,'magic_login') → null → 401 AUTH_MAGIC_001 generic → user lookup by payload.userId → null → 401 AUTH_MAGIC_001 (R13) → email-match `user.email !== payload.email` → 401 AUTH_MAGIC_001 (token already burned) → suspended (existing && status!=='active') → 403 AUTH_004 → totpEnabled → `mfa_verify` {userId} 300s → `{success:true,data:{mfaRequired:true,flowToken}}` (200 schema declares union: mfaRequired/flowToken + accessToken/refreshToken/expiresIn/user) → else token pair envelope (shape mirrors login 200)
 - Error code AUTH_MAGIC_001 generic message 'Invalid or expired sign-in link'
@@ -93,6 +99,7 @@
 ## Task 4: Frontend — SAML button + magic link UI + exchange wiring
 
 **Files:**
+
 - Modify: `apps/admin-ui/src/api/auth.ts` (add fetchSamlStatus, exchangeSamlCode, requestMagicLink, consumeMagicLink — ApiEnvelope-typed)
 - Modify: `apps/admin-ui/src/stores/auth.ts` (add exchangeSamlCode action mirroring exchangeOAuthCode incl. R4-corrected MFA branch)
 - Modify: `apps/admin-ui/src/pages/Login.tsx` (SAML button gated by status.enabled; magic-link email mini-form; handle samlCode/samlError query params)
@@ -101,6 +108,7 @@
 - Test: `e2e/saml.spec.ts` (new, mock-API), `e2e/auth-session.spec.ts` (append exchange-mfaRequired case — F3-5)
 
 **Interfaces:**
+
 - Consumes: client baseURL '/api' envelope pattern; providers-style status fetch; exchangeOAuthCode store action shape (stores/auth.ts:172-210)
 - Produces: exchangeSamlCode — same contract as exchangeOAuthCode (POST /v1/auth/saml/exchange {code} → token pair or mfaRequired branch with R4 fix: clear token/refreshToken/user in MFA branch); Login.tsx effect for `samlCode` param mirrors oauthCode effect (exchange → fetchUser/navigateAfterAuth or TOTP form via mfaFlowToken); samlError param → inline Alert with generic message; MagicLogin consumes token → success → fetchUser+navigateAfterAuth / mfaRequired → mfaFlowToken set → navigate('/login') for TOTP form (store shared)
 
@@ -113,12 +121,14 @@
 ## Task 5: Cleanup — E-Low×2 frontend + stub burn fix
 
 **Files:**
+
 - Modify: `apps/admin-ui/src/stores/auth.ts` (exchangeOAuthCode MFA branch clears token/refreshToken/user — E-Low #1)
 - Modify: `apps/admin-ui/src/pages/Login.tsx` (sessionStorage mfaFlowToken handoff before oidcRedirect assign; restore effect declared BEFORE oauthCode effect — E-Low #2, R14)
 - Modify: `apps/server/src/__tests__/oauth.test.ts` (shared stub burn-first — E-Low #3)
 - Test: `apps/admin-ui/src/stores/__tests__/auth.test.ts` (new — store unit test for MFA branch hygiene)
 
 **Interfaces:**
+
 - Consumes: existing exchangeOAuthCode action (Task 4 already applies the same fix to exchangeSamlCode — this task retrofits exchangeOAuthCode); oauth.test.ts sharedFlowTokens stub (:130-163)
 - Produces: exchangeOAuthCode MFA branch: `set({ mfaFlowToken: payload.flowToken, isAuthenticated: false, token: null, refreshToken: null, user: null })`; Login.tsx: before `window.location.assign(oidcRedirect)` — `if (useAuthStore.getState().mfaFlowToken) sessionStorage.setItem('mfaFlowToken', value)` (skip null — removeItem otherwise); mount restore effect FIRST (before oauthCode effect at :42): read sessionStorage → set store → sessionStorage.removeItem — R14 ordering hard constraint
 - Stub fix: oauth.test.ts sharedFlowTokens.consume — move `sharedFlowStore.delete(token)` BEFORE purpose check (mirror FlowTokenService.ts:70/81 real burn-first)
@@ -132,11 +142,13 @@
 ## Task 6: Env passthrough (F3-4, R4) + e2e full regression
 
 **Files:**
+
 - Modify: `accessbase.sh` (dev/native path: `set -a; [ -f .env ] && . ./.env; set +a` before server start; container run: replace explicit -e list with `--env-file .env` when file exists, fallback to existing -e list)
 - Modify: `.env.example` (add SITE_URL=, SAML_ENABLED=false, SAML_ENTRY_POINT=, SAML_IDP_CERT=, SAML_ENTITY_ID=urn:accessbase:saml:sp, SAML_ACS_URL=, MAGIC section comment only — no magic env keys beyond SITE_URL/SMTP_*)
 - Test: manual verification steps + e2e full suite
 
 **Interfaces:**
+
 - Consumes: existing accessbase.sh cmd_dev_native (~:88-96, :195) and cmd_start_container (:461-463)
 - Produces: all four modes deliver MFA_ENCRYPTION_KEY from .env to the server process env
 

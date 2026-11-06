@@ -64,8 +64,6 @@ afterAll(async () => {
   await app.close();
 });
 
-
-
 // Sign a valid JWT using the app's own secret so jwtVerify passes
 async function authedInject(options: { method: 'GET'; url: string }) {
   const token = app.jwt.sign({ sub: '550e8400-e29b-41d4-a716-446655440000' });

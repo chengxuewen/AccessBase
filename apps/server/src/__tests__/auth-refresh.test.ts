@@ -103,9 +103,7 @@ describe('POST /api/v1/auth/refresh (rotation)', () => {
   });
 
   it('returns 401 for unknown token', async () => {
-    sessionManagerMock.rotateRefreshToken.mockRejectedValueOnce(
-      new Error('Session not found'),
-    );
+    sessionManagerMock.rotateRefreshToken.mockRejectedValueOnce(new Error('Session not found'));
 
     const res = await app.inject({
       method: 'POST',
@@ -154,7 +152,9 @@ describe('POST /api/v1/auth/logout (session revocation)', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/logout',
-      headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}` },
+      headers: {
+        authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}`,
+      },
       payload: { refreshToken: 'raw-token' },
     });
 
@@ -165,11 +165,13 @@ describe('POST /api/v1/auth/logout (session revocation)', () => {
 
   it('succeeds without revocation when no refresh token supplied', async () => {
     sessionManagerMock.revokeSession.mockClear();
-const res = await app.inject({
-method: 'POST',
-url: '/api/v1/auth/logout',
-headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}` },
-});
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: {
+        authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}`,
+      },
+    });
 
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ success: true, data: { idpLogoutUrl: null } });
@@ -183,7 +185,9 @@ headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@tes
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/logout',
-      headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}` },
+      headers: {
+        authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}`,
+      },
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().data).toEqual({ idpLogoutUrl: 'https://idp.example/slo?SAMLRequest=abc' });
@@ -197,10 +201,14 @@ headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@tes
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/logout',
-      headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}` },
+      headers: {
+        authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}`,
+      },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().data).toEqual({ idpLogoutUrl: 'https://rp.example/end-session?id_token_hint=xyz' });
+    expect(res.json().data).toEqual({
+      idpLogoutUrl: 'https://rp.example/end-session?id_token_hint=xyz',
+    });
     expect(rpEndSessionUrlMock).toHaveBeenCalledWith('u-1');
   });
 
@@ -211,7 +219,9 @@ headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@tes
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/logout',
-      headers: { authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}` },
+      headers: {
+        authorization: `Bearer ${app.jwt.sign({ sub: 'u-1', email: 'admin@test.local' })}`,
+      },
       payload: { refreshToken: 'raw-token-2' },
     });
     expect(res.statusCode).toBe(200);

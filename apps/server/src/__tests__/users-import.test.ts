@@ -33,24 +33,28 @@ const mockFindAll = vi.fn().mockResolvedValue({
 });
 
 // create() echoes the input and defaults isActive true (matches UserManager contract)
-const mockCreate = vi.fn().mockImplementation((data: { email: string; name: string; isActive?: boolean }) =>
-  Promise.resolve({
-    ...mockUser,
-    id: `550e8400-e29b-41d4-a716-4466554400${String(mockCreate.mock.calls.length + 2).padStart(2, '0')}`,
-    email: data.email,
-    name: data.name,
-    isActive: data.isActive ?? true,
-  }),
-);
+const mockCreate = vi
+  .fn()
+  .mockImplementation((data: { email: string; name: string; isActive?: boolean }) =>
+    Promise.resolve({
+      ...mockUser,
+      id: `550e8400-e29b-41d4-a716-4466554400${String(mockCreate.mock.calls.length + 2).padStart(2, '0')}`,
+      email: data.email,
+      name: data.name,
+      isActive: data.isActive ?? true,
+    }),
+  );
 
 // setupGuard's queryAdminExists fast path needs findByEmail to resolve an
 // admin (else it dials real PG); import's duplicate check needs it to be
 // email-aware: only the configured admin email exists, everything else null.
-const mockFindByEmail = vi.fn().mockImplementation((email: string) =>
-  email === 'admin@accessbase.local' || email === 'dup@example.com'
-    ? Promise.resolve({ id: 'u-exists', email })
-    : Promise.resolve(null),
-);
+const mockFindByEmail = vi
+  .fn()
+  .mockImplementation((email: string) =>
+    email === 'admin@accessbase.local' || email === 'dup@example.com'
+      ? Promise.resolve({ id: 'u-exists', email })
+      : Promise.resolve(null),
+  );
 
 // revokeAllUserSessions spy — force-logout assertions read calls off this
 const mockRevokeAll = vi.fn().mockResolvedValue(undefined);
@@ -84,7 +88,11 @@ const optionsStore = new Map<string, unknown>();
 const { setOptionsManager } = await import('../routes/options.js');
 setOptionsManager({
   get: async (key: string, envValue: unknown, defaultValue: unknown) =>
-    envValue !== undefined ? envValue : (optionsStore.has(key) ? optionsStore.get(key) : defaultValue),
+    envValue !== undefined
+      ? envValue
+      : optionsStore.has(key)
+        ? optionsStore.get(key)
+        : defaultValue,
 } as unknown as OptionsManager);
 
 const { buildApp } = await import('../app.js');
@@ -147,10 +155,7 @@ describe('POST /api/v1/users/import', () => {
       headers: authHeaders(),
       payload: {
         commit: true,
-        rows: [
-          goodRow,
-          { email: 'weak@x.com', name: 'Weak Pw', password: 'short' },
-        ],
+        rows: [goodRow, { email: 'weak@x.com', name: 'Weak Pw', password: 'short' }],
       },
     });
 
@@ -196,10 +201,7 @@ describe('POST /api/v1/users/import', () => {
       headers: authHeaders(),
       payload: {
         commit: true,
-        rows: [
-          { email: 'dup@example.com', name: 'Dup', password: 'GoodPass1' },
-          goodRow,
-        ],
+        rows: [{ email: 'dup@example.com', name: 'Dup', password: 'GoodPass1' }, goodRow],
       },
     });
 
@@ -223,7 +225,11 @@ describe('POST /api/v1/users/import', () => {
   });
 
   it('401 without token (route sits behind authenticate)', async () => {
-    const res = await app.inject({ method: 'POST', url: '/api/v1/users/import', payload: { rows: [] } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/import',
+      payload: { rows: [] },
+    });
     expect(res.statusCode).toBe(401);
   });
 });
@@ -285,6 +291,11 @@ describe('POST /api/v1/users/:id/force-logout', () => {
     // /import and /:id/force-logout through longest-prefix segment trimming.
     const { getRequiredPermission } = await import('@accessbase/identity');
     expect(getRequiredPermission('POST', '/api/v1/users/import')).toBe('users:write');
-    expect(getRequiredPermission('POST', '/api/v1/users/550e8400-e29b-41d4-a716-446655440002/force-logout')).toBe('users:write');
+    expect(
+      getRequiredPermission(
+        'POST',
+        '/api/v1/users/550e8400-e29b-41d4-a716-446655440002/force-logout',
+      ),
+    ).toBe('users:write');
   });
 });

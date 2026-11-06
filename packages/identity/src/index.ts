@@ -7,7 +7,12 @@ export * from './types.js';
 export { AuthManager } from './managers/AuthManager.js';
 export { UserManager } from './managers/UserManager.js';
 export { RoleManager } from './managers/RoleManager.js';
-export { TenantManager, DEFAULT_TENANT_ID, TENANT_PROTECTED, type Tenant } from './managers/TenantManager.js';
+export {
+  TenantManager,
+  DEFAULT_TENANT_ID,
+  TENANT_PROTECTED,
+  type Tenant,
+} from './managers/TenantManager.js';
 export { PermissionManager } from './managers/PermissionManager.js';
 export { SessionManager } from './managers/SessionManager.js';
 export {
@@ -29,16 +34,41 @@ export {
   decryptSecret,
   type OidcClientListRow,
 } from './managers/OidcClientManager.js';
-export { ApiKeyManager, hashApiKey, type SafeApiKey, type GeneratedApiKey } from './managers/ApiKeyManager.js';
+export {
+  ApiKeyManager,
+  hashApiKey,
+  type SafeApiKey,
+  type GeneratedApiKey,
+} from './managers/ApiKeyManager.js';
 export { GroupManager, type Group, type CreateGroupInput } from './managers/GroupManager.js';
 export { emitEvent, type DomainEventType, type EmitEventInput } from './services/events.js';
 export { FlowTokenService } from './services/FlowTokenService.js';
-export { resolveIdleTimeoutSeconds, DEFAULT_IDLE_TIMEOUT_SECONDS } from './services/session-idle.js';
-export { LockoutService, MAX_FAILURES, WINDOW_SECONDS, type LockoutOptions } from './services/LockoutService.js';
+export {
+  resolveIdleTimeoutSeconds,
+  DEFAULT_IDLE_TIMEOUT_SECONDS,
+} from './services/session-idle.js';
+export {
+  LockoutService,
+  MAX_FAILURES,
+  WINDOW_SECONDS,
+  type LockoutOptions,
+} from './services/LockoutService.js';
 export { getRedisClient, type RedisLike } from './services/redis.js';
 export { Mailer, type SmtpConfig } from './services/mailer.js';
-export { SmsProviderImpl, AliyunSmsAdapter, TwilioSmsAdapter, type SmsProvider, type SmsConfig, type SmsSendParams } from './services/SmsProvider.js';
-export { assertPasswordPolicy, readPasswordPolicy, type PasswordPolicy, type PasswordPolicyCallsite } from './services/password-policy.js';
+export {
+  SmsProviderImpl,
+  AliyunSmsAdapter,
+  TwilioSmsAdapter,
+  type SmsProvider,
+  type SmsConfig,
+  type SmsSendParams,
+} from './services/SmsProvider.js';
+export {
+  assertPasswordPolicy,
+  readPasswordPolicy,
+  type PasswordPolicy,
+  type PasswordPolicyCallsite,
+} from './services/password-policy.js';
 export { isEmailDomainAllowed, hasEmailAlias } from './services/domain-policy.js';
 export {
   wouldOrphanLastAdmin,

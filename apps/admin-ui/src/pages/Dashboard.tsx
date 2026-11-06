@@ -85,14 +85,25 @@ export default function Dashboard() {
       <h2>{t('dashboard.title')}</h2>
 
       {error && (
-        <Alert type="error" showIcon data-testid="dashboard-error" message={error} style={{ marginBottom: 16 }} />
+        <Alert
+          type="error"
+          showIcon
+          data-testid="dashboard-error"
+          message={error}
+          style={{ marginBottom: 16 }}
+        />
       )}
 
       <Row gutter={[16, 16]}>
         {cards.map((stat) => (
           <Col xs={24} sm={12} lg={6} key={stat.title}>
             <Card>
-              <Statistic title={stat.title} value={stat.value} prefix={stat.icon} loading={loading} />
+              <Statistic
+                title={stat.title}
+                value={stat.value}
+                prefix={stat.icon}
+                loading={loading}
+              />
             </Card>
           </Col>
         ))}
@@ -100,7 +111,19 @@ export default function Dashboard() {
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={16}>
-          <Card title={t('dashboard.recentActivity')} extra={<Tooltip title={t('dashboard.refresh')}><Button icon={<ReloadOutlined />} aria-label={t('dashboard.refresh')} onClick={load} size="small" /></Tooltip>}>
+          <Card
+            title={t('dashboard.recentActivity')}
+            extra={
+              <Tooltip title={t('dashboard.refresh')}>
+                <Button
+                  icon={<ReloadOutlined />}
+                  aria-label={t('dashboard.refresh')}
+                  onClick={load}
+                  size="small"
+                />
+              </Tooltip>
+            }
+          >
             {loading ? (
               <Spin data-testid="dashboard-loading" />
             ) : (

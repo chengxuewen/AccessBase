@@ -32,10 +32,12 @@
 ## Task 1: L0 Plugin Wiring + Roles Routes Connected to RoleManager
 
 **Files:**
+
 - Modify: `apps/server/src/routes/roles.ts` (replace 501 stubs with RoleManager calls)
 - Create: `apps/server/src/__tests__/roles.test.ts` (role CRUD tests with mocked RoleManager)
 
 **Interfaces:**
+
 - Consumes: `RoleManager` from `@accessbase/identity` (already exported, methods: `findAll(params, tenantId)`, `findById(id, tenantId)`, `create(data, tenantId)`, `update(id, data, tenantId)`, `delete(id, tenantId)`)
 - Consumes: `app.authenticate` decorator (already set in app.ts line 71)
 - Produces: 5 role routes returning `{ success: true, data: ... }` or `{ success: false, error: { code, message } }`
@@ -66,7 +68,11 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     ...actual,
     RoleManager: vi.fn().mockImplementation(() => ({
       findAll: vi.fn().mockResolvedValue({
-        data: [], total: 0, page: 1, pageSize: 20, totalPages: 0,
+        data: [],
+        total: 0,
+        page: 1,
+        pageSize: 20,
+        totalPages: 0,
       }),
       findById: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockImplementation((data: { name: string; description?: string }) =>
@@ -80,17 +86,19 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
           updatedAt: new Date(),
         }),
       ),
-      update: vi.fn().mockImplementation((id: string, data: { name?: string; description?: string }) =>
-        Promise.resolve({
-          id,
-          name: data.name ?? 'updated',
-          description: data.description,
-          tenantId: '00000000-0000-0000-0000-000000000001',
-          permissions: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }),
-      ),
+      update: vi
+        .fn()
+        .mockImplementation((id: string, data: { name?: string; description?: string }) =>
+          Promise.resolve({
+            id,
+            name: data.name ?? 'updated',
+            description: data.description,
+            tenantId: '00000000-0000-0000-0000-000000000001',
+            permissions: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }),
+        ),
       delete: vi.fn().mockResolvedValue(undefined),
     })),
   };
@@ -201,7 +209,11 @@ export async function roleRoutes(app: FastifyInstance) {
       },
     },
     async (request) => {
-      const { page = 1, pageSize = 20, search } = request.query as {
+      const {
+        page = 1,
+        pageSize = 20,
+        search,
+      } = request.query as {
         page?: number;
         pageSize?: number;
         search?: string;
@@ -412,6 +424,7 @@ git commit -m "feat(server): wire roles routes to RoleManager, add role CRUD tes
 > **AUDIT FIX (2026-08-28):** security.md 19.13 / D52 require error envelope fields `timestamp`, `requestId`, `path`. Task 2 MUST add `app.setErrorHandler` that enriches error replies with these fields; the 404 envelope test below asserts them. Rate-limit integration test (real, unmocked): fire 11 login requests in one test file section where @fastify/rate-limit is NOT mocked, assert 429 on the 11th; also assert helmet header `x-frame-options` present and CORS rejects `Origin: http://evil.com` when CORS_ORIGINS is set.
 
 **Files:**
+
 - Modify: `apps/server/src/app.ts` (register rate-limit, helmet, update CORS)
 - Modify: `apps/server/src/config.ts` (add `corsOrigins` field)
 - Modify: `apps/server/src/routes/auth.ts` (add per-route rate limit config to login)
@@ -419,6 +432,7 @@ git commit -m "feat(server): wire roles routes to RoleManager, add role CRUD tes
 - Note: `setup-guard.ts` does NOT need changes. setupGuard already blocks `/api/v1/auth/login` before setup completes. After setup, rate-limit applies normally.
 
 **Interfaces:**
+
 - Consumes: `config.corsOrigins` (string, comma-separated origins or empty for dev)
 - Produces: Global rate limit (100/min), per-route login rate limit (10/min), helmet security headers, CORS whitelist from env, error envelope with timestamp/requestId/path
 
@@ -461,51 +475,58 @@ Run: `pnpm add -F @accessbase/server @fastify/rate-limit@^7 @fastify/helmet@^11`
 - [ ] **Step 5: Register security plugins in app.ts**
 
 Add imports at top of `apps/server/src/app.ts`:
+
 ```typescript
 import rateLimit from '@fastify/rate-limit';
 import helmet from '@fastify/helmet';
 ```
 
 Replace the CORS block (current lines 35-38) with:
-```typescript
-  const corsOrigins = config.corsOrigins
-    ? config.corsOrigins.split(',').map((s: string) => s.trim())
-    : true;
 
-  await app.register(cors, {
-    origin: corsOrigins,
-    credentials: true,
-  });
+```typescript
+const corsOrigins = config.corsOrigins
+  ? config.corsOrigins.split(',').map((s: string) => s.trim())
+  : true;
+
+await app.register(cors, {
+  origin: corsOrigins,
+  credentials: true,
+});
 ```
 
 After the `fastifySwaggerUi` registration, before the JWT block, add:
-```typescript
-  // --- Security middleware ---
-  await app.register(helmet);
 
-  await app.register(rateLimit, {
-    max: 100,
-    timeWindow: '1 minute',
-  });
+```typescript
+// --- Security middleware ---
+await app.register(helmet);
+
+await app.register(rateLimit, {
+  max: 100,
+  timeWindow: '1 minute',
+});
 ```
 
 - [ ] **Step 6: Add per-route rate limit on login**
 
 In `apps/server/src/routes/auth.ts`, add `config` to the login route options:
+
 ```typescript
-  app.post<{ Body: LoginBody }>(
-    '/login',
-    {
-      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
-      schema: { /* ... existing schema unchanged ... */ },
-    },
-    async (request, reply) => { /* ... existing handler unchanged ... */ },
-  );
+app.post<{ Body: LoginBody }>(
+  '/login',
+  {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    schema: {/* ... existing schema unchanged ... */},
+  },
+  async (request, reply) => {
+    /* ... existing handler unchanged ... */
+  },
+);
 ```
 
 - [ ] **Step 7: Add mocks to routes.test.ts**
 
 Add at the top of the `vi.mock` block:
+
 ```typescript
 vi.mock('@fastify/rate-limit', () => ({ default: async () => {} }));
 vi.mock('@fastify/helmet', () => ({ default: async () => {} }));
@@ -534,6 +555,7 @@ git commit -m "feat(server): add rate-limit, helmet, CORS whitelist from env"
 ## Task 3: JWT RS256 Migration
 
 **Files:**
+
 - Create: `scripts/generate-keys.mjs` (RSA key pair generation)
 - Create: `scripts/generate-test-keys.mjs` (test fixture keys)
 - Create: `apps/server/src/__tests__/fixtures/test-private.pem` and `test-public.pem` (generated)
@@ -543,12 +565,14 @@ git commit -m "feat(server): add rate-limit, helmet, CORS whitelist from env"
 - Modify: `apps/server/src/__tests__/routes.test.ts` (set JWT key env vars)
 
 **Interfaces:**
+
 - Consumes: `config.jwtPrivateKeyPath` and `config.jwtPublicKeyPath` (file paths to PEM, empty string = HMAC fallback)
 - Produces: `@fastify/jwt` configured with RS256 when keys exist, HMAC when they don't; `scripts/generate-keys.mjs` outputs PEM pair to `keys/`
 
 - [ ] **Step 1: Create key generation script**
 
 Create `scripts/generate-keys.mjs`:
+
 ```javascript
 #!/usr/bin/env node
 import { generateKeyPairSync } from 'node:crypto';
@@ -574,6 +598,7 @@ console.log('Keys generated in keys/');
 - [ ] **Step 2: Create test key generation script**
 
 Create `scripts/generate-test-keys.mjs`:
+
 ```javascript
 #!/usr/bin/env node
 import { generateKeyPairSync } from 'node:crypto';
@@ -603,6 +628,7 @@ Run: `node scripts/generate-test-keys.mjs`
 - [ ] **Step 4: Add keys/ and test fixtures to .gitignore**
 
 Append to `.gitignore`:
+
 ```
 keys/*.pem
 apps/server/src/__tests__/fixtures/*.pem
@@ -611,12 +637,14 @@ apps/server/src/__tests__/fixtures/*.pem
 - [ ] **Step 5: Update config.ts**
 
 Add to `AppConfig` interface:
+
 ```typescript
-  jwtPrivateKeyPath: string;
-  jwtPublicKeyPath: string;
+jwtPrivateKeyPath: string;
+jwtPublicKeyPath: string;
 ```
 
 Add to config object:
+
 ```typescript
   jwtPrivateKeyPath: env('JWT_PRIVATE_KEY_PATH', ''),
   jwtPublicKeyPath: env('JWT_PUBLIC_KEY_PATH', ''),
@@ -625,24 +653,25 @@ Add to config object:
 - [ ] **Step 6: Update app.ts for RS256**
 
 Replace the fastifyJwt registration block (current lines 64-67):
+
 ```typescript
-  // --- JWT ---
-  let jwtOptions: Record<string, unknown>;
-  if (config.jwtPrivateKeyPath && config.jwtPublicKeyPath) {
-    const { readFileSync } = await import('node:fs');
-    const privateKey = readFileSync(config.jwtPrivateKeyPath, 'utf-8');
-    const publicKey = readFileSync(config.jwtPublicKeyPath, 'utf-8');
-    jwtOptions = {
-      sign: { key: privateKey, algorithm: 'RS256' as const, expiresIn: '15m' },
-      verify: { key: publicKey },
-    };
-  } else {
-    jwtOptions = {
-      secret: config.jwtSecret,
-      sign: { expiresIn: '15m' },
-    };
-  }
-  await app.register(fastifyJwt, jwtOptions);
+// --- JWT ---
+let jwtOptions: Record<string, unknown>;
+if (config.jwtPrivateKeyPath && config.jwtPublicKeyPath) {
+  const { readFileSync } = await import('node:fs');
+  const privateKey = readFileSync(config.jwtPrivateKeyPath, 'utf-8');
+  const publicKey = readFileSync(config.jwtPublicKeyPath, 'utf-8');
+  jwtOptions = {
+    sign: { key: privateKey, algorithm: 'RS256' as const, expiresIn: '15m' },
+    verify: { key: publicKey },
+  };
+} else {
+  jwtOptions = {
+    secret: config.jwtSecret,
+    sign: { expiresIn: '15m' },
+  };
+}
+await app.register(fastifyJwt, jwtOptions);
 ```
 
 The `authenticate` decorator stays unchanged; `jwtVerify()` works with both algorithms.
@@ -650,6 +679,7 @@ The `authenticate` decorator stays unchanged; `jwtVerify()` works with both algo
 - [ ] **Step 7: Update routes.test.ts env vars**
 
 Add near the top of `routes.test.ts`, after the existing `process.env` lines:
+
 ```typescript
 import { resolve as pathResolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -682,12 +712,14 @@ git commit -m "feat(server): migrate JWT to RS256 with key generation script"
 ## Task 4: Refresh Token Rotation + Reuse Detection
 
 **Files:**
+
 - Modify: `packages/identity/src/db/schema.ts` (add columns to sessions table)
 - Create: `packages/identity/src/managers/SessionManager.ts` (new class)
 - Modify: `packages/identity/src/index.ts` (export SessionManager)
 - Modify: `apps/server/src/routes/auth.ts` (rewrite /refresh and /logout handlers)
 
 **Interfaces:**
+
 - Produces: `SessionManager` class:
   - `createRefreshToken(userId, meta: { ip, userAgent }): Promise<{ refreshToken: string; tokenHash: string }>`
   - `rotateRefreshToken(oldTokenHash, meta: { ip, userAgent }): Promise<{ accessToken: string; refreshToken: string }>`
@@ -750,12 +782,16 @@ describe('SessionManager', () => {
       mockDb.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([{
-              id: 'session-1', userId: 'user-123',
-              refreshTokenHash: 'valid-hash',
-              expiresAt: new Date(Date.now() + 86400000),
-              revokedAt: null, usedAt: null,
-            }]),
+            limit: vi.fn().mockResolvedValue([
+              {
+                id: 'session-1',
+                userId: 'user-123',
+                refreshTokenHash: 'valid-hash',
+                expiresAt: new Date(Date.now() + 86400000),
+                revokedAt: null,
+                usedAt: null,
+              },
+            ]),
           }),
         }),
       });
@@ -771,7 +807,8 @@ describe('SessionManager', () => {
       });
 
       const result = await manager.rotateRefreshToken('valid-hash', {
-        ip: '127.0.0.1', userAgent: 'test-agent',
+        ip: '127.0.0.1',
+        userAgent: 'test-agent',
       });
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
@@ -781,12 +818,16 @@ describe('SessionManager', () => {
       mockDb.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([{
-              id: 'session-old', userId: 'user-123',
-              refreshTokenHash: 'reused-hash',
-              expiresAt: new Date(Date.now() + 86400000),
-              revokedAt: null, usedAt: new Date(),
-            }]),
+            limit: vi.fn().mockResolvedValue([
+              {
+                id: 'session-old',
+                userId: 'user-123',
+                refreshTokenHash: 'reused-hash',
+                expiresAt: new Date(Date.now() + 86400000),
+                revokedAt: null,
+                usedAt: new Date(),
+              },
+            ]),
           }),
         }),
       });
@@ -798,7 +839,8 @@ describe('SessionManager', () => {
 
       await expect(
         manager.rotateRefreshToken('reused-hash', {
-          ip: '127.0.0.1', userAgent: 'test-agent',
+          ip: '127.0.0.1',
+          userAgent: 'test-agent',
         }),
       ).rejects.toThrow('Token reuse detected');
     });
@@ -893,12 +935,7 @@ export class SessionManager {
     const [session] = await this.db
       .select()
       .from(sessions)
-      .where(
-        and(
-          eq(sessions.refreshTokenHash, oldTokenHash),
-          isNull(sessions.revokedAt),
-        ),
-      )
+      .where(and(eq(sessions.refreshTokenHash, oldTokenHash), isNull(sessions.revokedAt)))
       .limit(1);
 
     if (!session) {
@@ -916,10 +953,7 @@ export class SessionManager {
     }
 
     // Mark old token as used
-    await this.db
-      .update(sessions)
-      .set({ usedAt: new Date() })
-      .where(eq(sessions.id, session.id));
+    await this.db.update(sessions).set({ usedAt: new Date() }).where(eq(sessions.id, session.id));
 
     // Issue new tokens
     const newRefreshToken = randomBytes(40).toString('hex');
@@ -969,15 +1003,23 @@ Note on `rotateRefreshToken` returning `accessToken: 'SIGNED_BY_CALLER'`: the ro
 // In auth.ts /refresh handler:
 const { refreshToken } = request.body as { refreshToken: string };
 const tokenHash = sessionTokenManager.hashToken(refreshToken);
-const { refreshToken: newRefreshToken } = await sessionTokenManager.rotateRefreshToken(tokenHash, { ip: request.ip, userAgent: request.headers['user-agent'] || '' });
-const accessToken = app.jwt.sign({ sub: session.userId, email: session.email }, { expiresIn: '15m' });
+const { refreshToken: newRefreshToken } = await sessionTokenManager.rotateRefreshToken(tokenHash, {
+  ip: request.ip,
+  userAgent: request.headers['user-agent'] || '',
+});
+const accessToken = app.jwt.sign(
+  { sub: session.userId, email: session.email },
+  { expiresIn: '15m' },
+);
 return { success: true, data: { accessToken, refreshToken: newRefreshToken, expiresIn: 900 } };
 ```
+
 Make `hashToken` public on SessionManager for this use case.
 
 - [ ] **Step 5: Export SessionManager**
 
 Add to `packages/identity/src/index.ts`:
+
 ```typescript
 export { SessionManager } from './managers/SessionManager.js';
 ```
@@ -985,6 +1027,7 @@ export { SessionManager } from './managers/SessionManager.js';
 - [ ] **Step 6: Rewrite /refresh and /logout in auth.ts**
 
 Replace the `/refresh` handler in `apps/server/src/routes/auth.ts`:
+
 ```typescript
 import { SessionManager } from '@accessbase/identity';
 
@@ -1051,6 +1094,7 @@ app.post(
 ```
 
 Replace the `/logout` handler:
+
 ```typescript
 // POST /api/v1/auth/logout
 app.post(
@@ -1097,12 +1141,14 @@ git commit -m "feat(identity): refresh token rotation with reuse detection"
 ## Task 5: Audit Logs Table + AuditLogger DB Persistence + Middleware Wiring
 
 **Files:**
+
 - Create: `packages/audit/src/db/audit-schema.ts` (Drizzle schema for audit_logs)
 - Modify: `packages/audit/src/logger.ts` (override `writeToStorage` to use Drizzle insert)
 - Modify: `apps/server/src/app.ts` (register audit onResponse hook)
 - Create: `packages/audit/src/__tests__/audit-db.test.ts` (test DB write)
 
 **Interfaces:**
+
 - Produces: `auditLogs` Drizzle table definition; `DrizzleAuditLogger` extending `AuditLogger` with Drizzle-backed `writeToStorage`
 - Consumed by: app.ts registers audit middleware as `onResponse` hook; Task 6 verifies audit entries in DB
 
@@ -1244,6 +1290,7 @@ export class DrizzleAuditLogger extends AuditLogger {
 - [ ] **Step 5: Export DrizzleAuditLogger**
 
 Add to `packages/audit/src/index.ts`:
+
 ```typescript
 export { DrizzleAuditLogger } from './drizzle-logger.js';
 export { auditLogs } from './db/audit-schema.js';
@@ -1254,13 +1301,13 @@ export { auditLogs } from './db/audit-schema.js';
 In `apps/server/src/app.ts`, add after the routes registration:
 
 ```typescript
-  // --- Audit middleware ---
-  if (config.nodeEnv !== 'test') {
-    const { DrizzleAuditLogger } = await import('@accessbase/audit');
-    const { createAuditMiddleware } = await import('@accessbase/audit');
-    const auditLogger = new DrizzleAuditLogger(config.databaseUrl);
-    app.addHook('onResponse', createAuditMiddleware(auditLogger));
-  }
+// --- Audit middleware ---
+if (config.nodeEnv !== 'test') {
+  const { DrizzleAuditLogger } = await import('@accessbase/audit');
+  const { createAuditMiddleware } = await import('@accessbase/audit');
+  const auditLogger = new DrizzleAuditLogger(config.databaseUrl);
+  app.addHook('onResponse', createAuditMiddleware(auditLogger));
+}
 ```
 
 Note: In test mode, skip audit DB writes to keep tests fast. The audit middleware is only wired in dev/production.
@@ -1289,11 +1336,13 @@ git commit -m "feat(audit): Drizzle-backed audit_logs table + middleware wiring"
 ## Task 6: Integration Closeout + Gates + E2E Regression + Memorys Update
 
 **Files:**
+
 - No new code files. This is a verification-only task.
 - Modify: `.agents/memorys/status.md` (update Phase 6a status)
 - Modify: `.agents/memorys/decisions.md` (add D96 if RS256 migration introduces a new decision)
 
 **Interfaces:**
+
 - Consumes: all Tasks 1-5 outputs
 - Produces: verified green gates, updated project memory
 
@@ -1332,6 +1381,7 @@ Expected: Both present.
 - [ ] **Step 7: Update status.md**
 
 In `.agents/memorys/status.md`, update:
+
 - Phase 6a row: status from pending to done
 - Add to Recent Work section:
   - 2026-08-28: Phase 6a security foundation (L0 wiring, rate-limit/helmet/CORS, RS256, refresh rotation, audit DB)

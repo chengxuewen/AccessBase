@@ -47,7 +47,8 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
     ApiKeyManager: vi.fn().mockImplementation(() => ({
       create: vi.fn(async (name: string, scopes: string[], tenantId: string, expiresAt?: Date) => {
         const id = `key-${++counter}`;
-        const plaintext = `ab_plaintext${counter}${'0123456789abcdef0123456789ab'.slice(counter)}`.slice(0, 35);
+        const plaintext =
+          `ab_plaintext${counter}${'0123456789abcdef0123456789ab'.slice(counter)}`.slice(0, 35);
         const row: MockKey = {
           id,
           name,
@@ -61,9 +62,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
           createdAt: new Date(),
           updatedAt: new Date(),
         };
-store.set(id, row);
+        store.set(id, row);
         const { hash: _hash, ...safe } = row;
-      return { ...safe, plaintext };
+        return { ...safe, plaintext };
       }),
       list: vi.fn(async (_tenantId?: string, opts?: { limit?: number; offset?: number }) => {
         const all = [...store.values()].map(({ hash: _h, ...rest }) => rest);
@@ -198,7 +199,11 @@ describe('DELETE /api/v1/auth/api-keys/:id', () => {
     });
     const id = created.json().data.id as string;
 
-    const res = await app.inject({ method: 'DELETE', url: `/api/v1/auth/api-keys/${id}`, headers: AUTH() });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/auth/api-keys/${id}`,
+      headers: AUTH(),
+    });
 
     expect(res.statusCode).toBe(200);
     expect(res.json().success).toBe(true);

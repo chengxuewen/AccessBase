@@ -5,11 +5,7 @@
  * exactly where the monolith had it.
  */
 import type { FastifyInstance } from 'fastify';
-import {
-  Mailer,
-  assertPasswordPolicy,
-  readPasswordPolicy,
-} from '@accessbase/identity';
+import { Mailer, assertPasswordPolicy, readPasswordPolicy } from '@accessbase/identity';
 import { getUserManager } from '../../utils/managers.js';
 import { checkCaptcha } from '../../utils/captcha.js';
 import { getOptionsManager } from '../options.js';
@@ -46,15 +42,21 @@ export async function changePasswordRoutes(app: FastifyInstance, ctx: AuthContex
       }
       try {
         const userManager = await getUserManager();
-        await userManager.changePassword(payload.sub, request.body.oldPassword, request.body.newPassword);
+        await userManager.changePassword(
+          payload.sub,
+          request.body.oldPassword,
+          request.body.newPassword,
+        );
         // Force re-auth everywhere, then hand the current client a fresh session
         await ctx.sessionManager.revokeAllUserSessions(payload.sub);
-        const user = await userManager.findById(
-          payload.sub,
-          request.tenantId ?? DEFAULT_TENANT,
-        );
+        const user = await userManager.findById(payload.sub, request.tenantId ?? DEFAULT_TENANT);
         if (!user) throw new Error('User not found');
-        const { accessToken, refreshToken } = await ctx.issueTokenPair(request, { id: user.id, email: user.email, status: user.status, tenantId: user.tenantId });
+        const { accessToken, refreshToken } = await ctx.issueTokenPair(request, {
+          id: user.id,
+          email: user.email,
+          status: user.status,
+          tenantId: user.tenantId,
+        });
         return { success: true, data: { accessToken, refreshToken, expiresIn: 900 } };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Password change failed';
@@ -79,7 +81,6 @@ export async function changePasswordRoutes(app: FastifyInstance, ctx: AuthContex
     },
   );
 }
-
 
 export async function forgotPasswordRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/forgot-password — always 200 (anti-enumeration)
@@ -116,7 +117,13 @@ export async function forgotPasswordRoutes(app: FastifyInstance, ctx: AuthContex
         // Options table SMTP config (env>option>default built into OptionsManager.get);
         // no host → fromConfig returns null → log-only fallback, behavior unchanged.
         const host = await options.get('smtp_host', process.env['SMTP_HOST'], '');
-        const port = Number(await options.get('smtp_port', process.env['SMTP_PORT'] ? Number(process.env['SMTP_PORT']) : undefined, 587));
+        const port = Number(
+          await options.get(
+            'smtp_port',
+            process.env['SMTP_PORT'] ? Number(process.env['SMTP_PORT']) : undefined,
+            587,
+          ),
+        );
         const smtpUser = await options.get('smtp_user', process.env['SMTP_USER'], '');
         const pass = await options.get('smtp_password', process.env['SMTP_PASSWORD'], '');
         const from = await options.get('smtp_from', process.env['SMTP_FROM'], '');
@@ -136,14 +143,16 @@ export async function forgotPasswordRoutes(app: FastifyInstance, ctx: AuthContex
           // dev workflows needing the raw token read it from redis (flow:*) or
           // tests, not from logs.
           const loggedToken = token.slice(0, 8) + '…';
-          request.log.info({ email, token: loggedToken }, 'Password reset URL: /reset-password?token=' + loggedToken);
+          request.log.info(
+            { email, token: loggedToken },
+            'Password reset URL: /reset-password?token=' + loggedToken,
+          );
         }
       }
       return reply.send({ success: true });
     },
   );
 }
-
 
 export async function resetPasswordRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/reset-password
@@ -173,7 +182,10 @@ export async function resetPasswordRoutes(app: FastifyInstance, ctx: AuthContext
           error: { code: 'VALIDATION_001', message: policyErrorMessage(result.message) },
         });
       }
-      const payload = await ctx.flowTokens.consume<{ userId: string }>(request.body.token, 'password_reset');
+      const payload = await ctx.flowTokens.consume<{ userId: string }>(
+        request.body.token,
+        'password_reset',
+      );
       if (!payload) {
         return reply.status(400).send({
           success: false,

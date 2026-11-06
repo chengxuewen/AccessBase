@@ -61,7 +61,9 @@ function parseSubscribed(raw: unknown): { value?: string[] } | { error: string }
   const list = [...new Set(raw as string[])];
   for (const e of list) {
     if (e !== '*' && !EVENT_SUB_RE.test(e)) {
-      return { error: `invalid subscription entry: ${String(e)} (expected '<type>.<name>' or '*')` };
+      return {
+        error: `invalid subscription entry: ${String(e)} (expected '<type>.<name>' or '*')`,
+      };
     }
   }
   return { value: list };
@@ -116,7 +118,12 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
           dead: sql<number>`count(*) filter (where ${webhookDeliveries.status} = 'dead')::int`,
         })
         .from(webhookDeliveries)
-        .where(inArray(webhookDeliveries.endpointId, rows.map((r) => r.id)))
+        .where(
+          inArray(
+            webhookDeliveries.endpointId,
+            rows.map((r) => r.id),
+          ),
+        )
         .groupBy(webhookDeliveries.endpointId);
       counts = new Map(agg.map((a) => [a.endpointId, { pending: a.pending, dead: a.dead }]));
     }
@@ -148,7 +155,10 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
       .from(webhookEndpoints)
       .where(and(eq(webhookEndpoints.tenantId, tenantId), eq(webhookEndpoints.url, url)))
       .limit(1);
-    if (dupe) return reply.status(409).send(err('WEBHOOK_EXISTS', 'A webhook with this URL already exists'));
+    if (dupe)
+      return reply
+        .status(409)
+        .send(err('WEBHOOK_EXISTS', 'A webhook with this URL already exists'));
     const secret = randomBytes(32).toString('base64url');
     const [row] = await useDb()
       .insert(webhookEndpoints)
@@ -175,7 +185,8 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     if (body['url'] !== undefined) {
       const rawUrl = body['url'];
       const url = typeof rawUrl === 'string' ? rawUrl.trim() : '';
-      if (!url) return reply.status(400).send(err('WEBHOOK_INVALID', 'url must be a non-empty string'));
+      if (!url)
+        return reply.status(400).send(err('WEBHOOK_INVALID', 'url must be a non-empty string'));
       const deny = await urlDenyReason(url);
       if (deny) return reply.status(400).send(err('WEBHOOK_URL_DENIED', deny));
       const [dupe] = await useDb()
@@ -184,7 +195,9 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         .where(and(eq(webhookEndpoints.tenantId, tenantId), eq(webhookEndpoints.url, url)))
         .limit(1);
       if (dupe && dupe.id !== existing.id) {
-        return reply.status(409).send(err('WEBHOOK_EXISTS', 'A webhook with this URL already exists'));
+        return reply
+          .status(409)
+          .send(err('WEBHOOK_EXISTS', 'A webhook with this URL already exists'));
       }
       patch.url = url;
     }
@@ -239,14 +252,21 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     if (!existing) return reply.status(404).send(err('WEBHOOK_NOT_FOUND', 'Webhook not found'));
     const [ev] = await useDb()
       .insert(events)
-      .values({ tenantId, type: 'webhook.test', payload: { endpointId: existing.id, note: 'ping' } })
+      .values({
+        tenantId,
+        type: 'webhook.test',
+        payload: { endpointId: existing.id, note: 'ping' },
+      })
       .returning({ id: events.id });
-    if (!ev) return reply.status(500).send(err('WEBHOOK_PING_FAILED', 'event insert returned no row'));
+    if (!ev)
+      return reply.status(500).send(err('WEBHOOK_PING_FAILED', 'event insert returned no row'));
     await useDb()
       .insert(webhookDeliveries)
       .values({ eventId: ev.id, endpointId: existing.id })
       .onConflictDoNothing();
-    return reply.status(202).send({ success: true, data: { deliveryQueued: true, eventId: ev.id } });
+    return reply
+      .status(202)
+      .send({ success: true, data: { deliveryQueued: true, eventId: ev.id } });
   });
 
   // GET /api/v1/webhooks/:id/deliveries — ledger for debugging (no bodies)

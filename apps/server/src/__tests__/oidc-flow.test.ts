@@ -13,7 +13,12 @@
  * provider.ts).
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { createHash, createPublicKey, generateKeyPairSync, verify as cryptoVerify } from 'node:crypto';
+import {
+  createHash,
+  createPublicKey,
+  generateKeyPairSync,
+  verify as cryptoVerify,
+} from 'node:crypto';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -32,7 +37,13 @@ import pg from 'pg';
 // PG-reachable probe — skip entire suite when native PG is down (per e2e/health.spec.ts:15 precedent).
 const pgProbe = new pg.Client({ connectionString: process.env.DATABASE_URL });
 const pgAvailable = await (async () => {
-  try { await pgProbe.connect(); await pgProbe.end(); return true; } catch { return false; }
+  try {
+    await pgProbe.connect();
+    await pgProbe.end();
+    return true;
+  } catch {
+    return false;
+  }
 })();
 
 // Mock plugins that require fastify@5 but fastify@4 is installed (per mount/mfa tests)
@@ -67,15 +78,18 @@ let userId = '';
 let bearer = '';
 let acClient = { clientId: '', plaintextSecret: '' };
 let ccClient = { clientId: '', plaintextSecret: '' };
-  let dvClient: { clientId: string; plaintextSecret: string | null };
+let dvClient: { clientId: string; plaintextSecret: string | null };
 
-const userManager = new (UserManager as unknown as {
-  new (): import('@accessbase/identity').UserManager;
-})();
-const clientManager = new (OidcClientManager as unknown as {
-  new (): import('@accessbase/identity').OidcClientManager;
-})();
-
+const userManager = new (
+  UserManager as unknown as {
+    new (): import('@accessbase/identity').UserManager;
+  }
+)();
+const clientManager = new (
+  OidcClientManager as unknown as {
+    new (): import('@accessbase/identity').OidcClientManager;
+  }
+)();
 
 // --- helpers ---
 
@@ -112,13 +126,20 @@ function makeJar() {
 type Jar = ReturnType<typeof makeJar>;
 
 function pkcePair() {
-  const verifier = createHash('sha256').update(String(Math.random())).digest('base64url').repeat(1) +
+  const verifier =
+    createHash('sha256').update(String(Math.random())).digest('base64url').repeat(1) +
     'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGH'; // 43+ chars
   const challenge = createHash('sha256').update(verifier).digest('base64url');
   return { verifier, challenge };
 }
 
-function authorizeUrl(clientId: string, redirectUri: string, challenge: string, state: string, nonce: string): string {
+function authorizeUrl(
+  clientId: string,
+  redirectUri: string,
+  challenge: string,
+  state: string,
+  nonce: string,
+): string {
   const q = new URLSearchParams({
     client_id: clientId,
     response_type: 'code',
@@ -133,7 +154,14 @@ function authorizeUrl(clientId: string, redirectUri: string, challenge: string, 
 }
 
 /** Run authorize → extract uid from the login redirect (B3 topology). */
-async function startAuthorize(jar: Jar, clientId: string, challenge: string, state: string, nonce: string, redirectUri = 'http://client.example/cb') {
+async function startAuthorize(
+  jar: Jar,
+  clientId: string,
+  challenge: string,
+  state: string,
+  nonce: string,
+  redirectUri = 'http://client.example/cb',
+) {
   const res = await app.inject({
     method: 'GET',
     url: authorizeUrl(clientId, redirectUri, challenge, state, nonce),
@@ -279,8 +307,15 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
     expect(consentRedirect.statusCode).toBe(303);
     const consentUrl = consentRedirect.headers['location'] as string;
     // DIAG: inspect what the resumed authorization still demands
-    const diagUid = new URL(consentUrl, 'http://x').searchParams.get('uid') ?? new URL(consentUrl, 'http://x').pathname.split('/').pop() ?? '';
-    const diag = await app.inject({ method: 'GET', url: `/api/v1/oidc/interaction/${diagUid}`, headers: { cookie: jar.header(), authorization: `Bearer ${bearer}` } });
+    const diagUid =
+      new URL(consentUrl, 'http://x').searchParams.get('uid') ??
+      new URL(consentUrl, 'http://x').pathname.split('/').pop() ??
+      '';
+    const diag = await app.inject({
+      method: 'GET',
+      url: `/api/v1/oidc/interaction/${diagUid}`,
+      headers: { cookie: jar.header(), authorization: `Bearer ${bearer}` },
+    });
     console.error('[DIAG-CONSENT]', diag.statusCode, diag.body.slice(0, 300));
     expect(consentUrl.startsWith('/consent?uid=')).toBe(true);
     const consentUid = new URL(consentUrl, ISSUER).searchParams.get('uid') ?? '';
@@ -292,14 +327,17 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
       headers: { cookie: jar.header(), authorization: `Bearer ${bearer}` },
     });
     expect(consentDetails.statusCode).toBe(200);
-    expect(consentDetails.json().data).toMatchObject({ promptName: 'consent', clientName: 'Flow RP' });
+    expect(consentDetails.json().data).toMatchObject({
+      promptName: 'consent',
+      clientName: 'Flow RP',
+    });
 
     // Approve consent → 303 resume → 302 redirect_uri with code
     const consentRes = await approve(jar, consentUid);
     expect(consentRes.statusCode).toBe(303);
     const resumeUrl2 = consentRes.headers['location'] as string;
     const codeRedirect = await follow(jar, resumeUrl2);
-        if (codeRedirect.statusCode !== 303) {
+    if (codeRedirect.statusCode !== 303) {
       const fs = await import('node:fs');
       fs.writeFileSync('/tmp/opencode/resume2-err.html', codeRedirect.body);
       console.error('[DBG-RESUME2]', codeRedirect.statusCode);
@@ -353,16 +391,25 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
     expect(disc.statusCode).toBe(200);
     expect(String(disc.json().device_authorization_endpoint)).toContain('/oidc/device');
 
-    const basic = 'Basic ' + Buffer.from(`${dvClient.clientId}:${dvClient.plaintextSecret ?? ''}`).toString('base64');
+    const basic =
+      'Basic ' +
+      Buffer.from(`${dvClient.clientId}:${dvClient.plaintextSecret ?? ''}`).toString('base64');
     const devPath = new URL(String(disc.json().device_authorization_endpoint)).pathname;
     const dev = await app.inject({
       method: 'POST',
       url: devPath,
       headers: { 'content-type': 'application/x-www-form-urlencoded', authorization: basic },
-      payload: new URLSearchParams({ client_id: dvClient.clientId, scope: 'openid profile' }).toString(),
+      payload: new URLSearchParams({
+        client_id: dvClient.clientId,
+        scope: 'openid profile',
+      }).toString(),
     });
     expect(dev.statusCode).toBe(200);
-    const dc = dev.json() as { device_code?: string; user_code?: string; verification_uri?: string };
+    const dc = dev.json() as {
+      device_code?: string;
+      user_code?: string;
+      verification_uri?: string;
+    };
     expect(typeof dc.device_code).toBe('string');
     expect(String(dc.user_code)).toMatch(/[A-Z0-9]/);
     expect(String(dc.verification_uri)).toContain('/oidc/device'); // code-verification page (interaction surface)
@@ -381,7 +428,9 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
   });
 
   it('client_credentials machine client exchanges Basic auth for an access token', async () => {
-    const basic = Buffer.from(`${ccClient.clientId}:${ccClient.plaintextSecret}`).toString('base64');
+    const basic = Buffer.from(`${ccClient.clientId}:${ccClient.plaintextSecret}`).toString(
+      'base64',
+    );
     const res = await app.inject({
       method: 'POST',
       url: '/oidc/token',
@@ -450,7 +499,7 @@ describe.skipIf(!pgAvailable)('OIDC full protocol flows', () => {
     const denyRes = await deny(jar, consentUid);
     expect(denyRes.statusCode).toBe(303);
     const codeRedirect = await follow(jar, denyRes.headers['location'] as string);
-        expect(codeRedirect.statusCode).toBe(303);
+    expect(codeRedirect.statusCode).toBe(303);
     const callback = new URL(codeRedirect.headers['location'] as string, 'http://client.example');
     expect(callback.origin + callback.pathname).toBe('http://client.example/cb');
     expect(callback.searchParams.get('error')).toBe('access_denied');

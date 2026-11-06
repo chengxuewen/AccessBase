@@ -103,7 +103,9 @@ export default function WelcomeStep({ next, stepTitleRef }: StepProps) {
       <h2 id="welcome-title" ref={stepTitleRef} tabIndex={-1}>
         {t('setup.welcome.title')}
       </h2>
-      <p style={{ color: themeToken.colorTextSecondary, marginBottom: 24 }}>{t('setup.welcome.subtitle')}</p>
+      <p style={{ color: themeToken.colorTextSecondary, marginBottom: 24 }}>
+        {t('setup.welcome.subtitle')}
+      </p>
 
       <div role="list" aria-label={t('setup.checks.title')} style={{ marginBottom: 24 }}>
         {checks.map((check) => (
@@ -116,7 +118,9 @@ export default function WelcomeStep({ next, stepTitleRef }: StepProps) {
               {check.status === 'success' && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
               {check.status === 'error' && <CloseCircleOutlined style={{ color: '#cf1322' }} />}
               {check.status === 'checking' && <Spin size="small" />}
-              {check.status === 'pending' && <ClockCircleOutlined style={{ color: themeToken.colorTextTertiary }} />}
+              {check.status === 'pending' && (
+                <ClockCircleOutlined style={{ color: themeToken.colorTextTertiary }} />
+              )}
             </span>
             <span>{checkLabelMap[check.name] ?? check.label}</span>
             <span className="sr-only">

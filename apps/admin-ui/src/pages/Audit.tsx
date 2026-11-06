@@ -3,11 +3,26 @@ import { useTranslation } from 'react-i18next';
 import EmptyState from '../components/EmptyState';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, DatePicker, Input, Select, Tag, Tooltip } from 'antd';
-import { DownloadOutlined, SearchOutlined, ReloadOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import {
+  DownloadOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+  SafetyCertificateOutlined,
+} from '@ant-design/icons';
 // ponytail: derive date types from antd instead of importing dayjs types directly
-type RangeDayjs = NonNullable<NonNullable<Parameters<NonNullable<React.ComponentProps<typeof DatePicker.RangePicker>['onChange']>>[0]>[number]>;
+type RangeDayjs = NonNullable<
+  NonNullable<
+    Parameters<NonNullable<React.ComponentProps<typeof DatePicker.RangePicker>['onChange']>>[0]
+  >[number]
+>;
 import { useAuthStore } from '../stores/auth';
-import { listAuditLogs, exportAuditLogs, verifyAudit, type AuditLog, type AuditVerifyReport } from '../api/audit';
+import {
+  listAuditLogs,
+  exportAuditLogs,
+  verifyAudit,
+  type AuditLog,
+  type AuditVerifyReport,
+} from '../api/audit';
 
 // Static action filter list — audit actions follow the METHOD /path convention from the middleware
 const ACTION_OPTIONS = ['POST', 'PUT', 'PATCH', 'DELETE'].map((a) => ({ label: a, value: a }));
@@ -173,10 +188,18 @@ export default function Audit() {
         <DatePicker.RangePicker
           value={filters.startDate ? [filters.startDate, filters.endDate ?? null] : null}
           onChange={(range) =>
-            setFilters((f) => ({ ...f, startDate: range?.[0] ?? undefined, endDate: range?.[1] ?? undefined }))
+            setFilters((f) => ({
+              ...f,
+              startDate: range?.[0] ?? undefined,
+              endDate: range?.[1] ?? undefined,
+            }))
           }
         />
-        <Button type="primary" icon={<SearchOutlined />} onClick={() => actionRef.current?.reload()}>
+        <Button
+          type="primary"
+          icon={<SearchOutlined />}
+          onClick={() => actionRef.current?.reload()}
+        >
           {t('audit.search')}
         </Button>
         <Tooltip title={t('audit.resetFilters')}>
@@ -202,11 +225,16 @@ export default function Audit() {
           </Tooltip>
         )}
         <Tooltip title={t('audit.exportTooltip')}>
-          <Button icon={<DownloadOutlined />} onClick={handleExport} loading={exportBusy} className="audit-export">
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={handleExport}
+            loading={exportBusy}
+            className="audit-export"
+          >
             {t('audit.export')}
           </Button>
         </Tooltip>
-</div>
+      </div>
       <ProTable<AuditLog>
         headerTitle={t('audit.title')}
         actionRef={actionRef}
@@ -233,11 +261,7 @@ export default function Audit() {
         pagination={{ defaultPageSize: 10 }}
         search={false}
         locale={{
-          emptyText: (
-            <EmptyState
-              variant={loadError ? 'error' : 'no-data'}
-            />
-          ),
+          emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} />,
         }}
       />
     </>

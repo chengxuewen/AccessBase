@@ -21,7 +21,7 @@ think-before-act  →  [行动]  →  lesson-memory  →  doc-audit
                     lesson-review ← 批量补漏
 ```
 
-|      | `lesson-memory` 规则        | `lesson-review` 技能        |
+|      | `lesson-memory` 规则         | `lesson-review` 技能        |
 | ---- | ---------------------------- | --------------------------- |
 | 时机 | 即时（每次错误后，自动触发） | 批量（会话结束/用户触发）   |
 | 方式 | 反射                         | 交互式回顾                  |

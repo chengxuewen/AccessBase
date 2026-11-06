@@ -47,108 +47,118 @@ export default function ResetPassword() {
 
   return (
     <ConfigProvider theme={brandTheme}>
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: themeToken.colorBgLayout,
-      }}
-    >
-      {branding.logoUrl && (
-        <img src={branding.logoUrl} alt="logo" data-testid="branding-logo"
-             style={{ display: 'block', margin: '0 auto 16px', maxHeight: 56, maxWidth: '80%', objectFit: 'contain' }} />
-      )}
-      <Card
-        title={t('reset.title')}
-        style={{ width: '100%', maxWidth: 400 }}
-        styles={{ header: { textAlign: 'center' } }}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          background: themeToken.colorBgLayout,
+        }}
       >
-        {done ? (
-          <>
-            <Alert
-              type="success"
-              showIcon
-              message={t('reset.success')}
-              style={{ marginBottom: 16 }}
-              data-testid="reset-success"
-            />
-            <Link to="/login" data-testid="reset-back">
-              {t('reset.back')}
-            </Link>
-          </>
-        ) : !token ? (
-          <>
-            <Alert
-              type="error"
-              showIcon
-              message={t('reset.missing')}
-              style={{ marginBottom: 16 }}
-              data-testid="reset-missing"
-            />
-            <Link to="/login">{t('reset.back')}</Link>
-          </>
-        ) : (
-          <>
-            {error && (
+        {branding.logoUrl && (
+          <img
+            src={branding.logoUrl}
+            alt="logo"
+            data-testid="branding-logo"
+            style={{
+              display: 'block',
+              margin: '0 auto 16px',
+              maxHeight: 56,
+              maxWidth: '80%',
+              objectFit: 'contain',
+            }}
+          />
+        )}
+        <Card
+          title={t('reset.title')}
+          style={{ width: '100%', maxWidth: 400 }}
+          styles={{ header: { textAlign: 'center' } }}
+        >
+          {done ? (
+            <>
+              <Alert
+                type="success"
+                showIcon
+                message={t('reset.success')}
+                style={{ marginBottom: 16 }}
+                data-testid="reset-success"
+              />
+              <Link to="/login" data-testid="reset-back">
+                {t('reset.back')}
+              </Link>
+            </>
+          ) : !token ? (
+            <>
               <Alert
                 type="error"
                 showIcon
-                message={error}
+                message={t('reset.missing')}
                 style={{ marginBottom: 16 }}
-                data-testid="reset-error"
+                data-testid="reset-missing"
               />
-            )}
-            <Form form={form} layout="vertical" onFinish={handleSubmit}>
-              <Form.Item
-                name="password"
-                label={t('reset.newPassword')}
-                rules={[{ required: true, message: t('login.passwordRequired') }]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  size="large"
-                  autoComplete="new-password"
-                  data-testid="reset-password"
+              <Link to="/login">{t('reset.back')}</Link>
+            </>
+          ) : (
+            <>
+              {error && (
+                <Alert
+                  type="error"
+                  showIcon
+                  message={error}
+                  style={{ marginBottom: 16 }}
+                  data-testid="reset-error"
                 />
-              </Form.Item>
-              <Form.Item
-                name="confirm"
-                label={t('reset.confirmPassword')}
-                dependencies={['password']}
-                rules={[
-                  { required: true, message: t('login.passwordRequired') },
-                  ({ getFieldValue }) => ({
-                    validator(_, value: string) {
-                      if (!value || getFieldValue('password') === value) return Promise.resolve();
-                      return Promise.reject(new Error(t('reset.mismatch')));
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
+              )}
+              <Form form={form} layout="vertical" onFinish={handleSubmit}>
+                <Form.Item
+                  name="password"
+                  label={t('reset.newPassword')}
+                  rules={[{ required: true, message: t('login.passwordRequired') }]}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined />}
+                    size="large"
+                    autoComplete="new-password"
+                    data-testid="reset-password"
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="confirm"
+                  label={t('reset.confirmPassword')}
+                  dependencies={['password']}
+                  rules={[
+                    { required: true, message: t('login.passwordRequired') },
+                    ({ getFieldValue }) => ({
+                      validator(_, value: string) {
+                        if (!value || getFieldValue('password') === value) return Promise.resolve();
+                        return Promise.reject(new Error(t('reset.mismatch')));
+                      },
+                    }),
+                  ]}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined />}
+                    size="large"
+                    autoComplete="new-password"
+                    data-testid="reset-confirm"
+                  />
+                </Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={busy}
+                  block
                   size="large"
-                  autoComplete="new-password"
-                  data-testid="reset-confirm"
-                />
-              </Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={busy}
-                block
-                size="large"
-                data-testid="reset-submit"
-              >
-                {t('reset.submit')}
-              </Button>
-            </Form>
-          </>
-        )}
-      </Card>
-    </div>
+                  data-testid="reset-submit"
+                >
+                  {t('reset.submit')}
+                </Button>
+              </Form>
+            </>
+          )}
+        </Card>
+      </div>
     </ConfigProvider>
   );
 }

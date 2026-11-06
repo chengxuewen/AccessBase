@@ -117,12 +117,18 @@ export class ApiKeyManager {
         .offset(opts.offset ?? 0);
       return rows as SafeApiKey[];
     }
-    const rows = (await this.db.select(SAFE_COLUMNS).from(apiKeys).where(eq(apiKeys.tenantId, tenantId))) as SafeApiKey[];
+    const rows = (await this.db
+      .select(SAFE_COLUMNS)
+      .from(apiKeys)
+      .where(eq(apiKeys.tenantId, tenantId))) as SafeApiKey[];
     return rows;
   }
 
   async count(tenantId: string): Promise<number> {
-    const [row] = await this.db.select({ n: sql<number>`count(*)::int` }).from(apiKeys).where(eq(apiKeys.tenantId, tenantId));
+    const [row] = await this.db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(apiKeys)
+      .where(eq(apiKeys.tenantId, tenantId));
     return row?.n ?? 0;
   }
 

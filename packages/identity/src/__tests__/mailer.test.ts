@@ -16,7 +16,11 @@ describe('Mailer', () => {
 
   it('fromConfig builds transport with full config', () => {
     const m = Mailer.fromConfig({
-      host: 'smtp.x.io', port: 587, user: 'u', pass: 'p', from: 'no-reply@x.io',
+      host: 'smtp.x.io',
+      port: 587,
+      user: 'u',
+      pass: 'p',
+      from: 'no-reply@x.io',
     });
     expect(m).not.toBeNull();
     expect(createTransport).toHaveBeenCalledWith(
@@ -35,7 +39,11 @@ describe('Mailer', () => {
 
   it('send delivers to recipient with subject and html', async () => {
     const m = Mailer.fromConfig({
-      host: 'smtp.x.io', port: 587, user: 'u', pass: 'p', from: 'no-reply@x.io',
+      host: 'smtp.x.io',
+      port: 587,
+      user: 'u',
+      pass: 'p',
+      from: 'no-reply@x.io',
     })!;
     await m.send('a@b.c', 'Reset', '<b>link</b>');
     const transport = (createTransport as ReturnType<typeof vi.fn>).mock.results[0].value;
@@ -49,7 +57,11 @@ describe('Mailer', () => {
       sendMail: vi.fn().mockRejectedValue(new Error('SMTP down')),
     }));
     const m = Mailer.fromConfig({
-      host: 'smtp.x.io', port: 587, user: 'u', pass: 'p', from: 'no@x.io',
+      host: 'smtp.x.io',
+      port: 587,
+      user: 'u',
+      pass: 'p',
+      from: 'no@x.io',
     })!;
     await expect(m.send('a@b.c', 'S', 'h')).rejects.toThrow('SMTP down');
   });

@@ -145,7 +145,9 @@ export async function ldapLoginRoutes(app: FastifyInstance, ctx: AuthContext) {
         // reused (link semantics), absent ones provisioned into the default
         // tenant with a null passwordHash (local login stays impossible).
         const existing = await userManager.findByEmail(email);
-        const user = existing ?? (await userManager.create({ email, name }, request.tenantId ?? DEFAULT_TENANT));
+        const user =
+          existing ??
+          (await userManager.create({ email, name }, request.tenantId ?? DEFAULT_TENANT));
         // R1-T10 (DG-8a): first-federation provisioning from an authoritative
         // directory marks the asserted address verified — otherwise a TOTP-bound
         // LDAP user would die at the gated shared /mfa/verify arm.

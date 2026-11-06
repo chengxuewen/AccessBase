@@ -41,84 +41,94 @@ export default function ForgotPassword() {
 
   return (
     <ConfigProvider theme={brandTheme}>
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: themeToken.colorBgLayout,
-      }}
-    >
-      {branding.logoUrl && (
-        <img src={branding.logoUrl} alt="logo" data-testid="branding-logo"
-             style={{ display: 'block', margin: '0 auto 16px', maxHeight: 56, maxWidth: '80%', objectFit: 'contain' }} />
-      )}
-      <Card
-        title={t('forgot.title')}
-        style={{ width: '100%', maxWidth: 400 }}
-        styles={{ header: { textAlign: 'center' } }}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          background: themeToken.colorBgLayout,
+        }}
       >
-        {sent ? (
-          <>
-            <Alert
-              type="success"
-              showIcon
-              message={t('forgot.success')}
-              style={{ marginBottom: 16 }}
-              data-testid="forgot-success"
-            />
-            <Link to="/login" data-testid="forgot-back">
-              {t('forgot.back')}
-            </Link>
-          </>
-        ) : (
-          <>
-            <p style={{ color: themeToken.colorTextSecondary }}>{t('forgot.desc')}</p>
-            {error && (
-              <Alert
-                type="error"
-                showIcon
-                message={error}
-                style={{ marginBottom: 16 }}
-                data-testid="forgot-error"
-              />
-            )}
-            <Form form={form} layout="vertical" onFinish={handleSubmit}>
-              <Form.Item
-                name="email"
-                rules={[
-                  { required: true, message: t('login.emailRequired') },
-                  { type: 'email', message: t('login.emailInvalid') },
-                ]}
-              >
-                <Input
-                  prefix={<MailOutlined />}
-                  placeholder={t('forgot.emailPlaceholder')}
-                  size="large"
-                  autoComplete="username"
-                  data-testid="forgot-email"
-                />
-              </Form.Item>
-              {captcha.node}
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={busy}
-                block
-                size="large"
-                data-testid="forgot-submit"
-              >
-                {t('forgot.submit')}
-              </Button>
-            </Form>
-            <div style={{ marginTop: 16 }}>
-              <Link to="/login">{t('forgot.back')}</Link>
-            </div>
-          </>
+        {branding.logoUrl && (
+          <img
+            src={branding.logoUrl}
+            alt="logo"
+            data-testid="branding-logo"
+            style={{
+              display: 'block',
+              margin: '0 auto 16px',
+              maxHeight: 56,
+              maxWidth: '80%',
+              objectFit: 'contain',
+            }}
+          />
         )}
-      </Card>
-    </div>
+        <Card
+          title={t('forgot.title')}
+          style={{ width: '100%', maxWidth: 400 }}
+          styles={{ header: { textAlign: 'center' } }}
+        >
+          {sent ? (
+            <>
+              <Alert
+                type="success"
+                showIcon
+                message={t('forgot.success')}
+                style={{ marginBottom: 16 }}
+                data-testid="forgot-success"
+              />
+              <Link to="/login" data-testid="forgot-back">
+                {t('forgot.back')}
+              </Link>
+            </>
+          ) : (
+            <>
+              <p style={{ color: themeToken.colorTextSecondary }}>{t('forgot.desc')}</p>
+              {error && (
+                <Alert
+                  type="error"
+                  showIcon
+                  message={error}
+                  style={{ marginBottom: 16 }}
+                  data-testid="forgot-error"
+                />
+              )}
+              <Form form={form} layout="vertical" onFinish={handleSubmit}>
+                <Form.Item
+                  name="email"
+                  rules={[
+                    { required: true, message: t('login.emailRequired') },
+                    { type: 'email', message: t('login.emailInvalid') },
+                  ]}
+                >
+                  <Input
+                    prefix={<MailOutlined />}
+                    placeholder={t('forgot.emailPlaceholder')}
+                    size="large"
+                    autoComplete="username"
+                    data-testid="forgot-email"
+                  />
+                </Form.Item>
+                {captcha.node}
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={busy}
+                  block
+                  size="large"
+                  data-testid="forgot-submit"
+                >
+                  {t('forgot.submit')}
+                </Button>
+              </Form>
+              <div style={{ marginTop: 16 }}>
+                <Link to="/login">{t('forgot.back')}</Link>
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
     </ConfigProvider>
   );
 }

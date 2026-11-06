@@ -35,38 +35,40 @@
 
 ## File structure (batch-wide)
 
-| Action | Path | Responsibility |
-|---|---|---|
-| Create | `apps/server/src/utils/mfa-manager.ts` | sync value-memo `getMfaManager()` over the shared `authDb()` pool + `resetMfaManager()` (T1) |
-| Modify | `apps/server/src/utils/managers.ts` | call `resetMfaManager()` from `resetManagers()` (T1) |
-| Modify | `apps/server/src/routes/auth.ts:87` | drop closure factory, import memo (T1); emit auth events (T3) |
-| Modify | `packages/identity/src/managers/TenantManager.ts:186-193,210` | thread tx handle through suspend cascade (T2) |
-| Modify | `apps/server/src/routes/tenants.ts` | wrap suspend-mutation path in `routeTx` (T2) |
-| Modify | `packages/identity/src/services/events.ts:17-29` | extend `DomainEventType` with `auth.login.success\|auth.login.failure\|auth.logout` (T3, Momus R1) |
-| Create | `apps/server/src/utils/auth-events.ts` | fire-and-forget auth.* event emitter over `authDb()`, with swallow-exception comment (T3) |
-| Modify | `apps/server/src/utils/webhook-dispatcher.ts` | outcome counters + true-backlog count/age gauges via one once-per-tick SELECT behind deps injection (T4) |
-| Modify | `docker/prometheus/rules.yml` | two webhook alert rules (T4) |
-| Modify | `docs/modules/*.md`, `docs/openapi.json`, `docs/superpowers/…`, `CHANGELOG.md`, `AGENTS.md`, `.agents/memorys/conventions.md` | honesty wave + regens (T5) |
-| Modify | `apps/admin-ui/src/pages/Clients.tsx`, `apps/admin-ui/src/api/clients.ts`, locales | backchannel field (T6) |
-| Modify | `e2e/auth.spec.ts` | login-shell mock roster (T7) |
-| Create | `packages/identity/src/services/domain-policy.ts` | pure domain allow/block + alias validators, extracted from dead PasswordProvider (T9) |
-| Modify | `apps/server/src/routes/auth.ts` register route + `apps/server/src/config.ts` + `.env.example` | wire domain policy into real registration (T9) |
-| Modify | `packages/identity/src/plugin.ts:38`, `packages/identity/src/index.ts:43` | unregister PasswordProvider shell; delete `providers/PasswordProvider.ts` (T9) |
-| Modify | `apps/server/src/routes/options.ts` allowlist + login gate + Login.tsx arm | `auth.require_verified_email` switch (T10) |
-| Modify | `packages/identity/src/types.ts` (idleTimeout :188/:201/:357/:364; SsoConfig :222/:292/:355; trustedDevices) + `index.ts:171,:121-124` | dead config retirement (T11) |
-| Create/modify | `apps/server/src/__tests__/*`, `apps/identity __tests__/*`, `e2e/clients.spec.ts` | RED→GREEN locks per task |
+| Action        | Path                                                                                                                                   | Responsibility                                                                                           |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Create        | `apps/server/src/utils/mfa-manager.ts`                                                                                                 | sync value-memo `getMfaManager()` over the shared `authDb()` pool + `resetMfaManager()` (T1)             |
+| Modify        | `apps/server/src/utils/managers.ts`                                                                                                    | call `resetMfaManager()` from `resetManagers()` (T1)                                                     |
+| Modify        | `apps/server/src/routes/auth.ts:87`                                                                                                    | drop closure factory, import memo (T1); emit auth events (T3)                                            |
+| Modify        | `packages/identity/src/managers/TenantManager.ts:186-193,210`                                                                          | thread tx handle through suspend cascade (T2)                                                            |
+| Modify        | `apps/server/src/routes/tenants.ts`                                                                                                    | wrap suspend-mutation path in `routeTx` (T2)                                                             |
+| Modify        | `packages/identity/src/services/events.ts:17-29`                                                                                       | extend `DomainEventType` with `auth.login.success\|auth.login.failure\|auth.logout` (T3, Momus R1)       |
+| Create        | `apps/server/src/utils/auth-events.ts`                                                                                                 | fire-and-forget auth.* event emitter over `authDb()`, with swallow-exception comment (T3)                |
+| Modify        | `apps/server/src/utils/webhook-dispatcher.ts`                                                                                          | outcome counters + true-backlog count/age gauges via one once-per-tick SELECT behind deps injection (T4) |
+| Modify        | `docker/prometheus/rules.yml`                                                                                                          | two webhook alert rules (T4)                                                                             |
+| Modify        | `docs/modules/*.md`, `docs/openapi.json`, `docs/superpowers/…`, `CHANGELOG.md`, `AGENTS.md`, `.agents/memorys/conventions.md`          | honesty wave + regens (T5)                                                                               |
+| Modify        | `apps/admin-ui/src/pages/Clients.tsx`, `apps/admin-ui/src/api/clients.ts`, locales                                                     | backchannel field (T6)                                                                                   |
+| Modify        | `e2e/auth.spec.ts`                                                                                                                     | login-shell mock roster (T7)                                                                             |
+| Create        | `packages/identity/src/services/domain-policy.ts`                                                                                      | pure domain allow/block + alias validators, extracted from dead PasswordProvider (T9)                    |
+| Modify        | `apps/server/src/routes/auth.ts` register route + `apps/server/src/config.ts` + `.env.example`                                         | wire domain policy into real registration (T9)                                                           |
+| Modify        | `packages/identity/src/plugin.ts:38`, `packages/identity/src/index.ts:43`                                                              | unregister PasswordProvider shell; delete `providers/PasswordProvider.ts` (T9)                           |
+| Modify        | `apps/server/src/routes/options.ts` allowlist + login gate + Login.tsx arm                                                             | `auth.require_verified_email` switch (T10)                                                               |
+| Modify        | `packages/identity/src/types.ts` (idleTimeout :188/:201/:357/:364; SsoConfig :222/:292/:355; trustedDevices) + `index.ts:171,:121-124` | dead config retirement (T11)                                                                             |
+| Create/modify | `apps/server/src/__tests__/*`, `apps/identity __tests__/*`, `e2e/clients.spec.ts`                                                      | RED→GREEN locks per task                                                                                 |
 
 ---
 
 ### Task 1: MfaManager process singleton (H1 — live pool leak)
 
 **Files:**
+
 - Create: `apps/server/src/utils/mfa-manager.ts` (memo lives HERE, not in managers.ts — managers.ts deliberately avoids static identity imports for the partial-mock link-time rule, its docblock :29-36; a focused module may static-import `MfaManager` exactly as `routes/auth.ts:3` already does)
 - Modify: `apps/server/src/utils/managers.ts` (`resetManagers()` calls `resetMfaManager()` — one import line, no roster loop changes)
 - Modify: `apps/server/src/routes/auth.ts:87` and the 6 call sites (1543, 1559, 1616, 1631, 1685, 1755)
 - Test: `apps/server/src/__tests__/mfa-manager-singleton.test.ts` (create)
 
 **Interfaces:**
+
 - Consumes: `MfaManager(keyHex, databaseUrl?: string | DrizzleDB)` from `@accessbase/identity` (ctor VERIFIED `MfaManager.ts:34-43`: validates 32-byte hex, dials `createDb` when no handle passed — THAT is the leak); shared `authDb()` from `utils/managers.ts` (Q3A pool, sync value-memo, closed by `closeAuthDb` on onClose).
 - Produces: `getMfaManager(): MfaManager` from `utils/mfa-manager.ts` — sync value-memo constructing `new MfaManager(config.mfaEncryptionKey, authDb())` (NO new pool — reuses the Q3A one; Momus R3 fix). Throws the existing `'MFA_ENCRYPTION_KEY not configured …'` before memoizing when the key is unset, so the failed slot never caches. `resetMfaManager(): void` clears the memo (does NOT close authDb — it doesn't own it).
 
@@ -89,7 +91,8 @@ Run `pixi run npx vitest run apps/server/src/__tests__/mfa-manager-singleton.tes
 let mfaManager: MfaManager | undefined;
 export function getMfaManager(): MfaManager {
   if (!mfaManager) {
-    if (!config.mfaEncryptionKey) throw new Error('MFA_ENCRYPTION_KEY not configured (32-byte hex required for TOTP)');
+    if (!config.mfaEncryptionKey)
+      throw new Error('MFA_ENCRYPTION_KEY not configured (32-byte hex required for TOTP)');
     mfaManager = new MfaManager(config.mfaEncryptionKey, authDb()); // shared Q3A handle — no new pool (Momus R6)
   }
   return mfaManager;
@@ -111,11 +114,13 @@ Rationale for handle-reuse over owning a pool: one fewer pool owner in the D2/M4
 ### Task 2: Tenant suspend cascade atomicity + correct handle (M2)
 
 **Files:**
+
 - Modify: `packages/identity/src/managers/TenantManager.ts:180-193,210-230` (`update` + `revokeTenantAccess`)
 - Modify: `apps/server/src/routes/tenants.ts` PUT handler (suspend path) — wrap `tenantManager.update` in `routeTx`
 - Test: identity `TenantManager.test.ts` extension + server `tenants.test.ts` extension
 
 **Interfaces:**
+
 - Consumes: existing funnel shape `update(id, data, db?)` — CHECK current signature first (`d ?? this.db` pattern, Q2b uniform widening); `bumpAuthState(d, …)`, `revokeTenantAccess(id, d)`, `emitEvent(d, …)`; `routeTx` from `apps/server/src/utils/tx.ts`.
 - Produces: `revokeTenantAccess(id: string, d: DbLike = this.db)`; suspend branch of `update` runs bumpAuthState + revoke + emitEvent all on `d`.
 
@@ -129,22 +134,29 @@ Rationale for handle-reuse over owning a pool: one fewer pool owner in the D2/M4
 ### Task 3: auth.login.*/auth.logout events (H5 — outbox silence)
 
 **Files:**
+
 - Modify: `packages/identity/src/services/events.ts` — add `'auth.login.success' | 'auth.login.failure' | 'auth.logout'` to the `DomainEventType` union (:17-29). REQUIRED (Momus R1 BLOCKER): `emitEvent` is typed on the union (verified :33 `type: DomainEventType`); without this the wire code will not typecheck. Union-only change — events.type is plain TEXT (schema.ts:489, no CHECK), no migration. Rebuild identity dist before server tsc (dist-sync convention).
 - Create: `apps/server/src/utils/auth-events.ts`
 - Modify: `apps/server/src/routes/auth.ts` — login success arms (password login via `issueTokenPair` call sites — NOTE: `issueTokenPair` is the shared choke for password/oauth/saml/webauthn arms; wire at the CALL SITES with explicit `method`, not inside the helper, to keep method honest), login failure arms (bad-credentials + `AUTH_LOCKED_001` :~297 + suspended AUTH_004), logout :622-646
 - Test: `apps/server/src/__tests__/auth-events.test.ts` + wire assertions inside `routes.test.ts` / `mfa.test.ts` (Momus flows nit: there is no `auth.test.ts`; `grep -l "auth/login" apps/server/src/__tests__` finds the homes)
 
 **Interfaces:**
+
 - Consumes: `emitEvent(d, { tenantId, type, payload })` from `@accessbase/identity` (signature verified: `packages/identity/src/services/events.ts:38`); shared pool `authDb()` from `utils/managers.ts` (Q3A pool, already closed on shutdown); Fastify `request.log`.
 - Produces:
 
 ```ts
 // apps/server/src/utils/auth-events.ts
-export type AuthEventReason = 'bad_credentials' | 'locked' | 'suspended' | 'mfa_required_satisfied' | 'other';
+export type AuthEventReason =
+  'bad_credentials' | 'locked' | 'suspended' | 'mfa_required_satisfied' | 'other';
 export function emitAuthEvent(input: {
   type: 'auth.login.success' | 'auth.login.failure' | 'auth.logout';
-  tenantId: string; userId?: string; email: string; method: string; reason?: AuthEventReason;
-}): void // fire-and-forget over authDb(); .catch(err => logger.warn) — DELIBERATE exception to the events.ts 'NEVER swallow' invariant (Momus R5): auth events pair with NO mutation, so a failed insert must not fail a login; put this one-line justification in the auth-events.ts header comment and mirror it into the Q4c conventions block (T5).
+  tenantId: string;
+  userId?: string;
+  email: string;
+  method: string;
+  reason?: AuthEventReason;
+}): void; // fire-and-forget over authDb(); .catch(err => logger.warn) — DELIBERATE exception to the events.ts 'NEVER swallow' invariant (Momus R5): auth events pair with NO mutation, so a failed insert must not fail a login; put this one-line justification in the auth-events.ts header comment and mirror it into the Q4c conventions block (T5).
 // tenantId source: the row's tenant when known; failure arms WITHOUT a user row (bad_credentials pre-lookup, locked pre-lookup) use request.tenantId ?? DEFAULT_TENANT, mirroring the audit anonymous/system attribution precedent (blockers-review non-finding note).
 ```
 
@@ -161,11 +173,13 @@ Payload carries `{ email, method, reason? }` — NO password/flow material (audi
 ### Task 4: Webhook dispatcher metrics + alert rules (M3)
 
 **Files:**
+
 - Modify: `apps/server/src/utils/webhook-dispatcher.ts`
 - Modify: `docker/prometheus/rules.yml`
 - Test: dispatcher unit battery extension (`apps/server/src/__tests__/webhook*`)
 
 **Interfaces:**
+
 - Consumes: prom-client `Counter`/`Gauge` root registry (pattern + `accessbase_` prefix per `routes/metrics.ts:2,23`); existing `deps.query` seam; per-tick claim loop with `CLAIM_LIMIT = 25` (:71).
 - Produces (counters are in-process in the tick; the two backlog gauges share ONE injected once-per-tick SELECT — deps note below):
 
@@ -189,6 +203,7 @@ Both gauges ride the SAME injected dep: `backlogStats?: () => Promise<{ count: n
 ### Task 5: Doc-honesty wave — headers, catalog, openapi, counts (H4)
 
 **Files:**
+
 - Modify: `docs/modules/webhook.md:3` (design-only → implemented + §42 surface pointer + the three new auth.* event names from T3's commit body, event-catalog section) and its subscription-examples list
 - Modify: `docs/modules/error-codes-reality.md` — run the regen command block at its head (adds AUTH_IP_002, CAPTCHA_001/002, EVENT_NOT_FOUND, ADMIN_EXISTS/ADMIN_CREATION_FAILED/ADMIN_NOT_CREATED/ADMIN_NOT_FOUND; diff must show ONLY additions from the current emitter grep — re-run `grep -rhoE "code: '[A-Z0-9_]+'" apps/server/src packages/identity/src --include='*.ts' | sort -u` and reconcile by hand for the D126 gate)
 - Regenerate: `docs/openapi.json` via `pnpm --filter @accessbase/server gen:openapi`
@@ -205,6 +220,7 @@ Both gauges ride the SAME injected dep: `backlogStats?: () => Promise<{ count: n
 ### Task 6: Clients UI — backchannel_logout_uri field (M19)
 
 **Files:**
+
 - Modify: `apps/admin-ui/src/api/clients.ts` (type: `backchannelLogoutUri?: string | null` on create input + row type — server already accepts/returns it, `routes/clients.ts:72,121`, `OidcClientManager.ts:81,95,127`)
 - Modify: `apps/admin-ui/src/pages/Clients.tsx` form (new optional `Form.Item name="backchannelLogoutUri"` with `rules={[{ type: 'url' }]}` + tooltip: receives logout_token; https-only enforced server-side)
 - Modify: locales en/zh (`clients.backchannelLogoutUri` + hint)
@@ -217,6 +233,7 @@ Both gauges ride the SAME injected dep: `backlogStats?: () => Promise<{ count: n
 ### Task 7: e2e login-shell mock roster (L3, PIT-080 latent)
 
 **Files:**
+
 - Modify: `e2e/auth.spec.ts` (7 `/login` mounts lacking `**/api/v1/auth/sms/status`, `**/api/v1/auth/saml/status`, `**/api/v1/auth/captcha/status` mocks)
 
 - [ ] **Step 7.1** Reproduce first: run `npx playwright test e2e/auth.spec.ts --project=chromium` with the vite-only webServer; if console nets already catch these (sms mock added in Q1 across specs), confirm and mark task "already discharged — verify-only"; else add the three routes to each mount (use the roster proxy grep from conventions: `grep -L "sms/status" e2e/*.spec.ts`).
@@ -227,6 +244,7 @@ Both gauges ride the SAME injected dep: `backlogStats?: () => Promise<{ count: n
 ### Task 9: Domain-restriction policy — adopt the hidden feature, delete the shell (DG-7 ruled B)
 
 **Files:**
+
 - Create: `packages/identity/src/services/domain-policy.ts` — move `isDomainAllowed` (from `providers/PasswordProvider.ts:111`) and `hasEmailAlias` (`:133`) verbatim-as-pure-functions (exported, unit-tested standalone); keep exact AUTH_032/033/034 wire codes
 - Modify: `apps/server/src/routes/auth.ts` register route — before the `routeTx` block (`:452`): validate email format, then `assertEmailDomainAllowed(email, config)` → on reject return the 4xx envelope with the kept code; NO user row may exist after rejection (RED asserts insert-count zero)
 - Modify: `apps/server/src/config.ts` — add `authAllowedDomains: string[]` / `authBlockedDomains: string[]` / `authBlockEmailAliases: boolean` parsed from env (`AUTH_ALLOWED_DOMAINS` comma-list etc., empty/absent = allow-all — default-zero-destruction posture mirroring the three-level options pattern); `.env.example` gains the three keys with the ops note
@@ -241,6 +259,7 @@ Both gauges ride the SAME injected dep: `backlogStats?: () => Promise<{ count: n
 ### Task 10: require-verified-email login gate (DG-8a ruled A)
 
 **Files:**
+
 - Modify: `apps/server/src/routes/options.ts` — add `'auth.require_verified_email'` to the KNOWN_KEYS allowlist set (near :57, after the Q4c block); value space `'true'|'false'`, default `false` via the three-level getter (`'false'` when unset — zero-breakage for existing tenants)
 - Modify: `apps/server/src/routes/auth.ts` login — after `verifyPassword` resolves AND after the `passwordChangeRequired`/`enrollGate` arms (ordering decision: an unverified user must still be able to force-change and MFA-enroll — those flows are verification-adjacent); the gate must cover BOTH terminal session-issuance arms: the password final arm (before `issueTokenPair` :342) AND the `/mfa/verify` completion arm (`:~1708`) — re-review note 1: a password-arm-only gate leaks unverified+TOTP-bound users through step-up unchallenged. When option true && `user.emailVerified !== true` → 403 `{code:'AUTH_EMAIL_003'}` envelope with schema-DECLARED wire fields (fast-json-strip lesson PIT/T4-h), NO tokens issued, lockout NOT counted (password was correct)
 - Channel rulings (recorded): password login = gated. SMS OTP + magic link = EXEMPT and additionally SET `emailVerified=true` on success (email/phone possession proven by delivery — magic-link consume path marks it). OAuth/SAML/LDAP = exempt (external IdP asserted the address); first-federation provisioning marks `emailVerified=true` at the find-or-provision site (user came from an authoritative directory) — executor verifies each provisioning site actually owns the flag write, else exempt-without-mark and say so in commit body
@@ -254,6 +273,7 @@ Both gauges ride the SAME injected dep: `backlogStats?: () => Promise<{ count: n
 ### Task 11: Dead-config retirement sweep (DG-1b + DG-3 ruled B)
 
 **Files:**
+
 - Modify: `packages/identity/src/types.ts` — delete `idleTimeout` (4 sites: :188 comment+field, :201, :357, :364), `SsoConfig` (:222/:292/:355 area), trustedDevices config block; `packages/identity/src/index.ts` — delete defaults :171 and :121-124; grep-audit `apps/server`/`apps/admin-ui` consumers FIRST (audit verified: routes 0 hits; admin-ui 0 hits — identity-internal only)
 - Modify: `docs/modules/auth-provider.md` header line — TrustedDevice/SsoSession groups marked `superseded (retired 2026-09-28 ruling DG-3: zero demand across two audits; revive only via proposal aligned with enforced-MFA semantics)`; session-lifetime honesty note lands in `docs/modules/identity-sdd.md` (its §session-management area; no standalone session-design module exists): "refresh tokens die at `expiresAt` (REFRESH_TTL 30 min current constant) — idle/sliding expiry NOT implemented (DG-1b); knob removed pending the session-lifetime batch"
 - Modify: `docs/superpowers/reports/2026-09-28-gap-audit-round2.md` C3 wording correction — the "Settings UI implies the knob works" sentence is WRONG (grep shows the knob never reached the UI; dishonesty surface was types/config only). Record the errata IN the report (append correction line, do not silently rewrite)
@@ -274,22 +294,22 @@ Both gauges ride the SAME injected dep: `backlogStats?: () => Promise<{ count: n
 
 ## Decision gates — RULED (2026-09-28, interactive per-gate ruling)
 
-| Gate | Question | Ruling | Consequence |
-|---|---|---|---|
-| DG-1 (C3) | Idle/sliding session timeout | **B first, then A**: remove the dead `idleTimeout` knob (wizard/Settings/types/config) with absolute-expiry honesty note; real sliding expiry gets its own batch later | R-audit ladder slot: "session-lifetime" batch (last_used + renewal + sweeper) queued behind R1 |
-| DG-2 (C1) | Audit tamper-evidence | **A wire it** — per-row content hash + day-anchored global roots (design revised in-spec from the original "prev_hash-in-row chain"; multi-node + erasure-hostile) + `GET /audit/verify` + sanctioned-erasure ledger + checkpoint semantics for retention pruning; capability boundary documented (app-layer/single-row YES, whole-span DBA rebuild only detectable via off-box anchor export). **U1 SUPERSEDED the ruling's "K-T1 tenant predicate" wording → /verify is PLATFORM-ONLY** (user-ratified 2026-09-28). | Spec RATIFIED: `docs/superpowers/specs/2026-09-28-r-audit-tamper-evidence-and-erasure-design.md` — U1-U9 all ruled A; MUST pair with DG-8b erasure (one hash format, two deliveries) |
-| DG-3 (C2) | TrustedDevice/SsoSession | **B retire** — docs marked superseded, dead types/config exports deleted | Zero-consumer-demand evidence held (two audits, zero signals); future demand goes through a fresh proposal aligned with enforced-MFA semantics |
-| DG-4 (H2/H3) | Multi-node posture | **A commit to multi-node, defuse both mines** — options pub/sub via existing cache-coherence infra + envelope-key re-encrypt tool + rotation runbook | R3 batch (own spec); also retroactively validates Q2c/Q3A multi-node investments |
-| DG-5 (M12) | auth.ts split | **B: split immediately after R1 lands** — pure-move zero-behavior refactor (login / mfa+captcha / self-service / sessions+revocation), before the logout-coherence batch lands on top | Refactor batch sits between R1 and R-logout; any later auth feature batch consumes the new structure |
-| DG-6a | Logout coherence | **GO** — RP end_session + SAML SLO + own-frontend session cleanup as the logout-coherence batch (3-5d incl. e2e); Q3D live-RP verification folded into the integration day (6f) | Scheduled after DG-5 split |
-| DG-6b | private_key_jwt | **GO** — clientAuthMethods entry + clients zod acceptance + jwks persistence (cheap, mechanism verified in lib) | Joins the OIDC workstream (can ride the logout batch or its own mini-batch) |
-| DG-6c | DPoP / JAR / RFC 8693 | **NO — explicit non-goal** recorded as a decision (position locked to standard enterprise OIDC/SAML base); revisit only on paying-customer demand via proposal gate | Protects roadmap from FAPI long-tail |
-| DG-6d | Fine-grained permissions | **C middle path — data-scope hook** (self/dept/all) into requirePermission funnel, ~1 week; NO relation engine | New spec: data-scope semantics (dept source = groups? new org unit? — the spec must settle it); closes most row-level demand without FGA's quarter-scale cost |
-| DG-6e | Branding + portal | **A full** — tenant branding (logo/color/sender) AND self-service portal visibility | Portal permission-boundary needs its own spec section (not a ride-along); sales-signal caveat recorded and overruled by user |
-| DG-6f | NOT-VERIFIED debt | **GO integration day** after R1 — docker boot paths, ≤30s revocation live battery, device approval full-browser round, backup/restore drill, CI first-green (needs user's mirror push); external-credential items listed as procurement asks | Restores the credibility of every future "all green" claim |
-| DG-7 | PasswordProvider dead shell | **B adopt-and-drop** — port the domain allow/block/alias validators (code + AUTH_032-035 exist) into the REAL register/email-change path; unregister the dead provider, mark superseded | Hidden enterprise feature (domain-restricted signup) goes 0%→100% for ~half a day; rides R1 or its first follow-up |
-| DG-8a | emailVerified gate | **A switch** — `auth.require_verified_email` options key, default off, login pre-check + tests (~1 day) | Rides R2 session-semantics batch |
-| DG-8b | RTBF × hash chain | **A+B combined, inside DG-2's spec** — sanctioned-erasure design (tombstone + erasure ledger, chain-integrity-preserving; SAP-ILM pattern) + the retention-period/legal-basis doc paragraph (GDPR 17(3)(e), 90d cap via existing sweeper) | Binding constraint on DG-2: chain hash format must accommodate tombstone rows from day one — designing them separately = guaranteed rework |
+| Gate         | Question                     | Ruling                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Consequence                                                                                                                                                                          |
+| ------------ | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DG-1 (C3)    | Idle/sliding session timeout | **B first, then A**: remove the dead `idleTimeout` knob (wizard/Settings/types/config) with absolute-expiry honesty note; real sliding expiry gets its own batch later                                                                                                                                                                                                                                                                                                                                                | R-audit ladder slot: "session-lifetime" batch (last_used + renewal + sweeper) queued behind R1                                                                                       |
+| DG-2 (C1)    | Audit tamper-evidence        | **A wire it** — per-row content hash + day-anchored global roots (design revised in-spec from the original "prev_hash-in-row chain"; multi-node + erasure-hostile) + `GET /audit/verify` + sanctioned-erasure ledger + checkpoint semantics for retention pruning; capability boundary documented (app-layer/single-row YES, whole-span DBA rebuild only detectable via off-box anchor export). **U1 SUPERSEDED the ruling's "K-T1 tenant predicate" wording → /verify is PLATFORM-ONLY** (user-ratified 2026-09-28). | Spec RATIFIED: `docs/superpowers/specs/2026-09-28-r-audit-tamper-evidence-and-erasure-design.md` — U1-U9 all ruled A; MUST pair with DG-8b erasure (one hash format, two deliveries) |
+| DG-3 (C2)    | TrustedDevice/SsoSession     | **B retire** — docs marked superseded, dead types/config exports deleted                                                                                                                                                                                                                                                                                                                                                                                                                                              | Zero-consumer-demand evidence held (two audits, zero signals); future demand goes through a fresh proposal aligned with enforced-MFA semantics                                       |
+| DG-4 (H2/H3) | Multi-node posture           | **A commit to multi-node, defuse both mines** — options pub/sub via existing cache-coherence infra + envelope-key re-encrypt tool + rotation runbook                                                                                                                                                                                                                                                                                                                                                                  | R3 batch (own spec); also retroactively validates Q2c/Q3A multi-node investments                                                                                                     |
+| DG-5 (M12)   | auth.ts split                | **B: split immediately after R1 lands** — pure-move zero-behavior refactor (login / mfa+captcha / self-service / sessions+revocation), before the logout-coherence batch lands on top                                                                                                                                                                                                                                                                                                                                 | Refactor batch sits between R1 and R-logout; any later auth feature batch consumes the new structure                                                                                 |
+| DG-6a        | Logout coherence             | **GO** — RP end_session + SAML SLO + own-frontend session cleanup as the logout-coherence batch (3-5d incl. e2e); Q3D live-RP verification folded into the integration day (6f)                                                                                                                                                                                                                                                                                                                                       | Scheduled after DG-5 split                                                                                                                                                           |
+| DG-6b        | private_key_jwt              | **GO** — clientAuthMethods entry + clients zod acceptance + jwks persistence (cheap, mechanism verified in lib)                                                                                                                                                                                                                                                                                                                                                                                                       | Joins the OIDC workstream (can ride the logout batch or its own mini-batch)                                                                                                          |
+| DG-6c        | DPoP / JAR / RFC 8693        | **NO — explicit non-goal** recorded as a decision (position locked to standard enterprise OIDC/SAML base); revisit only on paying-customer demand via proposal gate                                                                                                                                                                                                                                                                                                                                                   | Protects roadmap from FAPI long-tail                                                                                                                                                 |
+| DG-6d        | Fine-grained permissions     | **C middle path — data-scope hook** (self/dept/all) into requirePermission funnel, ~1 week; NO relation engine                                                                                                                                                                                                                                                                                                                                                                                                        | New spec: data-scope semantics (dept source = groups? new org unit? — the spec must settle it); closes most row-level demand without FGA's quarter-scale cost                        |
+| DG-6e        | Branding + portal            | **A full** — tenant branding (logo/color/sender) AND self-service portal visibility                                                                                                                                                                                                                                                                                                                                                                                                                                   | Portal permission-boundary needs its own spec section (not a ride-along); sales-signal caveat recorded and overruled by user                                                         |
+| DG-6f        | NOT-VERIFIED debt            | **GO integration day** after R1 — docker boot paths, ≤30s revocation live battery, device approval full-browser round, backup/restore drill, CI first-green (needs user's mirror push); external-credential items listed as procurement asks                                                                                                                                                                                                                                                                          | Restores the credibility of every future "all green" claim                                                                                                                           |
+| DG-7         | PasswordProvider dead shell  | **B adopt-and-drop** — port the domain allow/block/alias validators (code + AUTH_032-035 exist) into the REAL register/email-change path; unregister the dead provider, mark superseded                                                                                                                                                                                                                                                                                                                               | Hidden enterprise feature (domain-restricted signup) goes 0%→100% for ~half a day; rides R1 or its first follow-up                                                                   |
+| DG-8a        | emailVerified gate           | **A switch** — `auth.require_verified_email` options key, default off, login pre-check + tests (~1 day)                                                                                                                                                                                                                                                                                                                                                                                                               | Rides R2 session-semantics batch                                                                                                                                                     |
+| DG-8b        | RTBF × hash chain            | **A+B combined, inside DG-2's spec** — sanctioned-erasure design (tombstone + erasure ledger, chain-integrity-preserving; SAP-ILM pattern) + the retention-period/legal-basis doc paragraph (GDPR 17(3)(e), 90d cap via existing sweeper)                                                                                                                                                                                                                                                                             | Binding constraint on DG-2: chain hash format must accommodate tombstone rows from day one — designing them separately = guaranteed rework                                           |
 
 ### Post-ruling batch ladder (supersedes the report's suggested ladder)
 
@@ -304,8 +324,8 @@ Both gauges ride the SAME injected dep: `backlogStats?: () => Promise<{ count: n
 9. **Branding+portal batch** (DG-6e) — portal permission-boundary spec section mandatory
 
 Explicit non-goals recorded: DPoP, JAR/JARM, RFC 8693 token exchange, full FGA/ReBAC engine (all revisitable only via proposal gate with paying-customer signal).
-## Execution order & parallelism
 
+## Execution order & parallelism
 
 R1 original: T1∥T2∥T4 parallel-safe (file-disjoint). T3 sequences after T1 (same auth.ts face) and after nothing else — identity `events.ts` is T3-sole. **T5 must run AFTER T3 lands** (it inherits the event names + conventions exception from T3's commit body — Momus R4 single-writer rule). T6 (admin-ui) and T7 (e2e) are disjoint from all server tasks.
 

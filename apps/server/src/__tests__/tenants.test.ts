@@ -40,9 +40,11 @@ const mockFindAll = vi.fn().mockResolvedValue({
   totalPages: 1,
 });
 
-const mockFindById = vi.fn().mockImplementation((id: string) =>
-  id === mockTenant.id ? Promise.resolve(mockTenant) : Promise.resolve(null),
-);
+const mockFindById = vi
+  .fn()
+  .mockImplementation((id: string) =>
+    id === mockTenant.id ? Promise.resolve(mockTenant) : Promise.resolve(null),
+  );
 
 const mockCreate = vi.fn().mockImplementation((data: { name: string; slug: string }) => {
   if (data.slug === 'taken') {
@@ -81,13 +83,17 @@ vi.mock('@accessbase/identity', async (importOriginal) => ({
   })),
   UserManager: vi.fn().mockImplementation(() => ({
     findByEmail: vi.fn().mockResolvedValue({ id: 'u1', email: 'admin@accessbase.local' }),
-    findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+    findAll: vi
+      .fn()
+      .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
     // Q2b routeTx seam: run the callback with a marker handle so the routed
     // manager calls can assert the handle reached them (R1-T2).
     transaction: (fn: (d: unknown) => unknown) => fn(txHandle),
   })),
   RoleManager: vi.fn().mockImplementation(() => ({
-    findAll: vi.fn().mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
+    findAll: vi
+      .fn()
+      .mockResolvedValue({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
     findById: vi.fn().mockResolvedValue({ id: 'r1', name: 'admin' }),
   })),
   // requirePermission preHandler — default allow
@@ -220,7 +226,7 @@ describe('PUT /api/v1/tenants/:id', () => {
   });
 
   it('returns 409 TENANT_PROTECTED for default tenant', async () => {
-const res = await app.inject({
+    const res = await app.inject({
       method: 'PUT',
       remoteAddress: '10.255.7.1', // PIT-083: isolate from the shared 127.0.0.1 rate bucket
       url: `/api/v1/tenants/${DEFAULT_TENANT_ID}`,
@@ -271,7 +277,11 @@ const res = await app.inject({
     });
 
     expect(res.statusCode).toBe(200);
-    expect(mockUpdate).toHaveBeenCalledWith(mockTenant.id, { name: 'Plain Rename', slug: undefined, status: undefined });
+    expect(mockUpdate).toHaveBeenCalledWith(mockTenant.id, {
+      name: 'Plain Rename',
+      slug: undefined,
+      status: undefined,
+    });
   });
 });
 
@@ -291,7 +301,7 @@ describe('DELETE /api/v1/tenants/:id', () => {
   });
 
   it('returns 409 TENANT_PROTECTED for default tenant', async () => {
-const res = await app.inject({
+    const res = await app.inject({
       method: 'DELETE',
       remoteAddress: '10.255.7.2', // PIT-083: isolate from the shared 127.0.0.1 rate bucket
       url: `/api/v1/tenants/${DEFAULT_TENANT_ID}`,
@@ -312,7 +322,8 @@ describe('seed / routePermissions static assertions', () => {
 
   it('partition lists cover tenants codes (bindPermissions name readback supersedes RESOURCES filter)', () => {
     const src = readFileSync(
-      new URL('../../../../packages/identity/src/services/permission-partition.ts', import.meta.url).pathname,
+      new URL('../../../../packages/identity/src/services/permission-partition.ts', import.meta.url)
+        .pathname,
       'utf8',
     );
     expect(src).toContain("'tenants:read'");

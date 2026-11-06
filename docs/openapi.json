@@ -18,9 +18,7 @@
   "paths": {
     "/health/live": {
       "get": {
-        "tags": [
-          "health"
-        ],
+        "tags": ["health"],
         "description": "Liveness probe",
         "responses": {
           "200": {
@@ -46,9 +44,7 @@
     },
     "/health/ready": {
       "get": {
-        "tags": [
-          "health"
-        ],
+        "tags": ["health"],
         "description": "Readiness probe",
         "responses": {
           "200": {
@@ -82,9 +78,7 @@
     },
     "/health/startup": {
       "get": {
-        "tags": [
-          "health"
-        ],
+        "tags": ["health"],
         "description": "Startup probe",
         "responses": {
           "200": {
@@ -110,9 +104,7 @@
     },
     "/api/v1/setup/status": {
       "get": {
-        "tags": [
-          "setup"
-        ],
+        "tags": ["setup"],
         "description": "Check system setup status",
         "responses": {
           "200": {
@@ -158,20 +150,14 @@
     },
     "/api/v1/setup/admin": {
       "post": {
-        "tags": [
-          "setup"
-        ],
+        "tags": ["setup"],
         "description": "Create initial admin user",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "name",
-                  "password"
-                ],
+                "required": ["email", "name", "password"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -304,18 +290,14 @@
     },
     "/api/v1/setup/config": {
       "post": {
-        "tags": [
-          "setup"
-        ],
+        "tags": ["setup"],
         "description": "Save basic system configuration",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "siteName"
-                ],
+                "required": ["siteName"],
                 "properties": {
                   "siteName": {
                     "type": "string",
@@ -400,9 +382,7 @@
     },
     "/api/v1/setup/complete": {
       "post": {
-        "tags": [
-          "setup"
-        ],
+        "tags": ["setup"],
         "description": "Complete system setup",
         "responses": {
           "200": {
@@ -488,9 +468,7 @@
     },
     "/api/v1/setup/checks": {
       "get": {
-        "tags": [
-          "setup"
-        ],
+        "tags": ["setup"],
         "description": "Run system environment checks",
         "responses": {
           "200": {
@@ -516,10 +494,7 @@
                               },
                               "status": {
                                 "type": "string",
-                                "enum": [
-                                  "pass",
-                                  "fail"
-                                ]
+                                "enum": ["pass", "fail"]
                               },
                               "message": {
                                 "type": "string"
@@ -539,19 +514,14 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Password login",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "password"
-                ],
+                "required": ["email", "password"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -660,20 +630,14 @@
     },
     "/api/v1/auth/register": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "User registration",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "name",
-                  "password"
-                ],
+                "required": ["email", "name", "password"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -702,9 +666,7 @@
     },
     "/api/v1/auth/verify-email/request": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Send an email-verification link to the authenticated user",
         "security": [
           {
@@ -720,18 +682,14 @@
     },
     "/api/v1/auth/verify-email": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Consume an email-verification link token",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "token"
-                ],
+                "required": ["token"],
                 "properties": {
                   "token": {
                     "type": "string",
@@ -752,9 +710,7 @@
     },
     "/api/v1/auth/me": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Get current user profile",
         "security": [
           {
@@ -770,9 +726,7 @@
     },
     "/api/v1/auth/logout": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Logout revokes the DB session when a refresh token is supplied",
         "security": [
           {
@@ -788,9 +742,7 @@
     },
     "/api/v1/auth/sessions/revoke-others": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Revoke all other sessions, keeping the one matching the supplied refresh token",
         "security": [
           {
@@ -816,18 +768,14 @@
     },
     "/api/v1/auth/sessions/revoke": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Revoke a single session belonging to the current user",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "sessionId"
-                ],
+                "required": ["sessionId"],
                 "properties": {
                   "sessionId": {
                     "type": "string",
@@ -853,18 +801,14 @@
     },
     "/api/v1/auth/refresh": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Refresh access token",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "refreshToken"
-                ],
+                "required": ["refreshToken"],
                 "properties": {
                   "refreshToken": {
                     "type": "string"
@@ -884,9 +828,7 @@
     },
     "/api/v1/auth/change-password": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Change password: verifies old, rejects last-5 reuse, revokes other sessions",
         "security": [
           {
@@ -902,18 +844,14 @@
     },
     "/api/v1/auth/forgot-password": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Request password reset. Always succeeds regardless of account existence.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email"
-                ],
+                "required": ["email"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -934,18 +872,14 @@
     },
     "/api/v1/auth/magic/request": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Request a magic sign-in link. Always succeeds regardless of account existence.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email"
-                ],
+                "required": ["email"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -966,18 +900,14 @@
     },
     "/api/v1/auth/magic/consume": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Consume a magic sign-in link token (or receive an MFA step-up).",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "token"
-                ],
+                "required": ["token"],
                 "properties": {
                   "token": {
                     "type": "string",
@@ -1113,18 +1043,14 @@
     },
     "/api/v1/auth/sms-otp/request": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Request an SMS OTP sign-in code. Always succeeds regardless of account existence.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "phone"
-                ],
+                "required": ["phone"],
                 "properties": {
                   "phone": {
                     "type": "string",
@@ -1168,9 +1094,7 @@
     },
     "/api/v1/auth/captcha/status": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Whether the local captcha challenge is active",
         "responses": {
           "200": {
@@ -1181,9 +1105,7 @@
     },
     "/api/v1/auth/captcha": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Fresh SVG captcha challenge (one-time, 5min)",
         "responses": {
           "200": {
@@ -1194,9 +1116,7 @@
     },
     "/api/v1/auth/sms/status": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Whether SMS OTP sign-in is configured (public gate probe).",
         "responses": {
           "200": {
@@ -1227,19 +1147,14 @@
     },
     "/api/v1/auth/sms-otp/verify": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Verify an SMS OTP code (or receive an MFA step-up).",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "token",
-                  "code"
-                ],
+                "required": ["token", "code"],
                 "properties": {
                   "token": {
                     "type": "string",
@@ -1379,19 +1294,14 @@
     },
     "/api/v1/auth/reset-password": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Reset password with a flow token from forgot-password",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "token",
-                  "newPassword"
-                ],
+                "required": ["token", "newPassword"],
                 "properties": {
                   "token": {
                     "type": "string"
@@ -1414,9 +1324,7 @@
     },
     "/api/v1/auth/mfa/setup": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Start TOTP MFA setup: returns otpauth URL, QR and one-time recovery codes",
         "security": [
           {
@@ -1432,18 +1340,14 @@
     },
     "/api/v1/auth/mfa/enable": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Confirm MFA enable with a TOTP code",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "code"
-                ],
+                "required": ["code"],
                 "properties": {
                   "code": {
                     "type": "string",
@@ -1473,19 +1377,14 @@
     },
     "/api/v1/auth/mfa/verify": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Verify MFA challenge and exchange flow token for a session",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "flowToken",
-                  "code"
-                ],
+                "required": ["flowToken", "code"],
                 "properties": {
                   "flowToken": {
                     "type": "string"
@@ -1532,18 +1431,14 @@
     },
     "/api/v1/auth/mfa/disable": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Disable MFA after password re-verification",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "password"
-                ],
+                "required": ["password"],
                 "properties": {
                   "password": {
                     "type": "string",
@@ -1569,19 +1464,14 @@
     },
     "/api/v1/auth/ldap/login": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "LDAP login",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "username",
-                  "password"
-                ],
+                "required": ["username", "password"],
                 "properties": {
                   "username": {
                     "type": "string",
@@ -1661,9 +1551,7 @@
     },
     "/api/v1/users/": {
       "get": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "List users (paginated)",
         "parameters": [
           {
@@ -1698,11 +1586,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": [
-                "active",
-                "suspended",
-                "pending"
-              ]
+              "enum": ["active", "suspended", "pending"]
             },
             "in": "query",
             "name": "status",
@@ -1711,12 +1595,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": [
-                "createdAt",
-                "email",
-                "name",
-                "status"
-              ]
+              "enum": ["createdAt", "email", "name", "status"]
             },
             "in": "query",
             "name": "sortBy",
@@ -1725,10 +1604,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
+              "enum": ["asc", "desc"]
             },
             "in": "query",
             "name": "sortOrder",
@@ -1747,19 +1623,14 @@
         }
       },
       "post": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Create a new user",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "name"
-                ],
+                "required": ["email", "name"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -1806,9 +1677,7 @@
     },
     "/api/v1/users/export": {
       "get": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Export users as CSV",
         "security": [
           {
@@ -1824,9 +1693,7 @@
     },
     "/api/v1/users/me": {
       "get": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Get current user profile",
         "security": [
           {
@@ -1842,9 +1709,7 @@
     },
     "/api/v1/users/{id}": {
       "get": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Get user by ID",
         "parameters": [
           {
@@ -1869,9 +1734,7 @@
         }
       },
       "put": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Update user",
         "requestBody": {
           "content": {
@@ -1920,18 +1783,13 @@
         }
       },
       "delete": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Delete user (optional body {eraseAudit:true, legalBasis} triggers sanctioned audit erasure in the same transaction)",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "type": [
-                  "object",
-                  "null"
-                ],
+                "type": ["object", "null"],
                 "properties": {
                   "eraseAudit": {
                     "type": "boolean"
@@ -1970,18 +1828,14 @@
     },
     "/api/v1/users/import": {
       "post": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Import users (two-phase: dry-run report, then commit)",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "rows"
-                ],
+                "required": ["rows"],
                 "properties": {
                   "rows": {
                     "type": "array",
@@ -2013,18 +1867,14 @@
     },
     "/api/v1/users/{id}/reset-password": {
       "post": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Admin password reset (arms force-change, revokes sessions)",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "newPassword"
-                ],
+                "required": ["newPassword"],
                 "properties": {
                   "newPassword": {
                     "type": "string",
@@ -2061,9 +1911,7 @@
     },
     "/api/v1/users/{id}/invite": {
       "post": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Send a set-password invitation email (72h single-use link)",
         "parameters": [
           {
@@ -2090,9 +1938,7 @@
     },
     "/api/v1/users/{id}/force-logout": {
       "post": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Revoke all sessions for a user (force logout)",
         "parameters": [
           {
@@ -2119,26 +1965,18 @@
     },
     "/api/v1/users/{id}/status": {
       "patch": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "description": "Change user status",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "status"
-                ],
+                "required": ["status"],
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "active",
-                      "suspended",
-                      "pending"
-                    ]
+                    "enum": ["active", "suspended", "pending"]
                   }
                 }
               }
@@ -2171,9 +2009,7 @@
     },
     "/api/v1/roles/": {
       "get": {
-        "tags": [
-          "roles"
-        ],
+        "tags": ["roles"],
         "description": "List roles (paginated)",
         "parameters": [
           {
@@ -2218,18 +2054,14 @@
         }
       },
       "post": {
-        "tags": [
-          "roles"
-        ],
+        "tags": ["roles"],
         "description": "Create a new role",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "name"
-                ],
+                "required": ["name"],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -2268,9 +2100,7 @@
     },
     "/api/v1/roles/{id}": {
       "get": {
-        "tags": [
-          "roles"
-        ],
+        "tags": ["roles"],
         "description": "Get role by ID",
         "parameters": [
           {
@@ -2295,9 +2125,7 @@
         }
       },
       "put": {
-        "tags": [
-          "roles"
-        ],
+        "tags": ["roles"],
         "description": "Update role",
         "requestBody": {
           "content": {
@@ -2312,10 +2140,7 @@
                     "type": "string"
                   },
                   "parentId": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": ["string", "null"],
                     "format": "uuid"
                   },
                   "permissionIds": {
@@ -2328,11 +2153,7 @@
                     "type": "object",
                     "additionalProperties": {
                       "type": "string",
-                      "enum": [
-                        "all",
-                        "dept",
-                        "self"
-                      ]
+                      "enum": ["all", "dept", "self"]
                     }
                   }
                 }
@@ -2363,9 +2184,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "roles"
-        ],
+        "tags": ["roles"],
         "description": "Delete role",
         "parameters": [
           {
@@ -2392,9 +2211,7 @@
     },
     "/api/v1/tenants/": {
       "get": {
-        "tags": [
-          "tenants"
-        ],
+        "tags": ["tenants"],
         "description": "List tenants (paginated)",
         "parameters": [
           {
@@ -2439,19 +2256,14 @@
         }
       },
       "post": {
-        "tags": [
-          "tenants"
-        ],
+        "tags": ["tenants"],
         "description": "Create a new tenant",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "name",
-                  "slug"
-                ],
+                "required": ["name", "slug"],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -2483,9 +2295,7 @@
     },
     "/api/v1/tenants/{id}": {
       "get": {
-        "tags": [
-          "tenants"
-        ],
+        "tags": ["tenants"],
         "description": "Get tenant by ID",
         "parameters": [
           {
@@ -2510,9 +2320,7 @@
         }
       },
       "put": {
-        "tags": [
-          "tenants"
-        ],
+        "tags": ["tenants"],
         "description": "Update tenant",
         "requestBody": {
           "content": {
@@ -2531,10 +2339,7 @@
                   },
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "active",
-                      "suspended"
-                    ]
+                    "enum": ["active", "suspended"]
                   }
                 },
                 "additionalProperties": false
@@ -2565,9 +2370,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "tenants"
-        ],
+        "tags": ["tenants"],
         "description": "Delete tenant (soft: suspends the tenant)",
         "parameters": [
           {
@@ -2594,19 +2397,14 @@
     },
     "/api/v1/tenants/{id}/bootstrap": {
       "post": {
-        "tags": [
-          "tenants"
-        ],
+        "tags": ["tenants"],
         "description": "Bootstrap a tenant: create its admin role and first administrator",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "password"
-                ],
+                "required": ["email", "password"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -2652,9 +2450,7 @@
     },
     "/api/v1/groups/": {
       "get": {
-        "tags": [
-          "groups"
-        ],
+        "tags": ["groups"],
         "description": "List user groups with member/role counts",
         "security": [
           {
@@ -2668,18 +2464,14 @@
         }
       },
       "post": {
-        "tags": [
-          "groups"
-        ],
+        "tags": ["groups"],
         "description": "Create a group",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "name"
-                ],
+                "required": ["name"],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -2692,10 +2484,7 @@
                   },
                   "kind": {
                     "type": "string",
-                    "enum": [
-                      "group",
-                      "department"
-                    ]
+                    "enum": ["group", "department"]
                   }
                 }
               }
@@ -2717,9 +2506,7 @@
     },
     "/api/v1/groups/{id}": {
       "get": {
-        "tags": [
-          "groups"
-        ],
+        "tags": ["groups"],
         "description": "Get group by ID",
         "parameters": [
           {
@@ -2744,9 +2531,7 @@
         }
       },
       "put": {
-        "tags": [
-          "groups"
-        ],
+        "tags": ["groups"],
         "description": "Update a group",
         "requestBody": {
           "content": {
@@ -2765,10 +2550,7 @@
                   },
                   "kind": {
                     "type": "string",
-                    "enum": [
-                      "group",
-                      "department"
-                    ]
+                    "enum": ["group", "department"]
                   }
                 }
               }
@@ -2798,9 +2580,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "groups"
-        ],
+        "tags": ["groups"],
         "description": "Delete a group (cascades membership + bindings)",
         "parameters": [
           {
@@ -2827,9 +2607,7 @@
     },
     "/api/v1/groups/{id}/members": {
       "get": {
-        "tags": [
-          "groups"
-        ],
+        "tags": ["groups"],
         "description": "List group members",
         "parameters": [
           {
@@ -2854,18 +2632,14 @@
         }
       },
       "post": {
-        "tags": [
-          "groups"
-        ],
+        "tags": ["groups"],
         "description": "Add a member (must belong to the group tenant)",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "userId"
-                ],
+                "required": ["userId"],
                 "properties": {
                   "userId": {
                     "type": "string",
@@ -2902,9 +2676,7 @@
     },
     "/api/v1/groups/{id}/members/{userId}": {
       "delete": {
-        "tags": [
-          "groups"
-        ],
+        "tags": ["groups"],
         "description": "Remove a member",
         "parameters": [
           {
@@ -2940,9 +2712,7 @@
     },
     "/api/v1/groups/{id}/roles": {
       "get": {
-        "tags": [
-          "groups"
-        ],
+        "tags": ["groups"],
         "description": "List bound role ids",
         "parameters": [
           {
@@ -2967,18 +2737,14 @@
         }
       },
       "put": {
-        "tags": [
-          "groups"
-        ],
+        "tags": ["groups"],
         "description": "Replace role bindings (transaction; last-admin census guarded)",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "roleIds"
-                ],
+                "required": ["roleIds"],
                 "properties": {
                   "roleIds": {
                     "type": "array",
@@ -3127,9 +2893,7 @@
     },
     "/api/v1/events/": {
       "get": {
-        "tags": [
-          "events"
-        ],
+        "tags": ["events"],
         "description": "List domain events (paginated, filterable)",
         "parameters": [
           {
@@ -3194,9 +2958,7 @@
     },
     "/api/v1/events/{id}": {
       "get": {
-        "tags": [
-          "events"
-        ],
+        "tags": ["events"],
         "description": "Get one event by id",
         "parameters": [
           {
@@ -3223,9 +2985,7 @@
     },
     "/api/v1/email-templates/email-templates": {
       "get": {
-        "tags": [
-          "email-templates"
-        ],
+        "tags": ["email-templates"],
         "description": "List email templates (built-in defaults merged with stored overrides)",
         "security": [
           {
@@ -3241,9 +3001,7 @@
     },
     "/api/v1/email-templates/email-templates/{id}": {
       "put": {
-        "tags": [
-          "email-templates"
-        ],
+        "tags": ["email-templates"],
         "description": "Store a template override (partial arms allowed; null-value clears)",
         "parameters": [
           {
@@ -3269,9 +3027,7 @@
     },
     "/api/v1/email-templates/email-templates/{id}/preview": {
       "post": {
-        "tags": [
-          "email-templates"
-        ],
+        "tags": ["email-templates"],
         "description": "Render a preview (stored + request-body overrides, sample vars; never sends)",
         "parameters": [
           {
@@ -3297,18 +3053,14 @@
     },
     "/api/v1/email-templates/email-templates/{id}/test": {
       "post": {
-        "tags": [
-          "email-templates"
-        ],
+        "tags": ["email-templates"],
         "description": "Send the stored template to a test address (fire-and-forget)",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "to"
-                ],
+                "required": ["to"],
                 "properties": {
                   "to": {
                     "type": "string",
@@ -3543,9 +3295,7 @@
     },
     "/api/v1/permissions/": {
       "get": {
-        "tags": [
-          "permissions"
-        ],
+        "tags": ["permissions"],
         "description": "List permissions (paginated)",
         "parameters": [
           {
@@ -3584,9 +3334,7 @@
     },
     "/api/v1/audit-logs/": {
       "get": {
-        "tags": [
-          "audit"
-        ],
+        "tags": ["audit"],
         "description": "List audit logs (paginated, filterable)",
         "parameters": [
           {
@@ -3659,9 +3407,7 @@
     },
     "/api/v1/audit-logs/export": {
       "get": {
-        "tags": [
-          "audit"
-        ],
+        "tags": ["audit"],
         "description": "Export audit logs as CSV (all rows matching list filters)",
         "parameters": [
           {
@@ -3713,9 +3459,7 @@
     },
     "/api/v1/audit-logs/verify": {
       "get": {
-        "tags": [
-          "audit"
-        ],
+        "tags": ["audit"],
         "description": "Verify the audit tamper-evidence chain (platform tenant only; chainOk:false is still a 200 — health-report posture)",
         "parameters": [
           {
@@ -3751,9 +3495,7 @@
     },
     "/api/v1/stats": {
       "get": {
-        "tags": [
-          "stats"
-        ],
+        "tags": ["stats"],
         "description": "Dashboard statistics",
         "security": [
           {
@@ -3782,9 +3524,7 @@
         }
       },
       "put": {
-        "tags": [
-          "options"
-        ],
+        "tags": ["options"],
         "description": "Set a runtime option",
         "security": [
           {
@@ -3800,9 +3540,7 @@
     },
     "/api/v1/options/{key}": {
       "delete": {
-        "tags": [
-          "options"
-        ],
+        "tags": ["options"],
         "description": "Delete a runtime option",
         "parameters": [
           {
@@ -3828,9 +3566,7 @@
     },
     "/api/v1/clients": {
       "post": {
-        "tags": [
-          "clients"
-        ],
+        "tags": ["clients"],
         "description": "Register a new OIDC client (secret returned once)",
         "security": [
           {
@@ -3844,9 +3580,7 @@
         }
       },
       "get": {
-        "tags": [
-          "clients"
-        ],
+        "tags": ["clients"],
         "description": "List registered OIDC clients (no secrets)",
         "security": [
           {
@@ -3862,9 +3596,7 @@
     },
     "/api/v1/clients/{clientId}/rotate-secret": {
       "post": {
-        "tags": [
-          "clients"
-        ],
+        "tags": ["clients"],
         "description": "Rotate client secret (new secret returned once)",
         "parameters": [
           {
@@ -3890,9 +3622,7 @@
     },
     "/api/v1/clients/{clientId}": {
       "delete": {
-        "tags": [
-          "clients"
-        ],
+        "tags": ["clients"],
         "description": "Delete an OIDC client",
         "parameters": [
           {
@@ -3956,18 +3686,14 @@
     },
     "/api/v1/auth/oauth/exchange": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Exchange OAuth one-time code for session tokens",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "code"
-                ],
+                "required": ["code"],
                 "properties": {
                   "code": {
                     "type": "string",
@@ -3988,9 +3714,7 @@
     },
     "/api/v1/auth/oauth/providers": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "List configured OAuth provider names for the login page",
         "responses": {
           "200": {
@@ -4001,9 +3725,7 @@
     },
     "/api/v1/auth/oauth/links": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "List OAuth providers linked to the current user",
         "security": [
           {
@@ -4019,9 +3741,7 @@
     },
     "/api/v1/auth/oauth/end-session-url": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Resolve the generic OIDC end-session URL (id_token_hint) for the current user",
         "security": [
           {
@@ -4037,9 +3757,7 @@
     },
     "/api/v1/auth/oauth/{provider}": {
       "delete": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Unlink an OAuth provider from the current user",
         "security": [
           {
@@ -4089,9 +3807,7 @@
     },
     "/api/v1/auth/saml/status": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Report whether SAML SP login is enabled",
         "responses": {
           "200": {
@@ -4102,9 +3818,7 @@
     },
     "/api/v1/auth/saml/login": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Begin SAML SP-initiated login (redirect to the IdP)",
         "responses": {
           "200": {
@@ -4115,9 +3829,7 @@
     },
     "/api/v1/auth/saml/logout": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Get the IdP single-logout URL for the authenticated SAML principal",
         "security": [
           {
@@ -4133,9 +3845,7 @@
     },
     "/api/v1/auth/saml/slo": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "SAML single logout endpoint (IdP-initiated LogoutRequest + SP-initiated LogoutResponse return)",
         "responses": {
           "200": {
@@ -4144,9 +3854,7 @@
         }
       },
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "SAML single logout endpoint, POST binding (same three arms as GET)",
         "responses": {
           "200": {
@@ -4157,9 +3865,7 @@
     },
     "/api/v1/auth/saml/acs": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "SAML assertion consumer service (browser redirect channel)",
         "responses": {
           "200": {
@@ -4170,18 +3876,14 @@
     },
     "/api/v1/auth/saml/exchange": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Exchange SAML one-time code for session tokens (or MFA step-up)",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "code"
-                ],
+                "required": ["code"],
                 "properties": {
                   "code": {
                     "type": "string",
@@ -4265,9 +3967,7 @@
     },
     "/api/v1/auth/saml/metadata": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "SAML SP metadata XML",
         "responses": {
           "200": {
@@ -4278,9 +3978,7 @@
     },
     "/api/v1/auth/webauthn/register/options": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Generate WebAuthn registration options (passkey enrollment)",
         "security": [
           {
@@ -4296,9 +3994,7 @@
     },
     "/api/v1/auth/webauthn/register/verify": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Verify WebAuthn registration response and store the credential",
         "security": [
           {
@@ -4314,9 +4010,7 @@
     },
     "/api/v1/auth/webauthn/login/options": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Generate WebAuthn authentication options (discoverable credentials, D108)",
         "responses": {
           "200": {
@@ -4327,9 +4021,7 @@
     },
     "/api/v1/auth/webauthn/login/verify": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Verify WebAuthn assertion and establish a session",
         "responses": {
           "200": {
@@ -4340,9 +4032,7 @@
     },
     "/api/v1/auth/webauthn/credentials": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "List passkey credentials for the current user",
         "security": [
           {
@@ -4358,9 +4048,7 @@
     },
     "/api/v1/auth/webauthn/credentials/{id}": {
       "delete": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "description": "Delete a passkey credential owned by the current user",
         "parameters": [
           {
@@ -4386,9 +4074,7 @@
     },
     "/api/v1/auth/api-keys/": {
       "post": {
-        "tags": [
-          "api-keys"
-        ],
+        "tags": ["api-keys"],
         "description": "Create an API key (plaintext revealed once)",
         "security": [
           {
@@ -4402,9 +4088,7 @@
         }
       },
       "get": {
-        "tags": [
-          "api-keys"
-        ],
+        "tags": ["api-keys"],
         "description": "List API keys (no secret material)",
         "security": [
           {
@@ -4420,9 +4104,7 @@
     },
     "/api/v1/auth/api-keys/{id}": {
       "delete": {
-        "tags": [
-          "api-keys"
-        ],
+        "tags": ["api-keys"],
         "description": "Revoke an API key",
         "parameters": [
           {

@@ -53,9 +53,9 @@ vi.mock('@accessbase/identity', async (importOriginal) => {
   return {
     ...actual,
     UserManager: vi.fn().mockImplementation(() => ({
-    // Q2b routeTx seam: run the callback with a dummy handle (mocked
-    // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
-    transaction: (fn: (d: unknown) => unknown) => fn({}),
+      // Q2b routeTx seam: run the callback with a dummy handle (mocked
+      // write methods ignore it; real tx semantics are locked by funnel-tx-integration.
+      transaction: (fn: (d: unknown) => unknown) => fn({}),
       findByEmail: vi.fn(async (email: string) => {
         if (email === 'admin@accessbase.local') return { ...vUser, email };
         return null;
@@ -151,11 +151,7 @@ describe('POST /api/v1/auth/verify-email/request (authenticated self-service, Q1
     });
     expect(res.statusCode).toBe(202);
     expect(res.json().data.message).toContain('Verification email sent');
-    expect(flowTokenMock.issue).toHaveBeenCalledWith(
-      'email_verify',
-      { userId: vUser.id },
-      86400,
-    );
+    expect(flowTokenMock.issue).toHaveBeenCalledWith('email_verify', { userId: vUser.id }, 86400);
     expect(mailerSend).toHaveBeenCalledTimes(1);
     const html = String(mailerSend.mock.calls[0]?.[2]);
     expect(html).toContain('/verify-email?token=');

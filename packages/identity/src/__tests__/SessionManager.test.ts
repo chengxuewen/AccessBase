@@ -49,7 +49,10 @@ function evalGuardOnRow(cond: unknown, row: Record<string, unknown>): boolean {
   const body = trimmed.startsWith('(') && trimmed.endsWith(')') ? trimmed.slice(1, -1) : trimmed;
   const conjunctions = splitTopLevelAnd(body);
   for (const clause of conjunctions) {
-    const c = clause.trim().replace(/^\(|\)$/g, '').trim();
+    const c = clause
+      .trim()
+      .replace(/^\(|\)$/g, '')
+      .trim();
     // "col is null"
     const nul = c.match(/^"?([a-z_".]+)"? is null$/i);
     if (nul) {
@@ -130,10 +133,8 @@ function makeMockDb(store: { rows: Record<string, unknown>[] }) {
       return {
         // await (select…from…where) → all rows; .limit() → first row (drizzle semantics)
         limit: vi.fn(async () => store.rows.slice(0, 1)),
-        then: (
-          resolve: (v: unknown) => unknown,
-          reject: (e: unknown) => unknown,
-        ) => Promise.resolve([...store.rows]).then(resolve, reject),
+        then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
+          Promise.resolve([...store.rows]).then(resolve, reject),
       };
     });
     chain.limit.mockImplementation(async () => store.rows.slice(0, 1));
@@ -257,9 +258,7 @@ describe('SessionManager', () => {
 
     it('rejects unknown token with Session not found', async () => {
       store.rows = [];
-      await expect(manager.rotateRefreshToken('nope', meta)).rejects.toThrow(
-        'Session not found',
-      );
+      await expect(manager.rotateRefreshToken('nope', meta)).rejects.toThrow('Session not found');
     });
 
     it('rejects expired session', async () => {
@@ -272,9 +271,7 @@ describe('SessionManager', () => {
         }),
       ];
 
-      await expect(manager.rotateRefreshToken(old.refreshToken, meta)).rejects.toThrow(
-        /expired/i,
-      );
+      await expect(manager.rotateRefreshToken(old.refreshToken, meta)).rejects.toThrow(/expired/i);
     });
 
     it('rejects revoked session', async () => {
@@ -287,9 +284,7 @@ describe('SessionManager', () => {
         }),
       ];
 
-      await expect(manager.rotateRefreshToken(old.refreshToken, meta)).rejects.toThrow(
-        /revoked/i,
-      );
+      await expect(manager.rotateRefreshToken(old.refreshToken, meta)).rejects.toThrow(/revoked/i);
     });
 
     it('reuse of a rotated token revokes ALL user sessions and throws', async () => {
@@ -305,9 +300,7 @@ describe('SessionManager', () => {
         }),
       ];
 
-      await expect(manager.rotateRefreshToken(old.refreshToken, meta)).rejects.toThrow(
-        /reuse/i,
-      );
+      await expect(manager.rotateRefreshToken(old.refreshToken, meta)).rejects.toThrow(/reuse/i);
       // Reuse detection triggered the revoke-all path
       expect(store.lastUpdatePatch).toHaveProperty('revokedAt');
     });
@@ -340,9 +333,7 @@ describe('SessionManager', () => {
   describe('findSessionByToken', () => {
     it('resolves session id by refresh token', async () => {
       const old = await manager.issueRefreshToken('sess-1', 'u-1', meta);
-      store.rows = [
-        sessionRow({ id: 'sess-9', refreshTokenHash: hash(old.refreshToken) }),
-      ];
+      store.rows = [sessionRow({ id: 'sess-9', refreshTokenHash: hash(old.refreshToken) })];
 
       const found = await manager.findSessionByToken(old.refreshToken);
       expect(found?.id).toBe('sess-9');
@@ -441,7 +432,13 @@ describe('SessionManager session lifecycle', () => {
 
     it('never leaks token hashes in the returned shape', async () => {
       store.rows = [
-        sessionRow({ id: 'a', token: 'SECRET', refreshTokenHash: 'SECRET', deviceInfo: null, ipAddress: null }),
+        sessionRow({
+          id: 'a',
+          token: 'SECRET',
+          refreshTokenHash: 'SECRET',
+          deviceInfo: null,
+          ipAddress: null,
+        }),
       ];
 
       const list = await manager.getUserSessions('u-1');
@@ -467,7 +464,9 @@ describe('SessionManager session lifecycle', () => {
     });
 
     it('serves from cache on second call without hitting db again', async () => {
-      store.rows = [sessionRow({ id: 'a', deviceInfo: { userAgent: 'chrome' }, ipAddress: '10.0.0.1' })];
+      store.rows = [
+        sessionRow({ id: 'a', deviceInfo: { userAgent: 'chrome' }, ipAddress: '10.0.0.1' }),
+      ];
 
       await manager.getUserSessions('u-1');
       await manager.getUserSessions('u-1');
@@ -494,7 +493,10 @@ describe('SessionManager session lifecycle', () => {
     });
 
     it('invalidates cache on rotateRefreshToken', async () => {
-      const old = await manager.issueRefreshToken('sess-1', 'u-1', { ip: '127.0.0.1', userAgent: 'ua' });
+      const old = await manager.issueRefreshToken('sess-1', 'u-1', {
+        ip: '127.0.0.1',
+        userAgent: 'ua',
+      });
       store.rows = [sessionRow({ id: 'sess-1', refreshTokenHash: hash(old.refreshToken) })];
       await manager.getUserSessions('u-1');
       expect(redis.has('session:u-1')).toBe(true);
@@ -516,9 +518,15 @@ describe('SessionManager session lifecycle', () => {
     it('falls back to db and does not throw when redis is down', async () => {
       store.rows = [sessionRow({ id: 'a', deviceInfo: { userAgent: 'ua' }, ipAddress: '1.2.3.4' })];
       const broken: RedisLike = {
-        get: async () => { throw new Error('ECONNREFUSED'); },
-        set: async () => { throw new Error('ECONNREFUSED'); },
-        del: async () => { throw new Error('ECONNREFUSED'); },
+        get: async () => {
+          throw new Error('ECONNREFUSED');
+        },
+        set: async () => {
+          throw new Error('ECONNREFUSED');
+        },
+        del: async () => {
+          throw new Error('ECONNREFUSED');
+        },
       };
       const m = new SessionManager(undefined, broken);
 
@@ -590,8 +598,7 @@ describe('SessionManager idle expiry (SL-2, spec rev.2 D2)', () => {
   });
 
   const meta = { ip: '127.0.0.1', userAgent: 'idle-agent' };
-  const hash = (t: string): string =>
-    createHash('sha256').update(t).digest('hex');
+  const hash = (t: string): string => createHash('sha256').update(t).digest('hex');
 
   const idleRow = (over: Partial<Record<string, unknown>> = {}) => ({
     id: randomBytes(8).toString('hex'),
@@ -616,9 +623,9 @@ describe('SessionManager idle expiry (SL-2, spec rev.2 D2)', () => {
       }),
     ];
 
-    await expect(
-      manager.rotateRefreshToken(tok, meta, { idleCutoffSeconds: 1 }),
-    ).rejects.toThrow(/Session expired/i);
+    await expect(manager.rotateRefreshToken(tok, meta, { idleCutoffSeconds: 1 })).rejects.toThrow(
+      /Session expired/i,
+    );
 
     // The B2 safety proof: usedAt is NULL (idle-expired rows never burned)
     const killedRow = store.rows.at(0) as Record<string, unknown> | undefined;
@@ -674,7 +681,12 @@ describe('SessionManager idle expiry (SL-2, spec rev.2 D2)', () => {
 
   it('no opts → guard SQL unchanged (legacy callers byte-compat)', async () => {
     const tok = 'no-opts-token';
-    store.rows = [idleRow({ refreshTokenHash: hash(tok), lastUsedAt: new Date(Date.now() - 400 * 24 * 3600_000) })];
+    store.rows = [
+      idleRow({
+        refreshTokenHash: hash(tok),
+        lastUsedAt: new Date(Date.now() - 400 * 24 * 3600_000),
+      }),
+    ];
     const rotated = await manager.rotateRefreshToken(tok, meta);
     expect(rotated.refreshToken).toBeTruthy();
     const { sql } = new PgDialect().sqlToQuery(captured.updateWhere[0] as never);

@@ -62,7 +62,10 @@ export interface WebhookDispatcherDeps {
   /** Fan-out tenant pin; DEFAULT_TENANT in prod, injectable for tests. */
   defaultTenantId?: string;
   /** Optional DNS seam forwarded to the dispatch-time SSRF re-check. */
-  dnsLookup?: (host: string, opts: { all: true }) => Promise<Array<{ address: string; family: number }>>;
+  dnsLookup?: (
+    host: string,
+    opts: { all: true },
+  ) => Promise<Array<{ address: string; family: number }>>;
   /** R1-T4: called once per settled delivery (2xx → 'ok'; failure below the
    *  10-attempt cap → 'retry'; at the cap → 'dead'). Prod: prom-counter inc.
    *  Optional — absent means zero behavior change; throwing never kills the tick. */
@@ -235,7 +238,8 @@ export function startWebhookDispatcher(deps: WebhookDispatcherDeps): WebhookDisp
           const ep = endpointById.get(c.endpoint_id);
           if (!ep) continue; // deleted mid-tick: cascade took the delivery, or the lease re-covers it
           if (!secrets.has(ep.id)) secrets.set(ep.id, deps.decrypt(ep.secret_encrypted));
-          if (!ssrfOk.has(ep.id)) ssrfOk.set(ep.id, await dispatchUrlAllowed(ep.url, deps.dnsLookup));
+          if (!ssrfOk.has(ep.id))
+            ssrfOk.set(ep.id, await dispatchUrlAllowed(ep.url, deps.dnsLookup));
         }
 
         // ---- steps 3-4: sign, POST, stamp outcome ----
@@ -252,7 +256,8 @@ export function startWebhookDispatcher(deps: WebhookDispatcherDeps): WebhookDisp
             const body = JSON.stringify({
               id: ev.id,
               type: ev.type,
-              createdAt: ev.created_at instanceof Date ? ev.created_at.toISOString() : ev.created_at,
+              createdAt:
+                ev.created_at instanceof Date ? ev.created_at.toISOString() : ev.created_at,
               data: ev.payload,
             });
             const signature = `sha256=${createHmac('sha256', secrets.get(ep.id) ?? '')

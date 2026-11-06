@@ -83,10 +83,7 @@ function happyScript(over: Partial<Record<string, unknown>> = {}): Scripted {
   };
 }
 
-function baseDeps(
-  db: AnchorDbHandle,
-  over: Partial<AuditAnchorDeps> = {},
-): AuditAnchorDeps {
+function baseDeps(db: AnchorDbHandle, over: Partial<AuditAnchorDeps> = {}): AuditAnchorDeps {
   return {
     db,
     makeDb: () => {
@@ -137,9 +134,13 @@ describe('audit anchor worker — lock discipline (D2/B2)', () => {
     });
     const w = startAuditAnchor(baseDeps(fake.db));
     await w.runOnce();
-    expect(fake.txCalls.filter((c) => c.sql.includes('INSERT INTO audit_chain_anchors'))).toHaveLength(0);
+    expect(
+      fake.txCalls.filter((c) => c.sql.includes('INSERT INTO audit_chain_anchors')),
+    ).toHaveLength(0);
     await w.runOnce();
-    expect(fake.txCalls.filter((c) => c.sql.includes('INSERT INTO audit_chain_anchors'))).toHaveLength(1);
+    expect(
+      fake.txCalls.filter((c) => c.sql.includes('INSERT INTO audit_chain_anchors')),
+    ).toHaveLength(1);
     await w.stop();
   });
 
@@ -193,7 +194,9 @@ describe('audit anchor worker — fold + chain (D2)', () => {
     expect(fold?.sql).toContain('make_interval(secs =>');
     expect(fold?.sql).toContain('ORDER BY');
     // lockstep contract (A6): the exact fold ORDER BY string
-    expect(fold?.sql.replace(/\s+/g, ' ')).toContain('ORDER BY "audit_logs"."created_at", "audit_logs"."id"');
+    expect(fold?.sql.replace(/\s+/g, ' ')).toContain(
+      'ORDER BY "audit_logs"."created_at", "audit_logs"."id"',
+    );
     expect(fold?.params).toEqual([90, 5000]);
     await w.stop();
   });
@@ -202,7 +205,8 @@ describe('audit anchor worker — fold + chain (D2)', () => {
     const script: Scripted = (rawText) => {
       const text = rawText.replace(/\s+/g, ' ');
       if (text.includes('pg_try_advisory_xact_lock')) return { rows: [{ locked: true }] };
-      if (text.includes('row_hash IS NULL') || text.includes('anchor_id IS NULL')) return { rows: [] };
+      if (text.includes('row_hash IS NULL') || text.includes('anchor_id IS NULL'))
+        return { rows: [] };
       return { rows: [] };
     };
     const fake = makeFakeDb(script);
@@ -210,7 +214,9 @@ describe('audit anchor worker — fold + chain (D2)', () => {
     const recordResult = vi.fn();
     const w = startAuditAnchor(baseDeps(fake.db, { exportPath, recordResult }));
     await w.runOnce();
-    expect(fake.txCalls.find((c) => c.sql.includes('INSERT INTO audit_chain_anchors'))).toBeUndefined();
+    expect(
+      fake.txCalls.find((c) => c.sql.includes('INSERT INTO audit_chain_anchors')),
+    ).toBeUndefined();
     // Empty chain: the worker creates NO file (no anchors → no lines to export).
     expect(existsSync(exportPath) ? readFileSync(exportPath, 'utf8') : '').toBe('');
     expect(recordResult).toHaveBeenCalledWith(true); // healthy no-op tick
@@ -250,7 +256,9 @@ describe('audit anchor worker — backfill (D6)', () => {
 
     const sel = fake.txCalls.find((c) => c.sql.includes('row_hash IS NULL'));
     expect(sel?.sql).toContain('erased_at IS NULL'); // B6: erased legacy rows stay unhashed forever
-    expect(sel?.sql.replace(/\s+/g, ' ')).toContain('ORDER BY "audit_logs"."created_at", "audit_logs"."id"');
+    expect(sel?.sql.replace(/\s+/g, ' ')).toContain(
+      'ORDER BY "audit_logs"."created_at", "audit_logs"."id"',
+    );
     expect(sel?.params).toEqual([1000]);
     expect(fake.txCalls.indexOf(sel!)).toBeLessThan(
       fake.txCalls.indexOf(fake.txCalls.find((c) => c.sql.includes('anchor_id IS NULL'))!),
@@ -307,7 +315,9 @@ describe('audit anchor worker — export self-heal (B4)', () => {
     const w = startAuditAnchor(baseDeps(fake.db, { exportPath }));
     await w.runOnce();
 
-    const exportQuery = fake.outerCalls.find((c) => c.sql.replace(/\s+/g, ' ').includes('(day, seq) >'));
+    const exportQuery = fake.outerCalls.find((c) =>
+      c.sql.replace(/\s+/g, ' ').includes('(day, seq) >'),
+    );
     expect(exportQuery?.params).toEqual(['2026-09-27', 1]);
     expect(exportQuery?.params).toEqual(['2026-09-27', 1]);
 

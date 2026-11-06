@@ -50,8 +50,13 @@ export async function fetchWebhooks(): Promise<Webhook[]> {
 
 /** POST /v1/webhooks — 201; response carries the plaintext secret ONCE.
  * Errors: 400 WEBHOOK_INVALID / WEBHOOK_URL_DENIED, 409 WEBHOOK_EXISTS. */
-export async function createWebhook(payload: CreateWebhookPayload): Promise<Webhook & { secret: string }> {
-  const { data } = await client.post<ApiEnvelope<Webhook & { secret: string }>>('/v1/webhooks', payload);
+export async function createWebhook(
+  payload: CreateWebhookPayload,
+): Promise<Webhook & { secret: string }> {
+  const { data } = await client.post<ApiEnvelope<Webhook & { secret: string }>>(
+    '/v1/webhooks',
+    payload,
+  );
   return data.data;
 }
 
@@ -68,12 +73,16 @@ export async function deleteWebhook(id: string): Promise<void> {
 
 /** POST /v1/webhooks/:id/rotate-secret — new plaintext secret ONCE */
 export async function rotateWebhookSecret(id: string): Promise<string> {
-  const { data } = await client.post<ApiEnvelope<{ secret: string }>>(`/v1/webhooks/${id}/rotate-secret`);
+  const { data } = await client.post<ApiEnvelope<{ secret: string }>>(
+    `/v1/webhooks/${id}/rotate-secret`,
+  );
   return data.data.secret;
 }
 
 /** POST /v1/webhooks/:id/ping — 202, enqueues a webhook.test delivery */
-export async function pingWebhook(id: string): Promise<{ deliveryQueued: boolean; eventId?: string }> {
+export async function pingWebhook(
+  id: string,
+): Promise<{ deliveryQueued: boolean; eventId?: string }> {
   const { data } = await client.post<ApiEnvelope<{ deliveryQueued: boolean; eventId?: string }>>(
     `/v1/webhooks/${id}/ping`,
   );
@@ -82,6 +91,8 @@ export async function pingWebhook(id: string): Promise<{ deliveryQueued: boolean
 
 /** GET /v1/webhooks/:id/deliveries — recent delivery ledger */
 export async function fetchWebhookDeliveries(id: string): Promise<WebhookDelivery[]> {
-  const { data } = await client.get<ApiEnvelope<WebhookDelivery[]>>(`/v1/webhooks/${id}/deliveries`);
+  const { data } = await client.get<ApiEnvelope<WebhookDelivery[]>>(
+    `/v1/webhooks/${id}/deliveries`,
+  );
   return data.data;
 }

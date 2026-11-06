@@ -2,10 +2,10 @@
 
 Applies to the two encrypted-at-rest families:
 
-| Family | Key env | Old-key env (rotation window only) | Where stored |
-| --- | --- | --- | --- |
-| OIDC client secrets + webhook endpoint secrets | `JWT_SECRET` | `JWT_SECRET_OLD` | `oidc_clients.secret_encrypted`, `webhook_endpoints.secret_encrypted` |
-| MFA TOTP secrets | `MFA_ENCRYPTION_KEY` | `MFA_ENCRYPTION_KEY_OLD` | `users.totp_secret` |
+| Family                                         | Key env              | Old-key env (rotation window only) | Where stored                                                          |
+| ---------------------------------------------- | -------------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| OIDC client secrets + webhook endpoint secrets | `JWT_SECRET`         | `JWT_SECRET_OLD`                   | `oidc_clients.secret_encrypted`, `webhook_endpoints.secret_encrypted` |
+| MFA TOTP secrets                               | `MFA_ENCRYPTION_KEY` | `MFA_ENCRYPTION_KEY_OLD`           | `users.totp_secret`                                                   |
 
 Envelope formats (see `packages/identity/src/services/crypto.ts` and
 `packages/identity/src/managers/OidcClientManager.ts`):
@@ -23,7 +23,7 @@ Absent `*_OLD` = single-key mode; nothing else changes.
 
 ## Rotation procedure
 
-1. **Add the OLD env var** with the value the key had *before* rotation:
+1. **Add the OLD env var** with the value the key had _before_ rotation:
    `JWT_SECRET_OLD=<old JWT_SECRET>` and/or `MFA_ENCRYPTION_KEY_OLD=<old key>`.
    Do not remove the current-key var.
 2. **Restart** every node (rolling restart is fine — nodes that already have
@@ -62,6 +62,7 @@ Absent `*_OLD` = single-key mode; nothing else changes.
    report zero `v1->v2` rows across all three columns. This is also the full-table
    audit the MFA family needs (its legacy rows carry no `v1:` prefix, so a prefix
    count alone is not enough; the scan enumerates every non-`v2:` row).
+
 5. **Retire the OLD var, then rotate next.** Only once step 4's dry-run proves
    every row is `v2:`-current, unset `JWT_SECRET_OLD` / `MFA_ENCRYPTION_KEY_OLD`,
    restart the nodes, and the window is closed — you are now free to roll the

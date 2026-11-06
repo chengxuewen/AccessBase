@@ -74,7 +74,14 @@ export default function EnrollMfa() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+      }}
+    >
       <Card
         title={t('enroll.title')}
         style={{ width: '100%', maxWidth: 420 }}
@@ -111,7 +118,14 @@ export default function EnrollMfa() {
               data-testid="enroll-code"
               autoComplete="one-time-code"
             />
-            <Button type="primary" size="large" block loading={busy} onClick={() => void handleConfirm()} data-testid="enroll-confirm">
+            <Button
+              type="primary"
+              size="large"
+              block
+              loading={busy}
+              onClick={() => void handleConfirm()}
+              data-testid="enroll-confirm"
+            >
               {t('enroll.confirm')}
             </Button>
             <Button type="text" block onClick={() => finish('/login')}>

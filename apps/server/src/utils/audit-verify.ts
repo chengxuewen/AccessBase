@@ -31,10 +31,7 @@ import { rowHash, foldRoot, receiptHash } from '@accessbase/audit';
 export const DEFAULT_MAX_ROWS = 100_000;
 
 export type VerifyFailureKind =
-  | 'row-mismatch'
-  | 'anchor-mismatch'
-  | 'orphan-erasure'
-  | 'unanchored';
+  'row-mismatch' | 'anchor-mismatch' | 'orphan-erasure' | 'unanchored';
 
 export interface VerifyFailure {
   day: string;
@@ -67,10 +64,7 @@ export interface VerifyOptions {
   maxRows?: number;
 }
 
-export async function verifyAuditChain(
-  db: DrizzleDB,
-  opts: VerifyOptions,
-): Promise<VerifyReport> {
+export async function verifyAuditChain(db: DrizzleDB, opts: VerifyOptions): Promise<VerifyReport> {
   const started = Date.now();
   const fromTs = new Date(`${opts.from}T00:00:00Z`);
   const toTs = new Date(`${opts.to}T23:59:59.999Z`);

@@ -85,10 +85,13 @@ describe('audit middleware actor attribution (D1)', () => {
 
 describe('auditAuthEvent actor attribution (D1)', () => {
   it('user {sub} without id falls back to sub', async () => {
-
     const { storage, written } = createStorage();
     const auditLogger = new AuditLogger(
-      { ...defaultAuditConfig, level: 'all', async: { ...defaultAuditConfig.async, enabled: false } },
+      {
+        ...defaultAuditConfig,
+        level: 'all',
+        async: { ...defaultAuditConfig.async, enabled: false },
+      },
       { storage },
     );
     const request = fakeRequest({ body: { email: 'a@b.c' } });
@@ -100,74 +103,86 @@ describe('auditAuthEvent actor attribution (D1)', () => {
     } as unknown as { id: string; username: string; tenantId: string });
 
     // Fire-and-forget write — capture synchronously before microtasks
-      await new Promise<void>((resolve) => setImmediate(resolve));
-  
-        expect(written[0]?.userId).toBe('u-9');
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(written[0]?.userId).toBe('u-9');
   });
 
   it('no user yields anonymous', async () => {
-
     const { storage, written } = createStorage();
     const auditLogger = new AuditLogger(
-      { ...defaultAuditConfig, level: 'all', async: { ...defaultAuditConfig.async, enabled: false } },
+      {
+        ...defaultAuditConfig,
+        level: 'all',
+        async: { ...defaultAuditConfig.async, enabled: false },
+      },
       { storage },
     );
     const request = fakeRequest({ body: { email: 'a@b.c' } });
 
     auditAuthEvent(auditLogger, request, 'LOGIN_FAILED');
 
-      await new Promise<void>((resolve) => setImmediate(resolve));
-  
-        expect(written[0]?.userId).toBe('anonymous');
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(written[0]?.userId).toBe('anonymous');
   });
 
   it('resourceId falls back to unknown (not anonymous) when only sub present', async () => {
-
     const { storage, written } = createStorage();
     const auditLogger = new AuditLogger(
-      { ...defaultAuditConfig, level: 'all', async: { ...defaultAuditConfig.async, enabled: false } },
+      {
+        ...defaultAuditConfig,
+        level: 'all',
+        async: { ...defaultAuditConfig.async, enabled: false },
+      },
       { storage },
     );
     const request = fakeRequest({ body: { email: 'a@b.c' } });
 
     auditAuthEvent(auditLogger, request, 'LOGIN_FAILED'); // no user → resourceId 'unknown'
 
-      await new Promise<void>((resolve) => setImmediate(resolve));
-  
-        expect(written[0]?.resourceId).toBe('unknown');
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(written[0]?.resourceId).toBe('unknown');
   });
 });
 
 describe('auditConfigChange actor attribution (D1)', () => {
   it('system context without user keeps literal system fallback', async () => {
-
     const { storage, written } = createStorage();
     const auditLogger = new AuditLogger(
-      { ...defaultAuditConfig, level: 'all', async: { ...defaultAuditConfig.async, enabled: false } },
+      {
+        ...defaultAuditConfig,
+        level: 'all',
+        async: { ...defaultAuditConfig.async, enabled: false },
+      },
       { storage },
     );
     const request = fakeRequest();
 
     auditConfigChange(auditLogger, request, 'site.name', 'a', 'b');
 
-      await new Promise<void>((resolve) => setImmediate(resolve));
-  
-        expect(written[0]?.userId).toBe('system');
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(written[0]?.userId).toBe('system');
   });
 
   it('user {sub} without id reads sub before system fallback', async () => {
-
     const { storage, written } = createStorage();
     const auditLogger = new AuditLogger(
-      { ...defaultAuditConfig, level: 'all', async: { ...defaultAuditConfig.async, enabled: false } },
+      {
+        ...defaultAuditConfig,
+        level: 'all',
+        async: { ...defaultAuditConfig.async, enabled: false },
+      },
       { storage },
     );
     const request = fakeRequest({ user: { sub: 'u-7' } });
 
     auditConfigChange(auditLogger, request, 'site.name', 'a', 'b');
 
-      await new Promise<void>((resolve) => setImmediate(resolve));
-  
-        expect(written[0]?.userId).toBe('u-7');
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(written[0]?.userId).toBe('u-7');
   });
 });

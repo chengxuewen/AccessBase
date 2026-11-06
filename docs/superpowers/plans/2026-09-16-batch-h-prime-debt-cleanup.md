@@ -20,11 +20,13 @@
 ## Task 1: PG-required test conditional skip + rate-limit timing fix (H′1+H′2)
 
 **Files:**
+
 - Modify: `apps/server/src/__tests__/mfa-integration.test.ts`, `oidc-flow.test.ts` (beforeAll PG probe → describe.skip)
 - Modify: `apps/server/src/__tests__/security.test.ts` (rate-limit assertion fix)
 - Modify: `.agents/memorys/conventions.md` (gate baseline line)
 
 **Interfaces:**
+
 - Consumes: health.spec.ts:15 skip precedent text
 - Produces: `vitest apps/server` with PG down → 0 failed (PG files skip); PG up → tests run as before. Rate-limit case deterministic.
 
@@ -36,11 +38,13 @@
 ## Task 2: Magic-link Host mitigation + SMTP async (H′3+H′4)
 
 **Files:**
+
 - Modify: `apps/server/src/routes/auth.ts` (origin resolution :701 + send call)
 - Modify: `apps/server/src/__tests__/magic-login.test.ts` (Host matrix tests)
 - Modify: `.env.example` (SITE_URL production note)
 
 **Interfaces:**
+
 - Produces: origin = site.url → SITE_URL → (TRUST_PROXY=true ? x-forwarded-host : host) + one-time warn when falling to request Host; SMTP send fire-and-forget with catch-warn
 
 - [ ] **Step 1: RED** — tests: poisoned Host + no config → link uses Host + warn logged (current behavior); TRUST_PROXY=true + x-forwarded-host attacker → link uses forwarded host ONLY when trusted; async send → request resolves without awaiting SMTP (mock mailer with a deferred promise, assert response arrives)
@@ -50,10 +54,12 @@
 ## Task 3: login schema user declaration (H′5)
 
 **Files:**
+
 - Modify: `apps/server/src/routes/auth.ts` (login 200 schema — add `user` object declaration mirroring saml/magic union shape)
 - Test: extend auth login test — decode response JSON, assert `user` object present with id/email/name/roles
 
 **Interfaces:**
+
 - Produces: login wire response includes `user` (previously potentially stripped); frontend unaffected (already hydrates from /auth/me)
 
 - [ ] **Step 1: RED** — test asserting response.user present → likely FAILS (stripped) — this CONFIRMS the stripping was real (record finding)

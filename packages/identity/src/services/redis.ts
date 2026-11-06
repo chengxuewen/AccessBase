@@ -27,7 +27,8 @@ export function getRedisClient(): Redis {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
       // ponytail: no reconnect in tests — callers handle failure paths
-      retryStrategy: (times: number) => (process.env['NODE_ENV'] === 'test' ? null : Math.min(times * 200, 5000)),
+      retryStrategy: (times: number) =>
+        process.env['NODE_ENV'] === 'test' ? null : Math.min(times * 200, 5000),
     });
   }
   return client;

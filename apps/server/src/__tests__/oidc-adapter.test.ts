@@ -58,7 +58,13 @@ function makeMockDb(selectResults: unknown[] = []): MockDb {
     });
     return chain;
   });
-  return { select, insert, update: vi.fn(() => makeChain(undefined)), delete: vi.fn(() => makeChain([])), capturedValues };
+  return {
+    select,
+    insert,
+    update: vi.fn(() => makeChain(undefined)),
+    delete: vi.fn(() => makeChain([])),
+    capturedValues,
+  };
 }
 
 const asDb = (db: MockDb) => db as unknown as DrizzleDB;
@@ -79,7 +85,13 @@ describe('upsert — derived columns + TTL (oidc_adapter_state contract)', () =>
     const before = Date.now();
     await adapter.upsert('Session', 's-1', { uid: 'uid-42', lastAuthAt: 'x' }, 120);
     const row = db.capturedValues[0] as Record<string, unknown>;
-    expect(row).toMatchObject({ kind: 'Session', id: 's-1', uid: 'uid-42', userCode: null, grantId: null });
+    expect(row).toMatchObject({
+      kind: 'Session',
+      id: 's-1',
+      uid: 'uid-42',
+      userCode: null,
+      grantId: null,
+    });
     const notAfter = row.notAfter as Date;
     expect(notAfter.getTime() - before).toBeGreaterThanOrEqual(115_000);
     expect(notAfter.getTime() - before).toBeLessThan(125_000);
@@ -194,7 +206,12 @@ describe('findAccount claims mapping (unchanged from batch 5)', () => {
 describe('sweepExpired', () => {
   it('deletes expired rows and reports the count; errors are swallowed', async () => {
     const db = makeMockDb();
-    db.delete.mockReturnValue(makeChain([{ kind: 'Grant', id: 'a' }, { kind: 'Session', id: 'b' }]));
+    db.delete.mockReturnValue(
+      makeChain([
+        { kind: 'Grant', id: 'a' },
+        { kind: 'Session', id: 'b' },
+      ]),
+    );
     const adapter = new OidcAdapter(asDb(db));
     expect(await adapter.sweepExpired()).toBe(2);
 

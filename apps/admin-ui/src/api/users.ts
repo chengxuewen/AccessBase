@@ -128,6 +128,9 @@ export async function adminResetUserPassword(id: string, newPassword: string): P
 
 /** Q4a: send set-password invitation (409 if the user already has a password) */
 export async function inviteUser(id: string): Promise<string> {
-  const { data } = await client.post<ApiEnvelope<{ message: string }>>(`/v1/users/${id}/invite`, {});
+  const { data } = await client.post<ApiEnvelope<{ message: string }>>(
+    `/v1/users/${id}/invite`,
+    {},
+  );
   return data.data.message;
 }

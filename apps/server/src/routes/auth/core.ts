@@ -69,7 +69,6 @@ export async function meRoutes(app: FastifyInstance, ctx: AuthContext) {
   );
 }
 
-
 export async function logoutRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/logout
   app.post(
@@ -141,7 +140,6 @@ export async function logoutRoutes(app: FastifyInstance, ctx: AuthContext) {
   );
 }
 
-
 export async function revokeOthersRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/sessions/revoke-others — "logout other devices"
   app.post<{ Body: { refreshToken?: string } }>(
@@ -149,7 +147,8 @@ export async function revokeOthersRoutes(app: FastifyInstance, ctx: AuthContext)
     {
       preHandler: [app.authenticate],
       schema: {
-        description: 'Revoke all other sessions, keeping the one matching the supplied refresh token',
+        description:
+          'Revoke all other sessions, keeping the one matching the supplied refresh token',
         tags: ['auth'],
         security: [{ bearerAuth: [] }],
       },
@@ -177,7 +176,6 @@ export async function revokeOthersRoutes(app: FastifyInstance, ctx: AuthContext)
   );
 }
 
-
 export async function sessionsListRoutes(app: FastifyInstance, ctx: AuthContext) {
   // GET /api/v1/auth/sessions — active sessions for the current user (Phase 6d Task 4 Settings)
   app.get<{ Querystring: { refreshToken?: string } }>(
@@ -185,7 +183,8 @@ export async function sessionsListRoutes(app: FastifyInstance, ctx: AuthContext)
     {
       preHandler: [app.authenticate],
       schema: {
-        description: 'List active sessions for the current user (each item flagged current:true for the caller\'s own session)',
+        description:
+          "List active sessions for the current user (each item flagged current:true for the caller's own session)",
       },
     },
     async (request) => {
@@ -211,7 +210,6 @@ export async function sessionsListRoutes(app: FastifyInstance, ctx: AuthContext)
   );
 }
 
-
 export async function revokeSessionRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/sessions/revoke — revoke one session by id (Settings)
   app.post<{ Body: { sessionId?: string } }>(
@@ -229,18 +227,17 @@ export async function revokeSessionRoutes(app: FastifyInstance, ctx: AuthContext
         },
       },
     },
-async (request) => {
+    async (request) => {
       const { sessionId } = request.body;
       // JSON-schema required + minLength guarantee presence; guard satisfies noUncheckedIndexedAccess
       if (!sessionId) {
         return { success: false, error: { code: 'VALIDATION_001', message: 'sessionId required' } };
       }
-await ctx.sessionManager.revokeSession(sessionId);
-return { success: true };
-},
+      await ctx.sessionManager.revokeSession(sessionId);
+      return { success: true };
+    },
   );
 }
-
 
 export async function refreshRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/refresh
@@ -271,9 +268,9 @@ export async function refreshRoutes(app: FastifyInstance, ctx: AuthContext) {
           // findByIdAny (G fix H1): the session row's owner may live in ANY
           // tenant — tenant-scoped findById with DEFAULT_TENANT returned null
           // for non-default users, silently skipping both doors below.
-          const user = await new (await import('@accessbase/identity'))
-            .UserManager()
-            .findByIdAny(gateUserId);
+          const user = await new (await import('@accessbase/identity')).UserManager().findByIdAny(
+            gateUserId,
+          );
           if (user?.status && user.status !== 'active') {
             throw new Error('ACCOUNT_SUSPENDED');
           }
@@ -286,7 +283,9 @@ export async function refreshRoutes(app: FastifyInstance, ctx: AuthContext) {
         // SL-2: idle cutoff rides inside the guarded rotate WHERE (0 = off);
         // resolver failure degrades to default, never blocks refresh (G4).
         const { refreshToken: newRefreshToken, userId } =
-          await ctx.sessionManager.rotateRefreshToken(refreshToken, {
+          await ctx.sessionManager.rotateRefreshToken(
+            refreshToken,
+            {
               ip: request.ip,
               userAgent: request.headers['user-agent'] ?? '',
             },
@@ -296,12 +295,18 @@ export async function refreshRoutes(app: FastifyInstance, ctx: AuthContext) {
         // findByIdAny (G fix L1): same tenant-blindness argument as the gate —
         // a non-default-tenant owner must resolve post-rotation, or a valid
         // refresh 401s AFTER consuming the presented token (stranded token).
-        const user = await new (await import('@accessbase/identity'))
-          .UserManager()
-          .findByIdAny(userId);
+        const user = await new (await import('@accessbase/identity')).UserManager().findByIdAny(
+          userId,
+        );
         if (!user) throw new Error('User not found');
         const accessToken = app.jwt.sign(
-          { sub: userId, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT, tokenVersion: user.tokenVersion },
+          {
+            sub: userId,
+            email: user.email,
+            status: user.status,
+            tenantId: user.tenantId ?? DEFAULT_TENANT,
+            tokenVersion: user.tokenVersion,
+          },
           { expiresIn: '15m' },
         );
 

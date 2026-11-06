@@ -36,10 +36,10 @@
 
 ### Intentional Test Modifications
 
-| File | Change | Reason |
-|------|--------|--------|
-| `apps/server/src/__tests__/routes.test.ts` | Add `/api/v1/auth/oauth` and `/api/v1/auth/webauthn` to protected routes list | New routes require setup guard check |
-| `apps/server/src/app.ts` | Register `oauthRoutes`, `webauthnRoutes`, `@fastify/cookie` | New route modules + cookie plugin for state |
+| File                                       | Change                                                                        | Reason                                      |
+| ------------------------------------------ | ----------------------------------------------------------------------------- | ------------------------------------------- |
+| `apps/server/src/__tests__/routes.test.ts` | Add `/api/v1/auth/oauth` and `/api/v1/auth/webauthn` to protected routes list | New routes require setup guard check        |
+| `apps/server/src/app.ts`                   | Register `oauthRoutes`, `webauthnRoutes`, `@fastify/cookie`                   | New route modules + cookie plugin for state |
 
 ---
 
@@ -71,13 +71,13 @@ class SessionManager {
 
 ### Files
 
-| Action | Path | Description |
-|--------|------|-------------|
-| **Modify** | `apps/server/src/config.ts` | Add OAuth env vars to AppConfig |
-| **Modify** | `packages/identity/src/db/schema.ts` | Add `oauthAccounts` table |
-| **Create** | `apps/server/src/routes/oauth.ts` | OAuth route module |
-| **Modify** | `apps/server/src/app.ts` | Register oauthRoutes + @fastify/cookie |
-| **Create** | `apps/server/src/__tests__/oauth.test.ts` | Unit + integration tests |
+| Action     | Path                                       | Description                               |
+| ---------- | ------------------------------------------ | ----------------------------------------- |
+| **Modify** | `apps/server/src/config.ts`                | Add OAuth env vars to AppConfig           |
+| **Modify** | `packages/identity/src/db/schema.ts`       | Add `oauthAccounts` table                 |
+| **Create** | `apps/server/src/routes/oauth.ts`          | OAuth route module                        |
+| **Modify** | `apps/server/src/app.ts`                   | Register oauthRoutes + @fastify/cookie    |
+| **Create** | `apps/server/src/__tests__/oauth.test.ts`  | Unit + integration tests                  |
 | **Modify** | `apps/server/src/__tests__/routes.test.ts` | Add OAuth routes to protected routes list |
 
 ### Step 1 — Config + arctic dependency
@@ -133,7 +133,8 @@ export const config: AppConfig = {
   githubClientSecret: process.env['GITHUB_CLIENT_SECRET'] || '',
   googleClientId: process.env['GOOGLE_CLIENT_ID'] || '',
   googleClientSecret: process.env['GOOGLE_CLIENT_SECRET'] || '',
-  oauthCallbackUrl: process.env['OAUTH_CALLBACK_URL'] || 'http://localhost:5101/api/v1/auth/oauth/callback',
+  oauthCallbackUrl:
+    process.env['OAUTH_CALLBACK_URL'] || 'http://localhost:5101/api/v1/auth/oauth/callback',
 };
 ```
 
@@ -220,9 +221,7 @@ describe('GET /api/v1/auth/oauth/:provider/authorize', () => {
     const location = res.headers['location'] as string;
     expect(location).toContain('github.com');
     expect(location).toContain('state=');
-    const stateCookie = res.cookies.find(
-      (c: { name: string }) => c.name === 'oauth_state',
-    );
+    const stateCookie = res.cookies.find((c: { name: string }) => c.name === 'oauth_state');
     expect(stateCookie).toBeDefined();
     expect(stateCookie?.httpOnly).toBe(true);
     expect(stateCookie?.sameSite).toBe('Lax');
@@ -269,11 +268,7 @@ function getProvider(name: SupportedProvider) {
     case 'github':
       return new GitHub(config.githubClientId, config.githubClientSecret, null);
     case 'google':
-      return new Google(
-        config.googleClientId,
-        config.googleClientSecret,
-        config.oauthCallbackUrl,
-      );
+      return new Google(config.googleClientId, config.googleClientSecret, config.oauthCallbackUrl);
   }
 }
 
@@ -297,12 +292,11 @@ export async function oauthRoutes(app: FastifyInstance) {
       const state = generateState();
       const codeVerifier = generateCodeVerifier();
 
-      const scopes = provider === 'github'
-        ? ['user:email']
-        : ['openid', 'profile', 'email'];
-      const authorizationURL = provider === 'github'
-        ? arcticProvider.createAuthorizationURL(state, scopes)
-        : arcticProvider.createAuthorizationURL(state, codeVerifier, scopes);
+      const scopes = provider === 'github' ? ['user:email'] : ['openid', 'profile', 'email'];
+      const authorizationURL =
+        provider === 'github'
+          ? arcticProvider.createAuthorizationURL(state, scopes)
+          : arcticProvider.createAuthorizationURL(state, codeVerifier, scopes);
 
       const cookieOpts = {
         httpOnly: true,
@@ -349,7 +343,7 @@ describe('GET /api/v1/auth/oauth/callback', () => {
       url: '/api/v1/auth/oauth/callback?code=auth_code&state=wrong&provider=github',
     });
     expect(res.statusCode).toBe(302);
-    expect((res.headers['location'] as string)).toContain('error=');
+    expect(res.headers['location'] as string).toContain('error=');
     expect(res.body).not.toContain('state_mismatch');
     await app.close();
   });
@@ -411,9 +405,10 @@ app.get<{ Querystring: Record<string, string | undefined> }>(
 
     try {
       const arcticProvider = getProvider(provider);
-      const tokens = provider === 'github'
-        ? await arcticProvider.validateAuthorizationCode(code)
-        : await arcticProvider.validateAuthorizationCode(code, codeVerifier);
+      const tokens =
+        provider === 'github'
+          ? await arcticProvider.validateAuthorizationCode(code)
+          : await arcticProvider.validateAuthorizationCode(code, codeVerifier);
 
       const accessToken = tokens.accessToken();
       const profile = await fetchProviderProfile(provider, accessToken);
@@ -444,13 +439,23 @@ async function fetchProviderProfile(provider: SupportedProvider, accessToken: st
       headers: { Authorization: 'Bearer ' + accessToken },
     });
     if (!res.ok) throw new Error('Failed to fetch GitHub profile');
-    return res.json() as Promise<{ id: number; login: string; name: string | null; email: string | null }>;
+    return res.json() as Promise<{
+      id: number;
+      login: string;
+      name: string | null;
+      email: string | null;
+    }>;
   }
   // Google: decode ID token from tokens.idToken()
   throw new Error('Google profile fetch not yet implemented');
 }
 
-function normalizeProfile(profile: { id: number; login: string; name: string | null; email: string | null }) {
+function normalizeProfile(profile: {
+  id: number;
+  login: string;
+  name: string | null;
+  email: string | null;
+}) {
   return {
     providerAccountId: String(profile.id),
     email: profile.email ?? '',
@@ -482,7 +487,11 @@ describe('POST /api/v1/auth/oauth/exchange', () => {
   it('returns 400 for missing code', async () => {
     const { buildApp } = await import('../app.js');
     const app = await buildApp();
-    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: {} });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/exchange',
+      payload: {},
+    });
     expect(res.statusCode).toBe(400);
     expect(res.json().success).toBe(false);
     await app.close();
@@ -491,7 +500,11 @@ describe('POST /api/v1/auth/oauth/exchange', () => {
   it('returns 400 for invalid/expired code', async () => {
     const { buildApp } = await import('../app.js');
     const app = await buildApp();
-    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/oauth/exchange', payload: { code: 'invalid' } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/oauth/exchange',
+      payload: { code: 'invalid' },
+    });
     expect(res.statusCode).toBe(400);
     expect(res.json().error.code).toBe('OAUTH_003');
     await app.close();
@@ -519,21 +532,37 @@ app.post<{ Body: { code?: string } }>(
     schema: {
       description: 'Exchange OAuth one-time code for session tokens',
       tags: ['auth'],
-      body: { type: 'object', required: ['code'], properties: { code: { type: 'string', minLength: 1 } } },
+      body: {
+        type: 'object',
+        required: ['code'],
+        properties: { code: { type: 'string', minLength: 1 } },
+      },
     },
   },
   async (request, reply) => {
     const { code } = request.body;
     if (!code) {
-      return reply.status(400).send({ success: false, error: { code: 'OAUTH_003', message: 'Exchange code required' } });
+      return reply
+        .status(400)
+        .send({ success: false, error: { code: 'OAUTH_003', message: 'Exchange code required' } });
     }
     const { FlowTokenService } = await import('@accessbase/identity');
     const flowToken = new FlowTokenService(/* redis */);
     const payload = flowToken.consume(code);
     if (!payload || payload.purpose !== 'oauth_exchange') {
-      return reply.status(400).send({ success: false, error: { code: 'OAUTH_003', message: 'Invalid or expired exchange code' } });
+      return reply.status(400).send({
+        success: false,
+        error: { code: 'OAUTH_003', message: 'Invalid or expired exchange code' },
+      });
     }
-    return { success: true, data: { accessToken: payload.accessToken, refreshToken: payload.refreshToken, expiresIn: 900 } };
+    return {
+      success: true,
+      data: {
+        accessToken: payload.accessToken,
+        refreshToken: payload.refreshToken,
+        expiresIn: 900,
+      },
+    };
   },
 );
 ```
@@ -549,8 +578,16 @@ app.delete<{ Params: { provider: string } }>(
       description: 'Unlink OAuth provider',
       tags: ['auth'],
       security: [{ bearerAuth: [] }],
-      params: { type: 'object', required: ['provider'], properties: { provider: { type: 'string' } } },
-      body: { type: 'object', required: ['password'], properties: { password: { type: 'string' } } },
+      params: {
+        type: 'object',
+        required: ['provider'],
+        properties: { provider: { type: 'string' } },
+      },
+      body: {
+        type: 'object',
+        required: ['password'],
+        properties: { password: { type: 'string' } },
+      },
     },
   },
   async (request, reply) => {
@@ -558,13 +595,20 @@ app.delete<{ Params: { provider: string } }>(
     const { password } = request.body as { password: string };
     const payload = request.user as { sub: string; email: string };
     if (!isSupportedProvider(provider)) {
-      return reply.status(400).send({ success: false, error: { code: 'OAUTH_001', message: 'Unsupported OAuth provider' } });
+      return reply.status(400).send({
+        success: false,
+        error: { code: 'OAUTH_001', message: 'Unsupported OAuth provider' },
+      });
     }
     // Password re-proof required
     const { UserManager } = await import('@accessbase/identity');
     const userManager = new UserManager();
-    try { await userManager.verifyPassword(payload.email, password); } catch {
-      return reply.status(401).send({ success: false, error: { code: 'AUTH_002', message: 'Invalid password' } });
+    try {
+      await userManager.verifyPassword(payload.email, password);
+    } catch {
+      return reply
+        .status(401)
+        .send({ success: false, error: { code: 'AUTH_002', message: 'Invalid password' } });
     }
     // Check user has password OR other linked provider OR mfa (prevent lockout)
     // ... DB check + delete oauth_account link
@@ -580,13 +624,13 @@ app.delete<{ Params: { provider: string } }>(
 
 ### Task 1 JSON Contracts
 
-| Endpoint | Method | Request | Success | Error Codes |
-|----------|--------|---------|---------|-------------|
-| `/api/v1/auth/oauth/:provider/authorize` | GET | -- | 302 + Set-Cookie | OAUTH_001 (400) |
-| `/api/v1/auth/oauth/callback` | GET | `?code=&state=&provider=` | 302 `/login?code=` | oauth_invalid_request (302) |
-| `/api/v1/auth/oauth/exchange` | POST | `{ code }` | `{ success, data: { accessToken, refreshToken, expiresIn } }` | OAUTH_003 (400) |
-| `/api/v1/auth/oauth/:provider` | DELETE | `{ password }` + Bearer | `{ success: true }` | AUTH_002 (401), OAUTH_001 (400) |
-| `/api/v1/auth/oauth/providers` | GET | Bearer | `{ success, data: [{ provider, linked }] }` | -- |
+| Endpoint                                 | Method | Request                   | Success                                                       | Error Codes                     |
+| ---------------------------------------- | ------ | ------------------------- | ------------------------------------------------------------- | ------------------------------- |
+| `/api/v1/auth/oauth/:provider/authorize` | GET    | --                        | 302 + Set-Cookie                                              | OAUTH_001 (400)                 |
+| `/api/v1/auth/oauth/callback`            | GET    | `?code=&state=&provider=` | 302 `/login?code=`                                            | oauth_invalid_request (302)     |
+| `/api/v1/auth/oauth/exchange`            | POST   | `{ code }`                | `{ success, data: { accessToken, refreshToken, expiresIn } }` | OAUTH_003 (400)                 |
+| `/api/v1/auth/oauth/:provider`           | DELETE | `{ password }` + Bearer   | `{ success: true }`                                           | AUTH_002 (401), OAUTH_001 (400) |
+| `/api/v1/auth/oauth/providers`           | GET    | Bearer                    | `{ success, data: [{ provider, linked }] }`                   | --                              |
 
 ---
 
@@ -597,14 +641,14 @@ app.delete<{ Params: { provider: string } }>(
 
 ### Files
 
-| Action | Path | Description |
-|--------|------|-------------|
-| **Create** | `apps/admin-ui/src/components/OAuthButtons.tsx` | Reusable OAuth button group |
-| **Modify** | `apps/admin-ui/src/pages/Login.tsx` | Add OAuth buttons + exchange code |
-| **Modify** | `apps/admin-ui/src/stores/auth.ts` | Add `exchangeOAuthCode(code)` |
-| **Modify** | `apps/admin-ui/src/pages/Profile.tsx` | Add "Linked Accounts" card |
-| **Create** | `apps/admin-ui/src/__tests__/OAuthButtons.test.tsx` | Component test |
-| **Create** | `e2e/oauth-login.spec.ts` | Mock-E2E |
+| Action     | Path                                                | Description                       |
+| ---------- | --------------------------------------------------- | --------------------------------- |
+| **Create** | `apps/admin-ui/src/components/OAuthButtons.tsx`     | Reusable OAuth button group       |
+| **Modify** | `apps/admin-ui/src/pages/Login.tsx`                 | Add OAuth buttons + exchange code |
+| **Modify** | `apps/admin-ui/src/stores/auth.ts`                  | Add `exchangeOAuthCode(code)`     |
+| **Modify** | `apps/admin-ui/src/pages/Profile.tsx`               | Add "Linked Accounts" card        |
+| **Create** | `apps/admin-ui/src/__tests__/OAuthButtons.test.tsx` | Component test                    |
+| **Create** | `e2e/oauth-login.spec.ts`                           | Mock-E2E                          |
 
 ### Step 1 — OAuthButtons component
 
@@ -632,10 +676,20 @@ export function OAuthButtons({ onProviderClick, loading }: OAuthButtonsProps) {
     <>
       <Divider plain>Or</Divider>
       <Space direction="vertical" style={{ width: '100%' }}>
-        <Button block icon={<GithubOutlined />} onClick={() => onProviderClick?.('github')} loading={loading}>
+        <Button
+          block
+          icon={<GithubOutlined />}
+          onClick={() => onProviderClick?.('github')}
+          loading={loading}
+        >
           Sign in with GitHub
         </Button>
-        <Button block icon={<GoogleOutlined />} onClick={() => onProviderClick?.('google')} loading={loading}>
+        <Button
+          block
+          icon={<GoogleOutlined />}
+          onClick={() => onProviderClick?.('google')}
+          loading={loading}
+        >
           Sign in with Google
         </Button>
       </Space>
@@ -661,15 +715,24 @@ const [searchParams, setSearchParams] = useSearchParams();
 useEffect(() => {
   const code = searchParams.get('code');
   const error = searchParams.get('error');
-  if (error) { message.error('OAuth login failed: ' + error); setSearchParams({}); }
+  if (error) {
+    message.error('OAuth login failed: ' + error);
+    setSearchParams({});
+  }
   if (code) {
-    exchangeOAuthCode(code).then(() => navigate('/')).catch(() => message.error('OAuth login failed'));
+    exchangeOAuthCode(code)
+      .then(() => navigate('/'))
+      .catch(() => message.error('OAuth login failed'));
     setSearchParams({});
   }
 }, [searchParams]);
 
 // After </Form>:
-<OAuthButtons onProviderClick={(p) => { window.location.href = '/api/v1/auth/oauth/' + p + '/authorize'; }} />
+<OAuthButtons
+  onProviderClick={(p) => {
+    window.location.href = '/api/v1/auth/oauth/' + p + '/authorize';
+  }}
+/>;
 ```
 
 - [ ] 2.2 Add `exchangeOAuthCode` to auth store:
@@ -699,7 +762,10 @@ import { test, expect } from '@playwright/test';
 test.describe('OAuth login flow', () => {
   test('GitHub authorize button triggers redirect', async ({ page }) => {
     await page.route('**/api/v1/auth/oauth/github/authorize', async (route) => {
-      await route.fulfill({ status: 302, headers: { location: 'https://github.com/login/oauth/authorize?state=test' } });
+      await route.fulfill({
+        status: 302,
+        headers: { location: 'https://github.com/login/oauth/authorize?state=test' },
+      });
     });
     await page.goto('/login');
     await page.click('button:has-text("GitHub")');
@@ -712,8 +778,16 @@ test.describe('OAuth login flow', () => {
 
   test('Profile page shows linked accounts section', async ({ page }) => {
     await page.route('**/api/v1/auth/oauth/providers', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: [{ provider: 'github', linked: true }, { provider: 'google', linked: false }] }),
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [
+            { provider: 'github', linked: true },
+            { provider: 'google', linked: false },
+          ],
+        }),
       });
     });
     await page.goto('/profile');
@@ -738,14 +812,14 @@ test.describe('OAuth login flow', () => {
 
 ### Files
 
-| Action | Path | Description |
-|--------|------|-------------|
-| **Modify** | `apps/server/src/config.ts` | Add `webauthnRpId`, `webauthnRpName`, `webauthnOrigin` |
-| **Modify** | `packages/identity/src/db/schema.ts` | Add `webauthnCredentials` table |
-| **Create** | `apps/server/src/routes/webauthn.ts` | WebAuthn route module |
-| **Modify** | `apps/server/src/app.ts` | Register webauthnRoutes |
-| **Create** | `apps/server/src/__tests__/webauthn.test.ts` | Unit + integration tests |
-| **Modify** | `apps/server/src/__tests__/routes.test.ts` | Add WebAuthn routes to protected routes |
+| Action     | Path                                         | Description                                            |
+| ---------- | -------------------------------------------- | ------------------------------------------------------ |
+| **Modify** | `apps/server/src/config.ts`                  | Add `webauthnRpId`, `webauthnRpName`, `webauthnOrigin` |
+| **Modify** | `packages/identity/src/db/schema.ts`         | Add `webauthnCredentials` table                        |
+| **Create** | `apps/server/src/routes/webauthn.ts`         | WebAuthn route module                                  |
+| **Modify** | `apps/server/src/app.ts`                     | Register webauthnRoutes                                |
+| **Create** | `apps/server/src/__tests__/webauthn.test.ts` | Unit + integration tests                               |
+| **Modify** | `apps/server/src/__tests__/routes.test.ts`   | Add WebAuthn routes to protected routes                |
 
 ### Step 1 — Config + simplewebauthn dependency
 
@@ -906,7 +980,10 @@ export async function webauthnRoutes(app: FastifyInstance) {
 
   // POST /api/v1/auth/webauthn/register/verify
   app.post('/webauthn/register/verify', async (request, reply) => {
-    const { body, expectedChallenge } = request.body as { body: unknown; expectedChallenge: string };
+    const { body, expectedChallenge } = request.body as {
+      body: unknown;
+      expectedChallenge: string;
+    };
     const verification = await verifyRegistrationResponse({
       response: body as Parameters<typeof verifyRegistrationResponse>[0]['response'],
       expectedChallenge,
@@ -914,7 +991,10 @@ export async function webauthnRoutes(app: FastifyInstance) {
       expectedRPID: config.webauthnRpId,
     });
     if (!verification.verified) {
-      return reply.status(400).send({ success: false, error: { code: 'WEBAUTHN_001', message: 'Registration verification failed' } });
+      return reply.status(400).send({
+        success: false,
+        error: { code: 'WEBAUTHN_001', message: 'Registration verification failed' },
+      });
     }
     // Save verification.registrationInfo.credential to DB
     return { success: true, data: { verified: true } };
@@ -935,18 +1015,29 @@ export async function webauthnRoutes(app: FastifyInstance) {
   // POST /api/v1/auth/webauthn/login/verify
   app.post('/webauthn/login/verify', async (request, reply) => {
     const { id, rawId, response, type } = request.body as {
-      id: string; rawId: string; response: { authenticatorData: string; clientDataJSON: string; signature: string; userHandle?: string };
+      id: string;
+      rawId: string;
+      response: {
+        authenticatorData: string;
+        clientDataJSON: string;
+        signature: string;
+        userHandle?: string;
+      };
       type: string;
     };
     // Look up credential by id in DB
     // const credential = await db.query.webauthnCredentials.findFirst({ where: eq(webauthnCredentials.credentialId, id) });
     const credential = null; // placeholder for DB lookup
     if (!credential) {
-      return reply.status(404).send({ success: false, error: { code: 'WEBAUTHN_002', message: 'Credential not found' } });
+      return reply
+        .status(404)
+        .send({ success: false, error: { code: 'WEBAUTHN_002', message: 'Credential not found' } });
     }
 
     const verification = await verifyAuthenticationResponse({
-      response: { id, rawId, response, type } as Parameters<typeof verifyAuthenticationResponse>[0]['response'],
+      response: { id, rawId, response, type } as Parameters<
+        typeof verifyAuthenticationResponse
+      >[0]['response'],
       expectedChallenge: 'challenge-from-flow-token', // consume('webauthn_challenge')
       expectedOrigin: config.webauthnOrigin,
       expectedRPID: config.webauthnRpId,
@@ -958,14 +1049,17 @@ export async function webauthnRoutes(app: FastifyInstance) {
     });
 
     if (!verification.verified) {
-      return reply.status(401).send({ success: false, error: { code: 'AUTH_002', message: 'WebAuthn verification failed' } });
+      return reply.status(401).send({
+        success: false,
+        error: { code: 'AUTH_002', message: 'WebAuthn verification failed' },
+      });
     }
 
     // CRITICAL: Update counter in DB to prevent replay attacks
     // await db.update(webauthnCredentials).set({ counter: verification.authenticationInfo.newCounter, lastUsedAt: new Date() }).where(...);
 
     // Issue session via SessionManager.createSession
-    return { success: true, data: { /* session tokens */ } };
+    return { success: true, data: {/* session tokens */} };
   });
 }
 ```
@@ -993,7 +1087,10 @@ describe('DELETE /api/v1/auth/webauthn/credentials/:id', () => {
   it('returns 401 without auth token', async () => {
     const { buildApp } = await import('../app.js');
     const app = await buildApp();
-    const res = await app.inject({ method: 'DELETE', url: '/api/v1/auth/webauthn/credentials/fake-id' });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/auth/webauthn/credentials/fake-id',
+    });
     expect(res.statusCode).toBe(401);
     await app.close();
   });
@@ -1006,24 +1103,24 @@ describe('DELETE /api/v1/auth/webauthn/credentials/:id', () => {
 
 ### Task 3 JSON Contracts
 
-| Endpoint | Method | Request | Success | Error Codes |
-|----------|--------|---------|---------|-------------|
-| `/api/v1/auth/webauthn/register/options` | POST | Bearer | `{ success, data: PublicKeyCredentialCreationOptionsJSON }` | -- |
-| `/api/v1/auth/webauthn/register/verify` | POST | `{ body, expectedChallenge }` + Bearer | `{ success, data: { verified } }` | WEBAUTHN_001 (400) |
-| `/api/v1/auth/webauthn/login/options` | POST | -- | `{ success, data: PublicKeyCredentialRequestOptionsJSON }` | -- |
-| `/api/v1/auth/webauthn/login/verify` | POST | `{ id, rawId, response, type }` | `{ success, data: { accessToken, refreshToken } }` | WEBAUTHN_002 (404), AUTH_002 (401) |
-| `/api/v1/auth/webauthn/credentials` | GET | Bearer | `{ success, data: [{ id, deviceName, createdAt, lastUsedAt }] }` | -- |
-| `/api/v1/auth/webauthn/credentials/:id` | DELETE | Bearer | `{ success: true }` | -- |
+| Endpoint                                 | Method | Request                                | Success                                                          | Error Codes                        |
+| ---------------------------------------- | ------ | -------------------------------------- | ---------------------------------------------------------------- | ---------------------------------- |
+| `/api/v1/auth/webauthn/register/options` | POST   | Bearer                                 | `{ success, data: PublicKeyCredentialCreationOptionsJSON }`      | --                                 |
+| `/api/v1/auth/webauthn/register/verify`  | POST   | `{ body, expectedChallenge }` + Bearer | `{ success, data: { verified } }`                                | WEBAUTHN_001 (400)                 |
+| `/api/v1/auth/webauthn/login/options`    | POST   | --                                     | `{ success, data: PublicKeyCredentialRequestOptionsJSON }`       | --                                 |
+| `/api/v1/auth/webauthn/login/verify`     | POST   | `{ id, rawId, response, type }`        | `{ success, data: { accessToken, refreshToken } }`               | WEBAUTHN_002 (404), AUTH_002 (401) |
+| `/api/v1/auth/webauthn/credentials`      | GET    | Bearer                                 | `{ success, data: [{ id, deviceName, createdAt, lastUsedAt }] }` | --                                 |
+| `/api/v1/auth/webauthn/credentials/:id`  | DELETE | Bearer                                 | `{ success: true }`                                              | --                                 |
 
 ### Unit Test Specifics
 
-| Test | Assertion |
-|------|-----------|
-| State mismatch | GET callback with wrong state -> 302 with error= |
+| Test                        | Assertion                                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| State mismatch              | GET callback with wrong state -> 302 with error=                                                |
 | PKCE verifier consumed once | issue() with purpose='oauth_exchange', consume() returns payload once, second call returns null |
-| Counter regression | verifyAuthenticationResponse with counter <= stored counter -> throws |
-| Unknown credential | POST login/verify with non-existent credential_id -> 404 WEBAUTHN_002 |
-| Challenge single-use | consume('webauthn_challenge') returns payload once, second call returns null |
+| Counter regression          | verifyAuthenticationResponse with counter <= stored counter -> throws                           |
+| Unknown credential          | POST login/verify with non-existent credential_id -> 404 WEBAUTHN_002                           |
+| Challenge single-use        | consume('webauthn_challenge') returns payload once, second call returns null                    |
 
 ---
 
@@ -1034,13 +1131,13 @@ describe('DELETE /api/v1/auth/webauthn/credentials/:id', () => {
 
 ### Files
 
-| Action | Path | Description |
-|--------|------|-------------|
-| **Create** | `apps/admin-ui/src/pages/Settings.tsx` | Settings page with tabs |
-| **Create** | `apps/admin-ui/src/pages/settings/GeneralSettings.tsx` | Site name/logo settings |
-| **Create** | `apps/admin-ui/src/pages/settings/SecuritySettings.tsx` | Sessions + passkeys |
-| **Modify** | `apps/admin-ui/src/pages/Login.tsx` | Add "Sign in with passkey" button |
-| **Create** | `e2e/settings-passkey.spec.ts` | Mock-E2E |
+| Action     | Path                                                    | Description                       |
+| ---------- | ------------------------------------------------------- | --------------------------------- |
+| **Create** | `apps/admin-ui/src/pages/Settings.tsx`                  | Settings page with tabs           |
+| **Create** | `apps/admin-ui/src/pages/settings/GeneralSettings.tsx`  | Site name/logo settings           |
+| **Create** | `apps/admin-ui/src/pages/settings/SecuritySettings.tsx` | Sessions + passkeys               |
+| **Modify** | `apps/admin-ui/src/pages/Login.tsx`                     | Add "Sign in with passkey" button |
+| **Create** | `e2e/settings-passkey.spec.ts`                          | Mock-E2E                          |
 
 ### Step 1 — Settings page shell
 
@@ -1071,8 +1168,11 @@ import { test, expect } from '@playwright/test';
 test.describe('Settings page', () => {
   test('renders settings tabs', async ({ page }) => {
     await page.route('**/api/v1/auth/sessions', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: [] }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      });
     });
     await page.goto('/settings');
     await expect(page.locator('text=General')).toBeVisible();
@@ -1081,12 +1181,18 @@ test.describe('Settings page', () => {
 
   test('Security tab shows passkeys section', async ({ page }) => {
     await page.route('**/api/v1/auth/sessions', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: [] }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      });
     });
     await page.route('**/api/v1/auth/webauthn/credentials', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: [] }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      });
     });
     await page.goto('/settings');
     await page.click('text=Security');
@@ -1107,14 +1213,14 @@ test.describe('Settings page', () => {
 
 ### Files
 
-| Action | Path | Description |
-|--------|------|-------------|
-| **Create** | `apps/server/src/routes/stats.ts` | Stats endpoint |
-| **Modify** | `apps/server/src/app.ts` | Register statsRoutes |
-| **Modify** | `apps/admin-ui/src/pages/Dashboard.tsx` | Dynamic cards + activity |
-| **Create** | `apps/server/src/__tests__/stats.test.ts` | Unit tests |
-| **Modify** | `.agents/memorys/status.md` | Phase 6 complete |
-| **Modify** | `.agents/memorys/decisions.md` | Add D107 + D108 |
+| Action     | Path                                      | Description              |
+| ---------- | ----------------------------------------- | ------------------------ |
+| **Create** | `apps/server/src/routes/stats.ts`         | Stats endpoint           |
+| **Modify** | `apps/server/src/app.ts`                  | Register statsRoutes     |
+| **Modify** | `apps/admin-ui/src/pages/Dashboard.tsx`   | Dynamic cards + activity |
+| **Create** | `apps/server/src/__tests__/stats.test.ts` | Unit tests               |
+| **Modify** | `.agents/memorys/status.md`               | Phase 6 complete         |
+| **Modify** | `.agents/memorys/decisions.md`            | Add D107 + D108          |
 
 ### Step 1 — Stats endpoint
 
@@ -1243,18 +1349,17 @@ export async function statsRoutes(app: FastifyInstance) {
 
 ## Deviations
 
-| Item | Deviation | Rationale |
-|------|-----------|-----------|
-| arctic deprecated | Using v3.7 despite July 2026 deprecation | Still functional; migration deferred |
-| Google profile fetch | Stubbed ("not yet implemented") in initial version | Requires OIDC ID token decoding; can be added incrementally |
-| SessionManager.createSession | Called but not fully wired in callback tests | Depends on 6b implementation; callback redirect tests pass independently |
-| WebAuthn browser API | E2E is API-level only | `navigator.credentials` not mockable in Chromium Playwright |
-| Settings general tab | Minimal TDD (form-only) | No backend settings API required for initial version |
+| Item                         | Deviation                                          | Rationale                                                                |
+| ---------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| arctic deprecated            | Using v3.7 despite July 2026 deprecation           | Still functional; migration deferred                                     |
+| Google profile fetch         | Stubbed ("not yet implemented") in initial version | Requires OIDC ID token decoding; can be added incrementally              |
+| SessionManager.createSession | Called but not fully wired in callback tests       | Depends on 6b implementation; callback redirect tests pass independently |
+| WebAuthn browser API         | E2E is API-level only                              | `navigator.credentials` not mockable in Chromium Playwright              |
+| Settings general tab         | Minimal TDD (form-only)                            | No backend settings API required for initial version                     |
 
 ---
 
-*Generated: 2026-08-28 | Tasks: 5 | New tests: ~33 (16 vitest + 10 Playwright + 7 component)*
-
+_Generated: 2026-08-28 | Tasks: 5 | New tests: ~33 (16 vitest + 10 Playwright + 7 component)_
 
 ---
 

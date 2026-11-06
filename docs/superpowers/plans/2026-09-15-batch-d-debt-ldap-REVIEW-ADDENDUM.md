@@ -34,7 +34,7 @@ username 直接拼入 searchFilter 属信任边界注入面。新增 `escapeLdap
 
 ## R7 (T1, middleware.test.ts 是 New file)
 
-packages/audit/src/__tests__/ 只有 logger.test.ts——T1 Files 改 "Create"。测试形态：直接构造 fake req/reply 调 createAuditMiddleware 产物（audit 包无 fastify 运行时依赖，无 buildApp）；:86 站点经 reply.raw 'finish' 事件触发。
+packages/audit/src/**tests**/ 只有 logger.test.ts——T1 Files 改 "Create"。测试形态：直接构造 fake req/reply 调 createAuditMiddleware 产物（audit 包无 fastify 运行时依赖，无 buildApp）；:86 站点经 reply.raw 'finish' 事件触发。
 
 ## R8 (T1, test.fail 前提已失效)
 
@@ -50,10 +50,10 @@ JWT/apikey payload 均无 username 字段——修完 userId 四处后，:87/:12
 
 ## 审核结论汇总
 
-| 审核人 | 裁决 | 吸收 |
-|---|---|---|
-| cross-checker | 全过 | LdapConfig 字段名对齐备注（并入 R5） |
-| critic-correctness | NEEDS-FIXES 4M+6m | R4 / R2 / R5 / R7 / R8 / R6 / R9 / R10 / R3 去重 / R1 版本 |
-| critic-blockers | NEEDS-FIXES 3H+4M+1LOW | R1 / R2 / R3 / R7 / R5 / R9 / R8 / R10（与 correctness 独立互证，加 ldapts rejection 模型/RESOURCES 层细节/tenantId 通道） |
+| 审核人             | 裁决                   | 吸收                                                                                                                       |
+| ------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| cross-checker      | 全过                   | LdapConfig 字段名对齐备注（并入 R5）                                                                                       |
+| critic-correctness | NEEDS-FIXES 4M+6m      | R4 / R2 / R5 / R7 / R8 / R6 / R9 / R10 / R3 去重 / R1 版本                                                                 |
+| critic-blockers    | NEEDS-FIXES 3H+4M+1LOW | R1 / R2 / R3 / R7 / R5 / R9 / R8 / R10（与 correctness 独立互证，加 ldapts rejection 模型/RESOURCES 层细节/tenantId 通道） |
 
 冲突裁定：两 critic 的 ldapts/AuthResult/test.fail/LdapConfig 发现高度重合——以 blockers 的 API 形状细节（rejection 模型、searchEntries 解包）为准，correctness 的注入面（R4）为独有增量全部吸收。

@@ -14,7 +14,6 @@ import { DEFAULT_TENANT } from './utils/constants.js';
 import { createDb } from '@accessbase/identity/db';
 import { ensureDefaultTenantRow } from './routes/permissions-seed.js';
 
-
 export async function initializeAdmin(_app: FastifyInstance): Promise<void> {
   try {
     const userManager = new UserManager();

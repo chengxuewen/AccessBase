@@ -9,12 +9,31 @@ const MOCK_ME = {
 };
 
 const MOCK_SESSIONS = [
-  { id: 's-1', userAgent: 'Chrome/macOS', ip: '10.0.0.2', createdAt: '2026-08-30T10:00:00Z', expiresAt: '2026-09-06T10:00:00Z', current: false },
-  { id: 's-2', userAgent: 'Firefox/Linux', ip: '10.0.0.3', createdAt: '2026-08-31T08:00:00Z', expiresAt: '2026-09-07T08:00:00Z', current: false },
+  {
+    id: 's-1',
+    userAgent: 'Chrome/macOS',
+    ip: '10.0.0.2',
+    createdAt: '2026-08-30T10:00:00Z',
+    expiresAt: '2026-09-06T10:00:00Z',
+    current: false,
+  },
+  {
+    id: 's-2',
+    userAgent: 'Firefox/Linux',
+    ip: '10.0.0.3',
+    createdAt: '2026-08-31T08:00:00Z',
+    expiresAt: '2026-09-07T08:00:00Z',
+    current: false,
+  },
 ];
 
 const MOCK_PASSKEYS = [
-  { id: 'pk-1', transports: ['internal', 'hybrid'], createdAt: '2026-08-30T10:00:00Z', lastUsedAt: '2026-08-31T09:00:00Z' },
+  {
+    id: 'pk-1',
+    transports: ['internal', 'hybrid'],
+    createdAt: '2026-08-30T10:00:00Z',
+    lastUsedAt: '2026-08-31T09:00:00Z',
+  },
 ];
 
 /** Mocks every endpoint the layout + Settings page touches (mock-API default per testing.md). */
@@ -23,7 +42,10 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { isInitialized: true, adminExists: true, configComplete: true } }),
+      body: JSON.stringify({
+        success: true,
+        data: { isInitialized: true, adminExists: true, configComplete: true },
+      }),
     });
   });
 
@@ -37,7 +59,12 @@ async function mockCommonApis(page: Page): Promise<void> {
           accessToken: 'test-token',
           refreshToken: 'test-refresh',
           expiresIn: 900,
-          user: { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [{ id: 'role-1', name: 'admin' }] },
+          user: {
+            id: '1',
+            email: 'admin@accessbase.local',
+            name: 'Administrator',
+            roles: [{ id: 'role-1', name: 'admin' }],
+          },
         },
       }),
     });
@@ -91,20 +118,34 @@ async function mockCommonApis(page: Page): Promise<void> {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] } }),
+      body: JSON.stringify({
+        success: true,
+        data: { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] },
+      }),
     });
   });
   // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
   await page.route('**/api/v1/auth/saml/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/sms/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
   await page.route('**/api/v1/auth/captcha/status', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: { enabled: false } }) });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { enabled: false } }),
+    });
   });
-
 }
 
 async function login(page: Page): Promise<void> {
@@ -170,7 +211,9 @@ test.describe('Settings page', () => {
     expect(revokeBody).toEqual({ sessionId: 's-1' });
   });
 
-  test('delete passkey issues DELETE /auth/webauthn/credentials/:id and removes the row', async ({ page }) => {
+  test('delete passkey issues DELETE /auth/webauthn/credentials/:id and removes the row', async ({
+    page,
+  }) => {
     await mockCommonApis(page);
     let deleteHit = false;
     await page.route('**/api/v1/auth/webauthn/credentials/pk-1', async (route) => {
@@ -200,7 +243,9 @@ test.describe('Settings page', () => {
     expect(deleteHit).toBe(true);
   });
 
-  test('General tab save PUTs the three branding options (options-table backend)', async ({ page }) => {
+  test('General tab save PUTs the three branding options (options-table backend)', async ({
+    page,
+  }) => {
     await mockCommonApis(page);
     const puts: Array<{ key: string; value: string }> = [];
     await page.route('**/api/v1/options', async (route) => {
@@ -209,10 +254,17 @@ test.describe('Settings page', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ success: true, data: { key: 'x', value: 'y', updatedAt: '2026-01-01T00:00:00Z', updatedBy: 'admin' } }),
+          body: JSON.stringify({
+            success: true,
+            data: { key: 'x', value: 'y', updatedAt: '2026-01-01T00:00:00Z', updatedBy: 'admin' },
+          }),
         });
       } else {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) });
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: [] }),
+        });
       }
     });
     await login(page);
@@ -234,7 +286,10 @@ test.describe('Settings page', () => {
       await route.fulfill({
         status: 503,
         contentType: 'application/json',
-        body: JSON.stringify({ success: false, error: { code: 'AUTH_WEBAUTHN_004', message: 'not available' } }),
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'AUTH_WEBAUTHN_004', message: 'not available' },
+        }),
       });
     });
     await page.goto('/login');
@@ -275,7 +330,9 @@ test.describe('Settings page', () => {
 });
 
 test.describe('Settings — idle timeout (SL-3)', () => {
-  test('Security tab shows idle select; change wires PUT /options and confirms', async ({ page }) => {
+  test('Security tab shows idle select; change wires PUT /options and confirms', async ({
+    page,
+  }) => {
     await mockCommonApis(page);
     // options list: pre-set 3600 so the select hydrates a concrete value
     let putBody: { key?: string; value?: unknown } = {};
@@ -284,12 +341,19 @@ test.describe('Settings — idle timeout (SL-3)', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ success: true, data: [{ key: 'session.idle_timeout_seconds', value: 3600 }] }),
+          body: JSON.stringify({
+            success: true,
+            data: [{ key: 'session.idle_timeout_seconds', value: 3600 }],
+          }),
         });
         return;
       }
       putBody = route.request().postDataJSON() as { key: string; value: unknown };
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: putBody }) });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: putBody }),
+      });
     });
     await login(page);
     await gotoSettings(page);

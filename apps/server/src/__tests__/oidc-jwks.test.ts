@@ -20,12 +20,25 @@ const extra = keypair('extra');
 
 describe('loadJwks rotation overlap (Q3C)', () => {
   it('primary-only keeps the legacy single private JWK', () => {
-    const set = loadJwks({ privateKeyPath: primary.priv, publicKeyPath: primary.pub, nodeEnv: 'test', issuer: '', jwtSecret: '', frontendOrigin: '', oidcIpRatePerMin: 120 } as never);
+    const set = loadJwks({
+      privateKeyPath: primary.priv,
+      publicKeyPath: primary.pub,
+      nodeEnv: 'test',
+      issuer: '',
+      jwtSecret: '',
+      frontendOrigin: '',
+      oidcIpRatePerMin: 120,
+    } as never);
     expect(set?.keys).toHaveLength(1);
     expect(typeof set?.keys[0]?.d).toBe('string');
   });
   it('extras append PUBLIC-only jwks (no private material) after the signer', () => {
-    const set = loadJwks({ privateKeyPath: primary.priv, publicKeyPath: primary.pub, nodeEnv: 'test', extraPublicKeys: `${extra.pub} , ${extra.pub}` } as never);
+    const set = loadJwks({
+      privateKeyPath: primary.priv,
+      publicKeyPath: primary.pub,
+      nodeEnv: 'test',
+      extraPublicKeys: `${extra.pub} , ${extra.pub}`,
+    } as never);
     expect(set?.keys).toHaveLength(3);
     expect(set?.keys[1]?.d).toBeUndefined();
     expect(set?.keys[1]?.alg).toBe('RS256');
@@ -34,10 +47,22 @@ describe('loadJwks rotation overlap (Q3C)', () => {
     const bad = path.join(dir, 'bad.pem');
     writeFileSync(bad, 'not a pem');
     expect(() =>
-      loadJwks({ privateKeyPath: primary.priv, publicKeyPath: primary.pub, nodeEnv: 'test', extraPublicKeys: bad } as never),
+      loadJwks({
+        privateKeyPath: primary.priv,
+        publicKeyPath: primary.pub,
+        nodeEnv: 'test',
+        extraPublicKeys: bad,
+      } as never),
     ).toThrow(bad);
   });
   it('dev mode without primary keys returns undefined regardless of extras', () => {
-    expect(loadJwks({ privateKeyPath: '', publicKeyPath: '', nodeEnv: 'test', extraPublicKeys: extra.pub } as never)).toBeUndefined();
+    expect(
+      loadJwks({
+        privateKeyPath: '',
+        publicKeyPath: '',
+        nodeEnv: 'test',
+        extraPublicKeys: extra.pub,
+      } as never),
+    ).toBeUndefined();
   });
 });

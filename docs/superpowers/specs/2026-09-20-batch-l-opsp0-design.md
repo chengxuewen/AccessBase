@@ -10,17 +10,17 @@ The container and deploy run modes — the two shipped production paths — **si
 
 Supporting gaps found by the same scan:
 
-| # | Gap | Evidence |
-|---|-----|----------|
-| G1 | Entrypoint migration no-op (container) | `docker/entrypoint.sh:32` — `node packages/migration/dist/cli.js up \|\| true` |
-| G2 | Entrypoint migration no-op (deploy) | `scripts/deploy/start.sh:113` — same CLI, `2>/dev/null`, "Migration skipped" |
-| G3 | No baseline stamp for existing push-managed DBs — running the chain against them re-applies 0000 and explodes | no tracking table written by `db:push` |
-| G4 | CI runs zero of the 26 e2e specs | `.github/workflows/ci.yml` has no Playwright job |
-| G5 | 80% coverage thresholds configured but never enforced (CI omits `--coverage`) | `vitest.config.ts:7-16`, `ci.yml:59` |
-| G6 | `selfHealSeed` is fire-and-forget, single attempt — DB down at boot leaves admin permanently 403 until process restart | `index.ts:40`, `permissions-seed.ts:145-153` |
-| G7 | No `uncaughtException` / `unhandledRejection` handlers | `apps/server/src/index.ts` |
-| G8 | Deploy mode: server crash → `wait` returns → EXIT trap kills PG + Redis too (whole stack dies with one request-path bug) | `start.sh:78-90,147` |
-| G9 | Optional-but-degraded features produce no boot-time signal (MFA key / SMTP / OAuth / SAML / SMS silently off) | `config.ts` defaults |
+| #   | Gap                                                                                                                      | Evidence                                                                       |
+| --- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| G1  | Entrypoint migration no-op (container)                                                                                   | `docker/entrypoint.sh:32` — `node packages/migration/dist/cli.js up \|\| true` |
+| G2  | Entrypoint migration no-op (deploy)                                                                                      | `scripts/deploy/start.sh:113` — same CLI, `2>/dev/null`, "Migration skipped"   |
+| G3  | No baseline stamp for existing push-managed DBs — running the chain against them re-applies 0000 and explodes            | no tracking table written by `db:push`                                         |
+| G4  | CI runs zero of the 26 e2e specs                                                                                         | `.github/workflows/ci.yml` has no Playwright job                               |
+| G5  | 80% coverage thresholds configured but never enforced (CI omits `--coverage`)                                            | `vitest.config.ts:7-16`, `ci.yml:59`                                           |
+| G6  | `selfHealSeed` is fire-and-forget, single attempt — DB down at boot leaves admin permanently 403 until process restart   | `index.ts:40`, `permissions-seed.ts:145-153`                                   |
+| G7  | No `uncaughtException` / `unhandledRejection` handlers                                                                   | `apps/server/src/index.ts`                                                     |
+| G8  | Deploy mode: server crash → `wait` returns → EXIT trap kills PG + Redis too (whole stack dies with one request-path bug) | `start.sh:78-90,147`                                                           |
+| G9  | Optional-but-degraded features produce no boot-time signal (MFA key / SMTP / OAuth / SAML / SMS silently off)            | `config.ts` defaults                                                           |
 
 ## Goals
 
@@ -55,6 +55,7 @@ New file **`scripts/migrate.sh`** (bash + psql, executable), signature: `migrate
 4. Any application failure → print the failing file + psql stderr, `exit 1`. Callers must NOT swallow.
 
 Callers:
+
 - `docker/entrypoint.sh`: replace line 32 with `bash /app/scripts/migrate.sh /app/packages/migration/drizzle`. Entrypoint `set -e` aborts the container on failure (docker restart backoff recovers or surfaces); removing `|| true` is the point.
 - `scripts/deploy/start.sh`: replace line 113 with `bash "${PROJECT_ROOT}/scripts/migrate.sh" "${PROJECT_ROOT}/packages/migration/drizzle" || { log_error "Migrations failed — aborting"; exit 1; }` (same position: after PG up, before server; EXIT trap reaps the started PG/Redis).
 - No SCRIPT_DIR guessing: the caller owns the chain path (see above) — both invocations are pinned literals.
@@ -88,15 +89,15 @@ Refactor `permissions-seed.ts`: `runSelfHealOnce(dbUrl)` = **dial + probe `SELEC
 
 ## Testing Plan (TDD where testable in vitest)
 
-| Task | Test | Layer |
-|------|------|-------|
+| Task | Test                                                                                                                                                                                                                                                                                                                      | Layer                 |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
 | L-T1 | vitest spawning `scripts/migrate.sh` against real PG (skipIf PG probe per H′ convention): fresh → 16 tables + 5 tracked rows; pre-push DB (create `users` ad hoc, no tracking) → stamped not applied (subsequent `SELECT` on chain's CREATE TABLE must NOT fire); re-run → zero-op; corrupt SQL (temp file) → exit 1 loud | integration, `skipIf` |
-| L-T1 | static assertion: neither entrypoint contains the old `cli.js up` invocation or `|| true` on migrate | unit (grep-in-test) |
-| L-T2 | CI YAML is not unit-tested; proven by push (report to user). Local proxy: `pnpm test:coverage` runs green with thresholds (or re-baselined per D3) | command gate |
-| L-T3 | `selfHealSeed` retry: injected failing-then-succeeding `runOnce` → attempts 2, warn logged; always-failing → attempts N, error logged; success-first → attempts 1 | unit |
-| L-T4 | handler registration present (index.ts import side-effect test is fragile — static-source assertion test, precedent: route-guard.test static asserts) | unit |
-| L-T5 | `warnDegraded` pure-function cases (empty key → warn line; set → silent) | unit |
-| All | root tsc + admin tsc + eslint (new files clean), full vitest, full e2e chromium (local, mock-API), container smoke: `docker build` + fresh-volume run → `psql \dt` shows 16 tables + `/health/ready` db:true | gate |
+| L-T1 | static assertion: neither entrypoint contains the old `cli.js up` invocation or `                                                                                                                                                                                                                                         |                       | true` on migrate | unit (grep-in-test) |
+| L-T2 | CI YAML is not unit-tested; proven by push (report to user). Local proxy: `pnpm test:coverage` runs green with thresholds (or re-baselined per D3)                                                                                                                                                                        | command gate          |
+| L-T3 | `selfHealSeed` retry: injected failing-then-succeeding `runOnce` → attempts 2, warn logged; always-failing → attempts N, error logged; success-first → attempts 1                                                                                                                                                         | unit                  |
+| L-T4 | handler registration present (index.ts import side-effect test is fragile — static-source assertion test, precedent: route-guard.test static asserts)                                                                                                                                                                     | unit                  |
+| L-T5 | `warnDegraded` pure-function cases (empty key → warn line; set → silent)                                                                                                                                                                                                                                                  | unit                  |
+| All  | root tsc + admin tsc + eslint (new files clean), full vitest, full e2e chromium (local, mock-API), container smoke: `docker build` + fresh-volume run → `psql \dt` shows 16 tables + `/health/ready` db:true                                                                                                              | gate                  |
 
 ## Risks / Rollback
 

@@ -3,15 +3,16 @@
 **Status:** PROPOSED rev.2 — dual-Momus absorbed (flows REJECT + blockers B1-blocker; BOTH lanes independently refuted T1's root cause by running the failing file in isolation — the accepted fix below is the lanes' fix, not rev.1's)
 
 **rev.2 change log:**
+
 - **T1 root cause REPLACED (flows R1 BLOCKER + blockers B1, cross-confirmed, both ran the file):** the 3 setup-guard reds are `toEqual` shape drift — /setup/status now returns `logoUrl:''`/`primaryColor:''` (branding batch added them to the payload; schema setup.ts:110-111) and the three expected literals (setup-guard.test.ts:128/193/290) still carry only the legacy four fields. rev.1's mock-gap story was wrong: the `tenants`-export warning fires inside a PASSING test (ensureDefaultTenantRow's try/catch absorbs it), the RoleManager.create TypeError is NOT part of the 3 failures (they never POST /admin), and extending dbMock chains would leave all 3 red. **Fix = update the three expected objects (+logoUrl:''/primaryColor:'').** The mock-marker work is demoted to optional hygiene (the absorbed tenants warning is worth silencing, but is not what fails).
 - **T4 second source added (flows R2 HIGH + blockers B2, cross-confirmed):** openapi.json carries NO permission codes (6 incidental field-name mentions only) — the inventory generator joins TWO sources: openapi.json (methods/paths) + `apps/server/src/utils/authorize.ts` routePermissions map (permission codes). "Single source = openapi" retracted.
 - **T5 count fixed (flows R3 + blockers B3):** branding.spec has 2 tests (not 3) — 2 → 3, not 3 → 4.
 - **T2 mechanism corrected (flows R4):** Fastify's built-in application/json parser is INHERITED by the route scope (scoped parsers are additive, not replacing) — a JSON body parses fine and lands in route validation; missing content-type may 415 or fall to validation. The three cases stand as pin-the-real-behavior tests (the plan's hedge was right; the mechanism story corrected).
 - **T3 unchanged (no findings).**
-**Parent:** `docs/superpowers/reports/2026-11-02-gap-map-v2.md` (§6 order)
-**Scope:** five tasks, ~3 days total. G9 (bare-catch lint batch) is EXCLUDED
-from this round — it is orthogonal sweep work; rider scope discipline keeps
-this batch at five named tasks.
+  **Parent:** `docs/superpowers/reports/2026-11-02-gap-map-v2.md` (§6 order)
+  **Scope:** five tasks, ~3 days total. G9 (bare-catch lint batch) is EXCLUDED
+  from this round — it is orthogonal sweep work; rider scope discipline keeps
+  this batch at five named tasks.
 
 ---
 
@@ -28,6 +29,7 @@ is RETRACTED: the tenants-export warning fires inside a PASSING test
 TypeError never runs in the failing tests.
 
 **Fix (the lanes' fix):**
+
 1. Extend the three expected objects with `logoUrl: ''` and `primaryColor: ''`
    — test-expectation update matching the SHIPPED response contract;
 2. Optional hygiene (same commit): add `tenants/permissions/rolePermissions`
@@ -51,6 +53,7 @@ content-type (JSON body to a form route → parser throws), oversized token
 
 **Fix — 3 unit cases appended to backchannel-logout-integration.test.ts
 (app instance already built there; zero new fixtures):**
+
 1. POST without content-type → 415 (or 400 — Fastify's
    `FST_ERR_CTP_INVALID_MEDIA_TYPE` = 415; assert whichever the framework
    actually emits, pin the real code in the test);

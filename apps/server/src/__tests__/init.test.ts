@@ -92,11 +92,7 @@ describe('initializeAdmin (state sync + env bypass)', () => {
       expect.anything(),
     );
 
-    expect(mockAssignToUser).toHaveBeenCalledWith(
-      'u1',
-      'role-1',
-      expect.anything(),
-    );
+    expect(mockAssignToUser).toHaveBeenCalledWith('u1', 'role-1', expect.anything());
 
     // Password must never appear in any log call — as field value or string.
     const allLogCalls = [
@@ -109,8 +105,7 @@ describe('initializeAdmin (state sync + env bypass)', () => {
     }
   });
 
-  it('case 3: no admin + env single-sided (no password) → skip creation, wizard message', async () =>
-  {
+  it('case 3: no admin + env single-sided (no password) → skip creation, wizard message', async () => {
     mockFindByEmail.mockResolvedValue(null);
     const { config } = await import('../config.js');
     config.adminEmail = 'x@y.z';
@@ -121,9 +116,13 @@ describe('initializeAdmin (state sync + env bypass)', () => {
     await initializeAdmin({} as never);
 
     expect(mockCreateUser).not.toHaveBeenCalled();
-    expect(vi.mocked(mockLogger.info).mock.calls.some((c) =>
-      typeof c[0] === 'string' && c[0].includes('Setup Wizard will run on first access'),
-    )).toBe(true);
+    expect(
+      vi
+        .mocked(mockLogger.info)
+        .mock.calls.some(
+          (c) => typeof c[0] === 'string' && c[0].includes('Setup Wizard will run on first access'),
+        ),
+    ).toBe(true);
   });
 
   it('case 4: DB failure → swallowed, resolves undefined (startup must not crash)', async () => {

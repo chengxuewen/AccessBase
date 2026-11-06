@@ -64,11 +64,21 @@ async function seed(url: string): Promise<void> {
   await c.connect();
   try {
     await c.query(`CREATE TABLE users (id uuid PRIMARY KEY, totp_secret text)`);
-    await c.query(`CREATE TABLE oidc_clients (id uuid PRIMARY KEY, secret_encrypted text NOT NULL)`);
-    await c.query(`CREATE TABLE webhook_endpoints (id uuid PRIMARY KEY, secret_encrypted text NOT NULL)`);
+    await c.query(
+      `CREATE TABLE oidc_clients (id uuid PRIMARY KEY, secret_encrypted text NOT NULL)`,
+    );
+    await c.query(
+      `CREATE TABLE webhook_endpoints (id uuid PRIMARY KEY, secret_encrypted text NOT NULL)`,
+    );
     await c.query(`INSERT INTO users (id, totp_secret) VALUES ($1, $2)`, [USER_ID, MFA_LEGACY]);
-    await c.query(`INSERT INTO oidc_clients (id, secret_encrypted) VALUES ($1, $2)`, [CLIENT_ID, OIDC_LEGACY]);
-    await c.query(`INSERT INTO webhook_endpoints (id, secret_encrypted) VALUES ($1, $2)`, [HOOK_ID, OIDC_LEGACY]);
+    await c.query(`INSERT INTO oidc_clients (id, secret_encrypted) VALUES ($1, $2)`, [
+      CLIENT_ID,
+      OIDC_LEGACY,
+    ]);
+    await c.query(`INSERT INTO webhook_endpoints (id, secret_encrypted) VALUES ($1, $2)`, [
+      HOOK_ID,
+      OIDC_LEGACY,
+    ]);
   } finally {
     await c.end();
   }
@@ -105,14 +115,15 @@ describe.skipIf(!pgAvailable)('re-encrypt against real PG (scratch DB)', () => {
     const c = new pg.Client({ connectionString: url });
     await c.connect();
     try {
-      const [u] = (await c.query(`SELECT totp_secret AS s FROM users WHERE id = $1`, [USER_ID])).rows as [
-        { s: string },
-      ];
+      const [u] = (await c.query(`SELECT totp_secret AS s FROM users WHERE id = $1`, [USER_ID]))
+        .rows as [{ s: string }];
       const [oc] = (
         await c.query(`SELECT secret_encrypted AS s FROM oidc_clients WHERE id = $1`, [CLIENT_ID])
       ).rows as [{ s: string }];
       const [wh] = (
-        await c.query(`SELECT secret_encrypted AS s FROM webhook_endpoints WHERE id = $1`, [HOOK_ID])
+        await c.query(`SELECT secret_encrypted AS s FROM webhook_endpoints WHERE id = $1`, [
+          HOOK_ID,
+        ])
       ).rows as [{ s: string }];
 
       expect(u.s.startsWith('v2:')).toBe(true);

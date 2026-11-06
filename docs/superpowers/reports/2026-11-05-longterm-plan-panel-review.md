@@ -34,7 +34,7 @@ remove. The skill's intent (dated, English, roles + per-role findings + merge + 
 - **P2 [CRITICAL, decision-invalidating]: R4-C's deletion of `packages/migration` would break
   three documented commands.** Measured chain: `accessbase.sh:668 cmd_db_push()` → `pnpm db:push`
   → root `package.json:24-26` = `pnpm --filter @accessbase/migration run db:push|db:generate|
-  db:migrate`. So the package is the live host of the drizzle-kit schema tooling surface, listed
+db:migrate`. So the package is the live host of the drizzle-kit schema tooling surface, listed
   in AGENTS.md's COMMANDS block. My ruling argument was "D117 already condemned it" — but D117
   assigns **runtime migration execution** to `scripts/migrate.sh`; it says nothing about
   **schema push/generate**, which still runs through this package. The two were conflated.
@@ -120,23 +120,23 @@ remove. The skill's intent (dated, English, roles + per-role findings + merge + 
 
 ## Merge (single pass, lead)
 
-| # | Grade | Finding | Origin | Status |
-|---|---|---|---|---|
-| P2 | CRITICAL | R4-C deleting `packages/migration` breaks `db:push/generate/migrate` (root `package.json:24-26` → the package) | pass 1 | OPEN — returns to adjudication (X-1) |
-| E1 | CRITICAL | "0 consumers anywhere `[measured]`" overstates: `apps/server` declares `@accessbase/health` + `@accessbase/i18n` as production deps | pass 2 | OPEN — re-label; feeds X-2 |
-| P1 | CRITICAL | §3 S1 acceptance cites "§5 of the governance plan" (no such section) for a red/green demo that cannot exist yet (R2-D unimplemented) | pass 1 | OPEN — rewrite acceptance as its own demo obligation |
-| P3 | HIGH | alerting mis-tiered: Prometheus appears 0 times in all compose files, Dockerfile and entrypoints; "one step" is really "adopt a monitoring stack" | pass 1 | OPEN — demote or decide |
-| E2 | HIGH | "panel's remaining 13 items" is wrong (16 findings + 3 conflicts; 11+3 = 14 outstanding) — a hand-written count inside the plan that bans them | pass 2 | OPEN — replace with a pointer, per R2-D |
-| E3 | HIGH | L2 E8 (`@deprecated DEAD API`) already cleaned: 0 hits — row is stale on the day of writing | pass 2 | OPEN — close with date |
-| P4 | MEDIUM | ADJ-7c is simultaneously a §7 hard block and a §3 S2 deliverable | pass 1 | OPEN — pick the stop point |
-| E4 | MEDIUM | §6 criterion #1 requires zero `[doc-claim]` in AGENTS.md, but L1 has only one row (T9) covering it | pass 2 | OPEN — add rows or narrow criterion |
-| E5 | MEDIUM | Coverage claims tagged `[measured]` without their as-of date (source artifact is 2026-11-02) | pass 2 | OPEN — add asOf per row |
-| D1 | MEDIUM | New authoritative plan is absent from `docs/AGENTS.md` index | pass 3 | OPEN — one-line index entry |
-| D2 | MEDIUM | `workspace:*` pre-flight attached to S3's "depends on S1" although S1 never produces it | pass 3 | OPEN — move to S3 pre-flight |
-| P5 | LOW | Two H1s in one file (retained history) | pass 1 | OPEN — demote or accept |
-| D3 | LOW | Prefix collision E/D between plan rows and panel report items | pass 3 | OPEN |
-| D4 | LOW | §1 "six carriers" understates current fragmentation (three adjudication sections exist now) | pass 3 | OPEN |
-| E6 | — | All 12 spot-checked file:line citations verified; multiline-aware empty-catch re-check still 0 | pass 2 | CLEAN |
+| #   | Grade    | Finding                                                                                                                                           | Origin | Status                                               |
+| --- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------- |
+| P2  | CRITICAL | R4-C deleting `packages/migration` breaks `db:push/generate/migrate` (root `package.json:24-26` → the package)                                    | pass 1 | OPEN — returns to adjudication (X-1)                 |
+| E1  | CRITICAL | "0 consumers anywhere `[measured]`" overstates: `apps/server` declares `@accessbase/health` + `@accessbase/i18n` as production deps               | pass 2 | OPEN — re-label; feeds X-2                           |
+| P1  | CRITICAL | §3 S1 acceptance cites "§5 of the governance plan" (no such section) for a red/green demo that cannot exist yet (R2-D unimplemented)              | pass 1 | OPEN — rewrite acceptance as its own demo obligation |
+| P3  | HIGH     | alerting mis-tiered: Prometheus appears 0 times in all compose files, Dockerfile and entrypoints; "one step" is really "adopt a monitoring stack" | pass 1 | OPEN — demote or decide                              |
+| E2  | HIGH     | "panel's remaining 13 items" is wrong (16 findings + 3 conflicts; 11+3 = 14 outstanding) — a hand-written count inside the plan that bans them    | pass 2 | OPEN — replace with a pointer, per R2-D              |
+| E3  | HIGH     | L2 E8 (`@deprecated DEAD API`) already cleaned: 0 hits — row is stale on the day of writing                                                       | pass 2 | OPEN — close with date                               |
+| P4  | MEDIUM   | ADJ-7c is simultaneously a §7 hard block and a §3 S2 deliverable                                                                                  | pass 1 | OPEN — pick the stop point                           |
+| E4  | MEDIUM   | §6 criterion #1 requires zero `[doc-claim]` in AGENTS.md, but L1 has only one row (T9) covering it                                                | pass 2 | OPEN — add rows or narrow criterion                  |
+| E5  | MEDIUM   | Coverage claims tagged `[measured]` without their as-of date (source artifact is 2026-11-02)                                                      | pass 2 | OPEN — add asOf per row                              |
+| D1  | MEDIUM   | New authoritative plan is absent from `docs/AGENTS.md` index                                                                                      | pass 3 | OPEN — one-line index entry                          |
+| D2  | MEDIUM   | `workspace:*` pre-flight attached to S3's "depends on S1" although S1 never produces it                                                           | pass 3 | OPEN — move to S3 pre-flight                         |
+| P5  | LOW      | Two H1s in one file (retained history)                                                                                                            | pass 1 | OPEN — demote or accept                              |
+| D3  | LOW      | Prefix collision E/D between plan rows and panel report items                                                                                     | pass 3 | OPEN                                                 |
+| D4  | LOW      | §1 "six carriers" understates current fragmentation (three adjudication sections exist now)                                                       | pass 3 | OPEN                                                 |
+| E6  | —        | All 12 spot-checked file:line citations verified; multiline-aware empty-catch re-check still 0                                                    | pass 2 | CLEAN                                                |
 
 Dedup note: P2 and E1 are the same underlying defect (R4-C's evidence base) reached from two briefs
 — mechanism/blast-radius vs. evidence-class — kept as two rows because their fixes differ
@@ -150,7 +150,7 @@ Dedup note: P2 and E1 are the same underlying defect (R4-C's evidence base) reac
     `admin` and `i18n`-minus-declarations.
   - Ruling basis at the time: D117 ("runtime migration sole writer = `scripts/migrate.sh`") plus
     two `TODO: Implement migration/rollback` in `manager.ts`. That basis is not wrong about the
-    *migration runner*; it was silently extended to the *package*, which also hosts drizzle-kit
+    _migration runner_; it was silently extended to the _package_, which also hosts drizzle-kit
     schema tooling.
   - This is not a disagreement about values, it is a factual premise that new measurement
     overturned — it goes back to the user, who owns R4.
@@ -161,7 +161,7 @@ Dedup note: P2 and E1 are the same underlying defect (R4-C's evidence base) reac
     "no runtime consumers; two phantom production declarations", and the phantom declarations are
     **their own defect** deserving an L2 row (dead dependency wiring), not a footnote to R4.
   - Consequence differs: X-1's reading merges the fix into S3; X-2's reading adds a new
-  engineering-health item and a separate small cleanup.
+    engineering-health item and a separate small cleanup.
 - **X-3 — severity of the plan violating its own evidence-class rule (E1/E2/E5).**
   - Evidence officer: **CRITICAL.** Three separate rows in one document break the one convention
     the document was written to install; a rule that its author violates on day one will not be

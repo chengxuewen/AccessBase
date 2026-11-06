@@ -115,29 +115,31 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
 
   // W3-4 (F15a): unauthenticated /docs ships the entire API map — dev/test only.
-  if (config.nodeEnv !== 'production') await app.register(fastifySwagger, {
-    openapi: {
-      info: {
-        title: 'AccessBase API',
-        description: 'AccessBase 基石层 API 文档',
-        version: '1.0.0',
-      },
-      servers: [{ url: `http://localhost:${config.port}`, description: '开发环境' }],
-      components: {
-        securitySchemes: {
-          bearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT',
+  if (config.nodeEnv !== 'production')
+    await app.register(fastifySwagger, {
+      openapi: {
+        info: {
+          title: 'AccessBase API',
+          description: 'AccessBase 基石层 API 文档',
+          version: '1.0.0',
+        },
+        servers: [{ url: `http://localhost:${config.port}`, description: '开发环境' }],
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT',
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  if (config.nodeEnv !== 'production') await app.register(fastifySwaggerUi, {
-    routePrefix: '/docs',
-  });
+  if (config.nodeEnv !== 'production')
+    await app.register(fastifySwaggerUi, {
+      routePrefix: '/docs',
+    });
 
   // --- Security middleware ---
   // formAction must also allow the SPA origin: the device-flow confirm POST is a
@@ -288,7 +290,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // Adapter getUser seam WIRED (verification-day): unwired it released no email/name
   // claims (userinfo = bare sub) and RPs synthesized @*.oauth.invalid addresses.
   const oidcAdapterDb = createDb(config.databaseUrl);
-  const { provider: oidcProvider, oidcHandler, stopSweeper } = await buildOidcProvider({
+  const {
+    provider: oidcProvider,
+    oidcHandler,
+    stopSweeper,
+  } = await buildOidcProvider({
     issuer: `${config.oauthRedirectBase}/oidc`,
     jwtSecret: config.jwtSecret,
     nodeEnv: config.nodeEnv,
@@ -296,20 +302,23 @@ export async function buildApp(options: BuildAppOptions = {}) {
     publicKeyPath: config.jwtPublicKeyPath,
     extraPublicKeys: config.oidcJwksExtraPublicPaths,
     backchannelLogoutEnabled: config.oidcBackchannelLogout,
-    adapterCtorArgs: [oidcAdapterDb, {
-      getUser: async (id: string) => {
-        // Lazy destructure: destructuring identity/db at buildApp time would hit
-        // every narrow vi.mock('@accessbase/identity/db') proxy (PIT-082).
-        const { users } = await import('@accessbase/identity/db');
-        const { eq } = await import('drizzle-orm');
-        const [row] = await oidcAdapterDb
-          .select({ name: users.name, email: users.email })
-          .from(users)
-          .where(eq(users.id, id))
-          .limit(1);
-        return row ?? null;
+    adapterCtorArgs: [
+      oidcAdapterDb,
+      {
+        getUser: async (id: string) => {
+          // Lazy destructure: destructuring identity/db at buildApp time would hit
+          // every narrow vi.mock('@accessbase/identity/db') proxy (PIT-082).
+          const { users } = await import('@accessbase/identity/db');
+          const { eq } = await import('drizzle-orm');
+          const [row] = await oidcAdapterDb
+            .select({ name: users.name, email: users.email })
+            .from(users)
+            .where(eq(users.id, id))
+            .limit(1);
+          return row ?? null;
+        },
       },
-    }],
+    ],
     frontendOrigin: config.frontendOrigin,
   });
   // Batch N: stop the adapter sweeper on graceful close.
@@ -319,7 +328,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // then every 24h — deploy cycles faster than a day must still sweep). The
   // audit archive config finally gets a consumer; AUDIT_RETENTION_DAYS overrides, 0 disables.
   const { getAuthState } = await import('./utils/auth-state.js');
-  const { startRetentionSweeper, resolveRetentionDays } = await import('./utils/retention-sweeper.js');
+  const { startRetentionSweeper, resolveRetentionDays } =
+    await import('./utils/retention-sweeper.js');
   const { closeAuthDb } = await import('./utils/managers.js');
   const { resetManagers } = await import('./utils/managers.js');
   // Lazy pool: created on the first tick (boot+60s), closed by stop() — keeps
@@ -364,7 +374,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
     const webhooksEnabled = () => {
       void getOptionsManager()
         .get<string>('webhooks_enabled', process.env['WEBHOOKS_ENABLED'], 'true')
-        .then((v) => { whEnabled = String(v).toLowerCase() !== 'false'; })
+        .then((v) => {
+          whEnabled = String(v).toLowerCase() !== 'false';
+        })
         .catch(() => undefined);
       return whEnabled;
     };
@@ -431,9 +443,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
   let auditAnchor: { stop: () => Promise<void> } | undefined;
   if (config.nodeEnv !== 'test') {
     const { startAuditAnchor } = await import('./utils/audit-anchor.js');
-    const { auditAnchorLastRootOk, auditAnchorLastRootTimestamp } = await import(
-      './utils/audit-metrics.js'
-    );
+    const { auditAnchorLastRootOk, auditAnchorLastRootTimestamp } =
+      await import('./utils/audit-metrics.js');
     auditAnchor = startAuditAnchor({
       makeDb: () => createDb(config.databaseUrl),
       intervalSeconds: config.auditAnchorIntervalSeconds,

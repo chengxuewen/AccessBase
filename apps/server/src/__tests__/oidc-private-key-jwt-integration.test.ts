@@ -12,12 +12,7 @@
  * wiring against the dev DB — not cheap, deliberately skipped.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import {
-  createSign,
-  generateKeyPairSync,
-  randomUUID,
-  type KeyObject,
-} from 'node:crypto';
+import { createSign, generateKeyPairSync, randomUUID, type KeyObject } from 'node:crypto';
 
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-for-oidc-32bytes!!';
@@ -61,9 +56,11 @@ const RUN = Date.now();
 
 let app: App;
 let clientId = '';
-const clientManager = new (OidcClientManager as unknown as {
-  new (): OidcClientManagerT;
-})();
+const clientManager = new (
+  OidcClientManager as unknown as {
+    new (): OidcClientManagerT;
+  }
+)();
 
 /** Public JWK of a KeyObject — a PUBLIC export carries no private members by construction. */
 function publicJwk(key: KeyObject): Record<string, unknown> {

@@ -20,11 +20,7 @@ import { renderEmailFor } from '../../utils/email-templates.js';
 import { DEFAULT_TENANT } from '../../utils/constants.js';
 import { logger } from '@accessbase/logging';
 import type { AuthContext } from './context.js';
-import {
-  getHostFallbackWarned,
-  readSmsConfig,
-  setHostFallbackWarned,
-} from './shared.js';
+import { getHostFallbackWarned, readSmsConfig, setHostFallbackWarned } from './shared.js';
 
 export async function magicRequestRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/magic/request — passwordless sign-in link (F2).
@@ -35,7 +31,8 @@ export async function magicRequestRoutes(app: FastifyInstance, ctx: AuthContext)
     {
       config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
       schema: {
-        description: 'Request a magic sign-in link. Always succeeds regardless of account existence.',
+        description:
+          'Request a magic sign-in link. Always succeeds regardless of account existence.',
         tags: ['auth'],
         body: {
           type: 'object',
@@ -59,10 +56,20 @@ export async function magicRequestRoutes(app: FastifyInstance, ctx: AuthContext)
       const userManager = await getUserManager();
       const user = await userManager.findByEmail(email);
       if (user && user.status === 'active') {
-        const token = await ctx.flowTokens.issue('magic_login', { userId: user.id, email: user.email }, 900);
+        const token = await ctx.flowTokens.issue(
+          'magic_login',
+          { userId: user.id, email: user.email },
+          900,
+        );
         // R8: identical SMTP keys to forgot-password — no second config source.
         const host = await options.get('smtp_host', process.env['SMTP_HOST'], '');
-        const port = Number(await options.get('smtp_port', process.env['SMTP_PORT'] ? Number(process.env['SMTP_PORT']) : undefined, 587));
+        const port = Number(
+          await options.get(
+            'smtp_port',
+            process.env['SMTP_PORT'] ? Number(process.env['SMTP_PORT']) : undefined,
+            587,
+          ),
+        );
         const smtpUser = await options.get('smtp_user', process.env['SMTP_USER'], '');
         const pass = await options.get('smtp_password', process.env['SMTP_PASSWORD'], '');
         const from = await options.get('smtp_from', process.env['SMTP_FROM'], '');
@@ -111,7 +118,6 @@ export async function magicRequestRoutes(app: FastifyInstance, ctx: AuthContext)
     },
   );
 }
-
 
 export async function magicConsumeRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/magic/consume — exchange a magic link token for a session.
@@ -257,7 +263,6 @@ export async function magicConsumeRoutes(app: FastifyInstance, ctx: AuthContext)
   );
 }
 
-
 export async function smsOtpRequestRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/sms-otp/request — passwordless OTP delivery (Batch I).
   // Enumeration-safe: identical 202 body regardless of account/config state.
@@ -268,7 +273,8 @@ export async function smsOtpRequestRoutes(app: FastifyInstance, ctx: AuthContext
     {
       config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
       schema: {
-        description: 'Request an SMS OTP sign-in code. Always succeeds regardless of account existence.',
+        description:
+          'Request an SMS OTP sign-in code. Always succeeds regardless of account existence.',
         tags: ['auth'],
         body: {
           type: 'object',
@@ -308,7 +314,9 @@ export async function smsOtpRequestRoutes(app: FastifyInstance, ctx: AuthContext
       }
       const options = getOptionsManager();
       const smsConfig = await readSmsConfig(options);
-      const smsProvider: SmsProvider | null = smsConfig ? SmsProviderImpl.fromConfig(smsConfig) : null;
+      const smsProvider: SmsProvider | null = smsConfig
+        ? SmsProviderImpl.fromConfig(smsConfig)
+        : null;
       // Q1-b1 wire-chain fix: ALL arms issue a token and return it (the client
       // needs it at verify time). Non-eligible arms carry userId:null (dummy;
       // verify burns them to a generic 401 before any lookup). Constant-shape
@@ -336,7 +344,6 @@ export async function smsOtpRequestRoutes(app: FastifyInstance, ctx: AuthContext
     },
   );
 }
-
 
 export async function captchaRoutes(app: FastifyInstance, _ctx: AuthContext) {
   // GET /api/v1/auth/captcha/status + /captcha — Q3E-E1 local challenge.
@@ -398,7 +405,6 @@ export async function captchaRoutes(app: FastifyInstance, _ctx: AuthContext) {
     },
   );
 }
-
 
 export async function smsOtpVerifyRoutes(app: FastifyInstance, ctx: AuthContext) {
   // POST /api/v1/auth/sms-otp/verify — exchange an OTP for a session.
@@ -489,10 +495,11 @@ export async function smsOtpVerifyRoutes(app: FastifyInstance, ctx: AuthContext)
       },
     },
     async (request, reply) => {
-      const payload = await ctx.flowTokens.consume<{ userId: string | null; phone: string; code: string }>(
-        request.body.token,
-        'sms_otp',
-      );
+      const payload = await ctx.flowTokens.consume<{
+        userId: string | null;
+        phone: string;
+        code: string;
+      }>(request.body.token, 'sms_otp');
       if (!payload) {
         return reply.status(401).send({
           success: false,

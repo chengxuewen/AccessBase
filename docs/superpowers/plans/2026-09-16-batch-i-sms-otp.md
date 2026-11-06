@@ -27,6 +27,7 @@
 ## Task 0: deps + migration 0004 + SmsProvider interface (identity package)
 
 **Files:**
+
 - Modify: `packages/identity/package.json` (add @alicloud/dysmsapi20170525 + @alicloud/openapi-client)
 - Modify: `packages/identity/src/db/schema.ts` (users.phone varchar(20) nullable)
 - Generate: migration 0004 (phone column + partial unique index + idx_users_phone)
@@ -35,6 +36,7 @@
 - Modify: `apps/server/src/managers/UserManager.ts` (findByPhone new method: WHERE phone = X LIMIT 2 → 1 row or null+warn per R1)
 
 **Interfaces:**
+
 - Produces: `SmsProvider.fromConfig(cfg: SmsConfig): SmsProvider | null` (null when config absent); `send({to, code}): Promise<void>`; `SmsConfig {provider, signName?, templateCode?, accountSid?, authToken?, fromNumber?, accessKeyId?, accessKeySecret?}`
 - UserManager.findByPhone(phone: string): `Promise<User | null>` (multi-match → null + warn per R1)
 - Migration 0004: phone varchar(20) nullable + partial unique idx + regular idx
@@ -47,11 +49,13 @@
 ## Task 1: SMS OTP endpoints (routes/auth.ts)
 
 **Files:**
+
 - Modify: `apps/server/src/routes/auth.ts` (POST /sms-otp/request + POST /sms-otp/verify after magic-link block)
 - Modify: `apps/server/src/__tests__/sms-otp.test.ts` (new)
 - Modify: `apps/server/src/app.ts` (nothing — auth routes auto-registered; verify)
 
 **Interfaces:**
+
 - Consumes: SmsProvider (T0), UserManager.findByPhone (T0), FlowTokenService (existing), issueTokenPair (auth.ts:54), findByIdAny (auth.ts:516)
 - Produces:
   - POST /sms-otp/request {phone} → body schema pattern R6 → 400 invalid; always 202 (enum-safe); found && active → code gen + flowTokens.issue('sms_otp', {userId, phone, code}, 300) + SmsProvider.send fire-and-forget
@@ -65,10 +69,12 @@
 ## Task 2: PIT-052 matrix update + full regression (final task)
 
 **Files:**
+
 - Modify: `.agents/memorys/pitfalls.md` (PIT-052 matrix: add sms-otp-verify row → mfa_verify {userId} 300s)
 - Verify-only: full regression gates
 
 **Interfaces:**
+
 - Consumes: all prior tasks
 - Produces: matrix updated (seven→eight issuance points)
 

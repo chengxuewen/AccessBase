@@ -60,7 +60,13 @@ describe('GET /api/v1/auth/sessions (Settings — active sessions list)', () => 
 
   it('returns safe-shaped sessions for the current user', async () => {
     sessionManagerMock.getUserSessions.mockResolvedValueOnce([
-      { id: 's-1', userAgent: 'Chrome', ip: '1.2.3.4', createdAt: new Date(), expiresAt: new Date() },
+      {
+        id: 's-1',
+        userAgent: 'Chrome',
+        ip: '1.2.3.4',
+        createdAt: new Date(),
+        expiresAt: new Date(),
+      },
     ]);
     const res = await authedInject({ method: 'GET', url: '/api/v1/auth/sessions' });
     expect(res.statusCode).toBe(200);
@@ -72,13 +78,28 @@ describe('GET /api/v1/auth/sessions (Settings — active sessions list)', () => 
     expect(sessionManagerMock.getUserSessions).toHaveBeenCalledWith('u-1');
   });
 
-  it('flags the caller\'s own session current:true when refreshToken is supplied', async () => {
+  it("flags the caller's own session current:true when refreshToken is supplied", async () => {
     sessionManagerMock.getUserSessions.mockResolvedValueOnce([
-      { id: 's-1', userAgent: 'Chrome', ip: '1.2.3.4', createdAt: new Date(), expiresAt: new Date() },
-      { id: 's-2', userAgent: 'Firefox', ip: '1.2.3.5', createdAt: new Date(), expiresAt: new Date() },
+      {
+        id: 's-1',
+        userAgent: 'Chrome',
+        ip: '1.2.3.4',
+        createdAt: new Date(),
+        expiresAt: new Date(),
+      },
+      {
+        id: 's-2',
+        userAgent: 'Firefox',
+        ip: '1.2.3.5',
+        createdAt: new Date(),
+        expiresAt: new Date(),
+      },
     ]);
     sessionManagerMock.findSessionByToken.mockResolvedValueOnce({ id: 's-2', userId: 'u-1' });
-    const res = await authedInject({ method: 'GET', url: '/api/v1/auth/sessions?refreshToken=rt-current' });
+    const res = await authedInject({
+      method: 'GET',
+      url: '/api/v1/auth/sessions?refreshToken=rt-current',
+    });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.data[0].current).toBe(false);

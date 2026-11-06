@@ -6,11 +6,7 @@
  * once-per-process warn semantics intact across modules.
  */
 import { Mailer, getRedisClient } from '@accessbase/identity';
-import type {
-  SessionManager,
-  RoleManager,
-  PermissionManager,
-} from '@accessbase/identity';
+import type { SessionManager, RoleManager, PermissionManager } from '@accessbase/identity';
 import type { SmsConfig } from '@accessbase/identity';
 import { getTenantManager } from '../../utils/managers.js';
 import { cidrVerdict } from '../../utils/cidr.js';
@@ -44,7 +40,11 @@ export async function getSmtpMailer(
 ): Promise<Mailer | null> {
   const host = await options.get('smtp_host', process.env['SMTP_HOST'], '');
   const port = Number(
-    await options.get('smtp_port', process.env['SMTP_PORT'] ? Number(process.env['SMTP_PORT']) : undefined, 587),
+    await options.get(
+      'smtp_port',
+      process.env['SMTP_PORT'] ? Number(process.env['SMTP_PORT']) : undefined,
+      587,
+    ),
   );
   const smtpUser = await options.get('smtp_user', process.env['SMTP_USER'], '');
   const pass = await options.get('smtp_password', process.env['SMTP_PASSWORD'], '');
@@ -89,9 +89,7 @@ export async function resolvePublicOrigin(
   if (forwardedHost) return `${proto}://${forwardedHost}`;
   if (!hostFallbackWarned) {
     hostFallbackWarned = true;
-    logger.warn(
-      'verify-email origin falling back to request Host — production MUST set SITE_URL',
-    );
+    logger.warn('verify-email origin falling back to request Host — production MUST set SITE_URL');
   }
   return `${proto}://${request.headers['host'] ?? ''}`;
 }
@@ -101,9 +99,12 @@ export async function resolvePublicOrigin(
 // Called BEFORE any credential/lockout work so blocked IPs cannot probe.
 // Consume-side endpoints (magic/reset/otp verify) intentionally skip it —
 // post-email IPs legitimately differ (spec E2).
-export const cidrGate = async (request: { ip: string }, reply: {
-  status: (c: number) => { send: (b: unknown) => unknown };
-}): Promise<boolean> => {
+export const cidrGate = async (
+  request: { ip: string },
+  reply: {
+    status: (c: number) => { send: (b: unknown) => unknown };
+  },
+): Promise<boolean> => {
   // Config-plane failure must NEVER 500 the login door (fail-open like
   // skipOnError rate limits): no lists readable = no gating active.
   let allow = '';
@@ -131,7 +132,9 @@ export const cidrGate = async (request: { ip: string }, reply: {
  * Credentials are env-only: secrets never enter the options table.
  * Returns null when no provider is selected (SMS disabled).
  */
-export async function readSmsConfig(options: { get<T>(key: string, envValue: T | undefined, defaultValue: T): Promise<T> }): Promise<SmsConfig | null> {
+export async function readSmsConfig(options: {
+  get<T>(key: string, envValue: T | undefined, defaultValue: T): Promise<T>;
+}): Promise<SmsConfig | null> {
   const provider = await options.get('sms_provider', process.env['SMS_PROVIDER'], '');
   if (!provider) return null;
   const signName = await options.get('sms_sign_name', process.env['SMS_SIGN_NAME'], '');
@@ -185,18 +188,19 @@ export async function issueTokenPair(
   await assertTenantActive(user);
   const accessToken = app.jwt.sign(
     // status claim rides along so authenticate can re-check it (P0; absent on legacy tokens → allowed)
-    { sub: user.id, email: user.email, status: user.status, tenantId: user.tenantId ?? DEFAULT_TENANT, tokenVersion: user.tokenVersion },
+    {
+      sub: user.id,
+      email: user.email,
+      status: user.status,
+      tenantId: user.tenantId ?? DEFAULT_TENANT,
+      tokenVersion: user.tokenVersion,
+    },
     { expiresIn: '15m' },
   );
-  const { refreshToken } = await sessionManager.issueRefreshToken(
-    crypto.randomUUID(),
-    user.id,
-    {
-      ip: request.ip,
-      userAgent:
-        (request.headers['user-agent'] as string | undefined) ?? 'unknown',
-    },
-  );
+  const { refreshToken } = await sessionManager.issueRefreshToken(crypto.randomUUID(), user.id, {
+    ip: request.ip,
+    userAgent: (request.headers['user-agent'] as string | undefined) ?? 'unknown',
+  });
   return { accessToken, refreshToken };
 }
 
@@ -205,13 +209,24 @@ export async function issueTokenPair(
  * tenantId comes from the request context; callers on public issuance paths
  * omit it and the default-tenant fallback applies.
  */
-export async function rolesOf(roleManager: RoleManager, userId: string, tenantId?: string): Promise<{ id: string; name: string }[]> {
+export async function rolesOf(
+  roleManager: RoleManager,
+  userId: string,
+  tenantId?: string,
+): Promise<{ id: string; name: string }[]> {
   const roles = await roleManager.getUserRoles(userId, tenantId ?? DEFAULT_TENANT);
   return roles.map((r) => ({ id: r.id, name: r.name }));
 }
 /** Effective 'resource:action' codes for /auth/me (frontend menu/route gating) */
-export async function permissionsOf(permissionManager: PermissionManager, userId: string, tenantId?: string): Promise<string[]> {
-  const perms = await permissionManager.getUserEffectivePermissions(userId, tenantId ?? DEFAULT_TENANT);
+export async function permissionsOf(
+  permissionManager: PermissionManager,
+  userId: string,
+  tenantId?: string,
+): Promise<string[]> {
+  const perms = await permissionManager.getUserEffectivePermissions(
+    userId,
+    tenantId ?? DEFAULT_TENANT,
+  );
   return perms.map((p) => `${p.resource}:${p.action}`);
 }
 

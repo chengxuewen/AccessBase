@@ -168,6 +168,7 @@
 - **解法**: 全站约定改用页面内 inline `<Alert data-testid="xxx-error">`（Login.tsx 已落地）；E2E 用 `getByTestId` 断言
 - **验证**: `pixi run npx playwright test e2e/auth.spec.ts --project=chromium` → 5/5 通过
 - **禁止**: 新代码使用 `message.success/error` 静态 API；已有 Users/UserDetail/UserEdit 中的调用属于同一隐患，迁移时一并替换
+
 ## PIT-024: JSX 包裹重构孤儿 return ( 泄漏为页面文本 (2026-09-01)
 
 - **症状**: 登录页左上角出现字面文本 'return ('；所有页面 #root 顶部均有
@@ -175,6 +176,7 @@
 - **解法**: 删除孤儿行。重构包裹层时必须整体替换函数体（write > edit 局部插入）
 - **验证**: NO_PROXY pixi run node 复现脚本 body.innerText.includes('return (') === false；E2E 60/2 无回归
 - **禁止**: JSX 包裹重构用局部 edit 插入开闭标签；交付前无杂散文本断言
+
 ## PIT-025: 清环境后 dist/ 缺失致 tsx dev 启动 ERR_MODULE_NOT_FOUND (2026-09-01)
 
 - **症状**: pnpm --filter server dev 报 Cannot find module '@accessbase/identity/dist/index.js'；Vite 起来但 proxy ECONNREFUSED 5101
@@ -182,6 +184,7 @@
 - **解法**: apps/server/package.json 加 predev 钩子: pnpm -r --filter '!@accessbase/server' --filter '!@accessbase/admin-ui' run build（自动构建全部依赖包，3-5s）
 - **验证**: NO_PROXY curl -X POST /api/v1/auth/login 返回 accessToken（带 DATABASE_URL/REDIS_URL 启动）
 - **禁止**: 清环境后直接 dev；手动启动 server 缺 DATABASE_URL/REDIS_URL 环境变量
+
 ## PIT-026: dev 端口预检时序窗口 + stop 清理范围缺口 (2026-09-01)
 
 - **症状**: bash accessbase.sh stop 后 dev 报 EADDRINUSE 5101；stop 杀不到脚本外启动的 tsx/vite 孤儿
@@ -278,6 +281,7 @@
 - **解法**: Space style 加 display:'flex' 块化（antd 官方 FAQ 方案）；或包一层块级 div
 - **验证**: 居中类断言用探针量 getBoundingClientRect 左右 gap 对称，不凭代码目测
 - **禁止**: 对 inline-flex 容器依赖 margin auto 居中
+
 ## PIT-038: oidc-provider Grant 经 DB round-trip 后实例只剩 {kind,jti}，consent 无限重提示 (2026-09-12)
 
 - **症状**: AC+PKCE 流程中 consent approve（grant.save() 成功、adapter upsert 日志正常）后 resume 再次 303 回 consent 页，或 500 `accountId mismatch`；同代码走纯内存 adapter 时 4/5 全过。
@@ -356,7 +360,7 @@
 
 - **症状**: packages/identity/src、apps/server/src、packages/migration 下出现 .js/.js.map/.d.ts.map 编译产物（untracked）；根因是执行者在错误目录跑 `npx tsc`（无 -p 指向正确 tsconfig，outDir 失效或被覆盖）。
 - **根因**: apps/server/tsconfig 有 outDir:./dist 但无 include 限定；cwd 错位时 tsc 以当前目录为根把 src/**/*.ts 编到源码旁。declarationMap+sourceMap 加剧产物数量。
-- **解法**: ① .gitignore 加 src 下编译产物兜底模式（packages/*/src/**、apps/*/src/** 的 js/map/d.ts/d.ts.map）；② 产物一律 rm；③ 铁律：identity build 只经 `pnpm --filter @accessbase/identity build`，不裸跑 tsc。
+- **解法**: ① .gitignore 加 src 下编译产物兜底模式（packages/_/src/\**、apps/_/src/** 的 js/map/d.ts/d.ts.map）；② 产物一律 rm；③ 铁律：identity build 只经 `pnpm --filter @accessbase/identity build`，不裸跑 tsc。
 - **验证**: `git ls-files | grep -c '\.map$'` 应为 0；`find packages apps -path '*src*' -name '*.js.map' | grep -v node_modules` 应为空。
 
 ## PIT-049: src/ 下残留编译产物遮蔽 vitest 的 .js→.ts 解析 (2026-09-15)
@@ -389,16 +393,16 @@
 
 ### PIT-052 矩阵更新（Batch I，2026-09-16）：八签发点
 
-| 签发路径 | status 门 | tenantId claim | 限流 | MFA step-up |
-|---|---|---|---|---|
-| login (auth.ts:163) | ✅ verifyPassword 前置 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify |
-| ldap (auth.ts:~1245) | ✅ changeStatus 前置 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify |
-| webauthn (webauthn.ts:~313) | ✅ suspended 门 | ✅ issueTokenPair | — | ✅ mfa_verify |
-| oauth callback→exchange (oauth.ts:~482) | ✅ suspended 门 | ✅ issueTokenPair | — | ✅ mfa_verify (exchange 时) |
-| saml ACS→exchange (saml.ts:~198) | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/min | ✅ mfa_verify (exchange 时) |
-| magic-consume (auth.ts:~875) | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify |
-| **sms-otp-verify (auth.ts:~1010)** | ✅ suspended 门 | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify (R2 零 lockout) |
-| mfa/verify (auth.ts:~1029) | ✅ (会话签发) | ✅ issueTokenPair | ✅ | — (本身是 step-up) |
+| 签发路径                                | status 门              | tenantId claim    | 限流        | MFA step-up                   |
+| --------------------------------------- | ---------------------- | ----------------- | ----------- | ----------------------------- |
+| login (auth.ts:163)                     | ✅ verifyPassword 前置 | ✅ issueTokenPair | ✅ 10/min   | ✅ mfa_verify                 |
+| ldap (auth.ts:~1245)                    | ✅ changeStatus 前置   | ✅ issueTokenPair | ✅ 10/min   | ✅ mfa_verify                 |
+| webauthn (webauthn.ts:~313)             | ✅ suspended 门        | ✅ issueTokenPair | —           | ✅ mfa_verify                 |
+| oauth callback→exchange (oauth.ts:~482) | ✅ suspended 门        | ✅ issueTokenPair | —           | ✅ mfa_verify (exchange 时)   |
+| saml ACS→exchange (saml.ts:~198)        | ✅ suspended 门        | ✅ issueTokenPair | ✅ 10/min   | ✅ mfa_verify (exchange 时)   |
+| magic-consume (auth.ts:~875)            | ✅ suspended 门        | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify                 |
+| **sms-otp-verify (auth.ts:~1010)**      | ✅ suspended 门        | ✅ issueTokenPair | ✅ 10/15min | ✅ mfa_verify (R2 零 lockout) |
+| mfa/verify (auth.ts:~1029)              | ✅ (会话签发)          | ✅ issueTokenPair | ✅          | — (本身是 step-up)            |
 
 ## PIT-053: 远程 subagent 修复波提交落 detached HEAD (2026-09-16)
 
@@ -434,7 +438,6 @@
 - **根因**: 外部协议（SCIM startIndex=1-based 行偏移）映射到内部 manager（1-based 页号）时凭直觉直传而非从 manager 源码的 offset 公式反推；单点测试值恰好是公式不动点掩盖分歧
 - **解法**: 协议字段映射必须从内部实现的实际 offset/limit 公式反推换算式（此处 page=ceil(startIndex/count)），并加非不动点测试值（如 startIndex=11&count=10→page=2）锁死
 - **验证**: scim.test.ts 含 `startIndex=11&count=10 → findAll({page:2,pageSize:10})` probe 断言
-
 
 ## PIT-058: 对 Promise<void> 解包值做 !== undefined 判据 = 恒假断链 (2026-09-18)
 
@@ -630,7 +633,6 @@
 
 - **Symptom**: app.ts `const { createDb, users } = await import('@accessbase/identity/db')` at buildApp time blew up every narrow vi.mock('@accessbase/identity/db') suite (health-pool, tenants, bootstrap — 24 files; 'No "users" export is defined').
 - **Rule now proven twice**: ANY new export access on a package boundary that tests mock narrowly must be destructured LAZILY inside the calling closure (the getUser fix did exactly that), or added to every mock — lazy is the convention (pinned in conventions.md PIT-082 line).
-
 
 ## PIT-084: node-saml SLO/ACS integration triple trap (2026-10-08, logout-coherence)
 

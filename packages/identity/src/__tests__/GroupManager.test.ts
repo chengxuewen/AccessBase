@@ -61,7 +61,14 @@ function makeDb(selectQueue: unknown[]) {
   return db;
 }
 
-const groupRow = { id: G, tenantId: T, name: 'Eng', description: null, createdAt: new Date(0), updatedAt: new Date(0) };
+const groupRow = {
+  id: G,
+  tenantId: T,
+  name: 'Eng',
+  description: null,
+  createdAt: new Date(0),
+  updatedAt: new Date(0),
+};
 const holder = (userId: string) => ({ userId });
 const userRef = (id: string) => ({ id });
 
@@ -185,7 +192,9 @@ describe('setGroupRoles', () => {
   it('rejects cross-tenant role ids before any write (GROUP_ROLE_TENANT_MISMATCH)', async () => {
     const db = makeDb([[groupRow], [{ id: 'r-bad' }]]);
     manager = new GroupManager(db as never);
-    await expect(manager.setGroupRoles(G, ['r-bad'], T)).rejects.toThrow('GROUP_ROLE_TENANT_MISMATCH');
+    await expect(manager.setGroupRoles(G, ['r-bad'], T)).rejects.toThrow(
+      'GROUP_ROLE_TENANT_MISMATCH',
+    );
     expect(db.delete).not.toHaveBeenCalled();
   });
 

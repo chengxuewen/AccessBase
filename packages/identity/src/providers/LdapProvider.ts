@@ -62,7 +62,11 @@ export class LdapProvider implements AuthProvider {
     const name = typeof entry[m.cn] === 'string' ? entry[m.cn] : '';
     // Single documented seam (T2-review): claims are NOT a User row; the
     // route layer completes provisioning before the claims are ever used.
-    return { dn: typeof entry['dn'] === 'string' ? entry['dn'] : '', email, name } as unknown as LdapIdentityClaims;
+    return {
+      dn: typeof entry['dn'] === 'string' ? entry['dn'] : '',
+      email,
+      name,
+    } as unknown as LdapIdentityClaims;
   }
 
   private errorResult(code: 'AUTH_063' | 'AUTH_064', message: string): AuthResult {
