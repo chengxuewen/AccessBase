@@ -1,6 +1,6 @@
 # Secret 管理
 
-> **Implementation status (2026-09-23 gap audit):** `design-only (deferred)` — env-only reality (A8); Vault/KMS zero hits. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-06, evidence: `scripts/re-encrypt.ts` present on disk (dated 10-08) + CHANGELOG 2026-10-08 entry "closes the *_OLD key-rotation windows" — 2 types, plan T9):** `partial` — self-managed envelope encryption with key versioning is live (multi-node batch; rotation-window tool shipped); the 2026-09-23 "env-only" framing is superseded — what REMAINS true is zero external KMS/Vault integration (literal pattern-scan hits unchanged; external KMS is not in the design). Prior verdict (2026-09-23 gap audit, kept for provenance): `design-only (deferred)` — env-only reality (A8); Vault/KMS zero hits. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§28 Secret 管理

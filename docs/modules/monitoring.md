@@ -1,6 +1,6 @@
 # 监控与告警系统
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — /metrics + /health shipped (batch M); §13.3-13.6 alerting/tracing/log-shipping unimplemented. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-06, evidence: deployment-chain grep = 0 prometheus wiring; `docker/prometheus/rules.yml` read — 7 rules with severity/`for`/annotations; every referenced metric exists in `metrics.ts`/`webhook-metrics.ts`/`audit-metrics.ts` — 3 types, plan T12):** `partial` — /metrics + /health shipped (batch M); §13.3 alerting: rules are PROVIDED as an operator-facing sample but nothing is wired — bundling a Prometheus deployment is a product-posture decision, not a missing step (11-05 P3-A); tracing (OTel) deferred by the heavy-deps ruling, on the signal-gated register; log-shipping NOT re-checked in this pass. Prior verdict (2026-09-23 gap audit, superseded by the line above, kept for provenance): `partial` — §13.3-13.6 alerting/tracing/log-shipping unimplemented. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§13 监控与告警系统

@@ -654,6 +654,20 @@ Also honestly recorded: an earlier WebFetch pulled run #31's page while chasing 
 reference lesson P-2 working as intended — the in-flight row stays open until the right run is
 read).
 
+**Sixteenth cut (2026-11-06, W4 first batch under X-2=C).** Triage table landed
+(docs/superpowers/reports/2026-11-06-header-triage.md) with measured last-touch; five-header
+batch executed: monitoring + secret-mgmt REWRITTEN on ledger anchors (3-type / 2-type, inline
+provenance lines), database + audit-sdd + messaging **KEPT-HONEST-STALE** — and the batch
+earned its keep immediately: the whole-line-read rule caught a TRIAGE ANCHOR ERROR (messaging
+had been classified REWRITTEN against T1, but T1 is webhooks/events = webhook.md territory;
+messaging's own 09-28 update text already reads correctly). 2 rewrites, 3 kept, 1 self-caught
+misclassification — the standard and the anti-date-painting gate are both proven. X-2=C
+sequence: user eyeballs THIS batch's product; remaining batches run on approval-by-artifact.
+Process note per the user's meta-question the same morning: no further plan docs or panel
+rounds inside this approved plan — panel gates are for real decision branches (skill's own
+table), and pre-asking what X-2=C already decided (confirm-by-product, not by pre-question)
+was itself corrected mid-flight.
+
 ---
 
 ## Historical plan — v3.0 (dated 2026-08-21), SUPERSEDED
