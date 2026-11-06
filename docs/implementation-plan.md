@@ -709,6 +709,16 @@ the scan (3 importer files) and rewritten to `implemented, narrowly used`** with
 shared-types→types naming drift recorded; logging-sdd's claim matched its measured count
 and stayed. Triage table carries the outcome rows.
 
+**W4 batch four (2026-11-06, b-class sweep, 19 headers).** 4 REWRITTEN / 15 KEPT. The two
+falsifications worth naming: frontend claimed i18n detection AND branding injection
+unimplemented - both shipped (navigator probe i18n/index.ts:8; branding.ts + e2e); i18n
+header's "474-key" recount came out 695/695 (parity survives, the count becomes history).
+security/auth-provider got the data-scope and Q3D tails their update-timing missed. And a
+method lesson banked mid-batch: **security's narrative continued on the header's SECOND
+line - the byte-cut display hid it and nearly manufactured a false gap claim**; fifth
+member of the T2-family in a new costume (quote-out-of-context -> line-out-of-context).
+Remaining queue after this: nothing b-class left — only the S1-exit strict-flip commit.
+
 ---
 
 ## Historical plan — v3.0 (dated 2026-08-21), SUPERSEDED

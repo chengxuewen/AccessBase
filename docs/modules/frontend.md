@@ -1,6 +1,6 @@
 # 前端架构补充
 
-> **Implementation status (2026-09-23 gap audit):** `partial` — SPA shipped; i18n detection chain (A7) and branding injection (L5) unimplemented. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
+> **Implementation status (as of 2026-11-06, evidence: `i18n/index.ts:8` navigator probe + `src/branding.ts` consumed by Login/AdminLayout/VerifyEmail + branding e2e spec):** `partial` — SPA shipped; BOTH 09-23 absences have since closed: the i18n detection chain (A7) now probes `navigator.language` (zh-first, en default) and branding injection (L5) is the live runtime path (single-path model per branding.md's status header; the component-injection variant stays R11 signal-gated design intent). What remains open on this surface: §37-era itemization lives in ui.md's own header. Prior verdict (2026-09-23 gap audit, kept for provenance): `partial` — SPA shipped; i18n detection chain (A7) and branding injection (L5) unimplemented. See [gap-audit](../superpowers/reports/2026-09-23-gap-audit.md).
 
 > 本文档从 [`architecture.md`](../architecture.md) 拆分而来。
 > 原始章节：§24 前端架构补充
