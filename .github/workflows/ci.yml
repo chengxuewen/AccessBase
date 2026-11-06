@@ -174,10 +174,24 @@ jobs:
       - name: Regenerate tracked faces and verify no drift
         run: |
           node scripts/agents/agent-links.mts sync
-          git diff --exit-code -- AGENTS.md CONSTRAINTS.md .opencode/opencode.json .mcp.json .qoder/rules 2>/dev/null || {
-            echo '::error::generated tracked faces are stale — run `node scripts/agents/agent-links.mts sync` locally and commit';
-            git diff --stat;
-            exit 1;
-          }
+          # E16 instrumentation (2026-11-06): the old one-liner sent git's stderr to
+          # /dev/null, so a failure surfaced as a bare exit 1 with no readable cause -
+          # three runs of that and nothing local could reproduce it. Capture everything,
+          # put the paths in the annotation (public) and the diff in the step summary
+          # (also public) so the NEXT run carries its own evidence.
+          # `.qoder/rules` dropped from the list: never tracked, never generated; measured
+          # exit 0 as a missing pathspec in a clean worktree, so it was noise not a cause.
+          drift_rc=0
+          git diff --exit-code -- AGENTS.md CONSTRAINTS.md .opencode/opencode.json .mcp.json > "$RUNNER_TEMP/gates-drift.txt" 2>&1 || drift_rc=$?
+          if [ "$drift_rc" -ne 0 ]; then
+            echo "::error::generated tracked faces are stale (rc=$drift_rc): $(git diff --name-only | tr '\n' ' ') - run \`node scripts/agents/agent-links.mts sync\` locally and commit"
+            {
+              echo '### Governance Gates drift (rc '"$drift_rc"')'
+              echo '```diff'
+              head -80 "$RUNNER_TEMP/gates-drift.txt"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - name: Full agents check (CI mode skips gitignored per-machine faces)
         run: CI=1 node scripts/agents/agent-links.mts check

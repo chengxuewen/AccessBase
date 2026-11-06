@@ -75,10 +75,7 @@ describe('SCIM full-set guard (B2, structural)', () => {
 
   it('scim.ts caller invokes list() WITHOUT opts (full set)', async () => {
     const { readFileSync } = await import('node:fs');
-    const src = readFileSync(
-      path.join(ROOT, 'apps/server/src/routes/scim.ts'),
-      'utf-8',
-    );
+    const src = readFileSync(path.join(ROOT, 'apps/server/src/routes/scim.ts'), 'utf-8');
     expect(src).toContain('groupManager.list(tenantId)');
     expect(src).not.toContain('groupManager.list(tenantId,');
   });
