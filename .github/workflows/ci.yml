@@ -54,9 +54,37 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:coverage -- --reporter=junit --outputFile=test-results.xml
+      # E18 instrumentation (2026-11-06, cut 29): the same command, but it can no longer
+      # fail silently. Three runs of "Test is red" told us nothing because the failure
+      # detail stayed in a log nobody without sign-in can read - so the job now publishes
+      # its own verdict: exit code, whether the junit xml actually landed, the failing-file
+      # count, and the first error lines, as an annotation + step summary (both public).
+      # `pnpm build` is deliberately NOT added here: vitest transforms sources, and the
+      # E15 dist-type mechanism was proven only for tsc (evidence-scoped change).
+      - name: Vitest (coverage + junit) with evidence capture
+        run: |
+          rc=0
+          # --reporter=default is restored alongside junit: a junit-ONLY reporter writes the
+          # xml and leaves the console nearly mute, which is half of why this job was unread.
+          pnpm test:coverage -- --reporter=default --reporter=junit --outputFile=test-results.xml > "$RUNNER_TEMP/vitest.log" 2>&1 || rc=$?
+          echo "--- vitest output, last 40 lines ---"
+          tail -40 "$RUNNER_TEMP/vitest.log"
+          xml=$([ -s test-results.xml ] && echo present || echo MISSING)
+          counts=$(grep -E 'Test Files +[0-9]+|Tests +[0-9]+' "$RUNNER_TEMP/vitest.log" | tail -2 | tr -s ' ' | tr '\n' ';')
+          firsterrs=$(grep -m3 -E 'Unhandled|Error:|Cannot find|No test files|ENOENT' "$RUNNER_TEMP/vitest.log" | tr '\n' ';' | sed 's/::/--/g')
+          echo "::error::vitest exit=$rc | junit-xml=$xml | $counts first-errors: $firsterrs"
+          {
+            echo "### Test job evidence (vitest exit $rc, junit xml $xml)"
+            echo '```'
+            grep -E 'FAIL|Test Files|Tests |Unhandled|Cannot find' "$RUNNER_TEMP/vitest.log" | head -40
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
       - uses: dorny/test-reporter@v1
         if: always()
+        # E18 attribution hygiene: a missing/unparsable xml must not masquerade as a test
+        # failure. The vitest exit code above is the only thing that can redden this job.
+        continue-on-error: true
         with:
           name: Test Results
           path: test-results.xml
