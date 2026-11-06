@@ -719,6 +719,19 @@ line - the byte-cut display hid it and nearly manufactured a false gap claim**; 
 member of the T2-family in a new costume (quote-out-of-context -> line-out-of-context).
 Remaining queue after this: nothing b-class left — only the S1-exit strict-flip commit.
 
+**S1-exit cut (2026-11-06): the strict flip shipped.** W4 closed all 37 stale headers
+(batch 1: 5 / 2: 5 / 3: 6 / 4: 19 / erratum 1; rewrites where evidence contradicted,
+KEPT-HONEST-STALE where it didn't, identity-sdd DEFER-REGISTERED to S5). header-lint run()
+flipped REPORT->STRICT per ruled X-1=A, in the tree-green-at-flip state R2-C3 demands
+(0 errors repo-wide measured immediately before via --strict exit 0). warns still never
+block (C-2 severity split intact). Enforcement is now automatic double-harness: pre-commit
+-> agents check -> exit 1 on a format-violating status line; CI Governance Gates reruns the
+same check on every pushed commit — the anchor-rot class gets a mechanical gate, one week
+after we watched a workflow file rot for 46 days unread.
+S1 acceptance state: L1 rows dispositioned ✓; measured baseline ✓ (T8); lint landed WITH
+red/green demo ✓ (self-test fixtures + real-file demo at 2932471); D126 grep gate empty ✓;
+zero `[doc-claim]` in module headers ✓. S1 -> closed pending the user's push of this batch.
+
 ---
 
 ## Historical plan — v3.0 (dated 2026-08-21), SUPERSEDED

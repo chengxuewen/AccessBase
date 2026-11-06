@@ -115,10 +115,15 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
   }
   const errors = findings.filter((x) => x.level === "error");
   const warns = findings.filter((x) => x.level === "warn");
-  // REPORT mode (panel C-1 two-stage): run() never blocks on findings; the strict
-  // flip inside the aggregate ships with the W4 exit commit (X-1=A wiring).
+  // STRICT (flipped at the W4-exit commit 2026-11-06, ruled X-1=A; R2-C3 precondition
+  // met: 0 errors repo-wide measured immediately before the flip, verified via --strict
+  // exit 0). error-level findings block via agents check => pre-commit + CI double
+  // harness. warns NEVER block (C-2 severity split: staleness is a triage input).
   for (const x of findings) console.log(`  header-lint ${x.level.toUpperCase()} ${x.file}: [${x.code}] ${x.note}`);
-  return { code: EXIT_CLEAN, summary: `header-lint report: ${errors.length} error, ${warns.length} warn over ${files.length} files (strict mode OFF until W4 exit)` };
+  return {
+    code: errors.length > 0 ? EXIT_FINDINGS : EXIT_CLEAN,
+    summary: `header-lint strict: ${errors.length} error, ${warns.length} warn over ${files.length} files`,
+  };
 }
 
 const args = process.argv.slice(2);
