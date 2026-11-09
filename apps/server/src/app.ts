@@ -120,10 +120,13 @@ export async function buildApp(options: BuildAppOptions = {}) {
       openapi: {
         info: {
           title: 'AccessBase API',
-          description: 'AccessBase 基石层 API 文档',
+          // D121 (English-only persistence): this string shipped into
+          // docs/openapi.json, i.e. into a machine-readable artifact consumers
+          // read. Chinese belongs in live conversation, not in generated output.
+          description: 'AccessBase foundation-layer API documentation',
           version: '1.0.0',
         },
-        servers: [{ url: `http://localhost:${config.port}`, description: '开发环境' }],
+        servers: [{ url: `http://localhost:${config.port}`, description: 'local development' }],
         components: {
           securitySchemes: {
             bearerAuth: {
