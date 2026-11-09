@@ -590,7 +590,13 @@ cmd_test_e2e() {
     ensure_node
     ensure_pnpm
     log_info "Running E2E tests..."
-    pnpm --filter @accessbase/admin-ui test:e2e
+    # E9 fix (2026-11-09): this used to call `pnpm --filter @accessbase/admin-ui test:e2e`,
+    # but admin-ui has no such script (measured: None). pnpm exits 0 when a filter matches
+    # nothing, so under `set -euo pipefail` nothing was actually swallowed - the command
+    # simply never failed, and the next line printed a fake "E2E tests complete" while zero
+    # tests ran. The real entry is the root script (`playwright test`; the config lives at
+    # the repo root), which covers every spec directory.
+    pnpm test:e2e
     log_ok "E2E tests complete"
 }
 
