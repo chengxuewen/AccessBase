@@ -2,6 +2,48 @@
 
 All notable changes to AccessBase. Format: keep-a-changelog style; versions tag on green CI (D122 mirror). Breaking changes get a `Migration` note with the SQL chain file.
 
+## [Unreleased] - 2026-11-06/09 (CI unblocked after 46 days, S1 truth layer closed, API deprecation contract shipped)
+
+### Added
+
+- **API deprecation contract (ruling S5-B, 2026-11-09)**: `apps/server/src/utils/deprecation.ts` —
+  single-writer `DEPRECATED_ROUTES`, `Deprecation: true` / `Sunset` / `Link` matched on the registered
+  route template, a 90-day window floor **enforced at startup** (registration throws), and
+  `exposedHeaders` wired into CORS because those three names are not CORS-safelisted. Policy text:
+  `docs/modules/api.md` §23.2.1, including the "five things move in the same change" rule.
+  Coverage: 14 unit tests over injected entries + 2 live-backend e2e invariants (skipped without a
+  backend, `health.spec.ts` discipline), with a red/green demo. The list itself ships empty by
+  measured fact (105 paths / 134 operations contain no old/new verb pairs).
+- `scripts/agents/header-lint.mts` — fifth lint (module status-header format + 45-day recency triage),
+  flipped to STRICT at the S1 exit so it enforces twice: local pre-commit and CI Governance Gates.
+- Self-reporting CI: the Governance Gates and Test steps now publish their own verdict (exit code,
+  artifact presence, the drifted paths or the failing files) into a public annotation and job summary,
+  replacing four runs of unreadable exit-code-only red.
+- `identity-sdd.md` as-built reconciliation table before §2.5 (ruling S5-C): six former public
+  promises registered (`createSession`, `verifyAccessToken`, `refreshTokens`, `validateSession`'s real
+  return, the dead `SessionValidation`, the absent `regenerateRecoveryCodes`) with zero source churn.
+
+### Fixed
+
+- `.github/workflows/ci.yml`: the duplicate `no_proxy`/`NO_PROXY` pair that made GitHub reject the
+  entire workflow for 46 days (E11); the pnpm version declared in two places (E12); the unquoted
+  `--health-cmd` reaching docker as split arguments (E13); Type Check resolving workspace types from
+  `dist/` with no build step in CI (E15); and the Governance Gates node pin at 22.6, below the 22.18
+  baseline where `.mts` type-stripping needs no flag — the actual cause behind every Gates red (E16).
+- Tests: e2e mock globs that lost the query-carrying list URLs since the T3 pagination batch (E10, 8
+  failures); a `ops-migrate.test.ts` assertion pinned to one-line source layout (E17);
+  `pagination.test.ts` hardcoding this machine's absolute paths, green locally by luck and doomed on
+  CI (E18).
+- Tooling: `accessbase.sh test:e2e` invoked a sub-package script that does not exist and printed
+  success over zero executed tests (E9); `gen:openapi` wrote its artifact and then never exited, which
+  left S5's regen-diff acceptance with no executable precondition (E19).
+- Formatting (E14): 400 files brought under prettier, with `.prettierignore` drawing the
+  machine-owned boundary — agents-sync generated faces, the drizzle applied chain meta, and
+  `docs/openapi.json` — plus `.git-blame-ignore-revs` for the mechanical wave.
+- `docs/openapi.json` regenerated: one missing operation added
+  (`PUT /api/v1/clients/{clientId}/rotation-surface`), and the spec's Chinese `info.description` /
+  `servers[].description` replaced per D121.
+
 ## [Unreleased] - 2026-11-05 (Agent governance: long-term roadmap, two panel reviews of it, L1 ledger corrections)
 
 ### Added

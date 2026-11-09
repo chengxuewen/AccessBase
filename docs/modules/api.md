@@ -274,6 +274,59 @@ fastify.register(
 );
 ```
 
+### 23.2.1 弃用与退役政策 / Deprecation & retirement policy (added 2026-11-09, ruling S5-B)
+
+New prose is English per D121; the surrounding Chinese sections are left as written.
+
+**Single writer.** A wire operation is declared deprecated in exactly one place —
+`DEPRECATED_ROUTES` in `apps/server/src/utils/deprecation.ts`. Route-level comments, ad-hoc
+flags in handlers, and CHANGELOG wording are not a deprecation mechanism; they are records of
+one. Verified state at the time of writing: the list is empty — measured against the
+`docs/openapi.json` inventory (105 paths / 134 operations, no old/new pairs of the same verb;
+the repeated trailing segments `status` / `verify` / `login` / `exchange` are distinct
+resources). An empty list is not a disabled mechanism: the validator and the tests below run
+either way, and the first real entry lights them up without new plumbing.
+
+**Announcement = three headers on every matched response** (never a subset):
+
+| Header        | Value                                                    | Why                                                                                                              |
+| ------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `Deprecation` | `true`                                                   | the spelling existing tooling understands; the structured field form of the newest draft is deliberately avoided |
+| `Sunset`      | RFC 1123 HTTP-date, e.g. `Tue, 09 Feb 2027 00:00:00 GMT` | the removal date, machine-readable                                                                               |
+| `Link`        | `<docs-url>; rel="deprecation"`                          | where the replacement is explained                                                                               |
+
+Matching uses the registered **route template** (`request.routeOptions.url`), the same rule
+`routes/metrics.ts` states for label cardinality: a client-supplied concrete path must never
+decide whether a contract header appears.
+
+**Window floor: 90 days** between `announced` and `sunset` (`MIN_WINDOW_DAYS`). This is
+enforced in code, not by convention: `registerDeprecationHeaders()` throws at startup on any
+entry below the floor, on an unparseable HTTP-date, on a sunset already in the past, or on a
+non-absolute link. A too-short window found in review is cheaper than one found by a customer.
+
+**Five things move in the same change** (this list is why "just add a hook" is only half of
+the option): ① the list entry; ② the OpenAPI operation marked `deprecated: true` so the
+machine-readable spec agrees with the wire; ③ a CHANGELOG entry carrying the announce date, and
+that date is the entry's `announced` field; ④ a test — unit coverage lives in
+`apps/server/src/__tests__/deprecation-headers.test.ts` (injected entries, no backend needed),
+and the live invariants in `e2e/deprecation-headers.spec.ts` (skipped without a backend, same
+discipline as `health.spec.ts`); ⑤ confirmation that `exposedHeaders` still lists the three names
+in `app.ts` (the `@fastify/cors` option is spelled `exposedHeaders`, not the Express
+`exposeHeaders`) — Sunset/Deprecation/Link are **not** CORS-safelisted response headers, so without
+that line the whole contract is invisible to any browser-based integration, which is precisely
+the gap found while implementing this policy (`exposedHeaders` existed nowhere in the repo).
+
+**Removal** requires all three: the sunset date has passed, a D-entry records that no consumer
+was observed (proxy logs, integration registry, or a stated customer check), and the OpenAPI
+artifact no longer carries the path. `D`-entries, not this file, are where retirement is
+approved.
+
+**Out of scope here:** package-level TypeScript API. The `@accessbase/identity` design drift
+(`createSession`, `verifyAccessToken`, `refreshTokens`, `SessionValidation`, …) is tracked as
+former public promises in `identity-sdd.md`'s as-built table under ruling S5-C; renaming it is a
+library breaking change and follows this policy's window rule only if it is ever exposed as wire
+contract.
+
 ### 23.3 分页标准
 
 ```typescript

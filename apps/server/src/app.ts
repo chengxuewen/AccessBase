@@ -27,6 +27,7 @@ import { webauthnRoutes } from './routes/webauthn.js';
 import { optionsRoutes } from './routes/options.js';
 import { clientRoutes } from './routes/clients.js';
 import { resolveCorsOrigin } from './cors.js';
+import { registerDeprecationHeaders, DEPRECATION_EXPOSED_HEADERS } from './utils/deprecation.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import { eventRoutes } from './routes/events.js';
 import { emailTemplateRoutes } from './routes/email-templates.js';
@@ -112,7 +113,20 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(cors, {
     origin: resolveCorsOrigin(),
     credentials: true,
+    // S5-B (2026-11-09): without this the deprecation contract is unreadable in a browser -
+    // Sunset/Deprecation/Link are not CORS-safelisted response headers, so a fetch from any
+    // web integration would silently see an empty header set. Measured before shipping:
+    // exposedHeaders was absent from the whole repo, which is why "just add the hook" was
+    // only half of option B. (Note the option name: @fastify/cors spells it exposedHeaders,
+    // not exposeHeaders - tsc caught the Express spelling here.)
+    exposedHeaders: DEPRECATION_EXPOSED_HEADERS,
   });
+
+  // S5-B: wire the deprecation contract (single writer: utils/deprecation.ts, policy:
+  // docs/modules/api.md §23.2.1). The list is empty today by measured fact, so this call
+  // installs nothing until a real deprecation is announced - but the policy validator then
+  // runs at startup, so an under-length window cannot reach production unnoticed.
+  registerDeprecationHeaders(app);
 
   // W3-4 (F15a): unauthenticated /docs ships the entire API map — dev/test only.
   if (config.nodeEnv !== 'production')
