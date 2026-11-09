@@ -67,16 +67,20 @@ jobs:
           # --reporter=default is restored alongside junit: a junit-ONLY reporter writes the
           # xml and leaves the console nearly mute, which is half of why this job was unread.
           pnpm test:coverage -- --reporter=default --reporter=junit --outputFile=test-results.xml > "$RUNNER_TEMP/vitest.log" 2>&1 || rc=$?
+          # E18 instrument fix (cut 30): run #36 read out `Failed Tests 2` but the error
+          # extraction grabbed separator glyphs instead of the failing files - CI output is
+          # ANSI-coloured, so every pattern must run against a de-coloured copy.
+          sed -E 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/vitest.log" > "$RUNNER_TEMP/vitest.clean.log"
           echo "--- vitest output, last 40 lines ---"
-          tail -40 "$RUNNER_TEMP/vitest.log"
+          tail -40 "$RUNNER_TEMP/vitest.clean.log"
           xml=$([ -s test-results.xml ] && echo present || echo MISSING)
-          counts=$(grep -E 'Test Files +[0-9]+|Tests +[0-9]+' "$RUNNER_TEMP/vitest.log" | tail -2 | tr -s ' ' | tr '\n' ';')
-          firsterrs=$(grep -m3 -E 'Unhandled|Error:|Cannot find|No test files|ENOENT' "$RUNNER_TEMP/vitest.log" | tr '\n' ';' | sed 's/::/--/g')
-          echo "::error::vitest exit=$rc | junit-xml=$xml | $counts first-errors: $firsterrs"
+          counts=$(grep -E 'Test Files +[0-9]+|Tests +[0-9]+' "$RUNNER_TEMP/vitest.clean.log" | tail -2 | tr -s ' ' | tr '\n' ';')
+          firstfails=$(grep -E '(^| )FAIL |Failed Tests|Unhandled Error' "$RUNNER_TEMP/vitest.clean.log" | head -8 | tr -s ' ' | tr '\n' ';' | sed 's/::/--/g')
+          echo "::error::vitest exit=$rc | junit-xml=$xml | $counts failing-sites: $firstfails"
           {
             echo "### Test job evidence (vitest exit $rc, junit xml $xml)"
             echo '```'
-            grep -E 'FAIL|Test Files|Tests |Unhandled|Cannot find' "$RUNNER_TEMP/vitest.log" | head -40
+            grep -E 'FAIL|Test Files|Tests |Unhandled|Cannot find|Error:' "$RUNNER_TEMP/vitest.clean.log" | head -60
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit $rc
@@ -184,8 +188,9 @@ jobs:
   # ADJ-7f (governance port Batch 7): tracked generated faces must never be committed
   # stale. Per-machine faces are gitignored — CI skips them (yellow, never exit code);
   # tracked faces are verified by sync-then-diff (a non-empty diff = a stale face was
-  # committed = red). Needs node >= 22.6 for native .mts type-stripping; needs
-  # pnpm install --frozen-lockfile because gate-mcp inspects installed packages.
+  # committed = red). Needs node >= 22.18 for flag-free .mts type-stripping (the earlier
+  # "22.6" note in the pin was wrong and is the E16 root cause, see the setup-node comment);
+  # needs pnpm install --frozen-lockfile because gate-mcp inspects installed packages.
   # D122 topology note: origin is Gitee with a one-way GitHub mirror — this job is
   # post-hoc on the mirror, not pre-merge.
   governance:
@@ -196,17 +201,42 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.6'
+          # E16 root cause (2026-11-09): this pin alone explains four red Gates runs.
+          # Type stripping landed in v22.6.0 but REQUIRED --experimental-strip-types; it
+          # became default only in v22.18.0 (official timeline, multi-source). So under
+          # '22.6' the very first governance command cannot load its own .mts entry - which
+          # is exactly why run #36 showed GitHub's generic exit-1 while this step's custom
+          # annotation never printed: the script died before any of it ran. Local runs are
+          # green on 22.23.2 and 26.6.0 (both >= 22.18), measured - the asymmetry was the
+          # whole story. '22' matches every other job and resolves >= 22.18.
+          node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - name: Regenerate tracked faces and verify no drift
         run: |
-          node scripts/agents/agent-links.mts sync
+          # E16 second instrument (2026-11-09, cut 30): run #36 showed this step's own
+          # annotation NEVER printed while GitHub's generic exit-1 did - under `bash -e`
+          # that has one reading: the sync command itself died before the diff ran. So sync
+          # is captured now; its de-coloured tail is the answer E16 has been owed. Note this
+          # job alone pins node 22.6 while every other job uses '22' - the pin's stated
+          # reason ("native .mts type-stripping") is the surviving suspect, since this repo
+          # runs .mts without a flag only on newer minors.
+          sync_rc=0
+          node scripts/agents/agent-links.mts sync > "$RUNNER_TEMP/sync.log" 2>&1 || sync_rc=$?
+          if [ "$sync_rc" -ne 0 ]; then
+            sync_tail=$(sed -E 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/sync.log" | tail -6 | tr '\n' ';' | sed 's/::/--/g')
+            echo "::error::agents sync itself failed (rc=$sync_rc) under $(node -v); tail: $sync_tail"
+            {
+              echo "### Governance Gates: the sync command itself failed (rc $sync_rc, node $(node -v))"
+              echo '```'
+              sed -E 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/sync.log" | tail -40
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit $sync_rc
+          fi
+          sed -E 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/sync.log" | tail -4
           # E16 instrumentation (2026-11-06): the old one-liner sent git's stderr to
-          # /dev/null, so a failure surfaced as a bare exit 1 with no readable cause -
-          # three runs of that and nothing local could reproduce it. Capture everything,
-          # put the paths in the annotation (public) and the diff in the step summary
-          # (also public) so the NEXT run carries its own evidence.
+          # /dev/null, so a failure surfaced as a bare exit 1 with no readable cause.
           # `.qoder/rules` dropped from the list: never tracked, never generated; measured
           # exit 0 as a missing pathspec in a clean worktree, so it was noise not a cause.
           drift_rc=0
