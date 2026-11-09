@@ -122,6 +122,18 @@ describe('deprecation policy validation (S5-B)', () => {
     expect(validateEntry(entry({ path: 'api/v1/demo' })).join(' ')).toContain('route template');
   });
 
+  // security-check 2026-11-09: CR/LF in a list entry used to surface only at request time,
+  // inside reply.header(), as ERR_INVALID_CHAR. Built with fromCharCode so the escape cannot
+  // be silently mangled by the edit tooling (it already happened once in this file's sibling).
+  it('refuses a link containing CR/LF at validation time, not response time', () => {
+    const crlf = String.fromCharCode(13) + String.fromCharCode(10);
+    const problems = validateEntry(entry({ link: `https://x.example/a${crlf}b` }));
+    expect(problems.join(' ')).toContain('control characters');
+    expect(() =>
+      registerDeprecationHeaders(Fastify(), [entry({ link: `https://x.example/a${crlf}b` })]),
+    ).toThrow(/control characters/);
+  });
+
   it('registration fails fast rather than shipping a short window', () => {
     const bad = entry({ announced: '2026-11-09', sunset: 'Mon, 01 Feb 2027 00:00:00 GMT' });
     expect(() => registerDeprecationHeaders(Fastify(), [bad])).toThrow(/policy floor|violates/);

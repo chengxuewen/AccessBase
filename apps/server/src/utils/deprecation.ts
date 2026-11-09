@@ -73,6 +73,21 @@ export function validateEntry(entry: DeprecationEntry, now = new Date()): string
   if (problems.length) return problems;
 
   if (!entry.link.startsWith('http')) problems.push(`link must be an absolute URL: ${entry.link}`);
+  // Security-check finding (2026-11-09, review of S5-B): no check here rejected control bytes.
+  // These values are list constants, never user input, so this is NOT an injection sink - but a
+  // CR/LF slipping into an entry (a copy-paste from a wrapped diff, a stray escape) would fail at
+  // REQUEST time inside reply.header() as ERR_INVALID_CHAR: a typo in a config file turning into
+  // production 500s on that route. Startup is where every other malformation is already refused,
+  // so the refusal belongs there too. Written as a codepoint scan because a regex escape here
+  // got mangled into a literal character class by the edit tooling - an array scan is louder.
+  const hasControlByte = Array.from(entry.link).some((ch) => {
+    const code = ch.codePointAt(0) ?? 0;
+    return code < 0x20 || code === 0x7f;
+  });
+  if (hasControlByte)
+    problems.push(
+      'link contains CR/LF or other control characters - it would crash the response at runtime',
+    );
   if (!entry.path.startsWith('/'))
     problems.push(`path must be a route template starting with /: ${entry.path}`);
   if (entry.path.includes(':') === false && entry.path.endsWith('/'))
