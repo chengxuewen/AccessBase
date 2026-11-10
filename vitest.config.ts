@@ -48,8 +48,14 @@ export default defineConfig({
         // forbid regression - NOT to certify the area. Next raise: statements >= 10, one quality
         // batch, per R3-B's "per-area floors with asOf dates".
         'apps/admin-ui/src/**': { statements: 2, branches: 43, functions: 19 },
-        // packages/logging is intentionally NOT floored: 15 passing tests yet 0% statements
-        // (blind spot registered as E21). A floor of 0 would launder the gap into a pass.
+        // asOf 2026-11-10 (post-E21 deletion): 0% was an artifact of stale compiled output, not of
+        // an untested package. Real measured numbers are 68.42 statements / 50 branches / 100
+        // functions over 1 file and 19 statement sites. Statements and branches are floored;
+        // functions deliberately are NOT - with one file the function denominator is tiny, so a
+        // 100% floor would turn any future helper function into a build break. History: this area
+        // was left unfloored on 2026-11-09 precisely because 0% was a measurement lie (E21) -
+        // flooring a blind spot launders it into a pass; now that the number is real, it is floored.
+        'packages/logging/src/**': { statements: 67, branches: 49 },
       },
     },
     include: ['packages/**/*.{test,spec}.ts', 'apps/**/*.{test,spec}.ts'],
