@@ -47,6 +47,23 @@ would obstruct). If a quota table is ever introduced, anchors are PER BATCH
 (or a declared rolling window) — never "per quarter" inherited from a donor.
 Replacement never consumes quota: retire one + add one = net zero.
 
+## Retirement & migration (deprecation four-step, G2-5 RA-1818-C)
+
+Adopting is the "birth" half of asset lifecycle; this section is the "death"
+half. Retire/migrate a surface in FOUR steps, each visible:
+
+1. **Mark** the old surface (INOPERATIVE frontmatter, REGISTERED VOID,
+   deprecation note — pick the form the surface type defines).
+2. **Publish the migration path** — what replaces it, where, and how to move.
+3. **Keep an alias** until every consumer has moved (tombstone skill,
+   pointer rows, redirected references — evidence: zero dangling refs).
+4. **Remove with a guard** — removal lands only after the guard proves no
+   live consumer (dangling-ref scan / reference sweep = clean).
+
+Precedents: D107/D108 REGISTERED VOID (numbering), ecosystem-scan tombstone
+(RA-1818-1), TDD dangling-ref cleanup (RT-C). Same discipline, different
+surface form.
+
 ## Scope note
 
 Discovery lives in `ecosystem-scan` / `repo-audit` style audits; design lives

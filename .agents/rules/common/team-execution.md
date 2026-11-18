@@ -47,6 +47,15 @@ For delegated execution results, three verdicts only:
 User collaboration iterations (user ↔ lead) have NO round limit — the cap
 applies only to lead ↔ delegated-executor loops.
 
+## Thin-slice discipline (G1-3, mechanism from donor incremental-implementation)
+
+Multi-file/multi-package work lands in THIN VERTICAL SLICES: implement →
+test → verify → commit, one slice at a time, **each slice leaving the
+workspace compilable and gates green**. A slice that cannot stand green on
+its own is not a slice — it is half a change parked in the working tree.
+Slices own their verification gates; never commit a slice that depends on a
+future slice to pass.
+
 ## 4. Small-fix-no-ceremony
 
 A one-line, reversible, single-surface change does NOT get a team, a panel,

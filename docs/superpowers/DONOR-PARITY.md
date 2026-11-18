@@ -35,23 +35,23 @@
 | openspec-explore | RULED-OUT | D123 |
 | openspec-propose | RULED-OUT | D123 |
 | openspec-sync-specs | RULED-OUT | D123 |
-| ui-ux-review | RULED-IN-PENDING | own ruling pending (panel found NO prior ruling basis; donor 59 lines) |
-| api-interface-design | OWED | → DEFERRED row (dangling refs: expert-panel lens + 11-04 miscall) |
+| ui-ux-review | RULED-IN-PENDING | own ruling pending (panel found NO prior ruling basis; donor 59 lines). REOPEN TRIGGER + performance-optimization React-profiling thought MERGED here (RT-C G2-2: one trigger, two assets) |
+| api-interface-design | OWED | RT-C G3: real gap (contract-first discipline); dangling refs (expert-panel lens) cleaned at DEFERRED seeding |
 | browser-testing | OWED | → DEFERRED row |
-| ci-cd-automation | OWED | → DEFERRED row (panel: no real overlap found) |
+| ci-cd-automation | RULED-OUT | RT-C G1: donor-specific infra, no real overlap |
 | context-engineering | OWED | → DEFERRED row (tombstone weak refs) |
-| debugging-and-error-recovery | OWED | → DEFERRED row (think-before-act covers failure-retry discipline, not the full debugging method) |
+| debugging-and-error-recovery | RULED-IN (mechanism absorbed) | RT-C G1: bisect/layer-localization/evidence-capture folded into think-before-act |
 | deprecation-and-migration | OWED | → DEFERRED row |
 | documentation-and-adrs | OWED | → DEFERRED row |
-| incremental-implementation | OWED | → DEFERRED row (panel: no overlap evidence) |
-| lsp-code-analysis | OWED | → DEFERRED row (zero recorded mention anywhere) |
+| incremental-implementation | RULED-IN (mechanism absorbed) | RT-C G1: thin-slice discipline folded into team-execution rule |
+| lsp-code-analysis | RULED-IN-PENDING | RT-C G1: real gap (zero recorded mention); REOPEN TRIGGER: next cross-package symbol surgery batch |
 | observability-and-instrumentation | OWED | → DEFERRED row |
 | performance-optimization | OWED | → DEFERRED row |
 | repo-triage | OWED | → DEFERRED row |
 | shipping-and-launch | OWED | → DEFERRED row |
-| source-driven-development | OWED | → DEFERRED row (verify donor inoperative marking) |
-| test-driven-development | OWED | → DEFERRED row (dangling refs: skills-router, skill-router, 2026-09-28 plan) |
-| weaknet-testing | OWED | → DEFERRED row |
+| source-driven-development | RULED-OUT | RT-C G3: mechanism already in reuse-first + evolution-protocol source-verification step |
+| test-driven-development | RULED-OUT | RT-C G1: strong overlap with test-harness; 8 dangling refs cleaned (now /test-harness) |
+| weaknet-testing | OWED | RT-C G3: real gap (no weaknet plane); REOPEN TRIGGER: weak-network scenario demand |
 
 ## Non-skill donor assets
 

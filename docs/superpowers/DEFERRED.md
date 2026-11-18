@@ -31,3 +31,5 @@
 Register seed count: 16 (9 from the 11-17 distillation net of 2 absorbed by
 RA-1818-1/-2, 6 from the 11-04 plan, 1 new). Rows are the authority — this
 line is history, not a check.
+| Observability system discipline (RED metrics/spans/alerts, donor 106 lines) | RT-C G2-1 (donor skill, MS media-stack specific) | No metrics/traces plane exists yet to hang it on | Observability system initiative (monitoring/logging/metrics plane built) | proposal card |
+| Shipping checklist (gates/version/changelog/artifact pin/staged rollout/rollback, donor 89 lines) | RT-C G2-4 (donor skill, generic mechanism) | No external consumers yet — deploy plane exists but nothing ships to users | First external delivery (release to users) | deploy-ops role |

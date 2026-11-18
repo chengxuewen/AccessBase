@@ -37,8 +37,11 @@ recorded), **coverage-gap** (no owner, no judgment — a real hole).
 | 10 | naming | files/tasks/branches | partial gate; case-collision manual |
 | 11 | agents/teams | `.codebuddy/teams/` (runtime) | coverage-gap by design → deferred register |
 
-Quick mode: the NINE live domains (1-5, 7-10), each tagged. Full mode: adds
-governance inventory + external scan + security lens.
+Quick mode: the NINE live domains (1-5, 7-10), each tagged. **Entry triage
+(donor repo-triage mechanism, G2-3)**: an ambiguous task routes FIRST to its
+domain via this table (server-plane → 1/2, identity/security → 3+11,
+docs → 5, build/CI → 4/7, deploy → ops role), THEN the domain's audit runs.
+Full mode: adds governance inventory + external scan + security lens.
 
 ## Modes
 

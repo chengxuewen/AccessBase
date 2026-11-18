@@ -165,3 +165,32 @@ layer summaries, exit 0), census pass=4.**
 - V1: agents check full roster exit 0. V2 pending (first Quick audit already
   landed — `repo-audit-latest.md` IS the V2 output). V3: tombstone + sweep
   spot-checks green. V5: DEFERRED 16 rows verified.
+
+## RT-C execution log (2026-11-18, three group rounds ruled one-at-a-time)
+
+- **G1 (5 skills)**: ci-cd RULED-OUT (donor infra-specific); debugging
+  bisect/layer-localization/evidence-capture folded into think-before-act
+  (mechanism absorbed); incremental thin-slice folded into team-execution
+  rule; test-driven RULED-OUT + 8 dangling refs cleaned to /test-harness;
+  lsp-code-analysis RULED-IN-PENDING (zero recorded mention — real gap,
+  trigger = next cross-package symbol surgery). Net skills: 0.
+- **G2 (5 skills)**: observability OWED→DEFERRED (trigger: observability
+  initiative); performance RULED-OUT + React-profiling thought MERGED into
+  the ui-ux-review PARITY row trigger (one trigger, two assets); repo-triage
+  mechanism folded into repo-audit Quick entry-triage; shipping
+  OWED→DEFERRED (trigger: first external delivery); deprecation four-step
+  folded into evolution-protocol Retirement & migration section. Net
+  skills: 0.
+- **G3 (6 skills)**: api-interface-design OWED→DEFERRED (contract-first
+  gap); context-engineering RULED-OUT (our single-source routing is a
+  better implementation); documentation-and-adrs RULED-OUT (memorys
+  D-series + doc-audit cover); browser-testing RULED-OUT (e2e/mock-first
+  covers same project's dashboard); weaknet-testing OWED→DEFERRED
+  (trigger: weaknet scenario demand); source-driven-development
+  RULED-OUT (mechanism in reuse-first + source-verification step).
+  Net skills: 0.
+
+Final donor-parity: 37 donor skills = 15 HAVE + 1 RULED-IN-PENDING (lsp) +
+2 OWED→DEFERRED (api-interface-design, weaknet-testing) + 5 RULED-OUT
+(openspec family ×5 per D123) + … (full four-state ledger in
+DONOR-PARITY.md). Zero silently-swallowed.

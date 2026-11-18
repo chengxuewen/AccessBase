@@ -21,11 +21,11 @@ description: "分析用户意图，输出推荐技能列表。当用户说'怎�
 
 | 分类           | 关键词                                                | 默认推荐                                                          |
 | -------------- | ----------------------------------------------------- | ----------------------------------------------------------------- |
-| **实现**       | "添加"/"实现"/"创建"/"修改"                           | `/think-before-act` + `/test-driven-development`                  |
+| **实现**       | "添加"/"实现"/"创建"/"修改"                           | `/think-before-act` + `/test-harness`                  |
 | **修复**       | "修复"/"bug"/"错误"/"不工作"                          | `/systematic-debugging`                                           |
 | **重构**       | "重构"/"优化"/"简化"/"清理"                           | `/think-before-act` + `/remove-ai-slops`                          |
 | **设计**       | "设计"/"架构"/"方案"/"怎么做"                         | `/brainstorming` + `/writing-plans`                               |
-| **测试**       | "测试"/"E2E"/"覆盖率"                                 | `/test-driven-development` + `/playwright`                        |
+| **测试**       | "测试"/"E2E"/"覆盖率"                                 | `/test-harness` + `/playwright`                        |
 | **文档**       | "文档"/"README"/"说明"                                | `/doc-audit`                                                      |
 | **安全**       | "安全"/"权限"/"认证"                                  | `/security-hardening`                                             |
 | **探索**       | "调研"/"对比"/"有什么方案"                            | `/repo-audit` + librarian agent                               |
@@ -56,7 +56,7 @@ description: "分析用户意图，输出推荐技能列表。当用户说'怎�
 ```
 推荐组合:
 1. /think-before-act — 先调研方案，避免盲目修改
-2. /test-driven-development — 先写测试再实现
+2. /test-harness — 先写测试再实现
 理由: 非平凡的多模块变更，需要测试保障
 ```
 
@@ -64,7 +64,7 @@ description: "分析用户意图，输出推荐技能列表。当用户说'怎�
 
 ```
 意图不明确，可能的方向:
-1. 如果是实现新功能 → /think-before-act + /test-driven-development
+1. 如果是实现新功能 → /think-before-act + /test-harness
 2. 如果是修复 bug → /systematic-debugging
 3. 如果是重构 → /remove-ai-slops + /think-before-act
 请问具体想做什么？

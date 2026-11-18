@@ -13,7 +13,7 @@
 
 ```
 IF 用户开始新任务:
-  ├─ 多步实现 → 💡 /test-driven-development + /think-before-act
+  ├─ 多步实现 → 💡 /test-harness + /think-before-act
   ├─ Bug 修复 → 💡 /systematic-debugging
   ├─ 架构变更 → 💡 /think-before-act + /writing-plans
   ├─ UI/前端 → 💡 /design-system + /think-before-act
@@ -31,7 +31,7 @@ IF 正在编辑代码:
 
 IF 测试相关:
   ├─ 连续 2+ 次测试失败 → 💡 /systematic-debugging
-  ├─ 无测试直接写实现 → 💡 /test-driven-development
+  ├─ 无测试直接写实现 → 💡 /test-harness
   ├─ UI 变更后 → 💡 /playwright + /visual-qa
   └─ 准备合并/PR → 💡 /requesting-code-review + /verification-before-completion
 
@@ -54,7 +54,7 @@ IF 会话状态:
 | 优先级 | 技能                       | 理由                    |
 | :----: | -------------------------- | ----------------------- |
 |   1    | `/think-before-act`        | 预防 > 修复，元约束优先 |
-|   2    | `/test-driven-development` | 测试先行 > 事后补测试   |
+|   2    | `/test-harness` | 测试先行 > 事后补测试   |
 |   3    | `/systematic-debugging`    | 有 bug 先诊断，不要瞎试 |
 |   4    | `/security-hardening`      | 安全问题不能拖          |
 |   5    | `/design-system`           | UI 一致性               |
@@ -72,5 +72,5 @@ IF 会话状态:
 ## 合并推荐示例
 
 ```
-💡 建议使用 /think-before-act（非平凡操作）+ /test-driven-development（先写测试）
+💡 建议使用 /think-before-act（非平凡操作）+ /test-harness（先写测试）
 ```
