@@ -146,3 +146,36 @@ Harness (puppeteer): 7 switcher options; all seven accents distinct
 #1677FF, carbon #0F62FE, cupertino #007AFF); carbon btn/card radius 0px + IBM
 Plex; cupertino btn 10px / tag 999px / topbar backdrop-filter saturate(1.8)
 blur(20px) / dark accent #0A84FF. Screenshots: carbon light, cupertino light.
+
+## v0.7 — 2026-11-18 (admin-console) — Roles permission matrix + Groups detail (high-fidelity)
+User: "v0.7". Grounded in real admin-ui (donor method — no invented features):
+read pages/Roles.tsx, pages/Groups.tsx, api/roles.ts, and the canonical
+permission catalog apps/server/src/routes/permissions-seed.ts (BUILTIN_PERMISSIONS).
+- **Roles page**: real columns (name / description / permissions count / tenant /
+  created / actions). isSystem built-in admin row is locked (lock icon + system
+  tag + disabled edit/delete), per ROLE_PROTECTED. Permission MATRIX editor:
+  11 resources x read/write/delete = 33 cells, of which 26 are real permissions
+  and 7 render not-applicable (audit/stats/options/clients/webhooks have no
+  delete; audit/stats no write). The 26 codes are verbatim from the seed catalog.
+  Click a role row to load its matrix; click a cell to toggle a binding (system
+  role read-only). users:* data-scope select (all/dept/self) per the real
+  data-scope batch. 5 roles: admin(system,26), editor(13), viewer(11),
+  billing-admin(8), auditor(11).
+- **Groups page**: real columns (name / kind / description / memberCount /
+  roleCount / created-relative / actions). kind = department|group (blue dept
+  tag). Detail panel with Members tab (member list + add-member picker drawn
+  from the Users dataset + remove) and Roles tab (bind roles via checkboxes +
+  save), per the real Groups drawer. 5 groups (2 departments, 3 groups).
+- All new components (matrix cells, role-checks, tabs, member rows, panel) are
+  token-driven, so all 7 style packs apply automatically — verified ant
+  #1677FF, carbon #0F62FE + 0px radius, cupertino #007AFF, broadsheet #0F5C5A
+  flow into matrix cells and role checkboxes.
+Harness (puppeteer): Roles — 5 rows, 11 resource rows, admin 26/26 + 7 na cells,
+system lock (edit/matrix/scope all disabled), editor 13/26 + scope=dept, toggle
+users:delete +1 reversible. Groups — 5 rows / 2 dept tags, Engineering panel,
+Members 4->5->4 add/remove, picker 9 candidates, Roles tab 5 checks / 3 bound
+->4 toggle, panel close. Style packs verified on new pages. Screenshots: roles
+matrix (broadsheet), groups detail (ant).
+Note: the matrix is a prototype visualization of the real resource:action
+binding model (the production UI assigns permissions via an AntD Transfer);
+the underlying data — codes, scopes, system protection — is faithful.

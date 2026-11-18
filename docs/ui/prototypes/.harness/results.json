@@ -1,6 +1,6 @@
 {
   "when": "2026-11-18",
-  "prototype": "admin-console.html v0.6 (7 single-word style packs x light/dark)",
+  "prototype": "admin-console.html v0.7 (Roles matrix + Groups detail; 7 style packs x light/dark)",
   "runner": "puppeteer (headless chromium)",
   "fail": 0,
   "results": {
@@ -146,6 +146,64 @@
         "recordedAs": "provenance note (HTML STYLE PACKS header + CHANGELOG)",
         "notAVisualPack": true,
         "rationale": "Fusion ~= AntD visually; admin-ui implements AntD; Fusion theme-factory philosophy is the token-pack architecture precedent"
+      }
+    },
+    "roles-matrix": {
+      "pass": true,
+      "assertions": {
+        "roleRows": 5,
+        "resourceRows": 11,
+        "totalCells": 33,
+        "realPermissions": 26,
+        "naCells": 7,
+        "adminGranted": "26/26",
+        "systemLock": {
+          "editDisabled": true,
+          "matrixDisabled": true,
+          "scopeDisabled": true
+        },
+        "editor": {
+          "granted": "13/26",
+          "scope": "dept",
+          "scopeEnabled": true
+        },
+        "toggle": {
+          "code": "users:delete",
+          "delta": 1,
+          "reversible": true
+        }
+      }
+    },
+    "groups-detail": {
+      "pass": true,
+      "assertions": {
+        "groupRows": 5,
+        "deptTags": 2,
+        "panel": "Engineering",
+        "kind": "Department",
+        "members": {
+          "initial": 4,
+          "afterAdd": 5,
+          "afterRemove": 4,
+          "pickerCandidates": 9
+        },
+        "rolesTab": {
+          "checks": 5,
+          "bound": 3,
+          "afterToggle": 4
+        },
+        "panelClose": true
+      }
+    },
+    "style-packs-on-new-pages": {
+      "pass": true,
+      "assertions": {
+        "antMatrixCell": "#1677FF",
+        "carbonMatrixCell": "#0F62FE",
+        "carbonRadius": "0px",
+        "cupertinoMatrixCell": "#007AFF",
+        "cupertinoRoleCheck": "#007AFF",
+        "broadsheetMatrixCell": "#0F5C5A"
       }
     }
   }
