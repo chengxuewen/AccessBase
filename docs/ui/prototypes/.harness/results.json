@@ -1,6 +1,6 @@
 {
   "when": "2026-11-18",
-  "prototype": "admin-console.html v0.3 (4 style packs x light/dark)",
+  "prototype": "admin-console.html v0.4 (4 single-word style packs x light/dark)",
   "runner": "puppeteer (headless chromium)",
   "fail": 0,
   "results": {
@@ -67,30 +67,48 @@
     "style-packs": {
       "pass": true,
       "assertions": {
-        "enterprise": {
+        "broadsheet": {
           "accent": "#0F5C5A",
           "r6": "6px",
           "sans": "IBM Plex Sans"
         },
-        "engineer": {
+        "geist": {
           "accent": "#111111",
           "r6": "4px",
           "sans": "Inter"
         },
-        "google": {
+        "material": {
           "accent": "#1A73E8",
           "r6": "16px",
           "sans": "Roboto",
           "btnRadius": "999px"
         },
-        "microsoft": {
+        "fluent": {
           "accent": "#0F6CBD",
           "r6": "4px",
           "sans": "Segoe UI"
         },
-        "persisted": "ab_style",
-        "themeOrthogonal": true,
-        "switcherOptions": 4
+        "optionValues": [
+          "broadsheet",
+          "geist",
+          "material",
+          "fluent"
+        ],
+        "themeOrthogonal": true
+      }
+    },
+    "style-rename": {
+      "pass": true,
+      "assertions": {
+        "leftoverOldIdentifiers": 0,
+        "mockDataPreserved": true,
+        "migration": {
+          "enterprise": "broadsheet",
+          "engineer": "geist",
+          "google": "material",
+          "microsoft": "fluent",
+          "newNamesPassThrough": true
+        }
       }
     }
   }

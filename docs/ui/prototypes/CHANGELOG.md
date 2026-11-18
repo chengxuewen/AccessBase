@@ -70,3 +70,31 @@ Boundary recorded: 4 packs is the single-file comfort ceiling; more styles
 (apple/notion) would require splitting theme-pack files (sacrifices
 double-click). AntD ConfigProvider theme.token is isomorphic to this pack
 mechanism, so a chosen prototype style maps to implementation presets.
+
+## v0.4 — 2026-11-18 (admin-console) — style-pack rename: single-word design-language names
+User ruling: company names (google/microsoft) as style identifiers carry
+brand-association risk and mis-reference (we follow their DESIGN SYSTEMS, not
+the companies). Constraint: short, single word. Two-word combinations excluded
+by the constraint; pure style-names rejected (Material/Fluent lack intuitive
+single-word style descriptors). Resolution: design-language name where one
+exists as a single word, style word where none does.
+- google -> **material** (Material 3; cf. MUI / Material UI precedent)
+- microsoft -> **fluent** (Fluent 2; cf. Fluent UI precedent)
+- engineer -> **geist** (Geist design system; "Linear" is a company name, dropped)
+- enterprise -> **broadsheet** (style word — WorkOS has no public single-word
+  design-system name; broadsheet is a common noun, zero brand risk)
+Identifiers are lowercase data-style values; switcher labels capitalized
+(Broadsheet / Geist / Material / Fluent). Provenance separated: this CHANGELOG
+records the design-language references; the pack identifiers are the four
+words above (reference vs identifier, each in its place).
+- Back-compat: STYLE_MIGRATE maps old persisted ab_style values
+  (enterprise/engineer/google/microsoft) to the new names on load, so existing
+  localStorage does not fall back to default.
+Harness (puppeteer): switcher option values/labels = the four new names; each
+pack's --accent/--r6/--sans verified distinct under new selectors (broadsheet
+#0F5C5A/6px/Plex; geist #111111/4px/Inter; material #1A73E8/16px/Roboto;
+fluent #0F6CBD/4px/Segoe); material btn 999px vs broadsheet 4px (structural
+override intact); migration table exercised in-page (google->material, all
+old->new, new names pass through). Note: headless file:// localStorage does
+not persist across navigations in the runner, so migration was verified by
+exercising the exact init logic in-page rather than a cross-reload seed.
