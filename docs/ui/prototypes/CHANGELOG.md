@@ -357,3 +357,15 @@ The harness is now a REPRODUCIBLE Playwright suite (was a session-observed hand-
   close-button name, dialog role, focus ring. All 15 pass.
 - Deferred (prototype scope, disclosed): full modal focus-trap/focus-return, complete tabs tablist
   AT semantics, selectable-row keyboard path.
+
+## Scrollbar display fix — 2026-11-18 (user-reported)
+Symptom: scrollbar thumb showed a mismatched-color halo in containers whose background is
+--surface (sidebar nav, modals) whenever --bg != --surface (ant/material/fluent/carbon/cupertino
+and most dark modes); thumb was square; no corner styling (bright corner in dark when both axes
+scroll). Root cause: `::-webkit-scrollbar-thumb{border:3px solid var(--bg)}` painted the inset
+border in the PAGE background, not the scroll container's own background.
+Fix: standard inset-thumb technique — `border:3px solid transparent; background-clip:padding-box`
+(the border region now shows the container's own background, correct in any container); thumb
+radius uses the pack token (--r4); track + corner transparent; hover feedback (--tx3); Firefox
+`scrollbar-color:var(--bd2) transparent; scrollbar-width:thin`. Verified before/after at
+1440x520 ant light (nav + main scrolling): halo gone. Harness 15 groups still pass.
