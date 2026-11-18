@@ -40,3 +40,33 @@ single system font (generic-font tell).
 - Dark theme re-tuned to warm dark (#15191B) with bright-teal accent, no glow.
 Harness (puppeteer): statCards=4, svgIcons=66, emojiInUI=false,
 logo gradient=none, trend/activity/users/theme/nav/filter/search all pass.
+
+## v0.3 — 2026-11-18 (admin-console) — multi-style switching: 4 token packs (ruling: 开工)
+User asked whether multi-style switching is feasible (enterprise / engineer /
+Google / Microsoft). Analysis: current token architecture already concentrates
+all visual decisions in :root, so style = a token override set; style x theme
+are orthogonal dimensions. Implemented as data-style attribute + per-pack
+override blocks, JS switch + localStorage (ab_style), zero deps, single-file
+double-click preserved.
+- **enterprise** (default, = v0.2 WorkOS broadsheet): white + warm-slate ink +
+  deep-teal, radius 2/4/6, IBM Plex.
+- **engineer** (Linear/Geist): monochrome near-black/white, tiny radius 3/4,
+  high density (tighter rows/nav), Inter; primary = solid ink (white-on-dark).
+- **google** (Material 3): large radius 12/16, capsule buttons (999px),
+  elevation shadows, Google blue #1A73E8 (dark #8AB4F8), Roboto, round avatars.
+- **microsoft** (Fluent 2): small radius 4, Segoe UI, Fluent blue #0F6CBD
+  (dark #479EF5), subtle shadow + border.
+- Structural overrides per pack (google capsule/elevation, engineer density,
+  microsoft shadow) beyond pure tokens (~20% of style identity).
+- Topbar style switcher (select) beside theme toggle; fonts (Roboto/Inter)
+  added to the async post-load injector so offline never blocks.
+Harness (puppeteer) style x theme matrix: each pack's --accent/--r6/--sans
+verified distinct (enterprise #0F5C5A/6px/Plex; engineer #111111/4px/Inter;
+google #1A73E8/16px/Roboto; microsoft #0F6CBD/4px/Segoe); google btn radius
+999px vs enterprise 4px (structural override live); ab_style persisted;
+theme toggle still orthogonal; 4 switcher options. Screenshots: enterprise
+light (v0.2), google light, engineer dark.
+Boundary recorded: 4 packs is the single-file comfort ceiling; more styles
+(apple/notion) would require splitting theme-pack files (sacrifices
+double-click). AntD ConfigProvider theme.token is isomorphic to this pack
+mechanism, so a chosen prototype style maps to implementation presets.

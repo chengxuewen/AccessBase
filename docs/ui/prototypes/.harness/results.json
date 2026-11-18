@@ -1,16 +1,97 @@
 {
   "when": "2026-11-18",
-  "prototype": "admin-console.html v0.2 (WorkOS enterprise broadsheet)",
+  "prototype": "admin-console.html v0.3 (4 style packs x light/dark)",
   "runner": "puppeteer (headless chromium)",
   "fail": 0,
   "results": {
-    "de-ai-slop": { "pass": true, "assertions": { "svgIcons": 66, "emojiInUI": false, "logoGradient": "none" } },
-    "dashboard-render": { "pass": true, "assertions": { "statCards": 4, "trendSvg": true, "activityItems": 5 } },
-    "theme": { "pass": true, "assertions": { "initial": "light", "afterToggle": "dark", "persisted": true } },
-    "nav-switch": { "pass": true, "assertions": { "usersPageVisible": true, "crumb": "Users" } },
-    "users-table": { "pass": true, "assertions": { "initialRows": 8, "pageSize": 8 } },
-    "filter-narrows": { "pass": true, "assertions": { "disabledFilterRows": 3, "allDisabled": true } },
-    "search": { "pass": true, "assertions": { "query": "alice", "rows": 1, "hit": "Alice Chen" } },
-    "offline-load": { "pass": true, "assertions": { "fontAsyncPostLoad": true, "navigationTimeout": false } }
+    "de-ai-slop": {
+      "pass": true,
+      "assertions": {
+        "svgIcons": 66,
+        "emojiInUI": false,
+        "logoGradient": "none"
+      }
+    },
+    "dashboard-render": {
+      "pass": true,
+      "assertions": {
+        "statCards": 4,
+        "trendSvg": true,
+        "activityItems": 5
+      }
+    },
+    "theme": {
+      "pass": true,
+      "assertions": {
+        "initial": "light",
+        "afterToggle": "dark",
+        "persisted": true
+      }
+    },
+    "nav-switch": {
+      "pass": true,
+      "assertions": {
+        "usersPageVisible": true,
+        "crumb": "Users"
+      }
+    },
+    "users-table": {
+      "pass": true,
+      "assertions": {
+        "initialRows": 8,
+        "pageSize": 8
+      }
+    },
+    "filter-narrows": {
+      "pass": true,
+      "assertions": {
+        "disabledFilterRows": 3,
+        "allDisabled": true
+      }
+    },
+    "search": {
+      "pass": true,
+      "assertions": {
+        "query": "alice",
+        "rows": 1,
+        "hit": "Alice Chen"
+      }
+    },
+    "offline-load": {
+      "pass": true,
+      "assertions": {
+        "fontAsyncPostLoad": true,
+        "navigationTimeout": false
+      }
+    },
+    "style-packs": {
+      "pass": true,
+      "assertions": {
+        "enterprise": {
+          "accent": "#0F5C5A",
+          "r6": "6px",
+          "sans": "IBM Plex Sans"
+        },
+        "engineer": {
+          "accent": "#111111",
+          "r6": "4px",
+          "sans": "Inter"
+        },
+        "google": {
+          "accent": "#1A73E8",
+          "r6": "16px",
+          "sans": "Roboto",
+          "btnRadius": "999px"
+        },
+        "microsoft": {
+          "accent": "#0F6CBD",
+          "r6": "4px",
+          "sans": "Segoe UI"
+        },
+        "persisted": "ab_style",
+        "themeOrthogonal": true,
+        "switcherOptions": 4
+      }
+    }
   }
 }

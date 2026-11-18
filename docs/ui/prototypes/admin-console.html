@@ -148,6 +148,48 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 .placeholder h2{font-size:var(--fs16);font-weight:600;color:var(--tx1);margin-bottom:4px}
 @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
 @media(max-width:760px){.app{grid-template-columns:var(--nav-w-min) 1fr}.app .nav a span.lbl,.app .nav a .badge,.app .brand .name{display:none}.stats{grid-template-columns:1fr}.search{display:none}}
+/* ==== v0.3 STYLE PACKS (data-style x data-theme orthogonal) ==== */
+/* engineer — Linear/Geist: monochrome, tiny radius, high density */
+[data-style="engineer"]{--r2:2px;--r4:3px;--r6:4px;--sp12:10px;--sp16:12px;--sp24:16px;
+  --sans:"Inter","Geist",-apple-system,"Segoe UI","PingFang SC",sans-serif}
+[data-style="engineer"][data-theme="light"]{--bg:#FAFAFA;--surface:#FFFFFF;--sunken:#F4F4F4;--hover:#EFEFEF;
+  --tx1:#111111;--tx2:#666666;--tx3:#999999;--txinv:#FFFFFF;--bd:#EAEAEA;--bd2:#D4D4D4;--focus:#111111;
+  --accent:#111111;--accent-hi:#000000;--accent-tint:rgba(0,0,0,.05);
+  --ok:#116932;--ok-tint:rgba(17,105,50,.08);--warn:#8A6116;--warn-tint:rgba(138,97,22,.08);--danger:#B3372F;--danger-tint:rgba(179,55,47,.08)}
+[data-style="engineer"][data-theme="dark"]{--bg:#0A0A0A;--surface:#111111;--sunken:#0D0D0D;--hover:#1A1A1A;
+  --tx1:#EDEDED;--tx2:#A0A0A0;--tx3:#6E6E6E;--txinv:#0A0A0A;--bd:#222222;--bd2:#333333;--focus:#EDEDED;
+  --accent:#EDEDED;--accent-hi:#FFFFFF;--accent-tint:rgba(255,255,255,.08);
+  --ok:#5CBF8A;--ok-tint:rgba(92,191,138,.12);--warn:#D9A441;--warn-tint:rgba(217,164,65,.12);--danger:#E07B72;--danger-tint:rgba(224,123,114,.12)}
+[data-style="engineer"] tbody td{padding:6px 12px}
+[data-style="engineer"] .stat .val{font-size:22px}
+[data-style="engineer"] .nav a{padding:5px 12px}
+/* google — Material 3: large radius, capsule buttons, elevation, Roboto */
+[data-style="google"]{--r2:8px;--r4:12px;--r6:16px;
+  --sans:"Roboto","Google Sans",-apple-system,"Segoe UI","PingFang SC",sans-serif}
+[data-style="google"][data-theme="light"]{--bg:#F8F9FA;--surface:#FFFFFF;--sunken:#F1F3F4;--hover:#E8EAED;
+  --tx1:#202124;--tx2:#5F6368;--tx3:#80868B;--txinv:#FFFFFF;--bd:#DADCE0;--bd2:#BDC1C6;--focus:#1A73E8;
+  --accent:#1A73E8;--accent-hi:#1765CC;--accent-tint:rgba(26,115,232,.12);
+  --ok:#188038;--ok-tint:rgba(24,128,56,.12);--warn:#B06000;--warn-tint:rgba(176,96,0,.12);--danger:#D93025;--danger-tint:rgba(217,48,37,.12)}
+[data-style="google"][data-theme="dark"]{--bg:#202124;--surface:#2D2E31;--sunken:#17181A;--hover:#3C4043;
+  --tx1:#E8EAED;--tx2:#9AA0A6;--tx3:#757B80;--txinv:#202124;--bd:#3C4043;--bd2:#5F6368;--focus:#8AB4F8;
+  --accent:#8AB4F8;--accent-hi:#AECBFA;--accent-tint:rgba(138,180,248,.16);
+  --ok:#81C995;--ok-tint:rgba(129,201,149,.16);--warn:#FDD663;--warn-tint:rgba(253,214,99,.16);--danger:#F28B82;--danger-tint:rgba(242,139,130,.16)}
+[data-style="google"] .btn{border-radius:999px}
+[data-style="google"] .card{box-shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24)}
+[data-style="google"] .tag{border-radius:8px}
+[data-style="google"] .icon-btn,[data-style="google"] .avatar{border-radius:999px}
+/* microsoft — Fluent 2: small radius, Segoe UI, subtle shadow + border */
+[data-style="microsoft"]{--r2:2px;--r4:4px;--r6:4px;
+  --sans:"Segoe UI",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+[data-style="microsoft"][data-theme="light"]{--bg:#F5F5F5;--surface:#FFFFFF;--sunken:#FAFAFA;--hover:#F0F0F0;
+  --tx1:#242424;--tx2:#616161;--tx3:#8A8A8A;--txinv:#FFFFFF;--bd:#E0E0E0;--bd2:#C8C8C8;--focus:#0F6CBD;
+  --accent:#0F6CBD;--accent-hi:#0E5FA8;--accent-tint:rgba(15,108,189,.10);
+  --ok:#107C10;--ok-tint:rgba(16,124,16,.10);--warn:#9D5D00;--warn-tint:rgba(157,93,0,.10);--danger:#C42B1C;--danger-tint:rgba(196,43,28,.10)}
+[data-style="microsoft"][data-theme="dark"]{--bg:#1F1F1F;--surface:#2B2B2B;--sunken:#1A1A1A;--hover:#333333;
+  --tx1:#FFFFFF;--tx2:#D6D6D6;--tx3:#9E9E9E;--txinv:#1F1F1F;--bd:#3D3D3D;--bd2:#525252;--focus:#479EF5;
+  --accent:#479EF5;--accent-hi:#62ABF5;--accent-tint:rgba(71,158,245,.16);
+  --ok:#6CCB5F;--ok-tint:rgba(108,203,95,.16);--warn:#FCE100;--warn-tint:rgba(252,225,0,.16);--danger:#FF99A4;--danger-tint:rgba(255,153,164,.16)}
+[data-style="microsoft"] .card{box-shadow:0 1px 2px rgba(0,0,0,.08)}
 </style>
 </head>
 <body>
@@ -200,6 +242,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
     <div class="crumb">Admin / <b id="crumbPage">Dashboard</b></div>
     <div class="search"><svg class="ic"><use href="#i-search"/></svg><input placeholder="Search users, roles, audit…"></div>
     <div class="top-actions">
+      <select id="styleSelect" title="Style pack" style="padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit"><option value="enterprise">Enterprise</option><option value="engineer">Engineer</option><option value="google">Google</option><option value="microsoft">Microsoft</option></select>
       <button class="icon-btn" id="themeBtn" title="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
       <div class="tenant-select"><svg class="ic" style="width:13px;height:13px"><use href="#i-building"/></svg><span>Acme Corp</span><svg class="ic" style="width:12px;height:12px;color:var(--tx3)"><use href="#i-chev-r"/></svg></div>
       <div class="avatar">AD</div>
@@ -266,8 +309,11 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
   </main>
 </div>
 <script>
-addEventListener("load",()=>{const l=document.createElement("link");l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap";document.head.appendChild(l);});
+addEventListener("load",()=>{const l=document.createElement("link");l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Roboto:wght@400;500&family=Inter:wght@400;500;600&display=swap";document.head.appendChild(l);});
 const $=id=>document.getElementById(id);
+try{document.documentElement.dataset.style=localStorage.getItem('ab_style')||'enterprise'}catch(e){}
+const styleSel=$('styleSelect');styleSel.value=document.documentElement.dataset.style||'enterprise';
+styleSel.onchange=()=>{document.documentElement.dataset.style=styleSel.value;try{localStorage.setItem('ab_style',styleSel.value)}catch(e){}};
 $('themeBtn').onclick=()=>{const h=document.documentElement;const n=h.dataset.theme==='light'?'dark':'light';h.dataset.theme=n;try{localStorage.setItem('ab_theme',n)}catch(e){}};
 const app=$('app');
 $('collapseBtn').onclick=()=>{app.classList.toggle('collapsed');const c=app.classList.contains('collapsed');$('collapseIc').innerHTML='<use href="#i-chev-'+(c?'r':'l')+'"/>';$('collapseLbl').textContent=c?'':'Collapse';};
