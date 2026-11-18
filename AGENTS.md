@@ -139,11 +139,13 @@ frontmatter `description`. Maintained by `agents sync` — do not hand-edit this
 | `code-simplification` | Reduce complexity in TypeScript code. Cheste… |
 | `design-system` | 为 AccessBase 企业应用平台生成一致的 UI。引导 AI 代理创建符合 Acc… |
 | `doc-audit` | AccessBase 项目文档与架构审计。并行检查 AGENTS.md、记忆文件、决策记… |
-| `ecosystem-scan` | 审计 .agents/ 体系并扫描社区生态寻找可引入的技能/规则/MCP。双层（Quic… |
+| `ecosystem-scan` | INOPERATIVE — superseded by repo-audit (ruli… *(inoperative — do not route here)* |
 | `expert-panel-review` | 多角色专家团审核一份计划/结论/决策：先独立后合并、隔离视角、必设对抗者、保留分歧、按复… |
 | `graphify` | Use for any question about a codebase, its a… |
 | `lesson-review` | 批量会话回顾：系统性提取经验教训，写入项目记忆。Use after long debug… |
 | `mechanism-porting` | Execute the adoption of an EXTERNAL mechanis… |
+| `repo-audit` | Whole-repo engineering audit across the mapp… |
+| `reuse-first` | 借先于造：开工前证明没有现成的可用——四步证据链（面清点→NOTE 阅读→命令体验证→豁… |
 | `security-hardening` | AccessBase 安全加固。OWASP Top 10 + JWT/RBAC + 数据… |
 | `skill-creator` | Generate AccessBase project skills from SDD … |
 | `skill-router` | 分析用户意图，输出推荐技能列表。当用户说'怎么做'、'用什么技能'、意图模糊时自动激活。… |

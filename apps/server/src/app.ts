@@ -505,7 +505,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
       const raw = req.raw as IncomingMessage & { originalUrl?: string };
       raw.originalUrl = raw.url;
       raw.url = (raw.url ?? '').slice('/oidc'.length);
-      oidcHandler(raw, reply.raw).then(() => done(), done);
+      oidcHandler(raw as unknown as import('node:http').IncomingMessage, reply.raw as unknown as import('node:http').ServerResponse).then(() => done(), done);
     };
     if (req.url.startsWith('/oidc/.well-known')) return handoff();
     const denied = (): void => {

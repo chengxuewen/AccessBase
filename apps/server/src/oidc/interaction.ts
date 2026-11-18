@@ -57,7 +57,7 @@ export async function registerInteractionRoutes(
     },
     async (request) => {
       const interaction = (await provider.interactionDetails(
-        request.raw,
+        request.raw as unknown as import('node:http').IncomingMessage,
         // interactionDetails is read-only — it never touches the response.
         request.raw as unknown as import('node:http').ServerResponse,
       )) as unknown as InteractionLike;
@@ -117,7 +117,7 @@ export async function registerInteractionRoutes(
       let interaction: InteractionLike;
       try {
         interaction = (await provider.interactionDetails(
-          request.raw,
+          request.raw as unknown as import('node:http').IncomingMessage,
           res as unknown as import('node:http').ServerResponse,
         )) as unknown as InteractionLike;
       } catch {
@@ -151,7 +151,7 @@ export async function registerInteractionRoutes(
       const scopes = interaction.prompt.scopes ?? requestedScopes(interaction);
 
       if (interaction.prompt.name === 'login' && decision === 'approve') {
-        await provider.interactionFinished(request.raw, res, { login: { accountId: subject } });
+        await provider.interactionFinished(request.raw as unknown as import('node:http').IncomingMessage, res as unknown as import('node:http').ServerResponse, { login: { accountId: subject } });
         return;
       }
       if (interaction.prompt.name === 'consent' && decision === 'approve') {
@@ -161,14 +161,14 @@ export async function registerInteractionRoutes(
         });
         grant.addOIDCScope(scopes.join(' '));
         const grantId = await grant.save();
-        await provider.interactionFinished(request.raw, res, { consent: { grantId } });
+        await provider.interactionFinished(request.raw as unknown as import('node:http').IncomingMessage, res as unknown as import('node:http').ServerResponse, { consent: { grantId } });
         return;
       }
       if (decision === 'deny') {
         // Deny uses the error-result shape: resume.js maps result.error through
         // errorMap and redirects to the RP with error=access_denied (spec-
         // correct deny). rejectedScopes alone would keep re-prompting consent.
-        await provider.interactionFinished(request.raw, res, {
+        await provider.interactionFinished(request.raw as unknown as import('node:http').IncomingMessage, res as unknown as import('node:http').ServerResponse, {
           error: 'access_denied',
           error_description: 'end-user denied authorization',
         });
