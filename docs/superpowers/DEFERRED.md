@@ -5,7 +5,9 @@
 > row, ALL mandatory (doc-audit checks completeness). REOPEN TRIGGER is the
 > exit: a deferral without a trigger is a burial, not a decision. Recurring
 > recheck carrier: `skill:repo-audit` Full runs cross-link this register's
-> rows (3D table LINKS here; it never duplicates trigger fields).
+> rows (3D table LINKS here; it never duplicates trigger fields). **First
+> recheck happened 2026-11-18 (RT-1818-B2): row-1 trigger text amended to
+> cover review panels and explicit rulings.**
 
 | Shape (full) | Source | Drop reason | REOPEN TRIGGER | Recheck carrier |
 |---|---|---|---|---|

@@ -55,7 +55,10 @@ governance inventory + external scan + security lens.
 
 - **2D eight-asset table**: skills / rules / mcp / scripts / memorys (4
   books) / constraints hub / plans register / donor ledger — count with
-  commands, never quote literals (ADJ-7h).
+  commands, never quote literals (ADJ-7h). **Donor-parity (fixed check, from
+  RA-1818-A): every donor asset lives in `docs/superpowers/DONOR-PARITY.md`
+  in one of four states; new OWED rows require a ruling within one audit
+  cycle; transitions (OWED→ruled→HAVE) update the ledger on landing.**
 - **3D increment table**: columns Asset / Current / Gap / Candidate /
   Landing / Cost / Gate. Diff against the previous run's result stored at
   `docs/superpowers/reports/repo-audit-latest.md` (git history = time
