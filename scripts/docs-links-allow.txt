@@ -1,0 +1,8 @@
+# docs-links allowlist: path|dest pairs that are documented exceptions.
+# book-to-skill references FUTURE artifacts the skill generates at use time
+# (chapters/glossary/patterns/cheatsheet) — template references, not errors.
+.agents/skills/book-to-skill/SKILL.md|chapters/ch01-<slug>.md
+.agents/skills/book-to-skill/SKILL.md|chapters/ch02-<slug>.md
+.agents/skills/book-to-skill/SKILL.md|glossary.md
+.agents/skills/book-to-skill/SKILL.md|patterns.md
+.agents/skills/book-to-skill/SKILL.md|cheatsheet.md

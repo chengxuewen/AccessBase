@@ -68,7 +68,7 @@
 
 | Donor tool | State | Note |
 |---|---|---|
-| check_docs_links.py | OWED | doc-link gate — domain 5's manual links check becomes machine-checkable; → DEFERRED row |
+| check_docs_links.py | HAVE (RULED-IN RT-C, landed repo-audit Full #1) | scripts/agents/docs-links.mts (15th layer; domain 5 links now machine-checked) |
 | check_promises.py | OWED | doc-promise gate (plan says X vs landed Y) — gate-the-gates adjacent; → DEFERRED row |
 | check_no_parent.py + allowlist | OWED | parent-reference (`../`) prohibition; → DEFERRED row |
 | check_memory_ownership.py | OWED | memory-ownership machine check (advisory line today); → DEFERRED row |

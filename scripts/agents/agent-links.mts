@@ -46,9 +46,10 @@ import * as checkLeaks from "./check-leaks.mts";
 import * as scriptsLint from "./scripts-lint.mts";
 import * as rolesLinks from "./roles-links.mts";
 import * as agentLint from "./agent-lint.mts";
+import * as docsLinks from "./docs-links.mts";
 
 const GENERATORS = ["rules-links", "skills-index", "memory-aggregate", "instructions-links", "mcp-links"] as const;
-const LINTS = ["rule-ref-lint", "skill-lint", "constraints-index", "gate-mcp", "header-lint", "check-leaks", "scripts-lint", "agent-lint"] as const;
+const LINTS = ["rule-ref-lint", "skill-lint", "constraints-index", "gate-mcp", "header-lint", "check-leaks", "scripts-lint", "agent-lint", "docs-links"] as const;
 
 function hubBudgetCheck(): { code: number; note: string } {
   const cfg = loadTargets();
@@ -106,6 +107,7 @@ function runLayers(mode: "check" | "sync") {
     scriptsLint.run(mode),
     rolesLinks.run(mode),
     agentLint.run(mode),
+    docsLinks.run(mode),
   ];
   return results;
 }
