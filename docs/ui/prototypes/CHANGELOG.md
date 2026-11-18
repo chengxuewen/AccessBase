@@ -179,3 +179,33 @@ matrix (broadsheet), groups detail (ant).
 Note: the matrix is a prototype visualization of the real resource:action
 binding model (the production UI assigns permissions via an AntD Transfer);
 the underlying data — codes, scopes, system protection — is faithful.
+
+## v0.8 — 2026-11-18 (admin-console) — remaining management pages high-fidelity
+User: "v0.8". Grounded in real admin-ui (donor method): read pages/Tenants.tsx,
+Clients.tsx, ApiKeys.tsx, Webhooks.tsx, Audit.tsx, Events.tsx for real columns
+and features. Six placeholder pages replaced (Profile remains for v0.9).
+- **Tenants**: name / slug(copyable) / status(active|suspended) / created /
+  actions; isDefault row locked (K-T3 precedent); suspend/activate toggle.
+- **OIDC Clients**: name / clientId(copyable) / redirectUris / grantTypes(tags) /
+  scope / created; rotate-secret reveal-once modal (one-time plaintext warning).
+- **API Keys**: name / prefix(copyable) / scopes(tags) / created / expires
+  (Never when null) / status(active|revoked); revoke (disabled once revoked).
+- **Webhooks**: url(copyable) / events(tags) / active-pending-dead counts /
+  created; ping / rotate-secret(reveal-once) / deliveries modal (status /
+  attempts / response / created) — DELIVERY_STATUS_COLOR semantics.
+- **Audit**: time / actor / action(METHOD-colored tag: POST ok, PUT accent,
+  PATCH warn, DELETE danger) / resource / ip / status(200|401); action + actor
+  filters; hash-chain Verify banner; Export.
+- **Events**: time / type(family-colored tag) / payload(JSON code) / fanout
+  (Done|Pending) / detail modal (full payload JSON); type + family filters.
+- Shared modals: secret reveal-once, event detail, webhook deliveries, per-page
+  create form (clients/webhooks reveal secret on create). All token-driven so
+  all 7 style packs apply (verified ant/carbon/cupertino/broadsheet flow into
+  method tags, family tags, matrix cells).
+Harness (puppeteer): Tenants 5 rows/default locked/suspended filter 1/toggle;
+Clients 4 rows/5 grant tags/rotate reveal cs_/clientId/close; ApiKeys 4/Never/
+revoked filter 1/revoke; Webhooks 3/dead pills/ping +1/deliveries modal
+pending-failed-success; Audit 7/7 method tags/DELETE filter 1/verify banner;
+Events 6/6 family tags/fanout pending/user filter 2/detail modal payload;
+create tenant form -> +1 row; style packs on new pages. Screenshots: audit
+(broadsheet + verify banner), events (ant).

@@ -1,6 +1,6 @@
 {
   "when": "2026-11-18",
-  "prototype": "admin-console.html v0.7 (Roles matrix + Groups detail; 7 style packs x light/dark)",
+  "prototype": "admin-console.html v0.8 (all management pages high-fidelity; 7 style packs x light/dark)",
   "runner": "puppeteer (headless chromium)",
   "fail": 0,
   "results": {
@@ -204,6 +204,62 @@
         "cupertinoMatrixCell": "#007AFF",
         "cupertinoRoleCheck": "#007AFF",
         "broadsheetMatrixCell": "#0F5C5A"
+      }
+    },
+    "mgmt-pages": {
+      "pass": true,
+      "assertions": {
+        "tenants": {
+          "rows": 5,
+          "defaultLocked": true,
+          "suspendedFilter": 1,
+          "toggle": true
+        },
+        "clients": {
+          "rows": 4,
+          "grantTags": 5,
+          "rotateReveal": "cs_",
+          "revealClose": true
+        },
+        "apikeys": {
+          "rows": 4,
+          "neverExpires": true,
+          "revokedFilter": 1,
+          "revoke": true
+        },
+        "webhooks": {
+          "rows": 3,
+          "deadPills": 2,
+          "pingDelta": 1,
+          "deliveries": [
+            "pending",
+            "failed",
+            "success"
+          ]
+        },
+        "audit": {
+          "rows": 7,
+          "methodTags": 7,
+          "deleteFilter": 1,
+          "verifyBanner": true
+        },
+        "events": {
+          "rows": 6,
+          "familyTags": 6,
+          "fanoutPending": 1,
+          "userFilter": 2,
+          "detailModalPayload": true
+        },
+        "createTenant": {
+          "formModal": true,
+          "rowDelta": 1
+        },
+        "stylePacksOnNewPages": {
+          "ant": "#1677FF",
+          "carbon": "#0F62FE",
+          "cupertino": "#007AFF",
+          "broadsheet": "#0F5C5A"
+        }
       }
     }
   }
