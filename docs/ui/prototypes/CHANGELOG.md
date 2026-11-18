@@ -2,7 +2,7 @@
 
 > Method adopted from MediaServo `docs/ui/prototypes` (single-file HTML,
 > design-token system, dual theme, inline interaction, harness assertions,
-> versioned archive). Scope ruling 2026-11-18: optimize EXISTING web
+> versioned archive [reserved — not yet populated; see review note]). Scope ruling 2026-11-18: optimize EXISTING web
 > functions (not mobile); core admin surface first (Dashboard / Users /
 > Roles / Groups), visual + interaction upgrade.
 
@@ -52,7 +52,7 @@ double-click preserved.
   deep-teal, radius 2/4/6, IBM Plex.
 - **engineer** (Linear/Geist): monochrome near-black/white, tiny radius 3/4,
   high density (tighter rows/nav), Inter; primary = solid ink (white-on-dark).
-- **google** (Material 3): large radius 12/16, capsule buttons (999px),
+- **google** (Material 2, Google-blue era — originally mislabeled "Material 3", corrected by panel adjudication 6): large radius 12/16, capsule buttons (999px),
   elevation shadows, Google blue #1A73E8 (dark #8AB4F8), Roboto, round avatars.
 - **microsoft** (Fluent 2): small radius 4, Segoe UI, Fluent blue #0F6CBD
   (dark #479EF5), subtle shadow + border.
@@ -78,7 +78,7 @@ the companies). Constraint: short, single word. Two-word combinations excluded
 by the constraint; pure style-names rejected (Material/Fluent lack intuitive
 single-word style descriptors). Resolution: design-language name where one
 exists as a single word, style word where none does.
-- google -> **material** (Material 3; cf. MUI / Material UI precedent)
+- google -> **material** (Material 2; cf. MUI / Material UI precedent)
 - microsoft -> **fluent** (Fluent 2; cf. Fluent UI precedent)
 - engineer -> **geist** (Geist design system; "Linear" is a company name, dropped)
 - enterprise -> **broadsheet** (style word — WorkOS has no public single-word
@@ -107,9 +107,11 @@ and "at the component level Fusion ~= AntD". So:
 - **Ant pack added (5th)** — Ant Design v5 tokens: primary #1677FF (dark
   #1668DC), radius 4/6/8, layout bg #F5F5F5 (dark #141414), container #FFF
   (dark #1F1F1F), text rgba(0,0,0,.88/.65/.45), AntD font stack, btn weight
-  400 + middle table density. THIS IS THE admin-ui IMPLEMENTATION LAYER —
-  the pack gives a 1:1 prototype-to-implementation reference (the real
-  product's face). Distinct axis vs the other four (none was the AntD look).
+  400 + middle table density. The pack is a TOKEN-LEVEL reference to the admin-ui
+  implementation layer (AntD v5): token values match the AntD seed, but the component
+  structure is the prototype's own skeleton, not an AntD replica. Distinct axis vs the
+  other four (none was the AntD look). [Wording corrected from "1:1 / THIS IS THE
+  IMPLEMENTATION LAYER" by panel adjudication 3, 2026-11-18 — see evidence & review note.]
 - **Fusion recorded as MECHANISM reference, NOT a visual pack** — Fusion's
   "theme factory" philosophy (designer configures a theme pack over one
   component base; engineer installs library + theme) is the conceptual
@@ -239,3 +241,95 @@ Jane Admin + avatar JA; email/status render; weak pwd -> real policy message;
 mismatch -> "Passwords do not match"; valid -> error hidden + fields reset;
 oauth 1 -> unlink 0 + empty state -> bind google 1 -> bind github 2; style packs
 on Profile. Screenshot: profile (ant).
+
+## Evidence & review note — 2026-11-18 (expert panel, adjudications 1–2)
+An expert-panel review (expert-panel-review, Deep gate, 4 isolated roles) audited the
+whole prototype. Full report: .omo/reports/panel-prototype-design-2026-11-18.md.
+- **Evidence strength clarified (adjudication 2 = C):** the "Harness (puppeteer)" records
+  below are SESSION-OBSERVED assertions hand-recorded during the build, NOT a reproducible
+  test suite (no runner script exists). Read them as "live-observed", not "harness-verified".
+  A reproducible Playwright runner is a registered OPEN ITEM (repo e2e tool is Playwright).
+  results.json now carries this caveat; the stale v0.2 svgIcons:66 was refreshed to the
+  measured 215 rendered icons / 33 symbol defs; the fusion entry is marked a provenance
+  note, not a machine assertion.
+- **Fixed (adjudication 1 = A):** duplicate id="verifyBanner" (audit + profile) renamed to
+  auditVerifyBanner / profileVerifyBanner and rebound; the audit "Hash chain verified"
+  banner no longer shows without clicking Verify, and the profile email banner is now
+  independently controlled. Re-verified in-browser (both banners behave correctly).
+
+## Prototype-fidelity fixes — 2026-11-18 (expert panel, adjudication 5 = B)
+Tiered fix of prototype-grade mechanism shortcuts (not held to full production invariants,
+but misleading/impossible defects removed):
+- esc() now escapes quotes (&quot; / &#39;) — attribute-context interpolation is safe; the
+  prototype self-XSS via webhook URL / tenant slug / profile name is closed.
+- Groups role binding is a real STAGED save: toggling a role edits a draft; closing the panel
+  discards it; reopening reverts to committed; "Save role bindings" commits. (Previously the
+  Save button was decorative — changes applied immediately with no cancel path.)
+- OIDC Clients "Redirect URIs (one per line)" is now a <textarea> (a single-line input could
+  never contain newlines, so multi-URI entry was impossible).
+- Create-tenant checks slug uniqueness (a duplicate 'default' is rejected) and required fields
+  show inline feedback instead of silently closing.
+- DEAD BUTTONS disclosed + made honest: Dashboard quick actions (Create user / Import users /
+  New role / Issue API key), Users "Create user" + "Import", Roles "Create role", Groups
+  "Create group" are DISABLED with a "Prototype: not wired" tooltip. Row Edit/Delete buttons
+  (Users/Roles/Groups/Tenants/Clients/API Keys/Webhooks) are muted and show a "not wired in the
+  demo" toast on click. Everything else (filters, pagination, status toggles, permission matrix,
+  group manage, rotate/revoke/ping/deliveries, audit verify/export, create tenants/clients/
+  apikeys/webhooks, profile actions) is functional.
+
+## Pack-quality fixes — 2026-11-18 (expert panel, adjudication 6 = B)
+- **material** relabeled Material 3 -> Material 2 (Google-blue era): the pack uses Google blue
+  #1A73E8 (M2 vocabulary), not M3 tonal surface / state layer. Its structure (capsule buttons
+  999px, large radius 12/16, elevation, Roboto) was already adequate — honest label, no
+  structural change.
+- **fluent** given a real Fluent 2 structural axis: 4px controls (--r4) / 8px surfaces (--r6) +
+  layered subtle shadow, so it is no longer near-isomorphic to broadsheet (6px surfaces, no
+  shadow, IBM Plex). Verified: fluent card 8px / btn 4px / 2-layer shadow vs broadsheet card 6px.
+
+## Consistency fixes — 2026-11-18 (expert panel, adjudication 7 = B)
+- Neutral `.tag` default: plain tags (grantTypes / scopes / "Group" kind) now render as neutral
+  chips (sunken bg + bd border) instead of bare text; colored variants unchanged. Verified.
+- `.role-name` renamed `.entity-name` (it names role/tenant/client/apikey/group entities, not
+  only roles).
+- Density coherence: geist/ant/carbon `thead th` padding now matches their `tbody td` (fixes the
+  ant td 12px / th 8px self-contradiction). Verified ant th == td == 12px 16px.
+- **Density scope disclosed** (honest, not full token-ization): pack-level density applies to
+  table rows + nav; component-layer spacing/font-size (btn padding 6px 12px, some inline margins,
+  font-size 10px, geist stat 22px) are fixed across packs; the permission-matrix cell padding is
+  intentionally a constant fixed grid across all packs. Color discipline is fully token-driven.
+
+## Disclosures & cosmetic fixes — 2026-11-18 (expert panel, adjudication 8 = B)
+Trivial fixes (remove real misleading):
+- `lang` corrected zh-CN -> en (UI is English; correct screen-reader pronunciation).
+- `<title>` updated v0.6 -> v0.9 (was stale).
+- cupertino comment corrected "nav material" -> "topbar material" (vibrancy is on the topbar
+  only; the sidebar is opaque).
+- clipboard writeText rejections now handled (.catch) — no unhandled Promise rejection.
+
+Retracted / clarified unfulfilled claims:
+- "versioned archive": archive/ is EMPTY (reserved, not populated). Historical version snapshots
+  were not retained. The "Screenshots:" mentions below refer to session puppeteer captures
+  returned in-conversation, NOT files archived to disk (0 image files in docs/ui/prototypes).
+
+Batch disclosures (prototype scope, honest):
+- i18n: the prototype is English-only hardcoded; the real admin-ui uses react-i18next (bilingual).
+  i18n is out of prototype scope.
+- Mock numbers are ILLUSTRATIVE, not reconciled (e.g. sidebar Users badge 1,284 vs 12 table rows;
+  Dashboard Tenants 18 vs 5; audit banner 1,284 entries vs 7 rows). #scopeMixed is a dead element
+  (the real mixed-scope sentinel logic is simplified to a per-role single value). The sidebar
+  Collapse button is inert below 760px (media query forces mini sidebar).
+- "all 7 style packs apply" was runtime-sampled on 4/7 packs (ant/carbon/cupertino/broadsheet) for
+  new components; geist/material/fluent verified by token mechanism (static), not per-page runtime.
+- Password client check mirrors the BACKEND password-change defaults (12 + 5 dims); the real
+  admin-ui Profile.tsx client only enforces min 8 (backend strict) — the prototype is stricter than
+  the donor UI. Per-dimension messages are reworded; the session-revocation citation is
+  routes/auth/password.ts (registered via auth.ts), not auth.ts directly.
+- "single-file offline" is not zero-network: fonts load async post-load from Google Fonts when
+  online (local fallbacks when offline); navigation is never blocked.
+- Groups member picker "9 candidates" counts the placeholder option (8 users + 1 placeholder).
+  theme "persisted" is in-page getItem readback; headless file:// localStorage does not persist
+  across navigations in the runner.
+- The donor "2201-line single file" (MediaServo) is external to this workspace and not verifiable here.
+- v0.1 marked Roles/Groups "v0.2"; they actually reached high-fidelity in v0.7 (label drift).
+- Two shared rgba literals (modal scrim rgba(0,0,0,.45), modal shadow rgba(0,0,0,.18)) are
+  intentionally shared across packs (black scrim is conventional), not tokenized.

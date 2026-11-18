@@ -1,15 +1,16 @@
 {
   "when": "2026-11-18",
   "prototype": "admin-console.html v0.9 (ALL 11 pages high-fidelity; 7 style packs x light/dark)",
-  "runner": "puppeteer (headless chromium)",
+  "runner": "puppeteer MCP (session-observed, hand-recorded; NOT a reproducible suite)",
   "fail": 0,
   "results": {
     "de-ai-slop": {
       "pass": true,
       "assertions": {
-        "svgIcons": 66,
+        "svgIcons": 215,
         "emojiInUI": false,
-        "logoGradient": "none"
+        "logoGradient": "none",
+        "symbolDefs": 33
       }
     },
     "dashboard-render": {
@@ -85,8 +86,9 @@
         },
         "fluent": {
           "accent": "#0F6CBD",
-          "r6": "4px",
-          "sans": "Segoe UI"
+          "r6": "8px",
+          "sans": "Segoe UI",
+          "note": "Fluent 2 axis: 4px controls (--r4) / 8px surfaces (--r6) + layered subtle shadow"
         },
         "optionValues": [
           "broadsheet",
@@ -141,12 +143,12 @@
       }
     },
     "fusion-mechanism-reference": {
-      "pass": true,
       "assertions": {
         "recordedAs": "provenance note (HTML STYLE PACKS header + CHANGELOG)",
         "notAVisualPack": true,
         "rationale": "Fusion ~= AntD visually; admin-ui implements AntD; Fusion theme-factory philosophy is the token-pack architecture precedent"
-      }
+      },
+      "kind": "provenance-note (design decision, not a machine assertion)"
     },
     "roles-matrix": {
       "pass": true,
@@ -190,7 +192,9 @@
         "rolesTab": {
           "checks": 5,
           "bound": 3,
-          "afterToggle": 4
+          "toggleStagesDraft": true,
+          "closeDiscards": true,
+          "saveCommits": true
         },
         "panelClose": true
       }
@@ -304,5 +308,6 @@
         "sections": 11
       }
     }
-  }
+  },
+  "evidence": "Assertions were live-observed via puppeteer during the build session and hand-recorded here. This is NOT a reproducible test suite (no runner script exists). A reproducible Playwright runner is a registered OPEN ITEM \u2014 see .omo/reports/panel-prototype-design-2026-11-18.md (adjudication 2, 2026-11-18). Stale counts refreshed and the duplicate-id verifyBanner false positive was fixed (adjudication 1) before this relabel."
 }
