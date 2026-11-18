@@ -369,3 +369,24 @@ Fix: standard inset-thumb technique — `border:3px solid transparent; backgroun
 radius uses the pack token (--r4); track + corner transparent; hover feedback (--tx3); Firefox
 `scrollbar-color:var(--bd2) transparent; scrollbar-width:thin`. Verified before/after at
 1440x520 ant light (nav + main scrolling): halo gone. Harness 15 groups still pass.
+
+## Light page-background fidelity — 2026-11-18 (user question + adjudication 11 = B)
+User asked why several packs' light themes all looked gray-toned. Root cause: the prototype
+applied ONE uniform "gray layout + white container" model to all 7 packs. That model is faithful
+for ant (AntD colorBgLayout gray + colorBgContainer white — verified antd/es/theme/themes/
+default/colors.js:38-40) and cupertino (iOS systemGroupedBackground #F2F2F7, grouped layout),
+but misrepresents the white-first languages carbon/geist/fluent and flattens pack distinctness.
+Fix (B — only the clearly-deviant white-first packs):
+- carbon --bg #F4F4F4 -> #FFFFFF (Carbon White theme ui-background is white; gray-10 #f4f4f4
+  sinks to --sunken as layer-01).
+- geist --bg #FAFAFA -> #FFFFFF (Vercel/Geist white base; accents-1 #fafafa sinks to --sunken).
+- fluent --bg #F5F5F5 -> #FAF9F8 (M365 warm neutralLighterAlt; --sunken #F3F2F1 neutralLighter,
+  --hover #EDEBE9 neutralLight) — warm-white, distinct from the pure-white packs.
+- ant / cupertino / material gray KEPT (faithful / Google-product-faithful).
+Result: page backgrounds now split into white-first (broadsheet/geist/carbon), warm-white
+(fluent), gray-layout (ant/cupertino/material) — each language's identity restored.
+Mainstream practice: page-bg vs container-bg is a deliberate design-language identity marker —
+gray-layout+white-container (AntD / iOS-grouped / most SaaS admin) vs white-first+gray-layers
+(Carbon White / Geist / Fluent v9 / Material M2) vs M3 primary-tinted tonal surfaces vs warm
+neutral (M365 #FAF9F8). Verified carbon white look (white base + borders + gray-10 layers);
+harness 15 groups pass (no regression).
