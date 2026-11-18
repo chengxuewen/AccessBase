@@ -209,3 +209,33 @@ pending-failed-success; Audit 7/7 method tags/DELETE filter 1/verify banner;
 Events 6/6 family tags/fanout pending/user filter 2/detail modal payload;
 create tenant form -> +1 row; style packs on new pages. Screenshots: audit
 (broadsheet + verify banner), events (ant).
+
+## v0.9 — 2026-11-18 (admin-console) — Profile settings (final page; all 11 high-fidelity)
+User: "v0.9". Grounded in real admin-ui (donor method): read pages/Profile.tsx
+and packages/identity/src/services/password-policy.ts. The last placeholder
+(Profile) replaced — ALL 11 pages are now high-fidelity.
+- **Email-verification banner** (warning): shown when emailVerified=false, with
+  Send verification button -> "Verification email sent to <email>." message.
+- **Personal information**: Descriptions rows Name / Email / Status (Active tag);
+  Name inline edit (edit -> input + save/cancel), save updates the topbar avatar
+  initials. Extra: "Log out other devices" danger action (revokeOtherSessions).
+- **Change password**: info policy hint + error alert; current / new / confirm
+  fields. Client check MIRRORS the real password-policy.ts password-change
+  callsite defaults: minLength 12 + requireUpper/Lower/Digit/Special (5 dims);
+  error message verbatim "Password needs 12+ chars with upper, lower, digit and
+  special"; confirm-match validation. On success: fields reset + feedback
+  "Changed · other sessions signed out" (server revokes all sessions and issues
+  this client a fresh pair, per routes/auth.ts).
+- **Linked accounts**: OAuth link rows (github icon / google monogram, "Linked as
+  <provider>" + account id, Unlink danger), empty state "No linked accounts.",
+  Bind GitHub / Bind Google buttons (add a link).
+- All token-driven so all 7 style packs apply (verified ant/carbon/cupertino/
+  broadsheet flow into the primary button + info banner).
+Note: Popconfirm (revoke-others / unlink) is simplified to direct-action-with-
+transient-feedback in the prototype; the fields, the 5-dimension policy, the
+session-revocation semantics and the OAuth link/unlink/bind are faithful.
+Harness (puppeteer): verify banner visible + send msg; name Admin User -> edit ->
+Jane Admin + avatar JA; email/status render; weak pwd -> real policy message;
+mismatch -> "Passwords do not match"; valid -> error hidden + fields reset;
+oauth 1 -> unlink 0 + empty state -> bind google 1 -> bind github 2; style packs
+on Profile. Screenshot: profile (ant).

@@ -1,6 +1,6 @@
 {
   "when": "2026-11-18",
-  "prototype": "admin-console.html v0.8 (all management pages high-fidelity; 7 style packs x light/dark)",
+  "prototype": "admin-console.html v0.9 (ALL 11 pages high-fidelity; 7 style packs x light/dark)",
   "runner": "puppeteer (headless chromium)",
   "fail": 0,
   "results": {
@@ -260,6 +260,48 @@
           "cupertino": "#007AFF",
           "broadsheet": "#0F5C5A"
         }
+      }
+    },
+    "profile": {
+      "pass": true,
+      "assertions": {
+        "verifyBanner": true,
+        "sendVerifyMsg": "Verification email sent to admin@acme.io.",
+        "nameInlineEdit": {
+          "before": "Admin User",
+          "after": "Jane Admin",
+          "avatarInitials": "JA"
+        },
+        "email": "admin@acme.io",
+        "statusActive": true,
+        "passwordPolicy": {
+          "weak": "Password needs 12+ chars with upper, lower, digit and special",
+          "mismatch": "Passwords do not match",
+          "validResetsFields": true,
+          "minLength": 12,
+          "dims": 5
+        },
+        "oauth": {
+          "initial": 1,
+          "afterUnlink": 0,
+          "emptyState": true,
+          "afterBindGoogle": 1,
+          "afterBindGithub": 2
+        },
+        "stylePacks": {
+          "ant": "#1677FF",
+          "carbon": "#0F62FE",
+          "carbonBtnRadius": "0px",
+          "cupertino": "#007AFF",
+          "broadsheet": "#0F5C5A"
+        }
+      }
+    },
+    "all-pages-high-fidelity": {
+      "pass": true,
+      "assertions": {
+        "placeholdersLeft": 0,
+        "sections": 11
       }
     }
   }
