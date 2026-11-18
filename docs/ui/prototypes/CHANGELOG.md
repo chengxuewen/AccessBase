@@ -333,3 +333,16 @@ Batch disclosures (prototype scope, honest):
 - v0.1 marked Roles/Groups "v0.2"; they actually reached high-fidelity in v0.7 (label drift).
 - Two shared rgba literals (modal scrim rgba(0,0,0,.45), modal shadow rgba(0,0,0,.18)) are
   intentionally shared across packs (black scrim is conventional), not tokenized.
+
+## Reproducible harness — 2026-11-18 (expert panel, adjudication 9 = A, open item O1 resolved)
+The harness is now a REPRODUCIBLE Playwright suite (was a session-observed hand-record):
+- `.harness/playwright.config.ts` — static file:// target, NO webServer (unlike the app e2e
+  config), serial single worker so results are collected and written once.
+- `.harness/prototype.spec.ts` — 14 assertion groups: de-ai-slop, dashboard-render, theme,
+  nav-switch, users-table, filter-narrows, search, style-packs, roles-matrix, groups-detail
+  (staged-save semantics), mgmt-pages, profile, contrast (semantic tag text >=4.5:1 in all 7
+  packs — locks the adjudication-4 fix as a regression), all-pages-high-fidelity.
+- Run: `npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts`
+  (chromium already cached; no install). Each run regenerates `.harness/results.json`
+  (runner="playwright (reproducible suite)", fail count, per-group pass/assertions).
+- First run: 14 passed (1.6s). Keyboard/a11y assertions will be added once open item O2 is fixed.

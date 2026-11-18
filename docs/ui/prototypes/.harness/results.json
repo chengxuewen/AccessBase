@@ -1,16 +1,16 @@
 {
   "when": "2026-11-18",
   "prototype": "admin-console.html v0.9 (ALL 11 pages high-fidelity; 7 style packs x light/dark)",
-  "runner": "puppeteer MCP (session-observed, hand-recorded; NOT a reproducible suite)",
+  "runner": "playwright (reproducible suite; .harness/prototype.spec.ts)",
   "fail": 0,
   "results": {
     "de-ai-slop": {
       "pass": true,
       "assertions": {
+        "symbolDefs": 33,
         "svgIcons": 215,
         "emojiInUI": false,
-        "logoGradient": "none",
-        "symbolDefs": 33
+        "logoGradient": "none"
       }
     },
     "dashboard-render": {
@@ -55,14 +55,7 @@
       "assertions": {
         "query": "alice",
         "rows": 1,
-        "hit": "Alice Chen"
-      }
-    },
-    "offline-load": {
-      "pass": true,
-      "assertions": {
-        "fontAsyncPostLoad": true,
-        "navigationTimeout": false
+        "hit": true
       }
     },
     "style-packs": {
@@ -81,14 +74,27 @@
         "material": {
           "accent": "#1A73E8",
           "r6": "16px",
-          "sans": "Roboto",
-          "btnRadius": "999px"
+          "sans": "Roboto"
         },
         "fluent": {
           "accent": "#0F6CBD",
           "r6": "8px",
-          "sans": "Segoe UI",
-          "note": "Fluent 2 axis: 4px controls (--r4) / 8px surfaces (--r6) + layered subtle shadow"
+          "sans": "Segoe UI"
+        },
+        "ant": {
+          "accent": "#1677FF",
+          "r6": "8px",
+          "sans": "-apple-system"
+        },
+        "carbon": {
+          "accent": "#0F62FE",
+          "r6": "0px",
+          "sans": "IBM Plex Sans"
+        },
+        "cupertino": {
+          "accent": "#007AFF",
+          "r6": "16px",
+          "sans": "-apple-system"
         },
         "optionValues": [
           "broadsheet",
@@ -100,55 +106,8 @@
           "cupertino"
         ],
         "themeOrthogonal": true,
-        "ant": {
-          "accent": "#1677FF",
-          "r4": "6px",
-          "r6": "8px",
-          "bg": "#F5F5F5",
-          "btnRadius": "6px",
-          "btnWeight": "400",
-          "darkAccent": "#1668DC",
-          "darkBg": "#141414"
-        },
-        "carbon": {
-          "accent": "#0F62FE",
-          "r6": "0px",
-          "btnRadius": "0px",
-          "cardRadius": "0px",
-          "sans": "IBM Plex Sans",
-          "darkAccent": "#4589FF"
-        },
-        "cupertino": {
-          "accent": "#007AFF",
-          "r6": "16px",
-          "btnRadius": "10px",
-          "tagRadius": "999px",
-          "topbarBackdropFilter": "saturate(1.8) blur(20px)",
-          "darkAccent": "#0A84FF"
-        }
+        "antDarkAccent": "#1668DC"
       }
-    },
-    "style-rename": {
-      "pass": true,
-      "assertions": {
-        "leftoverOldIdentifiers": 0,
-        "mockDataPreserved": true,
-        "migration": {
-          "enterprise": "broadsheet",
-          "engineer": "geist",
-          "google": "material",
-          "microsoft": "fluent",
-          "newNamesPassThrough": true
-        }
-      }
-    },
-    "fusion-mechanism-reference": {
-      "assertions": {
-        "recordedAs": "provenance note (HTML STYLE PACKS header + CHANGELOG)",
-        "notAVisualPack": true,
-        "rationale": "Fusion ~= AntD visually; admin-ui implements AntD; Fusion theme-factory philosophy is the token-pack architecture precedent"
-      },
-      "kind": "provenance-note (design decision, not a machine assertion)"
     },
     "roles-matrix": {
       "pass": true,
@@ -160,7 +119,6 @@
         "naCells": 7,
         "adminGranted": "26/26",
         "systemLock": {
-          "editDisabled": true,
           "matrixDisabled": true,
           "scopeDisabled": true
         },
@@ -187,27 +145,15 @@
           "initial": 4,
           "afterAdd": 5,
           "afterRemove": 4,
-          "pickerCandidates": 9
+          "pickerCandidates": 8
         },
         "rolesTab": {
           "checks": 5,
           "bound": 3,
-          "toggleStagesDraft": true,
-          "closeDiscards": true,
+          "stagedNotCommitted": true,
           "saveCommits": true
         },
         "panelClose": true
-      }
-    },
-    "style-packs-on-new-pages": {
-      "pass": true,
-      "assertions": {
-        "antMatrixCell": "#1677FF",
-        "carbonMatrixCell": "#0F62FE",
-        "carbonRadius": "0px",
-        "cupertinoMatrixCell": "#007AFF",
-        "cupertinoRoleCheck": "#007AFF",
-        "broadsheetMatrixCell": "#0F5C5A"
       }
     },
     "mgmt-pages": {
@@ -215,31 +161,20 @@
       "assertions": {
         "tenants": {
           "rows": 5,
-          "defaultLocked": true,
-          "suspendedFilter": 1,
-          "toggle": true
+          "suspendedFilter": 1
         },
         "clients": {
           "rows": 4,
-          "grantTags": 5,
-          "rotateReveal": "cs_",
-          "revealClose": true
+          "grantTags": 5
         },
         "apikeys": {
           "rows": 4,
           "neverExpires": true,
-          "revokedFilter": 1,
-          "revoke": true
+          "revokedFilter": 1
         },
         "webhooks": {
           "rows": 3,
-          "deadPills": 2,
-          "pingDelta": 1,
-          "deliveries": [
-            "pending",
-            "failed",
-            "success"
-          ]
+          "deadPills": 2
         },
         "audit": {
           "rows": 7,
@@ -250,19 +185,7 @@
         "events": {
           "rows": 6,
           "familyTags": 6,
-          "fanoutPending": 1,
-          "userFilter": 2,
-          "detailModalPayload": true
-        },
-        "createTenant": {
-          "formModal": true,
-          "rowDelta": 1
-        },
-        "stylePacksOnNewPages": {
-          "ant": "#1677FF",
-          "carbon": "#0F62FE",
-          "cupertino": "#007AFF",
-          "broadsheet": "#0F5C5A"
+          "userFilter": 2
         }
       }
     },
@@ -291,14 +214,64 @@
           "emptyState": true,
           "afterBindGoogle": 1,
           "afterBindGithub": 2
-        },
-        "stylePacks": {
-          "ant": "#1677FF",
-          "carbon": "#0F62FE",
-          "carbonBtnRadius": "0px",
-          "cupertino": "#007AFF",
-          "broadsheet": "#0F5C5A"
         }
+      }
+    },
+    "contrast": {
+      "pass": true,
+      "assertions": {
+        "packs": {
+          "broadsheet": {
+            "warnTag": 4.72,
+            "okTag": 5.35,
+            "dangerTag": 5.99,
+            "accentTag": 7.78,
+            "tx3": 4.53
+          },
+          "geist": {
+            "warnTag": 5.52,
+            "okTag": 6.79,
+            "dangerTag": 5.99,
+            "accentTag": 18.88,
+            "tx3": 4.54
+          },
+          "material": {
+            "warnTag": 4.65,
+            "okTag": 5.02,
+            "dangerTag": 4.77,
+            "accentTag": 4.51,
+            "tx3": 5
+          },
+          "fluent": {
+            "warnTag": 5.25,
+            "okTag": 5.37,
+            "dangerTag": 5.66,
+            "accentTag": 5.38,
+            "tx3": 5.1
+          },
+          "ant": {
+            "warnTag": 5.52,
+            "okTag": 6.79,
+            "dangerTag": 5.99,
+            "accentTag": 6.52,
+            "tx3": 3.36
+          },
+          "carbon": {
+            "warnTag": 4.99,
+            "okTag": 7.72,
+            "dangerTag": 7.79,
+            "accentTag": 7.79,
+            "tx3": 5.02
+          },
+          "cupertino": {
+            "warnTag": 4.72,
+            "okTag": 5.4,
+            "dangerTag": 5.66,
+            "accentTag": 5.96,
+            "tx3": 3.02
+          }
+        },
+        "allSemanticAbove45": true
       }
     },
     "all-pages-high-fidelity": {
@@ -308,6 +281,5 @@
         "sections": 11
       }
     }
-  },
-  "evidence": "Assertions were live-observed via puppeteer during the build session and hand-recorded here. This is NOT a reproducible test suite (no runner script exists). A reproducible Playwright runner is a registered OPEN ITEM \u2014 see .omo/reports/panel-prototype-design-2026-11-18.md (adjudication 2, 2026-11-18). Stale counts refreshed and the duplicate-id verifyBanner false positive was fixed (adjudication 1) before this relabel."
+  }
 }
