@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AccessBase Admin — Prototype v0.4 (broadsheet / geist / material / fluent)</title>
+<title>AccessBase Admin — Prototype v0.5 (broadsheet / geist / material / fluent / ant)</title>
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('ab_theme')||'light'}catch(e){}</script>
 <style>
 /* v0.4 base pack "broadsheet" (WorkOS-inspired). Warm-slate ink on pure white,
@@ -148,7 +148,11 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 .placeholder h2{font-size:var(--fs16);font-weight:600;color:var(--tx1);margin-bottom:4px}
 @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
 @media(max-width:760px){.app{grid-template-columns:var(--nav-w-min) 1fr}.app .nav a span.lbl,.app .nav a .badge,.app .brand .name{display:none}.stats{grid-template-columns:1fr}.search{display:none}}
-/* ==== v0.4 STYLE PACKS (single-word design-language names; data-style x data-theme) ==== */
+/* ==== v0.5 STYLE PACKS (single-word design-language names; data-style x data-theme).
+   Mechanism provenance: the token-pack switching architecture follows Fusion
+   Design's "theme factory" philosophy (configurable theme packs over one
+   component base) — referenced as MECHANISM, not added as a visual pack
+   (Fusion ~= AntD visually; admin-ui implements AntD, so Ant is the pack). ==== */
 /* geist — Geist/Linear developer-tool language: monochrome, tiny radius, high density */
 [data-style="geist"]{--r2:2px;--r4:3px;--r6:4px;--sp12:10px;--sp16:12px;--sp24:16px;
   --sans:"Inter","Geist",-apple-system,"Segoe UI","PingFang SC",sans-serif}
@@ -190,6 +194,20 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
   --accent:#479EF5;--accent-hi:#62ABF5;--accent-tint:rgba(71,158,245,.16);
   --ok:#6CCB5F;--ok-tint:rgba(108,203,95,.16);--warn:#FCE100;--warn-tint:rgba(252,225,0,.16);--danger:#FF99A4;--danger-tint:rgba(255,153,164,.16)}
 [data-style="fluent"] .card{box-shadow:0 1px 2px rgba(0,0,0,.08)}
+/* ant — Ant Design v5 language: mid-backend blue #1677FF, radius 6, dense tables.
+   THIS IS THE admin-ui IMPLEMENTATION LAYER (AntD) — prototype-to-implementation reference. */
+[data-style="ant"]{--r2:4px;--r4:6px;--r6:8px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","PingFang SC","Microsoft YaHei",sans-serif}
+[data-style="ant"][data-theme="light"]{--bg:#F5F5F5;--surface:#FFFFFF;--sunken:#FAFAFA;--hover:rgba(0,0,0,.04);
+  --tx1:rgba(0,0,0,.88);--tx2:rgba(0,0,0,.65);--tx3:rgba(0,0,0,.45);--txinv:#FFFFFF;--bd:#D9D9D9;--bd2:#BFBFBF;--focus:#1677FF;
+  --accent:#1677FF;--accent-hi:#4096FF;--accent-tint:rgba(22,119,255,.10);
+  --ok:#52C41A;--ok-tint:rgba(82,196,26,.10);--warn:#FAAD14;--warn-tint:rgba(250,173,20,.10);--danger:#FF4D4F;--danger-tint:rgba(255,77,79,.10)}
+[data-style="ant"][data-theme="dark"]{--bg:#141414;--surface:#1F1F1F;--sunken:#141414;--hover:rgba(255,255,255,.08);
+  --tx1:rgba(255,255,255,.85);--tx2:rgba(255,255,255,.65);--tx3:rgba(255,255,255,.45);--txinv:#FFFFFF;--bd:#424242;--bd2:#5A5A5A;--focus:#1668DC;
+  --accent:#1668DC;--accent-hi:#3C89E8;--accent-tint:rgba(22,104,220,.16);
+  --ok:#49AA19;--ok-tint:rgba(73,170,25,.16);--warn:#D89614;--warn-tint:rgba(216,150,20,.16);--danger:#DC4446;--danger-tint:rgba(220,68,70,.16)}
+[data-style="ant"] .btn{font-weight:400}
+[data-style="ant"] tbody td{padding:12px 16px}
 </style>
 </head>
 <body>
@@ -242,7 +260,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
     <div class="crumb">Admin / <b id="crumbPage">Dashboard</b></div>
     <div class="search"><svg class="ic"><use href="#i-search"/></svg><input placeholder="Search users, roles, audit…"></div>
     <div class="top-actions">
-      <select id="styleSelect" title="Style pack" style="padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit"><option value="broadsheet">Broadsheet</option><option value="geist">Geist</option><option value="material">Material</option><option value="fluent">Fluent</option></select>
+      <select id="styleSelect" title="Style pack" style="padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit"><option value="broadsheet">Broadsheet</option><option value="geist">Geist</option><option value="material">Material</option><option value="fluent">Fluent</option><option value="ant">Ant</option></select>
       <button class="icon-btn" id="themeBtn" title="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
       <div class="tenant-select"><svg class="ic" style="width:13px;height:13px"><use href="#i-building"/></svg><span>Acme Corp</span><svg class="ic" style="width:12px;height:12px;color:var(--tx3)"><use href="#i-chev-r"/></svg></div>
       <div class="avatar">AD</div>

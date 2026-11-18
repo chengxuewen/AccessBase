@@ -1,6 +1,6 @@
 {
   "when": "2026-11-18",
-  "prototype": "admin-console.html v0.4 (4 single-word style packs x light/dark)",
+  "prototype": "admin-console.html v0.5 (5 single-word style packs x light/dark)",
   "runner": "puppeteer (headless chromium)",
   "fail": 0,
   "results": {
@@ -92,9 +92,20 @@
           "broadsheet",
           "geist",
           "material",
-          "fluent"
+          "fluent",
+          "ant"
         ],
-        "themeOrthogonal": true
+        "themeOrthogonal": true,
+        "ant": {
+          "accent": "#1677FF",
+          "r4": "6px",
+          "r6": "8px",
+          "bg": "#F5F5F5",
+          "btnRadius": "6px",
+          "btnWeight": "400",
+          "darkAccent": "#1668DC",
+          "darkBg": "#141414"
+        }
       }
     },
     "style-rename": {
@@ -109,6 +120,14 @@
           "microsoft": "fluent",
           "newNamesPassThrough": true
         }
+      }
+    },
+    "fusion-mechanism-reference": {
+      "pass": true,
+      "assertions": {
+        "recordedAs": "provenance note (HTML STYLE PACKS header + CHANGELOG)",
+        "notAVisualPack": true,
+        "rationale": "Fusion ~= AntD visually; admin-ui implements AntD; Fusion theme-factory philosophy is the token-pack architecture precedent"
       }
     }
   }

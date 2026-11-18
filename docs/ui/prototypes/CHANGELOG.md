@@ -98,3 +98,30 @@ override intact); migration table exercised in-page (google->material, all
 old->new, new names pass through). Note: headless file:// localStorage does
 not persist across navigations in the runner, so migration was verified by
 exercising the exact init logic in-page rather than a cross-reload seed.
+
+## v0.5 — 2026-11-18 (admin-console) — Ant pack (implementation layer) + Fusion mechanism reference
+User ruling: "Ant + Fusion 机制参照". Research verdict (ant vs Fusion): the
+Alibaba-official distinction is "Ant Design is a component LIBRARY; Fusion
+Design is a component-library GENERATION FACTORY (configurable theme engine)",
+and "at the component level Fusion ~= AntD". So:
+- **Ant pack added (5th)** — Ant Design v5 tokens: primary #1677FF (dark
+  #1668DC), radius 4/6/8, layout bg #F5F5F5 (dark #141414), container #FFF
+  (dark #1F1F1F), text rgba(0,0,0,.88/.65/.45), AntD font stack, btn weight
+  400 + middle table density. THIS IS THE admin-ui IMPLEMENTATION LAYER —
+  the pack gives a 1:1 prototype-to-implementation reference (the real
+  product's face). Distinct axis vs the other four (none was the AntD look).
+- **Fusion recorded as MECHANISM reference, NOT a visual pack** — Fusion's
+  "theme factory" philosophy (designer configures a theme pack over one
+  component base; engineer installs library + theme) is the conceptual
+  precedent for THIS prototype's data-style token-pack architecture. Added
+  as a provenance note in the HTML STYLE PACKS header. Not a switcher option:
+  Fusion ~= AntD visually (no new axis) and admin-ui implements AntD, so Ant
+  is the pack; Fusion's value here is the mechanism idea, not a skin.
+- Single-file ceiling revisited: 5 packs (~+30 CSS lines) still far below the
+  donor's 2201-line single file; double-click preserved. Split threshold
+  remains 10+ packs.
+Harness (puppeteer): switcher now 5 options [broadsheet,geist,material,fluent,
+ant]; ant light accent #1677FF / r4 6px / r6 8px / bg #F5F5F5, btn radius 6px
++ weight 400; ant dark accent #1668DC / bg #141414; all five accents distinct;
+material btn 999px vs ant 6px (structural overrides intact). Screenshot:
+ant light dashboard.
