@@ -125,3 +125,24 @@ ant]; ant light accent #1677FF / r4 6px / r6 8px / bg #F5F5F5, btn radius 6px
 + weight 400; ant dark accent #1668DC / bg #141414; all five accents distinct;
 material btn 999px vs ant 6px (structural overrides intact). Screenshot:
 ant light dashboard.
+
+## v0.6 — 2026-11-18 (admin-console) — second-tier packs: Carbon + Cupertino
+User ruling: expand with the second tier (Carbon/Cupertino). Both are
+single-word design-language names (consistent with the v0.4 convention), each
+adding a genuinely distinct axis:
+- **carbon** (IBM Carbon v11): the ONLY fully-square pack — radius 0 on cards,
+  buttons, tags; Carbon blue #0F62FE (dark #4589FF), g100 dark #161616/#262626,
+  IBM Plex Sans (already loaded — synergy), high data density, left-indicator
+  nav. Industrial grid aesthetic.
+- **cupertino** (Apple HIG): large continuous radius (8/10/16), iOS system
+  colors (#007AFF light / #0A84FF dark; systemGreen/Orange/Red), grouped bg
+  #F2F2F7 (dark #000/#1C1C1E), SF system font stack (-apple-system), pill
+  badges, and translucent vibrancy nav material (backdrop-filter saturate(180%)
+  blur(20px) on topbar, light/dark). The Apple dimension.
+- Library now 7 packs x light/dark. Single-file still far below donor 2201
+  lines; double-click preserved; split threshold remains 10+.
+Harness (puppeteer): 7 switcher options; all seven accents distinct
+(broadsheet #0F5C5A, geist #111111, material #1A73E8, fluent #0F6CBD, ant
+#1677FF, carbon #0F62FE, cupertino #007AFF); carbon btn/card radius 0px + IBM
+Plex; cupertino btn 10px / tag 999px / topbar backdrop-filter saturate(1.8)
+blur(20px) / dark accent #0A84FF. Screenshots: carbon light, cupertino light.

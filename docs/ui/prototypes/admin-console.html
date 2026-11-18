@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AccessBase Admin — Prototype v0.5 (broadsheet / geist / material / fluent / ant)</title>
+<title>AccessBase Admin — Prototype v0.6 (broadsheet / geist / material / fluent / ant / carbon / cupertino)</title>
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('ab_theme')||'light'}catch(e){}</script>
 <style>
 /* v0.4 base pack "broadsheet" (WorkOS-inspired). Warm-slate ink on pure white,
@@ -148,7 +148,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 .placeholder h2{font-size:var(--fs16);font-weight:600;color:var(--tx1);margin-bottom:4px}
 @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
 @media(max-width:760px){.app{grid-template-columns:var(--nav-w-min) 1fr}.app .nav a span.lbl,.app .nav a .badge,.app .brand .name{display:none}.stats{grid-template-columns:1fr}.search{display:none}}
-/* ==== v0.5 STYLE PACKS (single-word design-language names; data-style x data-theme).
+/* ==== v0.6 STYLE PACKS (single-word design-language names; data-style x data-theme).
    Mechanism provenance: the token-pack switching architecture follows Fusion
    Design's "theme factory" philosophy (configurable theme packs over one
    component base) — referenced as MECHANISM, not added as a visual pack
@@ -208,6 +208,37 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
   --ok:#49AA19;--ok-tint:rgba(73,170,25,.16);--warn:#D89614;--warn-tint:rgba(216,150,20,.16);--danger:#DC4446;--danger-tint:rgba(220,68,70,.16)}
 [data-style="ant"] .btn{font-weight:400}
 [data-style="ant"] tbody td{padding:12px 16px}
+/* carbon — IBM Carbon v11 language: SHARP zero-radius industrial grid, IBM Plex
+   Sans (already loaded), Carbon blue #0F62FE, high data density. Distinct axis:
+   the only fully-square pack (radius 0). */
+[data-style="carbon"]{--r2:0px;--r4:0px;--r6:0px;
+  --sans:"IBM Plex Sans",-apple-system,"Segoe UI","PingFang SC",sans-serif}
+[data-style="carbon"][data-theme="light"]{--bg:#F4F4F4;--surface:#FFFFFF;--sunken:#E0E0E0;--hover:#E8E8E8;
+  --tx1:#161616;--tx2:#525252;--tx3:#6F6F6F;--txinv:#FFFFFF;--bd:#E0E0E0;--bd2:#8D8D8D;--focus:#0F62FE;
+  --accent:#0F62FE;--accent-hi:#0353E9;--accent-tint:rgba(15,98,254,.10);
+  --ok:#24A148;--ok-tint:rgba(36,161,72,.10);--warn:#F1C21B;--warn-tint:rgba(241,194,27,.12);--danger:#DA1E28;--danger-tint:rgba(218,30,40,.10)}
+[data-style="carbon"][data-theme="dark"]{--bg:#161616;--surface:#262626;--sunken:#161616;--hover:#353535;
+  --tx1:#F4F4F4;--tx2:#C6C6C6;--tx3:#8D8D8D;--txinv:#FFFFFF;--bd:#393939;--bd2:#525252;--focus:#FFFFFF;
+  --accent:#4589FF;--accent-hi:#6EA6FF;--accent-tint:rgba(69,137,255,.16);
+  --ok:#42BE65;--ok-tint:rgba(66,190,101,.16);--warn:#F1C21B;--warn-tint:rgba(241,194,27,.16);--danger:#FF8389;--danger-tint:rgba(255,131,137,.16)}
+[data-style="carbon"] .tag{border-radius:0}
+[data-style="carbon"] tbody td{padding:10px 16px}
+/* cupertino — Apple HIG language: large continuous radius, system SF font,
+   iOS system colors, translucent vibrancy nav material, pill badges. */
+[data-style="cupertino"]{--r2:8px;--r4:10px;--r6:16px;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","PingFang SC",sans-serif}
+[data-style="cupertino"][data-theme="light"]{--bg:#F2F2F7;--surface:#FFFFFF;--sunken:#E5E5EA;--hover:rgba(0,0,0,.04);
+  --tx1:#000000;--tx2:rgba(60,60,67,.6);--tx3:rgba(60,60,67,.3);--txinv:#FFFFFF;--bd:rgba(60,60,67,.29);--bd2:#C6C6C8;--focus:#007AFF;
+  --accent:#007AFF;--accent-hi:#0062CC;--accent-tint:rgba(0,122,255,.10);
+  --ok:#34C759;--ok-tint:rgba(52,199,89,.12);--warn:#FF9500;--warn-tint:rgba(255,149,0,.12);--danger:#FF3B30;--danger-tint:rgba(255,59,48,.12)}
+[data-style="cupertino"][data-theme="dark"]{--bg:#000000;--surface:#1C1C1E;--sunken:#000000;--hover:#2C2C2E;
+  --tx1:#FFFFFF;--tx2:rgba(235,235,245,.6);--tx3:rgba(235,235,245,.3);--txinv:#FFFFFF;--bd:rgba(84,84,88,.65);--bd2:#38383A;--focus:#0A84FF;
+  --accent:#0A84FF;--accent-hi:#409CFF;--accent-tint:rgba(10,132,255,.16);
+  --ok:#30D158;--ok-tint:rgba(48,209,88,.16);--warn:#FF9F0A;--warn-tint:rgba(255,159,10,.16);--danger:#FF453A;--danger-tint:rgba(255,69,58,.16)}
+[data-style="cupertino"] .tag{border-radius:999px}
+[data-style="cupertino"] .btn{font-weight:500}
+[data-style="cupertino"][data-theme="light"] .topbar{background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px)}
+[data-style="cupertino"][data-theme="dark"] .topbar{background:rgba(28,28,30,.72);backdrop-filter:saturate(180%) blur(20px)}
 </style>
 </head>
 <body>
@@ -260,7 +291,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
     <div class="crumb">Admin / <b id="crumbPage">Dashboard</b></div>
     <div class="search"><svg class="ic"><use href="#i-search"/></svg><input placeholder="Search users, roles, audit…"></div>
     <div class="top-actions">
-      <select id="styleSelect" title="Style pack" style="padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit"><option value="broadsheet">Broadsheet</option><option value="geist">Geist</option><option value="material">Material</option><option value="fluent">Fluent</option><option value="ant">Ant</option></select>
+      <select id="styleSelect" title="Style pack" style="padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit"><option value="broadsheet">Broadsheet</option><option value="geist">Geist</option><option value="material">Material</option><option value="fluent">Fluent</option><option value="ant">Ant</option><option value="carbon">Carbon</option><option value="cupertino">Cupertino</option></select>
       <button class="icon-btn" id="themeBtn" title="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
       <div class="tenant-select"><svg class="ic" style="width:13px;height:13px"><use href="#i-building"/></svg><span>Acme Corp</span><svg class="ic" style="width:12px;height:12px;color:var(--tx3)"><use href="#i-chev-r"/></svg></div>
       <div class="avatar">AD</div>

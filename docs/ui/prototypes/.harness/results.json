@@ -1,6 +1,6 @@
 {
   "when": "2026-11-18",
-  "prototype": "admin-console.html v0.5 (5 single-word style packs x light/dark)",
+  "prototype": "admin-console.html v0.6 (7 single-word style packs x light/dark)",
   "runner": "puppeteer (headless chromium)",
   "fail": 0,
   "results": {
@@ -93,7 +93,9 @@
           "geist",
           "material",
           "fluent",
-          "ant"
+          "ant",
+          "carbon",
+          "cupertino"
         ],
         "themeOrthogonal": true,
         "ant": {
@@ -105,6 +107,22 @@
           "btnWeight": "400",
           "darkAccent": "#1668DC",
           "darkBg": "#141414"
+        },
+        "carbon": {
+          "accent": "#0F62FE",
+          "r6": "0px",
+          "btnRadius": "0px",
+          "cardRadius": "0px",
+          "sans": "IBM Plex Sans",
+          "darkAccent": "#4589FF"
+        },
+        "cupertino": {
+          "accent": "#007AFF",
+          "r6": "16px",
+          "btnRadius": "10px",
+          "tagRadius": "999px",
+          "topbarBackdropFilter": "saturate(1.8) blur(20px)",
+          "darkAccent": "#0A84FF"
         }
       }
     },
