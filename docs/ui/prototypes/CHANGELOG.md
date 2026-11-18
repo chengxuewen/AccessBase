@@ -346,3 +346,14 @@ The harness is now a REPRODUCIBLE Playwright suite (was a session-observed hand-
   (chromium already cached; no install). Each run regenerates `.harness/results.json`
   (runner="playwright (reproducible suite)", fail count, per-group pass/assertions).
 - First run: 14 passed (1.6s). Keyboard/a11y assertions will be added once open item O2 is fixed.
+
+## Accessibility (real barriers) — 2026-11-18 (expert panel, adjudication 10 = B, open item O2 resolved)
+- role-check changed from <div onclick> to <button type="button" role="checkbox" aria-checked> —
+  Groups role binding is now keyboard-operable (Enter/Space), with a visible focus ring.
+- Modals: role="dialog" aria-modal="true"; Escape closes the topmost open modal; icon-only close
+  buttons get aria-label="Close".
+- Global :focus-visible ring (2px solid var(--focus)) so keyboard focus is visible in every pack.
+- Runner: new a11y-keyboard group (15 total) verifies role-check keyboard toggle, modal Escape,
+  close-button name, dialog role, focus ring. All 15 pass.
+- Deferred (prototype scope, disclosed): full modal focus-trap/focus-return, complete tabs tablist
+  AT semantics, selectable-row keyboard path.

@@ -296,8 +296,9 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 .add-member{display:flex;gap:8px;margin-top:var(--sp12)}
 .add-member select{flex:1;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
 .role-checks{display:flex;flex-direction:column;gap:8px}
-.role-check{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--r4);cursor:pointer}
+.role-check{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--r4);cursor:pointer;width:100%;text-align:left;font:inherit;background:var(--surface);color:var(--tx1)}
 .role-check:hover{background:var(--hover)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .role-check .rc-box{width:18px;height:18px;border-radius:var(--r2);border:1px solid var(--bd2);background:var(--surface);display:grid;place-items:center;color:var(--txinv);flex-shrink:0}
 .role-check .rc-box .ic{width:12px;height:12px;opacity:0}
 .role-check.on .rc-box{background:var(--accent);border-color:var(--accent)}
@@ -641,8 +642,8 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       </div>
     </section>
   </main>
-<div class="modal-overlay" id="revealModal"><div class="modal">
-  <div class="modal-head"><svg class="ic" style="color:var(--warn)"><use href="#i-alert"/></svg><h3 id="revealTitle">Secret</h3><button class="icon-btn close" data-close="revealModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+<div class="modal-overlay" id="revealModal"><div class="modal" role="dialog" aria-modal="true">
+  <div class="modal-head"><svg class="ic" style="color:var(--warn)"><use href="#i-alert"/></svg><h3 id="revealTitle">Secret</h3><button class="icon-btn close" aria-label="Close" data-close="revealModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body">
     <div class="warn-banner"><svg class="ic"><use href="#i-alert"/></svg><span>This secret is shown only once. Copy it now — it cannot be retrieved again.</span></div>
     <div class="secret-box"><input id="revealValue" readonly><button class="btn" id="revealCopy"><svg class="ic" style="width:13px;height:13px"><use href="#i-copy"/></svg>Copy</button></div>
@@ -650,18 +651,18 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   </div>
   <div class="modal-foot"><button class="btn primary" data-close="revealModal">Done</button></div>
 </div></div>
-<div class="modal-overlay" id="eventModal"><div class="modal">
-  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-zap"/></svg><h3 id="eventModalTitle">Event</h3><button class="icon-btn close" data-close="eventModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+<div class="modal-overlay" id="eventModal"><div class="modal" role="dialog" aria-modal="true">
+  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-zap"/></svg><h3 id="eventModalTitle">Event</h3><button class="icon-btn close" aria-label="Close" data-close="eventModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body" id="eventModalBody"></div>
   <div class="modal-foot"><button class="btn" data-close="eventModal">Close</button></div>
 </div></div>
-<div class="modal-overlay" id="delivModal"><div class="modal" style="max-width:640px">
-  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-webhook"/></svg><h3 id="delivTitle">Deliveries</h3><button class="icon-btn close" data-close="delivModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+<div class="modal-overlay" id="delivModal"><div class="modal" style="max-width:640px" role="dialog" aria-modal="true">
+  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-webhook"/></svg><h3 id="delivTitle">Deliveries</h3><button class="icon-btn close" aria-label="Close" data-close="delivModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body"><div style="overflow-x:auto"><table><thead><tr><th>Status</th><th>Attempts</th><th>Response</th><th>Created</th></tr></thead><tbody id="delivRows"></tbody></table></div></div>
   <div class="modal-foot"><button class="btn" data-close="delivModal">Close</button></div>
 </div></div>
-<div class="modal-overlay" id="formModal"><div class="modal">
-  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-plus"/></svg><h3 id="formTitle">Create</h3><button class="icon-btn close" data-close="formModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+<div class="modal-overlay" id="formModal"><div class="modal" role="dialog" aria-modal="true">
+  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-plus"/></svg><h3 id="formTitle">Create</h3><button class="icon-btn close" aria-label="Close" data-close="formModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body" id="formBody"></div>
   <div class="modal-foot"><button class="btn" data-close="formModal">Cancel</button><button class="btn primary" id="formSave">Create</button></div>
 </div></div>
@@ -767,7 +768,7 @@ function renderMembers(){
 let draftRoles=null;
 function renderRoleChecks(){
  $('tabRoleCount').textContent='('+draftRoles.length+')';
- $('roleChecks').innerHTML=ROLES.map(r=>'<div class="role-check'+(draftRoles.includes(r.name)?' on':'')+'" data-role="'+r.name+'"><span class="rc-box"><svg class="ic"><use href="#i-check"/></svg></span><span class="rc-nm">'+r.name+'</span><span class="rc-ds">'+r.perms.length+' perms'+(r.system?' · system':'')+'</span></div>').join('');
+ $('roleChecks').innerHTML=ROLES.map(r=>'<button type="button" role="checkbox" aria-checked="'+(draftRoles.includes(r.name)?'true':'false')+'" class="role-check'+(draftRoles.includes(r.name)?' on':'')+'" data-role="'+r.name+'"><span class="rc-box"><svg class="ic"><use href="#i-check"/></svg></span><span class="rc-nm">'+r.name+'</span><span class="rc-ds">'+r.perms.length+' perms'+(r.system?' · system':'')+'</span></button>').join('');
  document.querySelectorAll('#roleChecks .role-check').forEach(rc=>rc.onclick=()=>{const nm=rc.dataset.role;const i=draftRoles.indexOf(nm);if(i>=0)draftRoles.splice(i,1);else draftRoles.push(nm);renderRoleChecks();});
 }
 function openPanel(){
@@ -797,6 +798,7 @@ function openModal(id){$(id).classList.add('on');}
 function closeModal(id){$(id).classList.remove('on');}
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open)open.classList.remove('on');}});
 document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(c){try{navigator.clipboard.writeText(c.dataset.copy).catch(()=>{});}catch(err){}}});
 document.addEventListener('click',e=>{const b=e.target.closest('button[title="Edit"],button[title="Delete"]');if(b){const tt=document.getElementById('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);}});
 function reveal(title,value,meta){$('revealTitle').textContent=title;$('revealValue').value=value;$('revealMeta').textContent=meta;openModal('revealModal');}

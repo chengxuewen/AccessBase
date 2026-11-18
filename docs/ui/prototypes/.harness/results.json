@@ -280,6 +280,19 @@
         "placeholdersLeft": 0,
         "sections": 11
       }
+    },
+    "a11y-keyboard": {
+      "pass": true,
+      "assertions": {
+        "roleCheckTag": "BUTTON",
+        "roleCheckRole": "checkbox",
+        "keyboardToggles": true,
+        "modalOpenBefore": true,
+        "modalClosedByEscape": true,
+        "closeName": "Close",
+        "dialogRole": "dialog",
+        "focusRing": true
+      }
     }
   }
 }

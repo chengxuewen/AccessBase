@@ -369,3 +369,44 @@ test('all-pages-high-fidelity', async ({ page }) => {
   rec('all-pages-high-fidelity', pass, a);
   expect(pass, 'all-pages-high-fidelity').toBe(true);
 });
+
+test('a11y-keyboard', async ({ page }) => {
+  await page.goto(FILE);
+  // role-check is a keyboard-operable checkbox (adjudication 10 = B)
+  await page.evaluate(() => {
+    (document.querySelector('[data-page=groups]') as HTMLElement).click();
+    (document.querySelector('#groupRows [data-manage="0"]') as HTMLElement).click();
+    (document.querySelector('.tabs [data-tab=roles]') as HTMLElement).click();
+  });
+  const rc = page.locator('#roleChecks .role-check').first();
+  const tag = await rc.evaluate(el => el.tagName);
+  const role = await rc.getAttribute('role');
+  const ariaBefore = await rc.getAttribute('aria-checked');
+  await rc.focus();
+  await page.keyboard.press('Enter');
+  const ariaAfter = await page.locator('#roleChecks .role-check').first().getAttribute('aria-checked');
+  const keyboardToggles = ariaBefore !== ariaAfter;
+  // modal: dialog role + Escape closes + close button has accessible name
+  await page.evaluate(() => {
+    (document.querySelector('[data-page=tenants]') as HTMLElement).click();
+    (document.querySelector('[data-create=tenants]') as HTMLElement).click();
+  });
+  const modalOpenBefore = await page.evaluate(() => document.getElementById('formModal')!.classList.contains('on'));
+  await page.keyboard.press('Escape');
+  const modalClosedByEscape = await page.evaluate(() => !document.getElementById('formModal')!.classList.contains('on'));
+  const closeName = await page.evaluate(() => document.querySelector('#formModal .icon-btn.close')!.getAttribute('aria-label'));
+  const dialogRole = await page.evaluate(() => document.querySelector('#formModal .modal')!.getAttribute('role'));
+  // global :focus-visible ring (keyboard modality active after Tab)
+  await page.keyboard.press('Tab');
+  const focusRing = await page.evaluate(() => {
+    const b = document.querySelector('#page-tenants .btn') as HTMLElement;
+    b.focus();
+    const cs = getComputedStyle(b);
+    return cs.outlineStyle !== 'none' && cs.outlineWidth !== '0px';
+  });
+  const a = { roleCheckTag: tag, roleCheckRole: role, keyboardToggles, modalOpenBefore, modalClosedByEscape, closeName, dialogRole, focusRing };
+  const pass = tag === 'BUTTON' && role === 'checkbox' && keyboardToggles && modalOpenBefore
+    && modalClosedByEscape && closeName === 'Close' && dialogRole === 'dialog' && focusRing;
+  rec('a11y-keyboard', pass, a);
+  expect(pass, 'a11y-keyboard').toBe(true);
+});
