@@ -379,3 +379,22 @@ logger.error('Operation failed', error); // ❌
 
 - **The opencode.json `instructions` key is GENERATED** (instructions-links layer, ADJ-OC-1): a new rule file dropped under `.agents/rules/` joins the OpenCode load face automatically; NEVER hand-edit that key — the pre-commit sync erases hand edits (RCH D20). The memory-file list and the warn threshold are adjusted in the opencode `instructions_face` field of `scripts/agents/agent-targets.json`.
 - Check: `node scripts/agents/agent-links.mts check` — instructions-links red = hand-edit drift or missing source file; green = consistent.
+
+## C1: "Gates passed" reports must attach live run output (panel:2026-11-05#C-1)
+
+**Rule**: any assertion that a gate/chain/CI run passed MUST be accompanied by
+the actual run output (command + result) in the same reply, document, or commit
+message. A paraphrase, a memory of a previous run, or "components were green"
+does not count as evidence for the aggregate.
+
+**Source**: user ruling 2026-11-17 (MS-increment adoption #3); motivated by
+panel finding `panel:2026-11-05#C-1` (live-fire: the aggregate gate had never
+been run end-to-end while its components were cited as green).
+
+**Check**: reading a completion report, ask "where is the run output?" — no
+output, no pass claim. This convention applies to the agent writing the
+report, not to the reader hunting for proof.
+
+**Naming**: C-series entries start at C1 here (2026-11-17). External panel
+findings keep their own namespace and are always cited as
+`panel:<date>#<id>` — never as bare "C-1" (collision with this series).

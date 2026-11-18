@@ -143,6 +143,7 @@ frontmatter `description`. Maintained by `agents sync` — do not hand-edit this
 | `expert-panel-review` | 多角色专家团审核一份计划/结论/决策：先独立后合并、隔离视角、必设对抗者、保留分歧、按复… |
 | `graphify` | Use for any question about a codebase, its a… |
 | `lesson-review` | 批量会话回顾：系统性提取经验教训，写入项目记忆。Use after long debug… |
+| `mechanism-porting` | Execute the adoption of an EXTERNAL mechanis… |
 | `security-hardening` | AccessBase 安全加固。OWASP Top 10 + JWT/RBAC + 数据… |
 | `skill-creator` | Generate AccessBase project skills from SDD … |
 | `skill-router` | 分析用户意图，输出推荐技能列表。当用户说'怎么做'、'用什么技能'、意图模糊时自动激活。… |
@@ -155,10 +156,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### decisions
 - full text: `.agents/memorys/decisions.md`
-... 99 older entries omitted (read the full file)
-- D100: CLI 脚本架构 (2026-08-21)
-- D101: 四种构建模式架构 (2026-08-27)
-- D102: Deploy 模式单端口服务 (2026-08-27)
+... 102 older entries omitted (read the full file)
 - D103: Admin 自动创建策略 (2026-08-27)
 - D104: E2E 测试不覆盖跨 session 状态 (2026-08-27)
 - D105: 用户 CRUD API 类型约束 (2026-08-27)
@@ -181,18 +179,13 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - D124: Batch O snapshot strategy — applied chain frozen, v7 rebuilt from the authoritative writer (2026-09-23)
 - D125: Rotation replay classifier — 10s concurrent grace distinguishes double-fire from family burn (2026-09-23)
 - D126: Gap-audit remediation ladder + documentation status-header gate (2026-09-23)
+- D107: REGISTERED VOID — never assigned, number reserved (2026-11-17)
+- D108: REGISTERED VOID — never assigned, number reserved (2026-11-17)
+- D127: Introduce local-serena (pixi-kind MCP) — Batch-4 npm-only pruning reversed by ruling (2026-11-18)
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 77 older entries omitted (read the full file)
-- PIT-078: env-pinned config 单例 × vitest import 提升——顶层赋值晚于求值；resetModules 多次 buildApp 触发 prom-client 双注册 (2026-09-23)
-- PIT-076 addendum (2026-09-23, batch P): 审计报告与 PoC 交付物同属 claims——派修复前逐行 grep
-- PIT-080: 给 /login 页壳新增公开探针端点后未同步 e2e mock，17 个 spec 连锁红（2026-09-23）
-- PIT-081: 值记忆化的异步构造函数在并发首波下退化为每请求实例（2026-09-23）
-- PIT-082: vi.mock 代理对未声明导出「访问即抛」，typeof 守卫救不了（2026-09-23）
-- PIT-080 追加（2026-09-23 Q3E）：/login 壳探针名册适用于【任何】新壳级 fetch，captcha/status 复发一次
-- PIT-083: 连续重跑打爆共享 Redis rate 桶 → 跨文件 429 假回归 (2026-09-24, Q4b)
-- PIT-082 addendum (2026-10-08 verification day): same family re-fire via buildApp destructure
+... 85 older entries omitted (read the full file)
 - PIT-084: node-saml SLO/ACS integration triple trap (2026-10-08, logout-coherence)
 - PIT-085: oidc-provider RP walls — human-confirm logoutSource + built-in SSRF dispatcher (2026-10-08, verification day)
 - PIT-086: StrictMode double-fire burns one-time exchange codes; mocks structurally hide it (2026-10-08, verification day)
@@ -200,6 +193,14 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-088: emitEvent on a TX handle poisons the COMMIT — telemetry rides its own pool (2026-10-12, Q3D integration)
 - PIT-089: "Creating" a file that is git-tracked-but-deleted silently overwrites repo history
 - PIT-090: A host consuming the generated MCP declaration can fire self-healing installs that drift the dependency tree
+- PIT-091: External CI validity is invisible to every local gate - a rejected workflow file stayed red-but-unread for 46 days (2026-11-06, E11/E12/E13 wave)
+- PIT-092: The local e2e invocation has three environment traps, each eating a 60 s timeout before the real question is even asked (2026-11-05/06, T8)
+- PIT-093: The measuring instrument lies more often than the measurement - three costumes seen in one wave (2026-11-06, panel-folded)
+- PIT-094: A product fetch-surface change without its e2e mock-surface twin silently breaks specs nobody touched (2026-11-06, E10 wave)
+- PIT-095: An imported layer's CLI entry called process.exit() at module scope and swallowed the entire dispatcher
+- PIT-079: REGISTERED VOID — never assigned, number reserved (2026-11-17)
+- PIT-096: A success log line as a function's last statement swallowed real gate failures
+- PIT-097: A wrong verification predicate produces confident false findings — test the checker on BOTH samples before trusting its verdict
 
 ### status
 - full text: `.agents/memorys/status.md`

@@ -126,18 +126,20 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
   };
 }
 
-const args = process.argv.slice(2);
-if (args.includes("--self-test")) process.exit(runSelfTest());
-// "sync" arrives as argv from the dispatcher (caught live by the pre-commit gate on
-// this very layer's first commit - lints have no repair behavior, sync === check here)
-if (args.length === 0 || args[0] === "check" || args[0] === "sync" || args[0] === "--strict") {
-  const r = run("check");
-  console.log(r.summary);
-  if (r.code !== EXIT_CLEAN) process.exit(r.code); // guard stays guard in every mode
-  process.exit(args.includes("--strict") && strictExitWithErrors() ? EXIT_FINDINGS : EXIT_CLEAN);
+if (import.meta.main) {
+  const args = process.argv.slice(2);
+  if (args.includes("--self-test")) process.exit(runSelfTest());
+  // "sync" arrives as argv from the dispatcher (caught live by the pre-commit gate on
+  // this very layer's first commit - lints have no repair behavior, sync === check here)
+  if (args.length === 0 || args[0] === "check" || args[0] === "sync" || args[0] === "--strict") {
+    const r = run("check");
+    console.log(r.summary);
+    if (r.code !== EXIT_CLEAN) process.exit(r.code); // guard stays guard in every mode
+    process.exit(args.includes("--strict") && strictExitWithErrors() ? EXIT_FINDINGS : EXIT_CLEAN);
+  }
+  console.error("usage: header-lint.mts [--self-test | check | --strict]");
+  process.exit(EXIT_GUARD);
 }
-console.error("usage: header-lint.mts [--self-test | check | --strict]");
-process.exit(EXIT_GUARD);
 
 function strictExitWithErrors(): boolean {
   // separate pass so the aggregate run() keeps its report-only contract (C-1)

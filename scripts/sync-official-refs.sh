@@ -4,7 +4,7 @@
 # 用途: 为 AI 分析参考提供稳定的官方源码基准（config 目录 .refinfo/，git-ignored）。
 #       不依赖 /tmp 临时目录（跨主机/重启丢失），浅克隆 (--depth 1) 只取源码不要历史。
 #
-# 网络: 国内 GitHub 干扰 (PIT-14) → 优先 git 原生, 失败回退 --http1.1 / 代理。
+# 网络: 国内 GitHub 干扰 (MS:PIT-14) → 优先 git 原生, 失败回退 --http1.1 / 代理。
 #
 # 幂等: 目录已存在则跳过 (不覆盖), 可用 --force 强制重拉。
 # 用法: bash scripts/sync-official-refs.sh [--force]
@@ -34,13 +34,13 @@ clone_with_fallback() {
     rm -rf "$target"
   fi
   echo "→ 拉取 $dir ..."
-  # 尝试 git 原生, 失败回退 --http1.1 (PIT-14: HTTP/2 被干扰)
+  # 尝试 git 原生, 失败回退 --http1.1 (MS:PIT-14: HTTP/2 被干扰)
   if git clone --depth 1 --single-branch "$url" "$target" 2>/dev/null; then
     echo "  ✓ $dir 完成"
   elif git clone --depth 1 --single-branch --config http.version=HTTP/1.1 "$url" "$target" 2>/dev/null; then
     echo "  ✓ $dir 完成 (http1.1 回退)"
   else
-    echo "  ✗ $dir 拉取失败 (网络问题, 参考 PIT-14: 设 HTTPS_PROXY 或重试)"
+    echo "  ✗ $dir 拉取失败 (网络问题, 参考 MS:PIT-14: 设 HTTPS_PROXY 或重试)"
     return 1
   fi
 }

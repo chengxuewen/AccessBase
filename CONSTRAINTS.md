@@ -32,14 +32,21 @@ governance file collects only machine-enforceable game rules).
 
 - Every new or modified gate must be demonstrated once: deliberate violation →
   RED, restored → GREEN; commands and results recorded in the commit message.
+- Every gate `X` ships with an `X --self-test` fixture (synthetic, planted
+  violation → RED, restore → GREEN), registered as a pair. Existing first
+  pairs: `rule-ref-lint`, `header-lint`. This is INCREMENTAL — no retroactive
+  pairing debt for gates already live; new gates without a self-test are not
+  accepted.
 - A check reported as "enforced" without a negative demonstration counts as
-  not done.
+  not done; a pass claim without live run output violates `C1` in
+  `.agents/memorys/conventions.md`.
 - `--self-test` fixtures (where present) are synthetic and never touch real
   data.
 - The aggregate gate: `bash accessbase.sh ci` (or `pixi run ci`) — typecheck +
   lint + test + `agents check`. The pre-commit hook runs the light subset
-  (sync + stage + check); `agents check` alone (8 layers) covers governance
-  surfaces between commits.
+  (sync + stage + check); `agents check` alone covers governance surfaces
+  between commits. Layer count is dynamic — recount with
+  `bash accessbase.sh agents status` (never quote a literal; ADJ-7a/7h).
 
 <!-- BEGIN:ci-gates -->
 Generated from `pixi.toml` -> `[tasks] ci depends-on` — edit pixi.toml, not this

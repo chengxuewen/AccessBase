@@ -717,3 +717,58 @@
 - **Solution**: trailing `*` on both globs (route-registration priority keeps :id handlers winning for path suffixes - reasoning inlined as spec comments); targeted two-spec verification + CI E2E green at run #34.
 - **Verification**: `git show 304e02c~1:...ApiKeys.tsx | grep listApiKeys` proved the argument-less before-state; failure snapshots showed the predicted alert+empty-table shape; fix verified twice (local built-assets, CI).
 - **Prevention**: any change to a request surface (URL shape, query, method) must grep ALL e2e `page.route` registrations for the touched paths, not only the specs of the changed pages - globs are per-spec, drift is global; playwright glob-vs-query matching is a trap that deserves memorization. And: when failing tests share a signature (N pages, same empty-table shape), suspect a common upstream (api layer) before the Nth local cause. (E10 residual: oauth-login/pagination mode-variance artifacts were wiped by an interleaved run - test-results/ is per-run, attribution stays open honestly, not invented.)
+
+## PIT-095: An imported layer's CLI entry called process.exit() at module scope and swallowed the entire dispatcher
+
+- **Symptom**: for ~13 days (since close-out W3 landed header-lint), `agents check` printed only header-lint's WARN lines and exited 0. Every claim of "agents check green" in that window — including a G2 acceptance record that followed the new C1 "attach live output" rule — was a phantom green. After adding a new layer (check-leaks), a planted force-add file should have reddened the chain but did not.
+- **Root cause**: `scripts/agents/header-lint.mts` put its CLI entry (`const args = process.argv.slice(2); ... process.exit(...)`) at module TOP LEVEL with NO `import.meta.main` guard. When the dispatcher `agent-links.mts` imported it, argv was `check`, so the import itself called `process.exit(0)` — terminating the dispatcher before the remaining layer ran, before any `[check] summary` printed, and before the aggregate exit code was computed. All layers registered after header-lint were dead code; all earlier drift went unnoticed.
+- **Solution**: wrapped the whole CLI block in `if (import.meta.main) { ... }` (same shape as rule-ref-lint/check-leaks). Immediate re-run exposed REAL drift: 5 rules-links mdc files + 1 memory-aggregate region (G2 source edits never synced) + the planted leak hit — exit 1. After `agents sync` and removing the probe: 11 layer summaries printed, exit 0 — verified green for the first time.
+- **Verification**: `node scripts/agents/agent-links.mts check` → all 11 `[check]` lines present (a necessary symptom of a real aggregate run); planted force-add → check-leaks RED; restored → GREEN. The "all summaries printed" criterion is the canary for this bug class.
+- **Prevention**: (1) every layer CLI entry MUST live behind `import.meta.main` (or equivalent); add this to skill-lint/layer-registry checks so a new layer cannot repeat it. (2) A gate's run output must show the full layer roster (census line) — a truncated summary is evidence of a short-circuited chain, not green. (3) This is the machine-grade version of C1: a pass claim without full output is not evidence.
+
+## PIT-079: REGISTERED VOID — never assigned, number reserved (2026-11-17)
+
+Gap between PIT-078 and PIT-080 discovered by the continuity gate (ruling #2,
+2026-11-17). No entry was written under this number; registered as an
+intentional void so the gap is machine-visible and the number is never reused.
+
+## PIT-096: A success log line as a function's last statement swallowed real gate failures
+
+- **Symptom**: after fixing PIT-095 (dispatcher short-circuit), `bash accessbase.sh ci` still reported green while `pnpm typecheck` independently exited 2 with real errors (`Buffer<ArrayBufferLike>` not assignable to `Uint8Array`, `NonSharedBuffer`, `[Symbol.dispose]` iterator mismatch in identity/crypto.ts + OIDC files). The census red/green demo also kept showing lint PASS with a deliberately broken import.
+- **Root cause**: `cmd_typecheck`, `cmd_lint`, `cmd_test` ended with `log_ok "… passed"` after `pnpm …` with NO explicit `|| return $?`. In the main shell `set -e` happened to stop on failure; but when census called them through a PIPE (`run_ci_gate | tee`), bash runs the function in a subshell that does not inherit errexit — the failed `pnpm` was followed by the successful `log_ok`, so the FUNCTION returned 0. Two layers of false green stacked: PIT-095's process.exit short-circuit, then this success-log swallowing.
+- **Solution**: explicit `pnpm … || return $?` in all three gate functions (typecheck's two steps included). Also replaced census's in-else `PIPESTATUS[0]` (reset by entering an `if` branch — another false-green micro-bug) with `$?`. Red/green demo then worked: planted broken import → `[census] pass=0 fail=1 skip=3`, exit 1; restored → all gates pass.
+- **Verification**: direct `pnpm typecheck` and `cmd_*` via census now agree on exit code. NOTE: the underlying type errors are REAL and now visible — ci is RED until they are fixed or the dependency drift is resolved; do NOT silence by reverting the explicit returns.
+- **Prevention**: any command function whose result is consumed must end with an explicit exit-status propagation (`|| return $?`), never with a logging line; never rely on `set -e` inside piped subshells. A gate output's PASS must be cross-checked against a direct invocation of the same command at least once (PIT-095 canary + C1).
+
+## PIT-097: A wrong verification predicate produces confident false findings — test the checker on BOTH samples before trusting its verdict
+
+- **Symptom**: four separate verifier mistakes in two days (2026-11-17/18), each
+  producing a confident wrong answer: (a) `'conventions.md' in instructions[]`
+  used exact-list-membership instead of substring → "C1 not injected, check is
+  phantom green" (the entry was the full path, present all along); (b)
+  `grep -c error` over a ci log returned 415 — every hit was eslint WARNING
+  prose ("only warn, error allowed"), not failures; exit code was the truth;
+  (c) a planted lint violation named `_UnusedProbe` matched the eslint
+  unused-var exemption regex `/^_/` → the red-state demo silently stayed green;
+  (d) serena's `--version` prints `Serena 2.1.0-<sha>-dirty` → exact pin match
+  false-DRIFTs on every build.
+- **Root cause**: the verification STEP was executed, but the verification
+  PREDICATE was never itself verified. Each check encoded an unexamined
+  assumption (membership semantics, word-shape of output, exemption grammar,
+  version-string shape). A checker with a wrong predicate is worse than no
+  checker: it manufactures authoritative-sounding false findings (both false
+  positives AND false negatives observed).
+- **Solution**: before trusting any new check/grep/assert, run it against a
+  KNOWN-POSITIVE sample (must hit) and a KNOWN-NEGATIVE sample (must miss).
+  If either sample disagrees with expectation, the predicate is wrong — fix
+  the predicate, do not reinterpret the result. This is the personal-scale
+  twin of the repo-scale self-test pairing duty (CONSTRAINTS.md) and
+  scripts-lint's must-hit fixtures.
+- **Verification**: all four instances re-checked with corrected predicates
+  (substring match → True; exit-code reading → 0 real errors; unprefixed
+  probe name → lint RED as intended; regex version-token extraction →
+  `ok (2.1.0)`); the corrections flipped every wrong verdict.
+- **Prevention**: escalated per the lesson-memory ladder (four recurrences ≥ 2):
+  edit-safety.md "Verification Honesty" gains the both-samples rule as a
+  NON-NEGOTIABLE bullet; the evolution protocol's self-test pairing duty now
+  covers predicates, not just gates.

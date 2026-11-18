@@ -25,6 +25,7 @@
     ".agents/rules/common/development-workflow.md",
     ".agents/rules/common/docker.md",
     ".agents/rules/common/edit-safety.md",
+    ".agents/rules/common/evolution-protocol.md",
     ".agents/rules/common/git-workflow.md",
     ".agents/rules/common/hooks.md",
     ".agents/rules/common/lesson-memory.md",
@@ -33,6 +34,7 @@
     ".agents/rules/common/platform.md",
     ".agents/rules/common/security.md",
     ".agents/rules/common/skills-router.md",
+    ".agents/rules/common/team-execution.md",
     ".agents/rules/common/testing.md",
     ".agents/rules/common/tool-routing.md",
     ".agents/rules/csharp/coding-style.md",
@@ -137,6 +139,17 @@
         "run",
         "node",
         ".opencode/init-mcp-drizzle.mjs"
+      ]
+    },
+    "local-serena": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "pixi",
+        "run",
+        "-e",
+        "serena",
+        "mcp-serena"
       ]
     },
     "local-postgres": {

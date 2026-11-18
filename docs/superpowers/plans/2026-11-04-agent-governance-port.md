@@ -403,6 +403,14 @@ a CI invariant and closes the "stale generated layer committed" hole.
 - `gate-mcp` layer: pin three-state (enabled missing/DRIFT = red; disabled = reported),
   shape checks (string command, ${VAR} env form), latch-pair lock (codegraph ⇔
   tool-routing.md), priority-phrasing sniff on the routing rule.
+- **Scope-cut record (added 2026-11-06, not part of the original log):** Batch 4 pruned
+  RCH's pixi-env server kind during the port — the MCP surface was deliberately
+  npm-only. The only record of that cut was the `gate-mcp.mts` header comment
+  ("no pixi-env servers — all servers are npm-launched"); this plan never stated it.
+  The cut is revisited by the serena introduction batch
+  (`docs/superpowers/plans/2026-11-06-serena-local-mcp.md`), which extends the single
+  source, pin registry, lifecycle CLI, gate and launcher to a second `kind: "pixi"`
+  server shape.
 - `tool-routing.md` division matrix (task-shape → route table, dual-host discipline notes).
   **Superseded wording — ADJ-7g:** the matrix is now consumed by THREE hosts (opencode,
   CodeBuddy, Qoder); its "dual-host reality" section and the RCH:PIT-244 three-questions answer

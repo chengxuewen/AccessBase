@@ -582,7 +582,7 @@ cmd_test() {
     ensure_node
     ensure_pnpm
     log_info "Running tests..."
-    pnpm test
+    pnpm test || return $?   # explicit: see cmd_lint
     log_ok "Tests complete"
 }
 
@@ -604,8 +604,8 @@ cmd_typecheck() {
     ensure_node
     ensure_pnpm
     log_info "Running type check..."
-    pnpm typecheck
-    pnpm --filter @accessbase/admin-ui typecheck
+    pnpm typecheck || return $?   # explicit: see cmd_lint
+    pnpm --filter @accessbase/admin-ui typecheck || return $?
     log_ok "Type check passed"
 }
 
@@ -613,7 +613,7 @@ cmd_lint() {
     ensure_node
     ensure_pnpm
     log_info "Running lint..."
-    pnpm lint
+    pnpm lint || return $?   # explicit: in a pipeline subshell set -e does not propagate
     log_ok "Lint passed"
 }
 
@@ -657,15 +657,50 @@ cmd_mcp() {
     esac
 }
 
+run_ci_gate() {
+    case "$1" in
+        typecheck)    cmd_typecheck ;;
+        lint)         cmd_lint ;;
+        test)         cmd_test ;;
+        agents-check) cmd_agents check ;;
+    esac
+}
+
 cmd_ci() {
-    log_info "ci: [1/4] typecheck..."
-    cmd_typecheck || exit 1
-    log_info "ci: [2/4] lint..."
-    cmd_lint || exit 1
-    log_info "ci: [3/4] test..."
-    cmd_test || exit 1
-    log_info "ci: [4/4] agents check (governance gates)..."
-    cmd_agents check || exit 1
+    local log_dir="build/gate-logs"
+    local stamp
+    stamp="$(date +%Y%m%dT%H%M%S)"
+    mkdir -p "$log_dir"
+    local pass=0 fail=0 skip=0 aborted=0 gate log rc
+    for gate in typecheck lint test agents-check; do
+        log="$log_dir/${gate}-${stamp}.log"
+        if [ "$aborted" -eq 1 ]; then
+            echo "  [census] $gate: SKIP (upstream failure) — never counts as green"
+            skip=$((skip + 1))
+            continue
+        fi
+        log_info "ci: running $gate (evidence: $log)..."
+        # keep the pipeline INSIDE the if condition: with set -euo pipefail a
+        # bare failing pipeline exits the script before census can record it
+        # $? in the else branch is the pipeline's overall status; with pipefail
+        # that is the failing gate's code. PIPESTATUS is NOT reliable here —
+        # entering an if branch resets it (caught live 2026-11-17: a lint FAIL
+        # was recorded as PASS because PIPESTATUS[0] had become 0).
+        if run_ci_gate "$gate" 2>&1 | tee "$log"; then rc=0; else rc=$?; fi
+        if [ "$rc" -eq 0 ]; then
+            echo "  [census] $gate: PASS (log: $log)"
+            pass=$((pass + 1))
+        else
+            echo "  [census] $gate: FAIL (evidence: $log)"
+            fail=$((fail + 1))
+            aborted=1
+        fi
+    done
+    echo "[census] pass=$pass fail=$fail skip=$skip (skips never count as green)"
+    if [ "$fail" -gt 0 ]; then
+        log_error "ci chain: $fail gate(s) failed — see $log_dir"
+        return 1
+    fi
     log_ok "ci chain: all gates green"
 }
 

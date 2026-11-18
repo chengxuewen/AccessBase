@@ -52,10 +52,19 @@ function defPattern(kind: Kind): RegExp {
   return /^##[ \t]+C(\d+):/gm; // future C numbering picked up automatically
 }
 
-/** Load the three memory files and extract number sets + duplicate collisions. */
-export function collectDefs(memorysRoot: string): Defs & { duplicatesOf(kind: Kind): string[] } {
+/** Load the three memory files: definitions, REGISTERED VOIDs, duplicates,
+ *  and unregistered continuity gaps (plan G1′, ruling #2). A VOID is a
+ *  reserved-but-never-assigned number; it counts as "known" for citation
+ *  resolution but is NOT a real entry and MUST NOT be reused. */
+export function collectDefs(memorysRoot: string): Defs & {
+  duplicatesOf(kind: Kind): string[];
+  gapsOf(kind: Kind): string[];
+  voidsOf(kind: Kind): string[];
+} {
   const defs = { D: new Set<string>(), PIT: new Set<string>(), C: new Set<string>() } as Defs;
+  const voids: Record<Kind, Set<string>> = { D: new Set(), PIT: new Set(), C: new Set() };
   const dupMessages: Record<Kind, string[]> = { D: [], PIT: [], C: [] };
+  const gapMessages: Record<Kind, string[]> = { D: [], PIT: [], C: [] };
   for (const kind of ["D", "PIT", "C"] as Kind[]) {
     const file = path.join(memorysRoot, MEMORY_FILES[kind]);
     if (!existsSync(file)) continue;
@@ -63,6 +72,8 @@ export function collectDefs(memorysRoot: string): Defs & { duplicatesOf(kind: Ki
     const seen = new Map<string, number[]>();
     for (const m of text.matchAll(defPattern(kind))) {
       const num = String(Number(m[1]));
+      const heading = (m[0] as string) + " " + text.slice((m.index ?? 0) + m[0].length).split("\n")[0];
+      if (/REGISTERED VOID/i.test(heading)) { voids[kind].add(num); defs[kind].add(num); continue; }
       defs[kind].add(num);
       const line = text.slice(0, m.index ?? 0).split("\n").length;
       seen.set(num, [...(seen.get(num) ?? []), line]);
@@ -70,8 +81,20 @@ export function collectDefs(memorysRoot: string): Defs & { duplicatesOf(kind: Ki
     for (const [num, lines] of seen) {
       if (lines.length > 1) dupMessages[kind].push(`${MEMORY_FILES[kind]} — ${kind === "PIT" ? `PIT-${num}` : `${kind}${num}`} defined twice (lines ${lines.join(", ")}) — concurrent numbering collision`);
     }
+    // C-series is new and intentionally sparse (only C1 today) — continuity
+    // applies to the append-only D/PIT ledgers only.
+    if (kind !== "C") {
+      const max = Math.max(0, ...[...defs[kind]].map(Number));
+      for (let n = 1; n <= max; n++) {
+        if (!defs[kind].has(String(n))) gapMessages[kind].push(`${MEMORY_FILES[kind]} — ${kind === "PIT" ? `PIT-${n}` : `${kind}${n}`} unregistered gap in 1..${max} — add a REGISTERED VOID entry (never reuse the number)`);
+      }
+    }
   }
-  return Object.assign(defs, { duplicatesOf: (kind: Kind) => dupMessages[kind] });
+  return Object.assign(defs, {
+    duplicatesOf: (kind: Kind) => dupMessages[kind],
+    gapsOf: (kind: Kind) => gapMessages[kind],
+    voidsOf: (kind: Kind) => [...voids[kind]],
+  });
 }
 
 /** Scan one text for dangling bare citations; returns finding strings. */
@@ -162,7 +185,24 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
   const hostPrivate = scanFiles
     .filter((f) => !f.label.startsWith(".agents/rules/zh/") && !f.label.includes("book-to-skill"))
     .flatMap((f) => scanTextForHostPrivate(f.text, f.label));
-  for (const kind of ["D", "PIT", "C"] as Kind[]) findings.push(...defs.duplicatesOf(kind));
+  for (const kind of ["D", "PIT", "C"] as Kind[]) {
+    findings.push(...defs.duplicatesOf(kind));
+    findings.push(...defs.gapsOf(kind));
+  }
+  // Corpus-expansion measurement (plan v2): MS scans docs/ too; our owned
+  // surface stays the four targets. Measure first, never hard-fail on an
+  // unowned corpus — this line is advisory, not a finding.
+  const docsDir = path.join(ROOT, "docs");
+  if (existsSync(docsDir)) {
+    let docCites = 0;
+    for (const f of collectMarkdown(docsDir)) {
+      const t = stripPrefixed(readFileSync(f, "utf8"));
+      for (const kind of ["D", "PIT", "C"] as Kind[]) {
+        docCites += [...t.matchAll(citationPattern(kind))].length;
+      }
+    }
+    console.log(`  [measure] docs/ bare C/D/PIT citations: ${docCites} (out of owned scan surface; advisory only — corpus expansion needs a ruling)`);
+  }
 
   if (findings.length === 0 && hostPrivate.length === 0) return { code: EXIT_CLEAN, summary: "rule-ref-lint: clean" };
   const total = findings.length + hostPrivate.length;

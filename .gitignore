@@ -65,14 +65,18 @@ node_modules
 # Don't ignore files
 # --------
 !.vscode/settings.json
-!.omo/omo.jsonc
 
 # Agent dirs
 .venv-openspace
 .playwright-mcp
+.superpowers
 .codegraph
 .sisyphus
-.omo
+.omo/*
+# re-allow AFTER the content-ignore above: git does not descend into a fully
+# ignored DIRECTORY, so `.omo` (whole-dir) made this re-include impossible —
+# ignore contents (.omo/*) instead (second rule-order trap in one file)
+!.omo/omo.jsonc
 
 # Test and build artifacts
 test-results
@@ -112,6 +116,9 @@ apps/*/src/**/*.js
 apps/*/src/**/*.js.map
 apps/*/src/**/*.d.ts
 apps/*/src/**/*.d.ts.map
+# source declarations, not build output — re-allow AFTER the patterns above
+!apps/server/src/fastify.d.ts
+!packages/identity/src/fastify.d.ts
 
 # agent governance: per-machine generated host layers + host runtime data (ADJ-2d ruling A; sync via scripts/agents/agent-links.mts)
 .codebuddy/rules/
@@ -123,3 +130,11 @@ apps/*/src/**/*.d.ts.map
 # is NOT ignored — it is a tracked generated face, pilot-gated per ADJ-7b)
 .qoder/repowiki/
 .qoder/experts/
+
+# gate evidence logs (ci census — failure proof survives the runner)
+build/gate-logs/
+
+# serena runtime (plan 2026-11-06 group E): commit project.yml ONLY
+.serena/cache/
+.serena/memories/
+.serena/project.local.yml

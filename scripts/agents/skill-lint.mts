@@ -28,6 +28,7 @@ const CHECKS = [
   "AGENTS.md skills-directory row exists AND its Purpose cell is non-empty",
   "C/D/PIT citations in the skill body resolve (MS:/VE:/RCH: prefixes exempt)",
   "explicit `skill:`/`rule:` cross-references resolve (`plugin:` declared external)",
+  "TRIGGERS.md boundary matrix: every row's owner resolves (skill:|rule:) and every skill has a row",
 ] as const;
 
 /** Collect rule file basenames (no extension) for `rule:<name>` reference resolution. */
@@ -123,6 +124,33 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
       if (kind === "rule" && !ruleNames.has(ref)) {
         findings.push(`${s.dirName}/SKILL.md — \`rule:${ref}\` references a rule file that does not exist under ${cfg.rules_root}`);
       }
+    }
+  }
+
+  // point 10 — boundary matrix: dual direction. Each row's owner must
+  // resolve to a real skill/rule, and each on-disk skill must have a row.
+  // Row grammar deliberately supports `rule:` from day one so that G3's
+  // team-execution registration cannot turn this gate red on landing day.
+  const triggersPath = path.join(ROOT, cfg.skills_root, "TRIGGERS.md");
+  if (!existsSync(triggersPath)) {
+    findings.push(`${cfg.skills_root}/TRIGGERS.md missing — boundary matrix must exist (new skills register here before landing)`);
+  } else {
+    const matrix = readFileSync(triggersPath, "utf8");
+    const rows = matrix.split("\n").filter((l) => l.startsWith("|") && /`(skill|rule):/.test(l));
+    const owners = new Set<string>();
+    for (const row of rows) {
+      // table shape: | intent | owner | hand-off | — the OWNER is cell 2,
+      // hand-off cells also carry references and must not be mistaken for it.
+      const owner = (row.split("|")[2] ?? "").trim();
+      const m = owner.match(/^`(skill|rule):([a-z0-9-]+)`$/);
+      if (!m) { findings.push(`TRIGGERS.md — row has no valid owner syntax (use \`skill:<name>\` or \`rule:<name>\`): ${row.slice(0, 60)}`); continue; }
+      const [, kind, name] = m;
+      owners.add(`${kind}:${name}`);
+      if (kind === "skill" && !skillNames.has(name)) findings.push(`TRIGGERS.md — \`skill:${name}\` has no matching skill directory`);
+      if (kind === "rule" && !ruleNames.has(name)) findings.push(`TRIGGERS.md — \`rule:${name}\` has no matching rule file`);
+    }
+    for (const s of skills) {
+      if (!owners.has(`skill:${s.name || s.dirName}`)) findings.push(`TRIGGERS.md — no boundary row for skill "${s.name || s.dirName}"`);
     }
   }
 

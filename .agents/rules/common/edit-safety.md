@@ -78,6 +78,7 @@ After claiming tests are written or features are working:
 
 - **NEVER claim a feature works based on a partial test.** A vitest unit test passing does NOT mean the browser flow works.
 - **ALWAYS verify at the actual user-facing layer.** If the feature is browser-based, test in the browser. If it's API-based, test with curl.
+- **Test the VERIFIER on both samples before trusting it (PIT-097, NON-NEGOTIABLE).** Any new check — grep, list-membership, regex, version comparison — must first be run against a known-positive (must hit) and a known-negative (must miss). A predicate that fails either sample is wrong: fix the predicate, never reinterpret its output. Membership is not substring; word-shape in logs is not status; exemption grammars eat probes; version strings carry build suffixes.
 - **ALWAYS report exactly what was tested and what was NOT tested.** Example: "vitest passed. Browser flow NOT yet verified."
 - **NEVER present a component test as end-to-end proof.** Each layer must be verified independently.
 - **If you cannot verify at the user-facing layer, say so explicitly.** Do not imply success.

@@ -42,9 +42,11 @@ import * as constraintsIndex from "./constraints-index.mts";
 import * as mcpLinks from "./mcp-links.mts";
 import * as gateMcp from "./gate-mcp.mts";
 import * as headerLint from "./header-lint.mts";
+import * as checkLeaks from "./check-leaks.mts";
+import * as scriptsLint from "./scripts-lint.mts";
 
 const GENERATORS = ["rules-links", "skills-index", "memory-aggregate", "instructions-links", "mcp-links"] as const;
-const LINTS = ["rule-ref-lint", "skill-lint", "constraints-index", "gate-mcp", "header-lint"] as const;
+const LINTS = ["rule-ref-lint", "skill-lint", "constraints-index", "gate-mcp", "header-lint", "check-leaks", "scripts-lint"] as const;
 
 function hubBudgetCheck(): { code: number; note: string } {
   const cfg = loadTargets();
@@ -98,6 +100,8 @@ function runLayers(mode: "check" | "sync") {
     constraintsIndex.run(mode),
     gateMcp.run(mode),
     headerLint.run(mode),
+    checkLeaks.run(mode),
+    scriptsLint.run(mode),
   ];
   return results;
 }
