@@ -3,9 +3,12 @@
  * mcp-cli — MCP lifecycle CLI (plan Batch 4): setup | status | index | sync.
  * Pixi task `mcp` is a passthrough family (`pixi run mcp-setup` etc., VE D42).
  *
- *   setup — install every pinned package at its exact version (the init-*.mjs
- *           wrappers remain the self-healing launchers; this is the explicit,
- *           reproducible path).
+ *   setup — install every pinned package at its exact version. CONTRACT
+ *           (RA-1818-3): the init-*.mjs wrappers are NO LONGER unconditional
+ *           self-healers — under MCP_NO_INSTALL=1 (exported by
+ *           scripts/agents/mcp-launch.sh on the GUI face) they exit fatally
+ *           instead of installing. THIS CLI is the sanctioned install path;
+ *           the opencode face remains exempt (its own deferred card).
  *   status— read-only three-state report: ok / missing / DRIFT per server
  *           (disabled servers reported, never alarming). Always exit 0.
  *   index — first-time codegraph index build (init -y + full index).

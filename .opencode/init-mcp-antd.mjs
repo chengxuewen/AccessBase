@@ -16,7 +16,12 @@ const binName = isWin ? 'antd-components-mcp.cmd' : 'antd-components-mcp'
 const binPath = join(projectRoot, 'node_modules', '.bin', binName)
 
 if (!existsSync(binPath)) {
-  console.error(`[antd-mcp] Installing ${pkgName}@1...`)
+  // RA-1818-3 hard guard (PIT-090 family): never self-install under the var
+  if (process.env.MCP_NO_INSTALL === '1') {
+    console.error('[antd-mcp] binary missing and MCP_NO_INSTALL=1 — refusing to self-install (PIT-090). Run: bash accessbase.sh mcp setup')
+    process.exit(1)
+  }
+  console.error(`[antd-mcp] Installing ${pkgName}@1... (self-heal mutates the pnpm tree — PIT-090; prefer mcp setup)`)
   const usePnpm = existsSync(join(projectRoot, 'pnpm-lock.yaml'))
   const installCmd = usePnpm
     ? `pnpm add -wD ${pkgName}@1`

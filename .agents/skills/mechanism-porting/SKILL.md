@@ -13,7 +13,7 @@ description: "Execute the adoption of an EXTERNAL mechanism after a user ruling:
 
 ## Three-way separation of powers
 
-- **Discovery** belongs to `skill:ecosystem-scan` / audit lenses — NOT here.
+- **Discovery** belongs to `skill:repo-audit` / audit lenses — NOT here.
 - **Design and selection** belong to `skill:think-before-act` + a USER RULING
   via `skill:adjudication-walkthrough` — NOT here.
 - **Execution after the ruling** is this skill's only job. "The community

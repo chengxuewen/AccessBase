@@ -17,7 +17,12 @@ const binName = isWin ? 'iflow-mcp_defrex-drizzle-mcp.cmd' : 'iflow-mcp_defrex-d
 const binPath = join(projectRoot, 'node_modules', '.bin', binName)
 
 if (!existsSync(binPath)) {
-  console.error(`[drizzle-mcp] Installing ${pkgName}...`)
+  // RA-1818-3 hard guard (PIT-090 family): never self-install under the var
+  if (process.env.MCP_NO_INSTALL === '1') {
+    console.error('[drizzle-mcp] binary missing and MCP_NO_INSTALL=1 — refusing to self-install (PIT-090). Run: bash accessbase.sh mcp setup')
+    process.exit(1)
+  }
+  console.error(`[drizzle-mcp] Installing ${pkgName}... (self-heal mutates the pnpm tree — PIT-090; prefer mcp setup)`)
   const usePnpm = existsSync(join(projectRoot, 'pnpm-lock.yaml'))
   const installCmd = usePnpm
     ? `pnpm add -wD ${pkgName}`

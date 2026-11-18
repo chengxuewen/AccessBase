@@ -37,9 +37,9 @@ IF 测试相关:
 
 IF 体系维护:
   ├─ 修改 AGENTS.md/memorys/ → 💡 /doc-audit
-  ├─ 新增技能/规则/MCP → 💡 /ecosystem-scan
-  ├─ 大规模重构 (>10 文件) → 💡 /ecosystem-scan quick
-  ├─ 重复犯同类错误 ≥2 次 → 💡 /ecosystem-scan quick
+  ├─ 新增技能/规则/MCP → 💡 /repo-audit
+  ├─ 大规模重构 (>10 文件) → 💡 /repo-audit quick
+  ├─ 重复犯同类错误 ≥2 次 → 💡 /repo-audit quick
   └─ 新建 package/module → 💡 /test-harness
 
 IF 会话状态:
@@ -60,7 +60,7 @@ IF 会话状态:
 |   5    | `/design-system`           | UI 一致性               |
 |   6    | `/doc-audit`               | 文档同步                |
 |   7    | `/requesting-code-review`  | 完成后审查              |
-|   8    | `/ecosystem-scan`          | 体系健康                |
+|   8    | `/repo-audit`          | 体系健康                |
 
 ## 防骚扰规则
 

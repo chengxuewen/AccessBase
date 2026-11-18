@@ -15,11 +15,14 @@
 | Reduce TS complexity, refactor, 简化代码 | `skill:code-simplification` | `skill:code-review-and-quality` |
 | Admin-UI consistency, design tokens, AntD usage | `skill:design-system` | `skill:code-review-and-quality` (UI code) |
 | Document/architecture consistency audit, 文档审计 | `skill:doc-audit` | `skill:adjudication-walkthrough` (findings) |
-| Scan external ecosystem for skills/MCP/rules to adopt | `skill:ecosystem-scan` | `skill:adjudication-walkthrough` (adoption rulings) |
+| Scan external ecosystem for skills/MCP/rules to adopt | `skill:repo-audit` | `skill:adjudication-walkthrough` (adoption rulings) |
+| Whole-repo audit, 审计/全仓审计, governance inventory | `skill:repo-audit` | `skill:doc-audit` (doc-only scope) |
+| (tombstone) ecosystem scan duty — DO NOT route here | `skill:ecosystem-scan` | superseded: routes to `skill:repo-audit` 2B/2C |
 | Panel review of a plan/decision, 专家团/复审这份方案 | `skill:expert-panel-review` | `skill:adjudication-walkthrough` |
 | Codebase graph, architecture relationships, call chains | `skill:graphify` | `skill:code-review-and-quality` |
 | Batch session review, lessons into memory, 总结经验/回顾会话 | `skill:lesson-review` | `rule:lesson-memory` |
 | Execute an already-ruled external mechanism port, 移植/采纳这个机制 | `skill:mechanism-porting` | `rule:evolution-protocol` (ruling citation) |
+| Before building — prove nothing usable exists, 先找现成的/别重复造 | `skill:reuse-first` | `skill:repo-audit` (gap discovery) |
 | Security audit, OWASP/JWT/RBAC/secret handling | `skill:security-hardening` | `skill:code-review-and-quality` |
 | Create a new skill from SDD/interfaces/manifest | `skill:skill-creator` | `skill:skill-router` (routing check) |
 | "How do I / which skill?", ambiguous intent | `skill:skill-router` | owning skill from this table |

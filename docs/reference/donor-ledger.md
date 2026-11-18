@@ -28,3 +28,5 @@
 - Donor scans after 2026-11-04 (unslop CC BY 4.0, shadcn/improve,
   open-code-review, agency-agents MIT) were NOT ported as skills — their
   mechanisms are candidates for the evolution protocol, not yet adopted here.
+| MediaServo repo-audit (evolved from VisiaEngine 158565a, 311→411 lines) | `.agents/skills/repo-audit/SKILL.md` | adapted WITH declared overlap | RA-1818-1 (2026-11-18) | private repos; mechanism rewrite in our vocabulary; domain-table TEMPLATE reused and the "owner green ⇒ proven" reading rule kept verbatim as a slogan (deliberate, declared here per panel M-2); donor quarterly-quota cells stripped per evolution-protocol |
+| MediaServo reuse-first (charter C60, PIT-246/238 scars) | `.agents/skills/reuse-first/SKILL.md` + `docs/reference/reuse-first-charter.md` | mechanism-only | RA-1818-2 (2026-11-18) | private repo; four-step evidence chain restated, no scar-table content carried |

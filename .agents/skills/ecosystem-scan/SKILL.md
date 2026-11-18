@@ -1,6 +1,7 @@
 ---
 name: ecosystem-scan
-description: "审计 .agents/ 体系并扫描社区生态寻找可引入的技能/规则/MCP。双层（Quick/Full）+ 质量评分 + 安全门禁。Use when the user asks to 'optimize agents', 'scan ecosystem', 'find new skills', 'audit .agents/', or '/ecosystem-scan'."
+status: inoperative
+description: "INOPERATIVE — superseded by repo-audit (ruling RA-1818-1, 2026-11-18): whole-repo audit + 2B/2C external scan absorbed this skill's duty. Use when the user asks to scan the ecosystem or audit the repo — routes to skill:repo-audit. Kept as tombstone per net-0 replacement discipline."
 ---
 
 # ecosystem-scan — 项目 Agent 体系审计 + 生态扫描

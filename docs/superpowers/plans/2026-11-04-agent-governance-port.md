@@ -1019,3 +1019,10 @@ Scope note: ADJ-7a landed in the first session; ADJ-7e was completed by the conc
   generated_tracked directory-level BLOCKER (ADJ-7j) is also deferred with it — both unlock
   together when a Qoder host is available. The 29-rule projection, its D-entry, and the
   staged-loop rework are registered for that session.
+
+## AMENDED 2026-11-18 (RA-1818)
+
+Governance-class deferrals recorded in this plan (Batch 6 trio, Qoder gated
+bundle, scripts type-check path, memory-bridging) are now tracked in
+`docs/superpowers/DEFERRED.md` — the single authority going forward. Original
+sections kept for history; reopen triggers live in the register.

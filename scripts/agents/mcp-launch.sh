@@ -13,6 +13,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 export PATH="$HOME/.pixi/bin:$PATH"
 export NO_PROXY="localhost,127.0.0.1,::1${NO_PROXY:+,$NO_PROXY}"
 export no_proxy="$NO_PROXY"
+# RA-1818-3: every init wrapper launched through this GUI-face entry refuses
+# to self-install (PIT-090 family disarm). opencode face is EXEMPTED (it
+# launches wrappers directly — re-plumbing is its own deferred card).
+export MCP_NO_INSTALL=1
 cd "$ROOT"
 
 if [ -n "${TMPDIR:-}" ] && [ ! -w "${TMPDIR:-/nonexistent}" ]; then

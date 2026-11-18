@@ -151,7 +151,7 @@ description: '元约束：先查再动手，列方案让用户审批，不蛮干
 | `skill:expert-panel-review`             | 复杂变更的团审引擎（本技能 Phase 2 挂载）                            |
 | `skill:adjudication-walkthrough`        | 团审冲突项与多方案抉择的逐项裁决呈现                                 |
 | `skill:code-review-and-quality`         | 变更完成后的结构化代码审查（执行后验证的技能档）                     |
-| `skill:ecosystem-scan`                  | 查社区生态有无现成方案                                               |
+| `skill:repo-audit`                  | 查社区生态有无现成方案                                               |
 | `conventions.md §编辑约束`              | 编辑后立即 tsc — think-before-act 的"执行后验证"                     |
 
 ---

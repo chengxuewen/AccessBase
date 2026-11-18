@@ -160,7 +160,9 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
     console.log("  fix: correct the SKILL.md frontmatter/body, then node scripts/agents/agent-links.mts sync");
     return { code: EXIT_FINDINGS, summary: `skill-lint: ${findings.length} finding(s)` };
   }
-  return { code: EXIT_CLEAN, summary: `skill-lint: clean (${skills.length} skills, ${CHECKS.length} checks each)` };
+  const active = skills.filter((s) => s.status !== "inoperative").length;
+  const inactive = skills.length - active;
+  return { code: EXIT_CLEAN, summary: `skill-lint: clean (${skills.length} dirs / ${active} active${inactive ? `, ${inactive} tombstone` : ""}, ${CHECKS.length} checks each)` };
 }
 
 if (import.meta.main) {

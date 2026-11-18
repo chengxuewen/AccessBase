@@ -24,7 +24,12 @@ if (!process.env.POSTGRES_MCP_CONNECTION_STRING) {
 // 2. Check package is installed; install if missing
 const pkgDir = join(__dirname, 'node_modules', '@vitalyostanin', 'postgres-mcp')
 if (!existsSync(pkgDir)) {
-  console.error('[postgres-mcp] Installing @vitalyostanin/postgres-mcp...')
+  // RA-1818-3 hard guard (PIT-090 family): never self-install under the var
+  if (process.env.MCP_NO_INSTALL === '1') {
+    console.error('[postgres-mcp] package missing and MCP_NO_INSTALL=1 — refusing to self-install (PIT-090). Run: bash accessbase.sh mcp setup')
+    process.exit(1)
+  }
+  console.error('[postgres-mcp] Installing @vitalyostanin/postgres-mcp... (self-heal mutates the .opencode subtree — PIT-090; prefer mcp setup)')
   execSync('pnpm add -D @vitalyostanin/postgres-mcp', { cwd: __dirname, stdio: 'inherit' })
 }
 

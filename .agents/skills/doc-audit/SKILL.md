@@ -122,7 +122,7 @@ description: 'AccessBase 项目文档与架构审计。并行检查 AGENTS.md、
 
 **核心问题**：
 
-- **缺口清单来源**：`docs/implementation-plan.md` 是唯一权威——L2（工程健康 E1-E10）+ L3b（deferred 账本）。**不要凭目录外观发明缺口**：Tier-3 项是 signal-gated 的设计意图，不是待办。
+- **缺口清单来源**：工程健康类缺口以 `docs/implementation-plan.md` 为权威——L2（工程健康 E1-E10）+ L3b（deferred 账本）。**治理类 deferral 以 `docs/superpowers/DEFERRED.md` 为权威**（五字段寄存器，RA-1818 2026-11-18 起）——检查每行五字段非空（形态/来源/理由/重开触发器/复查载体）。**不要凭目录外观发明缺口**：Tier-3 项是 signal-gated 的设计意图，不是待办。
 - **已知未闭合（快照 asOf 2026-11-05，以账本为准）**：coverage ratchet 停滞（E1/E2，admin-ui 2.51%）；API deprecation 政策缺失（T18）；e2e mock 失败归因悬置（E10）；alerting 集成为 operator posture 决策（P3-A）
 
 **检查范围**：
