@@ -22,12 +22,24 @@ import { ROOT } from "./agent-common.mts";
 const MCP_SOURCE = path.join(ROOT, ".agents", "mcp.json");
 const PIN_REGISTRY = path.join(ROOT, "scripts", "agents", "mcp-servers.json");
 
-function registry(): Array<{ name: string; pkg: string; pin: string | null; enabled: boolean }> {
+function registry(): Array<{ name: string; pkg: string; pin: string | null; enabled: boolean; kind?: string; pixiEnv?: string; probe?: string[] }> {
   const servers = (JSON.parse(readFileSync(MCP_SOURCE, "utf8")).servers ?? {}) as Record<string, { enabled: boolean }>;
-  const pins = (JSON.parse(readFileSync(PIN_REGISTRY, "utf8")).servers ?? {}) as Record<string, { package: string; pin: string | null }>;
+  const pins = (JSON.parse(readFileSync(PIN_REGISTRY, "utf8")).servers ?? {}) as Record<string, { package: string; pin: string | null; kind?: string; pixiEnv?: string; probe?: string[] }>;
   return Object.entries(servers)
-    .map(([name, s]) => ({ name, pkg: pins[name]?.package ?? "", pin: pins[name]?.pin ?? null, enabled: s.enabled }))
+    .map(([name, s]) => ({ name, pkg: pins[name]?.package ?? "", pin: pins[name]?.pin ?? null, enabled: s.enabled, kind: pins[name]?.kind, pixiEnv: pins[name]?.pixiEnv, probe: pins[name]?.probe }))
     .filter((e) => e.pkg);
+}
+
+/** Pixi-kind version probe (serena plan D). */
+function pixiVersion(env: string, probe: string[]): string | null {
+  const bin = path.join(ROOT, ".pixi", "envs", env, "bin", probe[0]);
+  if (!existsSync(bin)) return null;
+  try {
+    const raw = execSync(`"${bin}" ${probe.slice(1).join(" ")}`.trim(), { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return raw.match(/\d+\.\d+\.\d+/)?.[0] ?? raw; // normalize "Serena 2.1.0-<sha>" -> "2.1.0"
+  } catch {
+    return null;
+  }
 }
 
 function installedVersion(pkg: string): string | null {
@@ -50,8 +62,12 @@ function main(): number {
 
   if (cmd === "status") {
     for (const e of entries) {
-      const ver = installedVersion(e.pkg);
-      const state = ver === null ? "missing" : e.pin && e.pin !== "latest-known" && ver !== e.pin ? `DRIFT (installed ${ver}, pin ${e.pin})` : `ok (${ver ?? "unpinned"})`;
+      const ver = e.kind === "pixi" && e.pixiEnv && e.probe
+        ? pixiVersion(e.pixiEnv, e.probe)
+        : installedVersion(e.pkg);
+      const state = ver === null
+        ? (e.kind === "pixi" ? "missing-env" : "missing")
+        : e.pin && e.pin !== "latest-known" && !(e.kind === "pixi" ? ver.startsWith(e.pin) : ver === e.pin) ? `DRIFT (installed ${ver}, pin ${e.pin})` : `ok (${ver ?? "unpinned"})`;
       console.log(`  ${e.name.padEnd(18)} ${e.enabled ? "on " : "off"}  ${state}`);
     }
     console.log("  (.codegraph index: " + (existsSync(path.join(ROOT, ".codegraph")) ? "present" : "absent — run: bash accessbase.sh mcp index (or: pixi run mcp-index)") + ")");
@@ -59,6 +75,7 @@ function main(): number {
   }
   if (cmd === "setup") {
     for (const e of entries) {
+      if (e.kind === "pixi" && e.pixiEnv) { sh(`pixi install -e ${e.pixiEnv}`); continue; }
       if (!e.pin || e.pin === "latest-known") { console.log(`  ${e.name}: no pin (${e.pin ?? "remote"}), skip`); continue; }
       sh(`pnpm add -wD ${e.pkg}@${e.pin}`);
     }
@@ -70,6 +87,14 @@ function main(): number {
       sh("pnpm exec codegraph index");
     } else {
       sh("pnpm exec codegraph sync");
+    }
+    // serena project index (serena plan D): env absent -> report skip, NOT a failure
+    const serenaBin = path.join(ROOT, ".pixi", "envs", "serena", "bin", "serena");
+    if (existsSync(serenaBin)) {
+      try { execSync(`"${serenaBin}" project index "${ROOT}"`, { cwd: ROOT, stdio: "inherit", timeout: 900_000 }); }
+      catch (err) { console.error(`  serena index FAILED: ${(err as Error).message}`); return 1; }
+    } else {
+      console.log("  serena: env absent — skip indexing (pixi install -e serena to enable)");
     }
     return 0;
   }

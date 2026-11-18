@@ -1,6 +1,13 @@
 {
-  "$comment": "MCP pin registry (plan Batch 4). Pins = versions actually installed on 2026-11-04 (carry-current-verbatim spirit of ADJ-4a). Enabled servers: missing package or version drift = RED in gate-mcp. Disabled servers (local-postgres, local-github): package state is REPORTED only, never red. Probe = node require of the package's package.json.",
+  "$comment": "MCP pin registry (plan Batch 4; pixi kind added 2026-11-18 per serena plan SR-2). Two shapes: npm (package+pin, probed via node require) and pixi (pixiEnv+probe, probed via .pixi/envs/<env>/bin/<probe[0]> --version). Enabled servers: missing env/package or version drift = RED in gate-mcp. Disabled servers: state REPORTED only, never red.",
   "servers": {
+    "local-serena": {
+      "package": "serena-agent",
+      "pin": "2.1.0",
+      "kind": "pixi",
+      "pixiEnv": "serena",
+      "probe": ["serena", "--version"]
+    },
     "local-codegraph": { "package": "@colbymchenry/codegraph", "pin": "1.6.0" },
     "local-playwright": { "package": "@playwright/mcp", "pin": "0.0.80" },
     "local-antd": { "package": "@jzone-mcp/antd-components-mcp", "pin": "1.0.45" },

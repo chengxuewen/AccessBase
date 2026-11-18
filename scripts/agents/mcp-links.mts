@@ -33,10 +33,12 @@ const ROOT_MCP = path.join(ROOT, ".mcp.json");
 
 interface ServerDef {
   enabled: boolean;
-  kind: "npm" | "remote";
+  kind: "npm" | "remote" | "pixi";
   launcher?: string;
   command?: string[];
   env?: Record<string, string>;
+  pixiEnv?: string;
+  task?: string;
   note?: string;
 }
 
@@ -59,6 +61,12 @@ function wantOpencode(servers: Record<string, ServerDef>): Record<string, unknow
   for (const [name, s] of Object.entries(servers)) {
     if (s.kind === "remote") {
       out[name] = { type: "remote", enabled: s.enabled, command: s.command, env: s.env };
+    } else if (s.kind === "pixi") {
+      out[name] = {
+        type: "local",
+        enabled: s.enabled,
+        command: ["pixi", "run", "-e", s.pixiEnv, s.task],
+      };
     } else {
       out[name] = {
         type: "local",
@@ -70,17 +78,25 @@ function wantOpencode(servers: Record<string, ServerDef>): Record<string, unknow
   return out;
 }
 
-/** CodeBuddy face: mcpServers shape, enabled only, string command via launcher. */
+/** CodeBuddy face: mcpServers shape, enabled only, string command via launcher.
+ *  2026-11-18 (serena plan C): the launcher is now a pure `pixi run "$@"`
+ *  passthrough, so npm servers gain an explicit "node" first arg and pixi
+ *  servers pass `-e <env> <task>` straight through. */
 function wantRootMcp(servers: Record<string, ServerDef>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [name, s] of Object.entries(servers)) {
     if (!s.enabled) continue;
     if (s.kind === "remote") {
       out[name] = { command: "npx", args: s.command?.slice(1) ?? [], env: s.env };
+    } else if (s.kind === "pixi") {
+      out[name] = {
+        command: "bash",
+        args: ["scripts/agents/mcp-launch.sh", "-e", s.pixiEnv, s.task],
+      };
     } else {
       out[name] = {
         command: "bash",
-        args: ["scripts/agents/mcp-launch.sh", s.launcher],
+        args: ["scripts/agents/mcp-launch.sh", "node", s.launcher],
       };
     }
   }

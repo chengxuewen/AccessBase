@@ -2437,3 +2437,37 @@ const brandTokens = {
 - **Decision**: (1) remediation ladder Q0 doc-honesty (this commit) -> Q1 promise-fulfillment (UI for shipped backends + S-class code fixes) -> Q2 production foundations (transactions, shared pool, advisory lock, cache coherence, retention executors) -> Q3 IAM completeness (token_version writer, logout coordination, kid rotation, policy engine, device flow, private_key_jwt, SAML IdP) -> Q4 productization (FGA, groups+SCIM Groups, webhooks, templates, portal, helpdesk, Helm); Q3/Q4 gated on explicit product decisions per the architectural-decision gate. (2) Permanent `Implementation status` header on every docs/modules file, enforced by grep gate in conventions. (3) SDD error-code tables frozen; error-codes-reality.md is the generated single source.
 - **Rationale**: cheapest anti-lie mechanism is a header line with a grep gate; ordering is impact/effort-ranked with the cheapest wins first (device flow, AuthShell, dark leaks) already placed in Q1.
 - **Refs**: gap-audit report §F, D122 (CI mirror), D124 (drizzle v7), PIT-076.
+
+## D107: REGISTERED VOID — never assigned, number reserved (2026-11-17)
+
+This number was skipped before any entry was written. Registered so the
+continuity gate can distinguish intentional voids from lost entries. NEVER
+reuse for a new decision; take the current max + 1 instead (lesson-memory
+numbering discipline). See AGENTS.md NOTES and PIT-089 (tracked-file check).
+
+## D108: REGISTERED VOID — never assigned, number reserved (2026-11-17)
+
+Same as D107: intentional void, registered 2026-11-17, never reuse.
+
+## D127: Introduce local-serena (pixi-kind MCP) — Batch-4 npm-only pruning reversed by ruling (2026-11-18)
+
+Serena (symbol-level semantic code surgery: find_symbol / replace_symbol_body
+across files) enters the governed MCP surface as the FIRST pixi-kind server,
+enabled at landing. Adjudicated one-at-a-time (SR-1..SR-4): enabled=TRUE is a
+USER OVERRIDE of the plan's register-disabled recommendation — disablement is
+a separate ruling; pin 2.1.0 exact (both sibling repos proved it); context
+flag `claude-code` RCH-verbatim; NO second latch-pair (single-latch precedent
+— the tool-routing matrix ROW is mandatory, the machine latch is not).
+
+Honesty records attached to this entry: (1) MediaServo had ZERO serena content
+at plan-drafting time (2026-11-06, grep-verified) but adopted it 2026-10-30
+(`52c9722`) and runs it enabled — the drafting-time finding is kept as history,
+MS now serves as the second live reference. (2) The original Batch-4 pruning
+of pixi-kind servers was recorded ONLY in a gate-mcp header comment — this
+entry is its retroactive formal record. Boundaries: serena self-installs its
+TS language server into `.serena/cache` (OUTSIDE the pnpm tree — PIT-090
+dep-drift watch untouched, recorded as family-adjacency not instance);
+upstream self-documents the TS backend as less stable — the V4 live-fire
+verdict feeds the first adoption recheck. Plan:
+`docs/superpowers/plans/2026-11-06-serena-local-mcp.md` (adjudication record
+inside).

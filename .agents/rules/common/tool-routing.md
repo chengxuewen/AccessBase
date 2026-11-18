@@ -16,6 +16,7 @@
 | Exact text / known symbol / filename                 | Native grep + file read                                                         | Fastest, explainable, always correct                                            |
 | Definition / references / type shape                 | Host LSP (or `lsp` tool)                                                        | Semantic but native; no extra runtime                                           |
 | Semantic exploration / call chains / impact analysis | `codegraph_explore` (MCP)                                                       | Returns verbatim source + call paths in one shot; treat results as already-Read |
+| Symbol-level multi-file SURGERY (rename/reshape across files) | `local-serena` (MCP, D127) | Boundary: serena EDITS symbols; codegraph ANSWERS relationship questions — ask codegraph, cut with serena |
 | Ant Design live prop/API questions                   | `local-antd` MCP                                                                | Authoritative component semantics at query time                                 |
 | Ant Design usage patterns / UI consistency           | `design-system` skill                                                           | Repo conventions beat live docs for consistency decisions                       |
 | Drizzle schema facts (tables/columns)                | `local-drizzle` MCP                                                             | Introspects the real schema                                                     |

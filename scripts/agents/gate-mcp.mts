@@ -1,6 +1,7 @@
 /**
- * gate-mcp — MCP governance gate (plan Batch 4; RCH gate-mcp shape, pruned to
- * this repo: no Gerrit, no pixi-env servers — all servers are npm-launched).
+ * gate-mcp — MCP governance gate (plan Batch 4; RCH gate-mcp shape. 2026-11-18
+ * serena plan D: pixi-kind servers supported — the Batch-4 "npm-only" pruning
+ * is reversed by an explicit ruling, recorded in D127).
  *
  * Checks:
  *   1. Pin check — every ENABLED npm server: installed version == pin. Missing
@@ -46,18 +47,38 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
   const servers = src.servers as Record<string, { enabled: boolean; kind: string }>;
   const pins = (JSON.parse(readFileSync(PIN_REGISTRY, "utf8")).servers ?? {}) as Record<
     string,
-    { package: string; pin: string | null }
+    { package: string; pin: string | null; kind?: string; pixiEnv?: string; probe?: string[] }
   >;
   let reported = 0;
 
-  // 1. pin check
+  /** Pixi-kind version probe: run .pixi/envs/<env>/bin/<probe[0]> --version.
+   *  (2026-11-18 serena plan D; RCH SKIP-ENV semantics live in the caller.) */
+  function pixiInstalledVersion(env: string, probe: string[]): string | null {
+    const bin = path.join(ROOT, ".pixi", "envs", env, "bin", probe[0]);
+    if (!existsSync(bin)) return null;
+    try {
+      const raw = execSync(`"${bin}" ${probe.slice(1).join(" ")}`.trim(), {
+        cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      return raw.match(/\d+\.\d+\.\d+/)?.[0] ?? raw; // "Serena 2.1.0-<sha>" -> "2.1.0"
+    } catch {
+      return null;
+    }
+  }
+
+  // 1. pin check (npm via node-require; pixi via env-bin probe — serena plan D)
   for (const [name, s] of Object.entries(servers)) {
     const pin = pins[name];
     if (!pin || !pin.pin) continue; // remote / unpinned: nothing to check locally
-    const ver = installedVersion(pin.package);
+    const ver = pin.kind === "pixi" && pin.pixiEnv && pin.probe
+      ? pixiInstalledVersion(pin.pixiEnv, pin.probe)
+      : installedVersion(pin.package);
+    // pixi probes print upstream build-suffixed versions ("2.1.0-a2f21a6f-dirty");
+    // the PIN names the release, so pixi kinds compare by prefix, npm kinds exactly.
+    const matches = (v: string) => (pin.kind === "pixi" ? v.startsWith(pin.pin) : v === pin.pin);
     if (s.enabled) {
-      if (ver === null) findings.push(`pin: ${name} (${pin.package}) ENABLED but NOT INSTALLED — run: bash accessbase.sh mcp setup (or: pixi run mcp-setup)`);
-      else if (ver !== pin.pin) findings.push(`pin: ${name} (${pin.package}) DRIFT: installed ${ver} != pin ${pin.pin} — fix: align the pin or reinstall`);
+      if (ver === null) findings.push(`pin: ${name} (${pin.package}) ENABLED but NOT ${pin.kind === "pixi" ? "INSTALLED (env missing)" : "INSTALLED"} — run: ${pin.kind === "pixi" ? `pixi install -e ${pin.pixiEnv}` : "bash accessbase.sh mcp setup (or: pixi run mcp-setup)"}`);
+      else if (!matches(ver)) findings.push(`pin: ${name} (${pin.package}) DRIFT: installed ${ver} != pin ${pin.pin} — fix: align the pin or reinstall`);
     } else if (ver === null) {
       reported++; // disabled + absent: fine
     }

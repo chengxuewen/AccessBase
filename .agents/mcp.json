@@ -25,6 +25,13 @@
       "launcher": ".opencode/init-mcp-drizzle.mjs",
       "note": "Drizzle schema introspection; matrix: schema facts here, migration flow stays db:push"
     },
+    "local-serena": {
+      "enabled": true,
+      "kind": "pixi",
+      "pixiEnv": "serena",
+      "task": "mcp-serena",
+      "note": "Symbol-level semantic code surgery (find/replace across files). Blueprint RCH; second live reference MS (52c9722). Enabled at landing per SR-1 OVERRIDE 2026-11-18 (user ruling; disablement is a separate ruling). Self-installing TS language server goes to .serena/cache — outside the pnpm tree, PIT-090 watch untouched."
+    },
     "local-postgres": {
       "enabled": false,
       "kind": "npm",

@@ -34,5 +34,19 @@ stop = { cmd = "bash accessbase.sh stop:native", description = "Stop all native 
 reset = { cmd = "bash accessbase.sh reset:native", description = "Reset native data and reinitialize" }
 status = { cmd = "bash accessbase.sh status:native", description = "Show native service status" }
 
+# Serena MCP (plan 2026-11-06-serena-local-mcp, adjudicated 2026-11-18): isolated
+# Python env — symbol-level semantic code surgery; blueprint RCH, second live
+# reference MediaServo (adopted 2026-10-30, commit 52c9722).
+[feature.serena.dependencies]
+python = "3.13.*"
+nodejs = ">=20.0.0"
+
+[feature.serena.pypi-dependencies]
+serena-agent = "==2.1.0" # SR-2: pin what the sibling repos proved
+
+[feature.serena.tasks]
+mcp-serena = { cmd = "serena start-mcp-server --transport stdio --context claude-code --language-backend LSP --project \"$PIXI_PROJECT_ROOT\"", description = "Serena MCP stdio server (SR-3: RCH-verbatim context flag)" }
+
 [environments]
 native = ["native"]
+serena = ["serena"] # isolated solve; base/native untouched
