@@ -142,11 +142,18 @@ layer summaries, exit 0), census pass=4.**
   body budget / tools whitelist / read-only negative / skills resolution /
   acceptance-present); roles-links projection to TRACKED
   `.codebuddy/agents/` (byte-equal mirror + orphan detection); routing.md
-  adapted (four classes, audit→adjudication mapping); lint-boundary table
-  documented (agent-lint owns role files wholly; rule-ref-lint targets NOT
-  extended — donor dialect would trip ADJ-7d; TRIGGERS grammar NOT
-  extended — routing.md LINKS, never duplicates). **Live-fire scheduled**:
-  next panel session spawns roles via subagent_path.
+  lint-boundary table documented (agent-lint owns role files wholly;
+  rule-ref-lint targets NOT extended — donor dialect would trip ADJ-7d;
+  TRIGGERS grammar NOT extended — routing.md LINKS, never duplicates).
+  **Live-fire scheduled**: next panel session spawns roles via subagent_path.
+  **CORRECTION (2026-11-18, ui-ux-review ruling session): "routing.md
+  adapted" above was FALSE at that time — the routing.md adaptation was NOT
+  landed with RA-1818-B1 (only agent-lint + roles + projection were). It
+  landed in FULL during the ui-ux-review session (routing + 4 team lineups:
+  delivery-review / interface / design-system / agent-infrastructure, all
+  adapted to our role names). Recorded per the honesty discipline —
+  claimed-but-not-landed is exactly the PIT-095/096 family this repo exists
+  to extinguish.**
 - RT-C: prepared as group cards (G1/G2/G3) — adjudication at execution-time
   as ruled.
 - **Implementation findings during landing (all fixed live)**:

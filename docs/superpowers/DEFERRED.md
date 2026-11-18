@@ -11,7 +11,7 @@
 
 | Shape (full) | Source | Drop reason | REOPEN TRIGGER | Recheck carrier |
 |---|---|---|---|---|
-| Role layer + machine-parsed quota table + agent_lint + check_quotas | 11-17 panel distillation | No role files exist here yet; 16 skills small | Team delegation becomes routine (≥2 recurring execution batches/week) | repo-audit 2D |
+| **DONE 2026-11-18 (RT-1818-B1 A+)** — Role layer (10 files) + agent-lint + roles-links projection + routing.md landed | 11-17 panel distillation | No role files existed at seeding | Team delegation trigger met and acted on (RA-1818-B1 A+) | DONE — see .agents/agents/ + agent-lint layer |
 | Per-field host-dialect probing (never per-host assumptions) | MS status 2026-11-16 dialect defect | Single dominant host today | A second host consumes the faces (Qoder host present) | repo-audit domain 3 |
 | MCP user-level same-name conflict detection + probe fields in registry | 11-17 panel (B12 shape) | Single-user machine; no ~/.codebuddy/mcp.json conflicts observed | Multi-developer machines or user-level MCP files appear | gate-mcp evolution card |
 | unslop AI-look taxonomy (de-slop passes) | MS r47 adoption | UI implementation not started | First admin-ui visual polish batch | proposal card |

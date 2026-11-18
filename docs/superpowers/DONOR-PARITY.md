@@ -26,7 +26,7 @@
 | repo-audit | HAVE | RA-1818-1 (this repo's own rewrite; donor 411-line blueprint) |
 | reuse-first | HAVE | RA-1818-2 |
 | security-hardening | HAVE | absorbed review-hardcode duty (donor did same) |
-| skill-creator | HAVE | |
+| skill-creator | HAVE (OURS-ONLY — not in donor; counted separately from the 37) | |
 | skill-router | HAVE | |
 | test-harness | HAVE | |
 | think-before-act | HAVE | fused with pre-existing repo version (PIT-089 lesson) |
@@ -35,7 +35,7 @@
 | openspec-explore | RULED-OUT | D123 |
 | openspec-propose | RULED-OUT | D123 |
 | openspec-sync-specs | RULED-OUT | D123 |
-| ui-ux-review | RULED-IN-PENDING | own ruling pending (panel found NO prior ruling basis; donor 59 lines). REOPEN TRIGGER + performance-optimization React-profiling thought MERGED here (RT-C G2-2: one trigger, two assets) |
+| ui-ux-review | HAVE (RULED-IN RT-C G3-adjacent, ruling A 2026-11-18) | landed as `.agents/skills/ui-ux-review/` (mechanism rewrite); performance-optimization React-profiling thought merged into its trigger set |
 | api-interface-design | OWED | RT-C G3: real gap (contract-first discipline); dangling refs (expert-panel lens) cleaned at DEFERRED seeding |
 | browser-testing | OWED | → DEFERRED row |
 | ci-cd-automation | RULED-OUT | RT-C G1: donor-specific infra, no real overlap |
@@ -57,9 +57,20 @@
 
 | Asset | State | Note |
 |---|---|---|
-| `.agents/agents/` role layer (10 files) | RULED-IN-PENDING | RA-1818-B1 A+ form: render tracked `.codebuddy/agents/`, live-fire at next panel |
-| `.agents/teams/` routing + lineups | RULED-IN-PENDING | RA-1818-B1 |
+| `.agents/agents/` role layer (10 files) | HAVE (RULED-IN RT-1818-B1 A+, landed) | 10 roles + agent-lint + tracked `.codebuddy/agents/` projection; subagent_path live-fire pending host restart |
+| `.agents/teams/` routing + 4 lineups | HAVE (RULED-IN RT-1818-B1, landed RT-C session) | routing.md + delivery-review/interface/design-system/agent-infrastructure adapted to our role names; panel caught the original miss |
 | rule language domains (superset) | HAVE | cpp is donor's product; we carry zh legacy |
 | `.agents/targets.json` | HAVE | ours: scripts/agents/agent-targets.json (richer: pixi kind) |
 | `.agents/mcp.json` | HAVE | ours richer (pixi kind, honest disabled records) |
 | donor quarterly-quota cells | RULED-OUT | stripped per evolution-protocol (per-batch anchors only) |
+
+## Donor-unique gate tooling (scripts/agents diff, 2026-11-18 RT-C)
+
+| Donor tool | State | Note |
+|---|---|---|
+| check_docs_links.py | OWED | doc-link gate — domain 5's manual links check becomes machine-checkable; → DEFERRED row |
+| check_promises.py | OWED | doc-promise gate (plan says X vs landed Y) — gate-the-gates adjacent; → DEFERRED row |
+| check_no_parent.py + allowlist | OWED | parent-reference (`../`) prohibition; → DEFERRED row |
+| check_memory_ownership.py | OWED | memory-ownership machine check (advisory line today); → DEFERRED row |
+| check_guards.py | OWED | guard-health checking (census canary kin); → DEFERRED row |
+| report_2d.sh | OWED | 2D inventory generator (repo-audit 2D is manual today); → DEFERRED row |

@@ -151,6 +151,7 @@ frontmatter `description`. Maintained by `agents sync` — do not hand-edit this
 | `skill-router` | 分析用户意图，输出推荐技能列表。当用户说'怎么做'、'用什么技能'、意图模糊时自动激活。… |
 | `test-harness` | AccessBase TypeScript 全栈自动化测试工具架。从 SDD 文档生成 … |
 | `think-before-act` | 元约束：先查再动手，列方案让用户审批，不蛮干。Use BEFORE any non-tr… |
+| `ui-ux-review` | Structured interface-quality review for the … |
 <!-- END:skills-directory -->
 <!-- BEGIN:agents-memory -->
 Navigable digest — one bullet per entry; full text in `.agents/memorys/*.md`,
