@@ -1,0 +1,14 @@
+{
+  "when": "2026-11-18",
+  "prototype": "admin-console.html v0.1",
+  "runner": "puppeteer (headless chromium)",
+  "fail": 0,
+  "results": {
+    "dashboard-render": { "pass": true, "assertions": { "statCards": 4, "trendSvg": true, "activityItems": 5 } },
+    "theme": { "pass": true, "assertions": { "initial": "light", "afterToggle": "dark", "persisted": "dark" } },
+    "nav-switch": { "pass": true, "assertions": { "usersPageVisible": true, "crumb": "Users" } },
+    "users-table": { "pass": true, "assertions": { "initialRows": 8, "pageSize": 8 } },
+    "filter-narrows": { "pass": true, "assertions": { "disabledFilterRows": 3, "allDisabled": true } },
+    "search": { "pass": true, "assertions": { "query": "alice", "rows": 1, "hit": "Alice Chen" } }
+  }
+}
