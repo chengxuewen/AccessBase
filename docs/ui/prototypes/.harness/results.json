@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 33,
-        "svgIcons": 215,
+        "svgIcons": 217,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -325,6 +325,19 @@
         "focusReturned": true,
         "toastShown": true,
         "closedAfterSelect": true
+      }
+    },
+    "content-detail": {
+      "pass": true,
+      "assertions": {
+        "isButton": "BUTTON",
+        "truncClass": "ellipsis",
+        "modalOn": true,
+        "title": "Web App · Redirect URIs",
+        "bodyHasUri": true,
+        "closedByEsc": true,
+        "scopeTitle": "Web App · Scope",
+        "scopeTags": 3
       }
     }
   }

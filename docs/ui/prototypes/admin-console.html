@@ -374,6 +374,10 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .row-actions button[data-tip="Edit"],.row-actions button[data-tip="Delete"]{opacity:.5}
 .proto-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx1);color:var(--bg);padding:8px 16px;border-radius:var(--r4);font-size:var(--fs12);z-index:100;display:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 .detail-meta{font-size:var(--fs12);color:var(--tx2);margin-bottom:6px}
+/* R3 long-content cell: ellipsis + click-for-detail (extends the Events payload pattern). A real
+   button so it is keyboard/focus accessible; dotted underline hints "click to view full". */
+.cell-trunc{display:inline-block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;border:none;border-bottom:1px dotted var(--bd2);background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.cell-trunc:hover{color:var(--accent);border-bottom-color:var(--accent)}
 .detail-meta code{font-family:var(--mono);color:var(--tx1)}
 /* ==== v0.9 Profile settings (token-driven; all 7 packs apply) ==== */
 .btn.danger{color:var(--danger-text,var(--danger));border-color:var(--danger)}
@@ -691,6 +695,11 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   <div class="modal-foot"><button class="btn" data-close="formModal">Cancel</button><button class="btn primary" id="formSave">Create</button></div>
 </div></div>
 </div>
+<div class="modal-overlay" id="detailModal"><div class="modal" role="dialog" aria-modal="true">
+  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-eye"/></svg><h3 id="detailTitle">Detail</h3><button class="icon-btn close" aria-label="Close" data-close="detailModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="modal-body" id="detailBody"></div>
+  <div class="modal-foot"><button class="btn" data-close="detailModal">Close</button></div>
+</div></div>
 <div class="menu" id="rowMenu" role="menu" aria-hidden="true"></div>
 <script>
 addEventListener("load",()=>{const l=document.createElement("link");l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Roboto:wght@400;500&family=Inter:wght@400;500;600&display=swap";document.head.appendChild(l);});
@@ -821,6 +830,10 @@ const famCls=t=>'fam-'+(t.split('.')[0]||'');
 const delivCls=s=>({success:'ok',pending:'warn',failed:'danger',dead:'danger'}[s]||'');
 function openModal(id){$(id).classList.add('on');}
 function closeModal(id){$(id).classList.remove('on');}
+function openDetail(title,html){$('detailTitle').textContent=title;$('detailBody').innerHTML=html;openModal('detailModal');}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-detail]');if(!t)return;const c=CLIENTS[+t.dataset.idx];
+if(t.dataset.detail==='uris'){openDetail(c.name+' · Redirect URIs',c.redirectUris.length?'<div class="detail-meta">'+c.redirectUris.length+' registered redirect URI'+(c.redirectUris.length>1?'s':'')+'</div>'+c.redirectUris.map(u=>'<div class="mono" style="font-size:var(--fs12);padding:6px 8px;background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);margin-bottom:6px;word-break:break-all">'+esc(u)+'</div>').join(''):'<div class="detail-meta">No redirect URIs — machine-to-machine client.</div>');}
+else if(t.dataset.detail==='scope'){openDetail(c.name+' · Scope','<div class="detail-meta">Granted scopes</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+tags(c.scope.split(' '))+'</div>');}});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open)open.classList.remove('on');}});
@@ -881,7 +894,7 @@ function renderClients(){
  const list=CLIENTS.filter(c=>!q||c.name.toLowerCase().includes(q)||c.clientId.includes(q));
  $('clientCount').textContent=CLIENTS.length+' clients';
  $('clientRows').innerHTML=list.map(c=>{const i=CLIENTS.indexOf(c);
-  return '<tr><td><div class="entity-name">'+esc(c.name)+'</div></td><td>'+copyCell(c.clientId)+'</td><td style="color:var(--tx2);font-size:var(--fs12)">'+(c.redirectUris.length?esc(c.redirectUris.join(', ')):'—')+'</td><td>'+tags(c.grantTypes)+'</td><td class="mono" style="font-size:var(--fs11)">'+esc(c.scope)+'</td><td class="mono">'+c.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Rotate secret" data-rotate-client="'+i+'" aria-label="Rotate secret"><svg class="ic"><use href="#i-refresh"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
+  return '<tr><td><div class="entity-name">'+esc(c.name)+'</div></td><td>'+copyCell(c.clientId)+'</td><td style="color:var(--tx2);font-size:var(--fs12)">'+(c.redirectUris.length?'<button type="button" class="cell-trunc" data-detail="uris" data-idx="'+i+'">'+esc(c.redirectUris.join(', '))+'</button>':'—')+'</td><td>'+tags(c.grantTypes)+'</td><td class="mono" style="font-size:var(--fs11)"><button type="button" class="cell-trunc" data-detail="scope" data-idx="'+i+'">'+esc(c.scope)+'</button></td><td class="mono">'+c.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Rotate secret" data-rotate-client="'+i+'" aria-label="Rotate secret"><svg class="ic"><use href="#i-refresh"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
  document.querySelectorAll('[data-rotate-client]').forEach(b=>b.onclick=()=>{const c=CLIENTS[+b.dataset.rotateClient];reveal('Client secret rotated','cs_'+Math.random().toString(36).slice(2,18),'Client ID: '+c.clientId);});
 }
 $('clientSearch').addEventListener('input',renderClients);

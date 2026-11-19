@@ -446,3 +446,15 @@ LEFT (.row-actions [data-tip]::after -> right:calc(100%+6px); top:50%; translate
 within the row's own vertical band (actions are right-aligned, so there is room to the left).
 Verified: bubble now within-row, no overlap with the row above (measured + screenshot). Non-row
 tooltips (topbar etc.) unchanged. Harness 17 pass (tooltip hover/focus opacity still 1).
+
+## Long-content truncate + detail — 2026-11-19 (revision plan R3 = A)
+Extended the Events-payload "truncate + view-detail" pattern to the variable-length Clients columns
+(Redirect URIs, Scope). Each is now a real <button class="cell-trunc"> (keyboard/focus accessible),
+ellipsis at max-width 220px + a dotted underline hinting "click to view full"; clicking opens a
+reusable detailModal (openDetail) with the full structured content — URIs one-per-line in sunken
+mono boxes, scope rendered as chips. Esc / Close / scrim dismiss it (existing modal machinery).
+Scope correction (honesty): reading the actual mock data showed Roles/Groups descriptions are short
+one-liners, NOT long text (the R3 pitch overstated them) — left unchanged. Events Payload already
+exemplified the pattern. API Keys scopes (chips) / Webhooks URL (copyCell) keep their existing
+affordances. New harness group content-detail (18 total): cell is BUTTON + ellipsis, modal opens with
+full URI, Esc closes, scope shows 3 chips. All 18 pass; no regression. Screenshot: detail modal.

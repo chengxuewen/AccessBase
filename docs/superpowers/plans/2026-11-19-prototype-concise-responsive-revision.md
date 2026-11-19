@@ -136,7 +136,7 @@ CHANGELOG + commit (single concern per commit, per repo discipline).
 |---|---|---|---|
 | R1 | **B** (CSS-only themed tooltip) | 2026-11-19 | user-adjudicated; implemented + verified |
 | R2 | **A** (real overflow menu) | 2026-11-19 | user-adjudicated; implemented + verified |
-| R3 | — | — | — |
+| R3 | **A** (truncate + detail modal) | 2026-11-19 | user-adjudicated; implemented + verified |
 | R4 | — | — | — |
 | R5 | — | — | — |
 ## Execution log
@@ -157,3 +157,11 @@ CHANGELOG + commit (single concern per commit, per repo discipline).
   menu container was after the app script so $('rowMenu') cached null — moved it before the script.
   New harness group overflow-menu (17 total) passes. Screenshot: themed menu, danger item red.
   Component is reusable for R5 toolbar overflow.
+- **R3 = A (2026-11-19, implemented + verified):** extended the Events-payload truncate+detail
+  pattern to the variable-length Clients columns (Redirect URIs, Scope). Each is now a real
+  <button class="cell-trunc"> (keyboard/focus accessible) with ellipsis (max-width 220px) + dotted
+  underline affordance; click opens a reusable detailModal (openDetail) showing full structured
+  content (URIs one-per-line in sunken mono boxes; scope as chips). SCOPE CORRECTION: on reading the
+  actual mock data, Roles/Groups descriptions are short one-liners (NOT long text — the R3 pitch
+  overstated them), so they were left unchanged; Events Payload already exemplified the pattern.
+  New harness group content-detail (18 total) passes. Screenshot: detail modal + dotted-underline cells.

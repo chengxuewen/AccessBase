@@ -473,3 +473,27 @@ test('overflow-menu', async ({ page }) => {
   rec('overflow-menu', pass, a);
   expect(pass, 'overflow-menu').toBe(true);
 });
+
+test('content-detail', async ({ page }) => {
+  await page.goto(FILE);
+  // R3=A: long Clients cells truncate + click opens a detail modal (extends the Events pattern).
+  await page.evaluate(() => { (document.querySelector('[data-page=clients]') as HTMLElement).click(); });
+  const uris = page.locator('#clientRows [data-detail="uris"]').first();
+  const isButton = await uris.evaluate(el => el.tagName);
+  const truncClass = await uris.evaluate(el => getComputedStyle(el).textOverflow);
+  await uris.click();
+  const modalOn = await page.evaluate(() => document.getElementById('detailModal')!.classList.contains('on'));
+  const title = await page.evaluate(() => document.getElementById('detailTitle')!.textContent);
+  const bodyHasUri = await page.evaluate(() => document.getElementById('detailBody')!.textContent!.includes('https://app.acme.io/callback'));
+  await page.keyboard.press('Escape');
+  const closedByEsc = await page.evaluate(() => !document.getElementById('detailModal')!.classList.contains('on'));
+  const scope = page.locator('#clientRows [data-detail="scope"]').first();
+  await scope.click();
+  const scopeTitle = await page.evaluate(() => document.getElementById('detailTitle')!.textContent);
+  const scopeTags = await page.evaluate(() => document.querySelectorAll('#detailBody .tag').length);
+  const a = { isButton, truncClass, modalOn, title, bodyHasUri, closedByEsc, scopeTitle, scopeTags };
+  const pass = isButton === 'BUTTON' && truncClass === 'ellipsis' && modalOn && title!.includes('Redirect URIs')
+    && bodyHasUri && closedByEsc && scopeTitle!.includes('Scope') && scopeTags >= 1;
+  rec('content-detail', pass, a);
+  expect(pass, 'content-detail').toBe(true);
+});
