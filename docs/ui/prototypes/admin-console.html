@@ -538,7 +538,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   </header>
   <main class="main">
     <section class="page on" id="page-dashboard">
-      <div class="page-head"><div><h1>Dashboard</h1><div class="sub">Identity platform overview · last 7 days</div></div><button class="btn"><svg class="ic" style="width:13px;height:13px"><use href="#i-refresh"/></svg>Refresh</button></div>
+      <div class="page-head"><div><h1>Dashboard</h1><div class="sub">Identity platform overview · last 7 days</div></div><button class="btn" id="dashRefresh"><svg class="ic" style="width:13px;height:13px"><use href="#i-refresh"/></svg>Refresh</button></div>
       <div class="stats">
         <div class="card stat"><div class="lbl">Total Users<svg class="ic"><use href="#i-user"/></svg></div><div class="val">1,284</div><div class="delta up">+12.4% <span>vs last week</span></div></div>
         <div class="card stat"><div class="lbl">Active Sessions<svg class="ic"><use href="#i-zap"/></svg></div><div class="val">342</div><div class="delta up">+3.1%</div></div>
@@ -564,7 +564,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
         </div>
       </div>
       <div class="card" style="margin-top:12px">
-        <div class="card-head"><h3>Recent activity</h3><button class="btn sm">View all</button></div>
+        <div class="card-head"><h3>Recent activity</h3><button class="btn sm" id="viewAllBtn">View all</button></div>
         <div class="card-body" style="padding:4px 16px"><ul class="activity" id="activity"></ul></div>
       </div>
     </section>
@@ -767,7 +767,10 @@ const titles={dashboard:'Dashboard',users:'Users',roles:'Roles',groups:'Groups',
 document.querySelectorAll('#nav a').forEach(a=>{a.onclick=e=>{e.preventDefault();const p=a.dataset.page;document.querySelectorAll('#nav a').forEach(x=>x.classList.toggle('on',x===a));document.querySelectorAll('.page').forEach(s=>s.classList.toggle('on',s.id==='page-'+p));$('crumbPage').textContent=titles[p];};});
 (function(){const data=[120,180,150,220,260,190,310];const w=560,h=160,pad=8;const max=Math.max(...data);const pts=data.map((v,i)=>[pad+i*(w-2*pad)/(data.length-1),h-pad-(v/max)*(h-2*pad)]);const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');const area=line+' L '+pts[pts.length-1][0]+' '+h+' L '+pts[0][0]+' '+h+' Z';$('trend').innerHTML='<path d="'+area+'" fill="var(--accent)" opacity=".07"/><path d="'+line+'" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round"/>'+pts.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="2.5" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>').join('');})();
 const acts=[['i-user','New user registered','jane.doe@globex.com · via OIDC','2m'],['i-key','API key expiring soon','svc-billing · expires in 3 days','18m'],['i-shield','Role updated','editor · +audit:read permission','1h'],['i-zap','Failed sign-in blocked','CIDR gate · 203.0.113.9','2h'],['i-building','Tenant created','Initech · plan: enterprise','5h']];
-$('activity').innerHTML=acts.map(a=>'<li><div class="a-ic"><svg class="ic"><use href="#'+a[0]+'"/></svg></div><div class="a-tx"><div class="t">'+a[1]+'</div><div class="m">'+a[2]+'</div></div><div class="a-time">'+a[3]+'</div></li>').join('');
+function renderActivity(){$('activity').innerHTML=acts.map(a=>'<li><div class="a-ic"><svg class="ic"><use href="#'+a[0]+'"/></svg></div><div class="a-tx"><div class="t">'+a[1]+'</div><div class="m">'+a[2]+'</div></div><div class="a-time">'+a[3]+'</div></li>').join('');}
+renderActivity();
+$('dashRefresh').onclick=()=>{renderActivity();toast('Refreshed');};
+$('viewAllBtn').onclick=()=>{document.querySelector('#nav a[data-page="audit"]').click();};
 const USERS=[['Jane Doe','jane.doe@globex.com','active','Globex','2026-11-02'],['Alice Chen','alice@acme.io','active','Acme Corp','2026-10-28'],['Bob Smith','bob@initech.com','disabled','Initech','2026-09-15'],['Carol Wu','carol@acme.io','pending','Acme Corp','2026-11-12'],['David Kim','david@globex.com','active','Globex','2026-08-30'],['Eve Torres','eve@initech.com','active','Initech','2026-11-01'],['Frank Lee','frank@acme.io','disabled','Acme Corp','2026-07-22'],['Grace Park','grace@globex.com','active','Globex','2026-10-10'],['Henry Zhao','henry@initech.com','pending','Initech','2026-11-14'],['Ivy Nguyen','ivy@acme.io','active','Acme Corp','2026-06-18'],['Jack Ma','jack@globex.com','active','Globex','2026-05-09'],['Kate Bell','kate@initech.com','disabled','Initech','2026-04-27']];
 const PAGE=8;let cur=1;
 function statusTag(s){return s==='active'?'<span class="tag ok"><span class="dot"></span>Active</span>':s==='disabled'?'<span class="tag danger"><span class="dot"></span>Disabled</span>':'<span class="tag warn"><span class="dot"></span>Pending</span>';}
@@ -776,7 +779,7 @@ const filtered=USERS.filter(u=>(!q||u[0].toLowerCase().includes(q)||u[1].toLower
 const total=filtered.length;const pages=Math.max(1,Math.ceil(total/PAGE));if(cur>pages)cur=pages;
 const slice=filtered.slice((cur-1)*PAGE,cur*PAGE);
 $('userCount').textContent=total+' users';
-$('userRows').innerHTML=slice.length?slice.map(u=>{const init=u[0].split(' ').map(x=>x[0]).join('');return '<tr><td><div class="u-cell"><div class="u-av">'+init+'</div><div><div class="u-nm">'+u[0]+'</div><div class="u-em">'+u[1]+'</div></div></div></td><td>'+statusTag(u[2])+'</td><td>'+u[3]+'</td><td class="mono">'+u[4]+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="View" aria-label="View"><svg class="ic"><use href="#i-eye"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="More actions" aria-label="More actions" data-more="'+USERS.indexOf(u)+'" aria-haspopup="menu" aria-expanded="false"><svg class="ic"><use href="#i-more"/></svg></button></div></td></tr>';}).join(''):'<tr><td colspan="5"><div class="empty">No users match the current filters.</div></td></tr>';
+$('userRows').innerHTML=slice.length?slice.map(u=>{const init=u[0].split(' ').map(x=>x[0]).join('');return '<tr><td><div class="u-cell"><div class="u-av">'+init+'</div><div><div class="u-nm">'+u[0]+'</div><div class="u-em">'+u[1]+'</div></div></div></td><td>'+statusTag(u[2])+'</td><td>'+u[3]+'</td><td class="mono">'+u[4]+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-detail="user" data-idx="'+USERS.indexOf(u)+'" data-tip="View" aria-label="View"><svg class="ic"><use href="#i-eye"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="More actions" aria-label="More actions" data-more="'+USERS.indexOf(u)+'" aria-haspopup="menu" aria-expanded="false"><svg class="ic"><use href="#i-more"/></svg></button></div></td></tr>';}).join(''):'<tr><td colspan="5"><div class="empty">No users match the current filters.</div></td></tr>';
 $('pageInfo').textContent=(total?((cur-1)*PAGE+1):0)+'–'+Math.min(cur*PAGE,total)+' of '+total;
 $('pages').innerHTML=Array.from({length:pages},(_,i)=>'<button class="'+(i+1===cur?'on':'')+'" data-p="'+(i+1)+'">'+(i+1)+'</button>').join('');
 document.querySelectorAll('#pages button').forEach(b=>b.onclick=()=>{cur=+b.dataset.p;renderUsers();});}
@@ -884,14 +887,17 @@ const delivCls=s=>({success:'ok',pending:'warn',failed:'danger',dead:'danger'}[s
 function openModal(id){$(id).classList.add('on');}
 function closeModal(id){$(id).classList.remove('on');}
 function openDetail(title,html){$('detailTitle').textContent=title;$('detailBody').innerHTML=html;openModal('detailModal');}
-document.addEventListener('click',e=>{const t=e.target.closest('[data-detail]');if(!t)return;const c=CLIENTS[+t.dataset.idx];
+function toast(msg){const tt=$('protoToast');tt.textContent=msg;tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-detail]');if(!t)return;const idx=+t.dataset.idx;
+if(t.dataset.detail==='user'){const u=USERS[idx];openDetail(u[0]+' · User','<div class="detail-meta">'+esc(u[1])+'</div><div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:var(--fs12);align-items:center"><span style="color:var(--tx3)">Status</span><span>'+statusTag(u[2])+'</span><span style="color:var(--tx3)">Tenant</span><span>'+esc(u[3])+'</span><span style="color:var(--tx3)">Created</span><span class="mono">'+esc(u[4])+'</span></div>');return;}
+const c=CLIENTS[idx];
 if(t.dataset.detail==='uris'){openDetail(c.name+' · Redirect URIs',c.redirectUris.length?'<div class="detail-meta">'+c.redirectUris.length+' registered redirect URI'+(c.redirectUris.length>1?'s':'')+'</div>'+c.redirectUris.map(u=>'<div class="mono" style="font-size:var(--fs12);padding:6px 8px;background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);margin-bottom:6px;word-break:break-all">'+esc(u)+'</div>').join(''):'<div class="detail-meta">No redirect URIs — machine-to-machine client.</div>');}
 else if(t.dataset.detail==='scope'){openDetail(c.name+' · Scope','<div class="detail-meta">Granted scopes</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+tags(c.scope.split(' '))+'</div>');}});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open)open.classList.remove('on');}});
 document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(c){try{navigator.clipboard.writeText(c.dataset.copy).catch(()=>{});}catch(err){}}});
-document.addEventListener('click',e=>{const b=e.target.closest('button[data-tip="Edit"],button[data-tip="Delete"]');if(b){const tt=document.getElementById('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);}});
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-tip="Edit"],button[data-tip="Delete"],button[aria-label="Edit"],button[aria-label="Delete"]');if(b){const tt=document.getElementById('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);}});
 // R2 overflow menu logic (reusable). Inert secondary actions disclose via the same toast.
 const rowMenu=$('rowMenu');let menuTrigger=null;
 function openMenu(trigger,items){menuTrigger=trigger;

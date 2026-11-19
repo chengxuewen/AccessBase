@@ -515,3 +515,21 @@ apikeys Prefix 150 / Scopes 170; clients Grant types 180). Verified by screensho
 chips single-line, Webhooks events chips inline full-text, API Keys scopes chips inline. New harness
 group chip-columns (22 total): audit chip one line + not clipped, webhooks cell overflow visible /
 text-overflow clip / chips not clipped, apikeys two scope chips same row. All 22 pass; no regression.
+
+## Dead-control audit + silent-dead fixes — 2026-11-19 (user-reported: secondary controls unresponsive)
+Comprehensive audit of all 75 buttons + 16 inputs + 10 selects cross-referenced against JS handlers.
+Classification: (a) WIRED — create/close/tab/menu/detail/copy/rotate/revoke/ping/deliv/manage/rm/role/
+tstatus/unlink/code/matrix/profile/pwd/bind/search/filters etc.; (b) DISCLOSED-INERT (intentional
+prototype scope) — row Edit/Delete on users/groups/clients/webhooks (toast + opacity .5), overflow-menu
+items (toast), 15 disabled buttons (tooltip "not wired"/"Locked"); (c) SILENT-DEAD (real bug: click gave
+no response AND no disclosure) — 7 controls, now fixed:
+  - users row View(eye): wired to a read-only user detail modal (openDetail, reuse R3 machinery).
+  - roles & tenants non-locked row Edit/Delete: data-tip sat on the wrapper .tip-wrap span, so the
+    inert-disclosure delegation (button[data-tip=Edit/Delete]) missed them; extended the selector to
+    button[aria-label=Edit/Delete] so they disclose like the other tables.
+  - Dashboard Refresh: wired to re-render activity + "Refreshed" toast (renderActivity extracted).
+  - Dashboard View all: wired to navigate to Audit Log.
+Added a toast(msg) helper. New harness group dead-controls (23 total): View opens user detail, roles &
+tenants Edit disclose, Refresh toast, View all jumps to Audit. All 23 pass; no regression.
+Remaining "not wired" disclosures are intentional prototype scope (edit modals / create-user-role-group
+forms / import / reset-password / delete-confirm are design-implied but out of prototype scope).

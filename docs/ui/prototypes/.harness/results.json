@@ -387,6 +387,17 @@
         },
         "scopesInline": true
       }
+    },
+    "dead-controls": {
+      "pass": true,
+      "assertions": {
+        "viewModal": true,
+        "viewTitle": "Jane Doe · User",
+        "roleToast": true,
+        "tenantToast": true,
+        "refreshToast": "Refreshed",
+        "jumpedAudit": true
+      }
     }
   }
 }

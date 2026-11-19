@@ -594,3 +594,30 @@ test('chip-columns', async ({ page }) => {
   rec('chip-columns', pass, a);
   expect(pass, 'chip-columns').toBe(true);
 });
+
+test('dead-controls', async ({ page }) => {
+  await page.goto(FILE);
+  // Previously silent-dead controls now respond: users View -> detail; roles/tenants Edit -> disclosure;
+  // dashboard Refresh -> toast; View all -> navigates to Audit.
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  await page.locator('#userRows button[data-detail="user"]').first().click();
+  const viewModal = await page.evaluate(() => document.getElementById('detailModal')!.classList.contains('on'));
+  const viewTitle = await page.evaluate(() => document.getElementById('detailTitle')!.textContent);
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => { (document.querySelector('[data-page=roles]') as HTMLElement).click(); });
+  await page.locator('#roleRows button[aria-label="Edit"]:not([disabled])').first().click();
+  const roleToast = await page.evaluate(() => { const t = document.getElementById('protoToast')!; return t.style.display === 'block' && t.textContent!.includes('not wired'); });
+  await page.evaluate(() => { (document.querySelector('[data-page=tenants]') as HTMLElement).click(); });
+  await page.locator('#tenantRows button[aria-label="Edit"]:not([disabled])').first().click();
+  const tenantToast = await page.evaluate(() => { const t = document.getElementById('protoToast')!; return t.style.display === 'block' && t.textContent!.includes('not wired'); });
+  await page.evaluate(() => { (document.querySelector('[data-page=dashboard]') as HTMLElement).click(); });
+  await page.locator('#dashRefresh').click();
+  const refreshToast = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
+  await page.locator('#viewAllBtn').click();
+  const jumpedAudit = await page.evaluate(() => document.getElementById('page-audit')!.classList.contains('on'));
+  const a = { viewModal, viewTitle, roleToast, tenantToast, refreshToast, jumpedAudit };
+  const pass = viewModal && viewTitle!.includes('User') && roleToast && tenantToast
+    && refreshToast === 'Refreshed' && jumpedAudit;
+  rec('dead-controls', pass, a);
+  expect(pass, 'dead-controls').toBe(true);
+});
