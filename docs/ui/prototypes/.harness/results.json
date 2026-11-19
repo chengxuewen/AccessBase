@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 33,
-        "svgIcons": 219,
+        "svgIcons": 229,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -393,10 +393,24 @@
       "assertions": {
         "viewModal": true,
         "viewTitle": "Jane Doe · User",
-        "roleToast": true,
-        "tenantToast": true,
+        "roleEdit": true,
+        "tenantEdit": true,
         "refreshToast": "Refreshed",
         "jumpedAudit": true
+      }
+    },
+    "row-crud": {
+      "pass": true,
+      "assertions": {
+        "editOpen": true,
+        "prefilled": "Jane Doe",
+        "savedClosed": true,
+        "rowUpdated": "Edited Name",
+        "savedToast": "Saved",
+        "before": 4,
+        "confirmOpen": true,
+        "after": 3,
+        "deletedToast": "Deleted"
       }
     }
   }

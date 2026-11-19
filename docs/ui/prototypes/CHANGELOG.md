@@ -533,3 +533,22 @@ Added a toast(msg) helper. New harness group dead-controls (23 total): View open
 tenants Edit disclose, Refresh toast, View all jumps to Audit. All 23 pass; no regression.
 Remaining "not wired" disclosures are intentional prototype scope (edit modals / create-user-role-group
 forms / import / reset-password / delete-confirm are design-implied but out of prototype scope).
+
+## Row-level CRUD wired (adjudication A) — 2026-11-19
+User ruled A: make the disclosed-inert row Edit/Delete actually operable (in-memory prototype data).
+- Edit: opens the existing formModal in EDIT mode, prefilled with the row's current values (per-entity
+  EDITDEFS: users name/email/status-select/tenant; roles/groups name/desc; tenants name/slug; clients
+  name/redirectUris/scope; apikeys name/scopes/expires; webhooks url/events). Save updates the record in
+  place + re-renders + "Saved" toast. Create buttons reset to Create mode.
+- Delete: opens a new themed confirmModal ("Remove <name>? cannot be undone") with Cancel + red Delete;
+  confirm splices the record + re-renders dependents (roles matrix, groups members/role-checks) + "Deleted"
+  toast. users Delete reached via the overflow menu; apikeys row gained Edit/Delete (previously Revoke only).
+- Removed the inert dimming (.row-actions Edit/Delete opacity .5) and the inert-disclosure delegation for
+  Edit/Delete (now wired). Locked rows (system roles / default tenant) stay disabled+disclosed.
+- Delegation infers kind from section.page id and idx from each row's existing anchor (data-more/role/
+  manage/tstatus/rotate-client/revoke/ping); roles anchor lives on the <tr> itself (hasAttribute fallback).
+- Fixed roles row-select onclick re-rendering (detaching the clicked button) by ignoring button clicks.
+New harness row-crud (24 total): edit prefills Jane Doe, save updates row + Saved toast; clients delete
+confirm removes row (4->3) + Deleted toast. dead-controls updated (roles/tenants Edit now open edit modal).
+All 24 pass. Screenshots: prefilled Edit-user modal; Delete-client confirm modal.
+Remaining disclosed-inert (Create user/role/group, Import, reset-password, menu toggle/reset) stay as-is.

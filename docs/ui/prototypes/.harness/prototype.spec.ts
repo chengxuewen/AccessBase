@@ -606,18 +606,46 @@ test('dead-controls', async ({ page }) => {
   await page.keyboard.press('Escape');
   await page.evaluate(() => { (document.querySelector('[data-page=roles]') as HTMLElement).click(); });
   await page.locator('#roleRows button[aria-label="Edit"]:not([disabled])').first().click();
-  const roleToast = await page.evaluate(() => { const t = document.getElementById('protoToast')!; return t.style.display === 'block' && t.textContent!.includes('not wired'); });
+  const roleEdit = await page.evaluate(() => document.getElementById('formModal')!.classList.contains('on') && document.getElementById('formTitle')!.textContent!.includes('Edit'));
+  await page.keyboard.press('Escape');
   await page.evaluate(() => { (document.querySelector('[data-page=tenants]') as HTMLElement).click(); });
   await page.locator('#tenantRows button[aria-label="Edit"]:not([disabled])').first().click();
-  const tenantToast = await page.evaluate(() => { const t = document.getElementById('protoToast')!; return t.style.display === 'block' && t.textContent!.includes('not wired'); });
+  const tenantEdit = await page.evaluate(() => document.getElementById('formModal')!.classList.contains('on') && document.getElementById('formTitle')!.textContent!.includes('Edit'));
+  await page.keyboard.press('Escape');
   await page.evaluate(() => { (document.querySelector('[data-page=dashboard]') as HTMLElement).click(); });
   await page.locator('#dashRefresh').click();
   const refreshToast = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
   await page.locator('#viewAllBtn').click();
   const jumpedAudit = await page.evaluate(() => document.getElementById('page-audit')!.classList.contains('on'));
-  const a = { viewModal, viewTitle, roleToast, tenantToast, refreshToast, jumpedAudit };
-  const pass = viewModal && viewTitle!.includes('User') && roleToast && tenantToast
+  const a = { viewModal, viewTitle, roleEdit, tenantEdit, refreshToast, jumpedAudit };
+  const pass = viewModal && viewTitle!.includes('User') && roleEdit && tenantEdit
     && refreshToast === 'Refreshed' && jumpedAudit;
   rec('dead-controls', pass, a);
   expect(pass, 'dead-controls').toBe(true);
+});
+
+test('row-crud', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication A: Edit prefills formModal and saves in place; Delete confirms then removes the row.
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  await page.locator('#userRows button[aria-label="Edit"]').first().click();
+  const editOpen = await page.evaluate(() => document.getElementById('formModal')!.classList.contains('on'));
+  const prefilled = await page.evaluate(() => (document.querySelector('#formBody [data-field="name"]') as HTMLInputElement).value);
+  await page.locator('#formBody [data-field="name"]').fill('Edited Name');
+  await page.locator('#formSave').click();
+  const savedClosed = await page.evaluate(() => !document.getElementById('formModal')!.classList.contains('on'));
+  const rowUpdated = await page.evaluate(() => document.querySelector('#userRows tr:first-child .u-nm')!.textContent);
+  const savedToast = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
+  await page.evaluate(() => { (document.querySelector('[data-page=clients]') as HTMLElement).click(); });
+  const before = await page.evaluate(() => document.querySelectorAll('#clientRows tr').length);
+  await page.locator('#clientRows button[aria-label="Delete"]').first().click();
+  const confirmOpen = await page.evaluate(() => document.getElementById('confirmModal')!.classList.contains('on'));
+  await page.locator('#confirmDelete').click();
+  const after = await page.evaluate(() => document.querySelectorAll('#clientRows tr').length);
+  const deletedToast = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
+  const a = { editOpen, prefilled, savedClosed, rowUpdated, savedToast, before, confirmOpen, after, deletedToast };
+  const pass = editOpen && prefilled === 'Jane Doe' && savedClosed && rowUpdated === 'Edited Name' && savedToast === 'Saved'
+    && confirmOpen && after === before - 1 && deletedToast === 'Deleted';
+  rec('row-crud', pass, a);
+  expect(pass, 'row-crud').toBe(true);
 });

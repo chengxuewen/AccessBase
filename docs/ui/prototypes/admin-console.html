@@ -114,6 +114,7 @@ button{font-family:inherit;cursor:pointer}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-weight:500}
 .btn:hover{background:var(--hover)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--txinv)}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
 .btn.primary:hover{background:var(--accent-hi)}
 .btn.sm{padding:3px 8px;font-size:var(--fs12)}
 .card{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6)}
@@ -424,7 +425,6 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .field input,.field select,.field textarea{width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
 .field textarea{resize:vertical;min-height:64px}
 .proto-inert,.btn:disabled{opacity:.5;cursor:not-allowed}
-.row-actions button[data-tip="Edit"],.row-actions button[data-tip="Delete"]{opacity:.5}
 .proto-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx1);color:var(--bg);padding:8px 16px;border-radius:var(--r4);font-size:var(--fs12);z-index:100;display:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 .detail-meta{font-size:var(--fs12);color:var(--tx2);margin-bottom:6px}
 /* R3 long-content cell: ellipsis + click-for-detail (extends the Events payload pattern). A real
@@ -748,6 +748,11 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   <div class="modal-foot"><button class="btn" data-close="formModal">Cancel</button><button class="btn primary" id="formSave">Create</button></div>
 </div></div>
 </div>
+<div class="modal-overlay" id="confirmModal"><div class="modal" role="dialog" aria-modal="true" style="max-width:420px">
+  <div class="modal-head"><svg class="ic" style="color:var(--danger)"><use href="#i-alert"/></svg><h3 id="confirmTitle">Delete</h3><button class="icon-btn close" aria-label="Close" data-close="confirmModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="modal-body"><div class="detail-meta" id="confirmMsg"></div></div>
+  <div class="modal-foot"><button class="btn" data-close="confirmModal">Cancel</button><button class="btn danger" id="confirmDelete">Delete</button></div>
+</div></div>
 <div class="modal-overlay" id="detailModal"><div class="modal" role="dialog" aria-modal="true">
   <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-eye"/></svg><h3 id="detailTitle">Detail</h3><button class="icon-btn close" aria-label="Close" data-close="detailModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body" id="detailBody"></div>
@@ -806,7 +811,7 @@ function renderRoles(){
  const list=ROLES.filter(r=>!q||r.name.toLowerCase().includes(q)||r.desc.toLowerCase().includes(q));
  $('roleCount').textContent=ROLES.length+' roles';
  $('roleRows').innerHTML=list.map(r=>{const idx=ROLES.indexOf(r);return '<tr class="clickable'+(idx===selRole?' sel':'')+'" data-role="'+idx+'"><td><div class="entity-name">'+(r.system?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+r.name+(r.system?' <span class="sys-tag">system</span>':'')+'</div></td><td style="color:var(--tx2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.desc+'</td><td><span class="perm-count">'+r.perms.length+'</span></td><td>'+r.tenant+'</td><td class="mono">'+r.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Edit')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Edit')+'"><svg class="ic"><use href="#'+(r.system?'i-lock':'i-pencil')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Delete')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('');
- document.querySelectorAll('#roleRows tr').forEach(tr=>tr.onclick=()=>{selRole=+tr.dataset.role;renderRoles();renderMatrix();});
+ document.querySelectorAll('#roleRows tr').forEach(tr=>tr.onclick=e=>{if(e.target.closest('button'))return;selRole=+tr.dataset.role;renderRoles();renderMatrix();});
 }
 function renderMatrix(){
  const r=ROLES[selRole];
@@ -897,7 +902,6 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open)open.classList.remove('on');}});
 document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(c){try{navigator.clipboard.writeText(c.dataset.copy).catch(()=>{});}catch(err){}}});
-document.addEventListener('click',e=>{const b=e.target.closest('button[data-tip="Edit"],button[data-tip="Delete"],button[aria-label="Edit"],button[aria-label="Delete"]');if(b){const tt=document.getElementById('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);}});
 // R2 overflow menu logic (reusable). Inert secondary actions disclose via the same toast.
 const rowMenu=$('rowMenu');let menuTrigger=null;
 function openMenu(trigger,items){menuTrigger=trigger;
@@ -913,7 +917,7 @@ document.addEventListener('click',e=>{const more=e.target.closest('[data-more]')
 if(more){e.stopPropagation();if(menuTrigger===more&&rowMenu.classList.contains('on')){closeMenu(true);}else{openMenu(more,userMenuItems(USERS[+more.dataset.more]));}return;}
 const ph=e.target.closest('[data-phmore]');
 if(ph){e.stopPropagation();if(menuTrigger===ph&&rowMenu.classList.contains('on')){closeMenu(true);}else{openMenu(ph,ph.dataset.phmore==='users'?[{label:'Import',icon:'i-upload',action:'import'}]:[{label:'Export',icon:'i-download',action:'export'}]);}return;}
-const mi=e.target.closest('.menu-item');if(mi){if(mi.dataset.maction==='export'){$('exportBtn').click();const t2=$('protoToast');t2.textContent='Exported';t2.style.display='block';clearTimeout(t2._h);t2._h=setTimeout(()=>{t2.style.display='none';},1600);closeMenu(true);return;}const tt=$('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);closeMenu(true);return;}
+const mi=e.target.closest('.menu-item');if(mi){if(mi.dataset.maction==='delete'){const idx=+menuTrigger.dataset.more;closeMenu(false);openConfirm('users',idx);return;}if(mi.dataset.maction==='export'){$('exportBtn').click();const t2=$('protoToast');t2.textContent='Exported';t2.style.display='block';clearTimeout(t2._h);t2._h=setTimeout(()=>{t2.style.display='none';},1600);closeMenu(true);return;}const tt=$('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);closeMenu(true);return;}
 if(rowMenu.classList.contains('on')&&!e.target.closest('#rowMenu'))closeMenu(false);});
 document.addEventListener('keydown',e=>{if(!rowMenu.classList.contains('on'))return;const items=[...rowMenu.querySelectorAll('.menu-item')];const i=items.indexOf(document.activeElement);
 if(e.key==='Escape'){e.preventDefault();closeMenu(true);}
@@ -972,7 +976,7 @@ function renderApikeys(){
  const list=APIKEYS.filter(k=>(!q||k.name.toLowerCase().includes(q)||k.prefix.includes(q))&&(!sf||(sf==='revoked')===k.revoked));
  $('apikeyCount').textContent=APIKEYS.length+' keys';
  $('apikeyRows').innerHTML=list.map(k=>{const i=APIKEYS.indexOf(k);
-  return '<tr><td><div class="entity-name">'+esc(k.name)+'</div></td><td>'+copyCell(k.prefix+'…')+'</td><td>'+tags(k.scopes)+'</td><td class="mono">'+k.created+'</td><td class="mono">'+(k.expires||'<span style="color:var(--tx3)">Never</span>')+'</td><td>'+(k.revoked?'<span class="tag danger"><span class="dot"></span>Revoked</span>':'<span class="tag ok"><span class="dot"></span>Active</span>')+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(k.revoked?'Already revoked':'Revoke')+'"><button  data-revoke="'+i+'" '+(k.revoked?'disabled':'')+' aria-label="'+(k.revoked?'Already revoked':'Revoke')+'"><svg class="ic"><use href="#i-x"/></svg></button></span></div></td></tr>';}).join('');
+  return '<tr><td><div class="entity-name">'+esc(k.name)+'</div></td><td>'+copyCell(k.prefix+'…')+'</td><td>'+tags(k.scopes)+'</td><td class="mono">'+k.created+'</td><td class="mono">'+(k.expires||'<span style="color:var(--tx3)">Never</span>')+'</td><td>'+(k.revoked?'<span class="tag danger"><span class="dot"></span>Revoked</span>':'<span class="tag ok"><span class="dot"></span>Active</span>')+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(k.revoked?'Already revoked':'Revoke')+'"><button  data-revoke="'+i+'" '+(k.revoked?'disabled':'')+' aria-label="'+(k.revoked?'Already revoked':'Revoke')+'"><svg class="ic"><use href="#i-x"/></svg></button></span><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
  document.querySelectorAll('[data-revoke]').forEach(b=>b.onclick=()=>{APIKEYS[+b.dataset.revoke].revoked=true;renderApikeys();});
 }
 $('apikeySearch').addEventListener('input',renderApikeys);
@@ -1045,17 +1049,44 @@ const FORMS={
  apikeys:{title:'Issue API key',fields:[['name','Name'],['scopes','Scopes (comma-separated)'],['expires','Expires (YYYY-MM-DD, blank = never)']]},
  webhooks:{title:'Add endpoint',fields:[['url','URL'],['events','Subscribed events (comma-separated)']]}
 };
-let formKind=null;
-document.querySelectorAll('[data-create]').forEach(b=>b.onclick=()=>{formKind=b.dataset.create;const f=FORMS[formKind];$('formTitle').textContent=f.title;$('formBody').innerHTML=f.fields.map(([k,l])=>'<div class="field"><label>'+l+'</label>'+(k==='redirectUris'?'<textarea data-field="'+k+'" rows="3" placeholder="'+l+'"></textarea>':'<input data-field="'+k+'" placeholder="'+l+'">')+'</div>').join('');openModal('formModal');});
+let formKind=null;let formEdit=null;
+document.querySelectorAll('[data-create]').forEach(b=>b.onclick=()=>{formKind=b.dataset.create;formEdit=null;$('formSave').textContent='Create';const f=FORMS[formKind];$('formTitle').textContent=f.title;$('formBody').innerHTML=f.fields.map(([k,l])=>'<div class="field"><label>'+l+'</label>'+(k==='redirectUris'?'<textarea data-field="'+k+'" rows="3" placeholder="'+l+'"></textarea>':'<input data-field="'+k+'" placeholder="'+l+'">')+'</div>').join('');openModal('formModal');});
 function formError(msg){let e=document.getElementById('formErr');if(!e){e=document.createElement('div');e.id='formErr';e.className='error-banner';e.style.marginBottom='12px';$('formBody').prepend(e);}e.innerHTML='<svg class="ic"><use href="#i-alert"/></svg><span>'+esc(msg)+'</span>';e.style.display='flex';}
 $('formSave').onclick=()=>{
  const get=k=>{const el=document.querySelector('#formBody [data-field="'+k+'"]');return el?el.value.trim():'';};
+ if(formEdit!==null){const d=EDITDEFS[formKind];const vals={};d.fields.forEach(f=>{vals[f[0]]=get(f[0]);});const req=formKind==='webhooks'?'url':'name';if(!vals[req]){formError((req==='url'?'URL':'Name')+' is required');return;}d.set(formEdit,vals);closeModal('formModal');toast('Saved');formEdit=null;return;}
  if(formKind==='tenants'){const n=get('name');if(!n){formError('Name is required');return;}const sl=get('slug')||n.toLowerCase().replace(/\s+/g,'-');if(TENANTS.some(x=>x.slug===sl)){formError('Slug "'+sl+'" already exists');return;}TENANTS.push({name:n,slug:sl,status:'active',created:'just now'});renderTenants();}
  else if(formKind==='clients'){const n=get('name');if(!n){formError('Name is required');return;}CLIENTS.push({name:n,clientId:'ab_new_'+Math.random().toString(36).slice(2,10),redirectUris:get('redirectUris')?get('redirectUris').split('\n').map(s=>s.trim()).filter(Boolean):[],grantTypes:['authorization_code'],scope:get('scope')||'openid profile email',created:'just now'});renderClients();closeModal('formModal');reveal('Client secret','cs_'+Math.random().toString(36).slice(2,18),'Client ID: '+CLIENTS[CLIENTS.length-1].clientId);return;}
  else if(formKind==='apikeys'){const n=get('name');if(!n){formError('Name is required');return;}APIKEYS.push({name:n,prefix:'abk_live_'+Math.random().toString(36).slice(2,6),scopes:get('scopes')?get('scopes').split(',').map(s=>s.trim()):['users:read'],created:'just now',expires:get('expires')||null,revoked:false});renderApikeys();}
  else if(formKind==='webhooks'){const u=get('url');if(!u){formError('URL is required');return;}WEBHOOKS.push({url:u,events:get('events')?get('events').split(',').map(s=>s.trim()):['user.created'],active:0,pending:0,dead:0,created:'just now',deliveries:[]});renderWebhooks();closeModal('formModal');reveal('Webhook secret','whsec_'+Math.random().toString(36).slice(2,18),u);return;}
  closeModal('formModal');
 };
+/* ==== v0.95 row-level CRUD (adjudication A): Edit prefills formModal; Delete confirms then removes ==== */
+const EDITDEFS={
+ users:{title:'Edit user',fields:[['name','Name'],['email','Email'],['status','Status','select:active,disabled,pending'],['tenant','Tenant']],get:i=>{const u=USERS[i];return{name:u[0],email:u[1],status:u[2],tenant:u[3]};},set:(i,v)=>{USERS[i][0]=v.name;USERS[i][1]=v.email;USERS[i][2]=v.status;USERS[i][3]=v.tenant;renderUsers();}},
+ roles:{title:'Edit role',fields:[['name','Name'],['desc','Description']],get:i=>({name:ROLES[i].name,desc:ROLES[i].desc}),set:(i,v)=>{ROLES[i].name=v.name;ROLES[i].desc=v.desc;renderRoles();renderMatrix();}},
+ groups:{title:'Edit group',fields:[['name','Name'],['desc','Description']],get:i=>({name:GROUPS[i].name,desc:GROUPS[i].desc}),set:(i,v)=>{GROUPS[i].name=v.name;GROUPS[i].desc=v.desc;renderGroups();if(selGroup===i){renderMembers();renderRoleChecks();}}},
+ tenants:{title:'Edit tenant',fields:[['name','Name'],['slug','Slug']],get:i=>({name:TENANTS[i].name,slug:TENANTS[i].slug}),set:(i,v)=>{TENANTS[i].name=v.name;TENANTS[i].slug=v.slug;renderTenants();}},
+ clients:{title:'Edit client',fields:[['name','Name'],['redirectUris','Redirect URIs (one per line)','textarea'],['scope','Scope']],get:i=>({name:CLIENTS[i].name,redirectUris:CLIENTS[i].redirectUris.join('\n'),scope:CLIENTS[i].scope}),set:(i,v)=>{CLIENTS[i].name=v.name;CLIENTS[i].redirectUris=v.redirectUris?v.redirectUris.split('\n').map(s=>s.trim()).filter(Boolean):[];CLIENTS[i].scope=v.scope;renderClients();}},
+ apikeys:{title:'Edit API key',fields:[['name','Name'],['scopes','Scopes (comma-separated)'],['expires','Expires (YYYY-MM-DD, blank = never)']],get:i=>({name:APIKEYS[i].name,scopes:APIKEYS[i].scopes.join(', '),expires:APIKEYS[i].expires||''}),set:(i,v)=>{APIKEYS[i].name=v.name;APIKEYS[i].scopes=v.scopes?v.scopes.split(',').map(s=>s.trim()).filter(Boolean):[];APIKEYS[i].expires=v.expires||null;renderApikeys();}},
+ webhooks:{title:'Edit endpoint',fields:[['url','URL'],['events','Subscribed events (comma-separated)']],get:i=>({url:WEBHOOKS[i].url,events:WEBHOOKS[i].events.join(', ')}),set:(i,v)=>{WEBHOOKS[i].url=v.url;WEBHOOKS[i].events=v.events?v.events.split(',').map(s=>s.trim()).filter(Boolean):[];renderWebhooks();}}
+};
+function openEdit(kind,idx){formKind=kind;formEdit=idx;const d=EDITDEFS[kind];const cur=d.get(idx);$('formTitle').textContent=d.title;$('formBody').innerHTML=d.fields.map(f=>{const k=f[0],l=f[1],type=f[2];const val=cur[k]==null?'':cur[k];let ctl;if(type&&type.indexOf('select:')===0){ctl='<select data-field="'+k+'">'+type.slice(7).split(',').map(o=>'<option'+(o===val?' selected':'')+'>'+o+'</option>').join('')+'</select>';}else if(type==='textarea'){ctl='<textarea data-field="'+k+'" rows="3">'+esc(val)+'</textarea>';}else{ctl='<input data-field="'+k+'" value="'+esc(val)+'">';}return '<div class="field"><label>'+l+'</label>'+ctl+'</div>';}).join('');$('formSave').textContent='Save';openModal('formModal');}
+const DEL={
+ users:i=>{USERS.splice(i,1);renderUsers();},
+ roles:i=>{ROLES.splice(i,1);selRole=Math.max(0,Math.min(selRole,ROLES.length-1));renderRoles();renderMatrix();},
+ groups:i=>{GROUPS.splice(i,1);if(selGroup===i){selGroup=-1;$('groupPanel').style.display='none';}else if(selGroup>i){selGroup--;}renderGroups();if(selGroup>=0){renderMembers();renderRoleChecks();}},
+ tenants:i=>{TENANTS.splice(i,1);renderTenants();},
+ clients:i=>{CLIENTS.splice(i,1);renderClients();},
+ apikeys:i=>{APIKEYS.splice(i,1);renderApikeys();},
+ webhooks:i=>{WEBHOOKS.splice(i,1);renderWebhooks();}
+};
+const ROW_NAME={users:i=>USERS[i][0],roles:i=>ROLES[i].name,groups:i=>GROUPS[i].name,tenants:i=>TENANTS[i].name,clients:i=>CLIENTS[i].name,apikeys:i=>APIKEYS[i].name,webhooks:i=>WEBHOOKS[i].url};
+let pendingDelete=null;
+function openConfirm(kind,idx){pendingDelete={kind:kind,idx:idx};$('confirmTitle').textContent='Delete '+kind.replace(/s$/,'');$('confirmMsg').innerHTML='Remove <strong>'+esc(ROW_NAME[kind](idx))+'</strong> from the prototype data? This cannot be undone.';openModal('confirmModal');}
+$('confirmDelete').onclick=()=>{if(!pendingDelete)return;const d=pendingDelete;pendingDelete=null;DEL[d.kind](d.idx);closeModal('confirmModal');toast('Deleted');};
+const EDIT_ANCHOR={users:'data-more',roles:'data-role',groups:'data-manage',tenants:'data-tstatus',clients:'data-rotate-client',apikeys:'data-revoke',webhooks:'data-ping'};
+document.addEventListener('click',e=>{const eb=e.target.closest('button[aria-label="Edit"],button[data-tip="Edit"]');const db=e.target.closest('button[aria-label="Delete"],button[data-tip="Delete"]');if(!eb&&!db)return;const btn=eb||db;if(btn.disabled)return;const page=btn.closest('section.page');if(!page)return;const kind=page.id.replace('page-','');if(!EDIT_ANCHOR[kind])return;const tr=btn.closest('tr');const anchor=tr.hasAttribute(EDIT_ANCHOR[kind])?tr:tr.querySelector('['+EDIT_ANCHOR[kind]+']');if(!anchor)return;const idx=+anchor.getAttribute(EDIT_ANCHOR[kind]);if(eb){openEdit(kind,idx);}else{openConfirm(kind,idx);}});
 /* ==== v0.9 Profile — grounded in real admin-ui Profile.tsx ==== */
 const PROFILE={name:'Admin User',email:'admin@acme.io',isActive:true,emailVerified:false};
 let OAUTH_LINKS=[{provider:'github',account:'admin-acme'}];
