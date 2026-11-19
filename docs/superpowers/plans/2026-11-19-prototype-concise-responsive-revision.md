@@ -191,3 +191,34 @@ menu (ee2da17), R3=A long-content truncate + detail modal (a405ce5), R4=A wide-t
 (eb6b937), R5=A page-head stack + overflow (this commit). Plus a user-reported tooltip overlap fix
 (54ba8d6). Harness 15 -> 20 groups, all green; no regression. O2 (a11y) largely absorbed by R1/R2
 aria-labels + keyboard menus; O3 (MediaServo-style pack) remains parked, independent of this plan.
+
+## Adjudication (follow-up): row-level CRUD — 2026-11-19, user-adjudicated one by one
+After the dead-control audit (commit 4cd4d90) surfaced disclosed-inert Edit/Delete, a single
+adjudication was walked: upgrade inert row controls to operable, and to what tier.
+- **Ruling: A** — wire row-level CRUD only (Edit prefilled edit-modal + Delete confirm-and-remove),
+  covering all list tables; leave Create user/role/group, Import, reset-password and menu toggle/reset
+  as disclosed-inert. Implemented + verified + committed d8eac95.
+- Implementation: EDITDEFS per-entity prefill/save into formModal (edit mode); confirmModal + DEL map
+  with dependent re-renders (roles matrix, groups members/role-checks); delegation infers kind from
+  page id + idx from row anchor (roles anchor on the <tr>); removed inert dimming + Edit/Delete
+  disclosure; locked rows stay disabled. Fixed roles row-select onclick detaching the clicked button.
+- Harness: row-crud added + dead-controls updated -> 24 groups, all green.
+
+### Closure summary table
+| # | Decision | Key note |
+|---|----------|----------|
+| R1 | B themed CSS tooltip | hover+focus, pack tokens |
+| R2 | A row overflow menu | reusable openMenu, keyboard |
+| R3 | A truncate + detail modal | Clients URIs/Scope |
+| R4 | A wide-table narrow | priority + sticky + card |
+| R5 | A page-head overflow | stack + secondary into menu |
+| fix | tooltip left-open | no adjacent-row overlap (54ba8d6) |
+| fix | phantom h-scrollbar | table-layout fixed >=900 (d886c1e) |
+| fix | chip columns | nowrap + no-clip + widths (e5e20ee) |
+| audit | dead controls | 7 silent-dead wired/disclosed (4cd4d90) |
+| CRUD | A row-level CRUD | Edit prefill + Delete confirm (d8eac95) |
+
+### Open items (explicitly NOT done)
+- Create user / role / group forms, Import users, reset-password flow, menu toggle/reset: remain
+  disclosed-inert (out of the A ruling's scope).
+- O3 MediaServo-style 8th pack: still parked, independent of this plan.
