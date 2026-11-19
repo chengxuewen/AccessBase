@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 33,
-        "svgIcons": 248,
+        "svgIcons": 240,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -528,6 +528,29 @@
         "jsonErr": true,
         "preview": true,
         "idleToast": "Idle timeout saved"
+      }
+    },
+    "apikeys-model": {
+      "pass": true,
+      "assertions": {
+        "noCrud": true,
+        "conf": {
+          "on": true,
+          "verb": "Revoke"
+        },
+        "notRevoked": 1,
+        "revoked": 2,
+        "form": {
+          "name": true,
+          "expires": true,
+          "scopes": false
+        },
+        "reveal": {
+          "on": true,
+          "prefix": "ab_",
+          "len": 35,
+          "once": true
+        }
       }
     }
   }

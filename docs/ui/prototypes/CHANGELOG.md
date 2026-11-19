@@ -624,3 +624,14 @@ with overflow-x wrappers. Header comment declares the authenticated-console boun
 prototypes (Login/MFA-arm/Magic/Register/Verify/Forgot/Reset/EnrollMfa/Consent/Setup) as TODO-not-here.
 Harness: all-pages count 11->12; new settings group (30 total) asserts tabs/sessions/revoke-verb/MFA
 one-time gate/masking/JSON-error/preview/idle. All 30 pass. Screenshot: Settings security tab.
+
+## Adjudication 5 (A): API Keys aligned to immutable / revoke-only model — 2026-11-19
+Panel F4 / R4#4-5: prototype invented Edit/Delete + scopes editing for API keys; real model is
+immutable (revoke-and-recreate), API only list/create/revoke, create form = name+expiresAt (scopes
+server-assigned), plaintext shown exactly once (ab_ + 32 chars, DB stores hash). Ruling A: removed
+apikeys row Edit/Delete + EDITDEFS/DEL/ROW_NAME/EDIT_ANCHOR entries; revoke now opens a confirm
+("stops working immediately, cannot be restored — issue a new key"); create form dropped the scopes
+input and now reveals the one-time ab_ plaintext via revealModal with "never shown again" meta;
+sample prefixes abk_live_* -> ab_*; subtitle now "immutable — revoke & reissue to change".
+New harness apikeys-model (31 total): no Edit/Delete, revoke confirm-gated (cancel keeps Active),
+create form name+expires only, reveal ab_ 35-char once. All 31 pass.

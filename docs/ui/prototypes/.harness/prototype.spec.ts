@@ -867,3 +867,37 @@ test('settings', async ({ page }) => {
   rec('settings', pass, a);
   expect(pass, 'settings').toBe(true);
 });
+
+test('apikeys-model', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 5 (A): API keys are immutable / revoke-only; create shows one-time ab_ plaintext;
+  // no Edit/Delete; revoke requires confirmation; create form has no scopes input.
+  await page.evaluate(() => { (document.querySelector('[data-page=apikeys]') as HTMLElement).click(); });
+  const noCrud = await page.evaluate(() => !document.querySelector('#apikeyRows button[aria-label="Edit"]') && !document.querySelector('#apikeyRows button[aria-label="Delete"]'));
+  await page.locator('#apikeyRows button[data-revoke]:not([disabled])').first().click();
+  const conf = await page.evaluate(() => ({ on: document.getElementById('confirmModal')!.classList.contains('on'), verb: document.getElementById('confirmDelete')!.textContent }));
+  await page.locator('#confirmModal [data-close=confirmModal]').first().click();
+  const notRevoked = await page.evaluate(() => document.querySelectorAll('#apikeyRows .tag.danger').length);
+  await page.locator('#apikeyRows button[data-revoke]:not([disabled])').first().click();
+  await page.locator('#confirmDelete').click();
+  const revoked = await page.evaluate(() => document.querySelectorAll('#apikeyRows .tag.danger').length);
+  await page.locator('[data-create=apikeys]').click();
+  const form = await page.evaluate(() => ({
+    name: !!document.querySelector('#formBody [data-field=name]'),
+    expires: !!document.querySelector('#formBody [data-field=expires]'),
+    scopes: !!document.querySelector('#formBody [data-field=scopes]'),
+  }));
+  await page.locator('#formBody [data-field=name]').fill('e2e-key');
+  await page.locator('#formSave').click();
+  const reveal = await page.evaluate(() => ({
+    on: document.getElementById('revealModal')!.classList.contains('on'),
+    val: (document.getElementById('revealValue') as HTMLInputElement).value,
+    meta: document.getElementById('revealMeta')!.textContent,
+  }));
+  const a = { noCrud, conf, notRevoked, revoked, form, reveal: { on: reveal.on, prefix: reveal.val.slice(0, 3), len: reveal.val.length, once: reveal.meta.includes('never shown again') } };
+  const pass = noCrud && conf.on && conf.verb === 'Revoke' && revoked === notRevoked + 1
+    && form.name && form.expires && !form.scopes
+    && reveal.on && reveal.val.startsWith('ab_') && reveal.val.length === 35 && reveal.meta.includes('never shown again');
+  rec('apikeys-model', pass, a);
+  expect(pass, 'apikeys-model').toBe(true);
+});
