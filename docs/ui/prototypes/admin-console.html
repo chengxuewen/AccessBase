@@ -102,6 +102,15 @@ button{font-family:inherit;cursor:pointer}
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:var(--sp20)}
 .page-head h1{font-size:var(--fs20);font-weight:600;letter-spacing:-.02em}
 .page-head .sub{color:var(--tx3);font-size:var(--fs12);margin-top:2px}
+/* R5 page-head narrow (adjudication R5=A): stack title above actions; secondary actions (Import /
+   Export) collapse into the reusable overflow menu; the primary CTA stays visible with its label. */
+.page-head .ph-more{display:none}
+@media(max-width:760px){
+.page-head{flex-wrap:wrap;gap:10px}
+.page-head > div:first-child{flex:1 1 100%}
+.page-head .ph-more{display:inline-flex}
+.page-head [data-phsecondary]{display:none}
+}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-weight:500}
 .btn:hover{background:var(--hover)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--txinv)}
@@ -533,7 +542,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
     </section>
     <section class="page" id="page-users">
       <div class="page-head"><div><h1>Users</h1><div class="sub">Manage accounts, status and tenant membership</div></div>
-        <div style="display:flex;gap:8px"><button class="btn proto-inert" disabled title="Prototype: not wired"><svg class="ic" style="width:13px;height:13px"><use href="#i-upload"/></svg>Import</button><button class="btn primary proto-inert" disabled title="Prototype: not wired"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create user</button></div></div>
+        <div style="display:flex;gap:8px"><button class="btn proto-inert" data-phsecondary disabled title="Prototype: not wired"><svg class="ic" style="width:13px;height:13px"><use href="#i-upload"/></svg>Import</button><button class="btn primary proto-inert" disabled title="Prototype: not wired"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create user</button><button class="btn ph-more" data-phmore="users" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:13px;height:13px"><use href="#i-more"/></svg></button></div></div>
       <div class="card">
         <div class="toolbar">
           <div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="userSearch" placeholder="Search name or email…"></div>
@@ -631,7 +640,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       </div>
     </section>
     <section class="page" id="page-audit">
-      <div class="page-head"><div><h1>Audit Log</h1><div class="sub">Append-only, hash-chained record of every mutation</div></div><div style="display:flex;gap:8px"><button class="btn" id="verifyBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-shield"/></svg>Verify chain</button><button class="btn" id="exportBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-download"/></svg>Export</button></div></div>
+      <div class="page-head"><div><h1>Audit Log</h1><div class="sub">Append-only, hash-chained record of every mutation</div></div><div style="display:flex;gap:8px"><button class="btn" id="verifyBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-shield"/></svg>Verify chain</button><button class="btn" id="exportBtn" data-phsecondary><svg class="ic" style="width:13px;height:13px"><use href="#i-download"/></svg>Export</button><button class="btn ph-more" data-phmore="audit" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:13px;height:13px"><use href="#i-more"/></svg></button></div></div>
       <div class="verify-banner" id="auditVerifyBanner" style="display:none"><svg class="ic"><use href="#i-shield"/></svg><span>Hash chain verified · 1,284 entries · no tampering detected</span><span class="hash">head sha256:9f2c…a41b</span></div>
       <div class="card">
         <div class="toolbar"><select id="auditActionFilter"><option value="">All actions</option><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option><option value="DELETE">DELETE</option></select><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="auditActorFilter" placeholder="Filter actor…"></div><div class="spacer"></div><span class="count" id="auditCount"></span></div>
@@ -868,7 +877,9 @@ function closeMenu(refocus){if(!rowMenu.classList.contains('on'))return;rowMenu.
 function userMenuItems(u){const dis=u[2]==='active';return[{label:dis?'Disable account':'Enable account',icon:dis?'i-x':'i-check',action:'toggle'},{label:'Reset password',icon:'i-lock',action:'reset'},{sep:true},{label:'Delete user',icon:'i-trash',action:'delete',danger:true}];}
 document.addEventListener('click',e=>{const more=e.target.closest('[data-more]');
 if(more){e.stopPropagation();if(menuTrigger===more&&rowMenu.classList.contains('on')){closeMenu(true);}else{openMenu(more,userMenuItems(USERS[+more.dataset.more]));}return;}
-const mi=e.target.closest('.menu-item');if(mi){const tt=$('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);closeMenu(true);return;}
+const ph=e.target.closest('[data-phmore]');
+if(ph){e.stopPropagation();if(menuTrigger===ph&&rowMenu.classList.contains('on')){closeMenu(true);}else{openMenu(ph,ph.dataset.phmore==='users'?[{label:'Import',icon:'i-upload',action:'import'}]:[{label:'Export',icon:'i-download',action:'export'}]);}return;}
+const mi=e.target.closest('.menu-item');if(mi){if(mi.dataset.maction==='export'){$('exportBtn').click();const t2=$('protoToast');t2.textContent='Exported';t2.style.display='block';clearTimeout(t2._h);t2._h=setTimeout(()=>{t2.style.display='none';},1600);closeMenu(true);return;}const tt=$('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);closeMenu(true);return;}
 if(rowMenu.classList.contains('on')&&!e.target.closest('#rowMenu'))closeMenu(false);});
 document.addEventListener('keydown',e=>{if(!rowMenu.classList.contains('on'))return;const items=[...rowMenu.querySelectorAll('.menu-item')];const i=items.indexOf(document.activeElement);
 if(e.key==='Escape'){e.preventDefault();closeMenu(true);}

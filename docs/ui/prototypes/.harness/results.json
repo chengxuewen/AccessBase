@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 33,
-        "svgIcons": 217,
+        "svgIcons": 219,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -350,6 +350,21 @@
         "tdLabel": "Name",
         "tdDisplay": "flex",
         "prioShownInCard": "flex"
+      }
+    },
+    "pagehead-overflow": {
+      "pass": true,
+      "assertions": {
+        "wideExport": "flex",
+        "wideMore": "none",
+        "narrowExport": "none",
+        "narrowMore": "flex",
+        "verifyKept": "flex",
+        "phWrap": "wrap",
+        "menuOn": true,
+        "exportItem": 1,
+        "toastText": "Exported",
+        "closedAfter": true
       }
     }
   }

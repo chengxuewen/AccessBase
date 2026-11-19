@@ -518,3 +518,28 @@ test('responsive-table', async ({ page }) => {
   rec('responsive-table', pass, a);
   expect(pass, 'responsive-table').toBe(true);
 });
+
+test('pagehead-overflow', async ({ page }) => {
+  await page.goto(FILE);
+  // R5=A: page-head stacks on narrow; secondary (Export) collapses into overflow, primary kept.
+  await page.evaluate(() => { (document.querySelector('[data-page=audit]') as HTMLElement).click(); });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const wideExport = await page.evaluate(() => getComputedStyle(document.getElementById('exportBtn')!).display);
+  const wideMore = await page.evaluate(() => getComputedStyle(document.querySelector('#page-audit [data-phmore]')!).display);
+  await page.setViewportSize({ width: 500, height: 900 });
+  const narrowExport = await page.evaluate(() => getComputedStyle(document.getElementById('exportBtn')!).display);
+  const narrowMore = await page.evaluate(() => getComputedStyle(document.querySelector('#page-audit [data-phmore]')!).display);
+  const verifyKept = await page.evaluate(() => getComputedStyle(document.getElementById('verifyBtn')!).display);
+  const phWrap = await page.evaluate(() => getComputedStyle(document.querySelector('#page-audit .page-head')!).flexWrap);
+  await page.locator('#page-audit [data-phmore]').click();
+  const menuOn = await page.evaluate(() => document.getElementById('rowMenu')!.classList.contains('on'));
+  const exportItem = await page.locator('#rowMenu .menu-item[data-maction="export"]').count();
+  await page.locator('#rowMenu .menu-item[data-maction="export"]').click();
+  const toastText = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
+  const closedAfter = await page.evaluate(() => !document.getElementById('rowMenu')!.classList.contains('on'));
+  const a = { wideExport, wideMore, narrowExport, narrowMore, verifyKept, phWrap, menuOn, exportItem, toastText, closedAfter };
+  const pass = wideExport !== 'none' && wideMore === 'none' && narrowExport === 'none' && narrowMore !== 'none'
+    && verifyKept !== 'none' && phWrap === 'wrap' && menuOn && exportItem === 1 && toastText === 'Exported' && closedAfter;
+  rec('pagehead-overflow', pass, a);
+  expect(pass, 'pagehead-overflow').toBe(true);
+});

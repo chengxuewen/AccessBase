@@ -11,8 +11,8 @@
 > MediaServo-style new pack is PARKED separately as open item **O3** (adjudication 13, deferred) —
 > NOT part of this plan.
 
-**Status:** DRAFT — 待裁 (NOT adjudicated). Execution NOT sanctioned. Walk R1→R5 one at a time
-via adjudication-walkthrough when the user sanctions; record rulings in the Adjudication record.
+**Status:** COMPLETE (2026-11-19) — R1–R5 all user-adjudicated via adjudication-walkthrough,
+implemented, browser-verified and committed. Harness grew 15 → 20 groups, all passing.
 
 ---
 
@@ -138,7 +138,7 @@ CHANGELOG + commit (single concern per commit, per repo discipline).
 | R2 | **A** (real overflow menu) | 2026-11-19 | user-adjudicated; implemented + verified |
 | R3 | **A** (truncate + detail modal) | 2026-11-19 | user-adjudicated; implemented + verified |
 | R4 | **A** (col priority + sticky + card) | 2026-11-19 | user-adjudicated; implemented + verified |
-| R5 | — | — | — |
+| R5 | **A** (page-head stack + overflow) | 2026-11-19 | user-adjudicated; implemented + verified |
 ## Execution log
 - **R1 = B (2026-11-19, implemented + verified):** added themed CSS-only tooltip (`[data-tip]::after`,
   pack-token surface/border/radius, hover + :focus + :focus-within reveal, topbar flips below).
@@ -175,3 +175,19 @@ CHANGELOG + commit (single concern per commit, per repo discipline).
   on every re-render (search/filter), skipping colspan empty-state rows (col-count guard). New
   harness group responsive-table (19 total): sticky at 1440, Client ID hidden at 800 / Name kept,
   card thead none + label=Name + flex + prio re-show at 500. All 19 pass. Screenshots 500/800/1440.
+- **R5 = A (2026-11-19, implemented + verified):** page-head stacks on narrow (<=760px flex-wrap,
+  title full-row) so action buttons are no longer clipped (375px audit Export was cut off-screen).
+  Secondary actions (users Import, audit Export) marked data-phsecondary and collapsed into a ⋯
+  overflow trigger reusing the R2 openMenu component; the primary CTA (Create user / Verify chain)
+  stays visible with its label. Export menu item triggers the real export + a visible toast (the
+  hidden button's own feedback would not show on narrow). Fixed a specificity bug: .btn display
+  (later in sheet) overrode the hide rules -> scoped under .page-head. New harness group
+  pagehead-overflow (20 total): wide Export shown/⋯ hidden, narrow Export hidden/⋯ shown, primary
+  kept, wrap, menu opens, Export item -> toast 'Exported' + closes. All 20 pass. Screenshot 375px.
+
+## Completion summary (R1–R5)
+All five revision items adjudicated and landed: R1=B themed CSS tooltip (70bb7ec), R2=A row overflow
+menu (ee2da17), R3=A long-content truncate + detail modal (a405ce5), R4=A wide-table narrow-screen
+(eb6b937), R5=A page-head stack + overflow (this commit). Plus a user-reported tooltip overlap fix
+(54ba8d6). Harness 15 -> 20 groups, all green; no regression. O2 (a11y) largely absorbed by R1/R2
+aria-labels + keyboard menus; O3 (MediaServo-style pack) remains parked, independent of this plan.

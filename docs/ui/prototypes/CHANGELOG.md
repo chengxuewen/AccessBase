@@ -473,3 +473,15 @@ A MutationObserver auto-propagates thead labels + priority onto tbody cells on e
 group responsive-table (19 total): sticky at 1440, Client ID hidden / Name kept at 800, card thead
 none + data-label=Name + flex + prio re-show at 500. All 19 pass; no regression. Screenshots at
 500 (card), 800 (column priority), 1440 (sticky, full columns).
+
+## Page-head narrow-screen overflow — 2026-11-19 (revision plan R5 = A; plan COMPLETE)
+Page-head now stacks on narrow (<=760px: flex-wrap, title takes a full row) so action buttons are no
+longer clipped — at 375px the audit Export button had been pushed off-screen. Secondary actions
+(users Import, audit Export) are marked data-phsecondary and collapse into a ⋯ overflow trigger that
+reuses the R2 openMenu component; the primary CTA (Create user / Verify chain) stays visible with its
+label (discoverability). The Export menu item runs the real export and shows a toast, since the hidden
+button's own "Exported" feedback would not be visible on narrow. Fixed a CSS specificity bug: .btn's
+display (later in the sheet) overrode the hide rules, so they were scoped under .page-head. New harness
+group pagehead-overflow (20 total): wide Export shown / ⋯ hidden; narrow Export hidden / ⋯ shown;
+primary kept; page-head wrap; menu opens; Export item -> toast "Exported" + closes. All 20 pass.
+This completes the R1–R5 concise/responsive revision plan (harness 15 -> 20 groups, all green).
