@@ -366,6 +366,12 @@
         "toastText": "Exported",
         "closedAfter": true
       }
+    },
+    "table-fit": {
+      "pass": true,
+      "assertions": {
+        "over": []
+      }
     }
   }
 }

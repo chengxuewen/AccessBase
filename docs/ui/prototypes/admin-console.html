@@ -163,8 +163,9 @@ tbody tr:last-child td{border-bottom:none}
 td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 .u-cell{display:flex;align-items:center;gap:10px}
 .u-cell .u-av{width:26px;height:26px;border-radius:var(--r4);background:var(--sunken);border:1px solid var(--bd);color:var(--tx2);display:grid;place-items:center;font-size:var(--fs11);font-weight:500;flex-shrink:0}
-.u-cell .u-nm{font-weight:500}
-.u-cell .u-em{font-size:var(--fs11);color:var(--tx3);font-family:var(--mono)}
+.u-cell>div{min-width:0}
+.u-cell .u-nm{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.u-cell .u-em{font-size:var(--fs11);color:var(--tx3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row-actions{display:flex;gap:4px}
 .row-actions button{width:24px;height:24px;border-radius:var(--r2);border:1px solid transparent;background:transparent;color:var(--tx3);display:grid;place-items:center}
 .row-actions button:hover{background:var(--hover);color:var(--tx1);border-color:var(--bd)}
@@ -344,6 +345,17 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
    card view <600px. Scoped to .page list tables; .matrix and modal tables are excluded. */
 .page table:not(.matrix) th:last-child,.page table:not(.matrix) td:last-child{position:sticky;right:0;z-index:2}
 .page table:not(.matrix) th:last-child{background:var(--sunken)}
+/* R6 phantom-scrollbar fix: auto table layout sizes columns to content min-width, which slightly
+   exceeds the container and (masked by the sticky action column) yields an always-on horizontal
+   scrollbar. Fixed layout lets the table fit; overlong single-line content ellipsizes (full text
+   via R3 detail / R4 card view). Scoped >=900px; narrower keeps auto + priority + card view. */
+@media(min-width:900px){
+.page table:not(.matrix){table-layout:fixed}
+.page table:not(.matrix) th:first-child{width:22%}
+.page table:not(.matrix) th:last-child{width:110px}
+.page table:not(.matrix) tbody td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.page table:not(.matrix) tbody td:has(.u-cell),.page table:not(.matrix) tbody td:has(.tag),.page table:not(.matrix) tbody td:has(.row-actions),.page table:not(.matrix) tbody td:has(.copyable){white-space:normal}
+}
 .page table:not(.matrix) td:last-child{background:var(--surface);box-shadow:-8px 0 10px -8px rgba(0,0,0,.18)}
 @media(max-width:900px){.page table:not(.matrix) [data-prio="2"]{display:none}}
 @media(max-width:760px){.page table:not(.matrix) [data-prio="3"]{display:none}}
@@ -366,11 +378,13 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 .fam-tenant{background:var(--warn-tint);color:var(--warn-text,var(--warn))}
 .fam-apikey{background:var(--danger-tint);color:var(--danger-text,var(--danger))}
 .fam-audit{background:var(--sunken);color:var(--tx2)}
-.copyable{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
+.copyable{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:var(--fs12);color:var(--tx2);max-width:180px;min-width:0}
+.copyable .cp-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.copyable button{flex-shrink:0}
 .copyable button{border:none;background:transparent;color:var(--tx3);display:grid;place-items:center;padding:2px;border-radius:var(--r2)}
 .copyable button:hover{color:var(--accent);background:var(--hover)}
 .copyable .ic{width:12px;height:12px}
-.json{font-family:var(--mono);font-size:var(--fs11);color:var(--tx2);background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:2px 6px;display:inline-block;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.json{font-family:var(--mono);font-size:var(--fs11);color:var(--tx2);background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:2px 6px;display:inline-block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
 pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:var(--sp12);overflow-x:auto;white-space:pre;margin:0}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:var(--sp24)}
 .modal-overlay.on{display:flex}
@@ -774,7 +788,7 @@ function renderRoles(){
  const q=$('roleSearch').value.toLowerCase();
  const list=ROLES.filter(r=>!q||r.name.toLowerCase().includes(q)||r.desc.toLowerCase().includes(q));
  $('roleCount').textContent=ROLES.length+' roles';
- $('roleRows').innerHTML=list.map(r=>{const idx=ROLES.indexOf(r);return '<tr class="clickable'+(idx===selRole?' sel':'')+'" data-role="'+idx+'"><td><div class="entity-name">'+(r.system?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+r.name+(r.system?' <span class="sys-tag">system</span>':'')+'</div></td><td style="color:var(--tx2)">'+r.desc+'</td><td><span class="perm-count">'+r.perms.length+'</span></td><td>'+r.tenant+'</td><td class="mono">'+r.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Edit')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Edit')+'"><svg class="ic"><use href="#'+(r.system?'i-lock':'i-pencil')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Delete')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('');
+ $('roleRows').innerHTML=list.map(r=>{const idx=ROLES.indexOf(r);return '<tr class="clickable'+(idx===selRole?' sel':'')+'" data-role="'+idx+'"><td><div class="entity-name">'+(r.system?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+r.name+(r.system?' <span class="sys-tag">system</span>':'')+'</div></td><td style="color:var(--tx2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.desc+'</td><td><span class="perm-count">'+r.perms.length+'</span></td><td>'+r.tenant+'</td><td class="mono">'+r.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Edit')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Edit')+'"><svg class="ic"><use href="#'+(r.system?'i-lock':'i-pencil')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Delete')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('');
  document.querySelectorAll('#roleRows tr').forEach(tr=>tr.onclick=()=>{selRole=+tr.dataset.role;renderRoles();renderMatrix();});
 }
 function renderMatrix(){
@@ -849,7 +863,7 @@ renderGroups();
 /* ==== v0.8 management pages — grounded in real admin-ui columns/features ==== */
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const tags=(arr,cls)=>arr.map(x=>'<span class="tag '+(cls||'')+'">'+esc(x)+'</span>').join(' ');
-const copyCell=v=>'<span class="copyable">'+esc(v)+'<button data-tip="Copy" data-copy="'+esc(v)+'" aria-label="Copy"><svg class="ic"><use href="#i-copy"/></svg></button></span>';
+const copyCell=v=>'<span class="copyable"><span class="cp-t">'+esc(v)+'</span><button data-tip="Copy" data-copy="'+esc(v)+'" aria-label="Copy"><svg class="ic"><use href="#i-copy"/></svg></button></span>';
 const methodCls=m=>({POST:'m-post',PUT:'m-put',PATCH:'m-patch',DELETE:'m-delete'}[m]||'');
 const famCls=t=>'fam-'+(t.split('.')[0]||'');
 const delivCls=s=>({success:'ok',pending:'warn',failed:'danger',dead:'danger'}[s]||'');

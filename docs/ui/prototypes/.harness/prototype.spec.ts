@@ -543,3 +543,23 @@ test('pagehead-overflow', async ({ page }) => {
   rec('pagehead-overflow', pass, a);
   expect(pass, 'pagehead-overflow').toBe(true);
 });
+
+test('table-fit', async ({ page }) => {
+  await page.goto(FILE);
+  // R6: at desktop the list tables must fit (no phantom horizontal scrollbar from content min-width).
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const pages = ['users', 'roles', 'groups', 'tenants', 'clients', 'apikeys', 'webhooks', 'audit', 'events'];
+  const over: string[] = [];
+  for (const pg of pages) {
+    await page.evaluate((p) => { (document.querySelector('[data-page=' + p + ']') as HTMLElement).click(); }, pg);
+    const fit = await page.evaluate((p) => {
+      const w = document.querySelector('#page-' + p + ' div[style*="overflow-x"]') as HTMLElement;
+      return w.scrollWidth <= w.clientWidth;
+    }, pg);
+    if (!fit) over.push(pg);
+  }
+  const a = { over };
+  const pass = over.length === 0;
+  rec('table-fit', pass, a);
+  expect(pass, 'table-fit').toBe(true);
+});

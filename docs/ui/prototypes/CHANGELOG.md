@@ -485,3 +485,17 @@ display (later in the sheet) overrode the hide rules, so they were scoped under 
 group pagehead-overflow (20 total): wide Export shown / ⋯ hidden; narrow Export hidden / ⋯ shown;
 primary kept; page-head wrap; menu opens; Export item -> toast "Exported" + closes. All 20 pass.
 This completes the R1–R5 concise/responsive revision plan (harness 15 -> 20 groups, all green).
+
+## Phantom horizontal-scrollbar fix — 2026-11-19 (user-reported: scrollbar always present)
+User reported several views keep a horizontal scrollbar even when the window is large enough.
+Root cause: with `table-layout:auto`, column widths are driven by content min-width, which slightly
+exceeds the container (e.g. users 1139 vs 1126 at 1400px); the R4 sticky action column (opaque bg)
+masks that small overflow, so the table *looks* like it fits yet a horizontal scrollbar persists.
+Truncation via max-width/overflow does NOT reduce auto-layout min-content (verified ineffective).
+Fix: `table-layout:fixed` for list tables at >=900px (first column 22%, action column 110px, rest
+share), so the table always fits the container; overlong single-line content ellipsizes (full text
+still via R3 detail / R4 card view). Multi-line cells (identity, tags, actions, copyable) keep
+wrapping via :has() exceptions. Narrower (<900px) keeps auto + column-priority + card view unchanged.
+Also kept truncation hygiene (identity name/email, copyable id, role description, event payload chip).
+New harness group table-fit (21 total): at 1440 all 9 list tables scrollWidth<=clientWidth (over=[]).
+All 21 pass; no regression. Screenshot 1440: tables fit, email ellipsis, sticky actions retained.
