@@ -754,3 +754,30 @@ test('danger-contrast', async ({ page }) => {
   rec('danger-contrast', pass, a);
   expect(pass, 'danger-contrast').toBe(true);
 });
+
+test('cbx-disabled', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 2 (A): custom combobox mirrors select.disabled (system-role scope lock restored).
+  await page.evaluate(() => { (document.querySelector('[data-page=roles]') as HTMLElement).click(); });
+  const locked = await page.evaluate(() => {
+    (document.querySelector('#roleRows tr[data-role="0"]') as HTMLElement).click();
+    const sel = document.getElementById('scopeSelect') as any;
+    const before = sel.value;
+    sel._cbx.querySelector('.cbx-btn').click();
+    return { disabled: sel.disabled, btnDisabled: sel._cbx.querySelector('.cbx-btn').disabled, aria: sel._cbx.querySelector('.cbx-btn').getAttribute('aria-disabled'), opened: sel._cbx.classList.contains('open'), unchanged: sel.value === before };
+  });
+  const unlocked = await page.evaluate(async () => {
+    (document.querySelector('#roleRows tr[data-role="1"]') as HTMLElement).click();
+    await new Promise(r => setTimeout(r, 0)); // let the disabled-attribute MutationObserver sync
+    const sel = document.getElementById('scopeSelect') as any;
+    sel._cbx.querySelector('.cbx-btn').click();
+    const opened = sel._cbx.classList.contains('open');
+    sel._cbx.querySelector('.cbx-btn').click();
+    return { disabled: sel.disabled, btnDisabled: sel._cbx.querySelector('.cbx-btn').disabled, opened };
+  });
+  const a = { locked, unlocked };
+  const pass = locked.disabled && locked.btnDisabled && locked.aria === 'true' && !locked.opened && locked.unchanged
+    && !unlocked.disabled && !unlocked.btnDisabled && unlocked.opened;
+  rec('cbx-disabled', pass, a);
+  expect(pass, 'cbx-disabled').toBe(true);
+});

@@ -473,6 +473,23 @@
           "ghost": 5.99
         }
       }
+    },
+    "cbx-disabled": {
+      "pass": true,
+      "assertions": {
+        "locked": {
+          "disabled": true,
+          "btnDisabled": true,
+          "aria": "true",
+          "opened": false,
+          "unchanged": true
+        },
+        "unlocked": {
+          "disabled": false,
+          "btnDisabled": false,
+          "opened": true
+        }
+      }
     }
   }
 }

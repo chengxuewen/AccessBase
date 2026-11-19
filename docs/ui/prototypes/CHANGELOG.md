@@ -590,3 +590,13 @@ other devices) = new .btn.danger.ghost (surface bg + --danger-text + danger bord
 --txinv proved pack-dependent wrong for red bg (carbon-dark white-on-pink ~2:1), hence dedicated tokens.
 Added ant-dark --danger-text:#FF7875 (ghost was 4.35:1). New harness danger-contrast (27 total): WCAG
 >=4.5 for filled AND ghost across 7 packs x light/dark; all 27 pass, bad=[].
+
+## Adjudication 2 (A): combobox mirrors select.disabled (system-role scope lock restored) — 2026-11-19
+Panel finding F3 (HIGH, render-verified regression from themed-combobox): cbx button ignored
+sel.disabled, so system-role scopeSelect (disabled at :855) could still be opened and changed
+(all->dept). Ruling A: cbxSyncDisabled mirrors disabled -> btn.disabled + aria-disabled + .cbx-disabled
+dim; cbxOpen guards disabled; MutationObserver now watches the disabled attribute so dynamic lock
+changes (switching system/non-system role) sync; disabled look opacity .5 + not-allowed. Also cbx focus
+ring switched --accent -> --focus (design-system consistency). New harness cbx-disabled (28 total):
+system role locked (btn disabled, aria true, no open, value unchanged); non-system re-arms (opens).
+All 28 pass.
