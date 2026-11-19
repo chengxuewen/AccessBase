@@ -331,6 +331,22 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 .role-check .rc-ds{font-size:var(--fs11);color:var(--tx3);margin-left:auto;font-family:var(--mono)}
 .kind-dept{background:var(--accent-tint);color:var(--accent-text,var(--accent))}
 @media(max-width:900px){.scope-box{margin-left:0;width:100%}}
+/* R4 wide-table narrow-screen (adjudication R4=A): sticky action column + column priority +
+   card view <600px. Scoped to .page list tables; .matrix and modal tables are excluded. */
+.page table:not(.matrix) th:last-child,.page table:not(.matrix) td:last-child{position:sticky;right:0;z-index:2}
+.page table:not(.matrix) th:last-child{background:var(--sunken)}
+.page table:not(.matrix) td:last-child{background:var(--surface);box-shadow:-8px 0 10px -8px rgba(0,0,0,.18)}
+@media(max-width:900px){.page table:not(.matrix) [data-prio="2"]{display:none}}
+@media(max-width:760px){.page table:not(.matrix) [data-prio="3"]{display:none}}
+@media(max-width:600px){
+.page table:not(.matrix),.page table:not(.matrix) tbody,.page table:not(.matrix) tr{display:block;width:100%}
+.page table:not(.matrix) thead{display:none}
+.page table:not(.matrix) tr{border:1px solid var(--bd);border-radius:var(--r6);background:var(--surface);margin:0 0 10px;padding:4px 12px}
+.page table:not(.matrix) td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--bd);text-align:right;background:transparent}
+.page table:not(.matrix) td[data-prio]{display:flex}
+.page table:not(.matrix) tr td:last-child{border-bottom:none;position:static;box-shadow:none}
+.page table:not(.matrix) td::before{content:attr(data-label);flex:none;font-size:var(--fs11);font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;text-align:left}
+}
 /* ==== v0.8 management pages (token-driven; all 7 packs apply) ==== */
 .m-post{background:var(--ok-tint);color:var(--ok-text,var(--ok))}
 .m-put{background:var(--accent-tint);color:var(--accent-text,var(--accent))}
@@ -526,7 +542,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
           <div class="spacer"></div><span class="count" id="userCount"></span>
         </div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>User</th><th>Status</th><th>Tenant</th><th>Created</th><th style="text-align:right">Actions</th></tr></thead>
+          <thead><tr><th>User</th><th>Status</th><th data-prio="2">Tenant</th><th data-prio="3">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="userRows"></tbody>
         </table></div>
         <div class="pagination"><div class="info" id="pageInfo"></div><div class="pages" id="pages"></div></div>
@@ -537,7 +553,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="roleSearch" placeholder="Search roles…"></div><div class="spacer"></div><span class="count" id="roleCount"></span></div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>Role</th><th>Description</th><th>Permissions</th><th>Tenant</th><th>Created</th><th style="text-align:right">Actions</th></tr></thead>
+          <thead><tr><th>Role</th><th data-prio="2">Description</th><th>Permissions</th><th data-prio="2">Tenant</th><th data-prio="3">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="roleRows"></tbody>
         </table></div>
       </div>
@@ -557,7 +573,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="groupSearch" placeholder="Search groups…"></div><select id="kindFilter"><option value="">All kinds</option><option value="department">Department</option><option value="group">Group</option></select><div class="spacer"></div><span class="count" id="groupCount"></span></div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>Name</th><th>Kind</th><th>Description</th><th>Members</th><th>Roles</th><th>Created</th><th style="text-align:right">Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th data-prio="3">Kind</th><th data-prio="2">Description</th><th>Members</th><th data-prio="3">Roles</th><th data-prio="2">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="groupRows"></tbody>
         </table></div>
       </div>
@@ -579,7 +595,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="tenantSearch" placeholder="Search name or slug…"></div><select id="tenantStatusFilter"><option value="">All status</option><option value="active">Active</option><option value="suspended">Suspended</option></select><div class="spacer"></div><span class="count" id="tenantCount"></span></div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Created</th><th style="text-align:right">Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th data-prio="3">Slug</th><th>Status</th><th data-prio="2">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="tenantRows"></tbody>
         </table></div>
       </div>
@@ -589,7 +605,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="clientSearch" placeholder="Search name or client ID…"></div><div class="spacer"></div><span class="count" id="clientCount"></span></div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>Name</th><th>Client ID</th><th>Redirect URIs</th><th>Grant types</th><th>Scope</th><th>Created</th><th style="text-align:right">Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th data-prio="2">Client ID</th><th>Redirect URIs</th><th data-prio="2">Grant types</th><th data-prio="3">Scope</th><th data-prio="3">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="clientRows"></tbody>
         </table></div>
       </div>
@@ -599,7 +615,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="apikeySearch" placeholder="Search name or prefix…"></div><select id="apikeyStatusFilter"><option value="">All status</option><option value="active">Active</option><option value="revoked">Revoked</option></select><div class="spacer"></div><span class="count" id="apikeyCount"></span></div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>Name</th><th>Prefix</th><th>Scopes</th><th>Created</th><th>Expires</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th data-prio="3">Prefix</th><th data-prio="2">Scopes</th><th data-prio="2">Created</th><th data-prio="3">Expires</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="apikeyRows"></tbody>
         </table></div>
       </div>
@@ -609,7 +625,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="webhookSearch" placeholder="Search URL…"></div><div class="spacer"></div><span class="count" id="webhookCount"></span></div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>URL</th><th>Events</th><th>Active</th><th>Pending</th><th>Dead</th><th>Created</th><th style="text-align:right">Actions</th></tr></thead>
+          <thead><tr><th>URL</th><th data-prio="2">Events</th><th>Active</th><th data-prio="3">Pending</th><th data-prio="3">Dead</th><th data-prio="2">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="webhookRows"></tbody>
         </table></div>
       </div>
@@ -620,7 +636,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="card">
         <div class="toolbar"><select id="auditActionFilter"><option value="">All actions</option><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option><option value="DELETE">DELETE</option></select><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="auditActorFilter" placeholder="Filter actor…"></div><div class="spacer"></div><span class="count" id="auditCount"></span></div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Resource</th><th>IP address</th><th>Status</th></tr></thead>
+          <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th data-prio="2">Resource</th><th data-prio="3">IP address</th><th>Status</th></tr></thead>
           <tbody id="auditRows"></tbody>
         </table></div>
       </div>
@@ -630,7 +646,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="eventSearch" placeholder="Filter event type…"></div><select id="eventFamilyFilter"><option value="">All families</option><option value="user">user</option><option value="role">role</option><option value="tenant">tenant</option><option value="apikey">apikey</option><option value="audit">audit</option></select><div class="spacer"></div><span class="count" id="eventCount"></span></div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>Time</th><th>Type</th><th>Payload</th><th>Fanout</th><th style="text-align:right">Detail</th></tr></thead>
+          <thead><tr><th>Time</th><th>Type</th><th data-prio="3">Payload</th><th data-prio="2">Fanout</th><th style="text-align:right">Detail</th></tr></thead>
           <tbody id="eventRows"></tbody>
         </table></div>
       </div>
@@ -1050,6 +1066,11 @@ function renderOAuth(){
 $('bindGithub').onclick=()=>{if(!OAUTH_LINKS.some(k=>k.provider==='github')){OAUTH_LINKS.push({provider:'github',account:'admin-acme'});renderOAuth();}};
 $('bindGoogle').onclick=()=>{if(!OAUTH_LINKS.some(k=>k.provider==='google')){OAUTH_LINKS.push({provider:'google',account:'admin@acme.io'});renderOAuth();}};
 renderProfile();renderOAuth();
+// R4: propagate thead labels + column priority onto tbody cells (drives card view + narrow hiding).
+// Re-applied via MutationObserver on every re-render (search/filter); colspan empty rows are skipped.
+(function(){const tables=[...document.querySelectorAll('.page table:not(.matrix)')];
+function label(t){const ths=[...t.querySelectorAll('thead th')];t.querySelectorAll('tbody tr').forEach(tr=>{if(tr.children.length!==ths.length)return;[...tr.children].forEach((td,i)=>{const th=ths[i];td.setAttribute('data-label',th.textContent.trim());if(th.dataset.prio)td.setAttribute('data-prio',th.dataset.prio);else td.removeAttribute('data-prio');});});}
+tables.forEach(t=>{label(t);const tb=t.querySelector('tbody');if(tb)new MutationObserver(()=>label(t)).observe(tb,{childList:true});});})();
 </script>
 <div class="proto-toast" id="protoToast"></div>
 </body>

@@ -339,6 +339,18 @@
         "scopeTitle": "Web App · Scope",
         "scopeTags": 3
       }
+    },
+    "responsive-table": {
+      "pass": true,
+      "assertions": {
+        "stickyPos": "sticky",
+        "prioHidden": "none",
+        "prioKept": "table-cell",
+        "cardThead": "none",
+        "tdLabel": "Name",
+        "tdDisplay": "flex",
+        "prioShownInCard": "flex"
+      }
     }
   }
 }

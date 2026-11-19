@@ -497,3 +497,24 @@ test('content-detail', async ({ page }) => {
   rec('content-detail', pass, a);
   expect(pass, 'content-detail').toBe(true);
 });
+
+test('responsive-table', async ({ page }) => {
+  await page.goto(FILE);
+  // R4=A: sticky action column (wide) + column priority (mid) + card view (narrow).
+  await page.evaluate(() => { (document.querySelector('[data-page=clients]') as HTMLElement).click(); });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const stickyPos = await page.evaluate(() => getComputedStyle(document.querySelector('#clientRows tr td:last-child')!).position);
+  await page.setViewportSize({ width: 800, height: 900 });
+  const prioHidden = await page.evaluate(() => { const th = [...document.querySelectorAll('#page-clients thead th')].find(x => x.textContent === 'Client ID'); return getComputedStyle(th!).display; });
+  const prioKept = await page.evaluate(() => { const th = [...document.querySelectorAll('#page-clients thead th')].find(x => x.textContent === 'Name'); return getComputedStyle(th!).display; });
+  await page.setViewportSize({ width: 500, height: 900 });
+  const cardThead = await page.evaluate(() => getComputedStyle(document.querySelector('#page-clients thead')!).display);
+  const tdLabel = await page.evaluate(() => document.querySelector('#clientRows tr td')!.getAttribute('data-label'));
+  const tdDisplay = await page.evaluate(() => getComputedStyle(document.querySelector('#clientRows tr td')!).display);
+  const prioShownInCard = await page.evaluate(() => { const td = document.querySelector('#clientRows tr td[data-prio]'); return td ? getComputedStyle(td).display : 'none'; });
+  const a = { stickyPos, prioHidden, prioKept, cardThead, tdLabel, tdDisplay, prioShownInCard };
+  const pass = stickyPos === 'sticky' && prioHidden === 'none' && prioKept !== 'none'
+    && cardThead === 'none' && tdLabel === 'Name' && tdDisplay === 'flex' && prioShownInCard === 'flex';
+  rec('responsive-table', pass, a);
+  expect(pass, 'responsive-table').toBe(true);
+});

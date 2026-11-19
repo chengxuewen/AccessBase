@@ -137,7 +137,7 @@ CHANGELOG + commit (single concern per commit, per repo discipline).
 | R1 | **B** (CSS-only themed tooltip) | 2026-11-19 | user-adjudicated; implemented + verified |
 | R2 | **A** (real overflow menu) | 2026-11-19 | user-adjudicated; implemented + verified |
 | R3 | **A** (truncate + detail modal) | 2026-11-19 | user-adjudicated; implemented + verified |
-| R4 | — | — | — |
+| R4 | **A** (col priority + sticky + card) | 2026-11-19 | user-adjudicated; implemented + verified |
 | R5 | — | — | — |
 ## Execution log
 - **R1 = B (2026-11-19, implemented + verified):** added themed CSS-only tooltip (`[data-tip]::after`,
@@ -165,3 +165,13 @@ CHANGELOG + commit (single concern per commit, per repo discipline).
   actual mock data, Roles/Groups descriptions are short one-liners (NOT long text — the R3 pitch
   overstated them), so they were left unchanged; Events Payload already exemplified the pattern.
   New harness group content-detail (18 total) passes. Screenshot: detail modal + dotted-underline cells.
+- **R4 = A (2026-11-19, implemented + verified):** full narrow-screen treatment for the 9 list
+  tables, scoped `.page table:not(.matrix)` (matrix + modal tables excluded). (1) Sticky action
+  column (th/td:last-child position:sticky right:0, opaque surface/sunken bg + edge shadow) so
+  actions stay reachable during h-scroll. (2) Column priority: data-prio on secondary <th>
+  (p2 hide <=900, p3 hide <=760), primary + actions always kept. (3) Card view <600px: thead hidden,
+  each row a bordered card, td flex label:value via ::before content:attr(data-label); prio-hidden
+  columns re-show in card. A MutationObserver auto-propagates thead label+priority onto tbody cells
+  on every re-render (search/filter), skipping colspan empty-state rows (col-count guard). New
+  harness group responsive-table (19 total): sticky at 1440, Client ID hidden at 800 / Name kept,
+  card thead none + label=Name + flex + prio re-show at 500. All 19 pass. Screenshots 500/800/1440.

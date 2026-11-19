@@ -458,3 +458,18 @@ one-liners, NOT long text (the R3 pitch overstated them) — left unchanged. Eve
 exemplified the pattern. API Keys scopes (chips) / Webhooks URL (copyCell) keep their existing
 affordances. New harness group content-detail (18 total): cell is BUTTON + ellipsis, modal opens with
 full URI, Esc closes, scope shows 3 chips. All 18 pass; no regression. Screenshot: detail modal.
+
+## Wide-table narrow-screen adaptation — 2026-11-19 (revision plan R4 = A)
+Full responsive treatment for the 9 list tables, scoped `.page table:not(.matrix)` (the permission
+matrix and modal tables are excluded). Three layers:
+- Sticky action column: th/td:last-child position:sticky right:0 with opaque surface/sunken bg + a
+  faint left edge shadow, so actions stay reachable while a wide table scrolls horizontally.
+- Column priority: data-prio on secondary <th> (p2 hidden <=900px, p3 hidden <=760px); the primary
+  name column and Actions are always kept. Per-table mapping keeps the most identifying columns.
+- Card view <600px: thead hidden, each row becomes a bordered card, each td a flex label:value row
+  (::before content:attr(data-label)); priority-hidden columns re-appear inside the card.
+A MutationObserver auto-propagates thead labels + priority onto tbody cells on every re-render
+(search/filter/create), with a col-count guard that skips colspan empty-state rows. New harness
+group responsive-table (19 total): sticky at 1440, Client ID hidden / Name kept at 800, card thead
+none + data-label=Name + flex + prio re-show at 500. All 19 pass; no regression. Screenshots at
+500 (card), 800 (column priority), 1440 (sticky, full columns).
