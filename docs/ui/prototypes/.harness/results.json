@@ -293,6 +293,21 @@
         "dialogRole": "dialog",
         "focusRing": true
       }
+    },
+    "tooltip": {
+      "pass": true,
+      "assertions": {
+        "aria": "Edit",
+        "tip": "Edit",
+        "hiddenOpacity": "0",
+        "hoverOpacity": "1",
+        "hoverContent": "\"Edit\"",
+        "focusOpacity": "1",
+        "wrapTip": "Locked (system role)",
+        "btnDisabled": true,
+        "btnAria": "Locked (system role)",
+        "wrapHoverOpacity": "1"
+      }
     }
   }
 }

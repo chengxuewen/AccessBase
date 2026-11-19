@@ -410,3 +410,36 @@ test('a11y-keyboard', async ({ page }) => {
   rec('a11y-keyboard', pass, a);
   expect(pass, 'a11y-keyboard').toBe(true);
 });
+
+test('tooltip', async ({ page }) => {
+  await page.goto(FILE);
+  // R1=B: themed CSS tooltip on icon actions (data-tip + aria-label), hover + focus reveal.
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  const edit = page.locator('#userRows button[data-tip="Edit"]').first();
+  const aria = await edit.getAttribute('aria-label');
+  const tip = await edit.getAttribute('data-tip');
+  const hiddenOpacity = await edit.evaluate(el => getComputedStyle(el, '::after').opacity);
+  await edit.hover();
+  await page.waitForTimeout(250); // let the .12s opacity transition finish
+  const hoverOpacity = await edit.evaluate(el => getComputedStyle(el, '::after').opacity);
+  const hoverContent = await edit.evaluate(el => getComputedStyle(el, '::after').content);
+  // keyboard/programmatic focus also reveals the tooltip
+  const view = page.locator('#userRows button[data-tip="View"]').first();
+  await view.focus();
+  await page.waitForTimeout(250);
+  const focusOpacity = await view.evaluate(el => getComputedStyle(el, '::after').opacity);
+  // disabled (locked) row action is wrapped in .tip-wrap so its hint still shows on hover
+  await page.evaluate(() => { (document.querySelector('[data-page=roles]') as HTMLElement).click(); });
+  const wrap = page.locator('#roleRows .tip-wrap').first();
+  const wrapTip = await wrap.getAttribute('data-tip');
+  const btnDisabled = await wrap.locator('button').evaluate(el => (el as HTMLButtonElement).disabled);
+  const btnAria = await wrap.locator('button').getAttribute('aria-label');
+  await wrap.hover();
+  await page.waitForTimeout(250);
+  const wrapHoverOpacity = await wrap.evaluate(el => getComputedStyle(el, '::after').opacity);
+  const a = { aria, tip, hiddenOpacity, hoverOpacity, hoverContent, focusOpacity, wrapTip, btnDisabled, btnAria, wrapHoverOpacity };
+  const pass = aria === 'Edit' && tip === 'Edit' && hiddenOpacity === '0' && hoverOpacity === '1'
+    && hoverContent === '"Edit"' && focusOpacity === '1' && btnDisabled && btnAria === wrapTip && wrapHoverOpacity === '1';
+  rec('tooltip', pass, a);
+  expect(pass, 'tooltip').toBe(true);
+});

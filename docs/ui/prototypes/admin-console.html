@@ -38,6 +38,15 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 html{scrollbar-color:var(--bd2) transparent;scrollbar-width:thin}
+/* R1 themed CSS-only tooltip (adjudication R1=B): data-tip bubble rides pack tokens, shows on
+   hover + keyboard focus; .tip-wrap wraps disabled buttons (no :hover on disabled) so locked /
+   not-wired hints still appear. Matrix cells / page-head Create / select keep native title. */
+[data-tip]{position:relative}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%) translateY(3px);background:var(--surface);color:var(--tx1);border:1px solid var(--bd);border-radius:var(--r4);font-size:var(--fs11);font-weight:500;line-height:1.35;padding:3px 8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;z-index:300;transition:opacity .12s ease,transform .12s ease}
+[data-tip]:hover::after,[data-tip]:focus::after,[data-tip]:focus-within::after{opacity:1;transform:translateX(-50%) translateY(0)}
+.topbar [data-tip]::after{bottom:auto;top:calc(100% + 6px);transform:translateX(-50%) translateY(-3px)}
+.topbar [data-tip]:hover::after,.topbar [data-tip]:focus::after,.topbar [data-tip]:focus-within::after{transform:translateX(-50%) translateY(0)}
+.tip-wrap{display:inline-flex;position:relative}
 body{font-family:var(--sans);font-size:var(--fs14);color:var(--tx1);background:var(--bg);-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
 .ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
@@ -352,7 +361,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .field input,.field select,.field textarea{width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
 .field textarea{resize:vertical;min-height:64px}
 .proto-inert,.btn:disabled{opacity:.5;cursor:not-allowed}
-.row-actions button[title="Edit"],.row-actions button[title="Delete"]{opacity:.5}
+.row-actions button[data-tip="Edit"],.row-actions button[data-tip="Delete"]{opacity:.5}
 .proto-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx1);color:var(--bg);padding:8px 16px;border-radius:var(--r4);font-size:var(--fs12);z-index:100;display:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 .detail-meta{font-size:var(--fs12);color:var(--tx2);margin-bottom:6px}
 .detail-meta code{font-family:var(--mono);color:var(--tx1)}
@@ -455,7 +464,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
     <div class="search"><svg class="ic"><use href="#i-search"/></svg><input placeholder="Search users, roles, audit…"></div>
     <div class="top-actions">
       <select id="styleSelect" title="Style pack" style="padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit"><option value="broadsheet">Broadsheet</option><option value="geist">Geist</option><option value="material">Material</option><option value="fluent">Fluent</option><option value="ant">Ant</option><option value="carbon">Carbon</option><option value="cupertino">Cupertino</option></select>
-      <button class="icon-btn" id="themeBtn" title="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
+      <button class="icon-btn" id="themeBtn" data-tip="Toggle theme" aria-label="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
       <div class="tenant-select"><svg class="ic" style="width:13px;height:13px"><use href="#i-building"/></svg><span>Acme Corp</span><svg class="ic" style="width:12px;height:12px;color:var(--tx3)"><use href="#i-chev-r"/></svg></div>
       <div class="avatar">AD</div>
     </div>
@@ -539,7 +548,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
         </table></div>
       </div>
       <div class="card panel" id="groupPanel" style="display:none">
-        <div class="panel-head"><svg class="ic" style="color:var(--accent)"><use href="#i-users"/></svg><h3 id="panelName"></h3><span class="tag" id="panelKind"></span><button class="icon-btn close" id="panelClose" title="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
+        <div class="panel-head"><svg class="ic" style="color:var(--accent)"><use href="#i-users"/></svg><h3 id="panelName"></h3><span class="tag" id="panelKind"></span><button class="icon-btn close" id="panelClose" data-tip="Close" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
         <div class="tabs"><button class="on" data-tab="members">Members <span id="tabMemberCount"></span></button><button data-tab="roles">Roles <span id="tabRoleCount"></span></button></div>
         <div class="tab-pane on" id="pane-members">
           <ul class="member-list" id="memberList"></ul>
@@ -694,7 +703,7 @@ const filtered=USERS.filter(u=>(!q||u[0].toLowerCase().includes(q)||u[1].toLower
 const total=filtered.length;const pages=Math.max(1,Math.ceil(total/PAGE));if(cur>pages)cur=pages;
 const slice=filtered.slice((cur-1)*PAGE,cur*PAGE);
 $('userCount').textContent=total+' users';
-$('userRows').innerHTML=slice.length?slice.map(u=>{const init=u[0].split(' ').map(x=>x[0]).join('');return '<tr><td><div class="u-cell"><div class="u-av">'+init+'</div><div><div class="u-nm">'+u[0]+'</div><div class="u-em">'+u[1]+'</div></div></div></td><td>'+statusTag(u[2])+'</td><td>'+u[3]+'</td><td class="mono">'+u[4]+'</td><td><div class="row-actions" style="justify-content:flex-end"><button title="View"><svg class="ic"><use href="#i-eye"/></svg></button><button title="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button title="More"><svg class="ic"><use href="#i-more"/></svg></button></div></td></tr>';}).join(''):'<tr><td colspan="5"><div class="empty">No users match the current filters.</div></td></tr>';
+$('userRows').innerHTML=slice.length?slice.map(u=>{const init=u[0].split(' ').map(x=>x[0]).join('');return '<tr><td><div class="u-cell"><div class="u-av">'+init+'</div><div><div class="u-nm">'+u[0]+'</div><div class="u-em">'+u[1]+'</div></div></div></td><td>'+statusTag(u[2])+'</td><td>'+u[3]+'</td><td class="mono">'+u[4]+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="View" aria-label="View"><svg class="ic"><use href="#i-eye"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="More" aria-label="More"><svg class="ic"><use href="#i-more"/></svg></button></div></td></tr>';}).join(''):'<tr><td colspan="5"><div class="empty">No users match the current filters.</div></td></tr>';
 $('pageInfo').textContent=(total?((cur-1)*PAGE+1):0)+'–'+Math.min(cur*PAGE,total)+' of '+total;
 $('pages').innerHTML=Array.from({length:pages},(_,i)=>'<button class="'+(i+1===cur?'on':'')+'" data-p="'+(i+1)+'">'+(i+1)+'</button>').join('');
 document.querySelectorAll('#pages button').forEach(b=>b.onclick=()=>{cur=+b.dataset.p;renderUsers();});}
@@ -720,7 +729,7 @@ function renderRoles(){
  const q=$('roleSearch').value.toLowerCase();
  const list=ROLES.filter(r=>!q||r.name.toLowerCase().includes(q)||r.desc.toLowerCase().includes(q));
  $('roleCount').textContent=ROLES.length+' roles';
- $('roleRows').innerHTML=list.map(r=>{const idx=ROLES.indexOf(r);return '<tr class="clickable'+(idx===selRole?' sel':'')+'" data-role="'+idx+'"><td><div class="entity-name">'+(r.system?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+r.name+(r.system?' <span class="sys-tag">system</span>':'')+'</div></td><td style="color:var(--tx2)">'+r.desc+'</td><td><span class="perm-count">'+r.perms.length+'</span></td><td>'+r.tenant+'</td><td class="mono">'+r.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button title="'+(r.system?'Locked (system role)':'Edit')+'" '+(r.system?'disabled':'')+'><svg class="ic"><use href="#'+(r.system?'i-lock':'i-pencil')+'"/></svg></button><button title="'+(r.system?'Locked (system role)':'Delete')+'" '+(r.system?'disabled':'')+'><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
+ $('roleRows').innerHTML=list.map(r=>{const idx=ROLES.indexOf(r);return '<tr class="clickable'+(idx===selRole?' sel':'')+'" data-role="'+idx+'"><td><div class="entity-name">'+(r.system?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+r.name+(r.system?' <span class="sys-tag">system</span>':'')+'</div></td><td style="color:var(--tx2)">'+r.desc+'</td><td><span class="perm-count">'+r.perms.length+'</span></td><td>'+r.tenant+'</td><td class="mono">'+r.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Edit')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Edit')+'"><svg class="ic"><use href="#'+(r.system?'i-lock':'i-pencil')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Delete')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('');
  document.querySelectorAll('#roleRows tr').forEach(tr=>tr.onclick=()=>{selRole=+tr.dataset.role;renderRoles();renderMatrix();});
 }
 function renderMatrix(){
@@ -757,7 +766,7 @@ function renderGroups(){
  const q=$('groupSearch').value.toLowerCase();const kf=$('kindFilter').value;
  const list=GROUPS.filter(g=>(!q||g.name.toLowerCase().includes(q))&&(!kf||g.kind===kf));
  $('groupCount').textContent=GROUPS.length+' groups';
- $('groupRows').innerHTML=list.map(g=>{const idx=GROUPS.indexOf(g);return '<tr><td><div class="entity-name">'+g.name+'</div></td><td>'+kindTag(g.kind)+'</td><td style="color:var(--tx2)">'+g.desc+'</td><td><span class="perm-count">'+g.members.length+'</span></td><td><span class="perm-count">'+g.roles.length+'</span></td><td class="mono">'+g.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button title="Manage" data-manage="'+idx+'"><svg class="ic"><use href="#i-users"/></svg></button><button title="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button title="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
+ $('groupRows').innerHTML=list.map(g=>{const idx=GROUPS.indexOf(g);return '<tr><td><div class="entity-name">'+g.name+'</div></td><td>'+kindTag(g.kind)+'</td><td style="color:var(--tx2)">'+g.desc+'</td><td><span class="perm-count">'+g.members.length+'</span></td><td><span class="perm-count">'+g.roles.length+'</span></td><td class="mono">'+g.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Manage" data-manage="'+idx+'" aria-label="Manage"><svg class="ic"><use href="#i-users"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
  document.querySelectorAll('#groupRows [data-manage]').forEach(b=>b.onclick=()=>{selGroup=+b.dataset.manage;groupTab='members';openPanel();});
 }
 function setTab(tb){groupTab=tb;document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tb));$('pane-members').classList.toggle('on',tb==='members');$('pane-roles').classList.toggle('on',tb==='roles');}
@@ -795,7 +804,7 @@ renderGroups();
 /* ==== v0.8 management pages — grounded in real admin-ui columns/features ==== */
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const tags=(arr,cls)=>arr.map(x=>'<span class="tag '+(cls||'')+'">'+esc(x)+'</span>').join(' ');
-const copyCell=v=>'<span class="copyable">'+esc(v)+'<button title="Copy" data-copy="'+esc(v)+'"><svg class="ic"><use href="#i-copy"/></svg></button></span>';
+const copyCell=v=>'<span class="copyable">'+esc(v)+'<button data-tip="Copy" data-copy="'+esc(v)+'" aria-label="Copy"><svg class="ic"><use href="#i-copy"/></svg></button></span>';
 const methodCls=m=>({POST:'m-post',PUT:'m-put',PATCH:'m-patch',DELETE:'m-delete'}[m]||'');
 const famCls=t=>'fam-'+(t.split('.')[0]||'');
 const delivCls=s=>({success:'ok',pending:'warn',failed:'danger',dead:'danger'}[s]||'');
@@ -805,7 +814,7 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open)open.classList.remove('on');}});
 document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(c){try{navigator.clipboard.writeText(c.dataset.copy).catch(()=>{});}catch(err){}}});
-document.addEventListener('click',e=>{const b=e.target.closest('button[title="Edit"],button[title="Delete"]');if(b){const tt=document.getElementById('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);}});
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-tip="Edit"],button[data-tip="Delete"]');if(b){const tt=document.getElementById('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);}});
 function reveal(title,value,meta){$('revealTitle').textContent=title;$('revealValue').value=value;$('revealMeta').textContent=meta;openModal('revealModal');}
 $('revealCopy').onclick=()=>{try{navigator.clipboard.writeText($('revealValue').value).catch(()=>{});}catch(e){}const b=$('revealCopy');const old=b.innerHTML;b.innerHTML='Copied';setTimeout(()=>b.innerHTML=old,1200);};
 /* Tenants — name/slug/status(active|suspended)/created; isDefault locked (K-T3). */
@@ -821,7 +830,7 @@ function renderTenants(){
  const list=TENANTS.filter(t=>(!q||t.name.toLowerCase().includes(q)||t.slug.includes(q))&&(!sf||t.status===sf));
  $('tenantCount').textContent=TENANTS.length+' tenants';
  $('tenantRows').innerHTML=list.map(t=>{const i=TENANTS.indexOf(t);const locked=t.isDefault;
-  return '<tr><td><div class="entity-name">'+(locked?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+esc(t.name)+(locked?' <span class="sys-tag">default</span>':'')+'</div></td><td>'+copyCell(t.slug)+'</td><td>'+(t.status==='active'?'<span class="tag ok"><span class="dot"></span>Active</span>':'<span class="tag danger"><span class="dot"></span>Suspended</span>')+'</td><td class="mono">'+t.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button title="'+(locked?'Locked (default tenant)':'Edit')+'" '+(locked?'disabled':'')+'><svg class="ic"><use href="#i-pencil"/></svg></button><button title="'+(t.status==='active'?'Suspend':'Activate')+'" data-tstatus="'+i+'" '+(locked?'disabled':'')+'><svg class="ic"><use href="#'+(t.status==='active'?'i-x':'i-check')+'"/></svg></button><button title="'+(locked?'Locked (default tenant)':'Delete')+'" '+(locked?'disabled':'')+'><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
+  return '<tr><td><div class="entity-name">'+(locked?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+esc(t.name)+(locked?' <span class="sys-tag">default</span>':'')+'</div></td><td>'+copyCell(t.slug)+'</td><td>'+(t.status==='active'?'<span class="tag ok"><span class="dot"></span>Active</span>':'<span class="tag danger"><span class="dot"></span>Suspended</span>')+'</td><td class="mono">'+t.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Edit')+'"><button  '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Edit')+'"><svg class="ic"><use href="#i-pencil"/></svg></button></span><span class="tip-wrap" data-tip="'+(t.status==='active'?'Suspend':'Activate')+'"><button  data-tstatus="'+i+'" '+(locked?'disabled':'')+' aria-label="'+(t.status==='active'?'Suspend':'Activate')+'"><svg class="ic"><use href="#'+(t.status==='active'?'i-x':'i-check')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Delete')+'"><button  '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('');
  document.querySelectorAll('[data-tstatus]').forEach(b=>b.onclick=()=>{const t=TENANTS[+b.dataset.tstatus];t.status=t.status==='active'?'suspended':'active';renderTenants();});
 }
 $('tenantSearch').addEventListener('input',renderTenants);
@@ -839,7 +848,7 @@ function renderClients(){
  const list=CLIENTS.filter(c=>!q||c.name.toLowerCase().includes(q)||c.clientId.includes(q));
  $('clientCount').textContent=CLIENTS.length+' clients';
  $('clientRows').innerHTML=list.map(c=>{const i=CLIENTS.indexOf(c);
-  return '<tr><td><div class="entity-name">'+esc(c.name)+'</div></td><td>'+copyCell(c.clientId)+'</td><td style="color:var(--tx2);font-size:var(--fs12)">'+(c.redirectUris.length?esc(c.redirectUris.join(', ')):'—')+'</td><td>'+tags(c.grantTypes)+'</td><td class="mono" style="font-size:var(--fs11)">'+esc(c.scope)+'</td><td class="mono">'+c.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button title="Rotate secret" data-rotate-client="'+i+'"><svg class="ic"><use href="#i-refresh"/></svg></button><button title="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button title="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
+  return '<tr><td><div class="entity-name">'+esc(c.name)+'</div></td><td>'+copyCell(c.clientId)+'</td><td style="color:var(--tx2);font-size:var(--fs12)">'+(c.redirectUris.length?esc(c.redirectUris.join(', ')):'—')+'</td><td>'+tags(c.grantTypes)+'</td><td class="mono" style="font-size:var(--fs11)">'+esc(c.scope)+'</td><td class="mono">'+c.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Rotate secret" data-rotate-client="'+i+'" aria-label="Rotate secret"><svg class="ic"><use href="#i-refresh"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
  document.querySelectorAll('[data-rotate-client]').forEach(b=>b.onclick=()=>{const c=CLIENTS[+b.dataset.rotateClient];reveal('Client secret rotated','cs_'+Math.random().toString(36).slice(2,18),'Client ID: '+c.clientId);});
 }
 $('clientSearch').addEventListener('input',renderClients);
@@ -856,7 +865,7 @@ function renderApikeys(){
  const list=APIKEYS.filter(k=>(!q||k.name.toLowerCase().includes(q)||k.prefix.includes(q))&&(!sf||(sf==='revoked')===k.revoked));
  $('apikeyCount').textContent=APIKEYS.length+' keys';
  $('apikeyRows').innerHTML=list.map(k=>{const i=APIKEYS.indexOf(k);
-  return '<tr><td><div class="entity-name">'+esc(k.name)+'</div></td><td>'+copyCell(k.prefix+'…')+'</td><td>'+tags(k.scopes)+'</td><td class="mono">'+k.created+'</td><td class="mono">'+(k.expires||'<span style="color:var(--tx3)">Never</span>')+'</td><td>'+(k.revoked?'<span class="tag danger"><span class="dot"></span>Revoked</span>':'<span class="tag ok"><span class="dot"></span>Active</span>')+'</td><td><div class="row-actions" style="justify-content:flex-end"><button title="'+(k.revoked?'Already revoked':'Revoke')+'" data-revoke="'+i+'" '+(k.revoked?'disabled':'')+'><svg class="ic"><use href="#i-x"/></svg></button></div></td></tr>';}).join('');
+  return '<tr><td><div class="entity-name">'+esc(k.name)+'</div></td><td>'+copyCell(k.prefix+'…')+'</td><td>'+tags(k.scopes)+'</td><td class="mono">'+k.created+'</td><td class="mono">'+(k.expires||'<span style="color:var(--tx3)">Never</span>')+'</td><td>'+(k.revoked?'<span class="tag danger"><span class="dot"></span>Revoked</span>':'<span class="tag ok"><span class="dot"></span>Active</span>')+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(k.revoked?'Already revoked':'Revoke')+'"><button  data-revoke="'+i+'" '+(k.revoked?'disabled':'')+' aria-label="'+(k.revoked?'Already revoked':'Revoke')+'"><svg class="ic"><use href="#i-x"/></svg></button></span></div></td></tr>';}).join('');
  document.querySelectorAll('[data-revoke]').forEach(b=>b.onclick=()=>{APIKEYS[+b.dataset.revoke].revoked=true;renderApikeys();});
 }
 $('apikeySearch').addEventListener('input',renderApikeys);
@@ -873,7 +882,7 @@ function renderWebhooks(){
  const list=WEBHOOKS.filter(w=>!q||w.url.toLowerCase().includes(q));
  $('webhookCount').textContent=WEBHOOKS.length+' endpoints';
  $('webhookRows').innerHTML=list.map(w=>{const i=WEBHOOKS.indexOf(w);
-  return '<tr><td>'+copyCell(w.url)+'</td><td>'+tags(w.events)+'</td><td><span class="count-pill">'+w.active+'</span></td><td><span class="count-pill'+(w.pending?' pending':'')+'">'+w.pending+'</span></td><td><span class="count-pill'+(w.dead?' dead':'')+'">'+w.dead+'</span></td><td class="mono">'+w.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button title="Send ping" data-ping="'+i+'"><svg class="ic"><use href="#i-send"/></svg></button><button title="Rotate secret" data-rotate-wh="'+i+'"><svg class="ic"><use href="#i-refresh"/></svg></button><button title="Deliveries" data-deliv="'+i+'"><svg class="ic"><use href="#i-eye"/></svg></button><button title="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button title="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
+  return '<tr><td>'+copyCell(w.url)+'</td><td>'+tags(w.events)+'</td><td><span class="count-pill">'+w.active+'</span></td><td><span class="count-pill'+(w.pending?' pending':'')+'">'+w.pending+'</span></td><td><span class="count-pill'+(w.dead?' dead':'')+'">'+w.dead+'</span></td><td class="mono">'+w.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Send ping" data-ping="'+i+'" aria-label="Send ping"><svg class="ic"><use href="#i-send"/></svg></button><button data-tip="Rotate secret" data-rotate-wh="'+i+'" aria-label="Rotate secret"><svg class="ic"><use href="#i-refresh"/></svg></button><button data-tip="Deliveries" data-deliv="'+i+'" aria-label="Deliveries"><svg class="ic"><use href="#i-eye"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
  document.querySelectorAll('[data-ping]').forEach(b=>b.onclick=()=>{WEBHOOKS[+b.dataset.ping].active++;renderWebhooks();});
  document.querySelectorAll('[data-rotate-wh]').forEach(b=>b.onclick=()=>{const w=WEBHOOKS[+b.dataset.rotateWh];reveal('Webhook secret rotated','whsec_'+Math.random().toString(36).slice(2,18),w.url);});
  document.querySelectorAll('[data-deliv]').forEach(b=>b.onclick=()=>{const w=WEBHOOKS[+b.dataset.deliv];$('delivTitle').textContent='Deliveries · '+w.url;$('delivRows').innerHTML=w.deliveries.map(d=>'<tr><td><span class="tag '+delivCls(d.status)+'">'+d.status+'</span></td><td class="mono">'+d.attempts+'</td><td class="mono">'+(d.response===null?'—':d.response)+'</td><td class="mono">'+d.created+'</td></tr>').join('');openModal('delivModal');});
@@ -916,7 +925,7 @@ function renderEvents(){
  const list=EVENTS.filter(e=>(!q||e.type.toLowerCase().includes(q))&&(!ff||e.type.startsWith(ff+'.')));
  $('eventCount').textContent=list.length+' events';
  $('eventRows').innerHTML=list.map(e=>{const i=EVENTS.indexOf(e);
-  return '<tr><td class="mono">'+e.time+'</td><td><span class="tag '+famCls(e.type)+'">'+esc(e.type)+'</span></td><td><span class="json">'+esc(JSON.stringify(e.payload))+'</span></td><td>'+(e.fanout?'<span class="tag ok">Done</span>':'<span class="tag info">Pending</span>')+'</td><td><div class="row-actions" style="justify-content:flex-end"><button title="View detail" data-event="'+i+'"><svg class="ic"><use href="#i-eye"/></svg></button></div></td></tr>';}).join('');
+  return '<tr><td class="mono">'+e.time+'</td><td><span class="tag '+famCls(e.type)+'">'+esc(e.type)+'</span></td><td><span class="json">'+esc(JSON.stringify(e.payload))+'</span></td><td>'+(e.fanout?'<span class="tag ok">Done</span>':'<span class="tag info">Pending</span>')+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="View detail" data-event="'+i+'" aria-label="View detail"><svg class="ic"><use href="#i-eye"/></svg></button></div></td></tr>';}).join('');
  document.querySelectorAll('[data-event]').forEach(b=>b.onclick=()=>{const e=EVENTS[+b.dataset.event];$('eventModalTitle').textContent=e.type;$('eventModalBody').innerHTML='<div class="detail-meta">Created: <code>'+e.time+'</code></div><div class="detail-meta">Tenant: <code>'+esc(e.tenant)+'</code></div><div class="detail-meta">Fanout: <code>'+(e.fanout?'complete':'pending')+'</code></div><div class="detail-meta" style="margin-top:12px;font-weight:500;color:var(--tx1)">Payload</div><pre class="json-full">'+esc(JSON.stringify(e.payload,null,2))+'</pre>';openModal('eventModal');});
 }
 $('eventSearch').addEventListener('input',renderEvents);
@@ -947,12 +956,12 @@ const initials=n=>n.trim().split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpper
 function renderNameCell(editing){
  const c=$('nameCell');
  if(editing){
-  c.innerHTML='<span class="name-form"><input id="nameInput" value="'+esc(PROFILE.name)+'"><button class="link-btn" id="nameSave" title="Save"><svg class="ic"><use href="#i-check"/></svg></button><button class="link-btn" id="nameCancel" title="Cancel"><svg class="ic"><use href="#i-x"/></svg></button></span>';
+  c.innerHTML='<span class="name-form"><input id="nameInput" value="'+esc(PROFILE.name)+'"><button class="link-btn" id="nameSave" data-tip="Save" aria-label="Save"><svg class="ic"><use href="#i-check"/></svg></button><button class="link-btn" id="nameCancel" data-tip="Cancel" aria-label="Cancel"><svg class="ic"><use href="#i-x"/></svg></button></span>';
   $('nameSave').onclick=()=>{const v=$('nameInput').value.trim();if(!v)return;PROFILE.name=v;renderNameCell(false);document.querySelector('.avatar').textContent=initials(v);};
   $('nameCancel').onclick=()=>renderNameCell(false);
   $('nameInput').focus();
  }else{
-  c.innerHTML='<span>'+esc(PROFILE.name)+'</span><button class="link-btn" id="nameEdit" title="Edit name"><svg class="ic"><use href="#i-pencil"/></svg></button>';
+  c.innerHTML='<span>'+esc(PROFILE.name)+'</span><button class="link-btn" id="nameEdit" data-tip="Edit name" aria-label="Edit name"><svg class="ic"><use href="#i-pencil"/></svg></button>';
   $('nameEdit').onclick=()=>renderNameCell(true);
  }
 }

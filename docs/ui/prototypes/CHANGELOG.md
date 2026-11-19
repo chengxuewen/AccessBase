@@ -409,3 +409,17 @@ Checked, debatable, NOT changed (design choices): uniform --surface sidebar/topb
 Shell is dark gray, but the prototype is a generic admin layout, not the Carbon Shell component);
 material capsule buttons + large radius lean M3 shape (Google-blue-era products did evolve pill shapes,
 consistent with the product interpretation). Harness 15 pass; ant dark screenshot.
+
+## Tooltip mechanism upgrade — 2026-11-19 (revision plan R1 = B)
+Replaced native browser `title` hints on icon action buttons with a themed CSS-only tooltip
+(`[data-tip]::after`): rides each pack's tokens (surface bg / bd border / r4 radius / fs11),
+reveals on hover AND keyboard focus (:focus / :focus-within), topbar tooltips flip below.
+- 27 icon-only action buttons migrated title -> data-tip + aria-label (accessible name).
+- Disabled / conditionally-disabled buttons wrapped in `.tip-wrap` so their "Locked" / "not wired"
+  hints still appear on hover (disabled buttons receive no :hover).
+- The 2 title-keyed selectors (row-action muting, dead-button toast) updated to data-tip.
+- Matrix perm-cell, page-head Create buttons, and the style select keep native title (layout /
+  replaced-element safety) — disclosed scope limit of the CSS-only approach.
+New harness group `tooltip` (16 total) verifies hover/focus reveal + disabled-wrapper hover +
+aria-label. All 16 pass; no regression. Known CSS-only limits: no show-delay control, edge
+positioning not auto-flipped (only topbar), touch has no hover.
