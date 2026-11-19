@@ -423,3 +423,17 @@ reveals on hover AND keyboard focus (:focus / :focus-within), topbar tooltips fl
 New harness group `tooltip` (16 total) verifies hover/focus reveal + disabled-wrapper hover +
 aria-label. All 16 pass; no regression. Known CSS-only limits: no show-delay control, edge
 positioning not auto-flipped (only topbar), touch has no hover.
+
+## Row-action overflow menu — 2026-11-19 (revision plan R2 = A)
+Users "More"(…) was a dead ellipsis; it is now a real overflow menu (reusable openMenu/closeMenu
+component, position:fixed so it escapes the table's overflow-x clip). Secondary/danger actions
+(Disable/Enable account, Reset password, Delete user) moved into the menu; View/Edit stay inline —
+the mainstream primary-visible / secondary-in-overflow information architecture (Carbon / GitHub).
+- Inert secondary actions disclose via the existing "not wired" toast (prototype scope).
+- Accessible: trigger aria-haspopup="menu" + aria-expanded; menu role="menu", items role="menuitem";
+  ArrowUp/Down/Home/End navigate, Esc closes + returns focus to trigger, Tab/click-outside close,
+  first item focused on open.
+- Fixed a parse-time bug: the menu container sat after the app script, so the top-level
+  $('rowMenu') cached null; moved the container before the script (existing code reads DOM lazily).
+New harness group overflow-menu (17 total) verifies open/close/Esc-refocus/item-toast/danger-item/
+keyboard. All 17 pass; no regression. Component is reusable for R5 toolbar overflow.

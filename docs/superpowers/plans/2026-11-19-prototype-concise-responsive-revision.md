@@ -135,7 +135,7 @@ CHANGELOG + commit (single concern per commit, per repo discipline).
 | Point | Ruling | Date | Note |
 |---|---|---|---|
 | R1 | **B** (CSS-only themed tooltip) | 2026-11-19 | user-adjudicated; implemented + verified |
-| R2 | — | — | — |
+| R2 | **A** (real overflow menu) | 2026-11-19 | user-adjudicated; implemented + verified |
 | R3 | — | — | — |
 | R4 | — | — | — |
 | R5 | — | — | — |
@@ -148,3 +148,12 @@ CHANGELOG + commit (single concern per commit, per repo discipline).
   title on matrix perm-cell / page-head Create / style select (layout / replaced-element safety).
   New harness group `tooltip` (16 total) passes: hover/focus opacity 1, disabled-wrapper hover 1,
   aria-label present. Screenshot: themed "Edit" bubble, no clipping. No regression (16 pass).
+- **R2 = A (2026-11-19, implemented + verified):** Users "More"(…) is now a real overflow menu
+  (reusable openMenu/closeMenu component, position:fixed so it escapes the table's overflow clip).
+  Secondary/danger actions (Disable/Enable account, Reset password, Delete user) moved into the menu;
+  View/Edit stay inline. Inert actions disclose via the existing toast. Accessible: trigger
+  aria-haspopup/aria-expanded, menu role=menu + items role=menuitem, ArrowUp/Down/Home/End/Esc/Tab,
+  focus-first-item on open, focus-return on Esc, click-outside close. FIXED a parse-time bug: the
+  menu container was after the app script so $('rowMenu') cached null — moved it before the script.
+  New harness group overflow-menu (17 total) passes. Screenshot: themed menu, danger item red.
+  Component is reusable for R5 toolbar overflow.

@@ -443,3 +443,33 @@ test('tooltip', async ({ page }) => {
   rec('tooltip', pass, a);
   expect(pass, 'tooltip').toBe(true);
 });
+
+test('overflow-menu', async ({ page }) => {
+  await page.goto(FILE);
+  // R2=A: Users "More" is a real overflow menu (secondary/danger actions), keyboard + Esc.
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  const more = page.locator('#userRows [data-more]').first();
+  const haspopup = await more.getAttribute('aria-haspopup');
+  const expandedBefore = await more.getAttribute('aria-expanded');
+  await more.click();
+  const menuOn = await page.evaluate(() => document.getElementById('rowMenu')!.classList.contains('on'));
+  const expandedAfter = await more.getAttribute('aria-expanded');
+  const itemCount = await page.locator('#rowMenu .menu-item').count();
+  const roles = await page.evaluate(() => [...document.querySelectorAll('#rowMenu .menu-item')].every(b => b.getAttribute('role') === 'menuitem'));
+  const dangerItem = await page.locator('#rowMenu .menu-item.danger').count();
+  const firstFocused = await page.evaluate(() => document.activeElement?.classList.contains('menu-item'));
+  await page.keyboard.press('Escape');
+  const closedByEsc = await page.evaluate(() => !document.getElementById('rowMenu')!.classList.contains('on'));
+  const expandedClosed = await more.getAttribute('aria-expanded');
+  const focusReturned = await page.evaluate(() => document.activeElement?.hasAttribute('data-more'));
+  await more.click();
+  await page.locator('#rowMenu .menu-item').first().click();
+  const toastShown = await page.evaluate(() => document.getElementById('protoToast')!.style.display === 'block');
+  const closedAfterSelect = await page.evaluate(() => !document.getElementById('rowMenu')!.classList.contains('on'));
+  const a = { haspopup, expandedBefore, menuOn, expandedAfter, itemCount, roles, dangerItem, firstFocused, closedByEsc, expandedClosed, focusReturned, toastShown, closedAfterSelect };
+  const pass = haspopup === 'menu' && expandedBefore === 'false' && menuOn && expandedAfter === 'true'
+    && itemCount === 3 && roles && dangerItem === 1 && firstFocused && closedByEsc && expandedClosed === 'false'
+    && focusReturned && toastShown && closedAfterSelect;
+  rec('overflow-menu', pass, a);
+  expect(pass, 'overflow-menu').toBe(true);
+});

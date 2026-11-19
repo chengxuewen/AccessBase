@@ -47,6 +47,16 @@ html{scrollbar-color:var(--bd2) transparent;scrollbar-width:thin}
 .topbar [data-tip]::after{bottom:auto;top:calc(100% + 6px);transform:translateX(-50%) translateY(-3px)}
 .topbar [data-tip]:hover::after,.topbar [data-tip]:focus::after,.topbar [data-tip]:focus-within::after{transform:translateX(-50%) translateY(0)}
 .tip-wrap{display:inline-flex;position:relative}
+/* R2 overflow menu (adjudication R2=A): reusable drop-down for secondary/danger row actions;
+   position:fixed so it escapes the table's overflow-x clip. R5 toolbar overflow reuses it. */
+.menu{position:fixed;z-index:400;min-width:190px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);box-shadow:0 8px 32px rgba(0,0,0,.18);padding:4px;display:none}
+.menu.on{display:block}
+.menu-item{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;background:transparent;color:var(--tx1);font-size:var(--fs13);border-radius:var(--r4);cursor:pointer;text-align:left;font-family:inherit}
+.menu-item:hover,.menu-item:focus-visible{background:var(--hover)}
+.menu-item .ic{width:15px;height:15px;color:var(--tx3);flex:none}
+.menu-item.danger{color:var(--danger-text,var(--danger))}
+.menu-item.danger .ic{color:var(--danger-text,var(--danger))}
+.menu-sep{height:1px;background:var(--bd);margin:4px 0}
 body{font-family:var(--sans);font-size:var(--fs14);color:var(--tx1);background:var(--bg);-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
 .ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
@@ -681,6 +691,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   <div class="modal-foot"><button class="btn" data-close="formModal">Cancel</button><button class="btn primary" id="formSave">Create</button></div>
 </div></div>
 </div>
+<div class="menu" id="rowMenu" role="menu" aria-hidden="true"></div>
 <script>
 addEventListener("load",()=>{const l=document.createElement("link");l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Roboto:wght@400;500&family=Inter:wght@400;500;600&display=swap";document.head.appendChild(l);});
 const $=id=>document.getElementById(id);
@@ -703,7 +714,7 @@ const filtered=USERS.filter(u=>(!q||u[0].toLowerCase().includes(q)||u[1].toLower
 const total=filtered.length;const pages=Math.max(1,Math.ceil(total/PAGE));if(cur>pages)cur=pages;
 const slice=filtered.slice((cur-1)*PAGE,cur*PAGE);
 $('userCount').textContent=total+' users';
-$('userRows').innerHTML=slice.length?slice.map(u=>{const init=u[0].split(' ').map(x=>x[0]).join('');return '<tr><td><div class="u-cell"><div class="u-av">'+init+'</div><div><div class="u-nm">'+u[0]+'</div><div class="u-em">'+u[1]+'</div></div></div></td><td>'+statusTag(u[2])+'</td><td>'+u[3]+'</td><td class="mono">'+u[4]+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="View" aria-label="View"><svg class="ic"><use href="#i-eye"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="More" aria-label="More"><svg class="ic"><use href="#i-more"/></svg></button></div></td></tr>';}).join(''):'<tr><td colspan="5"><div class="empty">No users match the current filters.</div></td></tr>';
+$('userRows').innerHTML=slice.length?slice.map(u=>{const init=u[0].split(' ').map(x=>x[0]).join('');return '<tr><td><div class="u-cell"><div class="u-av">'+init+'</div><div><div class="u-nm">'+u[0]+'</div><div class="u-em">'+u[1]+'</div></div></div></td><td>'+statusTag(u[2])+'</td><td>'+u[3]+'</td><td class="mono">'+u[4]+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="View" aria-label="View"><svg class="ic"><use href="#i-eye"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="More actions" aria-label="More actions" data-more="'+USERS.indexOf(u)+'" aria-haspopup="menu" aria-expanded="false"><svg class="ic"><use href="#i-more"/></svg></button></div></td></tr>';}).join(''):'<tr><td colspan="5"><div class="empty">No users match the current filters.</div></td></tr>';
 $('pageInfo').textContent=(total?((cur-1)*PAGE+1):0)+'–'+Math.min(cur*PAGE,total)+' of '+total;
 $('pages').innerHTML=Array.from({length:pages},(_,i)=>'<button class="'+(i+1===cur?'on':'')+'" data-p="'+(i+1)+'">'+(i+1)+'</button>').join('');
 document.querySelectorAll('#pages button').forEach(b=>b.onclick=()=>{cur=+b.dataset.p;renderUsers();});}
@@ -815,6 +826,28 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open)open.classList.remove('on');}});
 document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(c){try{navigator.clipboard.writeText(c.dataset.copy).catch(()=>{});}catch(err){}}});
 document.addEventListener('click',e=>{const b=e.target.closest('button[data-tip="Edit"],button[data-tip="Delete"]');if(b){const tt=document.getElementById('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);}});
+// R2 overflow menu logic (reusable). Inert secondary actions disclose via the same toast.
+const rowMenu=$('rowMenu');let menuTrigger=null;
+function openMenu(trigger,items){menuTrigger=trigger;
+rowMenu.innerHTML=items.map(it=>it.sep?'<div class="menu-sep" role="separator"></div>':'<button type="button" class="menu-item'+(it.danger?' danger':'')+'" role="menuitem" data-maction="'+it.action+'"><svg class="ic"><use href="#'+it.icon+'"/></svg><span>'+it.label+'</span></button>').join('');
+rowMenu.classList.add('on');rowMenu.setAttribute('aria-hidden','false');trigger.setAttribute('aria-expanded','true');
+const r=trigger.getBoundingClientRect();const mw=rowMenu.offsetWidth,mh=rowMenu.offsetHeight;
+let x=Math.max(8,r.right-mw);let y=r.bottom+4;if(y+mh>innerHeight-8)y=Math.max(8,r.top-mh-4);
+rowMenu.style.left=x+'px';rowMenu.style.top=y+'px';
+const first=rowMenu.querySelector('.menu-item');if(first)first.focus();}
+function closeMenu(refocus){if(!rowMenu.classList.contains('on'))return;rowMenu.classList.remove('on');rowMenu.setAttribute('aria-hidden','true');const tr=menuTrigger;menuTrigger=null;if(tr){tr.setAttribute('aria-expanded','false');if(refocus)tr.focus();}}
+function userMenuItems(u){const dis=u[2]==='active';return[{label:dis?'Disable account':'Enable account',icon:dis?'i-x':'i-check',action:'toggle'},{label:'Reset password',icon:'i-lock',action:'reset'},{sep:true},{label:'Delete user',icon:'i-trash',action:'delete',danger:true}];}
+document.addEventListener('click',e=>{const more=e.target.closest('[data-more]');
+if(more){e.stopPropagation();if(menuTrigger===more&&rowMenu.classList.contains('on')){closeMenu(true);}else{openMenu(more,userMenuItems(USERS[+more.dataset.more]));}return;}
+const mi=e.target.closest('.menu-item');if(mi){const tt=$('protoToast');tt.textContent='Prototype: this action is not wired in the demo';tt.style.display='block';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},1600);closeMenu(true);return;}
+if(rowMenu.classList.contains('on')&&!e.target.closest('#rowMenu'))closeMenu(false);});
+document.addEventListener('keydown',e=>{if(!rowMenu.classList.contains('on'))return;const items=[...rowMenu.querySelectorAll('.menu-item')];const i=items.indexOf(document.activeElement);
+if(e.key==='Escape'){e.preventDefault();closeMenu(true);}
+else if(e.key==='ArrowDown'){e.preventDefault();(items[i+1]||items[0]).focus();}
+else if(e.key==='ArrowUp'){e.preventDefault();(items[i-1]||items[items.length-1]).focus();}
+else if(e.key==='Home'){e.preventDefault();items[0].focus();}
+else if(e.key==='End'){e.preventDefault();items[items.length-1].focus();}
+else if(e.key==='Tab'){closeMenu(false);}});
 function reveal(title,value,meta){$('revealTitle').textContent=title;$('revealValue').value=value;$('revealMeta').textContent=meta;openModal('revealModal');}
 $('revealCopy').onclick=()=>{try{navigator.clipboard.writeText($('revealValue').value).catch(()=>{});}catch(e){}const b=$('revealCopy');const old=b.innerHTML;b.innerHTML='Copied';setTimeout(()=>b.innerHTML=old,1200);};
 /* Tenants — name/slug/status(active|suspended)/created; isDefault locked (K-T3). */

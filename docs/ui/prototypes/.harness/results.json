@@ -308,6 +308,24 @@
         "btnAria": "Locked (system role)",
         "wrapHoverOpacity": "1"
       }
+    },
+    "overflow-menu": {
+      "pass": true,
+      "assertions": {
+        "haspopup": "menu",
+        "expandedBefore": "false",
+        "menuOn": true,
+        "expandedAfter": "true",
+        "itemCount": 3,
+        "roles": true,
+        "dangerItem": 1,
+        "firstFocused": true,
+        "closedByEsc": true,
+        "expandedClosed": "false",
+        "focusReturned": true,
+        "toastShown": true,
+        "closedAfterSelect": true
+      }
     }
   }
 }
