@@ -600,3 +600,11 @@ changes (switching system/non-system role) sync; disabled look opacity .5 + not-
 ring switched --accent -> --focus (design-system consistency). New harness cbx-disabled (28 total):
 system role locked (btn disabled, aria true, no open, value unchanged); non-system re-arms (opens).
 All 28 pass.
+
+## Adjudication 3 (A): topbar aligned to real; fictional affordances removed — 2026-11-19
+Panel F13 / evidence R2#1-2 falsified "no silent-dead": topbar global search input had no handler and
+the tenant "switcher" was a handler-less div; real AdminLayout has NO global search, tenant identity is
+a read-only Tag, and menus carry no count badges. Ruling A (donor-method, no invented features):
+removed the global search input; tenant switcher -> read-only .tenant-tag (no chevron, title explains
+token-set partition); removed all 8 sidebar count badges + dead .badge CSS. New harness topbar-fidelity
+(29 total): no global search, tag present w/o chevron + read-only title, 0 badges. All 29 pass.

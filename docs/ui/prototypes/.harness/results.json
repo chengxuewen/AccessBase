@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 33,
-        "svgIcons": 239,
+        "svgIcons": 237,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -489,6 +489,16 @@
           "btnDisabled": false,
           "opened": true
         }
+      }
+    },
+    "topbar-fidelity": {
+      "pass": true,
+      "assertions": {
+        "globalSearch": false,
+        "tagExists": true,
+        "tagChevron": false,
+        "tagReadonlyTitle": true,
+        "badges": 0
       }
     }
   }

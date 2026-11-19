@@ -781,3 +781,23 @@ test('cbx-disabled', async ({ page }) => {
   rec('cbx-disabled', pass, a);
   expect(pass, 'cbx-disabled').toBe(true);
 });
+
+test('topbar-fidelity', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 3 (A): no fictional global search; tenant identity is a read-only tag (no chevron /
+  // no handler); sidebar has no count badges (real AdminLayout has none).
+  const a = await page.evaluate(() => {
+    const tb = document.querySelector('.topbar')!;
+    const tag = tb.querySelector('.tenant-tag') as HTMLElement;
+    return {
+      globalSearch: !!tb.querySelector('.search input'),
+      tagExists: !!tag,
+      tagChevron: !!tag.querySelector('svg use[href="#i-chev-r"]'),
+      tagReadonlyTitle: (tag.getAttribute('title') || '').includes('read-only'),
+      badges: document.querySelectorAll('#nav .badge').length,
+    };
+  });
+  const pass = !a.globalSearch && a.tagExists && !a.tagChevron && a.tagReadonlyTitle && a.badges === 0;
+  rec('topbar-fidelity', pass, a);
+  expect(pass, 'topbar-fidelity').toBe(true);
+});

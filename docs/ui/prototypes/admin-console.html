@@ -81,8 +81,7 @@ button{font-family:inherit;cursor:pointer}
 .nav a:hover{background:var(--hover);color:var(--tx1)}
 .nav a.on{background:var(--accent-tint);color:var(--accent);font-weight:500}
 .nav a.on::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:2px;background:var(--accent)}
-.nav a .badge{margin-left:auto;font-family:var(--mono);font-size:var(--fs11);color:var(--tx3)}
-.app.collapsed .nav a span.lbl,.app.collapsed .nav a .badge{display:none}
+.app.collapsed .nav a span.lbl{display:none}
 .side-foot{padding:var(--sp8);border-top:1px solid var(--bd)}
 .collapse-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px;border:1px solid var(--bd);background:var(--surface);border-radius:var(--r4);color:var(--tx2);font-size:var(--fs12)}
 .collapse-btn:hover{background:var(--hover)}
@@ -96,7 +95,7 @@ button{font-family:inherit;cursor:pointer}
 .top-actions{margin-left:auto;display:flex;align-items:center;gap:var(--sp8)}
 .icon-btn{width:30px;height:30px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--surface);color:var(--tx2);display:grid;place-items:center}
 .icon-btn:hover{background:var(--hover);color:var(--tx1)}
-.tenant-select{display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);font-size:var(--fs12);color:var(--tx1)}
+.tenant-tag{display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);font-size:var(--fs12);color:var(--tx1)}
 .avatar{width:28px;height:28px;border-radius:var(--r4);background:var(--sunken);border:1px solid var(--bd);color:var(--tx2);display:grid;place-items:center;font-weight:500;font-size:var(--fs11)}
 .main{overflow-y:auto;padding:var(--sp24)}
 .page{display:none}.page.on{display:block}
@@ -221,7 +220,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 .placeholder .big .ic{width:32px;height:32px}
 .placeholder h2{font-size:var(--fs16);font-weight:600;color:var(--tx1);margin-bottom:4px}
 @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
-@media(max-width:760px){.app{grid-template-columns:var(--nav-w-min) 1fr}.app .nav a span.lbl,.app .nav a .badge,.app .brand .name{display:none}.stats{grid-template-columns:1fr}.search{display:none}}
+@media(max-width:760px){.app{grid-template-columns:var(--nav-w-min) 1fr}.app .nav a span.lbl,.app .brand .name{display:none}.stats{grid-template-columns:1fr}.search{display:none}}
 /* ==== v0.6 STYLE PACKS (single-word design-language names; data-style x data-theme).
    Mechanism provenance: the token-pack switching architecture follows Fusion
    Design's "theme factory" philosophy (configurable theme packs over one
@@ -550,28 +549,27 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="group">Overview</div>
       <a href="#" data-page="dashboard" class="on"><svg class="ic"><use href="#i-grid"/></svg><span class="lbl">Dashboard</span></a>
       <div class="group">Identity</div>
-      <a href="#" data-page="users"><svg class="ic"><use href="#i-user"/></svg><span class="lbl">Users</span><span class="badge">1,284</span></a>
-      <a href="#" data-page="roles"><svg class="ic"><use href="#i-shield"/></svg><span class="lbl">Roles</span><span class="badge">5</span></a>
-      <a href="#" data-page="groups"><svg class="ic"><use href="#i-users"/></svg><span class="lbl">Groups</span><span class="badge">5</span></a>
+      <a href="#" data-page="users"><svg class="ic"><use href="#i-user"/></svg><span class="lbl">Users</span></a>
+      <a href="#" data-page="roles"><svg class="ic"><use href="#i-shield"/></svg><span class="lbl">Roles</span></a>
+      <a href="#" data-page="groups"><svg class="ic"><use href="#i-users"/></svg><span class="lbl">Groups</span></a>
       <div class="group">Access</div>
-      <a href="#" data-page="tenants"><svg class="ic"><use href="#i-building"/></svg><span class="lbl">Tenants</span><span class="badge">5</span></a>
-      <a href="#" data-page="clients"><svg class="ic"><use href="#i-plug"/></svg><span class="lbl">OIDC Clients</span><span class="badge">4</span></a>
-      <a href="#" data-page="apikeys"><svg class="ic"><use href="#i-key"/></svg><span class="lbl">API Keys</span><span class="badge">4</span></a>
+      <a href="#" data-page="tenants"><svg class="ic"><use href="#i-building"/></svg><span class="lbl">Tenants</span></a>
+      <a href="#" data-page="clients"><svg class="ic"><use href="#i-plug"/></svg><span class="lbl">OIDC Clients</span></a>
+      <a href="#" data-page="apikeys"><svg class="ic"><use href="#i-key"/></svg><span class="lbl">API Keys</span></a>
       <div class="group">Operations</div>
-      <a href="#" data-page="webhooks"><svg class="ic"><use href="#i-webhook"/></svg><span class="lbl">Webhooks</span><span class="badge">3</span></a>
+      <a href="#" data-page="webhooks"><svg class="ic"><use href="#i-webhook"/></svg><span class="lbl">Webhooks</span></a>
       <a href="#" data-page="audit"><svg class="ic"><use href="#i-file"/></svg><span class="lbl">Audit Log</span></a>
-      <a href="#" data-page="events"><svg class="ic"><use href="#i-zap"/></svg><span class="lbl">Events</span><span class="badge">6</span></a>
+      <a href="#" data-page="events"><svg class="ic"><use href="#i-zap"/></svg><span class="lbl">Events</span></a>
       <a href="#" data-page="profile"><svg class="ic"><use href="#i-settings"/></svg><span class="lbl">Profile</span></a>
     </nav>
     <div class="side-foot"><button class="collapse-btn" id="collapseBtn"><svg class="ic" id="collapseIc"><use href="#i-chev-l"/></svg><span class="lbl" id="collapseLbl">Collapse</span></button></div>
   </aside>
   <header class="topbar">
     <div class="crumb">Admin / <b id="crumbPage">Dashboard</b></div>
-    <div class="search"><svg class="ic"><use href="#i-search"/></svg><input placeholder="Search users, roles, audit…"></div>
     <div class="top-actions">
       <select id="styleSelect" title="Style pack" style="padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit"><option value="broadsheet">Broadsheet</option><option value="geist">Geist</option><option value="material">Material</option><option value="fluent">Fluent</option><option value="ant">Ant</option><option value="carbon">Carbon</option><option value="cupertino">Cupertino</option></select>
       <button class="icon-btn" id="themeBtn" data-tip="Toggle theme" aria-label="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
-      <div class="tenant-select"><svg class="ic" style="width:13px;height:13px"><use href="#i-building"/></svg><span>Acme Corp</span><svg class="ic" style="width:12px;height:12px;color:var(--tx3)"><use href="#i-chev-r"/></svg></div>
+      <div class="tenant-tag" title="Tenant partition is set by your sign-in token (read-only)"><svg class="ic" style="width:13px;height:13px"><use href="#i-building"/></svg><span>Acme Corp</span></div>
       <div class="avatar">AD</div>
     </div>
   </header>
