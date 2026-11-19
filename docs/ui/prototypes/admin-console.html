@@ -382,21 +382,21 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 @media(max-width:900px){.scope-box{margin-left:0;width:100%}}
 /* R4 wide-table narrow-screen (adjudication R4=A): sticky action column + column priority +
    card view <600px. Scoped to .page list tables; .matrix and modal tables are excluded. */
-.page table:not(.matrix) th:last-child,.page table:not(.matrix) td:last-child{position:sticky;right:0;z-index:2}
-.page table:not(.matrix) th:last-child{background:var(--sunken)}
+.page table:not(.matrix):not(.plain) th:last-child,.page table:not(.matrix):not(.plain) td:last-child{position:sticky;right:0;z-index:2}
+.page table:not(.matrix):not(.plain) th:last-child{background:var(--sunken)}
 /* R6 phantom-scrollbar fix: auto table layout sizes columns to content min-width, which slightly
    exceeds the container and (masked by the sticky action column) yields an always-on horizontal
    scrollbar. Fixed layout lets the table fit; overlong single-line content ellipsizes (full text
    via R3 detail / R4 card view). Scoped >=900px; narrower keeps auto + priority + card view. */
 @media(min-width:900px){
-.page table:not(.matrix){table-layout:fixed}
-.page table:not(.matrix) th:first-child{width:22%}
-.page table:not(.matrix) th:last-child{width:110px}
-.page table:not(.matrix) tbody td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.page table:not(.matrix) tbody td:has(.u-cell),.page table:not(.matrix) tbody td:has(.tag),.page table:not(.matrix) tbody td:has(.row-actions),.page table:not(.matrix) tbody td:has(.copyable){white-space:normal}
+.page table:not(.matrix):not(.plain){table-layout:fixed}
+.page table:not(.matrix):not(.plain) th:first-child{width:22%}
+.page table:not(.matrix):not(.plain) th:last-child{width:110px}
+.page table:not(.matrix):not(.plain) tbody td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.page table:not(.matrix):not(.plain) tbody td:has(.u-cell),.page table:not(.matrix):not(.plain) tbody td:has(.tag),.page table:not(.matrix):not(.plain) tbody td:has(.row-actions),.page table:not(.matrix):not(.plain) tbody td:has(.copyable){white-space:normal}
 /* Chip columns (Scopes / Events / Action): never wrap INSIDE a chip and never clip a chip with an
    ellipsis; whole chips wrap to the next line instead. Explicit widths give them room to sit inline. */
-.page table:not(.matrix) tbody td:has(.tag){overflow:visible;text-overflow:clip}
+.page table:not(.matrix):not(.plain) tbody td:has(.tag){overflow:visible;text-overflow:clip}
 #page-audit table th:nth-child(1){width:150px}
 #page-audit table th:nth-child(3){width:210px}
 #page-audit table th:nth-child(5){width:130px}
@@ -409,17 +409,17 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 #page-clients table th:nth-child(4){width:180px}
 }
 .tag{white-space:nowrap}
-.page table:not(.matrix) td:last-child{background:var(--surface);box-shadow:-8px 0 10px -8px rgba(0,0,0,.18)}
-@media(max-width:900px){.page table:not(.matrix) [data-prio="2"]{display:none}}
-@media(max-width:760px){.page table:not(.matrix) [data-prio="3"]{display:none}}
+.page table:not(.matrix):not(.plain) td:last-child{background:var(--surface);box-shadow:-8px 0 10px -8px rgba(0,0,0,.18)}
+@media(max-width:900px){.page table:not(.matrix):not(.plain) [data-prio="2"]{display:none}}
+@media(max-width:760px){.page table:not(.matrix):not(.plain) [data-prio="3"]{display:none}}
 @media(max-width:600px){
-.page table:not(.matrix),.page table:not(.matrix) tbody,.page table:not(.matrix) tr{display:block;width:100%}
-.page table:not(.matrix) thead{display:none}
-.page table:not(.matrix) tr{border:1px solid var(--bd);border-radius:var(--r6);background:var(--surface);margin:0 0 10px;padding:4px 12px}
-.page table:not(.matrix) td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--bd);text-align:right;background:transparent}
-.page table:not(.matrix) td[data-prio]{display:flex}
-.page table:not(.matrix) tr td:last-child{border-bottom:none;position:static;box-shadow:none}
-.page table:not(.matrix) td::before{content:attr(data-label);flex:none;font-size:var(--fs11);font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;text-align:left}
+.page table:not(.matrix):not(.plain),.page table:not(.matrix):not(.plain) tbody,.page table:not(.matrix):not(.plain) tr{display:block;width:100%}
+.page table:not(.matrix):not(.plain) thead{display:none}
+.page table:not(.matrix):not(.plain) tr{border:1px solid var(--bd);border-radius:var(--r6);background:var(--surface);margin:0 0 10px;padding:4px 12px}
+.page table:not(.matrix):not(.plain) td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--bd);text-align:right;background:transparent}
+.page table:not(.matrix):not(.plain) td[data-prio]{display:flex}
+.page table:not(.matrix):not(.plain) tr td:last-child{border-bottom:none;position:static;box-shadow:none}
+.page table:not(.matrix):not(.plain) td::before{content:attr(data-label);flex:none;font-size:var(--fs11);font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;text-align:left}
 }
 /* ==== v0.8 management pages (token-driven; all 7 packs apply) ==== */
 .m-post{background:var(--ok-tint);color:var(--ok-text,var(--ok))}
@@ -507,6 +507,12 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 </style>
 </head>
 <body>
+<!-- SCOPE BOUNDARY (adjudication 4-A, 2026-11-19): this prototype covers the AUTHENTICATED admin
+     console only: dashboard/users/roles/groups/tenants/clients/apikeys/webhooks/audit/events/profile
+     + settings (4 tabs). Pre-auth and end-user surfaces are COMPANION prototypes (TODO, not here):
+     Login (+MFA arm/SMS/captcha/OAuth), MagicLogin, Register, VerifyEmail, ForgotPassword,
+     ResetPassword, EnrollMfa wizard, Consent (OIDC authorization screen; cross-ref from Clients),
+     and the first-run Setup wizard. Do not add them to this file. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
 <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
@@ -560,7 +566,9 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <a href="#" data-page="webhooks"><svg class="ic"><use href="#i-webhook"/></svg><span class="lbl">Webhooks</span></a>
       <a href="#" data-page="audit"><svg class="ic"><use href="#i-file"/></svg><span class="lbl">Audit Log</span></a>
       <a href="#" data-page="events"><svg class="ic"><use href="#i-zap"/></svg><span class="lbl">Events</span></a>
-      <a href="#" data-page="profile"><svg class="ic"><use href="#i-settings"/></svg><span class="lbl">Profile</span></a>
+      <a href="#" data-page="profile"><svg class="ic"><use href="#i-user"/></svg><span class="lbl">Profile</span></a>
+      <div class="group">System</div>
+      <a href="#" data-page="settings"><svg class="ic"><use href="#i-settings"/></svg><span class="lbl">Settings</span></a>
     </nav>
     <div class="side-foot"><button class="collapse-btn" id="collapseBtn"><svg class="ic" id="collapseIc"><use href="#i-chev-l"/></svg><span class="lbl" id="collapseLbl">Collapse</span></button></div>
   </aside>
@@ -759,6 +767,35 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
         </div>
       </div>
     </section>
+    <section class="page" id="page-settings">
+      <div class="page-head"><div><h1>Settings</h1><div class="sub">Branding, session security, platform options and email templates</div></div></div>
+      <div class="card">
+        <div class="tabs" id="settingsTabs"><button class="on" data-tab="sgeneral">General</button><button data-tab="ssecurity">Security</button><button data-tab="soptions">Options</button><button data-tab="semail">Email templates</button></div>
+        <div class="tab-pane on" id="pane-sgeneral">
+          <div class="field"><label>Site name</label><input id="brandName"></div>
+          <div class="field"><label>Logo URL</label><input id="brandLogo" placeholder="https://example.com/logo.svg"></div>
+          <div class="field"><label>Primary color</label><input id="brandColor" type="color" style="width:64px;height:32px;padding:2px"></div>
+          <div style="margin-top:var(--sp12)"><button class="btn primary" id="brandSave">Save branding</button></div>
+        </div>
+        <div class="tab-pane" id="pane-ssecurity">
+          <div class="card panel"><div class="panel-head"><h3>Active sessions</h3><button class="btn danger ghost sm" id="revokeOthersBtn2" style="margin-left:auto">Log out other devices</button></div>
+            <div style="padding:var(--sp16)"><div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Device</th><th>IP</th><th>Signed in</th><th style="text-align:right">Session</th></tr></thead><tbody id="sessionRows"></tbody></table></div></div></div>
+          <div class="card panel"><div class="panel-head"><h3>Idle timeout</h3></div>
+            <div style="padding:var(--sp16)"><div class="field" style="max-width:320px"><label>Sign out after inactivity</label><select id="idleSelect"><option value="900">15 minutes</option><option value="3600">1 hour</option><option value="28800">8 hours</option><option value="86400">24 hours</option><option value="604800">7 days</option><option value="0">Off</option></select></div><div class="sub" style="margin-top:var(--sp12)">A server-side default still applies when unset.</div></div></div>
+          <div class="card panel"><div class="panel-head"><h3>Two-factor authentication (MFA)</h3></div>
+            <div style="padding:var(--sp16)" id="mfaBody"></div></div>
+          <div class="card panel"><div class="panel-head"><h3>Passkeys</h3><button class="btn sm" id="passkeyAdd" style="margin-left:auto"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Register passkey</button></div>
+            <div style="padding:var(--sp16)"><div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Name</th><th>Added</th><th style="text-align:right">Actions</th></tr></thead><tbody id="passkeyRows"></tbody></table></div></div></div>
+        </div>
+        <div class="tab-pane" id="pane-soptions">
+          <div style="padding:var(--sp16)"><div style="display:flex;justify-content:flex-end;margin-bottom:var(--sp12)"><button class="btn primary" id="optionAdd"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add option</button></div>
+          <div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Key</th><th>Value</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody id="optionRows"></tbody></table></div></div>
+        </div>
+        <div class="tab-pane" id="pane-semail">
+          <div style="padding:var(--sp16)"><div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Template</th><th>Subject</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody id="templateRows"></tbody></table></div></div>
+        </div>
+      </div>
+    </section>
   </main>
 <div class="modal-overlay" id="revealModal"><div class="modal" role="dialog" aria-modal="true">
   <div class="modal-head"><svg class="ic" style="color:var(--warn)"><use href="#i-alert"/></svg><h3 id="revealTitle">Secret</h3><button class="icon-btn close" aria-label="Close" data-close="revealModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
@@ -785,6 +822,28 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   <div class="modal-foot"><button class="btn" data-close="formModal">Cancel</button><button class="btn primary" id="formSave">Create</button></div>
 </div></div>
 </div>
+<div class="modal-overlay" id="mfaSetupModal"><div class="modal" role="dialog" aria-modal="true" style="max-width:460px">
+  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-shield"/></svg><h3>Set up MFA</h3><button class="icon-btn close" aria-label="Close" data-close="mfaSetupModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="modal-body"><div class="detail-meta">Scan with your authenticator app, then enter the 6-digit code.</div>
+    <div style="display:flex;gap:var(--sp16);align-items:center;margin:var(--sp12) 0"><div style="width:120px;height:120px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--sunken);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:var(--fs11);flex-shrink:0">QR placeholder</div><div class="mono" id="mfaSecret" style="font-size:var(--fs12);word-break:break-all"></div></div>
+    <div class="error-banner" id="mfaSetupErr" style="display:none;margin-bottom:var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+    <div class="field"><label>Verification code</label><input id="mfaCode" inputmode="numeric" maxlength="6" placeholder="123456"></div></div>
+  <div class="modal-foot"><button class="btn" data-close="mfaSetupModal">Cancel</button><button class="btn primary" id="mfaEnable">Enable</button></div>
+</div></div>
+<div class="modal-overlay" id="mfaRecoveryModal"><div class="modal" role="dialog" aria-modal="true" style="max-width:460px">
+  <div class="modal-head"><svg class="ic" style="color:var(--warn)"><use href="#i-alert"/></svg><h3>Recovery codes — shown once</h3></div>
+  <div class="modal-body"><div class="detail-meta">Store these safely. Each code works once if you lose your authenticator. They will not be shown again.</div>
+    <pre id="mfaCodes" class="mono" style="background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);white-space:pre-wrap"></pre>
+    <label style="display:flex;gap:8px;align-items:center;font-size:var(--fs12);color:var(--tx2)"><input type="checkbox" id="mfaSaved"> I have saved these recovery codes</label></div>
+  <div class="modal-foot"><button class="btn primary" id="mfaRecoveryDone" disabled>Done</button></div>
+</div></div>
+<div class="modal-overlay" id="mfaDisableModal"><div class="modal" role="dialog" aria-modal="true" style="max-width:420px">
+  <div class="modal-head"><svg class="ic" style="color:var(--danger)"><use href="#i-alert"/></svg><h3>Disable MFA</h3><button class="icon-btn close" aria-label="Close" data-close="mfaDisableModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="modal-body"><div class="detail-meta">Disabling removes your authenticator and all recovery codes. Confirm with your current password.</div>
+    <div class="error-banner" id="mfaDisableErr" style="display:none;margin-bottom:var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+    <div class="field"><label>Current password</label><input id="mfaDisablePwd" type="password"></div></div>
+  <div class="modal-foot"><button class="btn" data-close="mfaDisableModal">Cancel</button><button class="btn danger" id="mfaDisable">Disable</button></div>
+</div></div>
 <div class="modal-overlay" id="confirmModal"><div class="modal" role="dialog" aria-modal="true" style="max-width:420px">
   <div class="modal-head"><svg class="ic" style="color:var(--danger)"><use href="#i-alert"/></svg><h3 id="confirmTitle">Delete</h3><button class="icon-btn close" aria-label="Close" data-close="confirmModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body"><div class="detail-meta" id="confirmMsg"></div></div>
@@ -805,7 +864,7 @@ styleSel.onchange=()=>{document.documentElement.dataset.style=styleSel.value;try
 $('themeBtn').onclick=()=>{const h=document.documentElement;const n=h.dataset.theme==='light'?'dark':'light';h.dataset.theme=n;try{localStorage.setItem('ab_theme',n)}catch(e){}};
 const app=$('app');
 $('collapseBtn').onclick=()=>{app.classList.toggle('collapsed');const c=app.classList.contains('collapsed');$('collapseIc').innerHTML='<use href="#i-chev-'+(c?'r':'l')+'"/>';$('collapseLbl').textContent=c?'':'Collapse';};
-const titles={dashboard:'Dashboard',users:'Users',roles:'Roles',groups:'Groups',tenants:'Tenants',clients:'OIDC Clients',apikeys:'API Keys',webhooks:'Webhooks',audit:'Audit Log',events:'Events',profile:'Profile'};
+const titles={dashboard:'Dashboard',users:'Users',roles:'Roles',groups:'Groups',tenants:'Tenants',clients:'OIDC Clients',apikeys:'API Keys',webhooks:'Webhooks',audit:'Audit Log',events:'Events',profile:'Profile',settings:'Settings'};
 document.querySelectorAll('#nav a').forEach(a=>{a.onclick=e=>{e.preventDefault();const p=a.dataset.page;document.querySelectorAll('#nav a').forEach(x=>x.classList.toggle('on',x===a));document.querySelectorAll('.page').forEach(s=>s.classList.toggle('on',s.id==='page-'+p));$('crumbPage').textContent=titles[p];};});
 (function(){const data=[120,180,150,220,260,190,310];const w=560,h=160,pad=8;const max=Math.max(...data);const pts=data.map((v,i)=>[pad+i*(w-2*pad)/(data.length-1),h-pad-(v/max)*(h-2*pad)]);const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');const area=line+' L '+pts[pts.length-1][0]+' '+h+' L '+pts[0][0]+' '+h+' Z';$('trend').innerHTML='<path d="'+area+'" fill="var(--accent)" opacity=".07"/><path d="'+line+'" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round"/>'+pts.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="2.5" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>').join('');})();
 const acts=[['i-user','New user registered','jane.doe@globex.com · via OIDC','2m'],['i-key','API key expiring soon','svc-billing · expires in 3 days','18m'],['i-shield','Role updated','editor · +audit:read permission','1h'],['i-zap','Failed sign-in blocked','CIDR gate · 203.0.113.9','2h'],['i-building','Tenant created','Initech · plan: enterprise','5h']];
@@ -887,7 +946,7 @@ function renderGroups(){
  $('groupRows').innerHTML=list.map(g=>{const idx=GROUPS.indexOf(g);return '<tr><td><div class="entity-name">'+g.name+'</div></td><td>'+kindTag(g.kind)+'</td><td style="color:var(--tx2)">'+g.desc+'</td><td><span class="perm-count">'+g.members.length+'</span></td><td><span class="perm-count">'+g.roles.length+'</span></td><td class="mono">'+g.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Manage" data-manage="'+idx+'" aria-label="Manage"><svg class="ic"><use href="#i-users"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('');
  document.querySelectorAll('#groupRows [data-manage]').forEach(b=>b.onclick=()=>{selGroup=+b.dataset.manage;groupTab='members';openPanel();});
 }
-function setTab(tb){groupTab=tb;document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tb));$('pane-members').classList.toggle('on',tb==='members');$('pane-roles').classList.toggle('on',tb==='roles');}
+function setTab(tb){groupTab=tb;document.querySelectorAll('#groupPanel .tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tb));$('pane-members').classList.toggle('on',tb==='members');$('pane-roles').classList.toggle('on',tb==='roles');}
 function renderMembers(){
  const g=GROUPS[selGroup];
  $('tabMemberCount').textContent='('+g.members.length+')';
@@ -912,7 +971,7 @@ function openPanel(){
  setTab(groupTab);renderMembers();renderRoleChecks();
  $('groupPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+document.querySelectorAll('#groupPanel .tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 $('panelClose').onclick=()=>{$('groupPanel').style.display='none';selGroup=-1;draftRoles=null;};
 $('addMemberBtn').onclick=()=>{const v=$('memberPicker').value;if(!v||selGroup<0)return;const u=USERS.find(x=>x[1]===v);if(u){GROUPS[selGroup].members.push([u[0],u[1]]);renderMembers();renderGroups();}};
 $('saveRolesBtn').onclick=()=>{if(selGroup<0)return;GROUPS[selGroup].roles=[...draftRoles];renderGroups();renderRoleChecks();const b=$('saveRolesBtn');const old=b.textContent;b.textContent='Saved';setTimeout(()=>b.textContent=old,1200);};
@@ -936,8 +995,8 @@ const c=CLIENTS[idx];
 if(t.dataset.detail==='uris'){openDetail(c.name+' · Redirect URIs',c.redirectUris.length?'<div class="detail-meta">'+c.redirectUris.length+' registered redirect URI'+(c.redirectUris.length>1?'s':'')+'</div>'+c.redirectUris.map(u=>'<div class="mono" style="font-size:var(--fs12);padding:6px 8px;background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);margin-bottom:6px;word-break:break-all">'+esc(u)+'</div>').join(''):'<div class="detail-meta">No redirect URIs — machine-to-machine client.</div>');}
 else if(t.dataset.detail==='scope'){openDetail(c.name+' · Scope','<div class="detail-meta">Granted scopes</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+tags(c.scope.split(' '))+'</div>');}});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
-document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open)open.classList.remove('on');}});
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){if(o.id==='mfaRecoveryModal'&&!$('mfaSaved').checked)return;o.classList.remove('on');}}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open){if(open.id==='mfaRecoveryModal'&&!$('mfaSaved').checked)return;open.classList.remove('on');}}});
 document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(c){try{navigator.clipboard.writeText(c.dataset.copy).catch(()=>{});}catch(err){}}});
 // R2 overflow menu logic (reusable). Inert secondary actions disclose via the same toast.
 const rowMenu=$('rowMenu');let menuTrigger=null;
@@ -1091,10 +1150,11 @@ document.querySelectorAll('[data-create]').forEach(b=>b.onclick=()=>{formKind=b.
 function formError(msg){let e=document.getElementById('formErr');if(!e){e=document.createElement('div');e.id='formErr';e.className='error-banner';e.style.marginBottom='12px';$('formBody').prepend(e);}e.innerHTML='<svg class="ic"><use href="#i-alert"/></svg><span>'+esc(msg)+'</span>';e.style.display='flex';}
 $('formSave').onclick=()=>{
  const get=k=>{const el=document.querySelector('#formBody [data-field="'+k+'"]');return el?el.value.trim():'';};
- if(formEdit!==null){const d=EDITDEFS[formKind];const vals={};d.fields.forEach(f=>{vals[f[0]]=get(f[0]);});const req=formKind==='webhooks'?'url':'name';if(!vals[req]){formError((req==='url'?'URL':'Name')+' is required');return;}d.set(formEdit,vals);closeModal('formModal');toast('Saved');formEdit=null;return;}
+ if(formEdit!==null){const d=EDITDEFS[formKind];const vals={};d.fields.forEach(f=>{vals[f[0]]=get(f[0]);});const req=formKind==='webhooks'?'url':(formKind==='options'?'value':(formKind==='templates'?'subject':'name'));if(!vals[req]){formError((req==='url'?'URL':(req==='value'?'Value':(req==='subject'?'Subject':'Name')))+' is required');return;}if(formKind==='options'){try{JSON.parse(vals.value);}catch(_){formError('Value must be valid JSON');return;}}d.set(formEdit,vals);closeModal('formModal');toast('Saved');formEdit=null;return;}
  if(formKind==='tenants'){const n=get('name');if(!n){formError('Name is required');return;}const sl=get('slug')||n.toLowerCase().replace(/\s+/g,'-');if(TENANTS.some(x=>x.slug===sl)){formError('Slug "'+sl+'" already exists');return;}TENANTS.push({name:n,slug:sl,status:'active',created:'just now'});renderTenants();}
  else if(formKind==='clients'){const n=get('name');if(!n){formError('Name is required');return;}CLIENTS.push({name:n,clientId:'ab_new_'+Math.random().toString(36).slice(2,10),redirectUris:get('redirectUris')?get('redirectUris').split('\n').map(s=>s.trim()).filter(Boolean):[],grantTypes:['authorization_code'],scope:get('scope')||'openid profile email',created:'just now'});renderClients();closeModal('formModal');reveal('Client secret','cs_'+Math.random().toString(36).slice(2,18),'Client ID: '+CLIENTS[CLIENTS.length-1].clientId);return;}
  else if(formKind==='apikeys'){const n=get('name');if(!n){formError('Name is required');return;}APIKEYS.push({name:n,prefix:'abk_live_'+Math.random().toString(36).slice(2,6),scopes:get('scopes')?get('scopes').split(',').map(s=>s.trim()):['users:read'],created:'just now',expires:get('expires')||null,revoked:false});renderApikeys();}
+ else if(formKind==='options'){const k=get('key');if(!k){formError('Key is required');return;}let pv;try{pv=get('value')?JSON.parse(get('value')):'';}catch(_){formError('Value must be valid JSON');return;}OPTIONS.push({key:k,value:pv,updated:'just now'});renderOptions();closeModal('formModal');toast('Added');return;}
  else if(formKind==='webhooks'){const u=get('url');if(!u){formError('URL is required');return;}WEBHOOKS.push({url:u,events:get('events')?get('events').split(',').map(s=>s.trim()):['user.created'],active:0,pending:0,dead:0,created:'just now',deliveries:[]});renderWebhooks();closeModal('formModal');reveal('Webhook secret','whsec_'+Math.random().toString(36).slice(2,18),u);return;}
  closeModal('formModal');
 };
@@ -1120,7 +1180,7 @@ const DEL={
 };
 const ROW_NAME={users:i=>USERS[i][0],roles:i=>ROLES[i].name,groups:i=>GROUPS[i].name,tenants:i=>TENANTS[i].name,clients:i=>CLIENTS[i].name,apikeys:i=>APIKEYS[i].name,webhooks:i=>WEBHOOKS[i].url};
 let pendingDelete=null;
-function openConfirm(kind,idx){pendingDelete={kind:kind,idx:idx};$('confirmTitle').textContent='Delete '+kind.replace(/s$/,'');$('confirmMsg').innerHTML='Remove <strong>'+esc(ROW_NAME[kind](idx))+'</strong> from the prototype data? This cannot be undone.';openModal('confirmModal');}
+function openConfirm(kind,idx,opts){opts=opts||{};pendingDelete={kind:kind,idx:idx};$('confirmTitle').textContent=opts.title||('Delete '+kind.replace(/s$/,''));$('confirmDelete').textContent=opts.verb||'Delete';$('confirmMsg').innerHTML=opts.msg||('Remove <strong>'+esc(ROW_NAME[kind](idx))+'</strong> from the prototype data? This cannot be undone.');openModal('confirmModal');}
 $('confirmDelete').onclick=()=>{if(!pendingDelete)return;const d=pendingDelete;pendingDelete=null;DEL[d.kind](d.idx);closeModal('confirmModal');toast('Deleted');};
 const EDIT_ANCHOR={users:'data-more',roles:'data-role',groups:'data-manage',tenants:'data-tstatus',clients:'data-rotate-client',apikeys:'data-revoke',webhooks:'data-ping'};
 document.addEventListener('click',e=>{const eb=e.target.closest('button[aria-label="Edit"],button[data-tip="Edit"]');const db=e.target.closest('button[aria-label="Delete"],button[data-tip="Delete"]');if(!eb&&!db)return;const btn=eb||db;if(btn.disabled)return;const page=btn.closest('section.page');if(!page)return;const kind=page.id.replace('page-','');if(!EDIT_ANCHOR[kind])return;const tr=btn.closest('tr');const anchor=tr.hasAttribute(EDIT_ANCHOR[kind])?tr:tr.querySelector('['+EDIT_ANCHOR[kind]+']');if(!anchor)return;const idx=+anchor.getAttribute(EDIT_ANCHOR[kind]);if(eb){openEdit(kind,idx);}else{openConfirm(kind,idx);}});
@@ -1138,6 +1198,47 @@ function enhanceSelect(sel){if(sel._cbx)return;const w=document.createElement('s
 function enhanceAllSelects(root){(root||document).querySelectorAll('select').forEach(enhanceSelect);}
 document.addEventListener('click',e=>{if(openCbx&&!e.target.closest('.cbx'))cbxClose();});
 enhanceAllSelects();
+/* ==== v0.96 Settings (adjudication 4-A): grounded in real Settings.tsx 4 tabs ==== */
+let SESSIONS=[{ua:'Chrome on macOS',ip:'203.0.113.7',created:'2026-11-19 09:12',current:true},{ua:'Safari on iPhone',ip:'203.0.113.7',created:'2026-11-18 21:40',current:false},{ua:'Firefox on Windows',ip:'198.51.100.23',created:'2026-11-15 08:03',current:false}];
+let PASSKEYS=[{name:'MacBook Touch ID',created:'2026-10-02'},{name:'YubiKey 5C',created:'2026-09-14'}];
+let OPTIONS=[{key:'session.idle_timeout_seconds',value:86400,updated:'2 d ago'},{key:'mfa_enforcement',value:'optional',updated:'5 d ago'},{key:'auth_cidr_allow',value:['203.0.113.0/24'],updated:'1 w ago'},{key:'smtp_password',value:'s3cret-relay',updated:'2 w ago'},{key:'captcha_enabled',value:true,updated:'3 w ago'},{key:'signup_allowed',value:false,updated:'1 mo ago'}];
+let TEMPLATES=[{key:'verify_email',subject:'Verify your email',body:'Hi {{name}},\n\nConfirm your address: {{link}}\n\n— AccessBase',updated:'2 d ago'},{key:'reset_password',subject:'Reset your password',body:'Hi {{name}},\n\nReset link (15 min): {{link}}',updated:'1 w ago'},{key:'invite',subject:'You are invited',body:'Hi {{name}},\n\nJoin {{tenant}}: {{link}}',updated:'2 w ago'},{key:'mfa_recovery',subject:'Your recovery codes',body:'Hi {{name}},\n\nNew recovery codes attached.',updated:'1 mo ago'}];
+let BRANDING={siteName:'AccessBase',logoUrl:'',primaryColor:'#1677FF'};
+let MFA={enabled:false};
+const SENSITIVE_OPT=/(secret|password|token|credential)/i;
+function renderSessions(){$('sessionRows').innerHTML=SESSIONS.map((s,i)=>'<tr><td>'+esc(s.ua)+'</td><td class="mono">'+esc(s.ip)+'</td><td class="mono">'+esc(s.created)+'</td><td style="text-align:right">'+(s.current?'<span class="tag" style="background:var(--accent-tint);color:var(--accent-text,var(--accent))">Current</span>':'<button class="btn danger ghost sm" data-srev="'+i+'">Revoke</button>')+'</td></tr>').join('')||'<tr><td colspan="4" class="empty">No active sessions</td></tr>';}
+function renderPasskeys(){$('passkeyRows').innerHTML=PASSKEYS.map((p,i)=>'<tr><td>'+esc(p.name)+'</td><td class="mono">'+esc(p.created)+'</td><td style="text-align:right"><button class="btn danger ghost sm" data-pkdel="'+i+'">Remove</button></td></tr>').join('')||'<tr><td colspan="3" class="empty">No passkeys registered</td></tr>';}
+function renderOptions(){$('optionRows').innerHTML=OPTIONS.map((o,i)=>'<tr><td class="mono">'+esc(o.key)+'</td><td class="mono">'+(SENSITIVE_OPT.test(o.key)?'••••••••':esc(JSON.stringify(o.value)))+'</td><td>'+esc(o.updated)+'</td><td style="text-align:right"><button class="btn sm" data-optedit="'+i+'">Edit</button> <button class="btn danger ghost sm" data-optdel="'+i+'">Delete</button></td></tr>').join('')||'<tr><td colspan="4" class="empty">No options set</td></tr>';}
+function renderTemplates(){$('templateRows').innerHTML=TEMPLATES.map((t,i)=>'<tr><td class="mono">'+esc(t.key)+'</td><td>'+esc(t.subject)+'</td><td>'+esc(t.updated)+'</td><td style="text-align:right"><button class="btn sm" data-tpledit="'+i+'">Edit</button> <button class="btn sm" data-tplview="'+i+'">Preview</button></td></tr>').join('');}
+function renderMfa(){$('mfaBody').innerHTML=MFA.enabled?'<div class="error-banner" style="display:flex;background:var(--ok-tint);color:var(--ok-text,var(--ok));border-color:var(--ok)"><svg class="ic"><use href="#i-check"/></svg><span>MFA is enabled on this account.</span></div><div style="margin-top:var(--sp12)"><button class="btn danger ghost" id="mfaOpenDisable">Disable MFA</button></div>':'<div class="sub">Protect your account with a time-based one-time code (TOTP). Recovery codes are shown once at setup.</div><div style="margin-top:var(--sp12)"><button class="btn primary" id="mfaOpenSetup">Set up MFA</button></div>';
+ if(MFA.enabled){$('mfaOpenDisable').onclick=()=>{$('mfaDisablePwd').value='';$('mfaDisableErr').style.display='none';openModal('mfaDisableModal');};}
+ else{$('mfaOpenSetup').onclick=()=>{$('mfaCode').value='';$('mfaSetupErr').style.display='none';$('mfaSecret').textContent='JBSWY3DPEHPK3PXP JBSWY3DPEHPK3PXP';openModal('mfaSetupModal');};}}
+function renderBranding(){$('brandName').value=BRANDING.siteName;$('brandLogo').value=BRANDING.logoUrl;$('brandColor').value=BRANDING.primaryColor;}
+function setSettingsTab(tb){document.querySelectorAll('#settingsTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tb));['sgeneral','ssecurity','soptions','semail'].forEach(k=>$('pane-'+k).classList.toggle('on',k===tb));}
+document.querySelectorAll('#settingsTabs button').forEach(b=>b.onclick=()=>setSettingsTab(b.dataset.tab));
+$('brandSave').onclick=()=>{BRANDING.siteName=$('brandName').value.trim()||'AccessBase';BRANDING.logoUrl=$('brandLogo').value.trim();BRANDING.primaryColor=$('brandColor').value;const nm=document.querySelector('.brand .name');if(nm)nm.childNodes[0].nodeValue=BRANDING.siteName;toast('Branding saved');};
+$('idleSelect').onchange=()=>{const v=+$('idleSelect').value;const row=OPTIONS.find(o=>o.key==='session.idle_timeout_seconds');if(row){row.value=v;row.updated='just now';}else{OPTIONS.push({key:'session.idle_timeout_seconds',value:v,updated:'just now'});}renderOptions();toast('Idle timeout saved');};
+$('revokeOthersBtn2').onclick=()=>openConfirm('sessions-others',0,{verb:'Log out',title:'Log out other devices',msg:'Sign out <strong>all other devices</strong>? If the current device cannot be identified, every session including this one is signed out.'});
+$('passkeyAdd').onclick=()=>{PASSKEYS.push({name:'Passkey '+(PASSKEYS.length+1),created:'just now'});renderPasskeys();toast('Passkey registered');};
+$('mfaEnable').onclick=()=>{const c=$('mfaCode').value.trim();if(!/^\d{6}$/.test(c)){const e=$('mfaSetupErr');e.style.display='flex';e.querySelector('span').textContent='Enter the 6-digit code from your authenticator.';return;}MFA.enabled=true;closeModal('mfaSetupModal');$('mfaCodes').textContent=Array.from({length:8},()=>Math.random().toString(36).slice(2,6)+'-'+Math.random().toString(36).slice(2,6)).join('\n');$('mfaSaved').checked=false;$('mfaRecoveryDone').disabled=true;openModal('mfaRecoveryModal');renderMfa();};
+$('mfaSaved').onchange=()=>{$('mfaRecoveryDone').disabled=!$('mfaSaved').checked;};
+$('mfaRecoveryDone').onclick=()=>{closeModal('mfaRecoveryModal');toast('MFA enabled');};
+$('mfaDisable').onclick=()=>{if(!$('mfaDisablePwd').value){const e=$('mfaDisableErr');e.style.display='flex';e.querySelector('span').textContent='Current password is required to disable MFA.';return;}MFA.enabled=false;closeModal('mfaDisableModal');toast('MFA disabled');renderMfa();};
+$('optionAdd').onclick=()=>{formKind='options';formEdit=null;$('formTitle').textContent='Add option';$('formBody').innerHTML='<div class="field"><label>Key</label><input data-field="key" placeholder="e.g. feature_flag_x"></div><div class="field"><label>Value (JSON)</label><textarea data-field="value" rows="3" placeholder="true / 42 / &quot;text&quot; / [..]"></textarea></div>';$('formSave').textContent='Create';openModal('formModal');};
+document.addEventListener('click',e=>{const sr=e.target.closest('[data-srev]');if(sr){openConfirm('sessions',+sr.dataset.srev,{verb:'Revoke',title:'Revoke session'});return;}const pk=e.target.closest('[data-pkdel]');if(pk){openConfirm('passkeys',+pk.dataset.pkdel);return;}const oe=e.target.closest('[data-optedit]');if(oe){openEdit('options',+oe.dataset.optedit);return;}const od=e.target.closest('[data-optdel]');if(od){openConfirm('options',+od.dataset.optdel);return;}const te=e.target.closest('[data-tpledit]');if(te){openEdit('templates',+te.dataset.tpledit);return;}const tv=e.target.closest('[data-tplview]');if(tv){const t=TEMPLATES[+tv.dataset.tplview];openDetail(t.subject,'<pre class="mono" style="white-space:pre-wrap;font-size:var(--fs12)">'+esc(t.body)+'</pre>');return;}});
+EDITDEFS.options={title:'Edit option',fields:[['value','Value (JSON)','textarea']],get:i=>({value:JSON.stringify(OPTIONS[i].value)}),set:(i,v)=>{OPTIONS[i].value=JSON.parse(v.value);OPTIONS[i].updated='just now';renderOptions();}};
+EDITDEFS.templates={title:'Edit template',fields:[['subject','Subject'],['body','Body','textarea']],get:i=>({subject:TEMPLATES[i].subject,body:TEMPLATES[i].body}),set:(i,v)=>{TEMPLATES[i].subject=v.subject;TEMPLATES[i].body=v.body;TEMPLATES[i].updated='just now';renderTemplates();}};
+DEL.sessions=i=>{SESSIONS.splice(i,1);renderSessions();};
+DEL['sessions-others']=()=>{SESSIONS=SESSIONS.filter(s=>s.current);renderSessions();};
+DEL.passkeys=i=>{PASSKEYS.splice(i,1);renderPasskeys();};
+DEL.options=i=>{OPTIONS.splice(i,1);renderOptions();};
+ROW_NAME.sessions=i=>SESSIONS[i].ua;
+ROW_NAME['sessions-others']=()=>'all other devices';
+ROW_NAME.passkeys=i=>PASSKEYS[i].name;
+ROW_NAME.options=i=>OPTIONS[i].key;
+renderSessions();renderPasskeys();renderOptions();renderTemplates();renderMfa();renderBranding();
+$('idleSelect').value=String((OPTIONS.find(o=>o.key==='session.idle_timeout_seconds')||{value:86400}).value);
+enhanceAllSelects($('page-settings'));
 /* ==== v0.9 Profile — grounded in real admin-ui Profile.tsx ==== */
 const PROFILE={name:'Admin User',email:'admin@acme.io',isActive:true,emailVerified:false};
 let OAUTH_LINKS=[{provider:'github',account:'admin-acme'}];
@@ -1195,7 +1296,7 @@ $('bindGoogle').onclick=()=>{if(!OAUTH_LINKS.some(k=>k.provider==='google')){OAU
 renderProfile();renderOAuth();
 // R4: propagate thead labels + column priority onto tbody cells (drives card view + narrow hiding).
 // Re-applied via MutationObserver on every re-render (search/filter); colspan empty rows are skipped.
-(function(){const tables=[...document.querySelectorAll('.page table:not(.matrix)')];
+(function(){const tables=[...document.querySelectorAll('.page table:not(.matrix):not(.plain)')];
 function label(t){const ths=[...t.querySelectorAll('thead th')];t.querySelectorAll('tbody tr').forEach(tr=>{if(tr.children.length!==ths.length)return;[...tr.children].forEach((td,i)=>{const th=ths[i];td.setAttribute('data-label',th.textContent.trim());if(th.dataset.prio)td.setAttribute('data-prio',th.dataset.prio);else td.removeAttribute('data-prio');});});}
 tables.forEach(t=>{label(t);const tb=t.querySelector('tbody');if(tb)new MutationObserver(()=>label(t)).observe(tb,{childList:true});});})();
 </script>

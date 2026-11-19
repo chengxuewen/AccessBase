@@ -14,7 +14,7 @@ declare const GROUPS: { roles: string[] }[];
 
 const results: Record<string, unknown> = {
   when: new Date().toISOString().slice(0, 10),
-  prototype: 'admin-console.html v0.9 (ALL 11 pages high-fidelity; 7 style packs x light/dark)',
+  prototype: 'admin-console.html v0.96 (12 pages incl. Settings; 7 style packs x light/dark)',
   runner: 'playwright (reproducible suite; .harness/prototype.spec.ts)',
   fail: 0,
   results: {} as Record<string, { pass: boolean; assertions: unknown }>,
@@ -365,7 +365,7 @@ test('all-pages-high-fidelity', async ({ page }) => {
     placeholdersLeft: document.querySelectorAll('.placeholder').length,
     sections: document.querySelectorAll('section.page').length,
   }));
-  const pass = a.placeholdersLeft === 0 && a.sections === 11;
+  const pass = a.placeholdersLeft === 0 && a.sections === 12;
   rec('all-pages-high-fidelity', pass, a);
   expect(pass, 'all-pages-high-fidelity').toBe(true);
 });
@@ -800,4 +800,70 @@ test('topbar-fidelity', async ({ page }) => {
   const pass = !a.globalSearch && a.tagExists && !a.tagChevron && a.tagReadonlyTitle && a.badges === 0;
   rec('topbar-fidelity', pass, a);
   expect(pass, 'topbar-fidelity').toBe(true);
+});
+
+test('settings', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 4 (A): Settings page grounded in real Settings.tsx (4 tabs, sessions, MFA one-time
+  // recovery gate, options masking + JSON validation, template preview, idle timeout, branding).
+  await page.evaluate(() => { (document.querySelector('[data-page=settings]') as HTMLElement).click(); });
+  const shell = await page.evaluate(() => ({
+    on: document.getElementById('page-settings')!.classList.contains('on'),
+    tabs: document.querySelectorAll('#settingsTabs button').length,
+    title: document.getElementById('crumbPage')!.textContent,
+  }));
+  await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=ssecurity]') as HTMLElement).click(); });
+  const sec0 = await page.evaluate(() => ({
+    paneOn: document.getElementById('pane-ssecurity')!.classList.contains('on'),
+    rows: document.querySelectorAll('#sessionRows tr').length,
+    current: !!document.querySelector('#sessionRows .tag'),
+  }));
+  await page.locator('#sessionRows button[data-srev]').first().click();
+  const revVerb = await page.evaluate(() => document.getElementById('confirmDelete')!.textContent);
+  await page.locator('#confirmDelete').click();
+  const sec1 = await page.evaluate(() => document.querySelectorAll('#sessionRows tr').length);
+  // MFA setup: bad code rejected; good code -> one-time recovery modal gated by saved-checkbox
+  await page.locator('#mfaOpenSetup').click();
+  await page.locator('#mfaCode').fill('12');
+  await page.locator('#mfaEnable').click();
+  const badCode = await page.evaluate(() => document.getElementById('mfaSetupErr')!.style.display === 'flex');
+  await page.locator('#mfaCode').fill('123456');
+  await page.locator('#mfaEnable').click();
+  const rec0 = await page.evaluate(() => ({
+    open: document.getElementById('mfaRecoveryModal')!.classList.contains('on'),
+    doneDisabled: (document.getElementById('mfaRecoveryDone') as HTMLButtonElement).disabled,
+  }));
+  await page.keyboard.press('Escape');
+  const recEsc = await page.evaluate(() => document.getElementById('mfaRecoveryModal')!.classList.contains('on'));
+  await page.locator('#mfaSaved').check();
+  const rec1 = await page.evaluate(() => !(document.getElementById('mfaRecoveryDone') as HTMLButtonElement).disabled);
+  await page.locator('#mfaRecoveryDone').click();
+  const mfaOn = await page.evaluate(() => document.getElementById('mfaBody')!.textContent!.includes('MFA is enabled'));
+  // options: sensitive masked; invalid JSON rejected on edit
+  await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=soptions]') as HTMLElement).click(); });
+  const masked = await page.evaluate(() => [...document.querySelectorAll('#optionRows tr')].some(tr => tr.textContent!.includes('smtp_password') && tr.textContent!.includes('••••')));
+  await page.evaluate(() => { const i = [...document.querySelectorAll('#optionRows tr')].findIndex(tr => tr.textContent!.includes('captcha_enabled')); (document.querySelector('#optionRows tr:nth-child(' + (i + 1) + ') button[data-optedit]') as HTMLElement).click(); });
+  await page.locator('#formBody [data-field=value]').fill('not-json');
+  await page.locator('#formSave').click();
+  const jsonErr = await page.evaluate(() => document.getElementById('formModal')!.classList.contains('on') && document.getElementById('formBody')!.textContent!.includes('valid JSON'));
+  await page.keyboard.press('Escape');
+  // template preview + idle timeout
+  await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=semail]') as HTMLElement).click(); });
+  await page.locator('#templateRows button[data-tplview]').first().click();
+  const preview = await page.evaluate(() => document.getElementById('detailModal')!.classList.contains('on'));
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=ssecurity]') as HTMLElement).click(); });
+  await page.evaluate(() => {
+    const sel = document.getElementById('idleSelect') as any;
+    sel._cbx.querySelector('.cbx-btn').click();
+    [...sel._cbx.querySelectorAll('.cbx-opt')].find((o: any) => o.dataset.value === '3600').click();
+  });
+  const idleToast = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
+  const a = { shell, sec0, revVerb, sec1, badCode, rec0, recEsc, rec1, mfaOn, masked, jsonErr, preview, idleToast };
+  const pass = shell.on && shell.tabs === 4 && shell.title === 'Settings'
+    && sec0.paneOn && sec0.rows === 3 && sec0.current && revVerb === 'Revoke' && sec1 === 2
+    && badCode && rec0.open && rec0.doneDisabled && recEsc && rec1 && mfaOn
+    && masked && jsonErr && preview && idleToast === 'Idle timeout saved';
+  rec('settings', pass, a);
+  expect(pass, 'settings').toBe(true);
 });

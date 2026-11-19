@@ -608,3 +608,19 @@ a read-only Tag, and menus carry no count badges. Ruling A (donor-method, no inv
 removed the global search input; tenant switcher -> read-only .tenant-tag (no chevron, title explains
 token-set partition); removed all 8 sidebar count badges + dead .badge CSS. New harness topbar-fidelity
 (29 total): no global search, tag present w/o chevron + read-only title, 0 badges. All 29 pass.
+
+## Adjudication 4 (A): Settings page added (4 tabs), scope boundary declared — 2026-11-19
+Panel F1 (CRITICAL): real AdminLayout has a resident Settings page (general/security/options/email
+templates) absent from the prototype and undisclosed. Ruling A: add Settings as the 12th page, grounded
+in real Settings.tsx: General (siteName/logoUrl/primaryColor -> updates brand), Security (active sessions
+table w/ current Tag + per-row Revoke confirm + log-out-others confirm incl. fail-closed wording; idle
+timeout Select wired to session.idle_timeout_seconds option; MFA card w/ setup modal QR+secret+6-digit
+code, one-time recovery-codes modal gated by "I have saved" checkbox (Escape/mask cannot dismiss until
+acknowledged), disable modal requiring current password; passkeys list + register + remove confirm),
+Options (key/value/updated table, sensitive values masked, add/edit via formModal w/ JSON validation,
+delete confirm), Email templates (edit subject/body + preview detail). Groups tab machinery scoped to
+#groupPanel so Settings tabs don't clash; Settings tables exempted from R4/R6 sticky/fixed/card (.plain)
+with overflow-x wrappers. Header comment declares the authenticated-console boundary and lists companion
+prototypes (Login/MFA-arm/Magic/Register/Verify/Forgot/Reset/EnrollMfa/Consent/Setup) as TODO-not-here.
+Harness: all-pages count 11->12; new settings group (30 total) asserts tabs/sessions/revoke-verb/MFA
+one-time gate/masking/JSON-error/preview/idle. All 30 pass. Screenshot: Settings security tab.

@@ -1,6 +1,6 @@
 {
   "when": "2026-11-19",
-  "prototype": "admin-console.html v0.9 (ALL 11 pages high-fidelity; 7 style packs x light/dark)",
+  "prototype": "admin-console.html v0.96 (12 pages incl. Settings; 7 style packs x light/dark)",
   "runner": "playwright (reproducible suite; .harness/prototype.spec.ts)",
   "fail": 0,
   "results": {
@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 33,
-        "svgIcons": 237,
+        "svgIcons": 248,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -278,7 +278,7 @@
       "pass": true,
       "assertions": {
         "placeholdersLeft": 0,
-        "sections": 11
+        "sections": 12
       }
     },
     "a11y-keyboard": {
@@ -442,8 +442,8 @@
       "pass": true,
       "assertions": {
         "base": {
-          "selCount": 10,
-          "cbxCount": 10,
+          "selCount": 11,
+          "cbxCount": 11,
           "allNativeHidden": true,
           "surface": "#FFFFFF"
         },
@@ -499,6 +499,35 @@
         "tagChevron": false,
         "tagReadonlyTitle": true,
         "badges": 0
+      }
+    },
+    "settings": {
+      "pass": true,
+      "assertions": {
+        "shell": {
+          "on": true,
+          "tabs": 4,
+          "title": "Settings"
+        },
+        "sec0": {
+          "paneOn": true,
+          "rows": 3,
+          "current": true
+        },
+        "revVerb": "Revoke",
+        "sec1": 2,
+        "badCode": true,
+        "rec0": {
+          "open": true,
+          "doneDisabled": true
+        },
+        "recEsc": true,
+        "rec1": true,
+        "mfaOn": true,
+        "masked": true,
+        "jsonErr": true,
+        "preview": true,
+        "idleToast": "Idle timeout saved"
       }
     }
   }
