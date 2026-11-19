@@ -437,3 +437,12 @@ the mainstream primary-visible / secondary-in-overflow information architecture 
   $('rowMenu') cached null; moved the container before the script (existing code reads DOM lazily).
 New harness group overflow-menu (17 total) verifies open/close/Esc-refocus/item-toast/danger-item/
 keyboard. All 17 pass; no regression. Component is reusable for R5 toolbar overflow.
+
+## Tooltip position fix — 2026-11-19 (user-reported: row bubbles overlap adjacent row)
+User noticed row-action tooltips felt too close / overlapping vertically. Root cause: the R1
+tooltip opens ABOVE the button (bottom:calc(100%+6px)); in a dense table (55px rows, 24px buttons)
+the ~21px bubble extends ~11px up into the PREVIOUS row. Fix: row-action tooltips now open to the
+LEFT (.row-actions [data-tip]::after -> right:calc(100%+6px); top:50%; translateY(-50%)), staying
+within the row's own vertical band (actions are right-aligned, so there is room to the left).
+Verified: bubble now within-row, no overlap with the row above (measured + screenshot). Non-row
+tooltips (topbar etc.) unchanged. Harness 17 pass (tooltip hover/focus opacity still 1).
