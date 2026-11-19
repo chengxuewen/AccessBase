@@ -323,7 +323,7 @@
         "closedByEsc": true,
         "expandedClosed": "false",
         "focusReturned": true,
-        "toastShown": true,
+        "forceConfirm": true,
         "closedAfterSelect": true
       }
     },
@@ -550,6 +550,30 @@
           "prefix": "ab_",
           "len": 35,
           "once": true
+        }
+      }
+    },
+    "users-model": {
+      "pass": true,
+      "assertions": {
+        "edit": {
+          "name": true,
+          "roles": 5,
+          "emailRo": true,
+          "tenantRo": true,
+          "statusField": false
+        },
+        "vocab": true,
+        "susConf": "Suspend",
+        "susToast": "Status updated",
+        "menuHasForce": true,
+        "forceVerb": "Force logout",
+        "exportItem": true,
+        "file": "users.csv",
+        "first0": "Jane Doe",
+        "sorted": {
+          "first": "Kate Bell",
+          "ic": "▼"
         }
       }
     }

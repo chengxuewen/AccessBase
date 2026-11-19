@@ -101,11 +101,11 @@ test('filter-narrows', async ({ page }) => {
   await page.goto(FILE);
   const a = await page.evaluate(() => {
     const f = document.getElementById('statusFilter') as HTMLSelectElement;
-    f.value = 'disabled'; f.dispatchEvent(new Event('input'));
+    f.value = 'suspended'; f.dispatchEvent(new Event('input'));
     const rows = [...document.querySelectorAll('#userRows tr')];
     return {
       disabledFilterRows: rows.length,
-      allDisabled: rows.every(r => r.textContent!.includes('Disabled')),
+      allDisabled: rows.every(r => r.textContent!.includes('Suspended')),
     };
   });
   const pass = a.disabledFilterRows === 3 && a.allDisabled;
@@ -464,12 +464,14 @@ test('overflow-menu', async ({ page }) => {
   const focusReturned = await page.evaluate(() => document.activeElement?.hasAttribute('data-more'));
   await more.click();
   await page.locator('#rowMenu .menu-item').first().click();
-  const toastShown = await page.evaluate(() => document.getElementById('protoToast')!.style.display === 'block');
+  // first item is now Force logout (adjudication 6): confirm-gated, not a toast
+  const forceConfirm = await page.evaluate(() => document.getElementById('confirmModal')!.classList.contains('on') && document.getElementById('confirmDelete')!.textContent === 'Force logout');
+  await page.locator('#confirmModal [data-close=confirmModal]').first().click();
   const closedAfterSelect = await page.evaluate(() => !document.getElementById('rowMenu')!.classList.contains('on'));
-  const a = { haspopup, expandedBefore, menuOn, expandedAfter, itemCount, roles, dangerItem, firstFocused, closedByEsc, expandedClosed, focusReturned, toastShown, closedAfterSelect };
+  const a = { haspopup, expandedBefore, menuOn, expandedAfter, itemCount, roles, dangerItem, firstFocused, closedByEsc, expandedClosed, focusReturned, forceConfirm, closedAfterSelect };
   const pass = haspopup === 'menu' && expandedBefore === 'false' && menuOn && expandedAfter === 'true'
     && itemCount === 3 && roles && dangerItem === 1 && firstFocused && closedByEsc && expandedClosed === 'false'
-    && focusReturned && toastShown && closedAfterSelect;
+    && focusReturned && forceConfirm && closedAfterSelect;
   rec('overflow-menu', pass, a);
   expect(pass, 'overflow-menu').toBe(true);
 });
@@ -665,10 +667,9 @@ test('combobox-popup', async ({ page }) => {
   const dark = await probe();
   await page.evaluate(() => { document.documentElement.dataset.theme = 'light'; });
   const light = await probe();
-  // edit-modal dynamic select (users Edit -> status select) in dark
-  await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; (document.querySelector('[data-page=users]') as HTMLElement).click(); });
-  await page.locator('#userRows button[aria-label="Edit"]').first().click();
-  const editSel = await page.evaluate(() => { const s = document.querySelector('#formBody select') as HTMLSelectElement; const o = s.querySelector('option')!; const oc = getComputedStyle(o); const sum = (c: string) => { const m = c.match(/[\d.]+/g)!.map(Number); return m[0] + m[1] + m[2]; }; return { scheme: getComputedStyle(s).colorScheme, bg: sum(oc.backgroundColor), fg: sum(oc.color) }; });
+  // dynamically-enhanced select (Settings idle timeout, enhanced via enhanceAllSelects(page-settings)) in dark
+  await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; (document.querySelector('[data-page=settings]') as HTMLElement).click(); });
+  const editSel = await page.evaluate(() => { const s = document.getElementById('idleSelect') as HTMLSelectElement; const o = s.querySelector('option')!; const oc = getComputedStyle(o); const sum = (c: string) => { const m = c.match(/[\d.]+/g)!.map(Number); return m[0] + m[1] + m[2]; }; return { scheme: getComputedStyle(s).colorScheme, bg: sum(oc.backgroundColor), fg: sum(oc.color) }; });
   const darkOk = dark.rows.every(r => r.scheme === 'dark' && r.bg < 200 && r.fg > 400);
   const lightOk = light.rows.every(r => r.scheme === 'light' && r.bg > 400 && r.fg < 200);
   const editOk = editSel.scheme === 'dark' && editSel.bg < 200 && editSel.fg > 400;
@@ -900,4 +901,48 @@ test('apikeys-model', async ({ page }) => {
     && reveal.on && reveal.val.startsWith('ab_') && reveal.val.length === 35 && reveal.meta.includes('never shown again');
   rec('apikeys-model', pass, a);
   expect(pass, 'apikeys-model').toBe(true);
+});
+
+test('users-model', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 6 (A): edit = name + roles only (email/tenant read-only, no status); status is a
+  // confirm-gated switch with suspended vocab; menu has Force logout; overflow Export CSV downloads;
+  // Name/Created headers sort.
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  await page.locator('#userRows button[aria-label="Edit"]').first().click();
+  const edit = await page.evaluate(() => ({
+    name: !!document.querySelector('#formBody [data-field=name]'),
+    roles: document.querySelectorAll('#formBody [data-field=roles] input[type=checkbox]').length,
+    emailRo: (document.querySelector('#formBody [data-field=email]') as HTMLInputElement).disabled,
+    tenantRo: (document.querySelector('#formBody [data-field=tenant]') as HTMLInputElement).disabled,
+    statusField: !!document.querySelector('#formBody [data-field=status]'),
+  }));
+  await page.keyboard.press('Escape');
+  const vocab = await page.evaluate(() => document.getElementById('userRows')!.textContent!.includes('Suspended') && !document.getElementById('userRows')!.textContent!.includes('Disabled'));
+  await page.locator('#userRows button[data-ustatus]').first().click();
+  const susConf = await page.evaluate(() => document.getElementById('confirmDelete')!.textContent);
+  await page.locator('#confirmDelete').click();
+  const susToast = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
+  await page.locator('#userRows button[data-more]').first().click();
+  const menuHasForce = await page.evaluate(() => !!document.querySelector('#rowMenu [data-maction=force]'));
+  await page.locator('#rowMenu [data-maction=force]').click();
+  const forceVerb = await page.evaluate(() => document.getElementById('confirmDelete')!.textContent);
+  await page.locator('#confirmModal [data-close=confirmModal]').first().click();
+  await page.setViewportSize({ width: 700, height: 900 }); // page-head overflow menu appears <=760px (R5)
+  await page.locator('[data-phmore=users]').click();
+  const exportItem = await page.evaluate(() => !!document.querySelector('#rowMenu [data-maction=export-users]'));
+  const dl = page.waitForEvent('download');
+  await page.locator('#rowMenu [data-maction=export-users]').click();
+  const download = await dl;
+  const first0 = await page.evaluate(() => document.querySelector('#userRows .u-nm')!.textContent);
+  await page.locator('[data-usort=name]').click();
+  await page.locator('[data-usort=name]').click();
+  const sorted = await page.evaluate(() => ({ first: document.querySelector('#userRows .u-nm')!.textContent, ic: document.querySelector('[data-usort=name] .sort-ic')!.textContent }));
+  const a = { edit, vocab, susConf, susToast, menuHasForce, forceVerb, exportItem, file: download.suggestedFilename(), first0, sorted };
+  const pass = edit.name && edit.roles >= 2 && edit.emailRo && edit.tenantRo && !edit.statusField
+    && vocab && susConf === 'Suspend' && susToast === 'Status updated'
+    && menuHasForce && forceVerb === 'Force logout' && exportItem && download.suggestedFilename() === 'users.csv'
+    && sorted.first !== first0 && sorted.ic === '▼';
+  rec('users-model', pass, a);
+  expect(pass, 'users-model').toBe(true);
 });

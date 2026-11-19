@@ -635,3 +635,17 @@ input and now reveals the one-time ab_ plaintext via revealModal with "never sho
 sample prefixes abk_live_* -> ab_*; subtitle now "immutable — revoke & reissue to change".
 New harness apikeys-model (31 total): no Edit/Delete, revoke confirm-gated (cancel keeps Active),
 create form name+expires only, reveal ab_ 35-char once. All 31 pass.
+
+## Adjudication 6 (A): Users aligned to real model (mutability / vocab / actions / sort) — 2026-11-19
+Panel F5 / R4#9-10 / R2#4: prototype let edit change email/status/tenant; real edit = name+roleIds only
+(email read-only, status via independent switch that revokes sessions, tenant is a partition key);
+vocab disabled vs real suspended; missing Force logout / Export CSV / sorters. Ruling A: USERS gained a
+roles array + Roles column; edit modal = name + roles checkboxes + read-only email/tenant (no status);
+status tag became a confirm-gated switch (Suspend/Reactivate, suspend wording revokes all sessions);
+vocab suspended everywhere (data/filter/tag); row menu Disable/Enable replaced by Force logout
+(confirm, sessions-only wording); overflow gained Export CSV (real blob download); Name/Created headers
+sort asc/desc with indicator; page-head sub discloses multi-tenant demo data vs real token partition.
+Fixes: tags/esc were late const arrows (TDZ) now hoisted function declarations because renderUsers calls
+them at load. Harness synced: filter-narrows suspended, overflow-menu first item = Force logout confirm,
+combobox-popup dynamic-select probe moved to Settings idleSelect (users edit no longer has a select),
+users-model new group (32 total) incl. narrow-viewport overflow + CSV download + sort. All 32 pass.
