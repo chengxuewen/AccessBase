@@ -677,3 +677,47 @@ test('combobox-popup', async ({ page }) => {
   rec('combobox-popup', pass, a);
   expect(pass, 'combobox-popup').toBe(true);
 });
+
+test('combobox-themed', async ({ page }) => {
+  await page.goto(FILE);
+  // The visible combobox must be a design-language custom widget, NOT the native select popup.
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  const base = await page.evaluate(() => {
+    const sels = [...document.querySelectorAll('select')];
+    const cs = getComputedStyle(document.documentElement);
+    return {
+      selCount: sels.length,
+      cbxCount: sels.filter(s => (s as any)._cbx).length,
+      allNativeHidden: sels.every(s => getComputedStyle(s).display === 'none'),
+      surface: cs.getPropertyValue('--surface').trim(),
+    };
+  });
+  // open the tenant filter combobox; list must use token surface; picking an option fires change (filters)
+  const before = await page.evaluate(() => document.querySelectorAll('#userRows tr').length);
+  const opened = await page.evaluate(() => {
+    const sel = document.getElementById('tenantFilter') as any;
+    sel._cbx.querySelector('.cbx-btn').click();
+    const list = sel._cbx.querySelector('.cbx-list');
+    const lc = getComputedStyle(list);
+    const surf = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim();
+    // compare via a probe element resolved color
+    const probe = document.createElement('div'); probe.style.background = surf; document.body.appendChild(probe);
+    const want = getComputedStyle(probe).backgroundColor; probe.remove();
+    return { open: sel._cbx.classList.contains('open'), listBg: lc.backgroundColor, want, opts: list.querySelectorAll('.cbx-opt').length };
+  });
+  await page.evaluate(() => {
+    const sel = document.getElementById('tenantFilter') as any;
+    const opt = [...sel._cbx.querySelectorAll('.cbx-opt')].find((o: any) => o.dataset.value === 'Globex');
+    opt.click();
+  });
+  const after = await page.evaluate(() => {
+    const sel = document.getElementById('tenantFilter') as any;
+    return { value: sel.value, label: sel._cbx.querySelector('.cbx-val').textContent, rows: document.querySelectorAll('#userRows tr').length, closed: !sel._cbx.classList.contains('open') };
+  });
+  const a = { base, opened, before, after };
+  const pass = base.cbxCount === base.selCount && base.allNativeHidden
+    && opened.open && opened.listBg === opened.want && opened.opts >= 2
+    && after.value === 'Globex' && after.label === 'Globex' && after.rows < before && after.closed;
+  rec('combobox-themed', pass, a);
+  expect(pass, 'combobox-themed').toBe(true);
+});

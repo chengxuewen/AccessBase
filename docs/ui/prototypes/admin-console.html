@@ -161,6 +161,33 @@ button{font-family:inherit;cursor:pointer}
 select{color-scheme:light}
 html[data-theme="dark"] select{color-scheme:dark}
 select option{background:var(--surface);color:var(--tx1)}
+/* ==== Themed combobox: native <select> is hidden (value/event source only); the visible control and
+   its open list are drawn entirely from design tokens so every pack/theme looks consistent. ==== */
+.cbx-src{display:none}
+.cbx{position:relative;display:inline-block;vertical-align:middle}
+.cbx-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit;line-height:1.4;cursor:pointer}
+.cbx-btn:hover{background:var(--sunken)}
+.cbx-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.cbx-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cbx-chev{width:12px;height:12px;color:var(--tx3);flex-shrink:0;transform:rotate(90deg);transition:transform .15s}
+.cbx.open .cbx-chev{transform:rotate(270deg)}
+.cbx.open .cbx-btn{border-color:var(--accent)}
+.cbx-list{position:absolute;top:calc(100% + 4px);left:0;min-width:100%;max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r4);box-shadow:0 8px 24px rgba(0,0,0,.16);z-index:70;padding:4px;display:none}
+.cbx.open .cbx-list{display:block}
+html[data-theme="dark"] .cbx-list{box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.cbx-list::-webkit-scrollbar{width:8px}
+.cbx-list::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+.cbx-list::-webkit-scrollbar-track{background:transparent}
+.cbx-opt{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--r4);font-size:var(--fs12);color:var(--tx1);cursor:pointer;white-space:nowrap}
+.cbx-opt:hover,.cbx-opt.active{background:var(--sunken)}
+.cbx-opt[aria-selected="true"]{color:var(--accent);font-weight:500}
+.cbx-opt[aria-selected="true"]::after{content:"\2713";margin-left:auto;color:var(--accent)}
+.toolbar .cbx-btn{padding:5px 8px;font-size:var(--fs12)}
+.scope-box .cbx-btn{padding:4px 8px;font-size:var(--fs12)}
+.add-member .cbx{flex:1}
+.add-member .cbx-btn{width:100%;padding:6px 8px;font-size:var(--fs13)}
+.field .cbx{display:block;width:100%}
+.field .cbx-btn{width:100%;padding:6px 8px;font-size:var(--fs13)}
 .toolbar select{padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit}
 .toolbar .spacer{flex:1}
 .toolbar .count{font-size:var(--fs12);color:var(--tx3);font-family:var(--mono)}
@@ -1079,7 +1106,7 @@ const EDITDEFS={
  apikeys:{title:'Edit API key',fields:[['name','Name'],['scopes','Scopes (comma-separated)'],['expires','Expires (YYYY-MM-DD, blank = never)']],get:i=>({name:APIKEYS[i].name,scopes:APIKEYS[i].scopes.join(', '),expires:APIKEYS[i].expires||''}),set:(i,v)=>{APIKEYS[i].name=v.name;APIKEYS[i].scopes=v.scopes?v.scopes.split(',').map(s=>s.trim()).filter(Boolean):[];APIKEYS[i].expires=v.expires||null;renderApikeys();}},
  webhooks:{title:'Edit endpoint',fields:[['url','URL'],['events','Subscribed events (comma-separated)']],get:i=>({url:WEBHOOKS[i].url,events:WEBHOOKS[i].events.join(', ')}),set:(i,v)=>{WEBHOOKS[i].url=v.url;WEBHOOKS[i].events=v.events?v.events.split(',').map(s=>s.trim()).filter(Boolean):[];renderWebhooks();}}
 };
-function openEdit(kind,idx){formKind=kind;formEdit=idx;const d=EDITDEFS[kind];const cur=d.get(idx);$('formTitle').textContent=d.title;$('formBody').innerHTML=d.fields.map(f=>{const k=f[0],l=f[1],type=f[2];const val=cur[k]==null?'':cur[k];let ctl;if(type&&type.indexOf('select:')===0){ctl='<select data-field="'+k+'">'+type.slice(7).split(',').map(o=>'<option'+(o===val?' selected':'')+'>'+o+'</option>').join('')+'</select>';}else if(type==='textarea'){ctl='<textarea data-field="'+k+'" rows="3">'+esc(val)+'</textarea>';}else{ctl='<input data-field="'+k+'" value="'+esc(val)+'">';}return '<div class="field"><label>'+l+'</label>'+ctl+'</div>';}).join('');$('formSave').textContent='Save';openModal('formModal');}
+function openEdit(kind,idx){formKind=kind;formEdit=idx;const d=EDITDEFS[kind];const cur=d.get(idx);$('formTitle').textContent=d.title;$('formBody').innerHTML=d.fields.map(f=>{const k=f[0],l=f[1],type=f[2];const val=cur[k]==null?'':cur[k];let ctl;if(type&&type.indexOf('select:')===0){ctl='<select data-field="'+k+'">'+type.slice(7).split(',').map(o=>'<option'+(o===val?' selected':'')+'>'+o+'</option>').join('')+'</select>';}else if(type==='textarea'){ctl='<textarea data-field="'+k+'" rows="3">'+esc(val)+'</textarea>';}else{ctl='<input data-field="'+k+'" value="'+esc(val)+'">';}return '<div class="field"><label>'+l+'</label>'+ctl+'</div>';}).join('');$('formSave').textContent='Save';enhanceAllSelects($('formBody'));openModal('formModal');}
 const DEL={
  users:i=>{USERS.splice(i,1);renderUsers();},
  roles:i=>{ROLES.splice(i,1);selRole=Math.max(0,Math.min(selRole,ROLES.length-1));renderRoles();renderMatrix();},
@@ -1095,6 +1122,19 @@ function openConfirm(kind,idx){pendingDelete={kind:kind,idx:idx};$('confirmTitle
 $('confirmDelete').onclick=()=>{if(!pendingDelete)return;const d=pendingDelete;pendingDelete=null;DEL[d.kind](d.idx);closeModal('confirmModal');toast('Deleted');};
 const EDIT_ANCHOR={users:'data-more',roles:'data-role',groups:'data-manage',tenants:'data-tstatus',clients:'data-rotate-client',apikeys:'data-revoke',webhooks:'data-ping'};
 document.addEventListener('click',e=>{const eb=e.target.closest('button[aria-label="Edit"],button[data-tip="Edit"]');const db=e.target.closest('button[aria-label="Delete"],button[data-tip="Delete"]');if(!eb&&!db)return;const btn=eb||db;if(btn.disabled)return;const page=btn.closest('section.page');if(!page)return;const kind=page.id.replace('page-','');if(!EDIT_ANCHOR[kind])return;const tr=btn.closest('tr');const anchor=tr.hasAttribute(EDIT_ANCHOR[kind])?tr:tr.querySelector('['+EDIT_ANCHOR[kind]+']');if(!anchor)return;const idx=+anchor.getAttribute(EDIT_ANCHOR[kind]);if(eb){openEdit(kind,idx);}else{openConfirm(kind,idx);}});
+/* ==== Themed combobox enhancement: wrap every <select> in a token-styled combobox; the native select
+   is hidden but remains the value/event source so all existing onchange/oninput handlers keep working.
+   Syncs label on change/input, on programmatic .value sets (property descriptor), and on option rebuild
+   (MutationObserver) so dynamic selects (member picker, edit-modal) stay correct. ==== */
+let cbxSeq=0;let openCbx=null;
+function cbxBuildList(sel){const w=sel._cbx;if(!w)return;const list=w.querySelector('.cbx-list');list.innerHTML='';[...sel.options].forEach(o=>{const d=document.createElement('div');d.className='cbx-opt';d.setAttribute('role','option');d.dataset.value=o.value;d.setAttribute('aria-selected',o.selected?'true':'false');d.textContent=o.textContent;d.onclick=e=>{e.stopPropagation();sel.value=o.value;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxClose();};list.appendChild(d);});}
+function cbxRefresh(sel){const w=sel._cbx;if(!w)return;const o=sel.options[sel.selectedIndex];w.querySelector('.cbx-val').textContent=o?o.textContent:'';if(w.classList.contains('open'))cbxBuildList(sel);}
+function cbxClose(){if(openCbx){openCbx.classList.remove('open');openCbx.querySelector('.cbx-btn').setAttribute('aria-expanded','false');openCbx=null;}}
+function cbxOpen(sel){const w=sel._cbx;cbxClose();cbxBuildList(sel);w.classList.add('open');w.querySelector('.cbx-btn').setAttribute('aria-expanded','true');openCbx=w;const so=w.querySelector('.cbx-opt[aria-selected="true"]');if(so)so.classList.add('active');}
+function enhanceSelect(sel){if(sel._cbx)return;const w=document.createElement('span');w.className='cbx';const id='cbx-list-'+(++cbxSeq);w.innerHTML='<button type="button" class="cbx-btn" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="'+id+'"><span class="cbx-val"></span><svg class="ic cbx-chev"><use href="#i-chev-r"/></svg></button><div class="cbx-list" role="listbox" id="'+id+'"></div>';sel.parentNode.insertBefore(w,sel);sel.classList.add('cbx-src');w.appendChild(sel);sel._cbx=w;const btn=w.querySelector('.cbx-btn');btn.onclick=e=>{e.stopPropagation();if(openCbx===w){cbxClose();}else{cbxOpen(sel);}};btn.onkeydown=e=>{const opts=[...w.querySelectorAll('.cbx-opt')];let ai=opts.findIndex(o=>o.classList.contains('active'));if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(openCbx!==w){cbxOpen(sel);const o2=[...w.querySelectorAll('.cbx-opt')];if(o2[0])o2[0].classList.add('active');return;}ai=ai<0?0:(ai+(e.key==='ArrowDown'?1:-1)+opts.length)%opts.length;opts.forEach(o=>o.classList.remove('active'));opts[ai].classList.add('active');opts[ai].scrollIntoView({block:'nearest'});}else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(openCbx!==w){cbxOpen(sel);}else if(ai>=0){opts[ai].click();}}else if(e.key==='Escape'||e.key==='Tab'){cbxClose();}};sel.addEventListener('change',()=>cbxRefresh(sel));sel.addEventListener('input',()=>cbxRefresh(sel));new MutationObserver(()=>{cbxBuildList(sel);cbxRefresh(sel);}).observe(sel,{childList:true,subtree:true,characterData:true});const desc=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value');Object.defineProperty(sel,'value',{configurable:true,get(){return desc.get.call(this);},set(v){desc.set.call(this,v);cbxRefresh(this);}});cbxRefresh(sel);}
+function enhanceAllSelects(root){(root||document).querySelectorAll('select').forEach(enhanceSelect);}
+document.addEventListener('click',e=>{if(openCbx&&!e.target.closest('.cbx'))cbxClose();});
+enhanceAllSelects();
 /* ==== v0.9 Profile — grounded in real admin-ui Profile.tsx ==== */
 const PROFILE={name:'Admin User',email:'admin@acme.io',isActive:true,emailVerified:false};
 let OAUTH_LINKS=[{provider:'github',account:'admin-acme'}];

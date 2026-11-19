@@ -564,3 +564,19 @@ add-member, style pack) and the dynamically-built edit-modal selects. Verified: 
 light-text with all options readable (screenshot); harness combobox-popup (25 total) asserts option
 contrast + color-scheme across all 10 static selects in light AND dark plus the edit-modal select. All 25
 pass; no regression.
+
+## Combobox fully themed (custom widget, not native) — 2026-11-19 (user: "must follow design language")
+User clarified the earlier color-scheme fix was insufficient: the dropdown was still the NATIVE OS popup.
+Requirement: every combobox must be drawn from the design language (7 packs' tokens), not native widgets.
+Implementation: progressive enhancement wraps each <select> in a custom combobox (.cbx): a token-styled
+button (surface/bd/r4/fs12/tx1, hover sunken, focus-visible accent ring, rotating chevron) + an absolutely
+positioned token-styled listbox (surface/bd/r4, themed thin scrollbar, accent selected row with check,
+sunken hover/active). The native <select> is hidden (.cbx-src{display:none}) but remains the value/event
+source, so ALL existing onchange/oninput handlers keep working. Sync: label refresh on change/input, on
+programmatic .value sets (property descriptor override), and on option rebuild (MutationObserver) so
+dynamic selects (member picker, edit-modal status) stay correct; edit-modal selects enhanced on open.
+Keyboard (Arrow/Enter/Space/Escape/Tab), aria combobox/listbox/option, outside-click close, single-open.
+Context sizing for toolbar/scope-box/add-member/field. Verified screenshots light+dark (ant): listbox uses
+pack surface/border/radius, selected accent+check, hover sunken — no native chrome. New harness
+combobox-themed (26 total): all 10 selects enhanced + native hidden, listbox bg == token surface, picking
+an option fires change (users filter 8->4) + label sync + close. All 26 pass; no regression.

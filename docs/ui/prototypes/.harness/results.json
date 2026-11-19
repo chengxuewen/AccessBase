@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 33,
-        "svgIcons": 229,
+        "svgIcons": 239,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -435,6 +435,30 @@
           "scheme": "dark",
           "bg": 96,
           "fg": 688
+        }
+      }
+    },
+    "combobox-themed": {
+      "pass": true,
+      "assertions": {
+        "base": {
+          "selCount": 10,
+          "cbxCount": 10,
+          "allNativeHidden": true,
+          "surface": "#FFFFFF"
+        },
+        "opened": {
+          "open": true,
+          "listBg": "rgb(255, 255, 255)",
+          "want": "rgb(255, 255, 255)",
+          "opts": 4
+        },
+        "before": 8,
+        "after": {
+          "value": "Globex",
+          "label": "Globex",
+          "rows": 4,
+          "closed": true
         }
       }
     }
