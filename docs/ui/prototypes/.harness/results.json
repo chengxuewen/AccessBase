@@ -372,6 +372,21 @@
       "assertions": {
         "over": []
       }
+    },
+    "chip-columns": {
+      "pass": true,
+      "assertions": {
+        "auditChip": {
+          "tallest": 16,
+          "clipped": false
+        },
+        "whCell": {
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "chipClipped": false
+        },
+        "scopesInline": true
+      }
     }
   }
 }

@@ -563,3 +563,34 @@ test('table-fit', async ({ page }) => {
   rec('table-fit', pass, a);
   expect(pass, 'table-fit').toBe(true);
 });
+
+test('chip-columns', async ({ page }) => {
+  await page.goto(FILE);
+  // Scopes / Events / Action chip columns: chips stay one line, are not ellipsis-clipped, and sit inline.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.evaluate(() => { (document.querySelector('[data-page=audit]') as HTMLElement).click(); });
+  const auditChip = await page.evaluate(() => {
+    const tags = [...document.querySelectorAll('#auditRows .tag')];
+    const tallest = Math.max(...tags.map(t => (t as HTMLElement).offsetHeight));
+    const clipped = tags.some(t => t.scrollWidth > t.clientWidth);
+    return { tallest, clipped };
+  });
+  await page.evaluate(() => { (document.querySelector('[data-page=webhooks]') as HTMLElement).click(); });
+  const whCell = await page.evaluate(() => {
+    const td = document.querySelector('#webhookRows tr td:nth-child(2)') as HTMLElement;
+    const cs = getComputedStyle(td);
+    const chips = [...td.querySelectorAll('.tag')];
+    return { overflow: cs.overflow, textOverflow: cs.textOverflow, chipClipped: chips.some(c => c.scrollWidth > c.clientWidth) };
+  });
+  await page.evaluate(() => { (document.querySelector('[data-page=apikeys]') as HTMLElement).click(); });
+  const scopesInline = await page.evaluate(() => {
+    const chips = [...document.querySelectorAll('#apikeyRows tr:first-child td:nth-child(3) .tag')] as HTMLElement[];
+    return chips.length >= 2 && chips[0].offsetTop === chips[1].offsetTop;
+  });
+  const a = { auditChip, whCell, scopesInline };
+  const pass = auditChip.tallest <= 24 && !auditChip.clipped
+    && whCell.overflow === 'visible' && whCell.textOverflow === 'clip' && !whCell.chipClipped
+    && scopesInline;
+  rec('chip-columns', pass, a);
+  expect(pass, 'chip-columns').toBe(true);
+});

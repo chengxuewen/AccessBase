@@ -499,3 +499,19 @@ wrapping via :has() exceptions. Narrower (<900px) keeps auto + column-priority +
 Also kept truncation hygiene (identity name/email, copyable id, role description, event payload chip).
 New harness group table-fit (21 total): at 1440 all 9 list tables scrollWidth<=clientWidth (over=[]).
 All 21 pass; no regression. Screenshot 1440: tables fit, email ellipsis, sticky actions retained.
+
+## Chip-column display fix (Scopes / Events / Action) — 2026-11-19 (user-reported)
+User flagged poor rendering in the Scopes (API Keys), Events (Webhooks) and Action (Audit) columns:
+chips wrapped onto two lines inside the chip (Audit DELETE/PATCH/PUT), chips were ellipsis-clipped
+(Webhooks "tenant.created …"), or chips were forced to stack vertically (API Keys scopes). Root cause:
+the R6 fixed-layout equal-share middle columns were too narrow for chip content, the R6 td
+overflow:hidden+text-overflow:ellipsis clipped overflowing chips with "…", and .tag inherited
+white-space:normal so chip text wrapped internally.
+Fix: (1) .tag{white-space:nowrap} so a chip is always one line; (2) tag-bearing cells
+td:has(.tag){overflow:visible;text-overflow:clip} so whole chips wrap to the next line instead of being
+clipped mid-text; (3) explicit column widths at >=900px give chip/content columns room to sit inline
+(audit Action 210px / Time 150 / IP 130 / Status 80; webhooks Events 230 / counts 70 / actions 150;
+apikeys Prefix 150 / Scopes 170; clients Grant types 180). Verified by screenshot at 1440: Audit action
+chips single-line, Webhooks events chips inline full-text, API Keys scopes chips inline. New harness
+group chip-columns (22 total): audit chip one line + not clipped, webhooks cell overflow visible /
+text-overflow clip / chips not clipped, apikeys two scope chips same row. All 22 pass; no regression.
