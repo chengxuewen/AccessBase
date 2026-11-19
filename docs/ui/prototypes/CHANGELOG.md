@@ -390,3 +390,22 @@ gray-layout+white-container (AntD / iOS-grouped / most SaaS admin) vs white-firs
 (Carbon White / Geist / Fluent v9 / Material M2) vs M3 primary-tinted tonal surfaces vs warm
 neutral (M365 #FAF9F8). Verified carbon white look (white base + borders + gray-10 layers);
 harness 15 groups pass (no regression).
+
+## Dark page-background fidelity — 2026-11-19 (proactive same-class audit + adjudication 12 = A)
+Following the light page-bg fix (adjudication 11), audited all 7 packs' dark backgrounds + shell +
+structure tokens for the same "uniform model misrepresents a language" defect. Two found + fixed:
+- **ant dark shifted one level light**: --bg #141414 / --surface #1F1F1F were AntD's Container /
+  Elevated, not Layout / Container. Fixed to AntD dark colorBgLayout #000000 / colorBgContainer
+  #141414 (verified antd/es/theme/themes/dark/colors.js:24,40-42 + FastColor lighten: Layout=lighten0
+  #000, Container=lighten8 #141414, Elevated=lighten12 #1f1f1f); --sunken #0A0A0A (between, tags stay
+  visible). Dark tx3 contrast improved to 4.54.
+- **fluent dark not warm**: light became M365 warm (#FAF9F8) in adjudication 11 but dark stayed
+  neutral #1F1F1F/#2B2B2B. Carried warm identity into dark: --bg #201F1E / --surface #2B2A29 /
+  --sunken #1B1A19 / --hover #3B3A39 (M365 warm dark neutrals). Verified warm (R>G>B), tx3 contrast 5.35.
+Other packs' dark verified FAITHFUL (no change): carbon #161616/#262626 = Carbon g100 (ui-background
+gray-100 / layer-01 gray-90); cupertino #000/#1C1C1E = iOS dark grouped; geist #0A0A0A/#111 near-black;
+material #202124/#2D2E31 = Google-product dark (consistent with its light product-gray interpretation).
+Checked, debatable, NOT changed (design choices): uniform --surface sidebar/topbar (Carbon's iconic UI
+Shell is dark gray, but the prototype is a generic admin layout, not the Carbon Shell component);
+material capsule buttons + large radius lean M3 shape (Google-blue-era products did evolve pill shapes,
+consistent with the product interpretation). Harness 15 pass; ant dark screenshot.

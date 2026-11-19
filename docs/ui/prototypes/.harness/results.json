@@ -1,5 +1,5 @@
 {
-  "when": "2026-11-18",
+  "when": "2026-11-19",
   "prototype": "admin-console.html v0.9 (ALL 11 pages high-fidelity; 7 style packs x light/dark)",
   "runner": "playwright (reproducible suite; .harness/prototype.spec.ts)",
   "fail": 0,
