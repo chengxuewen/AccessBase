@@ -580,3 +580,13 @@ Context sizing for toolbar/scope-box/add-member/field. Verified screenshots ligh
 pack surface/border/radius, selected accent+check, hover sunken — no native chrome. New harness
 combobox-themed (26 total): all 10 selects enhanced + native hidden, listbox bg == token surface, picking
 an option fires change (users filter 8->4) + label sync + close. All 26 pass; no regression.
+
+## Adjudication 1 (A): danger button two-tier semantics + cross-pack readability — 2026-11-19
+Panel finding F2 (CRITICAL, render-verified): .btn.danger had filled red bg (:117) but a later Profile
+rule (:471) overrode only the text color -> text==background in broadsheet (invisible label), ~2.2:1 in
+ant/carbon. Ruling A: two tiers. Filled primary-danger (confirm Delete) = new per-pack --danger-solid
+(deep red giving >=4.5:1 with white) + --danger-inv text; secondary-danger (Profile Unlink / log-out
+other devices) = new .btn.danger.ghost (surface bg + --danger-text + danger border, hover danger-tint).
+--txinv proved pack-dependent wrong for red bg (carbon-dark white-on-pink ~2:1), hence dedicated tokens.
+Added ant-dark --danger-text:#FF7875 (ghost was 4.35:1). New harness danger-contrast (27 total): WCAG
+>=4.5 for filled AND ghost across 7 packs x light/dark; all 27 pass, bad=[].

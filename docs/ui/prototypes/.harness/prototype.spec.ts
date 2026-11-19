@@ -721,3 +721,36 @@ test('combobox-themed', async ({ page }) => {
   rec('combobox-themed', pass, a);
   expect(pass, 'combobox-themed').toBe(true);
 });
+
+test('danger-contrast', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 1 (A): filled danger = deep-red solid + inverse text; ghost danger = surface + danger text.
+  // Both must reach WCAG 4.5:1 in every pack x theme.
+  const packs = ['broadsheet', 'geist', 'material', 'fluent', 'ant', 'carbon', 'cupertino'];
+  const rows: any[] = [];
+  for (const pk of packs) {
+    for (const th of ['light', 'dark']) {
+      const r = await page.evaluate(([pk, th]) => {
+        const s = document.getElementById('styleSelect') as HTMLSelectElement; s.value = pk; s.onchange();
+        document.documentElement.dataset.theme = th;
+        const lum = (c: string) => { const m = c.match(/[\d.]+/g)!.map(Number); const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); };
+        const ratio = (a: string, b: string) => { const l1 = lum(a), l2 = lum(b); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
+        (document.querySelector('[data-page=clients]') as HTMLElement).click();
+        (document.querySelector('#clientRows button[aria-label="Delete"]') as HTMLElement).click();
+        const fd = document.getElementById('confirmDelete')!; const fc = getComputedStyle(fd);
+        const filled = ratio(fc.color, fc.backgroundColor);
+        (document.querySelector('[data-close=confirmModal]') as HTMLElement).click();
+        (document.querySelector('[data-page=profile]') as HTMLElement).click();
+        const gh = document.getElementById('revokeOthersBtn')!; const gc = getComputedStyle(gh);
+        const ghost = ratio(gc.color, gc.backgroundColor);
+        return { pk, th, filled: +filled.toFixed(2), ghost: +ghost.toFixed(2) };
+      }, [pk, th]);
+      rows.push(r);
+    }
+  }
+  const bad = rows.filter(r => r.filled < 4.5 || r.ghost < 4.5);
+  const a = { bad, sample: rows[0] };
+  const pass = bad.length === 0;
+  rec('danger-contrast', pass, a);
+  expect(pass, 'danger-contrast').toBe(true);
+});

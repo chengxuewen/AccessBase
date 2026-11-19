@@ -461,6 +461,18 @@
           "closed": true
         }
       }
+    },
+    "danger-contrast": {
+      "pass": true,
+      "assertions": {
+        "bad": [],
+        "sample": {
+          "pk": "broadsheet",
+          "th": "light",
+          "filled": 5.99,
+          "ghost": 5.99
+        }
+      }
     }
   }
 }
