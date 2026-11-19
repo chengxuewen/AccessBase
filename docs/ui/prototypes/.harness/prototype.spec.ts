@@ -649,3 +649,31 @@ test('row-crud', async ({ page }) => {
   rec('row-crud', pass, a);
   expect(pass, 'row-crud').toBe(true);
 });
+
+test('combobox-popup', async ({ page }) => {
+  await page.goto(FILE);
+  // Native combobox popup readability: option colors must follow the theme (color-scheme + explicit
+  // option bg/color), in every select incl. the dynamically-built edit-modal select.
+  const probe = () => page.evaluate(() => {
+    const sum = (c: string) => { const m = c.match(/[\d.]+/g)!.map(Number); return m[0] + m[1] + m[2]; };
+    const ids = ['tenantFilter', 'statusFilter', 'scopeSelect', 'kindFilter', 'memberPicker', 'tenantStatusFilter', 'apikeyStatusFilter', 'auditActionFilter', 'eventFamilyFilter', 'styleSelect'];
+    const theme = document.documentElement.dataset.theme || 'light';
+    const rows = ids.map(id => { const s = document.getElementById(id) as HTMLSelectElement; const o = s.querySelector('option')!; const oc = getComputedStyle(o); return { id, scheme: getComputedStyle(s).colorScheme, bg: sum(oc.backgroundColor), fg: sum(oc.color) }; });
+    return { theme, rows };
+  });
+  await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
+  const dark = await probe();
+  await page.evaluate(() => { document.documentElement.dataset.theme = 'light'; });
+  const light = await probe();
+  // edit-modal dynamic select (users Edit -> status select) in dark
+  await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  await page.locator('#userRows button[aria-label="Edit"]').first().click();
+  const editSel = await page.evaluate(() => { const s = document.querySelector('#formBody select') as HTMLSelectElement; const o = s.querySelector('option')!; const oc = getComputedStyle(o); const sum = (c: string) => { const m = c.match(/[\d.]+/g)!.map(Number); return m[0] + m[1] + m[2]; }; return { scheme: getComputedStyle(s).colorScheme, bg: sum(oc.backgroundColor), fg: sum(oc.color) }; });
+  const darkOk = dark.rows.every(r => r.scheme === 'dark' && r.bg < 200 && r.fg > 400);
+  const lightOk = light.rows.every(r => r.scheme === 'light' && r.bg > 400 && r.fg < 200);
+  const editOk = editSel.scheme === 'dark' && editSel.bg < 200 && editSel.fg > 400;
+  const a = { darkOk, lightOk, editOk, darkSample: dark.rows[0], lightSample: light.rows[0], editSel };
+  const pass = darkOk && lightOk && editOk;
+  rec('combobox-popup', pass, a);
+  expect(pass, 'combobox-popup').toBe(true);
+});

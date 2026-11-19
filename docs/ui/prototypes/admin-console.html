@@ -153,6 +153,14 @@ button{font-family:inherit;cursor:pointer}
 .quick button .q-d{font-size:var(--fs11);color:var(--tx3)}
 .toolbar{display:flex;align-items:center;gap:var(--sp8);padding:var(--sp12) var(--sp16);border-bottom:1px solid var(--bd);flex-wrap:wrap}
 .toolbar .search{max-width:260px;flex:0 1 260px}
+/* Native combobox popup readability: <option> inherits the select's color, and the native popup
+   backdrop does not follow the theme by default -> in dark packs the open list rendered light-on-light
+   (invisible options). color-scheme makes native popup chrome follow the theme; explicit option
+   background/color guarantee a readable list in every pack/theme. Applies to all selects incl. the
+   dynamically-built edit-modal selects. */
+select{color-scheme:light}
+html[data-theme="dark"] select{color-scheme:dark}
+select option{background:var(--surface);color:var(--tx1)}
 .toolbar select{padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit}
 .toolbar .spacer{flex:1}
 .toolbar .count{font-size:var(--fs12);color:var(--tx3);font-family:var(--mono)}

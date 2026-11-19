@@ -552,3 +552,15 @@ New harness row-crud (24 total): edit prefills Jane Doe, save updates row + Save
 confirm removes row (4->3) + Deleted toast. dead-controls updated (roles/tenants Edit now open edit modal).
 All 24 pass. Screenshots: prefilled Edit-user modal; Delete-client confirm modal.
 Remaining disclosed-inert (Create user/role/group, Import, reset-password, menu toggle/reset) stay as-is.
+
+## Combobox (native select) popup readability — 2026-11-19 (user-reported)
+User reported combobox dropdown popups render abnormally. Root cause (verified by opening a select in
+dark): <option> inherits the select's color (light in dark packs) while the native popup backdrop does
+not follow the theme -> the open list rendered light-on-light (options invisible; only the highlighted
+row readable). Fix: select{color-scheme:light} + html[data-theme=dark] select{color-scheme:dark} so native
+popup chrome follows the theme, plus select option{background:var(--surface);color:var(--tx1)} to
+guarantee a readable list in every pack/theme. Applies to ALL selects (toolbar filters, scope-box,
+add-member, style pack) and the dynamically-built edit-modal selects. Verified: dark popup now dark-bg /
+light-text with all options readable (screenshot); harness combobox-popup (25 total) asserts option
+contrast + color-scheme across all 10 static selects in light AND dark plus the edit-modal select. All 25
+pass; no regression.

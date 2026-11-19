@@ -412,6 +412,31 @@
         "after": 3,
         "deletedToast": "Deleted"
       }
+    },
+    "combobox-popup": {
+      "pass": true,
+      "assertions": {
+        "darkOk": true,
+        "lightOk": true,
+        "editOk": true,
+        "darkSample": {
+          "id": "tenantFilter",
+          "scheme": "dark",
+          "bg": 96,
+          "fg": 688
+        },
+        "lightSample": {
+          "id": "tenantFilter",
+          "scheme": "light",
+          "bg": 765,
+          "fg": 156
+        },
+        "editSel": {
+          "scheme": "dark",
+          "bg": 96,
+          "fg": 688
+        }
+      }
     }
   }
 }
