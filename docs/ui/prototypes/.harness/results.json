@@ -7,8 +7,8 @@
     "de-ai-slop": {
       "pass": true,
       "assertions": {
-        "symbolDefs": 33,
-        "svgIcons": 251,
+        "symbolDefs": 34,
+        "svgIcons": 261,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -180,6 +180,7 @@
           "rows": 7,
           "methodTags": 7,
           "deleteFilter": 1,
+          "verifyErrBanner": true,
           "verifyBanner": true
         },
         "events": {
@@ -712,6 +713,49 @@
         "groupRows": {
           "n": 1,
           "tag": "group.changed"
+        }
+      }
+    },
+    "states": {
+      "pass": true,
+      "assertions": {
+        "loading": {
+          "skel": 24,
+          "rows": 0
+        },
+        "loaded": 8,
+        "emptyFiltered": {
+          "state": true,
+          "clear": true
+        },
+        "cleared": 8,
+        "emptyTrue": {
+          "state": true,
+          "cta": true
+        },
+        "errState": {
+          "banner": true,
+          "retry": true,
+          "toastRole": "alert",
+          "toastCls": "proto-toast error"
+        },
+        "okState": {
+          "banner": true,
+          "errGone": true,
+          "toastRole": "status",
+          "live": "polite"
+        },
+        "s403": {
+          "on": true,
+          "crumb": "Forbidden",
+          "pages": 0
+        },
+        "back403": true,
+        "s404": true,
+        "sErr": true,
+        "retryBack": {
+          "dash": true,
+          "toast": "proto-toast info"
         }
       }
     }

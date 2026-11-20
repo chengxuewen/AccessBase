@@ -712,3 +712,20 @@ filter renderEvents by day; fam colors gain group (accent-tint) / webhook+auth (
 fictional fam-audit; date inputs themed incl. dark color-scheme. Harness mgmt-pages events rows 6->8;
 new events-model group (37 total): all types in catalog, no fiction, 7 families, from/to filtering,
 group filter. All 37 pass. Screenshot.
+
+## Adjudication 12 (A): three-state contract + full-page error states + toast variants — 2026-11-19
+Panel F11: no loading state, empty state only on users, no error/403/404/error-boundary states, success
+feedback faked by swapping button text. Ruling A: (1) loading skeleton rows wired to a toolbar Reload
+icon on all 9 list pages (real ProTable reload affordance; page switch stays synchronous because
+prototype data is local — disclosed in code comment); (2) unified EmptyState component (inbox icon +
+title + desc + action) on every list render, distinguishing filter-no-results (Clear filters button
+that resets that page's inputs) from truly-empty (Create CTA where a create flow exists); (3) error
+banner + Retry on the audit verify failure path (first verify fails with disclosed simulated anchor
+lag, retry shows the verified banner) and audit Export became a real CSV download; (4) full-page
+403/404/500 states reachable via hash routes #/403 #/404 #/error (no nav items; Back/Retry/Request
+access actions; hashchange restores the last content page); (5) toast upgraded to success/error/info
+variants with icons + role=status/alert + aria-live, replacing ALL button-text-swap fakes (saveRoles,
+revealCopy, export, revokeOthers, pwdSubmit, unwired-menu fallback). Harness mgmt-pages verify now
+asserts err-banner then retry->verified; new states group (38 total): skeleton->rows, empty filtered +
+clear, truly-empty CTA, error banner + alert toast, retry + polite toast, 403/404/error routing + back +
+retry. All 38 pass. Screenshots: 403 page, users empty state.

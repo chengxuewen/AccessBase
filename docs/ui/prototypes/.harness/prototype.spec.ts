@@ -262,6 +262,8 @@ test('mgmt-pages', async ({ page }) => {
     (audit as Record<string, unknown>).deleteFilter = document.querySelectorAll('#auditRows tr').length;
     setF('auditActionFilter', '');
     (document.getElementById('verifyBtn') as HTMLElement).click();
+    (audit as Record<string, unknown>).verifyErrBanner = document.getElementById('auditErrBanner')!.style.display === 'flex';
+    (document.getElementById('auditRetry') as HTMLElement).click();
     (audit as Record<string, unknown>).verifyBanner = document.getElementById('auditVerifyBanner')!.style.display === 'flex';
     click('events');
     const events = { rows: document.querySelectorAll('#eventRows tr').length, familyTags: document.querySelectorAll('#eventRows .tag[class*=fam-]').length };
@@ -273,7 +275,7 @@ test('mgmt-pages', async ({ page }) => {
   const pass = a.tenants.rows === 5 && (a.tenants as Record<string, number>).suspendedFilter === 1
     && a.clients.rows === 4 && a.apikeys.rows === 4 && (a.apikeys as Record<string, number>).revokedFilter === 1
     && a.webhooks.rows === 3 && a.audit.rows === 7 && (a.audit as Record<string, number>).deleteFilter === 1
-    && (a.audit as Record<string, boolean>).verifyBanner && a.events.rows === 8 && (a.events as Record<string, number>).userFilter === 2;
+    && (a.audit as Record<string, boolean>).verifyErrBanner && (a.audit as Record<string, boolean>).verifyBanner && a.events.rows === 8 && (a.events as Record<string, number>).userFilter === 2;
   rec('mgmt-pages', pass, a);
   expect(pass, 'mgmt-pages').toBe(true);
 });
@@ -1152,4 +1154,48 @@ test('events-model', async ({ page }) => {
     && fromRows === 7 && dayRows === 1 && groupRows.n === 1 && groupRows.tag === 'group.changed';
   rec('events-model', pass, a);
   expect(pass, 'events-model').toBe(true);
+});
+
+test('states', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);
+  // error banner + retry on verify failure; toast variants w/ aria-live; full-page 403/404/error via hash.
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  await page.locator('[data-reload=users]').click();
+  const loading = await page.evaluate(() => ({ skel: document.querySelectorAll('#userRows .skel').length, rows: document.querySelectorAll('#userRows .u-nm').length }));
+  await page.waitForTimeout(700);
+  const loaded = await page.evaluate(() => document.querySelectorAll('#userRows .u-nm').length);
+  await page.locator('#userSearch').fill('zzz-no-match');
+  const emptyFiltered = await page.evaluate(() => ({ state: !!document.querySelector('#userRows .empty-state'), clear: !!document.querySelector('#userRows [data-empty-clear=users]') }));
+  await page.locator('#userRows [data-empty-clear=users]').click();
+  const cleared = await page.evaluate(() => document.querySelectorAll('#userRows .u-nm').length);
+  await page.evaluate(() => { eval('OPTIONS.length=0'); eval('renderOptions()'); (document.querySelector('[data-page=settings]') as HTMLElement).click(); (document.querySelector('#settingsTabs button[data-tab=soptions]') as HTMLElement).click(); });
+  const emptyTrue = await page.evaluate(() => ({ state: !!document.querySelector('#optionRows .empty-state'), cta: !!document.querySelector('#optionRows [data-create=options]') }));
+  await page.evaluate(() => { (document.querySelector('[data-page=audit]') as HTMLElement).click(); });
+  await page.locator('#verifyBtn').click();
+  const errState = await page.evaluate(() => ({ banner: document.getElementById('auditErrBanner')!.style.display === 'flex', retry: !!document.getElementById('auditRetry'), toastRole: document.getElementById('protoToast')!.getAttribute('role'), toastCls: document.getElementById('protoToast')!.className }));
+  await page.locator('#auditRetry').click();
+  const okState = await page.evaluate(() => ({ banner: document.getElementById('auditVerifyBanner')!.style.display === 'flex', errGone: document.getElementById('auditErrBanner')!.style.display === 'none', toastRole: document.getElementById('protoToast')!.getAttribute('role'), live: document.getElementById('protoToast')!.getAttribute('aria-live') }));
+  await page.goto(FILE + '#/403');
+  const s403 = await page.evaluate(() => ({ on: document.getElementById('state-403')!.classList.contains('on'), crumb: document.getElementById('crumbPage')!.textContent, pages: document.querySelectorAll('.page.on').length }));
+  await page.locator('#state-403 [data-state-back]').click();
+  await page.waitForTimeout(80); // hashchange is async
+  const back403 = await page.evaluate(() => document.querySelectorAll('.state-page.on').length === 0 && document.querySelectorAll('.page.on').length === 1);
+  await page.goto(FILE + '#/404');
+  const s404 = await page.evaluate(() => document.getElementById('state-404')!.classList.contains('on'));
+  await page.goto(FILE + '#/error');
+  const sErr = await page.evaluate(() => document.getElementById('state-error')!.classList.contains('on'));
+  await page.locator('#state-error [data-state-retry]').click();
+  await page.waitForTimeout(80); // hashchange is async
+  const retryBack = await page.evaluate(() => ({ dash: document.querySelectorAll('.state-page.on').length === 0 && document.querySelectorAll('.page.on').length === 1, toast: document.getElementById('protoToast')!.className }));
+  const a = { loading, loaded, emptyFiltered, cleared, emptyTrue, errState, okState, s403, back403, s404, sErr, retryBack };
+  const pass = loading.skel > 0 && loading.rows === 0 && loaded > 0
+    && emptyFiltered.state && emptyFiltered.clear && cleared > 0
+    && emptyTrue.state && emptyTrue.cta
+    && errState.banner && errState.retry && errState.toastRole === 'alert' && errState.toastCls.includes('error')
+    && okState.banner && okState.errGone && okState.toastRole === 'status' && okState.live === 'polite'
+    && s403.on && s403.crumb === 'Forbidden' && s403.pages === 0 && back403 && s404 && sErr
+    && retryBack.dash && retryBack.toast.includes('info');
+  rec('states', pass, a);
+  expect(pass, 'states').toBe(true);
 });
