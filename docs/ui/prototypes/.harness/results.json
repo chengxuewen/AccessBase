@@ -532,7 +532,7 @@
         "before": 4,
         "confirmOpen": true,
         "after": 3,
-        "deletedToast": "Deleted"
+        "deletedToast": "Client deleted"
       }
     },
     "combobox-popup": {
@@ -1029,19 +1029,29 @@
       "assertions": {
         "noEdit": true,
         "form": {
-          "grants": 3,
-          "tam": 4,
+          "grants": 2,
+          "tam": 3,
           "bc": true
         },
         "e002": true,
         "e003": true,
         "eB5": true,
         "eScope": true,
+        "eScopeReq": true,
         "rows0": 4,
+        "createBusy": true,
+        "createErr": true,
         "created": {
           "reveal": true,
           "rows": 5
-        }
+        },
+        "rotErr": true,
+        "rotOk": true,
+        "delFail": {
+          "err": true,
+          "rows": 5
+        },
+        "delOk": 4
       }
     },
     "cbx-capabilities": {

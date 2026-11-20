@@ -859,11 +859,14 @@ test('row-crud', async ({ page }) => {
   await page.locator('#clientRows button[aria-label="Delete"]').first().click();
   const confirmOpen = await page.evaluate(() => document.getElementById('confirmModal')!.classList.contains('on'));
   await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600); // adjudication 28: clients delete async, simulated first failure
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
   const after = await page.evaluate(() => document.querySelectorAll('#clientRows tr').length);
   const deletedToast = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
   const a = { editOpen, prefilled, savedClosed, rowUpdated, savedToast, before, confirmOpen, after, deletedToast };
   const pass = editOpen && prefilled === 'Jane Doe' && savedClosed && rowUpdated === 'Edited Name' && savedToast === 'Saved'
-    && confirmOpen && after === before - 1 && deletedToast === 'Deleted';
+    && confirmOpen && after === before - 1 && deletedToast === 'Client deleted';
   rec('row-crud', pass, a);
   expect(pass, 'row-crud').toBe(true);
 });
@@ -1665,6 +1668,7 @@ test('clients-model', async ({ page }) => {
   const e003 = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('CLIENT_003'));
   await page.locator('#formBody [data-field=redirectUris]').fill('https://svc.e2e.io/cb');
   await page.locator('#formBody [data-grant="client_credentials"]').click();
+  await page.locator('#formBody [data-field=scope]').fill('openid'); // adjudication 28: scope required precedes B5
   await page.evaluate(() => { (document.querySelector('#formBody [data-field=tokenAuthMethod]') as HTMLSelectElement).value = 'none'; });
   await page.locator('#formSave').click();
   const eB5 = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('B5'));
@@ -1672,13 +1676,40 @@ test('clients-model', async ({ page }) => {
   await page.locator('#formBody [data-field=scope]').fill('foo');
   await page.locator('#formSave').click();
   const eScope = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('offline_access'));
+  await page.locator('#formBody [data-field=scope]').fill('');
+  await page.locator('#formSave').click();
+  const eScopeReq = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('scope is required')); // adjudication 28: no silent default
   await page.locator('#formBody [data-field=scope]').fill('openid');
   const rows0 = await page.evaluate(() => document.querySelectorAll('#clientRows tr').length);
   await page.locator('#formSave').click();
+  const createBusy = await page.evaluate(() => (document.getElementById('formSave') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600); // adjudication 28: simulated createError keeps the form
+  const createErr = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('Create failed'));
+  await page.locator('#formSave').click();
+  await page.waitForTimeout(600);
   const created = await page.evaluate(() => ({ reveal: document.getElementById('revealModal')!.classList.contains('on'), rows: document.querySelectorAll('#clientRows tr').length }));
-  const a = { noEdit, form, e002, e003, eB5, eScope, rows0, created };
-  const pass = noEdit && form.grants === 3 && form.tam === 4 && form.bc
-    && e002 && e003 && eB5 && eScope && created.reveal && created.rows === rows0 + 1;
+  await page.keyboard.press('Escape');
+  // rotate: Busy + simulated rotateError then reveal-once
+  await page.locator('#clientRows [data-rotate-client]').first().click();
+  await page.waitForTimeout(600);
+  const rotErr = await page.evaluate(() => document.getElementById('protoToast')!.textContent!.includes('Rotate failed'));
+  await page.locator('#clientRows [data-rotate-client]').first().click();
+  await page.waitForTimeout(600);
+  const rotOk = await page.evaluate(() => document.getElementById('revealModal')!.classList.contains('on'));
+  await page.keyboard.press('Escape');
+  // delete: confirm run hook, simulated deleteError keeps the row, retry deletes
+  await page.locator('#clientRows button[aria-label="Delete"]').first().click();
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
+  const delFail = await page.evaluate(() => ({ err: document.getElementById('confirmErr')!.style.display === 'flex', rows: document.querySelectorAll('#clientRows tr').length }));
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
+  const delOk = await page.evaluate(() => document.querySelectorAll('#clientRows tr').length);
+  const a = { noEdit, form, e002, e003, eB5, eScope, eScopeReq, rows0, createBusy, createErr, created, rotErr, rotOk, delFail, delOk };
+  const pass = noEdit && form.grants === 2 && form.tam === 3 && form.bc
+    && e002 && e003 && eB5 && eScope && eScopeReq && createBusy && createErr
+    && created.reveal && created.rows === rows0 + 1
+    && rotErr && rotOk && delFail.err && delFail.rows === created.rows && delOk === created.rows - 1;
   rec('clients-model', pass, a);
   expect(pass, 'clients-model').toBe(true);
 });

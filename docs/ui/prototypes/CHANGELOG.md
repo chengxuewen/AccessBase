@@ -957,3 +957,19 @@ confirm async run hook with simulated statusError/deleteError that keep the row 
 Retry, with suspended/activated success wording. Policy hint text updated to the shared 12+ wording.
 Simulated failures disclosed per precedent. Harness tenants-model synced to field-level errors + async
 sequences + create failure/retry (49 total). All 49 pass. Screenshot: init field errors.
+
+## Adjudication 28 (A): Clients enums mirror server + scope required + async create/rotate/delete — 2026-11-20
+Panel Clients surface: ALLOWED_GRANTS carried urn:ietf:params:oauth:grant-type:device_code although the
+server rejects anything but authorization_code / client_credentials at registration (clients.ts:150);
+the tokenAuthMethod select offered private_key_jwt which is not in the real TOKEN_AUTH_METHODS
+(basic/post/none, Clients.tsx:38); an empty scope silently defaulted to "openid profile email", masking
+the real required rule (:313) and server non-empty check (clients.ts:154); create/rotate/delete ran
+synchronously while the real console is async with createError/rotateError/deleteError and reveal-once.
+Ruling A: grants reduced to the two server-accepted values; auth-method select reduced to the three real
+values; empty scope now raises an inline "scope is required" error (subset whitelist, B5 none-gate and
+redirectUris CLIENT_002/003 checks kept); create is async with Busy + a simulated createError then
+reveal-once; rotate is async with Busy + a simulated rotateError then reveal-once (flag no longer reset
+per click, so retry succeeds); delete routes through the shared confirm async run hook with a simulated
+deleteError that keeps the row and turns confirm into Retry. Simulated failures disclosed per precedent.
+Harness clients-model synced (grants 2 / methods 3 / scope-required / async create-rotate-delete) and
+row-crud clients delete path synced (49 total). All 49 pass. Screenshot: register form.
