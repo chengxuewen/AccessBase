@@ -410,6 +410,7 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 #page-webhooks table th:nth-child(2){width:230px}
 #page-webhooks table th:nth-child(3),#page-webhooks table th:nth-child(4),#page-webhooks table th:nth-child(5){width:70px}
 #page-webhooks table th:last-child{width:150px}
+#page-tenants table th:last-child{width:150px}
 #page-apikeys table th:nth-child(2){width:150px}
 #page-apikeys table th:nth-child(3){width:170px}
 #page-clients table th:nth-child(4){width:180px}
@@ -681,7 +682,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
     <section class="page" id="page-tenants">
       <div class="page-head"><div><h1>Tenants</h1><div class="sub">Isolated identity partitions · slug, status and lifecycle</div></div><button class="btn primary" data-create="tenants"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create tenant</button></div>
       <div class="card">
-        <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="tenantSearch" placeholder="Search name or slug…"></div><select id="tenantStatusFilter"><option value="">All status</option><option value="active">Active</option><option value="suspended">Suspended</option></select><div class="spacer"></div><span class="count" id="tenantCount"></span></div>
+        <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="tenantSearch" placeholder="Search name or slug…"></div><div class="spacer"></div><span class="count" id="tenantCount"></span></div>
         <div style="overflow-x:auto"><table>
           <thead><tr><th>Name</th><th data-prio="3">Slug</th><th>Status</th><th data-prio="2">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="tenantRows"></tbody>
@@ -849,6 +850,17 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
     <div class="error-banner" id="mfaDisableErr" style="display:none;margin-bottom:var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
     <div class="field"><label>Current password</label><input id="mfaDisablePwd" type="password"></div></div>
   <div class="modal-foot"><button class="btn" data-close="mfaDisableModal">Cancel</button><button class="btn danger" id="mfaDisable">Disable</button></div>
+</div></div>
+<div class="modal-overlay" id="initAdminModal"><div class="modal" role="dialog" aria-modal="true" style="max-width:440px">
+  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-user"/></svg><h3 id="initTitle">Init admin</h3><button class="icon-btn close" aria-label="Close" data-close="initAdminModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="modal-body"><div class="detail-meta" id="initMeta">Bootstrap the first administrator of this tenant.</div>
+    <div class="error-banner" id="initDone" style="display:none;background:var(--ok-tint);color:var(--ok-text,var(--ok));border-color:var(--ok)"><svg class="ic"><use href="#i-check"/></svg><span>This tenant already has an initial administrator (alreadyBootstrapped).</span></div>
+    <div class="error-banner" id="initErr" style="display:none;margin-bottom:var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+    <div id="initForm"><div class="field"><label>Email</label><input id="initEmail" type="email" placeholder="admin@tenant.example"></div>
+    <div class="field"><label>Admin name</label><input id="initName"></div>
+    <div class="field"><label>Password</label><input id="initPwd" type="password" autocomplete="new-password"></div>
+    <div class="sub">Policy: at least 8 chars with a lowercase, an uppercase and a digit.</div></div></div>
+  <div class="modal-foot"><button class="btn" data-close="initAdminModal">Cancel</button><button class="btn primary" id="initSubmit">Create admin</button></div>
 </div></div>
 <div class="modal-overlay" id="confirmModal"><div class="modal" role="dialog" aria-modal="true" style="max-width:420px">
   <div class="modal-head"><svg class="ic" style="color:var(--danger)"><use href="#i-alert"/></svg><h3 id="confirmTitle">Delete</h3><button class="icon-btn close" aria-label="Close" data-close="confirmModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
@@ -1039,22 +1051,31 @@ function reveal(title,value,meta){$('revealTitle').textContent=title;$('revealVa
 $('revealCopy').onclick=()=>{try{navigator.clipboard.writeText($('revealValue').value).catch(()=>{});}catch(e){}const b=$('revealCopy');const old=b.innerHTML;b.innerHTML='Copied';setTimeout(()=>b.innerHTML=old,1200);};
 /* Tenants — name/slug/status(active|suspended)/created; isDefault locked (K-T3). */
 const TENANTS=[
- {name:'Default',slug:'default',status:'active',created:'2026-01-05',isDefault:true},
- {name:'Acme Corp',slug:'acme',status:'active',created:'2026-02-11'},
- {name:'Globex',slug:'globex',status:'active',created:'2026-03-03'},
- {name:'Initech',slug:'initech',status:'suspended',created:'2026-04-19'},
- {name:'Umbrella',slug:'umbrella',status:'active',created:'2026-06-27'}
+ {name:'Default',slug:'default',status:'active',created:'2026-01-05',isDefault:true,bootstrapped:true},
+ {name:'Acme Corp',slug:'acme',status:'active',created:'2026-02-11',bootstrapped:true},
+ {name:'Globex',slug:'globex',status:'active',created:'2026-03-03',bootstrapped:false},
+ {name:'Initech',slug:'initech',status:'suspended',created:'2026-04-19',bootstrapped:false},
+ {name:'Umbrella',slug:'umbrella',status:'active',created:'2026-06-27',bootstrapped:false}
 ];
+let initIdx=null;
+function openInitAdmin(i){initIdx=i;const t=TENANTS[i];$('initTitle').textContent='Init admin · '+t.name;const done=!!t.bootstrapped;$('initDone').style.display=done?'flex':'none';$('initForm').style.display=done?'none':'block';$('initSubmit').style.display=done?'none':'inline-flex';$('initErr').style.display='none';$('initEmail').value='';$('initName').value='';$('initPwd').value='';openModal('initAdminModal');}
+function initErr(msg){const e=$('initErr');e.style.display='flex';e.querySelector('span').textContent=msg;}
+$('initSubmit').onclick=()=>{const t=TENANTS[initIdx];const em=$('initEmail').value.trim();const nm=$('initName').value.trim();const pw=$('initPwd').value;
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){initErr('Email is invalid');return;}
+ if(USERS.some(u=>u[1].toLowerCase()===em.toLowerCase())){initErr('EMAIL_EXISTS: a user with this email already exists');return;}
+ if(!nm){initErr('Admin name is required');return;}
+ if(!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(pw)){initErr('Password must be 8+ chars with lowercase, uppercase and digit');return;}
+ t.bootstrapped=true;USERS.push([nm,em,'active',t.name,'just now',[]]);closeModal('initAdminModal');toast('Initial admin created');renderTenants();};
 function renderTenants(){
- const q=$('tenantSearch').value.toLowerCase();const sf=$('tenantStatusFilter').value;
+ const q=$('tenantSearch').value.toLowerCase();const sf='';
  const list=TENANTS.filter(t=>(!q||t.name.toLowerCase().includes(q)||t.slug.includes(q))&&(!sf||t.status===sf));
  $('tenantCount').textContent=TENANTS.length+' tenants';
  $('tenantRows').innerHTML=list.map(t=>{const i=TENANTS.indexOf(t);const locked=t.isDefault;
-  return '<tr><td><div class="entity-name">'+(locked?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+esc(t.name)+(locked?' <span class="sys-tag">default</span>':'')+'</div></td><td>'+copyCell(t.slug)+'</td><td>'+(t.status==='active'?'<span class="tag ok"><span class="dot"></span>Active</span>':'<span class="tag danger"><span class="dot"></span>Suspended</span>')+'</td><td class="mono">'+t.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Edit')+'"><button  '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Edit')+'"><svg class="ic"><use href="#i-pencil"/></svg></button></span><span class="tip-wrap" data-tip="'+(t.status==='active'?'Suspend':'Activate')+'"><button  data-tstatus="'+i+'" '+(locked?'disabled':'')+' aria-label="'+(t.status==='active'?'Suspend':'Activate')+'"><svg class="ic"><use href="#'+(t.status==='active'?'i-x':'i-check')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Delete')+'"><button  '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('');
- document.querySelectorAll('[data-tstatus]').forEach(b=>b.onclick=()=>{const t=TENANTS[+b.dataset.tstatus];t.status=t.status==='active'?'suspended':'active';renderTenants();});
+  return '<tr><td><div class="entity-name">'+(locked?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+esc(t.name)+(locked?' <span class="sys-tag">default</span>':'')+'</div></td><td>'+copyCell(t.slug)+'</td><td>'+(t.status==='active'?'<span class="tag ok"><span class="dot"></span>Active</span>':'<span class="tag danger"><span class="dot"></span>Suspended</span>')+'</td><td class="mono">'+t.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Init admin')+'"><button data-tinit="'+i+'" '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Init admin')+'"><svg class="ic"><use href="#i-user"/></svg></button></span><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Edit')+'"><button  '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Edit')+'"><svg class="ic"><use href="#i-pencil"/></svg></button></span><span class="tip-wrap" data-tip="'+(t.status==='active'?'Suspend':'Activate')+'"><button  data-tstatus="'+i+'" '+(locked?'disabled':'')+' aria-label="'+(t.status==='active'?'Suspend':'Activate')+'"><svg class="ic"><use href="#'+(t.status==='active'?'i-x':'i-check')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Delete')+'"><button  '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('');
+ document.querySelectorAll('[data-tstatus]').forEach(b=>b.onclick=()=>{const i=+b.dataset.tstatus;const t=TENANTS[i];const sus=t.status==='active';openConfirm('tenants-status',i,{verb:sus?'Suspend':'Activate',title:sus?'Suspend tenant':'Activate tenant',msg:sus?'Suspend <strong>'+esc(t.name)+'</strong>? All tenant sessions and API keys are revoked immediately; reactivating does not restore them.':'Activate <strong>'+esc(t.name)+'</strong>? Users can sign in again; previously revoked sessions and keys stay revoked.',toast:'Status updated'});});
+ document.querySelectorAll('[data-tinit]').forEach(b=>b.onclick=()=>openInitAdmin(+b.dataset.tinit));
 }
 $('tenantSearch').addEventListener('input',renderTenants);
-$('tenantStatusFilter').addEventListener('input',renderTenants);
 renderTenants();
 /* OIDC Clients — name/clientId/redirectUris/grantTypes/scope/created; rotate secret reveal-once. */
 const CLIENTS=[
@@ -1163,8 +1184,8 @@ document.querySelectorAll('[data-create]').forEach(b=>b.onclick=()=>{formKind=b.
 function formError(msg){let e=document.getElementById('formErr');if(!e){e=document.createElement('div');e.id='formErr';e.className='error-banner';e.style.marginBottom='12px';$('formBody').prepend(e);}e.innerHTML='<svg class="ic"><use href="#i-alert"/></svg><span>'+esc(msg)+'</span>';e.style.display='flex';}
 $('formSave').onclick=()=>{
  const get=k=>{const el=document.querySelector('#formBody [data-field="'+k+'"]');return el?el.value.trim():'';};
- if(formEdit!==null){const d=EDITDEFS[formKind];const vals={};d.fields.forEach(f=>{vals[f[0]]=f[2]==='checks'?[...document.querySelectorAll('#formBody [data-field="'+f[0]+'"] input:checked')].map(c=>c.value):get(f[0]);});const req=formKind==='webhooks'?'url':(formKind==='options'?'value':(formKind==='templates'?'subject':'name'));if(!vals[req]){formError((req==='url'?'URL':(req==='value'?'Value':(req==='subject'?'Subject':'Name')))+' is required');return;}if(formKind==='options'){try{JSON.parse(vals.value);}catch(_){formError('Value must be valid JSON');return;}}d.set(formEdit,vals);closeModal('formModal');toast('Saved');formEdit=null;return;}
- if(formKind==='tenants'){const n=get('name');if(!n){formError('Name is required');return;}const sl=get('slug')||n.toLowerCase().replace(/\s+/g,'-');if(TENANTS.some(x=>x.slug===sl)){formError('Slug "'+sl+'" already exists');return;}TENANTS.push({name:n,slug:sl,status:'active',created:'just now'});renderTenants();}
+ if(formEdit!==null){const d=EDITDEFS[formKind];const vals={};d.fields.forEach(f=>{vals[f[0]]=f[2]==='checks'?[...document.querySelectorAll('#formBody [data-field="'+f[0]+'"] input:checked')].map(c=>c.value):get(f[0]);});const req=formKind==='webhooks'?'url':(formKind==='options'?'value':(formKind==='templates'?'subject':'name'));if(!vals[req]){formError((req==='url'?'URL':(req==='value'?'Value':(req==='subject'?'Subject':'Name')))+' is required');return;}if(formKind==='options'){try{JSON.parse(vals.value);}catch(_){formError('Value must be valid JSON');return;}}if(formKind==='tenants'){if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(vals.slug)){formError('Slug must be lowercase letters/digits separated by single hyphens');return;}if(TENANTS.some((x,xi)=>xi!==formEdit&&x.slug===vals.slug)){formError('Slug "'+vals.slug+'" already exists');return;}}d.set(formEdit,vals);closeModal('formModal');toast('Saved');formEdit=null;return;}
+ if(formKind==='tenants'){const n=get('name');if(!n){formError('Name is required');return;}const sl=get('slug');if(!sl){formError('Slug is required');return;}if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(sl)){formError('Slug must be lowercase letters/digits separated by single hyphens');return;}if(TENANTS.some(x=>x.slug===sl)){formError('Slug "'+sl+'" already exists');return;}TENANTS.push({name:n,slug:sl,status:'active',created:'just now',bootstrapped:false});renderTenants();}
  else if(formKind==='clients'){const n=get('name');if(!n){formError('Name is required');return;}CLIENTS.push({name:n,clientId:'ab_new_'+Math.random().toString(36).slice(2,10),redirectUris:get('redirectUris')?get('redirectUris').split('\n').map(s=>s.trim()).filter(Boolean):[],grantTypes:['authorization_code'],scope:get('scope')||'openid profile email',created:'just now'});renderClients();closeModal('formModal');reveal('Client secret','cs_'+Math.random().toString(36).slice(2,18),'Client ID: '+CLIENTS[CLIENTS.length-1].clientId);return;}
  else if(formKind==='apikeys'){const n=get('name');if(!n){formError('Name is required');return;}const secret='ab_'+Array.from({length:32},()=> 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random()*36)]).join('');APIKEYS.push({name:n,prefix:secret.slice(0,7),scopes:['users:read'],created:'just now',expires:get('expires')||null,revoked:false});renderApikeys();closeModal('formModal');reveal('API key — shown once',secret,'Copy it now: only a hash is stored, the plaintext is never shown again. Scopes are assigned server-side.');return;}
  else if(formKind==='options'){const k=get('key');if(!k){formError('Key is required');return;}let pv;try{pv=get('value')?JSON.parse(get('value')):'';}catch(_){formError('Value must be valid JSON');return;}OPTIONS.push({key:k,value:pv,updated:'just now'});renderOptions();closeModal('formModal');toast('Added');return;}
@@ -1185,7 +1206,8 @@ const DEL={
  users:i=>{USERS.splice(i,1);renderUsers();},
  roles:i=>{ROLES.splice(i,1);selRole=Math.max(0,Math.min(selRole,ROLES.length-1));renderRoles();renderMatrix();},
  groups:i=>{GROUPS.splice(i,1);if(selGroup===i){selGroup=-1;$('groupPanel').style.display='none';}else if(selGroup>i){selGroup--;}renderGroups();if(selGroup>=0){renderMembers();renderRoleChecks();}},
- tenants:i=>{TENANTS.splice(i,1);renderTenants();},
+ tenants:i=>{TENANTS[i].status='suspended';renderTenants();},
+ 'tenants-status':i=>{TENANTS[i].status=TENANTS[i].status==='active'?'suspended':'active';renderTenants();},
  clients:i=>{CLIENTS.splice(i,1);renderClients();},
  webhooks:i=>{WEBHOOKS.splice(i,1);renderWebhooks();}
 };
@@ -1193,9 +1215,9 @@ DEL['apikeys-revoke']=i=>{APIKEYS[i].revoked=true;renderApikeys();};
 DEL['users-status']=i=>{USERS[i][2]=USERS[i][2]==='active'?'suspended':'active';renderUsers();};
 DEL['users-force']=i=>{};
 DEL['roles-clear']=i=>{ROLES[i].perms=[];renderMatrix();renderRoles();};
-const ROW_NAME={'apikeys-revoke':i=>APIKEYS[i].name,'users-status':i=>USERS[i][0],'users-force':i=>USERS[i][0],'roles-clear':i=>ROLES[i].name,users:i=>USERS[i][0],roles:i=>ROLES[i].name,groups:i=>GROUPS[i].name,tenants:i=>TENANTS[i].name,clients:i=>CLIENTS[i].name,webhooks:i=>WEBHOOKS[i].url};
+const ROW_NAME={'apikeys-revoke':i=>APIKEYS[i].name,'users-status':i=>USERS[i][0],'users-force':i=>USERS[i][0],'roles-clear':i=>ROLES[i].name,'tenants-status':i=>TENANTS[i].name,users:i=>USERS[i][0],roles:i=>ROLES[i].name,groups:i=>GROUPS[i].name,tenants:i=>TENANTS[i].name,clients:i=>CLIENTS[i].name,webhooks:i=>WEBHOOKS[i].url};
 let pendingDelete=null;
-function openConfirm(kind,idx,opts){opts=opts||{};pendingDelete={kind:kind,idx:idx,toast:opts.toast};$('confirmTitle').textContent=opts.title||('Delete '+kind.replace(/s$/,''));$('confirmDelete').textContent=opts.verb||'Delete';$('confirmMsg').innerHTML=opts.msg||('Remove <strong>'+esc(ROW_NAME[kind](idx))+'</strong> from the prototype data? This cannot be undone.');openModal('confirmModal');}
+function openConfirm(kind,idx,opts){opts=opts||{};pendingDelete={kind:kind,idx:idx,toast:opts.toast};$('confirmTitle').textContent=opts.title||('Delete '+kind.replace(/s$/,''));$('confirmDelete').textContent=opts.verb||'Delete';$('confirmMsg').innerHTML=opts.msg||(kind==='tenants'?'Delete <strong>'+esc(ROW_NAME[kind](idx))+'</strong>? This is a soft delete: the tenant is suspended, all its sessions and API keys are revoked, and the row is kept for reactivation.':'Remove <strong>'+esc(ROW_NAME[kind](idx))+'</strong> from the prototype data? This cannot be undone.');openModal('confirmModal');}
 $('confirmDelete').onclick=()=>{if(!pendingDelete)return;const d=pendingDelete;pendingDelete=null;DEL[d.kind](d.idx);closeModal('confirmModal');toast(d.toast||'Deleted');};
 const EDIT_ANCHOR={users:'data-more',roles:'data-role',groups:'data-manage',tenants:'data-tstatus',clients:'data-rotate-client',webhooks:'data-ping'};
 document.addEventListener('click',e=>{const eb=e.target.closest('button[aria-label="Edit"],button[data-tip="Edit"]');const db=e.target.closest('button[aria-label="Delete"],button[data-tip="Delete"]');if(!eb&&!db)return;const btn=eb||db;if(btn.disabled)return;const page=btn.closest('section.page');if(!page)return;const kind=page.id.replace('page-','');if(!EDIT_ANCHOR[kind])return;const tr=btn.closest('tr');const anchor=tr.hasAttribute(EDIT_ANCHOR[kind])?tr:tr.querySelector('['+EDIT_ANCHOR[kind]+']');if(!anchor)return;const idx=+anchor.getAttribute(EDIT_ANCHOR[kind]);if(eb){openEdit(kind,idx);}else{openConfirm(kind,idx);}});

@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 33,
-        "svgIcons": 240,
+        "svgIcons": 248,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -442,8 +442,8 @@
       "pass": true,
       "assertions": {
         "base": {
-          "selCount": 11,
-          "cbxCount": 11,
+          "selCount": 10,
+          "cbxCount": 10,
           "allNativeHidden": true,
           "surface": "#FFFFFF"
         },
@@ -600,6 +600,30 @@
           "on": 0,
           "scopeHidden": true
         }
+      }
+    },
+    "tenants-model": {
+      "pass": true,
+      "assertions": {
+        "noFilter": true,
+        "initOpen": {
+          "on": true,
+          "form": true
+        },
+        "pwdErr": true,
+        "existsErr": true,
+        "created": true,
+        "bootstrapped": true,
+        "acmeDone": true,
+        "susVerb": "Suspend",
+        "suspended": true,
+        "softMsg": true,
+        "softKept": {
+          "rows": 5,
+          "kept": true
+        },
+        "slugErr": true,
+        "slugReq": true
       }
     }
   }

@@ -243,9 +243,10 @@ test('mgmt-pages', async ({ page }) => {
     const setF = (id: string, v: string) => { const f = document.getElementById(id) as HTMLSelectElement; f.value = v; f.dispatchEvent(new Event('input')); };
     click('tenants');
     const tenants = { rows: document.querySelectorAll('#tenantRows tr').length };
-    setF('tenantStatusFilter', 'suspended');
+    const ts = document.getElementById('tenantSearch') as HTMLInputElement;
+    ts.value = 'initech'; ts.dispatchEvent(new Event('input'));
     (tenants as Record<string, unknown>).suspendedFilter = document.querySelectorAll('#tenantRows tr').length;
-    setF('tenantStatusFilter', '');
+    ts.value = ''; ts.dispatchEvent(new Event('input'));
     click('clients');
     const clients = { rows: document.querySelectorAll('#clientRows tr').length, grantTags: document.querySelectorAll('#clientRows .tag').length };
     click('apikeys');
@@ -658,7 +659,7 @@ test('combobox-popup', async ({ page }) => {
   // option bg/color), in every select incl. the dynamically-built edit-modal select.
   const probe = () => page.evaluate(() => {
     const sum = (c: string) => { const m = c.match(/[\d.]+/g)!.map(Number); return m[0] + m[1] + m[2]; };
-    const ids = ['tenantFilter', 'statusFilter', 'scopeSelect', 'kindFilter', 'memberPicker', 'tenantStatusFilter', 'apikeyStatusFilter', 'auditActionFilter', 'eventFamilyFilter', 'styleSelect'];
+    const ids = ['tenantFilter', 'statusFilter', 'scopeSelect', 'kindFilter', 'memberPicker', 'apikeyStatusFilter', 'auditActionFilter', 'eventFamilyFilter', 'styleSelect'];
     const theme = document.documentElement.dataset.theme || 'light';
     const rows = ids.map(id => { const s = document.getElementById(id) as HTMLSelectElement; const o = s.querySelector('option')!; const oc = getComputedStyle(o); return { id, scheme: getComputedStyle(s).colorScheme, bg: sum(oc.backgroundColor), fg: sum(oc.color) }; });
     return { theme, rows };
@@ -983,4 +984,53 @@ test('roles-model', async ({ page }) => {
     && clearVerb === 'Clear' && cleared.on === 0 && cleared.scopeHidden;
   rec('roles-model', pass, a);
   expect(pass, 'roles-model').toBe(true);
+});
+
+test('tenants-model', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 8 (A): Init-admin bootstrap (policy + EMAIL_EXISTS + alreadyBootstrapped), soft delete
+  // keeping the row suspended, suspend/activate confirm, slug required+pattern, no status filter.
+  await page.evaluate(() => { (document.querySelector('[data-page=tenants]') as HTMLElement).click(); });
+  const noFilter = await page.evaluate(() => !document.getElementById('tenantStatusFilter'));
+  await page.locator('#tenantRows button[data-tinit]').nth(2).click(); // Globex, not bootstrapped
+  const initOpen = await page.evaluate(() => ({ on: document.getElementById('initAdminModal')!.classList.contains('on'), form: document.getElementById('initForm')!.style.display !== 'none' }));
+  await page.locator('#initEmail').fill('newadmin@globex.example');
+  await page.locator('#initName').fill('Globex Admin');
+  await page.locator('#initPwd').fill('short');
+  await page.locator('#initSubmit').click();
+  const pwdErr = await page.evaluate(() => document.getElementById('initErr')!.textContent!.includes('8+ chars'));
+  await page.locator('#initEmail').fill('jane.doe@globex.com'); // existing user -> EMAIL_EXISTS
+  await page.locator('#initPwd').fill('Passw0rd12');
+  await page.locator('#initSubmit').click();
+  const existsErr = await page.evaluate(() => document.getElementById('initErr')!.textContent!.includes('EMAIL_EXISTS'));
+  await page.locator('#initEmail').fill('newadmin@globex.example');
+  await page.locator('#initSubmit').click();
+  const created = await page.evaluate(() => !document.getElementById('initAdminModal')!.classList.contains('on') && document.getElementById('protoToast')!.textContent === 'Initial admin created');
+  await page.locator('#tenantRows button[data-tinit]').nth(2).click();
+  const bootstrapped = await page.evaluate(() => document.getElementById('initDone')!.style.display === 'flex' && document.getElementById('initForm')!.style.display === 'none');
+  await page.keyboard.press('Escape');
+  await page.locator('#tenantRows button[data-tinit]').nth(1).click(); // Acme already bootstrapped
+  const acmeDone = await page.evaluate(() => document.getElementById('initDone')!.style.display === 'flex');
+  await page.keyboard.press('Escape');
+  await page.locator('#tenantRows button[data-tstatus]').nth(2).click();
+  const susVerb = await page.evaluate(() => document.getElementById('confirmDelete')!.textContent);
+  await page.locator('#confirmDelete').click();
+  const suspended = await page.evaluate(() => document.querySelectorAll('#tenantRows tr')[2].textContent!.includes('Suspended'));
+  await page.locator('#tenantRows tr').nth(4).locator('button[aria-label="Delete"]').click();
+  const softMsg = await page.evaluate(() => document.getElementById('confirmMsg')!.textContent!.includes('soft delete'));
+  await page.locator('#confirmDelete').click();
+  const softKept = await page.evaluate(() => ({ rows: document.querySelectorAll('#tenantRows tr').length, kept: document.querySelectorAll('#tenantRows tr')[4].textContent!.includes('Umbrella') && document.querySelectorAll('#tenantRows tr')[4].textContent!.includes('Suspended') }));
+  await page.locator('[data-create=tenants]').click();
+  await page.locator('#formBody [data-field=name]').fill('Test Co');
+  await page.locator('#formBody [data-field=slug]').fill('Bad_Slug');
+  await page.locator('#formSave').click();
+  const slugErr = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('lowercase letters/digits'));
+  await page.locator('#formBody [data-field=slug]').fill('');
+  await page.locator('#formSave').click();
+  const slugReq = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('Slug is required'));
+  const a = { noFilter, initOpen, pwdErr, existsErr, created, bootstrapped, acmeDone, susVerb, suspended, softMsg, softKept, slugErr, slugReq };
+  const pass = noFilter && initOpen.on && initOpen.form && pwdErr && existsErr && created && bootstrapped && acmeDone
+    && susVerb === 'Suspend' && suspended && softMsg && softKept.rows === 5 && softKept.kept && slugErr && slugReq;
+  rec('tenants-model', pass, a);
+  expect(pass, 'tenants-model').toBe(true);
 });

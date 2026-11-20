@@ -663,3 +663,17 @@ for mixed; Clear all button opens a dangerous confirm; legend note states the re
 AntD Transfer picker saved in a modal. Harness roles-matrix editor count 13->9; new roles-model group
 (33 total): 12 locked cells disabled+unchanged on click, editor partition-clean, scope visibility,
 parent select, clear confirm -> 0 granted + scope hidden. All 33 pass. Screenshot: locked matrix.
+
+## Adjudication 8 (A): Tenants lifecycle + Init-admin bootstrap aligned — 2026-11-19
+Panel F7 / R4#2: prototype delete was a hard splice ("cannot be undone"), suspend flipped instantly,
+slug auto-generated, status filter fictional, and the Init-admin bootstrap flow absent. Real: delete is
+soft (status->suspended, row kept), suspend/delete revoke all tenant sessions+API keys (reactivate does
+not restore), suspend/activate Popconfirm, slug required+SLUG_PATTERN, name-search only, Init admin modal
+(email/name/password+policy, 409 EMAIL_EXISTS field error, alreadyBootstrapped branch). Ruling A: added
+Init-admin modal + per-row Init button (bootstrapped flags on sample data; EMAIL_EXISTS simulated against
+existing user emails; password policy regex; alreadyBootstrapped shows info state); delete now soft
+(suspend + confirm wording "soft delete ... kept for reactivation"); suspend/activate confirm-gated with
+revoke wording; slug required+pattern on create AND edit (+uniqueness); removed fictional status filter
+(harness combobox-popup probe + mgmt-pages switched to name search); tenants actions column widened to
+150px so 4 buttons fit. New harness tenants-model (34 total): init flow/policy/EMAIL_EXISTS/bootstrapped,
+suspend verb, soft-delete keeps row, slug errors, no status filter. All 34 pass. Screenshot: init modal.
