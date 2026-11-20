@@ -401,6 +401,8 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 .scope-box label{font-size:var(--fs12);color:var(--tx2)}
 .scope-box select{padding:4px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit}
 .scope-box .mixed{color:var(--warn-text,var(--warn));font-size:var(--fs11);font-family:var(--mono)}
+/* Adjudication 25 (A): staged matrix edit bar (draft -> Save/Cancel), per real Transfer+Save model */
+.mtx-bar{display:flex;gap:8px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--bd);background:var(--sunken);font-size:var(--fs12);color:var(--tx2)}
 .matrix-legend{display:flex;gap:var(--sp16);padding:var(--sp12) var(--sp16);border-top:1px solid var(--bd);font-size:var(--fs11);color:var(--tx3);flex-wrap:wrap}
 .matrix-legend span{display:inline-flex;align-items:center;gap:6px}
 .lg-swatch{width:14px;height:14px;border-radius:var(--r2);display:inline-block}
@@ -712,13 +714,15 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       </div>
       <div class="card" style="margin-top:12px">
         <div class="card-head matrix-head"><h3>Permission matrix</h3><span class="sel-role" id="matrixRole"></span><span class="perm-total" id="matrixTotal"></span><span class="perm-total" id="matrixParent"></span><button class="btn danger ghost sm" id="clearPermsBtn" style="margin-left:8px">Clear all</button>
-          <div class="scope-box"><label for="scopeSelect">users:* data scope</label><select id="scopeSelect"><option value="all">All rows</option><option value="dept">Department</option><option value="self">Self only</option></select><span class="mixed" id="scopeMixed" style="display:none">mixed</span></div>
+          <div class="scope-box"><label for="scopeSelect">users:* data scope</label><select id="scopeSelect"><option value="mixed" disabled>Mixed (stored scopes diverge)</option><option value="all">All rows</option><option value="dept">Department</option><option value="self">Self only</option></select><span class="mixed" id="scopeMixed" style="display:none">mixed</span></div>
         </div>
+        <div class="mtx-bar" id="mtxBar" style="display:none"><span>Unsaved permission changes</span><button class="btn primary sm" id="mtxSave">Save</button><button class="btn sm" id="mtxCancel">Cancel</button></div>
+        <div class="error-banner" id="mtxErr" style="display:none;margin:0 16px 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="mtxErrMsg"></span><button class="btn sm" id="mtxErrRetry">Retry</button></div>
         <div class="matrix-wrap"><table class="matrix">
           <thead><tr><th>Resource</th><th>read</th><th>write</th><th>delete</th></tr></thead>
           <tbody id="matrixRows"></tbody>
         </table></div>
-        <div class="matrix-legend"><span><i class="lg-swatch lg-on"></i>granted</span><span><i class="lg-swatch lg-off"></i>not granted</span><span><i class="lg-swatch lg-na"></i>not applicable</span><span><i class="lg-swatch lg-locked"></i>platform-only (locked for tenant roles)</span><span style="margin-left:auto">Concept view: the real console edits bindings via an AntD Transfer picker saved in a modal · click a cell to toggle · system role is read-only</span></div>
+        <div class="matrix-legend"><span><i class="lg-swatch lg-on"></i>granted</span><span><i class="lg-swatch lg-off"></i>not granted</span><span><i class="lg-swatch lg-na"></i>not applicable</span><span><i class="lg-swatch lg-locked"></i>platform-only (locked for tenant roles)</span><span style="margin-left:auto">Staged edit: cell clicks draft changes; Save commits async (saving an empty set raises a danger confirm), mapping to the real AntD Transfer picker + modal Save · scope fans out to users:* on save · system role is read-only</span></div>
       </div>
     </section>
     <section class="page" id="page-groups">
@@ -1034,10 +1038,10 @@ const PLATFORM_ONLY=['tenants:read','tenants:write','tenants:delete','options:re
 function platformLocked(r,code){return !r.system&&r.tenant!=='Default'&&PLATFORM_ONLY.includes(code);}
 const ROLES=[
  {name:'admin',desc:'Full platform access (built-in)',system:true,tenant:'Default',created:'2026-01-05',scope:'all',parent:null,perms:PERMS.map(p=>p[0]+':'+p[1])},
- {name:'editor',desc:'Manage users and groups',system:false,tenant:'Acme Corp',created:'2026-03-12',scope:'dept',parent:'viewer',perms:['users:read','users:write','roles:read','permissions:read','groups:read','groups:write','webhooks:read','audit:read','stats:read']},
+ {name:'editor',desc:'Manage users and groups',system:false,tenant:'Acme Corp',created:'2026-03-12',scope:'dept',parent:'viewer',scopes:{'users:read':'dept','users:write':'dept'},perms:['users:read','users:write','roles:read','permissions:read','groups:read','groups:write','webhooks:read','audit:read','stats:read']},
  {name:'viewer',desc:'Read-only across all resources',system:false,tenant:'Default',created:'2026-03-12',scope:'all',parent:null,perms:RESOURCES.map(r=>r+':read')},
- {name:'billing-admin',desc:'Billing reports and webhook delivery',system:false,tenant:'Globex',created:'2026-06-20',scope:'all',parent:'viewer',perms:['users:read','audit:read','stats:read','webhooks:read','webhooks:write']},
- {name:'auditor',desc:'Audit and compliance read access',system:false,tenant:'Initech',created:'2026-08-02',scope:'self',parent:null,perms:['audit:read','stats:read','users:read','roles:read','permissions:read','groups:read','webhooks:read']}
+ {name:'billing-admin',desc:'Billing reports and webhook delivery',system:false,tenant:'Globex',created:'2026-06-20',scope:'all',parent:'viewer',perms:['users:read','users:write','audit:read','stats:read','webhooks:read','webhooks:write'],scopes:{'users:read':'all','users:write':'dept'}},
+ {name:'auditor',desc:'Audit and compliance read access',system:false,tenant:'Initech',created:'2026-08-02',scope:'self',parent:null,scopes:{'users:read':'self'},perms:['audit:read','stats:read','users:read','roles:read','permissions:read','groups:read','webhooks:read']}
 ];
 let selRole=0;
 function renderRoles(){
@@ -1047,26 +1051,45 @@ function renderRoles(){
  $('roleRows').innerHTML=list.map(r=>{const idx=ROLES.indexOf(r);return '<tr class="clickable'+(idx===selRole?' sel':'')+'" data-role="'+idx+'" tabindex="0" aria-selected="'+(idx===selRole?'true':'false')+'"><td><div class="entity-name">'+(r.system?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+r.name+(r.system?' <span class="sys-tag">system</span>':'')+'</div></td><td style="color:var(--tx2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.desc+'</td><td><span class="perm-count">'+r.perms.length+'</span></td><td>'+r.tenant+'</td><td class="mono">'+r.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Edit')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Edit')+'"><svg class="ic"><use href="#'+(r.system?'i-lock':'i-pencil')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Delete')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('')||emptyRow(7,'roles',ROLES.length,'roles');
  document.querySelectorAll('#roleRows tr').forEach(tr=>tr.onclick=e=>{if(e.target.closest('button'))return;selRole=+tr.dataset.role;renderRoles();renderMatrix();});
 }
+/* Adjudication 25 (A): staged permission editing — toggles/scope/clear mutate a draft; Save is async
+   (updateError branch), saving an EMPTY draft requires a danger confirm (real Roles.tsx:156-166);
+   non-mixed scope fans out onto users:* permissionScopes at save (real :120-126); mixed disables the
+   scope Select and displays 'mixed' (real :378-387). Simulated failure disclosed. */
+let mtxDraft=null;let mtxScopeDraft=null;let mtxTried=false;let rolesDelTried=false;
+const roleScopes=r=>r.scopes||{};
+const roleMixed=r=>new Set(Object.values(roleScopes(r))).size>1;
+const roleScope=r=>roleMixed(r)?'mixed':(Object.values(roleScopes(r))[0]||r.scope||'all');
+function mtxStage(){const r=ROLES[selRole];if(!mtxDraft){mtxDraft=r.perms.slice();mtxScopeDraft=roleMixed(r)?null:roleScope(r);mtxTried=false;}}
 function renderMatrix(){
- const r=ROLES[selRole];
+ const r=ROLES[selRole];const perms=mtxDraft||r.perms;
  $('matrixRole').textContent=r.name;
- $('matrixTotal').textContent=r.perms.length+' / '+PERMS.length+' granted';
- const hasUsers=r.perms.some(c=>c.indexOf('users:')===0);document.querySelector('.scope-box').style.display=hasUsers?'flex':'none';$('scopeMixed').style.display=r.scope==='mixed'?'inline':'none';$('scopeSelect').value=r.scope==='mixed'?'all':r.scope;$('scopeSelect').disabled=r.system||r.scope==='mixed';$('matrixParent').textContent=r.parent?('inherits '+r.parent):'no parent';$('clearPermsBtn').disabled=r.system;
+ $('matrixTotal').textContent=perms.length+' / '+PERMS.length+' granted';
+ $('mtxBar').style.display=mtxDraft?'flex':'none';if(!mtxDraft)$('mtxErr').style.display='none';
+ const hasUsers=perms.some(c=>c.indexOf('users:')===0);document.querySelector('.scope-box').style.display=hasUsers?'flex':'none';const mixed=roleMixed(r);$('scopeMixed').style.display=mixed?'inline':'none';$('scopeSelect').value=mixed?'mixed':(mtxDraft?mtxScopeDraft:roleScope(r));$('scopeSelect').disabled=r.system||mixed;$('matrixParent').textContent=r.parent?('inherits '+r.parent):'no parent';$('clearPermsBtn').disabled=r.system;
  $('matrixRows').innerHTML=RESOURCES.map(res=>'<tr><td>'+res+'</td>'+ACTIONS.map(act=>{
    if(!permExists(res,act))return '<td><span class="perm-cell na" title="No such permission"></span></td>';
-   const code=res+':'+act;const on=r.perms.includes(code);
+   const code=res+':'+act;const on=perms.includes(code);
    if(platformLocked(r,code))return '<td><button class="perm-cell locked" disabled title="Platform-only: not bindable by tenant roles"><svg class="ic"><use href="#i-lock"/></svg></button></td>';
    return '<td><button class="perm-cell'+(on?' on':'')+'" data-code="'+code+'" '+(r.system?'disabled title="System role is read-only"':'title="Toggle '+code+'"')+'><svg class="ic"><use href="#i-check"/></svg></button></td>';
  }).join('')+'</tr>').join('');
  document.querySelectorAll('#matrixRows .perm-cell:not(.na)').forEach(c=>c.onclick=()=>{
-   if(r.system||c.classList.contains('locked'))return;const code=c.dataset.code;const i=r.perms.indexOf(code);
-   if(i>=0)r.perms.splice(i,1);else r.perms.push(code);
-   renderMatrix();renderRoles();
+   if(r.system||c.classList.contains('locked'))return;mtxStage();const code=c.dataset.code;const i=mtxDraft.indexOf(code);
+   if(i>=0)mtxDraft.splice(i,1);else mtxDraft.push(code);
+   renderMatrix();
  });
 }
 $('roleSearch').addEventListener('input',renderRoles);
-$('scopeSelect').onchange=()=>{ROLES[selRole].scope=$('scopeSelect').value;};
-$('clearPermsBtn').onclick=()=>{const r=ROLES[selRole];openConfirm('roles-clear',selRole,{verb:'Clear',title:'Clear all permissions',msg:'Remove all <strong>'+r.perms.length+'</strong> permissions from <strong>'+esc(r.name)+'</strong>? Members lose the granted access immediately.',toast:'Permissions cleared'});};
+$('scopeSelect').onchange=()=>{if($('scopeSelect').disabled)return;mtxStage();mtxScopeDraft=$('scopeSelect').value;renderMatrix();};
+function mtxCommit(done,fail){const r=ROLES[selRole];btnBusy($('mtxSave'),true,'Saving…');setTimeout(()=>{btnBusy($('mtxSave'),false);
+ if(!mtxTried){mtxTried=true;if(fail){fail('Save failed: role service timeout (prototype simulation) — retry.');}else{$('mtxErrMsg').textContent='Save failed: role service timeout (prototype simulation) — retry.';$('mtxErr').style.display='flex';}return;}
+ r.perms=mtxDraft.slice();if(mtxScopeDraft&&!roleMixed(r)){r.scopes=r.scopes||{};r.perms.filter(c=>c.indexOf('users:')===0).forEach(c=>{r.scopes[c]=mtxScopeDraft;});r.scope=mtxScopeDraft;}
+ mtxDraft=null;mtxScopeDraft=null;$('mtxErr').style.display='none';renderMatrix();renderRoles();
+ if(done)done();else toast('Role permissions saved');},400);}
+function mtxSaveNow(){if(!mtxDraft)return;const r=ROLES[selRole];if(mtxDraft.length===0){openConfirm('roles-empty',selRole,{verb:'Save empty',title:'Wipe all permissions',msg:'Saving <strong>'+esc(r.name)+'</strong> with an empty permission set removes all granted access for its members. Deliberate emptying is allowed but must be confirmed.',toast:'Role permissions saved',run:(done,fail)=>mtxCommit(done,fail)});return;}mtxCommit(null,null);}
+$('mtxSave').onclick=mtxSaveNow;
+$('mtxErrRetry').onclick=mtxSaveNow;
+$('mtxCancel').onclick=()=>{mtxDraft=null;mtxScopeDraft=null;$('mtxErr').style.display='none';renderMatrix();};
+$('clearPermsBtn').onclick=()=>{if(ROLES[selRole].system)return;mtxStage();mtxDraft=[];renderMatrix();}; // staged empty draft; Save raises the danger confirm
 renderRoles();renderMatrix();
 /* Groups — kind (department/group), memberCount, roleCount; detail panel with
    Members tab (add/remove) and Roles tab (bind roles), per real Groups.tsx. */
@@ -1430,7 +1453,7 @@ const USERS_NAME_CACHE={};
 $('confirmDelete').onclick=submitConfirm;
 $('confirmRetry').onclick=submitConfirm;
 const EDIT_ANCHOR={users:'data-more',roles:'data-role',groups:'data-manage',tenants:'data-tstatus',clients:'data-rotate-client',webhooks:'data-ping'};
-document.addEventListener('click',e=>{const eb=e.target.closest('button[aria-label="Edit"],button[data-tip="Edit"]');const db=e.target.closest('button[aria-label="Delete"],button[data-tip="Delete"]');if(!eb&&!db)return;const btn=eb||db;if(btn.disabled)return;const page=btn.closest('section.page');if(!page)return;const kind=page.id.replace('page-','');if(!EDIT_ANCHOR[kind])return;const tr=btn.closest('tr');const anchor=tr.hasAttribute(EDIT_ANCHOR[kind])?tr:tr.querySelector('['+EDIT_ANCHOR[kind]+']');if(!anchor)return;const idx=+anchor.getAttribute(EDIT_ANCHOR[kind]);if(eb){openEdit(kind,idx);}else{openConfirm(kind,idx);}});
+document.addEventListener('click',e=>{const eb=e.target.closest('button[aria-label="Edit"],button[data-tip="Edit"]');const db=e.target.closest('button[aria-label="Delete"],button[data-tip="Delete"]');if(!eb&&!db)return;const btn=eb||db;if(btn.disabled)return;const page=btn.closest('section.page');if(!page)return;const kind=page.id.replace('page-','');if(!EDIT_ANCHOR[kind])return;const tr=btn.closest('tr');const anchor=tr.hasAttribute(EDIT_ANCHOR[kind])?tr:tr.querySelector('['+EDIT_ANCHOR[kind]+']');if(!anchor)return;const idx=+anchor.getAttribute(EDIT_ANCHOR[kind]);if(eb){openEdit(kind,idx);}else if(kind==='roles'){rolesDelTried=false;openConfirm(kind,idx,{toast:'Role deleted',run:(done,fail)=>{setTimeout(()=>{if(!rolesDelTried){rolesDelTried=true;fail('Delete failed: role service timeout (prototype simulation) — retry.');return;}DEL.roles(idx);done();},400);}});}else{openConfirm(kind,idx);}});
 /* ==== Themed combobox enhancement: wrap every <select> in a token-styled combobox; the native select
    is hidden but remains the value/event source so all existing onchange/oninput handlers keep working.
    Syncs label on change/input, on programmatic .value sets (property descriptor), and on option rebuild

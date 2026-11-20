@@ -907,3 +907,22 @@ keys carry scopes ['*']. Simulated failures disclosed per precedent. Harness api
 (48 total): revoke failure-keeps-key/retry, date type/min/note, past-date rejection, create Busy/failure/
 retry, created scopes ['*'], clipboard-rejection + execCommand-false surfaces Copy failed while
 execCommand-true copies. All 48 pass. Screenshot: create form.
+
+## Adjudication 25 (A): Roles staged permission editing + empty-save danger confirm + scope fan-out + async delete — 2026-11-20
+Panel Roles surface: matrix cells mutated r.perms instantly (real Roles stages bindings in a Transfer
+and saves via async doSave with updateError/createError); saving an EMPTY set in the real console raises
+a danger Modal.confirm ("deliberate emptying… saves with [] wipe permissions", Roles.tsx:156-166) which
+the instant-toggle model had nowhere to host; scopeSelect already disabled for mixed/system but displayed
+'all' instead of the real hydration-only 'mixed' value, and change overwrote r.scope with no fan-out onto
+users:* permissionScopes (real :120-126 fans only when non-mixed); role delete was synchronous after the
+confirm (real async deleteRole + error). Ruling A: cell clicks / scope change / Clear all now stage a
+draft with an "Unsaved permission changes" Save/Cancel bar; Save is async with Busy + a simulated
+updateError + Retry; saving an empty draft raises the danger confirm (verb "Save empty") through the
+shared confirm run hook, failure keeps the draft and the confirm acts as Retry; on commit the non-mixed
+scope fans out onto every users:* code in the draft (per-permission scopes map added; billing-admin
+sample carries divergent stored scopes -> mixed); mixed shows the disabled Select at value 'mixed' plus
+the mixed tag; Cancel restores; role delete routes through the confirm async run hook with a simulated
+deleteError then deletes. Matrix legend updated from "concept view" to the staged-edit contract.
+Harness roles-model clear path synced to staged+confirm; new roles-edit group (49 total): staged-not-
+committed, cancel restore, save Busy/error/retry, scope fan-out, mixed disabled+value+tag, empty draft
+danger confirm + failure-keeps + wipe, async delete failure-keeps-row/retry. All 49 pass. Screenshot.

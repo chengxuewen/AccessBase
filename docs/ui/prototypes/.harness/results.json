@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 287,
+        "svgIcons": 288,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -132,6 +132,61 @@
           "delta": 1,
           "reversible": true
         }
+      }
+    },
+    "roles-edit": {
+      "pass": true,
+      "assertions": {
+        "staged": {
+          "bar": true,
+          "committed": false,
+          "on": 10
+        },
+        "cancelled": {
+          "bar": true,
+          "on": 9
+        },
+        "saveBusy": true,
+        "saveErr": true,
+        "saved": {
+          "committed": true,
+          "bar": true
+        },
+        "fanout": {
+          "scopes": {
+            "users:read": "self",
+            "users:write": "self",
+            "users:delete": "self"
+          },
+          "scope": "self"
+        },
+        "mixed": {
+          "disabled": true,
+          "value": "mixed",
+          "tag": true
+        },
+        "emptyStaged": {
+          "bar": true,
+          "on": 0
+        },
+        "emptyConf": {
+          "on": true,
+          "verb": "Save empty"
+        },
+        "emptyFail": {
+          "err": true,
+          "kept": 10
+        },
+        "wiped": {
+          "perms": 0,
+          "closed": true
+        },
+        "rows0": 5,
+        "delFail": {
+          "err": true,
+          "rows": 5
+        },
+        "delOk": 4
       }
     },
     "groups-detail": {
@@ -723,7 +778,7 @@
           "opts": 6
         },
         "note": true,
-        "clearVerb": "Clear",
+        "clearVerb": "Save empty",
         "cleared": {
           "on": 0,
           "scopeHidden": true

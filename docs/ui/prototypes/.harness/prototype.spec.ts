@@ -192,6 +192,68 @@ test('roles-matrix', async ({ page }) => {
   expect(pass, 'roles-matrix').toBe(true);
 });
 
+test('roles-edit', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 25 (A): staged matrix draft + Save/Cancel, async save w/ simulated updateError,
+  // empty-draft danger confirm, non-mixed scope fan-out onto users:* scopes, mixed Select disabled,
+  // async role delete w/ simulated deleteError.
+  await page.evaluate(() => { (document.querySelector('[data-page=roles]') as HTMLElement).click(); (document.querySelector('#roleRows tr[data-role="1"]') as HTMLElement).click(); });
+  const cell = () => page.evaluate(() => ([...document.querySelectorAll('#matrixRows .perm-cell:not(.na)')].find(c => (c as HTMLElement).dataset.code === 'users:delete') as HTMLButtonElement).click());
+  await cell();
+  const staged = await page.evaluate(() => ({ bar: document.getElementById('mtxBar')!.style.display === 'flex', committed: eval('ROLES')[1].perms.includes('users:delete'), on: document.querySelectorAll('#matrixRows .perm-cell.on').length }));
+  await page.locator('#mtxCancel').click();
+  const cancelled = await page.evaluate(() => ({ bar: document.getElementById('mtxBar')!.style.display === 'none', on: document.querySelectorAll('#matrixRows .perm-cell.on').length }));
+  await cell();
+  await page.locator('#mtxSave').click();
+  const saveBusy = await page.evaluate(() => (document.getElementById('mtxSave') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600);
+  const saveErr = await page.evaluate(() => document.getElementById('mtxErr')!.style.display === 'flex');
+  await page.locator('#mtxErrRetry').click();
+  await page.waitForTimeout(600);
+  const saved = await page.evaluate(() => ({ committed: eval('ROLES')[1].perms.includes('users:delete'), bar: document.getElementById('mtxBar')!.style.display === 'none' }));
+  // scope fan-out on save (non-mixed)
+  await page.evaluate(() => { const s = document.getElementById('scopeSelect') as HTMLSelectElement; s.value = 'self'; s.onchange!(new Event('change')); });
+  await page.locator('#mtxSave').click();
+  await page.waitForTimeout(600);
+  await page.locator('#mtxErrRetry').click();
+  await page.waitForTimeout(600);
+  const fanout = await page.evaluate(() => ({ scopes: eval('ROLES')[1].scopes, scope: eval('ROLES')[1].scope }));
+  // mixed role: Select disabled + value mixed + tag
+  await page.evaluate(() => { (document.querySelector('#roleRows tr[data-role="3"]') as HTMLElement).click(); });
+  const mixed = await page.evaluate(() => ({ disabled: (document.getElementById('scopeSelect') as HTMLSelectElement).disabled, value: (document.getElementById('scopeSelect') as HTMLSelectElement).value, tag: document.getElementById('scopeMixed')!.style.display !== 'none' }));
+  // empty draft -> danger confirm on Save, async failure then wipe
+  await page.evaluate(() => { (document.querySelector('#roleRows tr[data-role="1"]') as HTMLElement).click(); });
+  await page.locator('#clearPermsBtn').click();
+  const emptyStaged = await page.evaluate(() => ({ bar: document.getElementById('mtxBar')!.style.display === 'flex', on: document.querySelectorAll('#matrixRows .perm-cell.on').length }));
+  await page.locator('#mtxSave').click();
+  const emptyConf = await page.evaluate(() => ({ on: document.getElementById('confirmModal')!.classList.contains('on'), verb: document.getElementById('confirmDelete')!.textContent }));
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
+  const emptyFail = await page.evaluate(() => ({ err: document.getElementById('confirmErr')!.style.display === 'flex', kept: eval('ROLES')[1].perms.length }));
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
+  const wiped = await page.evaluate(() => ({ perms: eval('ROLES')[1].perms.length, closed: !document.getElementById('confirmModal')!.classList.contains('on') }));
+  // async delete w/ simulated failure keeps the row, retry deletes
+  const rows0 = await page.evaluate(() => eval('ROLES').length);
+  await page.evaluate(() => { (document.querySelector('#roleRows tr[data-role="2"] button[aria-label="Delete"]') as HTMLElement).click(); });
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
+  const delFail = await page.evaluate(() => ({ err: document.getElementById('confirmErr')!.style.display === 'flex', rows: eval('ROLES').length }));
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
+  const delOk = await page.evaluate(() => eval('ROLES').length);
+  const a = { staged, cancelled, saveBusy, saveErr, saved, fanout, mixed, emptyStaged, emptyConf, emptyFail, wiped, rows0, delFail, delOk };
+  const pass = staged.bar && !staged.committed && cancelled.bar && cancelled.on === staged.on - 1
+    && saveBusy && saveErr && saved.committed && saved.bar
+    && fanout.scopes['users:read'] === 'self' && fanout.scopes['users:write'] === 'self' && fanout.scope === 'self'
+    && mixed.disabled && mixed.value === 'mixed' && mixed.tag
+    && emptyStaged.bar && emptyStaged.on === 0 && emptyConf.on && emptyConf.verb === 'Save empty'
+    && emptyFail.err && emptyFail.kept > 0 && wiped.perms === 0 && wiped.closed
+    && delFail.err && delFail.rows === rows0 && delOk === rows0 - 1;
+  rec('roles-edit', pass, a);
+  expect(pass, 'roles-edit').toBe(true);
+});
+
 test('groups-detail', async ({ page }) => {
   await page.goto(FILE);
   const a = await page.evaluate(() => {
@@ -1215,15 +1277,19 @@ test('roles-model', async ({ page }) => {
   const parentSel = await page.evaluate(() => { const s = document.querySelector('#formBody [data-field=parent]') as HTMLSelectElement; return { exists: !!s, opts: s ? s.options.length : 0 }; });
   await page.keyboard.press('Escape');
   const note = await page.evaluate(() => document.querySelector('.matrix-legend')!.textContent!.includes('AntD Transfer') && document.querySelector('.matrix-legend')!.textContent!.includes('platform-only'));
-  await page.locator('#clearPermsBtn').click();
+  await page.locator('#clearPermsBtn').click(); // adjudication 25: stages an empty draft
+  await page.locator('#mtxSave').click(); // saving empty raises the danger confirm
   const clearVerb = await page.evaluate(() => document.getElementById('confirmDelete')!.textContent);
   await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600); // simulated save failure keeps the draft
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
   const cleared = await page.evaluate(() => ({ on: document.querySelectorAll('#matrixRows .perm-cell.on').length, scopeHidden: getComputedStyle(document.querySelector('.scope-box')!).display === 'none' }));
   const a = { lock, partition, scopeVis, parentSel, note, clearVerb, cleared };
   const pass = lock.locked > 0 && lock.allDisabled && lock.unchanged
     && partition.editorClean && partition.granted === 9 && scopeVis
     && parentSel.exists && parentSel.opts >= 6 && note
-    && clearVerb === 'Clear' && cleared.on === 0 && cleared.scopeHidden;
+    && clearVerb === 'Save empty' && cleared.on === 0 && cleared.scopeHidden;
   rec('roles-model', pass, a);
   expect(pass, 'roles-model').toBe(true);
 });
