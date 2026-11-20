@@ -890,3 +890,20 @@ loadError Alert + Retry, then the real three-state rows; a demo permission persp
 stay readable. Simulated failures disclosed per the audit/dashboard/settings precedent. Harness
 webhooks-model extended (48 total): toggle error-then-update, ping Busy/error/queued-pending, rotate
 error/reveal, deliveries skeleton/loadError/retry, perspective gating. All 48 pass. Screenshot.
+
+## Adjudication 24 (A): ApiKeys server-default scopes + expires validation + async create/revoke + copy fallback — 2026-11-20
+Panel ApiKeys surface: create hardcoded scopes ['users:read'] while the real UI sends no scopes and the
+server defaults new keys to ['*'] (api-keys.ts:54-56); expires was free text with no format/past-date
+validation (real DatePicker disabledDate rejects past); create/revoke ran synchronously with no Busy or
+error branch (real createError/revokeError); revealCopy swallowed clipboard failures and always toasted
+"Copied" (real has fallback + copyFailed). Ruling A: create form gains a date control (min=today) plus
+inline YYYY-MM-DD/not-in-the-past validation and a disclosure note (UI sends no scopes; server default
+['*']; plaintext once; revoke-only, no rotation); create is async with Busy + a simulated createError
+then reveal-once carrying the server-default scopes note; revoke routes through the shared confirm
+modal's async run hook with Busy + a simulated revokeError (key kept, confirm becomes Retry) then
+revokes; revealCopy tries navigator.clipboard, falls back to a hidden textarea + execCommand, and only
+toasts success when a copy actually happened — otherwise an error-variant "Copy failed" toast. Created
+keys carry scopes ['*']. Simulated failures disclosed per precedent. Harness apikeys-model extended
+(48 total): revoke failure-keeps-key/retry, date type/min/note, past-date rejection, create Busy/failure/
+retry, created scopes ['*'], clipboard-rejection + execCommand-false surfaces Copy failed while
+execCommand-true copies. All 48 pass. Screenshot: create form.

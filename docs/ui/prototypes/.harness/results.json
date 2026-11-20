@@ -652,12 +652,27 @@
           "verb": "Revoke"
         },
         "notRevoked": 1,
+        "revFail": {
+          "err": true,
+          "kept": 1
+        },
         "revoked": 2,
         "form": {
           "name": true,
           "expires": true,
-          "scopes": false
+          "scopes": false,
+          "dateType": "date",
+          "min": "2026-11-20",
+          "note": true
         },
+        "pastErr": true,
+        "createBusy": true,
+        "createFail": true,
+        "createdScopes": [
+          "*"
+        ],
+        "copyFail": true,
+        "copyOk": true,
         "reveal": {
           "on": true,
           "prefix": "ab_",

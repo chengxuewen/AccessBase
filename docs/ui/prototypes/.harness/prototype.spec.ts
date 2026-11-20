@@ -1094,23 +1094,53 @@ test('apikeys-model', async ({ page }) => {
   const notRevoked = await page.evaluate(() => document.querySelectorAll('#apikeyRows .tag.danger').length);
   await page.locator('#apikeyRows button[data-revoke]:not([disabled])').first().click();
   await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600); // adjudication 24: revoke async, simulated first failure keeps the key
+  const revFail = await page.evaluate(() => ({ err: document.getElementById('confirmErr')!.style.display === 'flex', kept: document.querySelectorAll('#apikeyRows .tag.danger').length }));
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
   const revoked = await page.evaluate(() => document.querySelectorAll('#apikeyRows .tag.danger').length);
   await page.locator('[data-create=apikeys]').click();
   const form = await page.evaluate(() => ({
     name: !!document.querySelector('#formBody [data-field=name]'),
     expires: !!document.querySelector('#formBody [data-field=expires]'),
     scopes: !!document.querySelector('#formBody [data-field=scopes]'),
+    dateType: (document.querySelector('#formBody [data-field=expires]') as HTMLInputElement).type,
+    min: (document.querySelector('#formBody [data-field=expires]') as HTMLInputElement).min,
+    note: document.getElementById('formBody')!.textContent!.includes('["*"]'),
   }));
   await page.locator('#formBody [data-field=name]').fill('e2e-key');
+  await page.locator('#formBody [data-field=expires]').fill('2020-01-01');
   await page.locator('#formSave').click();
+  const pastErr = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('not in the past'));
+  await page.locator('#formBody [data-field=expires]').fill('');
+  await page.locator('#formSave').click();
+  const createBusy = await page.evaluate(() => (document.getElementById('formSave') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600); // simulated createError keeps the form open
+  const createFail = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('Create failed'));
+  await page.locator('#formSave').click();
+  await page.waitForTimeout(600);
   const reveal = await page.evaluate(() => ({
     on: document.getElementById('revealModal')!.classList.contains('on'),
     val: (document.getElementById('revealValue') as HTMLInputElement).value,
     meta: document.getElementById('revealMeta')!.textContent,
   }));
-  const a = { noCrud, conf, notRevoked, revoked, form, reveal: { on: reveal.on, prefix: reveal.val.slice(0, 3), len: reveal.val.length, once: reveal.meta.includes('never shown again') } };
-  const pass = noCrud && conf.on && conf.verb === 'Revoke' && revoked === notRevoked + 1
-    && form.name && form.expires && !form.scopes
+  const createdScopes = await page.evaluate(() => eval('APIKEYS')[eval('APIKEYS').length - 1].scopes);
+  // copy: clipboard rejection + execCommand failure must surface copyFailed, never a false success
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: () => Promise.reject(new Error('denied')) } });
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: () => false });
+  });
+  await page.locator('#revealCopy').click();
+  await page.waitForTimeout(50); // clipboard rejection -> fallback runs in a microtask
+  const copyFail = await page.evaluate(() => document.getElementById('protoToast')!.textContent!.includes('Copy failed'));
+  await page.evaluate(() => { Object.defineProperty(document, 'execCommand', { configurable: true, value: () => true }); });
+  await page.locator('#revealCopy').click();
+  const copyOk = await page.evaluate(() => document.getElementById('protoToast')!.textContent === 'Copied to clipboard');
+  const a = { noCrud, conf, notRevoked, revFail, revoked, form, pastErr, createBusy, createFail, createdScopes, copyFail, copyOk, reveal: { on: reveal.on, prefix: reveal.val.slice(0, 3), len: reveal.val.length, once: reveal.meta.includes('never shown again') } };
+  const pass = noCrud && conf.on && conf.verb === 'Revoke' && revFail.err && revFail.kept === notRevoked && revoked === notRevoked + 1
+    && form.name && form.expires && !form.scopes && form.dateType === 'date' && !!form.min && form.note
+    && pastErr && createBusy && createFail && JSON.stringify(createdScopes) === JSON.stringify(['*'])
+    && copyFail && copyOk
     && reveal.on && reveal.val.startsWith('ab_') && reveal.val.length === 35 && reveal.meta.includes('never shown again');
   rec('apikeys-model', pass, a);
   expect(pass, 'apikeys-model').toBe(true);
