@@ -139,7 +139,7 @@ AntD Transfer picker + modal Save; create-form note that UI sends no scopes and 
 | 31 | bilingual chrome + toggle + locale-aware relative + parity | af1f38d | i18n |
 | 32 | kit handoff README (navigation layer + indexes) | 5fe8cc4 | — (doc) |
 | 33 | entry-flows companion (nine surfaces) + auth locks | cc7aab8 | auth-login, auth-register-reset, auth-enroll-consent, auth-setup |
-| 34 | closure: companion motion/i18n/contrast locks + .spin degradation + nav/steps contrast | (this round) | reduced-motion, i18n, surfaces-contrast |
+| 34 | closure: companion motion/i18n/contrast locks + .spin degradation + nav/steps contrast | e154ef1 | reduced-motion, i18n, surfaces-contrast |
 
 Pre-series rounds (v0.1–v0.9, expert-panel adjudications 1–12 old numbering, revision plans R1–R5,
 user-reported fixes) are indexed by date in `CHANGELOG.md`.
