@@ -739,3 +739,18 @@ that identity can no longer sign in until re-linked; log-out-others is fail-clos
 error if revocation fails). New DEL/ROW_NAME entries groups-member / oauth-unlink / sessions-others.
 Harness groups-detail and profile synced to confirm-then-execute; new confirm-uniform group (39 total)
 asserts cancel-does-not-execute and confirm-executes for all three. All 39 pass.
+
+## Adjudication 14 (A): Clients immutable + full registration contract — 2026-11-19
+Panel F14: prototype invented Edit (real API has create/rotate/delete only); create lacked grantTypes /
+tokenAuthMethod / backchannelLogoutUri; redirectUris optionality was opposite (real CLIENT_002 requires
+non-empty even for M2M, CLIENT_003 https or http://localhost); samples carried refresh_token (not in
+ALLOWED_GRANT_TYPES) and an M2M row with empty redirectUris that real create cannot produce. Ruling A:
+removed clients Edit button + EDITDEFS (openEdit now guards missing defs; delete anchor kept for the
+shared delete delegation); create form gained grantTypes multi-chips (authorization_code /
+client_credentials / device_code urn), tokenAuthMethod select (4 whitelist values), scope whitelist
+check, backchannelLogoutUri http(s) check, and inline CLIENT_001/002/003/004 + B5 refusal
+(none + client_credentials/device_code); generic formCtl builder now honors field types on create;
+samples corrected (Web App drops refresh_token; M2M gets an https placeholder redirect URI) and the
+page sub discloses immutability + the non-empty-redirectUris-even-for-M2M server rule. New harness
+clients-model (40 total): no Edit, 3 grant chips + 4 auth methods + bc field, CLIENT_002/003, B5,
+scope whitelist, valid M2M registers with one-time secret. All 40 pass. Screenshot: register modal.

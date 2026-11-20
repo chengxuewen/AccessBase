@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 261,
+        "svgIcons": 257,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -165,7 +165,7 @@
         },
         "clients": {
           "rows": 4,
-          "grantTags": 5
+          "grantTags": 4
         },
         "apikeys": {
           "rows": 4,
@@ -786,6 +786,26 @@
         },
         "s1": 3,
         "s2": 1
+      }
+    },
+    "clients-model": {
+      "pass": true,
+      "assertions": {
+        "noEdit": true,
+        "form": {
+          "grants": 3,
+          "tam": 4,
+          "bc": true
+        },
+        "e002": true,
+        "e003": true,
+        "eB5": true,
+        "eScope": true,
+        "rows0": 4,
+        "created": {
+          "reveal": true,
+          "rows": 5
+        }
       }
     }
   }

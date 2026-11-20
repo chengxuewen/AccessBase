@@ -1239,3 +1239,42 @@ test('confirm-uniform', async ({ page }) => {
   rec('confirm-uniform', pass, a);
   expect(pass, 'confirm-uniform').toBe(true);
 });
+
+test('clients-model', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 14 (A): clients immutable (no Edit); create carries grantTypes/tokenAuthMethod/
+  // backchannelLogoutUri; CLIENT_002 non-empty redirectUris, CLIENT_003 https/localhost, scope
+  // whitelist, B5 none+self-asserting grant refusal; valid M2M registers with one-time secret.
+  await page.evaluate(() => { (document.querySelector('[data-page=clients]') as HTMLElement).click(); });
+  const noEdit = await page.evaluate(() => !document.querySelector('#clientRows button[aria-label="Edit"]'));
+  await page.locator('[data-create=clients]').click();
+  const form = await page.evaluate(() => ({
+    grants: document.querySelectorAll('#formBody [data-grant]').length,
+    tam: (document.querySelector('#formBody [data-field=tokenAuthMethod]') as HTMLSelectElement).options.length,
+    bc: !!document.querySelector('#formBody [data-field=backchannelLogoutUri]'),
+  }));
+  await page.locator('#formBody [data-field=name]').fill('E2E M2M');
+  await page.locator('#formSave').click();
+  const e002 = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('CLIENT_002'));
+  await page.locator('#formBody [data-field=redirectUris]').fill('http://evil.example/cb');
+  await page.locator('#formSave').click();
+  const e003 = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('CLIENT_003'));
+  await page.locator('#formBody [data-field=redirectUris]').fill('https://svc.e2e.io/cb');
+  await page.locator('#formBody [data-grant="client_credentials"]').click();
+  await page.evaluate(() => { (document.querySelector('#formBody [data-field=tokenAuthMethod]') as HTMLSelectElement).value = 'none'; });
+  await page.locator('#formSave').click();
+  const eB5 = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('B5'));
+  await page.evaluate(() => { (document.querySelector('#formBody [data-field=tokenAuthMethod]') as HTMLSelectElement).value = 'client_secret_basic'; });
+  await page.locator('#formBody [data-field=scope]').fill('foo');
+  await page.locator('#formSave').click();
+  const eScope = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('offline_access'));
+  await page.locator('#formBody [data-field=scope]').fill('openid');
+  const rows0 = await page.evaluate(() => document.querySelectorAll('#clientRows tr').length);
+  await page.locator('#formSave').click();
+  const created = await page.evaluate(() => ({ reveal: document.getElementById('revealModal')!.classList.contains('on'), rows: document.querySelectorAll('#clientRows tr').length }));
+  const a = { noEdit, form, e002, e003, eB5, eScope, rows0, created };
+  const pass = noEdit && form.grants === 3 && form.tam === 4 && form.bc
+    && e002 && e003 && eB5 && eScope && created.reveal && created.rows === rows0 + 1;
+  rec('clients-model', pass, a);
+  expect(pass, 'clients-model').toBe(true);
+});
