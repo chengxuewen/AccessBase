@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AccessBase — entry flows prototype (login / magic / register / forgot / reset / verify / enroll / consent / setup)</title>
+<style>
+
+/* v0.4 base pack "broadsheet" (WorkOS-inspired). Warm-slate ink on pure white,
+   single deep-teal accent, small radius scale (2/4/6), solid fills only,
+   Lucide SVG icons, IBM Plex Sans + Mono pair, dense tabular data. */
+:root{
+  --accent:#0F5C5A;--accent-hi:#0A4A48;--accent-tint:rgba(15,92,90,.08);
+  --ok:#1D7A46;--ok-tint:rgba(29,122,70,.10);
+  --warn:#9A6A1B;--warn-tint:rgba(154,106,27,.10);--warn-text:#8A6116;
+  --danger:#B3372F;--danger-solid:#B3372F;--danger-tint:rgba(179,55,47,.09);
+  --r2:2px;--r4:4px;--r6:6px;
+  --sp4:4px;--sp8:8px;--sp12:12px;--sp16:16px;--sp20:20px;--sp24:24px;
+  --sans:"IBM Plex Sans",-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --fs11:11px;--fs12:12px;--fs13:13px;--fs14:14px;--fs16:16px;--fs20:20px;--fs26:26px;
+  --nav-w:224px;--nav-w-min:56px;--top-h:52px;
+}
+:root[data-theme="light"]{color-scheme:light;
+  --bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F7F6F3;--hover:#F2F1ED;
+  --danger-inv:#FFFFFF;
+  --tx1:#29363D;--tx2:#5C6B73;--tx3:#6E787C;--txinv:#FFFFFF;
+  --bd:#E6E4DF;--bd2:#D4D2CC;--focus:#0F5C5A;
+}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#15191B;--surface:#1B2124;--sunken:#121618;--hover:#22292C;
+  --tx1:#E8E6E2;--tx2:#A8B0B4;--tx3:#6E787C;--txinv:#15191B;
+  --bd:#2A3236;--bd2:#3A4348;--focus:#4FB3AE;
+  --accent:#4FB3AE;--accent-hi:#63C4BF;--accent-tint:rgba(79,179,174,.12);
+  --ok:#5CBF8A;--ok-tint:rgba(92,191,138,.12);
+  --warn:#D9A441;--warn-tint:rgba(217,164,65,.12);
+  --danger:#E07B72;--danger-solid:#B3372F;--danger-tint:rgba(224,123,114,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+html{scrollbar-color:var(--bd2) transparent;scrollbar-width:thin}
+/* R1 themed CSS-only tooltip (adjudication R1=B): data-tip bubble rides pack tokens, shows on
+   hover + keyboard focus; .tip-wrap wraps disabled buttons (no :hover on disabled) so locked /
+   not-wired hints still appear. Matrix cells / page-head Create / select keep native title. */
+[data-tip]{position:relative}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%) translateY(3px);background:var(--surface);color:var(--tx1);border:1px solid var(--bd);border-radius:var(--r4);font-size:var(--fs11);font-weight:500;line-height:1.35;padding:3px 8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;z-index:300;transition:opacity .12s ease,transform .12s ease}
+[data-tip]:hover::after,[data-tip]:focus::after,[data-tip]:focus-within::after{opacity:1;transform:translateX(-50%) translateY(0)}
+.topbar [data-tip]::after{bottom:auto;top:calc(100% + 6px);transform:translateX(-50%) translateY(-3px)}
+.topbar [data-tip]:hover::after,.topbar [data-tip]:focus::after,.topbar [data-tip]:focus-within::after{transform:translateX(-50%) translateY(0)}
+.tip-wrap{display:inline-flex;position:relative}
+/* R2 overflow menu (adjudication R2=A): reusable drop-down for secondary/danger row actions;
+   position:fixed so it escapes the table's overflow-x clip. R5 toolbar overflow reuses it. */
+.menu{position:fixed;z-index:400;min-width:190px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);box-shadow:0 8px 32px rgba(0,0,0,.18);padding:4px;display:none}
+.menu.on{display:block}
+.menu-item{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;background:transparent;color:var(--tx1);font-size:var(--fs13);border-radius:var(--r4);cursor:pointer;text-align:left;font-family:inherit}
+.menu-item:hover,.menu-item:focus-visible{background:var(--hover)}
+.menu-item .ic{width:15px;height:15px;color:var(--tx3);flex:none}
+.menu-item.danger{color:var(--danger-text,var(--danger))}
+.menu-item.danger .ic{color:var(--danger-text,var(--danger))}
+.menu-sep{height:1px;background:var(--bd);margin:4px 0}
+body{font-family:var(--sans);font-size:var(--fs14);color:var(--tx1);background:var(--bg);-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+.ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bd2);border:3px solid transparent;border-radius:var(--r4);background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--tx3)}
+::-webkit-scrollbar-corner{background:transparent}
+.app{display:grid;grid-template-columns:var(--nav-w) 1fr;grid-template-rows:var(--top-h) 1fr;height:100vh}
+.app.collapsed{grid-template-columns:var(--nav-w-min) 1fr}
+.sidebar{grid-row:1/3;background:var(--surface);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.brand{height:var(--top-h);display:flex;align-items:center;gap:10px;padding:0 var(--sp16);border-bottom:1px solid var(--bd);flex-shrink:0}
+.brand .logo{width:26px;height:26px;border-radius:var(--r4);background:var(--accent);color:var(--txinv);display:grid;place-items:center;font-weight:600;font-size:12px;letter-spacing:.02em;flex-shrink:0}
+.brand .name{font-weight:600;font-size:var(--fs14);letter-spacing:-.01em;white-space:nowrap}
+.brand .name small{display:block;font-weight:400;font-size:var(--fs11);color:var(--tx3);letter-spacing:0}
+.app.collapsed .brand .name{display:none}
+.nav{flex:1;overflow-y:auto;padding:var(--sp8) 0}
+.nav .group{font-size:var(--fs11);font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);padding:var(--sp12) var(--sp16) var(--sp4);white-space:nowrap}
+.app.collapsed .nav .group{visibility:hidden;height:6px;padding:0}
+.nav a{position:relative;display:flex;align-items:center;gap:10px;padding:7px var(--sp16);color:var(--tx2);text-decoration:none;font-size:var(--fs13);white-space:nowrap}
+.nav a:hover{background:var(--hover);color:var(--tx1)}
+.nav a.on{background:var(--accent-tint);color:var(--accent);font-weight:500}
+.nav a.on::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:2px;background:var(--accent)}
+.app.collapsed .nav a span.lbl{display:none}
+.side-foot{padding:var(--sp8);border-top:1px solid var(--bd)}
+.collapse-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px;border:1px solid var(--bd);background:var(--surface);border-radius:var(--r4);color:var(--tx2);font-size:var(--fs12)}
+.collapse-btn:hover{background:var(--hover)}
+.topbar{display:flex;align-items:center;gap:var(--sp16);padding:0 var(--sp24);background:var(--surface);border-bottom:1px solid var(--bd)}
+.crumb{font-size:var(--fs12);color:var(--tx3)}
+.crumb b{color:var(--tx1);font-weight:500}
+.search{flex:1;max-width:380px;position:relative}
+.search input{width:100%;padding:6px 10px 6px 30px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--sunken);color:var(--tx1);font-size:var(--fs13);font-family:inherit;outline:none}
+.search input:focus{border-color:var(--focus);background:var(--surface)}
+.search .ic{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--tx3)}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:var(--sp8)}
+.icon-btn{width:30px;height:30px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--surface);color:var(--tx2);display:grid;place-items:center}
+.icon-btn:hover{background:var(--hover);color:var(--tx1)}
+.tenant-tag{display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);font-size:var(--fs12);color:var(--tx1)}
+.avatar{width:28px;height:28px;border-radius:var(--r4);background:var(--sunken);border:1px solid var(--bd);color:var(--tx2);display:grid;place-items:center;font-weight:500;font-size:var(--fs11)}
+.main{overflow-y:auto;padding:var(--sp24)}
+.page{display:none}.page.on{display:block}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:var(--sp20)}
+.page-head h1{font-size:var(--fs20);font-weight:600;letter-spacing:-.02em}
+.page-head .sub{color:var(--tx3);font-size:var(--fs12);margin-top:2px}
+/* R5 page-head narrow (adjudication R5=A): stack title above actions; secondary actions (Import /
+   Export) collapse into the reusable overflow menu; the primary CTA stays visible with its label. */
+.page-head .ph-more{display:none}
+@media(max-width:760px){
+.page-head{flex-wrap:wrap;gap:10px}
+.page-head > div:first-child{flex:1 1 100%}
+.page-head .ph-more{display:inline-flex}
+.page-head [data-phsecondary]{display:none}
+}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-weight:500}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--txinv)}
+.btn.danger{background:var(--danger-solid,var(--danger));border-color:var(--danger-solid,var(--danger));color:var(--danger-inv)}
+.btn.danger:not(.ghost):hover{filter:brightness(1.12)}
+.btn.primary:hover{background:var(--accent-hi)}
+.btn.sm{padding:3px 8px;font-size:var(--fs12)}
+.card{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6)}
+.card .card-head{display:flex;align-items:center;justify-content:space-between;padding:var(--sp12) var(--sp16);border-bottom:1px solid var(--bd)}
+.card .card-head h3{font-size:var(--fs13);font-weight:600}
+.card .card-body{padding:var(--sp16)}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:1px 6px;border-radius:var(--r2);font-size:var(--fs11);font-weight:500;background:var(--sunken);color:var(--tx2);border:1px solid var(--bd)}
+.tag.ok{background:var(--ok-tint);color:var(--ok-text,var(--ok))}
+.tag.warn{background:var(--warn-tint);color:var(--warn-text,var(--warn))}
+.tag.danger{background:var(--danger-tint);color:var(--danger-text,var(--danger))}
+.tag.info{background:var(--accent-tint);color:var(--accent-text,var(--accent))}
+.tag .dot{width:5px;height:5px;border-radius:var(--r2);background:currentColor}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp12);margin-bottom:var(--sp12)}
+.stat{padding:var(--sp16)}
+.stat .lbl{font-size:var(--fs12);color:var(--tx2);display:flex;align-items:center;justify-content:space-between}
+.stat .lbl .ic{color:var(--tx3);width:14px;height:14px}
+.stat .val{font-size:var(--fs26);font-weight:600;letter-spacing:-.02em;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.stat .delta{font-size:var(--fs11);font-family:var(--mono)}
+.stat .delta.up{color:var(--ok-text,var(--ok))}.stat .delta.down{color:var(--danger-text,var(--danger))}
+.stat .delta span{color:var(--tx3)}
+.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:var(--sp12)}
+.activity{list-style:none}
+.activity li{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd)}
+.activity li:last-child{border-bottom:none}
+.activity .a-ic{width:26px;height:26px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--sunken);display:grid;place-items:center;flex-shrink:0;color:var(--tx2)}
+.activity .a-ic .ic{width:13px;height:13px}
+.activity .a-tx{flex:1;min-width:0}
+.activity .a-tx .t{font-size:var(--fs13)}
+.activity .a-tx .m{font-size:var(--fs11);color:var(--tx2);margin-top:1px;font-family:var(--mono)}
+.activity .a-time{font-size:var(--fs11);color:var(--tx3);white-space:nowrap;font-family:var(--mono)}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp8)}
+.quick button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:var(--sp12);border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);text-align:left}
+.quick button:hover{border-color:var(--bd2);background:var(--sunken)}
+.quick button .q-ic{color:var(--accent)}
+.quick button .q-t{font-weight:500;font-size:var(--fs12)}
+.quick button .q-d{font-size:var(--fs11);color:var(--tx3)}
+.toolbar{display:flex;align-items:center;gap:var(--sp8);padding:var(--sp12) var(--sp16);border-bottom:1px solid var(--bd);flex-wrap:wrap}
+.toolbar .search{max-width:260px;flex:0 1 260px}
+/* Native combobox popup readability: <option> inherits the select's color, and the native popup
+   backdrop does not follow the theme by default -> in dark packs the open list rendered light-on-light
+   (invisible options). color-scheme makes native popup chrome follow the theme; explicit option
+   background/color guarantee a readable list in every pack/theme. Applies to all selects incl. the
+   dynamically-built edit-modal selects. */
+select{color-scheme:light}
+html[data-theme="dark"] select{color-scheme:dark}
+select option{background:var(--surface);color:var(--tx1)}
+/* ==== Themed combobox: native <select> is hidden (value/event source only); the visible control and
+   its open list are drawn entirely from design tokens so every pack/theme looks consistent. ==== */
+.cbx-src{display:none}
+.cbx{position:relative;display:inline-block;vertical-align:middle}
+.cbx-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit;line-height:1.4;cursor:pointer}
+.cbx-btn:hover{background:var(--sunken)}
+.cbx-btn:focus-visible{outline:2px solid var(--focus,var(--accent));outline-offset:1px}
+.cbx-btn:disabled{opacity:.5;cursor:not-allowed}
+.status-btn{border:none;background:none;padding:0;cursor:pointer;font:inherit}
+.th-sort{border:none;background:none;padding:0;cursor:pointer;font:inherit;color:inherit}
+.sort-ic{font-size:var(--fs11);color:var(--tx3)}
+.wswitch{position:relative;width:34px;height:20px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--sunken);cursor:pointer;padding:0;vertical-align:middle}
+.wswitch .knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:var(--r2);background:var(--tx3);transition:left .15s,background .15s}
+.wswitch.on{background:var(--accent);border-color:var(--accent)}
+.wswitch.on .knob{left:16px;background:var(--txinv)}
+.wswitch:focus-visible{outline:2px solid var(--focus,var(--accent));outline-offset:1px}
+.toolbar input[type=date]{padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit;color-scheme:light}
+html[data-theme="dark"] .toolbar input[type=date]{color-scheme:dark}
+.ev-presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ev-presets .tag{cursor:pointer;border:1px solid var(--bd);background:var(--surface);color:var(--tx2)}
+.ev-presets .tag:hover{border-color:var(--accent);color:var(--accent)}
+.ev-presets .tag[aria-pressed=true]{background:var(--accent-tint);color:var(--accent-text,var(--accent));border-color:var(--accent)}
+.cbx-btn:disabled:hover{background:var(--surface)}
+.cbx-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cbx[data-multi] .cbx-val{display:flex;gap:4px;flex-wrap:wrap;align-items:center;white-space:normal}
+.cbx-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:var(--r2);background:var(--accent-tint);color:var(--accent-text,var(--accent));font-size:var(--fs11)}
+.cbx-chip button{border:none;background:none;padding:0;cursor:pointer;color:inherit;display:inline-flex}
+.cbx-chip .ic{width:10px;height:10px}
+.cbx-clear{border:none;background:none;padding:0 2px;cursor:pointer;color:var(--tx3);display:none;align-items:center}
+.cbx-clear:hover{color:var(--tx1)}
+.cbx-clear .ic{width:11px;height:11px}
+.cbx-load{display:none;align-items:center;color:var(--tx3)}
+.cbx-load .ic{width:12px;height:12px;animation:cbxrot 1s linear infinite}
+.cbx.cbx-loading .cbx-load{display:inline-flex}
+.cbx.cbx-loading .cbx-chev{display:none}
+@keyframes cbxrot{to{transform:rotate(360deg)}}
+.cbx-chev{width:12px;height:12px;color:var(--tx3);flex-shrink:0;transform:rotate(90deg);transition:transform .15s}
+.cbx.open .cbx-chev{transform:rotate(270deg)}
+.cbx.open .cbx-btn{border-color:var(--accent)}
+.cbx-list{position:absolute;top:calc(100% + 4px);left:0;min-width:100%;max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r4);box-shadow:0 8px 24px rgba(0,0,0,.16);z-index:70;padding:4px;display:none}
+.cbx.open .cbx-list{display:block}
+html[data-theme="dark"] .cbx-list{box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.cbx-list::-webkit-scrollbar{width:8px}
+.cbx-list::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+.cbx-list::-webkit-scrollbar-track{background:transparent}
+.cbx-opt{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--r4);font-size:var(--fs12);color:var(--tx1);cursor:pointer;white-space:nowrap}
+.cbx-opt:hover,.cbx-opt.active{background:var(--sunken)}
+.cbx-opt[aria-selected="true"]{color:var(--accent);font-weight:500}
+.grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px}
+/* Adjudication 22 (A): settings drawer + inline field errors + preview box */
+.drawer .modal{margin-left:auto;margin-right:0;height:100%;max-height:100%;width:560px;max-width:94vw;border-radius:0;display:flex;flex-direction:column}
+.drawer .modal-body{overflow-y:auto;flex:1}
+.field-err{font-size:var(--fs11);color:var(--danger-text,var(--danger));margin-top:4px}
+.perm-hint{font-size:var(--fs11);color:var(--tx2);margin-top:6px}
+.tpl-preview{background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);white-space:pre-wrap;font-family:var(--mono)}
+.radio-row{display:flex;gap:12px;align-items:center;font-size:var(--fs12)}
+.verify-msg.err{color:var(--danger-text,var(--danger))}
+.name-form .field-err{flex-basis:100%;font-size:var(--fs11);color:var(--danger-text,var(--danger));margin-top:4px}
+@media(max-width:760px){.grid-2-1{grid-template-columns:1fr}}
+tr.clickable:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.cbx-opt[aria-selected="true"]::after{content:"\2713";margin-left:auto;color:var(--accent)}
+.toolbar .cbx-btn{padding:5px 8px;font-size:var(--fs12)}
+.scope-box .cbx-btn{padding:4px 8px;font-size:var(--fs12)}
+.add-member .cbx{flex:1}
+.add-member .cbx-btn{width:100%;padding:6px 8px;font-size:var(--fs13)}
+.field .cbx{display:block;width:100%}
+.field .cbx-btn{width:100%;padding:6px 8px;font-size:var(--fs13)}
+.toolbar select{padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit}
+.toolbar .spacer{flex:1}
+.toolbar .count{font-size:var(--fs12);color:var(--tx3);font-family:var(--mono)}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:var(--fs11);font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;padding:8px var(--sp16);border-bottom:1px solid var(--bd);background:var(--sunken);white-space:nowrap}
+tbody td{padding:8px var(--sp16);border-bottom:1px solid var(--bd);font-size:var(--fs13);vertical-align:middle}
+tbody tr:hover{background:var(--hover)}
+tbody tr:last-child td{border-bottom:none}
+td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
+.u-cell{display:flex;align-items:center;gap:10px}
+.u-cell .u-av{width:26px;height:26px;border-radius:var(--r4);background:var(--sunken);border:1px solid var(--bd);color:var(--tx2);display:grid;place-items:center;font-size:var(--fs11);font-weight:500;flex-shrink:0}
+.u-cell>div{min-width:0}
+.u-cell .u-nm{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.u-cell .u-em{font-size:var(--fs11);color:var(--tx3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-actions{display:flex;gap:4px}
+.row-actions button{width:24px;height:24px;border-radius:var(--r2);border:1px solid transparent;background:transparent;color:var(--tx3);display:grid;place-items:center}
+.row-actions button:hover{background:var(--hover);color:var(--tx1);border-color:var(--bd)}
+.row-actions .ic{width:13px;height:13px}
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:var(--sp12) var(--sp16)}
+.pagination .info{font-size:var(--fs12);color:var(--tx3);font-family:var(--mono)}
+.pagination .pages{display:flex;gap:4px}
+.pagination .pages button{min-width:26px;height:26px;border-radius:var(--r2);border:1px solid var(--bd);background:var(--surface);color:var(--tx2);font-size:var(--fs12);font-family:var(--mono)}
+.pagination .pages button.on{background:var(--accent);border-color:var(--accent);color:var(--txinv)}
+.empty{padding:var(--sp24);text-align:center;color:var(--tx3);font-size:var(--fs13)}
+.placeholder{padding:60px;text-align:center;color:var(--tx3)}
+.placeholder .big{margin-bottom:12px;color:var(--tx3)}
+.placeholder .big .ic{width:32px;height:32px}
+.placeholder h2{font-size:var(--fs16);font-weight:600;color:var(--tx1);margin-bottom:4px}
+@media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
+@media(max-width:760px){.app{grid-template-columns:var(--nav-w-min) 1fr}.app .nav a span.lbl,.app .brand .name{display:none}.stats{grid-template-columns:1fr}.search{display:none}}
+/* ==== v0.6 STYLE PACKS (single-word design-language names; data-style x data-theme).
+   Mechanism provenance: the token-pack switching architecture follows Fusion
+   Design's "theme factory" philosophy (configurable theme packs over one
+   component base) — referenced as MECHANISM, not added as a visual pack
+   (Fusion ~= AntD visually; admin-ui implements AntD, so Ant is the pack). ==== */
+/* geist — Geist/Linear developer-tool language: monochrome, tiny radius, high density */
+[data-style="geist"]{--r2:2px;--r4:3px;--r6:4px;--sp12:10px;--sp16:12px;--sp24:16px;
+  --sans:"Inter","Geist",-apple-system,"Segoe UI","PingFang SC",sans-serif}
+[data-style="geist"][data-theme="light"]{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#FAFAFA;--hover:#EFEFEF;
+  --tx1:#111111;--tx2:#666666;--tx3:#767676;--txinv:#FFFFFF;--bd:#EAEAEA;--bd2:#D4D4D4;--focus:#111111;
+  --accent:#111111;--accent-hi:#000000;--accent-tint:rgba(0,0,0,.05);
+  --ok:#116932;--ok-tint:rgba(17,105,50,.08);--warn:#8A6116;--warn-tint:rgba(138,97,22,.08);--danger:#B3372F;--danger-solid:#B3372F;--danger-tint:rgba(179,55,47,.08)}
+[data-style="geist"][data-theme="dark"]{--bg:#0A0A0A;--surface:#111111;--sunken:#0D0D0D;--hover:#1A1A1A;
+  --tx1:#EDEDED;--tx2:#A0A0A0;--tx3:#6E6E6E;--txinv:#0A0A0A;--bd:#222222;--bd2:#333333;--focus:#EDEDED;
+  --accent:#EDEDED;--accent-hi:#FFFFFF;--accent-tint:rgba(255,255,255,.08);
+  --ok:#5CBF8A;--ok-tint:rgba(92,191,138,.12);--warn:#D9A441;--warn-tint:rgba(217,164,65,.12);--danger:#E07B72;--danger-solid:#B3372F;--danger-tint:rgba(224,123,114,.12)}
+[data-style="geist"] tbody td{padding:6px 12px}
+[data-style="geist"] thead th{padding:6px 12px}
+[data-style="geist"] .stat .val{font-size:22px}
+[data-style="geist"] .nav a{padding:5px 12px}
+/* material — Material 2 (Google-blue era) language: large radius, capsule buttons, elevation, Roboto */
+[data-style="material"]{--r2:8px;--r4:12px;--r6:16px;
+  --sans:"Roboto","Google Sans",-apple-system,"Segoe UI","PingFang SC",sans-serif}
+[data-style="material"][data-theme="light"]{--bg:#F8F9FA;--surface:#FFFFFF;--sunken:#F1F3F4;--hover:#E8EAED;
+  --tx1:#202124;--tx2:#5F6368;--tx3:#6B7075;--txinv:#FFFFFF;--bd:#DADCE0;--bd2:#BDC1C6;--focus:#1A73E8;
+  --accent:#1A73E8;--accent-hi:#1765CC;--accent-tint:rgba(26,115,232,.12);
+  --ok:#188038;--ok-tint:rgba(24,128,56,.12);--ok-text:#116932;--warn:#B06000;--warn-tint:rgba(176,96,0,.12);--warn-text:#8A6116;--danger:#D93025;--danger-text:#B3261E;--accent-text:#174EA6;--danger-solid:#D93025;--danger-tint:rgba(217,48,37,.12)}
+[data-style="material"][data-theme="dark"]{--bg:#202124;--surface:#2D2E31;--sunken:#17181A;--hover:#3C4043;
+  --tx1:#E8EAED;--tx2:#9AA0A6;--tx3:#757B80;--txinv:#202124;--bd:#3C4043;--bd2:#5F6368;--focus:#8AB4F8;
+  --accent:#8AB4F8;--accent-hi:#AECBFA;--accent-tint:rgba(138,180,248,.16);
+  --ok:#81C995;--ok-tint:rgba(129,201,149,.16);--warn:#FDD663;--warn-tint:rgba(253,214,99,.16);--danger:#F28B82;--danger-text:#FFA39E;--danger-solid:#B3261E;--danger-tint:rgba(242,139,130,.16)}
+[data-style="material"] .btn{border-radius:999px}
+[data-style="material"] .card{box-shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24)}
+[data-style="material"] .tag{border-radius:8px}
+[data-style="material"] .icon-btn,[data-style="material"] .avatar{border-radius:999px}
+/* fluent — Fluent 2 language: 4px controls / 8px surfaces, Segoe UI, layered subtle shadow + border */
+[data-style="fluent"]{--r2:2px;--r4:4px;--r6:8px;
+  --sans:"Segoe UI",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+[data-style="fluent"][data-theme="light"]{--bg:#FAF9F8;--surface:#FFFFFF;--sunken:#F3F2F1;--hover:#EDEBE9;
+  --tx1:#242424;--tx2:#616161;--tx3:#6E6E6E;--txinv:#FFFFFF;--bd:#E0E0E0;--bd2:#C8C8C8;--focus:#0F6CBD;
+  --accent:#0F6CBD;--accent-hi:#0E5FA8;--accent-tint:rgba(15,108,189,.10);
+  --ok:#107C10;--ok-tint:rgba(16,124,16,.10);--warn:#9D5D00;--warn-tint:rgba(157,93,0,.10);--warn-text:#7A4A00;--danger:#C42B1C;--danger-solid:#C42B1C;--danger-tint:rgba(196,43,28,.10)}
+[data-style="fluent"][data-theme="dark"]{--bg:#201F1E;--surface:#2B2A29;--sunken:#1B1A19;--hover:#3B3A39;
+  --tx1:#FFFFFF;--tx2:#D6D6D6;--tx3:#9E9E9E;--txinv:#1F1F1F;--bd:#3D3D3D;--bd2:#525252;--focus:#479EF5;
+  --accent:#479EF5;--accent-hi:#62ABF5;--accent-tint:rgba(71,158,245,.16);--accent-text:#82CFFF;
+  --ok:#6CCB5F;--ok-tint:rgba(108,203,95,.16);--warn:#FCE100;--warn-tint:rgba(252,225,0,.16);--danger:#FF99A4;--danger-solid:#C42B1C;--danger-tint:rgba(255,153,164,.16)}
+[data-style="fluent"] .card{box-shadow:0 1px 2px rgba(0,0,0,.06),0 0 1px rgba(0,0,0,.10)}
+/* ant — Ant Design v5 language: mid-backend blue #1677FF, radius 6, dense tables.
+   TOKEN-LEVEL reference to the admin-ui implementation layer (AntD v5): token values match
+   the AntD seed, but the component structure is the prototype's own skeleton, not an AntD replica. */
+[data-style="ant"]{--r2:4px;--r4:6px;--r6:8px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","PingFang SC","Microsoft YaHei",sans-serif}
+[data-style="ant"][data-theme="light"]{--bg:#F5F5F5;--surface:#FFFFFF;--sunken:#FAFAFA;--hover:rgba(0,0,0,.04);
+  --tx1:rgba(0,0,0,.88);--tx2:rgba(0,0,0,.65);--tx3:rgba(0,0,0,.45);--txinv:#FFFFFF;--bd:#D9D9D9;--bd2:#BFBFBF;--focus:#1677FF;
+  --accent:#1677FF;--accent-hi:#4096FF;--accent-tint:rgba(22,119,255,.10);
+  --ok:#52C41A;--ok-tint:rgba(82,196,26,.10);--warn:#FAAD14;--warn-tint:rgba(250,173,20,.10);--danger:#FF4D4F;--danger-solid:#CF1322;--danger-tint:rgba(255,77,79,.10);--ok-text:#116932;--warn-text:#8A6116;--danger-text:#B3372F;--accent-text:#0E5FA8}
+[data-style="ant"][data-theme="dark"]{--bg:#000000;--surface:#141414;--sunken:#0A0A0A;--hover:rgba(255,255,255,.08);
+  --tx1:rgba(255,255,255,.85);--tx2:rgba(255,255,255,.65);--tx3:rgba(255,255,255,.45);--txinv:#FFFFFF;--bd:#424242;--bd2:#5A5A5A;--focus:#1668DC;
+  --accent:#1668DC;--accent-hi:#3C89E8;--accent-tint:rgba(22,104,220,.16);--accent-text:#69B1FF;
+  --ok:#49AA19;--ok-tint:rgba(73,170,25,.16);--warn:#D89614;--warn-tint:rgba(216,150,20,.16);--danger:#DC4446;--danger-solid:#CF1322;--danger-tint:rgba(220,68,70,.16);--danger-text:#FF7875}
+[data-style="ant"] .btn{font-weight:400}
+[data-style="ant"] tbody td{padding:12px 16px}
+[data-style="ant"] thead th{padding:12px 16px}
+/* carbon — IBM Carbon v11 language: SHARP zero-radius industrial grid, IBM Plex
+   Sans (already loaded), Carbon blue #0F62FE, high data density. Distinct axis:
+   the only fully-square pack (radius 0). */
+[data-style="carbon"]{--r2:0px;--r4:0px;--r6:0px;
+  --sans:"IBM Plex Sans",-apple-system,"Segoe UI","PingFang SC",sans-serif}
+[data-style="carbon"][data-theme="light"]{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F4F4F4;--hover:#E8E8E8;
+  --tx1:#161616;--tx2:#525252;--tx3:#6F6F6F;--txinv:#FFFFFF;--bd:#E0E0E0;--bd2:#8D8D8D;--focus:#0F62FE;
+  --accent:#0F62FE;--accent-hi:#0353E9;--accent-tint:rgba(15,98,254,.10);
+  --ok:#24A148;--ok-tint:rgba(36,161,72,.10);--warn:#F1C21B;--warn-tint:rgba(241,194,27,.12);--danger:#DA1E28;--danger-solid:#DA1E28;--danger-tint:rgba(218,30,40,.10);--ok-text:#0E6027;--warn-text:#8E6A00;--danger-text:#A2191F;--accent-text:#0043CE}
+[data-style="carbon"][data-theme="dark"]{--bg:#161616;--surface:#262626;--sunken:#161616;--hover:#353535;
+  --tx1:#F4F4F4;--tx2:#C6C6C6;--tx3:#8D8D8D;--txinv:#FFFFFF;--bd:#393939;--bd2:#525252;--focus:#FFFFFF;
+  --accent:#4589FF;--accent-hi:#6EA6FF;--accent-tint:rgba(69,137,255,.16);--accent-text:#78A9FF;
+  --ok:#42BE65;--ok-tint:rgba(66,190,101,.16);--warn:#F1C21B;--warn-tint:rgba(241,194,27,.16);--danger:#FF8389;--danger-solid:#DA1E28;--danger-tint:rgba(255,131,137,.16)}
+[data-style="carbon"] .tag{border-radius:0}
+[data-style="carbon"] tbody td{padding:10px 16px}
+[data-style="carbon"] thead th{padding:10px 16px}
+/* cupertino — Apple HIG language: large continuous radius, system SF font,
+   iOS system colors, translucent vibrancy topbar material, pill badges. */
+[data-style="cupertino"]{--r2:8px;--r4:10px;--r6:16px;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","PingFang SC",sans-serif}
+[data-style="cupertino"][data-theme="light"]{--bg:#F2F2F7;--surface:#FFFFFF;--sunken:#E5E5EA;--hover:rgba(0,0,0,.04);
+  --tx1:#000000;--tx2:rgba(60,60,67,.6);--tx3:rgba(60,60,67,.55);--txinv:#FFFFFF;--bd:rgba(60,60,67,.29);--bd2:#C6C6C8;--focus:#007AFF;
+  --accent:#007AFF;--accent-hi:#0062CC;--accent-tint:rgba(0,122,255,.10);
+  --ok:#34C759;--ok-tint:rgba(52,199,89,.12);--warn:#FF9500;--warn-tint:rgba(255,149,0,.12);--warn-text:#8A6116;--danger:#FF3B30;--danger-text:#B3261E;--danger-solid:#D70015;--danger-tint:rgba(255,59,48,.12);--ok-text:#1E7A34;--warn-text:#9A6A1B;--danger-text:#C42B1C;--accent-text:#0B5FCC}
+[data-style="cupertino"][data-theme="dark"]{--bg:#000000;--surface:#1C1C1E;--sunken:#000000;--hover:#2C2C2E;
+  --tx1:#FFFFFF;--tx2:rgba(235,235,245,.6);--tx3:rgba(235,235,245,.55);--txinv:#FFFFFF;--bd:rgba(84,84,88,.65);--bd2:#38383A;--focus:#0A84FF;
+  --accent:#0A84FF;--accent-hi:#409CFF;--accent-tint:rgba(10,132,255,.16);--accent-text:#6CB2FF;--danger-text:#FF8A80;
+  --ok:#30D158;--ok-tint:rgba(48,209,88,.16);--warn:#FF9F0A;--warn-tint:rgba(255,159,10,.16);--danger:#FF453A;--danger-solid:#C42B1C;--danger-tint:rgba(255,69,58,.16)}
+[data-style="cupertino"] .tag{border-radius:999px}
+[data-style="cupertino"] .btn{font-weight:500}
+[data-style="cupertino"][data-theme="light"] .topbar{background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px)}
+[data-style="cupertino"][data-theme="dark"] .topbar{background:rgba(28,28,30,.72);backdrop-filter:saturate(180%) blur(20px)}
+/* Adjudication 21 (A): explicit *-text tokens for EVERY pack x theme so tint-bearing text never
+   falls back to a raw semantic color (and light values never leak into dark). Each pair measured
+   >=4.5:1 against the composited tint; meta lines use tx2. */
+[data-style="broadsheet"][data-theme="light"]{--ok-text:#1D7A46;--warn-text:#8A6116;--danger-text:#B3372F;--accent-text:#0F5C5A}
+[data-style="broadsheet"][data-theme="dark"]{--ok-text:#5CBF8A;--warn-text:#D9A441;--danger-text:#E07B72;--accent-text:#4FB3AE}
+[data-style="geist"][data-theme="light"]{--ok-text:#116932;--warn-text:#8A6116;--danger-text:#B3372F;--accent-text:#111111}
+[data-style="geist"][data-theme="dark"]{--ok-text:#5CBF8A;--warn-text:#D9A441;--danger-text:#E07B72;--accent-text:#EDEDED}
+[data-style="material"][data-theme="light"]{--ok-text:#116932;--warn-text:#7A5210;--danger-text:#B3261E;--accent-text:#174EA6}
+[data-style="material"][data-theme="dark"]{--ok-text:#81C995;--warn-text:#FDD663;--danger-text:#FFA39E;--accent-text:#8AB4F8;--tx2:#BDC1C6}
+[data-style="fluent"][data-theme="light"]{--ok-text:#0E6B0E;--warn-text:#6B4100;--danger-text:#C42B1C;--accent-text:#0F6CBD}
+[data-style="fluent"][data-theme="dark"]{--ok-text:#6CCB5F;--warn-text:#FCE100;--danger-text:#FF99A4;--accent-text:#82CFFF}
+[data-style="ant"][data-theme="light"]{--ok-text:#116932;--warn-text:#8A6116;--danger-text:#B3372F;--accent-text:#0E5FA8}
+[data-style="ant"][data-theme="dark"]{--ok-text:#73D13D;--warn-text:#D89614;--danger-text:#FF7875;--accent-text:#69B1FF}
+[data-style="carbon"][data-theme="light"]{--ok-text:#0E6027;--warn-text:#8E6A00;--danger-text:#A2191F;--accent-text:#0043CE}
+[data-style="carbon"][data-theme="dark"]{--ok-text:#42BE65;--warn-text:#F1C21B;--danger-text:#FF8389;--accent-text:#78A9FF}
+[data-style="cupertino"][data-theme="light"]{--ok-text:#176B2C;--warn-text:#7A5210;--danger-text:#A2191F;--accent-text:#0B5FCC}
+[data-style="cupertino"][data-theme="dark"]{--ok-text:#30D158;--warn-text:#FF9F0A;--danger-text:#FF8A80;--accent-text:#6CB2FF}
+/* ==== v0.7 Roles permission matrix + Groups detail (token-driven; all 7 packs apply) ==== */
+.entity-name{display:flex;align-items:center;gap:8px;font-weight:500}
+.lock-ic{color:var(--tx3);width:13px;height:13px}
+.sys-tag{font-size:var(--fs11);color:var(--tx2);border:1px solid var(--bd);border-radius:var(--r2);padding:0 5px;font-family:var(--mono)}
+tbody tr.sel{background:var(--accent-tint)}
+tbody tr.clickable{cursor:pointer}
+.perm-count{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
+.matrix-wrap{overflow-x:auto}
+table.matrix{min-width:520px}
+table.matrix thead th{text-align:center}
+table.matrix thead th:first-child{text-align:left}
+table.matrix tbody td{text-align:center;padding:6px var(--sp12)}
+table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);font-weight:500}
+.perm-cell{width:22px;height:22px;border-radius:var(--r2);border:1px solid var(--bd2);background:var(--surface);display:inline-grid;place-items:center;color:var(--txinv);vertical-align:middle;padding:0}
+.perm-cell .ic{width:13px;height:13px;opacity:0}
+.perm-cell.on{background:var(--accent);border-color:var(--accent)}
+.perm-cell.on .ic{opacity:1}
+.perm-cell.na{border-style:dashed;border-color:var(--bd);background:var(--sunken);cursor:default}
+.perm-cell.locked{border-style:dashed;border-color:var(--bd);background:var(--sunken);cursor:not-allowed}
+.perm-cell.locked .ic{opacity:1;width:11px;height:11px;color:var(--tx3)}
+.perm-cell.na::after{content:"\2013";color:var(--tx3);font-size:11px}
+.perm-cell:not(.na):not(:disabled):hover{border-color:var(--accent)}
+.perm-cell:disabled{cursor:not-allowed}
+.matrix-head{display:flex;align-items:center;gap:var(--sp12);flex-wrap:wrap}
+.matrix-head .sel-role{font-weight:600;font-size:var(--fs13)}
+.matrix-head .perm-total{font-family:var(--mono);font-size:var(--fs12);color:var(--tx3)}
+.scope-box{display:flex;align-items:center;gap:8px;margin-left:auto}
+.scope-box label{font-size:var(--fs12);color:var(--tx2)}
+.scope-box select{padding:4px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit}
+.scope-box .mixed{color:var(--warn-text,var(--warn));font-size:var(--fs11);font-family:var(--mono)}
+/* Adjudication 25 (A): staged matrix edit bar (draft -> Save/Cancel), per real Transfer+Save model */
+.range-note{font-size:var(--fs11);color:var(--tx3)}
+.mtx-bar{display:flex;gap:8px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--bd);background:var(--sunken);font-size:var(--fs12);color:var(--tx2)}
+/* Adjudication 26 (A): isDepartment switch control (real Groups Form.Item valuePropName=checked) */
+.sw-field{display:inline-flex;align-items:center;gap:8px;font-size:var(--fs13);color:var(--tx1)}
+.sw-field input{width:16px;height:16px;accent-color:var(--accent)}
+.matrix-legend{display:flex;gap:var(--sp16);padding:var(--sp12) var(--sp16);border-top:1px solid var(--bd);font-size:var(--fs11);color:var(--tx3);flex-wrap:wrap}
+.matrix-legend span{display:inline-flex;align-items:center;gap:6px}
+.lg-swatch{width:14px;height:14px;border-radius:var(--r2);display:inline-block}
+.lg-on{background:var(--accent)}
+.lg-off{border:1px solid var(--bd2);background:var(--surface)}
+.lg-locked{border-style:dashed;border-color:var(--bd);background:var(--sunken)}
+.lg-na{border:1px dashed var(--bd);background:var(--sunken)}
+.panel{margin-top:var(--sp12)}
+.panel-head{display:flex;align-items:center;gap:10px;padding:var(--sp12) var(--sp16);border-bottom:1px solid var(--bd)}
+.panel-head h3{font-size:var(--fs13);font-weight:600}
+.panel-head .close{margin-left:auto}
+.tabs{display:flex;gap:2px;padding:0 var(--sp16);border-bottom:1px solid var(--bd)}
+.tabs button{padding:8px 12px;border:none;background:transparent;color:var(--tx2);font-size:var(--fs13);font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--accent-text,var(--accent));border-bottom-color:var(--accent);font-weight:500}
+.tab-pane{display:none;padding:var(--sp16)}
+.tab-pane.on{display:block}
+.member-list{list-style:none}
+.member-list li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.member-list li:last-child{border-bottom:none}
+.member-list .m-av{width:26px;height:26px;border-radius:var(--r4);background:var(--sunken);border:1px solid var(--bd);color:var(--tx2);display:grid;place-items:center;font-size:var(--fs11);font-weight:500;flex-shrink:0}
+.member-list .m-nm{font-size:var(--fs13);font-weight:500}
+.member-list .m-em{font-size:var(--fs11);color:var(--tx3);font-family:var(--mono)}
+.member-list .m-rm{margin-left:auto}
+.add-member{display:flex;gap:8px;margin-top:var(--sp12)}
+.add-member select{flex:1;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
+.role-checks{display:flex;flex-direction:column;gap:8px}
+.role-check{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--r4);cursor:pointer;width:100%;text-align:left;font:inherit;background:var(--surface);color:var(--tx1)}
+.role-check:hover{background:var(--hover)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.role-check .rc-box{width:18px;height:18px;border-radius:var(--r2);border:1px solid var(--bd2);background:var(--surface);display:grid;place-items:center;color:var(--txinv);flex-shrink:0}
+.role-check .rc-box .ic{width:12px;height:12px;opacity:0}
+.role-check.on .rc-box{background:var(--accent);border-color:var(--accent)}
+.role-check.on .rc-box .ic{opacity:1}
+.role-check .rc-nm{font-size:var(--fs13);font-weight:500}
+.role-check .rc-ds{font-size:var(--fs11);color:var(--tx3);margin-left:auto;font-family:var(--mono)}
+.kind-dept{background:var(--accent-tint);color:var(--accent-text,var(--accent))}
+@media(max-width:900px){.scope-box{margin-left:0;width:100%}}
+/* R4 wide-table narrow-screen (adjudication R4=A): sticky action column + column priority +
+   card view <600px. Scoped to .page list tables; .matrix and modal tables are excluded. */
+.page table:not(.matrix):not(.plain) th:last-child,.page table:not(.matrix):not(.plain) td:last-child{position:sticky;right:0;z-index:2}
+.page table:not(.matrix):not(.plain) th:last-child{background:var(--sunken)}
+/* R6 phantom-scrollbar fix: auto table layout sizes columns to content min-width, which slightly
+   exceeds the container and (masked by the sticky action column) yields an always-on horizontal
+   scrollbar. Fixed layout lets the table fit; overlong single-line content ellipsizes (full text
+   via R3 detail / R4 card view). Scoped >=900px; narrower keeps auto + priority + card view. */
+@media(min-width:900px){
+.page table:not(.matrix):not(.plain){table-layout:fixed}
+.page table:not(.matrix):not(.plain) th:first-child{width:22%}
+.page table:not(.matrix):not(.plain) th:last-child{width:110px}
+.page table:not(.matrix):not(.plain) tbody td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.page table:not(.matrix):not(.plain) tbody td:has(.u-cell),.page table:not(.matrix):not(.plain) tbody td:has(.tag),.page table:not(.matrix):not(.plain) tbody td:has(.row-actions),.page table:not(.matrix):not(.plain) tbody td:has(.copyable){white-space:normal}
+/* Chip columns (Scopes / Events / Action): never wrap INSIDE a chip and never clip a chip with an
+   ellipsis; whole chips wrap to the next line instead. Explicit widths give them room to sit inline. */
+.page table:not(.matrix):not(.plain) tbody td:has(.tag){overflow:visible;text-overflow:clip}
+#page-audit table th:nth-child(1){width:150px}
+#page-audit table th:nth-child(3){width:210px}
+#page-audit table th:nth-child(5){width:130px}
+#page-audit table th:last-child{width:80px}
+#page-webhooks table th:nth-child(2){width:230px}
+#page-webhooks table th:nth-child(3),#page-webhooks table th:nth-child(4),#page-webhooks table th:nth-child(5){width:70px}
+#page-webhooks table th:last-child{width:170px}
+#page-tenants table th:last-child{width:150px}
+#page-apikeys table th:nth-child(2){width:150px}
+#page-apikeys table th:nth-child(3){width:170px}
+#page-clients table th:nth-child(4){width:180px}
+}
+.tag{white-space:nowrap}
+.page table:not(.matrix):not(.plain) td:last-child{background:var(--surface);box-shadow:-8px 0 10px -8px rgba(0,0,0,.18)}
+@media(max-width:900px){.page table:not(.matrix):not(.plain) [data-prio="2"]{display:none}}
+@media(max-width:760px){.page table:not(.matrix):not(.plain) [data-prio="3"]{display:none}}
+@media(max-width:600px){
+.page table:not(.matrix):not(.plain),.page table:not(.matrix):not(.plain) tbody,.page table:not(.matrix):not(.plain) tr{display:block;width:100%}
+.page table:not(.matrix):not(.plain) thead{display:none}
+.page table:not(.matrix):not(.plain) tr{border:1px solid var(--bd);border-radius:var(--r6);background:var(--surface);margin:0 0 10px;padding:4px 12px}
+.page table:not(.matrix):not(.plain) td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--bd);text-align:right;background:transparent}
+.page table:not(.matrix):not(.plain) td[data-prio]{display:flex}
+.page table:not(.matrix):not(.plain) tr td:last-child{border-bottom:none;position:static;box-shadow:none}
+.page table:not(.matrix):not(.plain) td::before{content:attr(data-label);flex:none;font-size:var(--fs11);font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;text-align:left}
+}
+/* ==== v0.8 management pages (token-driven; all 7 packs apply) ==== */
+.m-post{background:var(--ok-tint);color:var(--ok-text,var(--ok))}
+.m-put{background:var(--accent-tint);color:var(--accent-text,var(--accent))}
+.m-patch{background:var(--warn-tint);color:var(--warn-text,var(--warn))}
+.m-delete{background:var(--danger-tint);color:var(--danger-text,var(--danger))}
+.fam-user{background:var(--accent-tint);color:var(--accent-text,var(--accent))}
+.fam-role{background:var(--ok-tint);color:var(--ok-text,var(--ok))}
+.fam-tenant{background:var(--warn-tint);color:var(--warn-text,var(--warn))}
+.fam-apikey{background:var(--danger-tint);color:var(--danger-text,var(--danger))}
+.fam-group{background:var(--accent-tint);color:var(--accent-text,var(--accent))}
+.fam-webhook{background:var(--sunken);color:var(--tx2)}
+.fam-auth{background:var(--sunken);color:var(--tx2)}
+.copyable{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:var(--fs12);color:var(--tx2);max-width:180px;min-width:0}
+.copyable .cp-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.copyable button{flex-shrink:0}
+.copyable button{border:none;background:transparent;color:var(--tx3);display:grid;place-items:center;padding:2px;border-radius:var(--r2)}
+.copyable button:hover{color:var(--accent);background:var(--hover)}
+.copyable .ic{width:12px;height:12px}
+.json{font-family:var(--mono);font-size:var(--fs11);color:var(--tx2);background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:2px 6px;display:inline-block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:var(--sp12);overflow-x:auto;white-space:pre;margin:0}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:var(--sp24)}
+.modal-overlay.on{display:flex}
+.modal{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);max-width:520px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.modal-head{display:flex;align-items:center;gap:10px;padding:var(--sp16);border-bottom:1px solid var(--bd)}
+.modal-head h3{font-size:var(--fs14);font-weight:600}
+.modal-head .close{margin-left:auto}
+.modal-body{padding:var(--sp16)}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:var(--sp12) var(--sp16);border-top:1px solid var(--bd)}
+.warn-banner{display:flex;gap:8px;align-items:flex-start;background:var(--warn-tint);color:var(--warn-text,var(--warn));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12)}
+.warn-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+.secret-box{display:flex;gap:8px;align-items:center}
+.secret-box input{flex:1;font-family:var(--mono);font-size:var(--fs12);padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--sunken);color:var(--tx1)}
+.secret-meta{font-family:var(--mono);font-size:var(--fs11);color:var(--tx3);margin-top:8px}
+.verify-banner{display:flex;align-items:center;gap:8px;background:var(--ok-tint);color:var(--ok-text,var(--ok));border-radius:var(--r4);padding:8px var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12)}
+.verify-banner .ic{width:15px;height:15px}
+.verify-banner .hash{margin-left:auto;font-family:var(--mono);font-size:var(--fs11);color:var(--tx2)}
+.count-pill{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
+.count-pill.dead{color:var(--danger-text,var(--danger))}
+.count-pill.pending{color:var(--warn-text,var(--warn))}
+.field{margin-bottom:var(--sp12)}
+.field label{display:block;font-size:var(--fs12);color:var(--tx2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
+.field textarea{resize:vertical;min-height:64px}
+.proto-inert,.btn:disabled{opacity:.5;cursor:not-allowed}
+.proto-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx1);color:var(--bg);padding:8px 16px;border-radius:var(--r4);font-size:var(--fs12);z-index:100;display:none;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.proto-toast .ic{width:14px;height:14px;flex:none}
+.proto-toast.error{background:var(--danger-solid,var(--danger));color:var(--danger-inv)}
+.skel{height:12px;border-radius:var(--r2);background:linear-gradient(90deg,var(--sunken) 25%,var(--bd) 50%,var(--sunken) 75%);background-size:200% 100%;animation:skel 1.2s linear infinite}
+@keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.empty-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 16px;text-align:center;color:var(--tx3)}
+.empty-state .ic{width:28px;height:28px}
+.empty-state h4{margin:0;font-size:var(--fs14);color:var(--tx1);font-weight:600}
+.empty-state p{margin:0;font-size:var(--fs12)}
+.error-banner{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--danger);background:var(--danger-tint);color:var(--danger-text,var(--danger));border-radius:var(--r4);font-size:var(--fs12)}
+.error-banner .ic{width:14px;height:14px;flex:none}
+.error-banner .btn{margin-left:auto;flex:none}
+.state-page{display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:64px 24px;text-align:center}
+.state-page.on{display:flex}
+.state-page .code{font-family:var(--mono);font-size:40px;font-weight:700;color:var(--tx3)}
+.state-page h2{margin:0;font-size:var(--fs20);color:var(--tx1)}
+.state-page p{margin:0;max-width:440px;font-size:var(--fs13);color:var(--tx2)}
+.detail-meta{font-size:var(--fs12);color:var(--tx2);margin-bottom:6px}
+/* R3 long-content cell: ellipsis + click-for-detail (extends the Events payload pattern). A real
+   button so it is keyboard/focus accessible; dotted underline hints "click to view full". */
+.cell-trunc{display:inline-block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;border:none;border-bottom:1px dotted var(--bd2);background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.cell-trunc:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.detail-meta code{font-family:var(--mono);color:var(--tx1)}
+/* ==== v0.9 Profile settings (token-driven; all 7 packs apply) ==== */
+.btn.danger.ghost{background:var(--surface);color:var(--danger-text,var(--danger));border-color:var(--danger)}
+.btn.danger.ghost:hover{background:var(--danger-tint)}
+.p-card-head{display:flex;align-items:center;gap:10px;padding:var(--sp12) var(--sp16);border-bottom:1px solid var(--bd)}
+.p-card-head h3{font-size:var(--fs13);font-weight:600}
+.p-card-head .extra{margin-left:auto}
+.p-card-body{padding:var(--sp16)}
+.desc-row{display:flex;align-items:center;gap:var(--sp16);padding:9px 0;border-bottom:1px solid var(--bd);font-size:var(--fs13)}
+.desc-row:last-child{border-bottom:none}
+.desc-row .d-l{width:120px;color:var(--tx3);font-size:var(--fs12);flex-shrink:0}
+.desc-row .d-v{color:var(--tx1);display:flex;align-items:center;gap:8px}
+.name-form{display:inline-flex;align-items:center;gap:6px}
+.name-form input{padding:4px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit;width:200px}
+.link-btn{border:none;background:transparent;color:var(--accent);display:inline-grid;place-items:center;padding:3px;border-radius:var(--r2);cursor:pointer}
+.link-btn:hover{background:var(--accent-tint)}
+.link-btn .ic{width:14px;height:14px}
+.info-banner{display:flex;gap:8px;align-items:flex-start;background:var(--accent-tint);color:var(--accent-text,var(--accent));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12);max-width:420px}
+.info-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+.error-banner{display:flex;gap:8px;align-items:flex-start;background:var(--danger-tint);color:var(--danger-text,var(--danger));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12);max-width:420px}
+.error-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+.pwd-form{max-width:420px}
+.oauth-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);font-size:var(--fs13)}
+.oauth-row:last-of-type{border-bottom:none}
+.oauth-row .o-tx{color:var(--tx1)}
+.oauth-row .o-ac{font-family:var(--mono);font-size:var(--fs11);color:var(--tx3)}
+.oauth-row .o-rm{margin-left:auto}
+.prov-ic{width:22px;height:22px;display:grid;place-items:center;color:var(--tx2);flex-shrink:0}
+.prov-ic .ic{width:17px;height:17px}
+.prov-g{font-weight:700;font-size:var(--fs13);color:var(--tx2)}
+.oauth-empty{color:var(--tx3);font-size:var(--fs13);padding:6px 0}
+.oauth-bind{display:flex;gap:8px;margin-top:var(--sp16);padding-top:var(--sp16);border-top:1px solid var(--bd)}
+.verify-msg{font-size:var(--fs12);color:var(--tx2);margin-top:4px}
+.profile-stack > .card{margin-top:var(--sp12)}
+.profile-stack > .card:first-child{margin-top:0}
+/* Adjudication 30 (A): prefers-reduced-motion degradation. Motion inventory: skeleton shimmer
+   (@keyframes skel), busy spinner (@keyframes cbxrot, inline + .cbx-load), switch knob + combobox
+   chev + tooltip transitions, smooth scrollIntoView. Under reduce: animations stop (spinner keeps
+   its static ring + the Busy label), transitions collapse, tooltip sits without offset, scrolling
+   is instant. Mirrors AntD motion tokens set to zero (motionDurationMid=0). WCAG 2.3.3 / 2.2.2. */
+@media (prefers-reduced-motion: reduce){
+  .skel,.cbx-load .ic,[style*="cbxrot"]{animation:none !important}
+  .wswitch .knob,.cbx-chev,[data-tip]::after{transition:none !important}
+  [data-tip]::after,.topbar [data-tip]::after{transform:translateX(-50%)}
+  *{scroll-behavior:auto !important}
+}
+
+/* ==== entry-flows layout (companion to admin-console.html; adjudication 33) ==== */
+.auth-wrap{min-height:100vh;display:flex;flex-direction:column}
+.auth-top{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px 16px;border-bottom:1px solid var(--bd);background:var(--surface)}
+.auth-nav{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;background:var(--sunken);border-bottom:1px solid var(--bd)}
+.auth-nav button{border:1px solid var(--bd);background:var(--surface);color:var(--tx2);border-radius:var(--r4);padding:4px 10px;font-size:var(--fs12);cursor:pointer}
+.auth-nav button.on{background:var(--accent-tint);color:var(--accent-text,var(--accent));border-color:var(--accent)}
+.auth-main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px}
+.auth-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.auth-card.wide{max-width:640px}
+.auth-card h1{font-size:var(--fs20);margin:0 0 4px;color:var(--tx1)}
+.auth-card .sub{color:var(--tx2);font-size:var(--fs13);margin-bottom:16px}
+.auth-card .field{margin-bottom:12px}
+.auth-card label{display:block;font-size:var(--fs12);color:var(--tx2);margin-bottom:4px}
+.auth-card input[type=text],.auth-card input[type=email],.auth-card input[type=password],.auth-card input[type=number],.auth-card select{width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--bg);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
+.auth-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.auth-note{font-size:var(--fs11);color:var(--tx3);margin-top:10px}
+.auth-ok{display:none;align-items:flex-start;gap:8px;background:var(--ok-tint);color:var(--ok-text,var(--ok));border:1px solid var(--ok);border-radius:var(--r4);padding:8px 12px;font-size:var(--fs12);margin-bottom:12px}
+.auth-link{color:var(--accent-text,var(--accent));font-size:var(--fs12);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline}
+.code-block{font-family:var(--mono);font-size:var(--fs11);word-break:break-all;background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:8px;color:var(--tx1)}
+.scope-list{display:flex;flex-direction:column;gap:6px;margin:12px 0}
+.scope-list label{display:flex;gap:8px;align-items:center;font-size:var(--fs13);color:var(--tx1);margin:0}
+.steps-bar{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.steps-bar .st{flex:1;min-width:110px;border:1px solid var(--bd);border-radius:var(--r4);padding:6px 8px;font-size:var(--fs11);color:var(--tx3);background:var(--sunken)}
+.steps-bar .st.on{border-color:var(--accent);color:var(--accent-text,var(--accent));background:var(--accent-tint)}
+.steps-bar .st.done{color:var(--ok-text,var(--ok));border-color:var(--ok)}
+.recovery-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);margin:10px 0}
+.flow{display:none}
+.flow.on{display:block}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--bd);border-top-color:var(--accent);border-radius:50%;animation:cbxrot 1s linear infinite;vertical-align:-2px}
+</style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-top">
+    <button class="btn sm" id="langBtn" data-tip="Language" aria-label="Language">中文</button>
+    <select id="styleSelect" title="Style pack" aria-label="Style pack" style="padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit">
+      <option value="ant">Ant</option><option value="material">Material</option><option value="fluent">Fluent</option><option value="carbon">Carbon</option><option value="cupertino">Cupertino</option><option value="broadsheet">Broadsheet</option><option value="geist">Geist</option>
+    </select>
+    <button class="icon-btn" id="themeBtn" data-tip="Toggle theme" aria-label="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
+  </div>
+  <div class="auth-nav" role="tablist" aria-label="Entry flows">
+    <button data-flow="login" class="on">Login</button><button data-flow="magic">Magic link</button><button data-flow="register">Register</button><button data-flow="forgot">Forgot</button><button data-flow="reset">Reset</button><button data-flow="verify">Verify email</button><button data-flow="enroll">Enroll MFA</button><button data-flow="consent">Consent</button><button data-flow="setup">Setup</button>
+  </div>
+  <div class="auth-main">
+
+    <section class="flow on auth-card" id="flow-login" aria-label="Login">
+      <h1>Sign in</h1><div class="sub">Password sign-in · magic link · OIDC code consumption</div>
+      <div class="auth-ok" id="lgOk"><span>Signed in — continue to the console.</span><a class="auth-link" href="admin-console.html">Open console</a></div>
+      <div class="error-banner" id="lgErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="field"><label>Email</label><input id="lgEmail" type="email" autocomplete="username"><div class="field-err" id="lgEmailErr" style="display:none"></div></div>
+      <div class="field"><label>Password</label><input id="lgPwd" type="password" autocomplete="current-password"><div class="field-err" id="lgPwdErr" style="display:none"></div></div>
+      <div class="auth-actions"><button class="btn primary" id="lgSubmit">Sign in</button><button class="btn" id="lgMagicBtn">Email me a magic link</button><a class="auth-link" href="#register">Create account</a><a class="auth-link" href="#forgot">Forgot password?</a></div>
+      <div id="lgMagicPanel" style="display:none;margin-top:12px;border-top:1px solid var(--bd);padding-top:12px">
+        <div class="field"><label>Magic link email</label><input id="mgEmail" type="email"></div>
+        <div class="auth-actions"><button class="btn primary" id="mgSend">Send link</button></div>
+        <div class="auth-ok" id="mgMsg" style="margin-top:10px"><span>Magic link sent — check your inbox.</span></div>
+      </div>
+      <div style="margin-top:16px;border-top:1px solid var(--bd);padding-top:12px">
+        <label>OIDC oauthCode (one-time)</label>
+        <div class="auth-actions" style="margin-top:6px"><input id="ocCode" type="text" value="code-abc" style="flex:1"><button class="btn" id="ocConsume">Consume</button></div>
+        <div class="auth-note" id="ocMsg">A code is consumed once; a second POST 401s (code consumed) — the real refresh-interceptor logout pitfall (Login.tsx:92-98).</div>
+      </div>
+      <div style="margin-top:12px">
+        <label>redirect parameter (allowlist)</label>
+        <div class="auth-actions" style="margin-top:6px"><input id="rdInput" type="text" value="/oidc/auth/abc" style="flex:1"><button class="btn" id="rdCheck">Check</button></div>
+        <div class="auth-note" id="rdMsg">safeOidcRedirect accepts only /oidc/auth/… or /oidc/device/… and rejects backslash / %2F%2F (api/oidc.ts:53-63).</div>
+      </div>
+    </section>
+
+    <section class="flow auth-card" id="flow-magic" aria-label="Magic link consumption">
+      <h1>Magic sign-in</h1><div class="sub">/login/magic — consumes the emailed token once</div>
+      <div class="field"><label>Demo token state</label><select id="mkState"><option value="valid">valid</option><option value="suspended">suspended (AUTH_004)</option><option value="invalid">invalid / consumed</option></select></div>
+      <div class="auth-actions"><button class="btn primary" id="mkConsume">Open magic link</button><span class="spin" id="mkSpin" style="display:none"></span></div>
+      <div class="auth-ok" id="mkOk" style="margin-top:12px"><span>Signed in via magic link.</span><a class="auth-link" href="admin-console.html">Open console</a></div>
+      <div class="error-banner" id="mkErr" style="display:none;margin-top:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+    </section>
+
+    <section class="flow auth-card" id="flow-register" aria-label="Register">
+      <h1>Create account</h1><div class="sub">Self-service registration · admin approval happens in Users, not here</div>
+      <div class="auth-ok" id="rgOk" style="margin-bottom:12px"><span>Account created — verify your email.</span><a class="auth-link" href="#verify">Verify now</a></div>
+      <div class="error-banner" id="rgErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="field"><label>Name</label><input id="rgName" type="text"><div class="field-err" id="rgNameErr" style="display:none"></div></div>
+      <div class="field"><label>Email</label><input id="rgEmail" type="email"><div class="field-err" id="rgEmailErr" style="display:none"></div></div>
+      <div class="field"><label>Password</label><input id="rgPwd" type="password" autocomplete="new-password"><div class="field-err" id="rgPwdErr" style="display:none"></div></div>
+      <div class="field"><label>Confirm password</label><input id="rgConfirm" type="password" autocomplete="new-password"><div class="field-err" id="rgConfirmErr" style="display:none"></div></div>
+      <div class="auth-actions"><button class="btn primary" id="rgSubmit">Register</button><a class="auth-link" href="#login">Back to sign in</a></div>
+      <div class="auth-note">Policy: shared 12+ chars with upper, lower, digit and special (UserCreate precedent).</div>
+    </section>
+
+    <section class="flow auth-card" id="flow-forgot" aria-label="Forgot password">
+      <h1>Reset your password</h1><div class="sub">Requests a reset link by email</div>
+      <div class="auth-ok" id="fgSent" style="margin-bottom:12px"><span>If the address exists, a reset link is on its way.</span></div>
+      <div class="error-banner" id="fgErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="field"><label>Email</label><input id="fgEmail" type="email"><div class="field-err" id="fgEmailErr" style="display:none"></div></div>
+      <div class="auth-actions"><button class="btn primary" id="fgSubmit">Send reset link</button><a class="auth-link" href="#login">Back to sign in</a></div>
+    </section>
+
+    <section class="flow auth-card" id="flow-reset" aria-label="Reset password">
+      <h1>Choose a new password</h1><div class="sub">/reset-password?token= — the link token is consumed once</div>
+      <div class="auth-ok" id="rsOk" style="margin-bottom:12px"><span>Password updated — sign in with the new password.</span><a class="auth-link" href="#login">Sign in</a></div>
+      <div class="error-banner" id="rsErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="auth-note" id="rsToken" style="margin-bottom:12px">Reset token present (demo).</div>
+      <div class="field"><label>New password</label><input id="rsPwd" type="password" autocomplete="new-password"><div class="field-err" id="rsPwdErr" style="display:none"></div></div>
+      <div class="field"><label>Confirm password</label><input id="rsConfirm" type="password" autocomplete="new-password"><div class="field-err" id="rsConfirmErr" style="display:none"></div></div>
+      <div class="auth-actions"><button class="btn primary" id="rsSubmit">Update password</button></div>
+    </section>
+
+    <section class="flow auth-card" id="flow-verify" aria-label="Verify email">
+      <h1>Verify your email</h1><div class="sub">Consumes the verification token from the email link</div>
+      <div class="field"><label>Demo token state</label><select id="vfState"><option value="valid">valid</option><option value="expired">expired / consumed</option></select></div>
+      <div class="auth-actions"><button class="btn primary" id="vfRun">Open verification link</button><span class="spin" id="vfSpin" style="display:none"></span><button class="auth-link" id="vfResend">Resend verification email</button></div>
+      <div class="auth-ok" id="vfOk" style="margin-top:12px"><span>Email verified.</span><a class="auth-link" href="#login">Sign in</a></div>
+      <div class="error-banner" id="vfErr" style="display:none;margin-top:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+    </section>
+
+    <section class="flow auth-card" id="flow-enroll" aria-label="Enroll MFA">
+      <h1>Set up two-factor authentication</h1><div class="sub">Enrollment token from the admin invite · TOTP</div>
+      <div class="error-banner" id="enDead" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span>Enrollment link is dead — ask an administrator to re-issue it.</span></div>
+      <div id="enBody">
+        <label>otpauth URL (copyable)</label>
+        <div class="code-block" id="enUrl">otpauth://totp/AccessBase:admin@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=AccessBase</div>
+        <div class="auth-actions"><button class="btn" id="enCopy">Copy URL</button><button class="btn" id="enDeadBtn">Simulate dead token</button></div>
+        <div class="field" style="margin-top:12px"><label>6-digit code</label><input id="enCode" type="text" inputmode="numeric" maxlength="6" placeholder="123456"><div class="field-err" id="enErr" style="display:none"></div></div>
+        <div class="auth-actions"><button class="btn primary" id="enConfirm">Confirm</button></div>
+        <div class="auth-note">Wrong codes burn the enrollment token only at the attempt limit (real EnrollMfa.tsx:68); the demo keeps the token alive on wrong codes and offers an explicit dead-token branch.</div>
+      </div>
+      <div id="enRecovery" style="display:none">
+        <div class="auth-ok" style="display:flex;margin-bottom:12px"><span>MFA enabled — recovery codes shown once.</span></div>
+        <div class="recovery-grid" id="enCodes"></div>
+        <label class="scope-list" style="flex-direction:row"><input type="checkbox" id="enSaved"><span>I have saved these recovery codes</span></label>
+        <div class="auth-actions"><button class="btn primary" id="enContinue" disabled>Continue</button></div>
+      </div>
+    </section>
+
+    <section class="flow auth-card" id="flow-consent" aria-label="Consent">
+      <h1>Authorize client</h1><div class="sub">OIDC interaction consent · scopes are explicit choices</div>
+      <div class="error-banner" id="csLoadErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span>Failed to load the interaction.</span><button class="btn sm" id="csLoadRetry">Retry</button></div>
+      <div id="csBody" style="display:none">
+        <div class="sub" id="csClient">Client: <strong>Web App</strong></div>
+        <div class="scope-list" id="csScopes">
+          <label><input type="checkbox" value="openid" checked><span>openid</span></label>
+          <label><input type="checkbox" value="profile" checked><span>profile</span></label>
+          <label><input type="checkbox" value="email"><span>email</span></label>
+        </div>
+        <div class="field"><label>redirect (allowlist)</label><input id="csRedirect" type="text" value="/oidc/auth/abc"></div>
+        <div class="error-banner" id="csErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+        <div class="auth-ok" id="csRedirecting" style="margin-bottom:12px"><span>Decision recorded — redirecting…</span></div>
+        <div class="auth-actions"><button class="btn primary" id="csApprove">Approve</button><button class="btn" id="csDeny">Deny</button></div>
+        <div class="auth-note">Only allowlisted /oidc/auth/… or /oidc/device/… redirects are honored (open-redirect hygiene, J13).</div>
+      </div>
+    </section>
+
+    <section class="flow auth-card wide" id="flow-setup" aria-label="Setup wizard">
+      <h1 id="suHead" tabindex="-1">First-run setup</h1><div class="sub">Four-step bootstrap wizard · guarded until complete</div>
+      <div class="steps-bar" id="suSteps">
+        <div class="st on">1 Welcome</div><div class="st">2 Administrator</div><div class="st">3 Configuration</div><div class="st">4 Complete</div>
+      </div>
+      <div id="su0">
+        <div class="sub">Welcome — this wizard creates the first administrator and base configuration. Nothing is stored until each step succeeds.</div>
+      </div>
+      <div id="su1" style="display:none">
+        <div class="error-banner" id="suErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+        <div class="field"><label>Admin name</label><input id="suName" type="text"><div class="field-err" id="suNameErr" style="display:none"></div></div>
+        <div class="field"><label>Admin email</label><input id="suEmail" type="email"><div class="field-err" id="suEmailErr" style="display:none"></div></div>
+        <div class="field"><label>Password</label><input id="suPwd" type="password" autocomplete="new-password"><div class="field-err" id="suPwdErr" style="display:none"></div></div>
+        <div class="auth-note">Setup bootstrap uses min 8 chars (real AdminStep.tsx:90) — deliberately different from console user-create 12+. The password is consumed by the API call and never stored in the wizard state.</div>
+      </div>
+      <div id="su2" style="display:none">
+        <div class="field"><label>Site name</label><input id="cfSiteName" type="text" value="AccessBase"><div class="field-err" id="cfSiteNameErr" style="display:none"></div></div>
+        <div class="field"><label>Site URL</label><input id="cfSiteUrl" type="text" placeholder="https://iam.example.com"></div>
+        <div class="field"><label>SMTP host (advanced)</label><input id="cfSmtpHost" type="text" placeholder="smtp.example.com"></div>
+        <div class="field"><label>SMTP port (advanced)</label><input id="cfSmtpPort" type="number" value="587"></div>
+      </div>
+      <div id="su3" style="display:none">
+        <div class="auth-ok" style="display:flex;margin-bottom:12px"><span>Setup complete — sign in with the administrator you created.</span></div>
+        <div class="auth-actions"><a class="auth-link" href="#login">Go to sign in</a><a class="auth-link" href="admin-console.html">Open console</a></div>
+      </div>
+      <div class="auth-actions"><button class="btn" id="suPrev" disabled>Back</button><button class="btn primary" id="suNext">Next</button></div>
+    </section>
+
+  </div>
+</div>
+<div class="proto-toast" id="protoToast" role="status" aria-live="polite"></div>
+<svg style="display:none"><symbol id="i-alert" viewBox="0 0 16 16"><path fill="currentColor" d="M8 1 15 14H1L8 1zm0 4v5h1V5H8zm0 6v1h1v-1H8z"/></symbol><symbol id="i-moon" viewBox="0 0 16 16"><path fill="currentColor" d="M13 9.5A5.5 5.5 0 0 1 6.5 3 5.5 5.5 0 1 0 13 9.5z"/></symbol></svg>
+<script>
+const $=id=>document.getElementById(id);
+function toast(msg,kind){const t=$('protoToast');t.className='proto-toast '+(kind||'success');t.textContent=msg;t.style.display='flex';clearTimeout(t.__h);t.__h=setTimeout(()=>{t.style.display='none';},2600);}
+function banner(id,msg){const e=$(id);e.style.display=msg?'flex':'none';if(msg)e.querySelector('span').textContent=msg;}
+function ferr(id,msg){const e=$(id);e.style.display=msg?'block':'none';e.textContent=msg||'';}
+function busy(b,on,label){if(on){b.dataset.label=b.innerHTML;b.disabled=true;b.innerHTML='<span class="spin"></span> '+(label||'Working…');}else{b.disabled=false;b.innerHTML=b.dataset.label||b.innerHTML;}}
+function pwdPolicyError(p){if(p.length<12)return 'Password needs 12+ chars with upper, lower, digit and special';if(!/[A-Z]/.test(p))return 'Password needs an uppercase letter';if(!/[a-z]/.test(p))return 'Password needs a lowercase letter';if(!/[0-9]/.test(p))return 'Password needs a digit';if(!/[^A-Za-z0-9]/.test(p))return 'Password needs a special character';return '';}
+const EMAIL_RE=/^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+/* safeOidcRedirect mirror — api/oidc.ts:53-63 */
+function safeRedirect(r){if(!r)return undefined;let d;try{d=decodeURIComponent(r);}catch(_){return undefined;}if(d.includes('\\')||d.includes('%2F%2F'))return undefined;return /^\/oidc\/(auth|device)\//.test(d)?d:undefined;}
+/* flow routing */
+let curFlow='login';
+function showFlow(f){curFlow=f;document.querySelectorAll('.flow').forEach(s=>s.classList.toggle('on',s.id==='flow-'+f));document.querySelectorAll('.auth-nav button').forEach(b=>b.classList.toggle('on',b.dataset.flow===f));if(f==='consent')consentLoad();if(f==='setup')focusStep();}
+document.querySelectorAll('.auth-nav button').forEach(b=>b.onclick=()=>showFlow(b.dataset.flow));
+if(location.hash)showFlow(location.hash.slice(1));
+/* theme + pack (same mechanism as admin-console: data-style x data-theme) */
+document.documentElement.dataset.style='ant';
+$('themeBtn').onclick=()=>{const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';};
+$('styleSelect').onchange=()=>{document.documentElement.dataset.style=$('styleSelect').value;};
+/* ==== login ==== */
+let lgTried=false,ocConsumed=false;
+$('lgSubmit').onclick=()=>{ferr('lgEmailErr','');ferr('lgPwdErr','');banner('lgErr','');const em=$('lgEmail').value.trim(),pw=$('lgPwd').value;
+ if(!em||!EMAIL_RE.test(em)){ferr('lgEmailErr','A valid email is required');return;}
+ if(!pw){ferr('lgPwdErr','Password is required');return;}
+ busy($('lgSubmit'),true,'Signing in…');setTimeout(()=>{busy($('lgSubmit'),false);
+  if(!lgTried){lgTried=true;banner('lgErr','AUTH_002: invalid credentials (prototype simulation) — retry.');return;}
+  $('lgOk').style.display='flex';toast('Signed in');},400);};
+$('lgMagicBtn').onclick=()=>{const p=$('lgMagicPanel');p.style.display=p.style.display==='none'?'block':'none';};
+let mgTried=false;
+$('mgSend').onclick=()=>{const em=$('mgEmail').value.trim();if(!em||!EMAIL_RE.test(em)){toast('A valid email is required','error');return;}busy($('mgSend'),true,'Sending…');setTimeout(()=>{busy($('mgSend'),false);if(!mgTried){mgTried=true;toast('Send failed: upstream timeout (prototype simulation) — retry','error');return;}$('mgMsg').style.display='flex';},400);};
+$('ocConsume').onclick=()=>{const m=$('ocMsg');if(ocConsumed){m.textContent='401: code consumed — a second POST fails and the refresh-interceptor would log out (Login.tsx:92-98).';m.style.color='var(--danger-text,var(--danger))';return;}ocConsumed=true;m.textContent='Code consumed once — session established (demo).';m.style.color='var(--ok-text,var(--ok))';};
+$('rdCheck').onclick=()=>{const ok=safeRedirect($('rdInput').value);const m=$('rdMsg');m.textContent=ok?('Allowed redirect: '+ok):'Rejected: only /oidc/auth/… or /oidc/device/… without backslash or %2F%2F.';m.style.color=ok?'var(--ok-text,var(--ok))':'var(--danger-text,var(--danger))';};
+/* ==== magic consumption ==== */
+$('mkConsume').onclick=()=>{banner('mkErr','');$('mkOk').style.display='none';$('mkSpin').style.display='inline-block';setTimeout(()=>{$('mkSpin').style.display='none';const s=$('mkState').value;if(s==='valid'){$('mkOk').style.display='flex';}else if(s==='suspended'){banner('mkErr','AUTH_004: account suspended — contact an administrator.');}else{banner('mkErr','Magic link invalid or already consumed.');}},500);};
+/* ==== register ==== */
+let rgTried=false;
+$('rgSubmit').onclick=()=>{['rgNameErr','rgEmailErr','rgPwdErr','rgConfirmErr'].forEach(i=>ferr(i,''));banner('rgErr','');
+ const nm=$('rgName').value.trim(),em=$('rgEmail').value.trim(),pw=$('rgPwd').value,cf=$('rgConfirm').value;
+ if(!nm){ferr('rgNameErr','Name is required');return;}
+ if(!em||!EMAIL_RE.test(em)){ferr('rgEmailErr','A valid email is required');return;}
+ const pe=pwdPolicyError(pw);if(pe){ferr('rgPwdErr',pe);return;}
+ if(cf!==pw){ferr('rgConfirmErr','Passwords do not match');return;}
+ busy($('rgSubmit'),true,'Creating…');setTimeout(()=>{busy($('rgSubmit'),false);if(!rgTried){rgTried=true;banner('rgErr','Create failed: upstream timeout (prototype simulation) — retry.');return;}$('rgOk').style.display='flex';},400);};
+/* ==== forgot ==== */
+let fgTried=false;
+$('fgSubmit').onclick=()=>{ferr('fgEmailErr','');banner('fgErr','');const em=$('fgEmail').value.trim();if(!em||!EMAIL_RE.test(em)){ferr('fgEmailErr','A valid email is required');return;}busy($('fgSubmit'),true,'Sending…');setTimeout(()=>{busy($('fgSubmit'),false);if(!fgTried){fgTried=true;banner('fgErr','Send failed: upstream timeout (prototype simulation) — retry.');return;}$('fgSent').style.display='flex';},400);};
+/* ==== reset ==== */
+let rsTried=false;
+$('rsSubmit').onclick=()=>{ferr('rsPwdErr','');ferr('rsConfirmErr','');banner('rsErr','');const pw=$('rsPwd').value,cf=$('rsConfirm').value;const pe=pwdPolicyError(pw);if(pe){ferr('rsPwdErr',pe);return;}if(cf!==pw){ferr('rsConfirmErr','Passwords do not match');return;}busy($('rsSubmit'),true,'Updating…');setTimeout(()=>{busy($('rsSubmit'),false);if(!rsTried){rsTried=true;banner('rsErr','Reset failed: token service timeout (prototype simulation) — retry.');return;}$('rsOk').style.display='flex';$('rsToken').textContent='Reset token consumed (demo).';},400);};
+/* ==== verify ==== */
+$('vfRun').onclick=()=>{banner('vfErr','');$('vfOk').style.display='none';$('vfSpin').style.display='inline-block';setTimeout(()=>{$('vfSpin').style.display='none';if($('vfState').value==='valid'){$('vfOk').style.display='flex';}else{banner('vfErr','Verification link expired or already consumed — request a new one.');}},500);};
+$('vfResend').onclick=()=>toast('Verification email resent');
+/* ==== enroll ==== */
+let enTried=false;
+$('enCopy').onclick=async()=>{const txt=$('enUrl').textContent;try{await navigator.clipboard.writeText(txt);toast('Copied to clipboard');}catch(_){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();const ok=document.execCommand&&document.execCommand('copy');ta.remove();if(ok)toast('Copied to clipboard');else toast('Copy failed','error');}};
+$('enDeadBtn').onclick=()=>{$('enDead').style.display='flex';$('enBody').style.display='none';};
+$('enConfirm').onclick=()=>{ferr('enErr','');const c=$('enCode').value.trim();if(!/^\d{6}$/.test(c)){ferr('enErr','Enter the 6-digit code from your authenticator');return;}busy($('enConfirm'),true,'Confirming…');setTimeout(()=>{busy($('enConfirm'),false);if(c!=='123456'){ferr('enErr','Wrong code — try again (token burns only at the attempt limit).');return;}if(!enTried){enTried=true;ferr('enErr','Confirm failed: upstream timeout (prototype simulation) — retry.');return;}$('enBody').style.display='none';$('enCodes').innerHTML=Array.from({length:8},(_,i)=>'<span>RC-'+(1000+i*137)+'</span>').join('');$('enRecovery').style.display='block';},400);};
+$('enSaved').onchange=()=>{$('enContinue').disabled=!$('enSaved').checked;};
+$('enContinue').onclick=()=>{toast('MFA enrolled');location.href='admin-console.html';};
+/* ==== consent ==== */
+let csLoaded=false,csLoadTried=false,csTried=false;
+function consentLoad(){if(csLoaded)return;$('csBody').style.display='none';banner('csLoadErr','');setTimeout(()=>{if(!csLoadTried){csLoadTried=true;$('csLoadErr').style.display='flex';return;}csLoaded=true;$('csBody').style.display='block';},400);}
+$('csLoadRetry').onclick=()=>{consentLoad();};
+function decide(kind){banner('csErr','');$('csRedirecting').style.display='none';
+ if(kind==='approve'){const rd=safeRedirect($('csRedirect').value);if(!rd){banner('csErr','Redirect not allowed — only /oidc/auth/… or /oidc/device/… (open-redirect hygiene).');return;}}
+ const b=kind==='approve'?$('csApprove'):$('csDeny');busy(b,true,kind==='approve'?'Approving…':'Denying…');
+ setTimeout(()=>{busy(b,false);if(!csTried){csTried=true;banner('csErr','Decision failed: upstream timeout (prototype simulation) — retry.');return;}$('csRedirecting').style.display='flex';toast(kind==='approve'?'Consent approved':'Consent denied');},400);}
+$('csApprove').onclick=()=>decide('approve');
+$('csDeny').onclick=()=>decide('deny');
+/* ==== setup wizard ==== */
+let suStep=0,suTried=false;
+function focusStep(){const h=$('suHead');if(h)h.focus();}
+function paintSteps(){[...$('suSteps').children].forEach((el,i)=>{el.className='st'+(i===suStep?' on':(i<suStep?' done':''));});for(let i=0;i<4;i++)$('su'+i).style.display=i===suStep?'block':'none';$('suPrev').disabled=suStep===0;$('suNext').textContent=suStep===3?'Finish':'Next';focusStep();}
+$('suPrev').onclick=()=>{if(suStep>0){suStep--;paintSteps();}};
+$('suNext').onclick=()=>{
+ if(suStep===1){ferr('suNameErr','');ferr('suEmailErr','');ferr('suPwdErr','');banner('suErr','');
+  const nm=$('suName').value.trim(),em=$('suEmail').value.trim(),pw=$('suPwd').value;
+  if(!nm){ferr('suNameErr','Name is required');return;}
+  if(!em||!EMAIL_RE.test(em)){ferr('suEmailErr','A valid email is required');return;}
+  if(pw.length<8){ferr('suPwdErr','Password must be at least 8 characters (setup bootstrap policy)');return;}
+  busy($('suNext'),true,'Creating…');setTimeout(()=>{busy($('suNext'),false);if(!suTried){suTried=true;banner('suErr','Create failed: upstream timeout (prototype simulation) — retry.');return;}suStep=2;paintSteps();},400);return;}
+ if(suStep===2){ferr('cfSiteNameErr','');if(!$('cfSiteName').value.trim()){ferr('cfSiteNameErr','Site name is required');return;}}
+ if(suStep===3){toast('Setup complete');location.href='admin-console.html';return;}
+ suStep++;paintSteps();};
+paintSteps();
+/* ==== i18n (mechanism reused from admin-console adjudication 31) ==== */
+const I18N_ZH={
+'Language':'语言','Style pack':'样式包','Toggle theme':'切换主题','Login':'登录','Magic link':'魔法链接','Register':'注册','Forgot':'忘记密码','Reset':'重置密码','Verify email':'验证邮箱','Enroll MFA':'绑定 MFA','Consent':'授权同意','Setup':'初始化向导',
+'Sign in':'登录','Password sign-in · magic link · OIDC code consumption':'密码登录 · 魔法链接 · OIDC code 消费','Email':'邮箱','Password':'密码','Email me a magic link':'发送魔法链接','Create account':'创建账户','Forgot password?':'忘记密码？','Magic link email':'魔法链接邮箱','Send link':'发送链接','Magic link sent — check your inbox.':'魔法链接已发送 — 请查收邮件。','OIDC oauthCode (one-time)':'OIDC oauthCode（一次性）','Consume':'消费','redirect parameter (allowlist)':'redirect 参数（白名单）','Check':'校验','Signed in — continue to the console.':'已登录 — 继续进入控制台。','Open console':'打开控制台','Signed in':'已登录',
+'Magic sign-in':'魔法链接登录','/login/magic — consumes the emailed token once':'/login/magic — 一次性消费邮件 token','Demo token state':'演示 token 状态','valid':'有效','suspended (AUTH_004)':'已暂停（AUTH_004）','invalid / consumed':'无效 / 已消费','Open magic link':'打开魔法链接','Signed in via magic link.':'已通过魔法链接登录。',
+'Create account':'创建账户','Self-service registration · admin approval happens in Users, not here':'自助注册 · 管理员审批在 Users 面而非此处','Name':'姓名','Confirm password':'确认密码','Register':'注册','Back to sign in':'返回登录','Account created — verify your email.':'账户已创建 — 请验证邮箱。','Verify now':'立即验证','Policy: shared 12+ chars with upper, lower, digit and special (UserCreate precedent).':'策略：共享 12+ 字符，含大写、小写、数字与特殊字符（UserCreate 先例）。',
+'Reset your password':'重置密码','Requests a reset link by email':'通过邮件请求重置链接','Send reset link':'发送重置链接','If the address exists, a reset link is on its way.':'若该地址存在，重置链接已在途中。',
+'Choose a new password':'设置新密码','/reset-password?token= — the link token is consumed once':'/reset-password?token= — 链接 token 一次性消费','New password':'新密码','Update password':'更新密码','Password updated — sign in with the new password.':'密码已更新 — 用新密码登录。','Reset token present (demo).':'重置 token 存在（演示）。','Reset token consumed (demo).':'重置 token 已消费（演示）。',
+'Verify your email':'验证邮箱','Consumes the verification token from the email link':'消费邮件链接中的验证 token','expired / consumed':'过期 / 已消费','Open verification link':'打开验证链接','Resend verification email':'重发验证邮件','Email verified.':'邮箱已验证。','Verification email resent':'验证邮件已重发',
+'Set up two-factor authentication':'设置双因素认证','Enrollment token from the admin invite · TOTP':'来自管理员邀请的 enroll token · TOTP','otpauth URL (copyable)':'otpauth URL（可复制）','Copy URL':'复制 URL','Simulate dead token':'模拟失效 token','6-digit code':'6 位代码','Confirm':'确认','MFA enabled — recovery codes shown once.':'MFA 已启用 — 恢复码仅展示一次。','I have saved these recovery codes':'我已保存这些恢复码','Continue':'继续','MFA enrolled':'MFA 已绑定','Copied to clipboard':'已复制到剪贴板','Copy failed':'复制失败',
+'Authorize client':'授权客户端','OIDC interaction consent · scopes are explicit choices':'OIDC 交互同意 · scope 为显式选择','Client:':'客户端：','redirect (allowlist)':'redirect（白名单）','Approve':'同意','Deny':'拒绝','Decision recorded — redirecting…':'决定已记录 — 跳转中…','Consent approved':'已同意授权','Consent denied':'已拒绝授权','Failed to load the interaction.':'加载交互失败。','Retry':'重试',
+'First-run setup':'首次初始化','Four-step bootstrap wizard · guarded until complete':'四步引导向导 · 完成前持续守卫','1 Welcome':'1 欢迎','2 Administrator':'2 管理员','3 Configuration':'3 配置','4 Complete':'4 完成','Admin name':'管理员姓名','Admin email':'管理员邮箱','Site name':'站点名称','Site URL':'站点 URL','SMTP host (advanced)':'SMTP 主机（高级）','SMTP port (advanced)':'SMTP 端口（高级）','Back':'上一步','Next':'下一步','Finish':'完成','Setup complete — sign in with the administrator you created.':'初始化完成 — 用你创建的管理员登录。','Go to sign in':'去登录','Setup complete':'初始化完成',
+'A valid email is required':'需要有效邮箱','Password is required':'密码必填','Name is required':'名称必填','Passwords do not match':'两次密码不一致','Site name is required':'站点名称必填','Working…':'处理中…','Signing in…':'登录中…','Sending…':'发送中…','Creating…':'创建中…','Updating…':'更新中…','Confirming…':'确认中…','Approving…':'同意中…','Denying…':'拒绝中…',
+'AUTH_002: invalid credentials (prototype simulation) — retry.':'AUTH_002：凭据无效（原型模拟）— 重试。','Send failed: upstream timeout (prototype simulation) — retry':'发送失败：上游超时（原型模拟）— 重试','Create failed: upstream timeout (prototype simulation) — retry.':'创建失败：上游超时（原型模拟）— 重试。','Reset failed: token service timeout (prototype simulation) — retry.':'重置失败：token 服务超时（原型模拟）— 重试。','Confirm failed: upstream timeout (prototype simulation) — retry.':'确认失败：上游超时（原型模拟）— 重试。','Decision failed: upstream timeout (prototype simulation) — retry.':'决定失败：上游超时（原型模拟）— 重试。',
+'AUTH_004: account suspended — contact an administrator.':'AUTH_004：账户已暂停 — 联系管理员。','Magic link invalid or already consumed.':'魔法链接无效或已消费。','Verification link expired or already consumed — request a new one.':'验证链接过期或已消费 — 请重新请求。','Enrollment link is dead — ask an administrator to re-issue it.':'Enroll 链接已失效 — 请管理员重发。','Enter the 6-digit code from your authenticator':'输入认证器中的 6 位代码','Wrong code — try again (token burns only at the attempt limit).':'代码错误 — 重试（token 仅在次数上限时烧毁）。','Redirect not allowed — only /oidc/auth/… or /oidc/device/… (open-redirect hygiene).':'redirect 不被允许 — 仅 /oidc/auth/… 或 /oidc/device/…（开放重定向 hygiene）。',
+'Password needs 12+ chars with upper, lower, digit and special':'密码需 12+ 字符，含大写、小写、数字与特殊字符','Password needs an uppercase letter':'密码需大写字母','Password needs a lowercase letter':'密码需小写字母','Password needs a digit':'密码需数字','Password needs a special character':'密码需特殊字符','Password must be at least 8 characters (setup bootstrap policy)':'密码至少 8 字符（初始化 bootstrap 策略）',
+'Welcome — this wizard creates the first administrator and base configuration. Nothing is stored until each step succeeds.':'欢迎 — 本向导创建首个管理员与基础配置。每步成功前不存储任何内容。',
+'Setup bootstrap uses min 8 chars (real AdminStep.tsx:90) — deliberately different from console user-create 12+. The password is consumed by the API call and never stored in the wizard state.':'初始化 bootstrap 使用 min 8 字符（真实 AdminStep.tsx:90）— 与 console 创建用户 12+ 刻意不同。密码被 API 调用消费，绝不存入向导状态。',
+'Wrong codes burn the enrollment token only at the attempt limit (real EnrollMfa.tsx:68); the demo keeps the token alive on wrong codes and offers an explicit dead-token branch.':'错误代码仅在次数上限时烧毁 enroll token（真实 EnrollMfa.tsx:68）；演示在错码时保留 token 并提供显式失效分支。',
+'Only allowlisted /oidc/auth/… or /oidc/device/… redirects are honored (open-redirect hygiene, J13).':'仅白名单 /oidc/auth/… 或 /oidc/device/… 的 redirect 会被接受（开放重定向 hygiene，J13）。',
+'A code is consumed once; a second POST 401s (code consumed) — the real refresh-interceptor logout pitfall (Login.tsx:92-98).':'code 一次性消费；二次 POST 401（code consumed）— 真实 refresh-interceptor 登出坑（Login.tsx:92-98）。',
+'safeOidcRedirect accepts only /oidc/auth/… or /oidc/device/… and rejects backslash / %2F%2F (api/oidc.ts:53-63).':'safeOidcRedirect 仅接受 /oidc/auth/… 或 /oidc/device/…，拒绝反斜杠 / %2F%2F（api/oidc.ts:53-63）。',
+};
+const I18N_RULES=[
+ [/^(\d+) users$/,'$1 个用户'],[/^(\d+) roles$/,'$1 个角色'],[/^(\d+) tenants$/,'$1 个租户'],[/^(\d+) groups$/,'$1 个用户组'],[/^(\d+) clients$/,'$1 个客户端'],[/^(\d+) keys$/,'$1 个密钥'],[/^(\d+) endpoints$/,'$1 个端点'],[/^(\d+) events$/,'$1 个事件'],[/^(\d+) entries$/,'$1 条记录'],[/^(\d+) perms$/,'$1 个权限'],
+ [/^(\d+) perms · system$/,'$1 个权限 · 系统'],[/^(\d+) \/ 26 granted$/,'已授予 $1 / 26'],[/^(\d+)–(\d+) of (\d+)$/,'第 $1–$2 条，共 $3 条'],
+ [/^(\d+) (m|h|d|w|mo) ago$/,function(m){return m[1]+' '+({m:'分钟',h:'小时',d:'天',w:'周',mo:'个月'})[m[2]]+'前';}],
+ [/^(\d+) (minutes|hours|days|weeks|months) ago$/,function(m){return m[1]+' '+({minutes:'分钟',hours:'小时',days:'天',weeks:'周',months:'个月'})[m[2]]+'前';}],
+ [/^from (.+)\? They lose every role and permission inherited from this group\.$/,'从 $1 移除？其将失去从该组继承的所有角色与权限。'],
+ [/^Deliveries · (.+)$/,'投递记录 · $1'],[/^Edit template · (.+)$/,'编辑模板 · $1'],
+];
+let LANG='en';try{const st=localStorage.getItem('ab-lang');LANG=(st==='zh'||st==='en')?st:(navigator.language||'en').startsWith('zh')?'zh':'en';}catch(_){}
+function tr(s){if(LANG!=='zh')return s;const hit=I18N_ZH[s];if(hit)return hit;for(const[re,rep]of I18N_RULES){const m=s.match(re);if(m)return typeof rep==='function'?rep(m):s.replace(re,rep);}return s;}
+const I18N_ATTRS=['placeholder','aria-label','data-tip','title'];
+function translateNode(root){
+ if(!root)return;
+ if(root.nodeType===3){const raw=root.textContent;const s=raw.trim();if(!s)return;const z=tr(s);if(LANG==='zh'){if(root.__i18nEn===undefined)root.__i18nEn=raw;if(z!==s)root.textContent=raw.replace(s,z);}else if(root.__i18nEn!==undefined){root.textContent=root.__i18nEn;delete root.__i18nEn;}return;}
+ if(root.nodeType!==1&&root.nodeType!==9)return;
+ if(root.nodeType===1){
+  if(root.hasAttribute&&root.hasAttribute('data-i18n-skip'))return;
+  if(root.__i18nEnAttrs===undefined&&LANG==='zh'){root.__i18nEnAttrs={};I18N_ATTRS.forEach(a=>{if(root.hasAttribute(a))root.__i18nEnAttrs[a]=root.getAttribute(a);});}
+  I18N_ATTRS.forEach(a=>{if(!root.hasAttribute(a))return;const src=LANG==='zh'?(root.__i18nEnAttrs&&root.__i18nEnAttrs[a]!==undefined?root.__i18nEnAttrs[a]:root.getAttribute(a)):root.getAttribute(a);const z=tr(src);if(LANG==='zh'){if(z!==src)root.setAttribute(a,z);}else if(root.__i18nEnAttrs&&root.__i18nEnAttrs[a]!==undefined){root.setAttribute(a,root.__i18nEnAttrs[a]);}});
+  if(LANG==='en'&&root.__i18nEnAttrs)delete root.__i18nEnAttrs;
+ }
+ for(const child of Array.from(root.childNodes))translateNode(child);
+}
+function updateLangBtn(){const b=$('langBtn');if(!b)return;b.textContent=LANG==='zh'?'EN':'中文';const lab=LANG==='zh'?'语言':'Language';b.setAttribute('aria-label',lab);b.setAttribute('data-tip',lab);b.__i18nEnAttrs={'aria-label':'Language','data-tip':'Language'};}
+let i18nTimer=null;
+new MutationObserver(()=>{if(LANG!=='zh')return;clearTimeout(i18nTimer);i18nTimer=setTimeout(()=>translateNode(document.body),30);}).observe(document.body,{childList:true,subtree:true,characterData:true});
+function initLang(){document.documentElement.lang=LANG;updateLangBtn();if(LANG==='zh')translateNode(document.body);}
+$('langBtn').onclick=()=>{LANG=LANG==='zh'?'en':'zh';try{localStorage.setItem('ab-lang',LANG);}catch(_){}document.documentElement.lang=LANG;updateLangBtn();translateNode(document.body);};
+initLang();
+</script>
+</body>
+</html>

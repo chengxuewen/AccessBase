@@ -1023,3 +1023,24 @@ disclosed in the layer comment. New harness i18n group (52 total): toggle afford
 nav/head/status/placeholder/empty/confirm-verb/settings-tabs/relative forms, data names untouched,
 dictionary non-empty + coverage lock, exact en restore, preference survives reload. All 52 pass.
 Screenshot: zh tenants.
+
+## Adjudication 33 (A): entry-flows companion prototype (nine surfaces) + four auth lock groups — 2026-11-20
+The kit covered only the authenticated console; the entire entry layer (Login, MagicLogin, Register,
+ForgotPassword, ResetPassword, VerifyEmail, EnrollMfa, Consent, setup wizard) had no reference sample,
+so one-time-token consumption, suspended/invalid double branches, consent redirect hygiene and the
+setup-vs-console password-policy difference were uncopiable. Ruling A: new companion
+docs/ui/prototypes/auth-flows.html reusing admin-console's token packs (data-style x data-theme), theme
+toggle and the adjudication-31 zh translation mechanism. Login: inline required errors, async sign-in
+with a simulated AUTH_002 then success, magic-link request panel, one-time oauthCode consumption whose
+second attempt reports the 401 code-consumed pitfall (Login.tsx:92-98), and a safeOidcRedirect mirror
+(api/oidc.ts:53-63: only /oidc/auth|device/, rejects backslash and double-encoded %2F%2F). Magic:
+valid/suspended(AUTH_004)/invalid branches. Register: confirm-match + shared 12+ policy + async create.
+Forgot: sent alert. Reset: token consumed + confirm. Verify: spin then ok/expired. Enroll: copyable
+otpauth URL with clipboard fallback + copyFailed, wrong-code branch (token burns only at the attempt
+limit, disclosed), explicit dead-token branch, recovery codes shown once behind an "I have saved" gate.
+Consent: load error + Retry, scope checkboxes, approve/deny async with simulated decisionError,
+redirecting alert, allowlist refusal. Setup: four Steps with heading focus, admin min-8 policy
+(deliberately different from console 12+, disclosed), password-never-stored note, config siteName
+required, complete links to console. Four new harness groups (56 total): auth-login,
+auth-register-reset, auth-enroll-consent, auth-setup. README gains the companion guide, four lock rows,
+adjudication 32/33 rows and entry-flow simulation disclosures. All 56 pass. Screenshot: zh consent.

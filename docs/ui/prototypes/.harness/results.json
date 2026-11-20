@@ -1342,6 +1342,100 @@
         },
         "navAudit": true
       }
+    },
+    "auth-login": {
+      "pass": true,
+      "assertions": {
+        "req": true,
+        "authErr": true,
+        "ok": true,
+        "magicOpen": true,
+        "magicSent": true,
+        "oc1": true,
+        "oc2": true,
+        "rd": [
+          "ok",
+          "ok",
+          "no",
+          "no",
+          "no"
+        ],
+        "branches": [
+          "suspended",
+          "invalid",
+          "ok"
+        ]
+      }
+    },
+    "auth-register-reset": {
+      "pass": true,
+      "assertions": {
+        "nameErr": true,
+        "polErr": true,
+        "matchErr": true,
+        "rgFail": true,
+        "rgOk": true,
+        "fgReq": true,
+        "fgSent": true,
+        "rsMatch": true,
+        "rsOk": {
+          "ok": true,
+          "consumed": true
+        },
+        "vfExp": true,
+        "vfOk": true
+      }
+    },
+    "auth-enroll-consent": {
+      "pass": true,
+      "assertions": {
+        "copyFail": true,
+        "copyOk": true,
+        "wrong": true,
+        "enFail": true,
+        "rec1": {
+          "shown": true,
+          "codes": 8,
+          "gated": true
+        },
+        "ungated": true,
+        "dead": {
+          "dead": true,
+          "body": true
+        },
+        "csLoadErr": true,
+        "csBody": {
+          "shown": true,
+          "scopes": 3
+        },
+        "rdRefuse": true,
+        "csFail": true,
+        "csOk": true,
+        "csDeny": true
+      }
+    },
+    "auth-setup": {
+      "pass": true,
+      "assertions": {
+        "steps0": {
+          "n": 4,
+          "on": 1,
+          "focus": "suHead"
+        },
+        "step1": true,
+        "suNameErr": true,
+        "min8": true,
+        "note": true,
+        "suBusy": true,
+        "suFail": true,
+        "step2": {
+          "shown": true,
+          "focus": "suHead"
+        },
+        "cfReq": true,
+        "step3": true,
+        "back": true
+      }
     }
   }
 }

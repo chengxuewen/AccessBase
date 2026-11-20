@@ -9,6 +9,12 @@ branch and says so (see disclosure index). Read this file first, `CHANGELOG.md` 
 ## Open & operate
 
 - Open `admin-console.html` directly (`file://`) in a browser. No build step.
+- Companion `auth-flows.html` (adjudication 33) covers the nine entry surfaces: Login (password +
+  magic-link request + one-time oauthCode consumption + redirect allowlist), Magic link consumption
+  (AUTH_004 suspended / invalid branches), Register, Forgot, Reset, Verify email, Enroll MFA (otpauth
+  copyable + dead-token + recovery-once gate), Consent (scope checkboxes + approve/deny + redirect
+  hygiene), and the four-step Setup wizard (admin min-8 policy, password never stored). It reuses the
+  same token packs, theme and zh translation mechanism.
 - Topbar: style pack (Ant / Material / Fluent / Carbon / Cupertino / Broadsheet / Geist), light/dark
   theme, **language 中文/EN** (stored `ab-lang`, probed from `navigator.language`), tenant perspective
   label, avatar. Sidebar collapses; tables adapt at narrow widths (priority columns + card mode).
@@ -25,7 +31,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts
 npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --grep roles-edit
 ```
 
-- 52 groups, all must pass. Per-group assertions are written to
+- 56 groups, all must pass. Per-group assertions are written to
   `docs/ui/prototypes/.harness/results.json` (`results[name].assertions`, `fail` count) for evidence review.
 - The harness loads the same `file://` page; it never mocks the prototype itself except where a test
   deliberately stubs `navigator.clipboard` / `document.execCommand` to prove the copy-failure branch.
@@ -33,7 +39,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
   surface, motion family, tint-bearing color, or locale string requires extending the matching group
   (or adding one) in the same change — never ship a surface the harness cannot see.
 
-## Lock index (52 groups)
+## Lock index (56 groups)
 
 | Group | Locks | Ruling |
 |---|---|---|
@@ -64,6 +70,10 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | topbar-fidelity | real topbar affordances only | 3 |
 | reduced-motion | prefers-reduced-motion degradation + normal-mode motion intact | 30 |
 | i18n | 中文/EN toggle, stored lang, zh chrome + relative forms, data untouched, dictionary parity/coverage, en restore | 31 |
+| auth-login | login inline required + AUTH_002 simulation, magic request, oauthCode once-then-401, safeOidcRedirect allowlist, magic suspended/invalid/valid | 33 |
+| auth-register-reset | register confirm-match + shared 12+ policy, forgot sent, reset token consumed, verify ok/expired | 33 |
+| auth-enroll-consent | otpauth copy fallback, wrong-code, dead-token, recovery-once gate, consent load error + scopes + approve/deny + redirect refusal | 33 |
+| auth-setup | four steps + heading focus, admin min-8 (vs console 12+), password-not-stored, config required, complete -> console | 33 |
 
 ## Simulation & demo disclosure index
 
@@ -84,6 +94,7 @@ carries "(prototype simulation)". They exist to demonstrate the real error branc
 | Events | load failure + Retry | `Events.tsx` request try/catch loadError |
 | Settings | options load, idle save, template preview, test-send SMTP | `Settings.tsx`/`EmailTemplatesCard.tsx` error branches |
 | Profile | password change, MFA enable/disable, name save, session logout | `Profile.tsx` failure branches |
+| Entry flows (auth-flows.html) | login AUTH_002, magic send, register/forgot/reset/confirm/setup create, consent decision | `Login/MagicLogin/Register/ForgotPassword/ResetPassword/EnrollMfa/Consent/setup` error branches |
 
 Demo-only mechanisms (disclosed in-page): permission perspective switches (Settings/Webhooks);
 `localStorage`-only branding; zh translation pass over chrome (real uses `i18n/locales` + parity test);
@@ -126,6 +137,8 @@ AntD Transfer picker + modal Save; create-form note that UI sends no scopes and 
 | 29 | Events async load + loadError + Search/reset toolbar | d589832 | events-load |
 | 30 | prefers-reduced-motion degradation + motion lock | 32dae57 | reduced-motion |
 | 31 | bilingual chrome + toggle + locale-aware relative + parity | af1f38d | i18n |
+| 32 | kit handoff README (navigation layer + indexes) | 5fe8cc4 | — (doc) |
+| 33 | entry-flows companion (nine surfaces) + auth locks | (this round) | auth-login, auth-register-reset, auth-enroll-consent, auth-setup |
 
 Pre-series rounds (v0.1–v0.9, expert-panel adjudications 1–12 old numbering, revision plans R1–R5,
 user-reported fixes) are indexed by date in `CHANGELOG.md`.
@@ -138,5 +151,8 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   B5 `none`-gate from server `clients.ts`.
 - Password policy: shared 12+ upper/lower/digit/special (UserCreate precedent, reused by tenant bootstrap).
 - API key scopes: UI sends none; server defaults `['*']` (`api-keys.ts`). Keys are revoke-only, no rotation.
+- Entry-flow token states (magic/verify) and the enroll dead-token are demo selects/buttons; the real
+  surfaces consume server-issued tokens. Setup admin password policy is min 8 (real AdminStep), not the
+  console 12+ — the difference is intentional and disclosed in-page.
 - Not modeled: real network/auth/tenancy enforcement, server-side export, dayjs itself, AntD itself.
   Demo data names/emails/ids are fixtures; the zh pass deliberately never translates them.

@@ -6,6 +6,7 @@ import path from 'node:path';
 // Each group navigates fresh (file:// reload resets all JS/mock state). Serial single worker
 // (see playwright.config.ts) so the module-level results object is shared and written once.
 const FILE = 'file://' + path.resolve(__dirname, '../admin-console.html');
+const AUTH = 'file://' + path.resolve(__dirname, '../auth-flows.html');
 const OUT = path.resolve(__dirname, 'results.json');
 
 // Top-level const in the prototype's classic <script> lives in the global lexical scope —
@@ -2132,4 +2133,215 @@ test('dashboard-model', async ({ page }) => {
     && created.actFirst === 'user.created' && created.closed && navAudit;
   rec('dashboard-model', pass, a);
   expect(pass, 'dashboard-model').toBe(true);
+});
+test('auth-login', async ({ page }) => {
+  await page.goto(AUTH);
+  // Adjudication 33 (A): login required inline + simulated AUTH_002 then success; magic request;
+  // oauthCode one-time consumption (second POST 401); safeOidcRedirect allowlist; magic branches.
+  await page.locator('#lgSubmit').click();
+  const req = await page.evaluate(() => document.getElementById('lgEmailErr')!.style.display === 'block');
+  await page.locator('#lgEmail').fill('admin@acme.io');
+  await page.locator('#lgPwd').fill('whatever');
+  await page.locator('#lgSubmit').click();
+  await page.waitForTimeout(600);
+  const authErr = await page.evaluate(() => document.getElementById('lgErr')!.textContent!.includes('AUTH_002'));
+  await page.locator('#lgSubmit').click();
+  await page.waitForTimeout(600);
+  const ok = await page.evaluate(() => document.getElementById('lgOk')!.style.display === 'flex');
+  await page.locator('#lgMagicBtn').click();
+  const magicOpen = await page.evaluate(() => document.getElementById('lgMagicPanel')!.style.display === 'block');
+  await page.locator('#mgEmail').fill('admin@acme.io');
+  await page.locator('#mgSend').click();
+  await page.waitForTimeout(600);
+  await page.locator('#mgSend').click();
+  await page.waitForTimeout(600);
+  const magicSent = await page.evaluate(() => document.getElementById('mgMsg')!.style.display === 'flex');
+  await page.locator('#ocConsume').click();
+  const oc1 = await page.evaluate(() => document.getElementById('ocMsg')!.textContent!.includes('consumed once'));
+  await page.locator('#ocConsume').click();
+  const oc2 = await page.evaluate(() => document.getElementById('ocMsg')!.textContent!.includes('401'));
+  const rd = await page.evaluate(() => {
+    const inp = document.getElementById('rdInput') as HTMLInputElement;
+    const btn = document.getElementById('rdCheck') as HTMLButtonElement;
+    const out: string[] = [];
+    for (const v of ['/oidc/auth/abc', '/oidc/device/x', 'https://evil.example', '/oidc/auth/%252F%252Fevil', '/oidc/auth/a\\b']) {
+      inp.value = v; btn.click();
+      out.push(document.getElementById('rdMsg')!.textContent!.startsWith('Allowed') ? 'ok' : 'no');
+    }
+    return out;
+  });
+  await page.evaluate(() => { (document.querySelector('[data-flow=magic]') as HTMLElement).click(); });
+  const branches: string[] = [];
+  for (const st of ['suspended', 'invalid', 'valid']) {
+    await page.evaluate((s) => { (document.getElementById('mkState') as HTMLSelectElement).value = s; }, st);
+    await page.locator('#mkConsume').click();
+    await page.waitForTimeout(600);
+    branches.push(await page.evaluate(() => document.getElementById('mkOk')!.style.display === 'flex' ? 'ok' : (document.getElementById('mkErr')!.textContent!.includes('AUTH_004') ? 'suspended' : 'invalid')));
+  }
+  const a = { req, authErr, ok, magicOpen, magicSent, oc1, oc2, rd, branches };
+  const pass = req && authErr && ok && magicOpen && magicSent && oc1 && oc2
+    && JSON.stringify(rd) === JSON.stringify(['ok', 'ok', 'no', 'no', 'no'])
+    && JSON.stringify(branches) === JSON.stringify(['suspended', 'invalid', 'ok']);
+  rec('auth-login', pass, a);
+  expect(pass, 'auth-login').toBe(true);
+});
+
+test('auth-register-reset', async ({ page }) => {
+  await page.goto(AUTH);
+  // Adjudication 33 (A): register confirm-match + shared 12+ policy + async; forgot sent; reset
+  // token consumed + confirm; verify spin -> ok/expired branches.
+  await page.evaluate(() => { (document.querySelector('[data-flow=register]') as HTMLElement).click(); });
+  await page.locator('#rgSubmit').click();
+  const nameErr = await page.evaluate(() => document.getElementById('rgNameErr')!.style.display === 'block');
+  await page.locator('#rgName').fill('New User');
+  await page.locator('#rgEmail').fill('new@acme.io');
+  await page.locator('#rgPwd').fill('short');
+  await page.locator('#rgConfirm').fill('short');
+  await page.locator('#rgSubmit').click();
+  const polErr = await page.evaluate(() => document.getElementById('rgPwdErr')!.textContent!.includes('12+'));
+  await page.locator('#rgPwd').fill('Str0ng!Passw');
+  await page.locator('#rgConfirm').fill('Str0ng!PasswX');
+  await page.locator('#rgSubmit').click();
+  const matchErr = await page.evaluate(() => document.getElementById('rgConfirmErr')!.textContent!.includes('do not match'));
+  await page.locator('#rgConfirm').fill('Str0ng!Passw');
+  await page.locator('#rgSubmit').click();
+  await page.waitForTimeout(600);
+  const rgFail = await page.evaluate(() => document.getElementById('rgErr')!.style.display === 'flex');
+  await page.locator('#rgSubmit').click();
+  await page.waitForTimeout(600);
+  const rgOk = await page.evaluate(() => document.getElementById('rgOk')!.style.display === 'flex');
+  await page.evaluate(() => { (document.querySelector('[data-flow=forgot]') as HTMLElement).click(); });
+  await page.locator('#fgSubmit').click();
+  const fgReq = await page.evaluate(() => document.getElementById('fgEmailErr')!.style.display === 'block');
+  await page.locator('#fgEmail').fill('new@acme.io');
+  await page.locator('#fgSubmit').click();
+  await page.waitForTimeout(600);
+  await page.locator('#fgSubmit').click();
+  await page.waitForTimeout(600);
+  const fgSent = await page.evaluate(() => document.getElementById('fgSent')!.style.display === 'flex');
+  await page.evaluate(() => { (document.querySelector('[data-flow=reset]') as HTMLElement).click(); });
+  await page.locator('#rsPwd').fill('Str0ng!Passw');
+  await page.locator('#rsConfirm').fill('nope');
+  await page.locator('#rsSubmit').click();
+  const rsMatch = await page.evaluate(() => document.getElementById('rsConfirmErr')!.style.display === 'block');
+  await page.locator('#rsConfirm').fill('Str0ng!Passw');
+  await page.locator('#rsSubmit').click();
+  await page.waitForTimeout(600);
+  await page.locator('#rsSubmit').click();
+  await page.waitForTimeout(600);
+  const rsOk = await page.evaluate(() => ({ ok: document.getElementById('rsOk')!.style.display === 'flex', consumed: document.getElementById('rsToken')!.textContent!.includes('consumed') }));
+  await page.evaluate(() => { (document.querySelector('[data-flow=verify]') as HTMLElement).click(); });
+  await page.evaluate(() => { (document.getElementById('vfState') as HTMLSelectElement).value = 'expired'; });
+  await page.locator('#vfRun').click();
+  await page.waitForTimeout(600);
+  const vfExp = await page.evaluate(() => document.getElementById('vfErr')!.style.display === 'flex');
+  await page.evaluate(() => { (document.getElementById('vfState') as HTMLSelectElement).value = 'valid'; });
+  await page.locator('#vfRun').click();
+  await page.waitForTimeout(600);
+  const vfOk = await page.evaluate(() => document.getElementById('vfOk')!.style.display === 'flex');
+  const a = { nameErr, polErr, matchErr, rgFail, rgOk, fgReq, fgSent, rsMatch, rsOk, vfExp, vfOk };
+  const pass = nameErr && polErr && matchErr && rgFail && rgOk && fgReq && fgSent && rsMatch && rsOk.ok && rsOk.consumed && vfExp && vfOk;
+  rec('auth-register-reset', pass, a);
+  expect(pass, 'auth-register-reset').toBe(true);
+});
+
+test('auth-enroll-consent', async ({ page }) => {
+  await page.goto(AUTH);
+  // Adjudication 33 (A): enroll otpauth copy fallback + wrong-code + dead-token + recovery-once gate;
+  // consent load error + scopes checkboxes + approve/deny async + redirect allowlist.
+  await page.evaluate(() => { (document.querySelector('[data-flow=enroll]') as HTMLElement).click(); });
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: () => Promise.reject(new Error('denied')) } });
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: () => false });
+  });
+  await page.locator('#enCopy').click();
+  await page.waitForTimeout(60);
+  const copyFail = await page.evaluate(() => document.getElementById('protoToast')!.textContent!.includes('Copy failed'));
+  await page.evaluate(() => { Object.defineProperty(document, 'execCommand', { configurable: true, value: () => true }); });
+  await page.locator('#enCopy').click();
+  await page.waitForTimeout(60);
+  const copyOk = await page.evaluate(() => document.getElementById('protoToast')!.textContent === 'Copied to clipboard');
+  await page.locator('#enCode').fill('000000');
+  await page.locator('#enConfirm').click();
+  await page.waitForTimeout(600);
+  const wrong = await page.evaluate(() => document.getElementById('enErr')!.textContent!.includes('Wrong code'));
+  await page.locator('#enCode').fill('123456');
+  await page.locator('#enConfirm').click();
+  await page.waitForTimeout(600);
+  const enFail = await page.evaluate(() => document.getElementById('enErr')!.textContent!.includes('Confirm failed'));
+  await page.locator('#enConfirm').click();
+  await page.waitForTimeout(600);
+  const rec1 = await page.evaluate(() => ({ shown: document.getElementById('enRecovery')!.style.display === 'block', codes: document.querySelectorAll('#enCodes span').length, gated: (document.getElementById('enContinue') as HTMLButtonElement).disabled }));
+  await page.locator('#enSaved').check();
+  const ungated = await page.evaluate(() => !(document.getElementById('enContinue') as HTMLButtonElement).disabled);
+  await page.reload();
+  await page.evaluate(() => { (document.querySelector('[data-flow=enroll]') as HTMLElement).click(); });
+  await page.locator('#enDeadBtn').click();
+  const dead = await page.evaluate(() => ({ dead: document.getElementById('enDead')!.style.display === 'flex', body: document.getElementById('enBody')!.style.display === 'none' }));
+  await page.evaluate(() => { (document.querySelector('[data-flow=consent]') as HTMLElement).click(); });
+  await page.waitForTimeout(600);
+  const csLoadErr = await page.evaluate(() => document.getElementById('csLoadErr')!.style.display === 'flex');
+  await page.locator('#csLoadRetry').click();
+  await page.waitForTimeout(600);
+  const csBody = await page.evaluate(() => ({ shown: document.getElementById('csBody')!.style.display === 'block', scopes: document.querySelectorAll('#csScopes input').length }));
+  await page.locator('#csRedirect').fill('https://evil.example');
+  await page.locator('#csApprove').click();
+  const rdRefuse = await page.evaluate(() => document.getElementById('csErr')!.textContent!.includes('Redirect not allowed'));
+  await page.locator('#csRedirect').fill('/oidc/auth/abc');
+  await page.locator('#csApprove').click();
+  await page.waitForTimeout(600);
+  const csFail = await page.evaluate(() => document.getElementById('csErr')!.textContent!.includes('Decision failed'));
+  await page.locator('#csApprove').click();
+  await page.waitForTimeout(600);
+  const csOk = await page.evaluate(() => document.getElementById('csRedirecting')!.style.display === 'flex');
+  await page.locator('#csDeny').click();
+  await page.waitForTimeout(600);
+  const csDeny = await page.evaluate(() => document.getElementById('protoToast')!.textContent === 'Consent denied');
+  const a = { copyFail, copyOk, wrong, enFail, rec1, ungated, dead, csLoadErr, csBody, rdRefuse, csFail, csOk, csDeny };
+  const pass = copyFail && copyOk && wrong && enFail && rec1.shown && rec1.codes === 8 && rec1.gated && ungated
+    && dead.dead && dead.body && csLoadErr && csBody.shown && csBody.scopes === 3 && rdRefuse && csFail && csOk && csDeny;
+  rec('auth-enroll-consent', pass, a);
+  expect(pass, 'auth-enroll-consent').toBe(true);
+});
+
+test('auth-setup', async ({ page }) => {
+  await page.goto(AUTH);
+  // Adjudication 33 (A): four-step wizard, step focus, admin min-8 policy (differs from console 12+),
+  // password-not-stored disclosure, config required siteName, complete -> console.
+  await page.evaluate(() => { (document.querySelector('[data-flow=setup]') as HTMLElement).click(); });
+  const steps0 = await page.evaluate(() => ({ n: document.querySelectorAll('#suSteps .st').length, on: document.querySelectorAll('#suSteps .st.on').length, focus: document.activeElement!.id }));
+  await page.locator('#suNext').click();
+  const step1 = await page.evaluate(() => document.getElementById('su1')!.style.display === 'block');
+  await page.locator('#suNext').click();
+  const suNameErr = await page.evaluate(() => document.getElementById('suNameErr')!.style.display === 'block');
+  await page.locator('#suName').fill('Root Admin');
+  await page.locator('#suEmail').fill('root@acme.io');
+  await page.locator('#suPwd').fill('short');
+  await page.locator('#suNext').click();
+  const min8 = await page.evaluate(() => document.getElementById('suPwdErr')!.textContent!.includes('8 characters'));
+  const note = await page.evaluate(() => document.getElementById('flow-setup')!.textContent!.includes('never stored'));
+  await page.locator('#suPwd').fill('Abcdefg1');
+  await page.locator('#suNext').click();
+  const suBusy = await page.evaluate(() => (document.getElementById('suNext') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600);
+  const suFail = await page.evaluate(() => document.getElementById('suErr')!.style.display === 'flex');
+  await page.locator('#suNext').click();
+  await page.waitForTimeout(600);
+  const step2 = await page.evaluate(() => ({ shown: document.getElementById('su2')!.style.display === 'block', focus: document.activeElement!.id }));
+  await page.locator('#cfSiteName').fill('');
+  await page.locator('#suNext').click();
+  const cfReq = await page.evaluate(() => document.getElementById('cfSiteNameErr')!.style.display === 'block');
+  await page.locator('#cfSiteName').fill('AccessBase');
+  await page.locator('#suNext').click();
+  const step3 = await page.evaluate(() => document.getElementById('su3')!.style.display === 'block');
+  await page.locator('#suPrev').click();
+  const back = await page.evaluate(() => document.getElementById('su2')!.style.display === 'block');
+  await page.locator('#suNext').click();
+  await page.locator('#suNext').click();
+  await page.waitForURL(/admin-console\.html$/);
+  const a = { steps0, step1, suNameErr, min8, note, suBusy, suFail, step2, cfReq, step3, back };
+  const pass = steps0.n === 4 && steps0.on === 1 && steps0.focus === 'suHead' && step1 && suNameErr && min8 && note
+    && suBusy && suFail && step2.shown && step2.focus === 'suHead' && cfReq && step3 && back;
+  rec('auth-setup', pass, a);
+  expect(pass, 'auth-setup').toBe(true);
 });
