@@ -874,3 +874,19 @@ Harness settings + states synced for the async loads; new settings-model group (
 validation + localStorage + saved, perspectives gating idle/options, idle 5 values + Busy + error +
 retry, options load error + key pattern, drawer fields + stored preview en/zh + unsaved-not-previewed +
 test validation/failure/success + save + read-only preview mode. All 48 pass. Screenshot: drawer.
+
+## Adjudication 23 (A): Webhooks async contract — ping queues, toggle/rotate Busy+error+gate, deliveries loading — 2026-11-20
+Panel Webhooks surface: ping fabricated an immediately-delivered row (real handlePing reports
+pingQueued — a queued webhook.test delivery); the Active switch toggled instantly with no permission
+gate / Busy / error (real Switch disabled={!canWrite} + async update + updateError); rotate revealed
+instantly with no Busy/error (real async rotateWebhookSecret + rotateError); the deliveries modal
+rendered statically (real drawer opens loading then fetches, deliveriesLoadError on failure). Ruling A:
+ping now async with Busy, a simulated first pingError, then queues a status=pending webhook.test
+delivery (pending count +1) and toasts "Ping queued (webhook.test)"; toggle gains the write gate, Busy,
+a simulated updateError and retry success "Endpoint updated"; rotate gains Busy, a simulated
+rotateError and retry reveal-once + "Secret rotated"; deliveries open with skeleton rows, a simulated
+loadError Alert + Retry, then the real three-state rows; a demo permission perspective switch
+(Operator webhooks:write / Auditor read-only) gates switch/ping/edit/rotate/create while deliveries
+stay readable. Simulated failures disclosed per the audit/dashboard/settings precedent. Harness
+webhooks-model extended (48 total): toggle error-then-update, ping Busy/error/queued-pending, rotate
+error/reveal, deliveries skeleton/loadError/retry, perspective gating. All 48 pass. Screenshot.

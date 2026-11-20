@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 283,
+        "svgIcons": 287,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -492,8 +492,8 @@
       "pass": true,
       "assertions": {
         "base": {
-          "selCount": 11,
-          "cbxCount": 11,
+          "selCount": 12,
+          "cbxCount": 12,
           "allNativeHidden": true,
           "surface": "#FFFFFF"
         },
@@ -779,13 +779,44 @@
           "n": 3,
           "on": "true"
         },
+        "swErr": {
+          "on": "true",
+          "toast": "Update failed: upstream timeout (prototype simulation) — retry"
+        },
         "sw1": {
           "on": "false",
-          "toast": "Endpoint disabled"
+          "toast": "Endpoint updated"
         },
+        "pend0": 0,
+        "pingBusy": true,
+        "pingErr": true,
+        "pingOk": {
+          "toast": "Ping queued (webhook.test)",
+          "pend": 1,
+          "first": {
+            "status": "pending",
+            "attempts": 1,
+            "response": null,
+            "created": "just now"
+          }
+        },
+        "rotErr": true,
+        "rotOk": {
+          "reveal": true,
+          "toast": "Secret rotated"
+        },
+        "delivSkel": 3,
+        "delivErr": true,
         "vocab": {
           "ok": true,
-          "bad": false
+          "bad": false,
+          "pend": true
+        },
+        "gate": {
+          "sw": true,
+          "ping": true,
+          "create": true,
+          "deliv": true
         },
         "form": {
           "url": true,

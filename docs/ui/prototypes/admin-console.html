@@ -774,7 +774,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       </div>
     </section>
     <section class="page" id="page-webhooks">
-      <div class="page-head"><div><h1>Webhooks</h1><div class="sub">Event endpoints · subscriptions and delivery health</div></div><button class="btn primary" data-create="webhooks"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add endpoint</button></div>
+      <div class="page-head"><div><h1>Webhooks</h1><div class="sub">Event endpoints · subscriptions and delivery health</div></div><div class="field" style="margin:0;min-width:210px"><label>Permission perspective (demo)</label><select id="whPermView"><option value="write">Operator · webhooks:write</option><option value="read">Auditor · read-only</option></select></div><button class="btn primary" data-create="webhooks"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add endpoint</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="webhookSearch" placeholder="Search URL…"></div><div class="spacer"></div><button class="icon-btn" data-reload="webhooks" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="webhookCount"></span></div>
         <div style="overflow-x:auto"><table>
@@ -916,7 +916,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 </div></div>
 <div class="modal-overlay" id="delivModal"><div class="modal" style="max-width:640px" role="dialog" aria-modal="true">
   <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-webhook"/></svg><h3 id="delivTitle">Deliveries</h3><button class="icon-btn close" aria-label="Close" data-close="delivModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
-  <div class="modal-body"><div style="overflow-x:auto"><table><thead><tr><th>Status</th><th>Attempts</th><th>Response</th><th>Created</th></tr></thead><tbody id="delivRows"></tbody></table></div></div>
+  <div class="modal-body"><div class="error-banner" id="delivErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="delivErrMsg"></span><button class="btn sm" id="delivRetry">Retry</button></div><div style="overflow-x:auto"><table><thead><tr><th>Status</th><th>Attempts</th><th>Response</th><th>Created</th></tr></thead><tbody id="delivRows"></tbody></table></div></div>
   <div class="modal-foot"><button class="btn" data-close="delivModal">Close</button></div>
 </div></div>
 <div class="modal-overlay" id="formModal"><div class="modal" role="dialog" aria-modal="true">
@@ -1236,6 +1236,11 @@ $('apikeySearch').addEventListener('input',renderApikeys);
 $('apikeyStatusFilter').addEventListener('input',renderApikeys);
 renderApikeys();
 /* Webhooks — url/events/active-pending-dead counts/created; ping/rotate/deliveries. */
+/* Adjudication 23 (A): webhooks async contract — ping QUEUES a pending webhook.test delivery
+   (real pingQueued, not delivered); toggle/rotate carry Busy + simulated first failure + retry;
+   deliveries modal has skeleton loading + loadError + Retry; write actions gated by webhooks:write
+   (demo perspective switch). Simulated failures disclosed, per audit/dashboard/settings precedent. */
+let WH_PERMS={write:true};
 const WEBHOOKS=[
  {url:'https://hooks.acme.io/identity',description:'Primary identity sink',events:['user.created','user.updated'],enabled:true,pending:0,dead:0,created:'2 months ago',deliveries:[{status:'delivered',attempts:1,response:200,created:'2m ago'},{status:'delivered',attempts:1,response:200,created:'18m ago'},{status:'delivered',attempts:2,response:200,created:'1h ago'}]},
  {url:'https://ops.globex.com/events',description:'Ops fan-out',events:['user.deleted','webhook.test'],enabled:true,pending:2,dead:1,created:'6 weeks ago',deliveries:[{status:'pending',attempts:2,response:null,created:'3m ago'},{status:'pending',attempts:3,response:503,created:'22m ago'},{status:'delivered',attempts:1,response:200,created:'2h ago'}]},
@@ -1247,12 +1252,18 @@ function renderWebhooks(){
  $('webhookCount').textContent=WEBHOOKS.length+' endpoints';
  $('webhookRows').innerHTML=list.map(w=>{const i=WEBHOOKS.indexOf(w);
   return '<tr><td>'+copyCell(w.url)+(w.description?'<div class="u-em">'+esc(w.description)+'</div>':'')+'</td><td>'+tags(w.events)+'</td><td><button class="wswitch'+(w.enabled?' on':'')+'" data-wenabled="'+i+'" role="switch" aria-checked="'+w.enabled+'" aria-label="Enabled"><span class="knob"></span></button></td><td><span class="count-pill'+(w.pending?' pending':'')+'">'+w.pending+'</span></td><td><span class="count-pill'+(w.dead?' dead':'')+'">'+w.dead+'</span></td><td class="mono">'+w.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Send ping" data-ping="'+i+'" aria-label="Send ping"><svg class="ic"><use href="#i-send"/></svg></button><button data-tip="Rotate secret" data-rotate-wh="'+i+'" aria-label="Rotate secret"><svg class="ic"><use href="#i-refresh"/></svg></button><button data-tip="Deliveries" data-deliv="'+i+'" aria-label="Deliveries"><svg class="ic"><use href="#i-eye"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('')||emptyRow(8,'webhooks',WEBHOOKS.length,'webhooks');
- document.querySelectorAll('[data-ping]').forEach(b=>b.onclick=()=>{const w=WEBHOOKS[+b.dataset.ping];w.deliveries.unshift({status:'delivered',attempts:1,response:200,created:'just now'});renderWebhooks();toast('Ping delivered (webhook.test)');});
- document.querySelectorAll('[data-wenabled]').forEach(b=>b.onclick=()=>{const w=WEBHOOKS[+b.dataset.wenabled];w.enabled=!w.enabled;renderWebhooks();toast(w.enabled?'Endpoint enabled':'Endpoint disabled');});
- document.querySelectorAll('[data-rotate-wh]').forEach(b=>b.onclick=()=>{const w=WEBHOOKS[+b.dataset.rotateWh];reveal('Webhook secret rotated','whsec_'+Math.random().toString(36).slice(2,18),w.url);});
- document.querySelectorAll('[data-deliv]').forEach(b=>b.onclick=()=>{const w=WEBHOOKS[+b.dataset.deliv];$('delivTitle').textContent='Deliveries · '+w.url;$('delivRows').innerHTML=w.deliveries.map(d=>'<tr><td><span class="tag '+delivCls(d.status)+'">'+d.status+'</span></td><td class="mono">'+d.attempts+'</td><td class="mono">'+(d.response===null?'—':d.response)+'</td><td class="mono">'+d.created+'</td></tr>').join('');openModal('delivModal');});
+ if(!WH_PERMS.write){document.querySelectorAll('#webhookRows [data-ping],#webhookRows [data-rotate-wh],#webhookRows [data-wenabled],#webhookRows button[aria-label="Edit"],#webhookRows button[aria-label="Delete"]').forEach(b=>{b.disabled=true;b.title='Requires webhooks:write';});}
+ let whPingTried=false,whToggleTried=false,whRotateTried=false,whDelivTried=false,whDelivIdx=null;
+ document.querySelectorAll('[data-ping]').forEach(b=>b.onclick=()=>{if(!WH_PERMS.write)return;const w=WEBHOOKS[+b.dataset.ping];btnBusy(b,true,'');setTimeout(()=>{btnBusy(b,false);if(!whPingTried){whPingTried=true;toast('Ping failed: upstream timeout (prototype simulation) — retry','error');return;}w.deliveries.unshift({status:'pending',attempts:1,response:null,created:'just now'});w.pending++;renderWebhooks();toast('Ping queued (webhook.test)');},400);});
+ document.querySelectorAll('[data-wenabled]').forEach(b=>b.onclick=()=>{if(!WH_PERMS.write)return;const w=WEBHOOKS[+b.dataset.wenabled];b.disabled=true;setTimeout(()=>{if(!whToggleTried){whToggleTried=true;b.disabled=false;toast('Update failed: upstream timeout (prototype simulation) — retry','error');return;}w.enabled=!w.enabled;renderWebhooks();toast('Endpoint updated');},400);});
+ document.querySelectorAll('[data-rotate-wh]').forEach(b=>b.onclick=()=>{if(!WH_PERMS.write)return;const w=WEBHOOKS[+b.dataset.rotateWh];btnBusy(b,true,'');setTimeout(()=>{btnBusy(b,false);if(!whRotateTried){whRotateTried=true;toast('Rotate failed: upstream timeout (prototype simulation) — retry','error');return;}reveal('Webhook secret rotated','whsec_'+Math.random().toString(36).slice(2,18),w.url);toast('Secret rotated');},400);});
+ function renderDelivRows(w){$('delivRows').innerHTML=w.deliveries.map(d=>'<tr><td><span class="tag '+delivCls(d.status)+'">'+d.status+'</span></td><td class="mono">'+d.attempts+'</td><td class="mono">'+(d.response===null?'—':d.response)+'</td><td class="mono">'+d.created+'</td></tr>').join('')||emptyRow(4,'deliveries',w.deliveries.length,null);}
+ function delivSkeleton(){$('delivRows').innerHTML=Array.from({length:3},()=>'<tr><td colspan="4"><div class="skel" style="width:70%"></div></td></tr>').join('');}
+ document.querySelectorAll('[data-deliv]').forEach(b=>b.onclick=()=>{whDelivIdx=+b.dataset.deliv;const w=WEBHOOKS[whDelivIdx];$('delivTitle').textContent='Deliveries · '+w.url;$('delivErr').style.display='none';delivSkeleton();openModal('delivModal');setTimeout(()=>{if(!whDelivTried){whDelivTried=true;$('delivErrMsg').textContent='Failed to load deliveries: upstream timeout (prototype simulation) — retry.';$('delivErr').style.display='flex';$('delivRows').innerHTML='';return;}renderDelivRows(w);},400);});
+ $('delivRetry').onclick=()=>{whDelivTried=true;const w=WEBHOOKS[whDelivIdx];$('delivErr').style.display='none';delivSkeleton();setTimeout(()=>renderDelivRows(w),400);};
 }
 $('webhookSearch').addEventListener('input',renderWebhooks);
+$('whPermView').onchange=()=>{WH_PERMS={write:$('whPermView').value==='write'};document.querySelector('[data-create=webhooks]').disabled=!WH_PERMS.write;renderWebhooks();toast('Perspective: '+$('whPermView').selectedOptions[0].textContent);};
 renderWebhooks();
 /* Audit — time/actor/action(METHOD color)/resource/ip/status; action+actor filters; verify chain; export. */
 const AUDIT=[

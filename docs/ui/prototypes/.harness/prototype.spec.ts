@@ -1301,14 +1301,46 @@ test('webhooks-model', async ({ page }) => {
   await page.evaluate(() => { (document.querySelector('[data-page=webhooks]') as HTMLElement).click(); });
   const sw0 = await page.evaluate(() => ({ n: document.querySelectorAll('#webhookRows [role=switch]').length, on: document.querySelector('#webhookRows [role=switch]')!.getAttribute('aria-checked') }));
   await page.locator('#webhookRows [data-wenabled]').first().click();
+  await page.waitForTimeout(600); // adjudication 23: toggle async, first attempt simulated failure
+  const swErr = await page.evaluate(() => ({ on: document.querySelector('#webhookRows [role=switch]')!.getAttribute('aria-checked'), toast: document.getElementById('protoToast')!.textContent }));
+  await page.locator('#webhookRows [data-wenabled]').first().click();
+  await page.waitForTimeout(600);
   const sw1 = await page.evaluate(() => ({ on: document.querySelector('#webhookRows [role=switch]')!.getAttribute('aria-checked'), toast: document.getElementById('protoToast')!.textContent }));
   await page.locator('#webhookRows [data-wenabled]').first().click();
+  await page.waitForTimeout(600); // restore
+  // ping QUEUES a pending webhook.test delivery (real pingQueued), first attempt simulated failure
+  const pend0 = await page.evaluate(() => eval('WEBHOOKS')[0].pending);
+  await page.locator('#webhookRows [data-ping]').first().click();
+  const pingBusy = await page.evaluate(() => (document.querySelector('#webhookRows [data-ping]') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600);
+  const pingErr = await page.evaluate(() => document.getElementById('protoToast')!.textContent!.includes('Ping failed'));
+  await page.locator('#webhookRows [data-ping]').first().click();
+  await page.waitForTimeout(600);
+  const pingOk = await page.evaluate(() => ({ toast: document.getElementById('protoToast')!.textContent, pend: eval('WEBHOOKS')[0].pending, first: eval('WEBHOOKS')[0].deliveries[0] }));
+  // rotate: Busy + simulated failure then reveal-once
+  await page.locator('#webhookRows [data-rotate-wh]').first().click();
+  await page.waitForTimeout(600);
+  const rotErr = await page.evaluate(() => document.getElementById('protoToast')!.textContent!.includes('Rotate failed'));
+  await page.locator('#webhookRows [data-rotate-wh]').first().click();
+  await page.waitForTimeout(600);
+  const rotOk = await page.evaluate(() => ({ reveal: document.getElementById('revealModal')!.classList.contains('on'), toast: document.getElementById('protoToast')!.textContent }));
+  await page.keyboard.press('Escape');
+  // deliveries: skeleton loading + loadError + retry
   await page.locator('#webhookRows [data-deliv]').first().click();
+  const delivSkel = await page.evaluate(() => document.querySelectorAll('#delivRows .skel').length);
+  await page.waitForTimeout(600);
+  const delivErr = await page.evaluate(() => document.getElementById('delivErr')!.style.display === 'flex');
+  await page.locator('#delivRetry').click();
+  await page.waitForTimeout(600);
   const vocab = await page.evaluate(() => {
     const txt = document.getElementById('delivRows')!.textContent!;
-    return { ok: /delivered/.test(txt), bad: /success|failed/.test(txt) };
+    return { ok: /delivered/.test(txt), bad: /success|failed/.test(txt), pend: /pending/.test(txt) };
   });
   await page.keyboard.press('Escape');
+  // write gate via the demo perspective switch (read-only keeps deliveries available)
+  await page.evaluate(() => { const s = document.getElementById('whPermView') as HTMLSelectElement; s.value = 'read'; s.onchange!(new Event('change')); });
+  const gate = await page.evaluate(() => ({ sw: (document.querySelector('#webhookRows [data-wenabled]') as HTMLButtonElement).disabled, ping: (document.querySelector('#webhookRows [data-ping]') as HTMLButtonElement).disabled, create: (document.querySelector('[data-create=webhooks]') as HTMLButtonElement).disabled, deliv: !(document.querySelector('#webhookRows [data-deliv]') as HTMLButtonElement).disabled }));
+  await page.evaluate(() => { const s = document.getElementById('whPermView') as HTMLSelectElement; s.value = 'write'; s.onchange!(new Event('change')); });
   await page.locator('[data-create=webhooks]').click();
   const form = await page.evaluate(() => ({
     url: !!document.querySelector('#formBody [data-field=url]'),
@@ -1333,9 +1365,15 @@ test('webhooks-model', async ({ page }) => {
     rows: document.querySelectorAll('#webhookRows tr').length,
     desc: document.getElementById('webhookRows')!.textContent!.includes('E2E sink'),
   }));
-  const a = { sw0, sw1, vocab, form, urlErr, evErr, chipVal, created };
-  const pass = sw0.n === 3 && sw0.on === 'true' && sw1.on === 'false' && sw1.toast === 'Endpoint disabled'
-    && vocab.ok && !vocab.bad && form.url && form.events && form.desc && form.presets === 5
+  const a = { sw0, swErr, sw1, pend0, pingBusy, pingErr, pingOk, rotErr, rotOk, delivSkel, delivErr, vocab, gate, form, urlErr, evErr, chipVal, created };
+  const pass = sw0.n === 3 && sw0.on === 'true'
+    && swErr.on === 'true' && swErr.toast.includes('Update failed') && sw1.on === 'false' && sw1.toast === 'Endpoint updated'
+    && pingBusy && pingErr && pingOk.toast === 'Ping queued (webhook.test)' && pingOk.pend === pend0 + 1
+    && pingOk.first.status === 'pending' && pingOk.first.response === null
+    && rotErr && rotOk.reveal && rotOk.toast === 'Secret rotated'
+    && delivSkel === 3 && delivErr && vocab.ok && vocab.pend && !vocab.bad
+    && gate.sw && gate.ping && gate.create && gate.deliv
+    && form.url && form.events && form.desc && form.presets === 5
     && urlErr && evErr && chipVal.includes('*') && created.reveal && created.rows === 4 && created.desc;
   rec('webhooks-model', pass, a);
   expect(pass, 'webhooks-model').toBe(true);
