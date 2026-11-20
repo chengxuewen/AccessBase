@@ -262,10 +262,6 @@ test('mgmt-pages', async ({ page }) => {
     setF('auditActionFilter', 'DELETE');
     (audit as Record<string, unknown>).deleteFilter = document.querySelectorAll('#auditRows tr').length;
     setF('auditActionFilter', '');
-    (document.getElementById('verifyBtn') as HTMLElement).click();
-    (audit as Record<string, unknown>).verifyErrBanner = document.getElementById('auditErrBanner')!.style.display === 'flex';
-    (document.getElementById('auditRetry') as HTMLElement).click();
-    (audit as Record<string, unknown>).verifyBanner = document.getElementById('auditVerifyBanner')!.style.display === 'flex';
     click('events');
     const events = { rows: document.querySelectorAll('#eventRows tr').length, familyTags: document.querySelectorAll('#eventRows .tag[class*=fam-]').length };
     setF('eventFamilyFilter', 'user');
@@ -273,6 +269,14 @@ test('mgmt-pages', async ({ page }) => {
     setF('eventFamilyFilter', '');
     return { tenants, clients, apikeys, webhooks, audit, events };
   });
+  // adjudication 18: verify is async (Busy) — first attempt fails with a structured report, retry ok
+  await page.locator('[data-page=audit]').click();
+  await page.locator('#verifyBtn').click();
+  await page.waitForTimeout(700);
+  (a.audit as Record<string, unknown>).verifyErrBanner = await page.evaluate(() => document.getElementById('auditErrBanner')!.style.display === 'flex');
+  await page.locator('#auditRetry').click();
+  await page.waitForTimeout(700);
+  (a.audit as Record<string, unknown>).verifyBanner = await page.evaluate(() => document.getElementById('auditVerifyBanner')!.style.display === 'flex');
   const pass = a.tenants.rows === 5 && (a.tenants as Record<string, number>).suspendedFilter === 1
     && a.clients.rows === 4 && a.apikeys.rows === 4 && (a.apikeys as Record<string, number>).revokedFilter === 1
     && a.webhooks.rows === 3 && a.audit.rows === 7 && (a.audit as Record<string, number>).deleteFilter === 1
@@ -542,11 +546,15 @@ test('pagehead-overflow', async ({ page }) => {
   const menuOn = await page.evaluate(() => document.getElementById('rowMenu')!.classList.contains('on'));
   const exportItem = await page.locator('#rowMenu .menu-item[data-maction="export"]').count();
   await page.locator('#rowMenu .menu-item[data-maction="export"]').click();
-  const toastText = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
   const closedAfter = await page.evaluate(() => !document.getElementById('rowMenu')!.classList.contains('on'));
+  // adjudication 18: export is async w/ a simulated first-attempt failure; retry succeeds
+  await page.waitForTimeout(600);
+  await page.locator('#auditExportRetry').click();
+  await page.waitForTimeout(600);
+  const toastText = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
   const a = { wideExport, wideMore, narrowExport, narrowMore, verifyKept, phWrap, menuOn, exportItem, toastText, closedAfter };
   const pass = wideExport !== 'none' && wideMore === 'none' && narrowExport === 'none' && narrowMore !== 'none'
-    && verifyKept !== 'none' && phWrap === 'wrap' && menuOn && exportItem === 1 && toastText === 'Exported' && closedAfter;
+    && verifyKept !== 'none' && phWrap === 'wrap' && menuOn && exportItem === 1 && toastText.startsWith('Exported') && closedAfter;
   rec('pagehead-overflow', pass, a);
   expect(pass, 'pagehead-overflow').toBe(true);
 });
@@ -1175,8 +1183,10 @@ test('states', async ({ page }) => {
   const emptyTrue = await page.evaluate(() => ({ state: !!document.querySelector('#optionRows .empty-state'), cta: !!document.querySelector('#optionRows [data-create=options]') }));
   await page.evaluate(() => { (document.querySelector('[data-page=audit]') as HTMLElement).click(); });
   await page.locator('#verifyBtn').click();
+  await page.waitForTimeout(700); // adjudication 18: verify Busy is async
   const errState = await page.evaluate(() => ({ banner: document.getElementById('auditErrBanner')!.style.display === 'flex', retry: !!document.getElementById('auditRetry'), toastRole: document.getElementById('protoToast')!.getAttribute('role'), toastCls: document.getElementById('protoToast')!.className }));
   await page.locator('#auditRetry').click();
+  await page.waitForTimeout(700);
   const okState = await page.evaluate(() => ({ banner: document.getElementById('auditVerifyBanner')!.style.display === 'flex', errGone: document.getElementById('auditErrBanner')!.style.display === 'none', toastRole: document.getElementById('protoToast')!.getAttribute('role'), live: document.getElementById('protoToast')!.getAttribute('aria-live') }));
   await page.goto(FILE + '#/403');
   const s403 = await page.evaluate(() => ({ on: document.getElementById('state-403')!.classList.contains('on'), crumb: document.getElementById('crumbPage')!.textContent, pages: document.querySelectorAll('.page.on').length }));
@@ -1439,4 +1449,56 @@ test('tabs-a11y', async ({ page }) => {
     && spaceSel.sel === 1 && spaceSel.aria === 'true';
   rec('tabs-a11y', pass, a);
   expect(pass, 'tabs-a11y').toBe(true);
+});
+
+test('audit-model', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 18 (A): structured verify report (rowsChecked/anchorsChecked or firstFailure
+  // {kind,day,seq}), Busy states, load/export/verify error alerts, date-range filter, filter-respecting
+  // full export, numeric status or '-'.
+  await page.evaluate(() => { (document.querySelector('[data-page=audit]') as HTMLElement).click(); });
+  const status = await page.evaluate(() => {
+    const txt = document.getElementById('auditRows')!.textContent!;
+    return { num: txt.includes('204') && txt.includes('401'), dash: txt.includes('-'), noVocab: !txt.includes('success') };
+  });
+  await page.evaluate(() => { const f = document.getElementById('auditFrom') as HTMLInputElement; f.value = '2026-11-18'; f.dispatchEvent(new Event('input')); });
+  const fromRows = await page.evaluate(() => document.querySelectorAll('#auditRows tr').length);
+  await page.evaluate(() => { const f = document.getElementById('auditFrom') as HTMLInputElement; f.value = '2026-11-17'; f.dispatchEvent(new Event('input')); const t = document.getElementById('auditTo') as HTMLInputElement; t.value = '2026-11-17'; t.dispatchEvent(new Event('input')); });
+  const dayRows = await page.evaluate(() => document.querySelectorAll('#auditRows tr').length);
+  await page.evaluate(() => { ['auditFrom', 'auditTo'].forEach(id => { const f = document.getElementById(id) as HTMLInputElement; f.value = ''; f.dispatchEvent(new Event('input')); }); });
+  await page.locator('#verifyBtn').click();
+  const busy = await page.evaluate(() => (document.getElementById('verifyBtn') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(700);
+  const failRep = await page.evaluate(() => {
+    const m = document.getElementById('auditErrMsg')!.textContent!;
+    return { kind: m.includes('anchor_mismatch'), day: m.includes('2026-11-17'), seq: m.includes('seq 4'), banner: document.getElementById('auditErrBanner')!.style.display === 'flex' };
+  });
+  await page.locator('#auditRetry').click();
+  await page.waitForTimeout(700);
+  const okRep = await page.evaluate(() => ({ meta: document.getElementById('verifyMeta')!.textContent!, banner: document.getElementById('auditVerifyBanner')!.style.display === 'flex' }));
+  // export respects filters: DELETE -> 1 matching row; first attempt errors, retry downloads
+  await page.evaluate(() => { const f = document.getElementById('auditActionFilter') as HTMLSelectElement; f.value = 'DELETE'; f.dispatchEvent(new Event('input')); });
+  await page.locator('#exportBtn').click();
+  await page.waitForTimeout(600);
+  const expErr = await page.evaluate(() => document.getElementById('auditExportBanner')!.style.display === 'flex');
+  const dl = page.waitForEvent('download');
+  await page.locator('#auditExportRetry').click();
+  const download = await dl;
+  const csv = fs.readFileSync(await download.path(), 'utf8');
+  const expRows = csv.trim().split('\n').length;
+  // load failure on first audit reload, retry restores
+  await page.evaluate(() => { const f = document.getElementById('auditActionFilter') as HTMLSelectElement; f.value = ''; f.dispatchEvent(new Event('input')); });
+  await page.locator('[data-reload=audit]').click();
+  await page.waitForTimeout(700);
+  const loadErr = await page.evaluate(() => ({ banner: document.getElementById('auditLoadBanner')!.style.display === 'flex', rows: document.querySelectorAll('#auditRows tr').length }));
+  await page.locator('#auditLoadRetry').click();
+  const loadOk = await page.evaluate(() => ({ banner: document.getElementById('auditLoadBanner')!.style.display === 'none', rows: document.querySelectorAll('#auditRows tr').length }));
+  const a = { status, fromRows, dayRows, busy, failRep, okRep, expErr, expRows, file: download.suggestedFilename(), loadErr, loadOk };
+  const pass = status.num && status.dash && status.noVocab && fromRows === 5 && dayRows === 2
+    && busy && failRep.kind && failRep.day && failRep.seq && failRep.banner
+    && okRep.banner && okRep.meta.includes('rowsChecked: 7') && okRep.meta.includes('anchorsChecked: 2')
+    && expErr && expRows === 2 && download.suggestedFilename() === 'audit.csv'
+    && loadErr.banner && loadErr.rows === 0 && loadOk.banner && loadOk.rows === 7;
+  rec('audit-model', pass, a);
+  expect(pass, 'audit-model').toBe(true);
 });

@@ -763,11 +763,13 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       </div>
     </section>
     <section class="page" id="page-audit">
-      <div class="page-head"><div><h1>Audit Log</h1><div class="sub">Append-only, hash-chained record of every mutation</div></div><div style="display:flex;gap:8px"><button class="btn" id="verifyBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-shield"/></svg>Verify chain</button><button class="btn" id="exportBtn" data-phsecondary><svg class="ic" style="width:13px;height:13px"><use href="#i-download"/></svg>Export</button><button class="btn ph-more" data-phmore="audit" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:13px;height:13px"><use href="#i-more"/></svg></button></div></div>
-      <div class="error-banner" id="auditErrBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span>Verification failed: hash mismatch at entry #4 (prototype simulates anchor lag) — retry.</span><button class="btn sm" id="auditRetry">Retry</button></div>
-      <div class="verify-banner" id="auditVerifyBanner" style="display:none"><svg class="ic"><use href="#i-shield"/></svg><span>Hash chain verified · 1,284 entries · no tampering detected</span><span class="hash">head sha256:9f2c…a41b</span></div>
+      <div class="page-head"><div><h1>Audit Log</h1><div class="sub">Append-only, hash-chained record of every mutation · export is a server-side full export of all rows matching the filters (tenant-safe)</div></div><div style="display:flex;gap:8px"><button class="btn" id="verifyBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-shield"/></svg>Verify chain</button><button class="btn" id="exportBtn" data-phsecondary><svg class="ic" style="width:13px;height:13px"><use href="#i-download"/></svg>Export</button><button class="btn ph-more" data-phmore="audit" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:13px;height:13px"><use href="#i-more"/></svg></button></div></div>
+      <div class="error-banner" id="auditLoadBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditLoadMsg">Failed to load audit entries.</span><button class="btn sm" id="auditLoadRetry">Retry</button></div>
+      <div class="error-banner" id="auditExportBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditExportMsg">Export failed.</span><button class="btn sm" id="auditExportRetry">Retry</button></div>
+      <div class="error-banner" id="auditErrBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditErrMsg">Verification failed.</span><button class="btn sm" id="auditRetry">Retry</button></div>
+      <div class="verify-banner" id="auditVerifyBanner" style="display:none"><svg class="ic"><use href="#i-shield"/></svg><span id="verifyMsg">Hash chain verified</span><span class="hash" id="verifyMeta"></span></div>
       <div class="card">
-        <div class="toolbar"><select id="auditActionFilter"><option value="">All actions</option><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option><option value="DELETE">DELETE</option></select><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="auditActorFilter" placeholder="Filter actor…"></div><div class="spacer"></div><button class="icon-btn" data-reload="audit" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="auditCount"></span></div>
+        <div class="toolbar"><select id="auditActionFilter"><option value="">All actions</option><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option><option value="DELETE">DELETE</option></select><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="auditActorFilter" placeholder="Filter actor…"></div><input type="date" id="auditFrom" aria-label="From day"><input type="date" id="auditTo" aria-label="To day"><div class="spacer"></div><button class="icon-btn" data-reload="audit" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="auditCount"></span></div>
         <div style="overflow-x:auto"><table>
           <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th data-prio="2">Resource</th><th data-prio="3">IP address</th><th>Status</th></tr></thead>
           <tbody id="auditRows"></tbody>
@@ -1198,26 +1200,39 @@ $('webhookSearch').addEventListener('input',renderWebhooks);
 renderWebhooks();
 /* Audit — time/actor/action(METHOD color)/resource/ip/status; action+actor filters; verify chain; export. */
 const AUDIT=[
- {time:'2026-11-18 14:32',actor:'admin@acme.io',action:'POST /v1/users',resource:'users/jane.doe',ip:'203.0.113.9',status:'success'},
- {time:'2026-11-18 13:58',actor:'admin@acme.io',action:'PUT /v1/roles/editor',resource:'roles/editor',ip:'203.0.113.9',status:'success'},
- {time:'2026-11-18 12:41',actor:'svc-billing',action:'DELETE /v1/apikeys/7a1e',resource:'apikeys/legacy-export',ip:'198.51.100.4',status:'success'},
- {time:'2026-11-18 11:20',actor:'admin@globex.com',action:'PATCH /v1/tenants/initech',resource:'tenants/initech',ip:'192.0.2.55',status:'success'},
- {time:'2026-11-18 09:47',actor:'admin@acme.io',action:'POST /v1/clients',resource:'clients/ab_spa_b44a',ip:'203.0.113.9',status:'success'},
- {time:'2026-11-17 22:13',actor:'unknown',action:'POST /v1/auth/login',resource:'auth',ip:'203.0.113.66',status:'failure'},
- {time:'2026-11-17 18:05',actor:'admin@acme.io',action:'PUT /v1/groups/engineering',resource:'groups/engineering',ip:'203.0.113.9',status:'success'}
+ {time:'2026-11-18 14:32',actor:'admin@acme.io',action:'POST /v1/users',resource:'users/jane.doe',ip:'203.0.113.9',status:201},
+ {time:'2026-11-18 13:58',actor:'admin@acme.io',action:'PUT /v1/roles/editor',resource:'roles/editor',ip:'203.0.113.9',status:200},
+ {time:'2026-11-18 12:41',actor:'svc-billing',action:'DELETE /v1/apikeys/7a1e',resource:'apikeys/legacy-export',ip:'198.51.100.4',status:204},
+ {time:'2026-11-18 11:20',actor:'admin@globex.com',action:'PATCH /v1/tenants/initech',resource:'tenants/initech',ip:'192.0.2.55',status:200},
+ {time:'2026-11-18 09:47',actor:'admin@acme.io',action:'POST /v1/clients',resource:'clients/ab_spa_b44a',ip:'203.0.113.9',status:201},
+ {time:'2026-11-17 22:13',actor:'unknown',action:'POST /v1/auth/login',resource:'auth',ip:'203.0.113.66',status:401},
+ {time:'2026-11-17 18:05',actor:'admin@acme.io',action:'PUT /v1/groups/engineering',resource:'groups/engineering',ip:'203.0.113.9',status:null}
 ];
+function auditFiltered(){const af=$('auditActionFilter').value;const ac=$('auditActorFilter').value.toLowerCase();const afrom=$('auditFrom').value;const ato=$('auditTo').value;return AUDIT.filter(a=>(!af||a.action.startsWith(af))&&(!ac||a.actor.toLowerCase().includes(ac))&&(!afrom||a.time.slice(0,10)>=afrom)&&(!ato||a.time.slice(0,10)<=ato));}
 function renderAudit(){
- const af=$('auditActionFilter').value;const ac=$('auditActorFilter').value.toLowerCase();
- const list=AUDIT.filter(a=>(!af||a.action.startsWith(af))&&(!ac||a.actor.toLowerCase().includes(ac)));
+ const af=$('auditActionFilter').value;const ac=$('auditActorFilter').value.toLowerCase();const afrom=$('auditFrom').value;const ato=$('auditTo').value;
+ const list=auditFiltered();
  $('auditCount').textContent=list.length+' entries';
  $('auditRows').innerHTML=list.map(a=>{const m=a.action.split(' ')[0];
-  return '<tr><td class="mono">'+a.time+'</td><td>'+esc(a.actor)+'</td><td><span class="tag '+methodCls(m)+'">'+esc(a.action)+'</span></td><td class="mono" style="font-size:var(--fs11)">'+esc(a.resource)+'</td><td class="mono">'+a.ip+'</td><td>'+(a.status==='success'?'<span class="tag ok">200</span>':'<span class="tag danger">401</span>')+'</td></tr>';}).join('')||emptyRow(7,'audit',AUDIT.length,null);
+  return '<tr><td class="mono">'+a.time+'</td><td>'+esc(a.actor)+'</td><td><span class="tag '+methodCls(m)+'">'+esc(a.action)+'</span></td><td class="mono" style="font-size:var(--fs11)">'+esc(a.resource)+'</td><td class="mono">'+a.ip+'</td><td>'+(a.status?'<span class="tag '+(a.status<400?'ok':'danger')+'">'+a.status+'</span>':'-')+'</td></tr>';}).join('')||emptyRow(7,'audit',AUDIT.length,null);
 }
 $('auditActionFilter').addEventListener('input',renderAudit);
 $('auditActorFilter').addEventListener('input',renderAudit);
-$('verifyBtn').onclick=()=>{$('auditVerifyBanner').style.display='none';$('auditErrBanner').style.display='flex';toast('Verification failed — retry','error');};
-$('auditRetry').onclick=()=>{$('auditErrBanner').style.display='none';$('auditVerifyBanner').style.display='flex';toast('Chain verified');};
-$('exportBtn').onclick=()=>{const csv=['time,actor,action,resource,ip,status'].concat(AUDIT.map(a=>[a.time,a.actor,a.action,a.resource,a.ip,a.status].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(','))).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='audit.csv';a.click();URL.revokeObjectURL(a.href);toast('Exported');};
+$('auditFrom').addEventListener('input',renderAudit);
+$('auditTo').addEventListener('input',renderAudit);
+/* Adjudication 18 (A): verify returns a structured report (chainOk/rowsChecked/anchorsChecked or
+   firstFailure{kind,day,seq}) like real verifyAudit(); verify/export carry Busy states and distinct
+   load/export/verify error alerts; export is a filter-respecting full export. Async failures are
+   simulated briefly (disclosed) because prototype data is local. */
+let verifyTried=false;let exportTried=false;let auditLoadTried=false;let auditLoadSeq=0;
+function btnBusy(btn,on,label){if(on){btn.dataset.label=btn.innerHTML;btn.disabled=true;btn.innerHTML='<svg class="ic" style="animation:cbxrot 1s linear infinite"><use href="#i-refresh"/></svg>'+label;}else{btn.disabled=false;btn.innerHTML=btn.dataset.label;}}
+function runVerify(){const b=$('verifyBtn');btnBusy(b,true,'Verifying…');$('auditVerifyBanner').style.display='none';$('auditErrBanner').style.display='none';setTimeout(()=>{btnBusy(b,false);if(!verifyTried){verifyTried=true;const f={kind:'anchor_mismatch',day:'2026-11-17',seq:4};$('auditErrMsg').textContent='Verification failed: '+f.kind+' at day '+f.day+' seq '+f.seq+' (prototype simulates anchor lag) — retry.';$('auditErrBanner').style.display='flex';toast('Verification failed — retry','error');}else{const rep={chainOk:true,rowsChecked:AUDIT.length,anchorsChecked:2};$('verifyMsg').textContent='Hash chain verified';$('verifyMeta').textContent='rowsChecked: '+rep.rowsChecked+' · anchorsChecked: '+rep.anchorsChecked;$('auditVerifyBanner').style.display='flex';toast('Chain verified');}},500);}
+$('verifyBtn').onclick=runVerify;
+$('auditRetry').onclick=runVerify;
+function runExport(){const b=$('exportBtn');btnBusy(b,true,'Exporting…');$('auditExportBanner').style.display='none';setTimeout(()=>{btnBusy(b,false);if(!exportTried){exportTried=true;$('auditExportMsg').textContent='Export failed: upstream timeout (prototype simulation) — retry.';$('auditExportBanner').style.display='flex';toast('Export failed — retry','error');return;}const rows=auditFiltered();const csv=['time,actor,action,resource,ip,status'].concat(rows.map(a=>[a.time,a.actor,a.action,a.resource,a.ip,a.status==null?'':a.status].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(','))).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='audit.csv';a.click();URL.revokeObjectURL(a.href);toast('Exported '+rows.length+' rows');},400);}
+$('exportBtn').onclick=runExport;
+$('auditExportRetry').onclick=runExport;
+$('auditLoadRetry').onclick=()=>{auditLoadSeq++;auditLoadTried=true;$('auditLoadBanner').style.display='none';renderAudit();};
 renderAudit();
 /* Events — time/type(family color)/payload JSON/fanout(done|pending)/detail modal. */
 const EVENTS=[
@@ -1246,10 +1261,10 @@ renderEvents();
 /* Adjudication 12 (A): three-state contract — loading skeleton via toolbar reload (real ProTable
    reload affordance; page switch is synchronous because prototype data is local), unified EmptyState
    with clear-filters / create CTA, error banner + retry on the audit verify failure path. */
-const EMPTY_CLEAR={users:{ids:['userSearch','tenantFilter','statusFilter'],render:renderUsers},roles:{ids:['roleSearch'],render:renderRoles},groups:{ids:['groupSearch','kindFilter'],render:renderGroups},tenants:{ids:['tenantSearch'],render:renderTenants},clients:{ids:['clientSearch'],render:renderClients},apikeys:{ids:['apikeySearch','apikeyStatusFilter'],render:renderApikeys},webhooks:{ids:['webhookSearch'],render:renderWebhooks},audit:{ids:['auditActorFilter','auditActionFilter'],render:renderAudit},events:{ids:['eventSearch','eventFamilyFilter','eventFrom','eventTo'],render:renderEvents}};
+const EMPTY_CLEAR={users:{ids:['userSearch','tenantFilter','statusFilter'],render:renderUsers},roles:{ids:['roleSearch'],render:renderRoles},groups:{ids:['groupSearch','kindFilter'],render:renderGroups},tenants:{ids:['tenantSearch'],render:renderTenants},clients:{ids:['clientSearch'],render:renderClients},apikeys:{ids:['apikeySearch','apikeyStatusFilter'],render:renderApikeys},webhooks:{ids:['webhookSearch'],render:renderWebhooks},audit:{ids:['auditActorFilter','auditActionFilter','auditFrom','auditTo'],render:renderAudit},events:{ids:['eventSearch','eventFamilyFilter','eventFrom','eventTo'],render:renderEvents}};
 document.addEventListener('click',e=>{const ec=e.target.closest('[data-empty-clear]');if(!ec)return;const cfg=EMPTY_CLEAR[ec.dataset.emptyClear];if(!cfg)return;cfg.ids.forEach(id=>{const el=$(id);if(el)el.value='';});cfg.render();});
 const RELOAD={users:{rows:'userRows',cols:6,render:renderUsers},roles:{rows:'roleRows',cols:7,render:renderRoles},groups:{rows:'groupRows',cols:8,render:renderGroups},tenants:{rows:'tenantRows',cols:6,render:renderTenants},clients:{rows:'clientRows',cols:8,render:renderClients},apikeys:{rows:'apikeyRows',cols:8,render:renderApikeys},webhooks:{rows:'webhookRows',cols:8,render:renderWebhooks},audit:{rows:'auditRows',cols:7,render:renderAudit},events:{rows:'eventRows',cols:6,render:renderEvents}};
-document.addEventListener('click',e=>{const rb=e.target.closest('[data-reload]');if(!rb)return;const cfg=RELOAD[rb.dataset.reload];if(!cfg)return;$(cfg.rows).innerHTML=Array.from({length:4},()=>'<tr>'+Array.from({length:cfg.cols},()=>'<td><div class="skel"></div></td>').join('')+'</tr>').join('');setTimeout(cfg.render,500);});
+document.addEventListener('click',e=>{const rb=e.target.closest('[data-reload]');if(!rb)return;const cfg=RELOAD[rb.dataset.reload];if(!cfg)return;$(cfg.rows).innerHTML=Array.from({length:4},()=>'<tr>'+Array.from({length:cfg.cols},()=>'<td><div class="skel"></div></td>').join('')+'</tr>').join('');if(rb.dataset.reload==='audit'&&!auditLoadTried){const seq=++auditLoadSeq;setTimeout(()=>{if(seq!==auditLoadSeq)return;auditLoadTried=true;$('auditRows').innerHTML='';$('auditLoadMsg').textContent='Failed to load audit entries: upstream timeout (prototype simulation) — retry.';$('auditLoadBanner').style.display='flex';toast('Load failed — retry','error');},500);return;}setTimeout(cfg.render,500);});
 /* Create flows — per-page form modal; clients/webhooks reveal secret once on create. */
 const FORMS={
  tenants:{title:'Create tenant',fields:[['name','Name'],['slug','Slug']]},

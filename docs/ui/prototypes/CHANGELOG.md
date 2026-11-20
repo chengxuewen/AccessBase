@@ -791,3 +791,19 @@ keydown implements Left/Right/Home/End roving focus+activation per tablist; Role
 tabindex=0 + aria-selected + Enter/Space selection (re-focus after re-render) + --focus focus ring.
 New harness tabs-a11y (43 total): semantics/roving/pane linkage, Right/End/Home/Left-wrap on Settings,
 Right on Groups, Roles row Enter/Space selection + aria-selected + focus retention. All 43 pass.
+
+## Adjudication 18 (A): Audit structured verify report + busy + 3 error alerts + range + filtered export — 2026-11-20
+Panel Audit surface: verify banners were static strings; real verifyAudit() returns a structured report
+(chainOk + rowsChecked + anchorsChecked, or firstFailure{kind,day,seq}) rendered as success/error Alert;
+verify/export carry Busy; loadError/exportError/verifyError are three distinct Alerts; filters include a
+RangePicker; export is a server-side FULL export honoring filters; status column renders the numeric
+status or '-'. Ruling A: verify now async with Busy spinner, first attempt returns a simulated
+anchor_mismatch failure report (kind/day/seq, disclosed), retry returns chainOk with rowsChecked/
+anchorsChecked meta; export async with Busy, first attempt simulated upstream timeout + exportError
+alert + Retry, retry downloads only filter-matching rows (full-export semantics disclosed in page sub);
+first audit Reload simulates loadError alert + Retry (sequence-guarded so retry state is stable);
+from/to date inputs filter by day and join the clear-filters map; sample statuses remapped to numeric
+HTTP-like values incl. null -> '-'. Harness mgmt-pages + states verify steps now await the async Busy;
+pagehead-overflow export path awaits failure+retry; new audit-model group (44 total): numeric/'-' status,
+range filtering, Busy, failure report fields, success meta, filtered 1-row CSV, load failure+retry.
+All 44 pass. Screenshot: verify failure report.

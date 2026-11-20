@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 277,
+        "svgIcons": 279,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -364,7 +364,7 @@
         "phWrap": "wrap",
         "menuOn": true,
         "exportItem": 1,
-        "toastText": "Exported",
+        "toastText": "Exported 7 rows",
         "closedAfter": true
       }
     },
@@ -909,6 +909,40 @@
         "spaceSel": {
           "sel": 1,
           "aria": "true"
+        }
+      }
+    },
+    "audit-model": {
+      "pass": true,
+      "assertions": {
+        "status": {
+          "num": true,
+          "dash": true,
+          "noVocab": true
+        },
+        "fromRows": 5,
+        "dayRows": 2,
+        "busy": true,
+        "failRep": {
+          "kind": true,
+          "day": true,
+          "seq": true,
+          "banner": true
+        },
+        "okRep": {
+          "meta": "rowsChecked: 7 · anchorsChecked: 2",
+          "banner": true
+        },
+        "expErr": true,
+        "expRows": 2,
+        "file": "audit.csv",
+        "loadErr": {
+          "banner": true,
+          "rows": 0
+        },
+        "loadOk": {
+          "banner": true,
+          "rows": 7
         }
       }
     }
