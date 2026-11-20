@@ -1334,3 +1334,58 @@ test('cbx-capabilities', async ({ page }) => {
   rec('cbx-capabilities', pass, a);
   expect(pass, 'cbx-capabilities').toBe(true);
 });
+
+test('modal-a11y', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 16 (A): initial focus into dialog, Tab/Shift+Tab trap, focus return on close,
+  // aria-labelledby wired to the head title (AntD Modal / rc-dialog parity).
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  await page.locator('#userRows button[aria-label="Edit"]').first().click();
+  await page.waitForTimeout(60);
+  const init = await page.evaluate(() => ({
+    inside: document.querySelector('#formModal .modal')!.contains(document.activeElement),
+    labelledby: document.querySelector('#formModal .modal')!.getAttribute('aria-labelledby'),
+  }));
+  const trap = await page.evaluate(() => {
+    const m = document.querySelector('#formModal .modal') as HTMLElement;
+    const f = (window as any).modalFocusables(m) as HTMLElement[];
+    f[f.length - 1].focus();
+    return { n: f.length, lastFocused: document.activeElement === f[f.length - 1] };
+  });
+  await page.keyboard.press('Tab');
+  const wrapFwd = await page.evaluate(() => {
+    const m = document.querySelector('#formModal .modal') as HTMLElement;
+    const f = (window as any).modalFocusables(m) as HTMLElement[];
+    return document.activeElement === f[0];
+  });
+  await page.keyboard.press('Shift+Tab');
+  const wrapBack = await page.evaluate(() => {
+    const m = document.querySelector('#formModal .modal') as HTMLElement;
+    const f = (window as any).modalFocusables(m) as HTMLElement[];
+    return document.activeElement === f[f.length - 1];
+  });
+  await page.keyboard.press('Escape');
+  const retEdit = await page.evaluate(() => ({
+    off: !document.getElementById('formModal')!.classList.contains('on'),
+    back: document.activeElement!.getAttribute('aria-label') === 'Edit' && !!document.activeElement!.closest('#userRows'),
+  }));
+  await page.locator('#userRows button[aria-label="View"]').first().click();
+  await page.waitForTimeout(60);
+  const detail = await page.evaluate(() => ({
+    inside: document.querySelector('#detailModal .modal')!.contains(document.activeElement),
+    labelledby: document.querySelector('#detailModal .modal')!.getAttribute('aria-labelledby'),
+  }));
+  await page.mouse.click(5, 5); // overlay click closes
+  const retView = await page.evaluate(() => ({
+    off: !document.getElementById('detailModal')!.classList.contains('on'),
+    back: document.activeElement!.getAttribute('aria-label') === 'View' && !!document.activeElement!.closest('#userRows'),
+  }));
+  const a = { init, trap, wrapFwd, wrapBack, retEdit, detail, retView };
+  const pass = init.inside && init.labelledby === 'formTitle'
+    && trap.n > 2 && trap.lastFocused && wrapFwd && wrapBack
+    && retEdit.off && retEdit.back
+    && detail.inside && detail.labelledby === 'detailTitle'
+    && retView.off && retView.back;
+  rec('modal-a11y', pass, a);
+  expect(pass, 'modal-a11y').toBe(true);
+});

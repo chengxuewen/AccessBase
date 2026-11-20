@@ -769,3 +769,14 @@ against the outer combobox button's stopPropagation. Comment maps 1:1 to <Select
 mode loading>. Harness users-model roles probe synced to multi select; new cbx-capabilities group
 (41 total): clear visibility+effect, typeahead 'c'+aria, Home/End, loading on/off, multi chips add/
 remove/clear + save persistence. All 41 pass. Screenshot: chips multi-select.
+
+## Adjudication 16 (A): modal a11y contract (focus trap / initial focus / return / labelledby) — 2026-11-20
+Panel F16: openModal/closeModal only toggled .on — focus stayed in the background, Tab escaped the
+dialog, close did not return focus, no aria-labelledby. Real AntD Modal (rc-dialog) provides all four.
+Ruling A: openModal records document.activeElement as return focus, wires aria-labelledby to the head
+h3 (assigning an id when missing), and moves initial focus to [data-autofocus] or the first text
+input/textarea else first focusable; a global Tab/Shift+Tab handler cycles focus inside the topmost
+open dialog; closeModal returns focus to the trigger when still connected+visible; Escape and overlay
+click now route through closeModal (recovery-modal guard preserved). New harness modal-a11y (42 total):
+initial focus inside + labelledby=formTitle, trap wrap forward/back, Escape returns to Edit trigger,
+detail labelledby=detailTitle, overlay click returns to View trigger. All 42 pass.

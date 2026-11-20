@@ -1066,8 +1066,14 @@ const copyCell=v=>'<span class="copyable"><span class="cp-t">'+esc(v)+'</span><b
 const methodCls=m=>({POST:'m-post',PUT:'m-put',PATCH:'m-patch',DELETE:'m-delete'}[m]||'');
 const famCls=t=>'fam-'+(t.split('.')[0]||'');
 const delivCls=s=>({delivered:'ok',pending:'warn',dead:'danger'}[s]||'');
-function openModal(id){$(id).classList.add('on');}
-function closeModal(id){$(id).classList.remove('on');}
+/* Adjudication 16 (A): modal a11y contract parity with AntD Modal / rc-dialog — initial focus into
+   the dialog, Tab/Shift+Tab focus trap, focus returned to the trigger on close, aria-labelledby wired
+   to the modal head title. */
+let modalReturnFocus=null;
+function modalFocusables(m){return [...m.querySelectorAll('button,input,select,textarea,a[href],[tabindex]')].filter(el=>!el.disabled&&el.tabIndex>=0&&el.offsetParent!==null);}
+function openModal(id){const ov=$(id);const m=ov.querySelector('.modal');modalReturnFocus=document.activeElement;const h=m.querySelector('.modal-head h3');if(h){if(!h.id)h.id=id+'-title';m.setAttribute('aria-labelledby',h.id);}ov.classList.add('on');const f=modalFocusables(m);const target=m.querySelector('[data-autofocus]')||f.find(el=>el.matches('input:not([type=checkbox]):not([type=radio]),textarea'))||f[0];if(target)setTimeout(()=>{if(ov.classList.contains('on'))target.focus();},0);}
+function closeModal(id){const ov=$(id);ov.classList.remove('on');if(modalReturnFocus&&document.contains(modalReturnFocus)&&modalReturnFocus.offsetParent!==null){modalReturnFocus.focus();}modalReturnFocus=null;}
+document.addEventListener('keydown',e=>{if(e.key!=='Tab')return;const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(!open)return;const m=open.querySelector('.modal');const f=modalFocusables(m);if(!f.length){e.preventDefault();return;}const first=f[0],last=f[f.length-1];const act=document.activeElement;if(e.shiftKey){if(act===first||!m.contains(act)){e.preventDefault();last.focus();}}else{if(act===last||!m.contains(act)){e.preventDefault();first.focus();}}});
 function openDetail(title,html){$('detailTitle').textContent=title;$('detailBody').innerHTML=html;openModal('detailModal');}
 function toast(msg,kind){kind=kind||'success';const tt=$('protoToast');tt.className='proto-toast '+kind;tt.setAttribute('role',kind==='error'?'alert':'status');tt.setAttribute('aria-live',kind==='error'?'assertive':'polite');tt.innerHTML='<svg class="ic" style="color:'+(kind==='error'?'var(--danger-inv)':kind==='info'?'var(--accent)':'var(--ok)')+'"><use href="#i-'+(kind==='error'?'alert':kind==='info'?'info':'check')+'"/></svg><span>'+esc(msg)+'</span>';tt.style.display='flex';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},2200);}
 function emptyRow(cols,page,base,createKind){const filtered=base>0;return '<tr><td colspan="'+cols+'"><div class="empty-state"><svg class="ic"><use href="#i-inbox"/></svg><h4>'+(filtered?'No results match the current filters':'Nothing here yet')+'</h4><p>'+(filtered?'Try adjusting or clearing the filters.':'Create the first record to get started.')+'</p>'+(filtered?'<button class="btn sm" data-empty-clear="'+page+'">Clear filters</button>':(createKind?'<button class="btn sm" data-create="'+createKind+'">Create</button>':''))+'</div></td></tr>';}
@@ -1077,8 +1083,8 @@ const c=CLIENTS[idx];
 if(t.dataset.detail==='uris'){openDetail(c.name+' · Redirect URIs',c.redirectUris.length?'<div class="detail-meta">'+c.redirectUris.length+' registered redirect URI'+(c.redirectUris.length>1?'s':'')+'</div>'+c.redirectUris.map(u=>'<div class="mono" style="font-size:var(--fs12);padding:6px 8px;background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);margin-bottom:6px;word-break:break-all">'+esc(u)+'</div>').join(''):'<div class="detail-meta">No redirect URIs — machine-to-machine client.</div>');}
 else if(t.dataset.detail==='scope'){openDetail(c.name+' · Scope','<div class="detail-meta">Granted scopes</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+tags(c.scope.split(' '))+'</div>');}});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
-document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){if(o.id==='mfaRecoveryModal'&&!$('mfaSaved').checked)return;o.classList.remove('on');}}));
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open){if(open.id==='mfaRecoveryModal'&&!$('mfaSaved').checked)return;open.classList.remove('on');}}});
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){if(o.id==='mfaRecoveryModal'&&!$('mfaSaved').checked)return;closeModal(o.id);}}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open){if(open.id==='mfaRecoveryModal'&&!$('mfaSaved').checked)return;closeModal(open.id);}}});
 document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(c){try{navigator.clipboard.writeText(c.dataset.copy).catch(()=>{});}catch(err){}}});
 // R2 overflow menu logic (reusable). Inert secondary actions disclose via the same toast.
 const rowMenu=$('rowMenu');let menuTrigger=null;

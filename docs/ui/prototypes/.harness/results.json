@@ -834,6 +834,33 @@
         },
         "savedRoles": 0
       }
+    },
+    "modal-a11y": {
+      "pass": true,
+      "assertions": {
+        "init": {
+          "inside": true,
+          "labelledby": "formTitle"
+        },
+        "trap": {
+          "n": 5,
+          "lastFocused": true
+        },
+        "wrapFwd": true,
+        "wrapBack": true,
+        "retEdit": {
+          "off": true,
+          "back": true
+        },
+        "detail": {
+          "inside": true,
+          "labelledby": "detailTitle"
+        },
+        "retView": {
+          "off": true,
+          "back": true
+        }
+      }
     }
   }
 }
