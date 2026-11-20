@@ -1019,7 +1019,7 @@ function renderMembers(){
  const g=GROUPS[selGroup];
  $('tabMemberCount').textContent='('+g.members.length+')';
  $('memberList').innerHTML=g.members.length?g.members.map((m,i)=>'<li><div class="m-av">'+m[0].split(' ').map(x=>x[0]).join('')+'</div><div><div class="m-nm">'+m[0]+'</div><div class="m-em">'+m[1]+'</div></div><button class="btn sm m-rm" data-rm="'+i+'">Remove</button></li>').join(''):'<li style="color:var(--tx3);border:none">No members yet.</li>';
- document.querySelectorAll('#memberList [data-rm]').forEach(b=>b.onclick=()=>{g.members.splice(+b.dataset.rm,1);renderMembers();renderGroups();});
+ document.querySelectorAll('#memberList [data-rm]').forEach(b=>b.onclick=()=>{openConfirm('groups-member',+b.dataset.rm,{verb:'Remove',title:'Remove member',msg:'Remove <strong>'+esc(g.members[+b.dataset.rm][0])+'</strong> from '+esc(g.name)+'? They lose every role and permission inherited from this group.',toast:'Member removed'});});
  const existing=new Set(g.members.map(m=>m[1]));
  const candidates=USERS.filter(u=>!existing.has(u[1]));
  $('memberPicker').innerHTML='<option value="">Add a member…</option>'+candidates.map(u=>'<option value="'+u[1]+'">'+u[0]+' &lt;'+u[1]+'&gt;</option>').join('');
@@ -1271,10 +1271,13 @@ const DEL={
  webhooks:i=>{WEBHOOKS.splice(i,1);renderWebhooks();}
 };
 DEL['apikeys-revoke']=i=>{APIKEYS[i].revoked=true;renderApikeys();};
+DEL['groups-member']=i=>{GROUPS[selGroup].members.splice(i,1);renderMembers();renderGroups();};
+DEL['oauth-unlink']=i=>{OAUTH_LINKS.splice(i,1);renderOAuth();};
+DEL['sessions-others']=()=>{SESSIONS=SESSIONS.filter(s=>s.current);renderSessions();};
 DEL['users-status']=i=>{USERS[i][2]=USERS[i][2]==='active'?'suspended':'active';renderUsers();};
 DEL['users-force']=i=>{};
 DEL['roles-clear']=i=>{ROLES[i].perms=[];renderMatrix();renderRoles();};
-const ROW_NAME={'apikeys-revoke':i=>APIKEYS[i].name,'users-status':i=>USERS[i][0],'users-force':i=>USERS[i][0],'roles-clear':i=>ROLES[i].name,'tenants-status':i=>TENANTS[i].name,users:i=>USERS[i][0],roles:i=>ROLES[i].name,groups:i=>GROUPS[i].name,tenants:i=>TENANTS[i].name,clients:i=>CLIENTS[i].name,webhooks:i=>WEBHOOKS[i].url};
+const ROW_NAME={'groups-member':i=>GROUPS[selGroup].members[i][0],'oauth-unlink':i=>OAUTH_LINKS[i].provider,'sessions-others':()=>'other devices','apikeys-revoke':i=>APIKEYS[i].name,'users-status':i=>USERS[i][0],'users-force':i=>USERS[i][0],'roles-clear':i=>ROLES[i].name,'tenants-status':i=>TENANTS[i].name,users:i=>USERS[i][0],roles:i=>ROLES[i].name,groups:i=>GROUPS[i].name,tenants:i=>TENANTS[i].name,clients:i=>CLIENTS[i].name,webhooks:i=>WEBHOOKS[i].url};
 let pendingDelete=null;
 let eraseLockBusy=true;
 function isLastAdmin(i){const a=USERS.filter(u=>u[2]==='active'&&u[5].includes('owner'));return a.length===1&&USERS[i]===a[0];}
@@ -1377,7 +1380,7 @@ function renderProfile(){
  $('profileVerifyBanner').style.display=PROFILE.emailVerified?'none':'flex';
 }
 $('sendVerifyBtn').onclick=()=>{const m=$('verifyMsg');m.textContent='Verification email sent to '+PROFILE.email+'.';m.style.display='block';};
-$('revokeOthersBtn').onclick=()=>{toast('Other devices signed out');};
+$('revokeOthersBtn').onclick=()=>{openConfirm('sessions-others',0,{verb:'Sign out',title:'Log out other devices',msg:'Sign out <strong>all other devices</strong>? Their sessions are revoked immediately. This is fail-closed: if revocation fails the sessions are kept and an error is shown.',toast:'Other devices signed out'});};
 /* Password policy — mirrors packages/identity/src/services/password-policy.ts
    password-change callsite defaults: minLength 12 + requireUpper/Lower/Digit/Special
    (5 dimensions). Backend is authoritative; this client check mirrors it for the prototype. */
@@ -1404,7 +1407,7 @@ function renderOAuth(){
  const l=$('oauthList');
  if(!OAUTH_LINKS.length){l.innerHTML='<div class="oauth-empty">No linked accounts.</div>';return;}
  l.innerHTML=OAUTH_LINKS.map(k=>'<div class="oauth-row">'+provIcon(k.provider)+'<span class="o-tx">Linked as <b>'+k.provider+'</b></span><span class="o-ac">'+esc(k.account)+'</span><button class="btn danger ghost sm o-rm" data-unlink="'+k.provider+'">Unlink</button></div>').join('');
- document.querySelectorAll('#oauthList [data-unlink]').forEach(b=>b.onclick=()=>{OAUTH_LINKS=OAUTH_LINKS.filter(k=>k.provider!==b.dataset.unlink);renderOAuth();});
+ document.querySelectorAll('#oauthList [data-unlink]').forEach(b=>b.onclick=()=>{const i=OAUTH_LINKS.findIndex(k=>k.provider===b.dataset.unlink);openConfirm('oauth-unlink',i,{verb:'Unlink',title:'Unlink '+b.dataset.unlink,msg:'Unlink <strong>'+esc(b.dataset.unlink)+'</strong>? That identity can no longer be used to sign in until it is linked again.',toast:'Identity unlinked'});});
 }
 $('bindGithub').onclick=()=>{if(!OAUTH_LINKS.some(k=>k.provider==='github')){OAUTH_LINKS.push({provider:'github',account:'admin-acme'});renderOAuth();}};
 $('bindGoogle').onclick=()=>{if(!OAUTH_LINKS.some(k=>k.provider==='google')){OAUTH_LINKS.push({provider:'google',account:'admin@acme.io'});renderOAuth();}};

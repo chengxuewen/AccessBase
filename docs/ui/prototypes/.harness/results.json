@@ -758,6 +758,35 @@
           "toast": "proto-toast info"
         }
       }
+    },
+    "confirm-uniform": {
+      "pass": true,
+      "assertions": {
+        "m0": 4,
+        "mConf": {
+          "on": true,
+          "verb": "Remove",
+          "msg": true
+        },
+        "m1": 4,
+        "m2": 3,
+        "o0": 1,
+        "oConf": {
+          "on": true,
+          "verb": "Unlink",
+          "msg": true
+        },
+        "o1": 1,
+        "o2": 0,
+        "s0": 3,
+        "sConf": {
+          "on": true,
+          "verb": "Sign out",
+          "msg": true
+        },
+        "s1": 3,
+        "s2": 1
+      }
     }
   }
 }

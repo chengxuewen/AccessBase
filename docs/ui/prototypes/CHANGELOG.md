@@ -729,3 +729,13 @@ revealCopy, export, revokeOthers, pwdSubmit, unwired-menu fallback). Harness mgm
 asserts err-banner then retry->verified; new states group (38 total): skeleton->rows, empty filtered +
 clear, truly-empty CTA, error banner + alert toast, retry + polite toast, 403/404/error routing + back +
 retry. All 38 pass. Screenshots: 403 page, users empty state.
+
+## Adjudication 13 (A): destructive-action confirm contract completed — 2026-11-19
+Panel F12: after rulings 4-8 the remaining zero-confirm destructive actions were group member remove,
+Profile OAuth unlink, and log-out-other-devices; real has Popconfirm on all three (Groups.tsx:451-455,
+Profile.tsx:210-219 and :376-385). Ruling A: all three now route through the shared confirm modal with
+consequence wording — remove member loses every role/permission inherited from the group; unlink means
+that identity can no longer sign in until re-linked; log-out-others is fail-closed (kept sessions +
+error if revocation fails). New DEL/ROW_NAME entries groups-member / oauth-unlink / sessions-others.
+Harness groups-detail and profile synced to confirm-then-execute; new confirm-uniform group (39 total)
+asserts cancel-does-not-execute and confirm-executes for all three. All 39 pass.

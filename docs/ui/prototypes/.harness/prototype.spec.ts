@@ -209,6 +209,7 @@ test('groups-detail', async ({ page }) => {
     (document.getElementById('addMemberBtn') as HTMLElement).click();
     const afterAdd = document.querySelectorAll('#memberList li').length;
     (document.querySelector('#memberList [data-rm]') as HTMLElement).click();
+    (document.getElementById('confirmDelete') as HTMLElement).click(); // adjudication 13: confirm-gated
     const afterRemove = document.querySelectorAll('#memberList li').length;
     // staged role save (adjudication 5): toggle edits draft, save commits, close discards
     (document.querySelector('.tabs [data-tab=roles]') as HTMLElement).click();
@@ -307,6 +308,7 @@ test('profile', async ({ page }) => {
     // oauth
     const oauthInitial = document.querySelectorAll('#oauthList .oauth-row').length;
     (document.querySelector('#oauthList [data-unlink=github]') as HTMLElement).click();
+    (document.getElementById('confirmDelete') as HTMLElement).click(); // adjudication 13: confirm-gated
     const afterUnlink = document.querySelectorAll('#oauthList .oauth-row').length;
     const emptyState = !!document.querySelector('#oauthList .oauth-empty');
     (document.getElementById('bindGoogle') as HTMLElement).click();
@@ -1198,4 +1200,42 @@ test('states', async ({ page }) => {
     && retryBack.dash && retryBack.toast.includes('info');
   rec('states', pass, a);
   expect(pass, 'states').toBe(true);
+});
+
+test('confirm-uniform', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 13 (A): every destructive action is confirm-gated — group member remove, OAuth
+  // unlink, log-out-other-devices. Cancel must not execute; confirm must.
+  await page.evaluate(() => { (document.querySelector('[data-page=groups]') as HTMLElement).click(); (document.querySelector('#groupRows [data-manage]') as HTMLElement).click(); });
+  const m0 = await page.evaluate(() => document.querySelectorAll('#memberList li').length);
+  await page.locator('#memberList [data-rm]').first().click();
+  const mConf = await page.evaluate(() => ({ on: document.getElementById('confirmModal')!.classList.contains('on'), verb: document.getElementById('confirmDelete')!.textContent, msg: document.getElementById('confirmMsg')!.textContent!.includes('inherited') }));
+  await page.locator('#confirmCancel').click();
+  const m1 = await page.evaluate(() => document.querySelectorAll('#memberList li').length);
+  await page.locator('#memberList [data-rm]').first().click();
+  await page.locator('#confirmDelete').click();
+  const m2 = await page.evaluate(() => document.querySelectorAll('#memberList li').length);
+  await page.evaluate(() => { (document.querySelector('[data-page=profile]') as HTMLElement).click(); });
+  const o0 = await page.evaluate(() => document.querySelectorAll('#oauthList [data-unlink]').length);
+  await page.locator('#oauthList [data-unlink]').first().click();
+  const oConf = await page.evaluate(() => ({ on: document.getElementById('confirmModal')!.classList.contains('on'), verb: document.getElementById('confirmDelete')!.textContent, msg: document.getElementById('confirmMsg')!.textContent!.includes('linked again') }));
+  await page.locator('#confirmCancel').click();
+  const o1 = await page.evaluate(() => document.querySelectorAll('#oauthList [data-unlink]').length);
+  await page.locator('#oauthList [data-unlink]').first().click();
+  await page.locator('#confirmDelete').click();
+  const o2 = await page.evaluate(() => document.querySelectorAll('#oauthList [data-unlink]').length);
+  const s0 = await page.evaluate(() => document.querySelectorAll('#sessionRows tr').length);
+  await page.locator('#revokeOthersBtn').click();
+  const sConf = await page.evaluate(() => ({ on: document.getElementById('confirmModal')!.classList.contains('on'), verb: document.getElementById('confirmDelete')!.textContent, msg: document.getElementById('confirmMsg')!.textContent!.includes('fail-closed') }));
+  await page.locator('#confirmCancel').click();
+  const s1 = await page.evaluate(() => document.querySelectorAll('#sessionRows tr').length);
+  await page.locator('#revokeOthersBtn').click();
+  await page.locator('#confirmDelete').click();
+  const s2 = await page.evaluate(() => document.querySelectorAll('#sessionRows tr').length);
+  const a = { m0, mConf, m1, m2, o0, oConf, o1, o2, s0, sConf, s1, s2 };
+  const pass = mConf.on && mConf.verb === 'Remove' && mConf.msg && m1 === m0 && m2 === m0 - 1
+    && oConf.on && oConf.verb === 'Unlink' && oConf.msg && o1 === o0 && o2 === o0 - 1
+    && sConf.on && sConf.verb === 'Sign out' && sConf.msg && s1 === s0 && s2 === 1;
+  rec('confirm-uniform', pass, a);
+  expect(pass, 'confirm-uniform').toBe(true);
 });
