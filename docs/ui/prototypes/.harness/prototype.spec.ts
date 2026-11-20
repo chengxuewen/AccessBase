@@ -917,7 +917,7 @@ test('users-model', async ({ page }) => {
   await page.locator('#userRows button[aria-label="Edit"]').first().click();
   const edit = await page.evaluate(() => ({
     name: !!document.querySelector('#formBody [data-field=name]'),
-    roles: document.querySelectorAll('#formBody [data-field=roles] input[type=checkbox]').length,
+    roles: document.querySelectorAll('#formBody select[data-field=roles] option').length,
     emailRo: (document.querySelector('#formBody [data-field=email]') as HTMLInputElement).disabled,
     tenantRo: (document.querySelector('#formBody [data-field=tenant]') as HTMLInputElement).disabled,
     statusField: !!document.querySelector('#formBody [data-field=status]'),
@@ -1277,4 +1277,60 @@ test('clients-model', async ({ page }) => {
     && e002 && e003 && eB5 && eScope && created.reveal && created.rows === rows0 + 1;
   rec('clients-model', pass, a);
   expect(pass, 'clients-model').toBe(true);
+});
+
+test('cbx-capabilities', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 15 (A): cbx parity with AntD Select — allowClear, typeahead + Home/End +
+  // aria-activedescendant, multiple (chips + aria-multiselectable + chip remove), loading state.
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  await page.evaluate(() => { const s = document.getElementById('statusFilter') as HTMLSelectElement; s.value = 'active'; s.dispatchEvent(new Event('input')); });
+  const clearVis = await page.evaluate(() => getComputedStyle(document.getElementById('statusFilter')!._cbx.querySelector('.cbx-clear')).display !== 'none');
+  await page.evaluate(() => { (document.getElementById('statusFilter') as any)._cbx.querySelector('.cbx-clear').click(); });
+  const cleared = await page.evaluate(() => ({ v: (document.getElementById('statusFilter') as HTMLSelectElement).value, rows: document.querySelectorAll('#userRows .u-nm').length }));
+  // typeahead + activedescendant + Home/End on the style combobox
+  await page.evaluate(() => { (document.getElementById('styleSelect') as any)._cbx.querySelector('.cbx-btn').focus(); });
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('c');
+  const typeahead = await page.evaluate(() => {
+    const w = (document.getElementById('styleSelect') as any)._cbx;
+    const act = w.querySelector('.cbx-opt.active');
+    return { ch: act ? act.textContent.trim()[0].toLowerCase() : null, aria: w.querySelector('.cbx-btn').getAttribute('aria-activedescendant') === (act ? act.id : null) };
+  });
+  await page.keyboard.press('End');
+  const endActive = await page.evaluate(() => { const w = (document.getElementById('styleSelect') as any)._cbx; const o = [...w.querySelectorAll('.cbx-opt')]; return o[o.length - 1].classList.contains('active'); });
+  await page.keyboard.press('Home');
+  const homeActive = await page.evaluate(() => { const w = (document.getElementById('styleSelect') as any)._cbx; return w.querySelector('.cbx-opt').classList.contains('active'); });
+  await page.keyboard.press('Escape');
+  // multiple + loading on users edit roles
+  await page.locator('#userRows button[aria-label="Edit"]').first().click();
+  const load0 = await page.evaluate(() => (document.querySelector('#formBody [data-field=roles]') as any)._cbx.classList.contains('cbx-loading'));
+  await page.waitForTimeout(600);
+  const load1 = await page.evaluate(() => (document.querySelector('#formBody [data-field=roles]') as any)._cbx.classList.contains('cbx-loading'));
+  const multi = await page.evaluate(() => {
+    const sel = document.querySelector('#formBody [data-field=roles]') as HTMLSelectElement;
+    const w = sel._cbx;
+    w.querySelector('.cbx-btn').click();
+    const listMulti = w.querySelector('.cbx-list').getAttribute('aria-multiselectable');
+    w.querySelector('.cbx-clear').click(); // start from empty so toggles are additive
+    const opts = [...w.querySelectorAll('.cbx-opt')];
+    opts[0].click(); opts[1].click();
+    const chips = w.querySelectorAll('.cbx-chip').length;
+    const open = w.classList.contains('open');
+    w.querySelector('.cbx-chip [data-cbxrm]').click();
+    const chipsAfterRm = w.querySelectorAll('.cbx-chip').length;
+    w.querySelector('.cbx-clear').click();
+    const chipsAfterClear = w.querySelectorAll('.cbx-chip').length;
+    return { listMulti, chips, open, chipsAfterRm, chipsAfterClear, selCount: sel.selectedOptions.length };
+  });
+  await page.locator('#formSave').click();
+  const savedRoles = await page.evaluate(() => eval('USERS')[0][5].length);
+  const a = { clearVis, cleared, typeahead, endActive, homeActive, load0, load1, multi, savedRoles };
+  const pass = clearVis && cleared.v === '' && cleared.rows > 0
+    && typeahead.ch === 'c' && typeahead.aria && endActive && homeActive
+    && load0 && !load1
+    && multi.listMulti === 'true' && multi.chips === 2 && multi.open && multi.chipsAfterRm === 1 && multi.chipsAfterClear === 0 && multi.selCount === 0
+    && savedRoles === 0;
+  rec('cbx-capabilities', pass, a);
+  expect(pass, 'cbx-capabilities').toBe(true);
 });

@@ -754,3 +754,18 @@ samples corrected (Web App drops refresh_token; M2M gets an https placeholder re
 page sub discloses immutability + the non-empty-redirectUris-even-for-M2M server rule. New harness
 clients-model (40 total): no Edit, 3 grant chips + 4 auth methods + bc field, CLIENT_002/003, B5,
 scope whitelist, valid M2M registers with one-time secret. All 40 pass. Screenshot: register modal.
+
+## Adjudication 15 (A): combobox capability parity with AntD Select (resolves divergence C4) — 2026-11-19
+Panel F15 / C4: themed custom combobox lacked allowClear / multiple / loading / aria-activedescendant /
+typeahead that real AntD Select exercises (UserEdit+UserCreate roleIds = Select mode=multiple+loading;
+Users.tsx:192 allowClear; Webhooks.tsx:561 loading). Ruling A keeps the themed外观 but adds the
+capabilities: cbx-clear (× on data-clearable selects, clears single value or all multi selections),
+cbx multiple mode (chips with per-chip remove + aria-multiselectable list, toggling keeps list open),
+cbx-loading spinner (simulated ~400ms on users edit open, disclosed — real fetches roles), typeahead
+first-letter cycling + Home/End + aria-activedescendant tracking. Users edit/create roles migrated from
+checks (adjudication 6 form) to a native <select multiple> enhanced into cbx-multiple, matching real
+UserEdit/UserCreate component form; formSave collects selectedOptions. Chip-remove clicks guarded
+against the outer combobox button's stopPropagation. Comment maps 1:1 to <Select showSearch allowClear
+mode loading>. Harness users-model roles probe synced to multi select; new cbx-capabilities group
+(41 total): clear visibility+effect, typeahead 'c'+aria, Home/End, loading on/off, multi chips add/
+remove/clear + save persistence. All 41 pass. Screenshot: chips multi-select.

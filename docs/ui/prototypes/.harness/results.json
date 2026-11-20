@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 257,
+        "svgIcons": 277,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -806,6 +806,33 @@
           "reveal": true,
           "rows": 5
         }
+      }
+    },
+    "cbx-capabilities": {
+      "pass": true,
+      "assertions": {
+        "clearVis": true,
+        "cleared": {
+          "v": "",
+          "rows": 8
+        },
+        "typeahead": {
+          "ch": "c",
+          "aria": true
+        },
+        "endActive": true,
+        "homeActive": true,
+        "load0": true,
+        "load1": false,
+        "multi": {
+          "listMulti": "true",
+          "chips": 2,
+          "open": true,
+          "chipsAfterRm": 1,
+          "chipsAfterClear": 0,
+          "selCount": 0
+        },
+        "savedRoles": 0
       }
     }
   }
