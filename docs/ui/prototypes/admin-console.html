@@ -211,6 +211,8 @@ html[data-theme="dark"] .cbx-list{box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .cbx-opt:hover,.cbx-opt.active{background:var(--sunken)}
 .cbx-opt[aria-selected="true"]{color:var(--accent);font-weight:500}
 .grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px}
+.verify-msg.err{color:var(--danger-text,var(--danger))}
+.name-form .field-err{flex-basis:100%;font-size:var(--fs11);color:var(--danger-text,var(--danger));margin-top:4px}
 @media(max-width:760px){.grid-2-1{grid-template-columns:1fr}}
 tr.clickable:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
 .cbx-opt[aria-selected="true"]::after{content:"\2713";margin-left:auto;color:var(--accent)}
@@ -1336,7 +1338,7 @@ let pendingDelete=null;
 let eraseLockBusy=true;
 function isLastAdmin(i){const a=USERS.filter(u=>u[2]==='active'&&u[5].includes('owner'));return a.length===1&&USERS[i]===a[0];}
 function confirmErr(msg,retry){const e=$('confirmErr');e.style.display='flex';e.querySelector('span').textContent=msg;$('confirmRetry').style.display=retry?'inline-flex':'none';}
-function openConfirm(kind,idx,opts){opts=opts||{};pendingDelete={kind:kind,idx:idx,toast:opts.toast};eraseLockBusy=true;$('eraseSection').style.display=kind==='users'?'block':'none';$('eraseAudit').checked=false;$('legalBasisWrap').style.display='none';$('legalBasis').value='';$('confirmErr').style.display='none';$('confirmReceipt').style.display='none';$('confirmDelete').style.display='inline-flex';$('confirmCancel').textContent='Cancel';$('confirmTitle').textContent=opts.title||('Delete '+kind.replace(/s$/,''));$('confirmDelete').textContent=opts.verb||'Delete';$('confirmMsg').innerHTML=opts.msg||(kind==='tenants'?'Delete <strong>'+esc(ROW_NAME[kind](idx))+'</strong>? This is a soft delete: the tenant is suspended, all its sessions and API keys are revoked, and the row is kept for reactivation.':'Remove <strong>'+esc(ROW_NAME[kind](idx))+'</strong> from the prototype data? This cannot be undone.');openModal('confirmModal');}
+function openConfirm(kind,idx,opts){opts=opts||{};pendingDelete={kind:kind,idx:idx,toast:opts.toast,run:opts.run};eraseLockBusy=true;$('eraseSection').style.display=kind==='users'?'block':'none';$('eraseAudit').checked=false;$('legalBasisWrap').style.display='none';$('legalBasis').value='';$('confirmErr').style.display='none';$('confirmReceipt').style.display='none';$('confirmDelete').style.display='inline-flex';$('confirmCancel').textContent='Cancel';$('confirmTitle').textContent=opts.title||('Delete '+kind.replace(/s$/,''));$('confirmDelete').textContent=opts.verb||'Delete';$('confirmMsg').innerHTML=opts.msg||(kind==='tenants'?'Delete <strong>'+esc(ROW_NAME[kind](idx))+'</strong>? This is a soft delete: the tenant is suspended, all its sessions and API keys are revoked, and the row is kept for reactivation.':'Remove <strong>'+esc(ROW_NAME[kind](idx))+'</strong> from the prototype data? This cannot be undone.');openModal('confirmModal');}
 $('eraseAudit').onchange=()=>{$('legalBasisWrap').style.display=$('eraseAudit').checked?'block':'none';};
 function submitConfirm(){if(!pendingDelete)return;const d=pendingDelete;
  if(d.kind==='users'){
@@ -1350,6 +1352,9 @@ function submitConfirm(){if(!pendingDelete)return;const d=pendingDelete;
      const r=$('confirmReceipt');r.style.display='block';r.innerHTML='<strong>Erasure receipt (shown once)</strong><br>receiptHash: <span class="mono">'+hash+'</span><br>rowsAffected: 4 · legalBasis: '+esc(basis)+'<br>The erasure ledger keeps the hash and a tombstone, not the data. Store this receipt now.';
      pendingDelete=null;toast('User erased');return;}
    pendingDelete=null;closeModal('confirmModal');toast('Deleted');return;}
+ /* Adjudication 20 (A): async confirm actions (unlink) carry Busy + a failure branch; pendingDelete
+    stays alive on failure so the confirm button acts as Retry. Simulated failures disclosed. */
+ if(d.run){btnBusy($('confirmDelete'),true,'Working…');d.run(()=>{btnBusy($('confirmDelete'),false);pendingDelete=null;closeModal('confirmModal');toast(d.toast||'Deleted');},(msg)=>{btnBusy($('confirmDelete'),false);confirmErr(msg,false);});return;}
  pendingDelete=null;DEL[d.kind](d.idx);closeModal('confirmModal');toast(d.toast||'Deleted');}
 const USERS_NAME_CACHE={};
 $('confirmDelete').onclick=submitConfirm;
@@ -1426,8 +1431,8 @@ const initials=n=>n.trim().split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpper
 function renderNameCell(editing){
  const c=$('nameCell');
  if(editing){
-  c.innerHTML='<span class="name-form"><input id="nameInput" value="'+esc(PROFILE.name)+'"><button class="link-btn" id="nameSave" data-tip="Save" aria-label="Save"><svg class="ic"><use href="#i-check"/></svg></button><button class="link-btn" id="nameCancel" data-tip="Cancel" aria-label="Cancel"><svg class="ic"><use href="#i-x"/></svg></button></span>';
-  $('nameSave').onclick=()=>{const v=$('nameInput').value.trim();if(!v)return;PROFILE.name=v;renderNameCell(false);document.querySelector('.avatar').textContent=initials(v);};
+  c.innerHTML='<span class="name-form"><input id="nameInput" value="'+esc(PROFILE.name)+'"><span class="field-err" id="nameErr" style="display:none"></span><button class="link-btn" id="nameSave" data-tip="Save" aria-label="Save"><svg class="ic"><use href="#i-check"/></svg></button><button class="link-btn" id="nameCancel" data-tip="Cancel" aria-label="Cancel"><svg class="ic"><use href="#i-x"/></svg></button></span>';
+  $('nameSave').onclick=()=>{const v=$('nameInput').value.trim();const e=$('nameErr');if(!v){e.textContent='Name is required';e.style.display='block';return;}e.style.display='none';const b=$('nameSave');btnBusy(b,true,'');setTimeout(()=>{btnBusy(b,false);if(!nameSaveTried){nameSaveTried=true;e.textContent='Save failed: upstream timeout (prototype simulation) — retry.';e.style.display='block';toast('Name save failed — retry','error');return;}PROFILE.name=v;renderNameCell(false);document.querySelector('.avatar').textContent=initials(v);toast('Name updated');},400);};
   $('nameCancel').onclick=()=>renderNameCell(false);
   $('nameInput').focus();
  }else{
@@ -1435,13 +1440,14 @@ function renderNameCell(editing){
   $('nameEdit').onclick=()=>renderNameCell(true);
  }
 }
+let nameSaveTried=false;let verifySendTried=false;let pwdTried=false;let unlinkTried=false;
 function renderProfile(){
  renderNameCell(false);
  $('emailCell').textContent=PROFILE.email;
  $('statusCell').innerHTML=PROFILE.isActive?'<span class="tag ok"><span class="dot"></span>Active</span>':'<span class="tag danger"><span class="dot"></span>Suspended</span>';
  $('profileVerifyBanner').style.display=PROFILE.emailVerified?'none':'flex';
 }
-$('sendVerifyBtn').onclick=()=>{const m=$('verifyMsg');m.textContent='Verification email sent to '+PROFILE.email+'.';m.style.display='block';};
+$('sendVerifyBtn').onclick=()=>{const b=$('sendVerifyBtn');btnBusy(b,true,'Sending…');const m=$('verifyMsg');setTimeout(()=>{btnBusy(b,false);if(!verifySendTried){verifySendTried=true;m.className='verify-msg err';m.textContent='Verification email failed to send: upstream timeout (prototype simulation) — retry.';m.style.display='block';toast('Verification send failed — retry','error');return;}m.className='verify-msg';m.textContent='Verification email sent to '+PROFILE.email+'.';m.style.display='block';toast('Verification email sent');},400);};
 $('revokeOthersBtn').onclick=()=>{openConfirm('sessions-others',0,{verb:'Sign out',title:'Log out other devices',msg:'Sign out <strong>all other devices</strong>? Their sessions are revoked immediately. This is fail-closed: if revocation fails the sessions are kept and an error is shown.',toast:'Other devices signed out'});};
 /* Password policy — mirrors packages/identity/src/services/password-policy.ts
    password-change callsite defaults: minLength 12 + requireUpper/Lower/Digit/Special
@@ -1460,8 +1466,7 @@ $('pwdSubmit').onclick=()=>{
  if(!old)return showPwdError('Current password is required');
  const pe=pwdPolicyError(nw);if(pe)return showPwdError(pe);
  if(nw!==cf)return showPwdError('Passwords do not match');
- showPwdError(null);$('pwdOld').value='';$('pwdNew').value='';$('pwdConfirm').value='';
- toast('Password changed · other sessions signed out');
+ showPwdError(null);const b=$('pwdSubmit');btnBusy(b,true,'Changing…');setTimeout(()=>{btnBusy(b,false);if(!pwdTried){pwdTried=true;showPwdError('Password change failed: current password rejected by server (prototype simulation) — retry.');toast('Password change failed — retry','error');return;}$('pwdOld').value='';$('pwdNew').value='';$('pwdConfirm').value='';toast('Password changed · other sessions signed out');},400);
 };
 /* OAuth linked accounts — list + unlink + empty state + bind (github/google), per Profile.tsx. */
 const provIcon=p=>p==='github'?'<span class="prov-ic"><svg class="ic"><use href="#i-github"/></svg></span>':'<span class="prov-ic"><span class="prov-g">G</span></span>';
@@ -1469,7 +1474,7 @@ function renderOAuth(){
  const l=$('oauthList');
  if(!OAUTH_LINKS.length){l.innerHTML='<div class="oauth-empty">No linked accounts.</div>';return;}
  l.innerHTML=OAUTH_LINKS.map(k=>'<div class="oauth-row">'+provIcon(k.provider)+'<span class="o-tx">Linked as <b>'+k.provider+'</b></span><span class="o-ac">'+esc(k.account)+'</span><button class="btn danger ghost sm o-rm" data-unlink="'+k.provider+'">Unlink</button></div>').join('');
- document.querySelectorAll('#oauthList [data-unlink]').forEach(b=>b.onclick=()=>{const i=OAUTH_LINKS.findIndex(k=>k.provider===b.dataset.unlink);openConfirm('oauth-unlink',i,{verb:'Unlink',title:'Unlink '+b.dataset.unlink,msg:'Unlink <strong>'+esc(b.dataset.unlink)+'</strong>? That identity can no longer be used to sign in until it is linked again.',toast:'Identity unlinked'});});
+ document.querySelectorAll('#oauthList [data-unlink]').forEach(b=>b.onclick=()=>{const i=OAUTH_LINKS.findIndex(k=>k.provider===b.dataset.unlink);openConfirm('oauth-unlink',i,{verb:'Unlink',title:'Unlink '+b.dataset.unlink,msg:'Unlink <strong>'+esc(b.dataset.unlink)+'</strong>? That identity can no longer be used to sign in until it is linked again.',toast:'Identity unlinked',run:(ok,fail)=>{setTimeout(()=>{if(!unlinkTried){unlinkTried=true;fail('Unlink failed: provider unreachable (prototype simulation) — retry.');return;}OAUTH_LINKS.splice(i,1);renderOAuth();ok();},400);}});});
 }
 $('bindGithub').onclick=()=>{if(!OAUTH_LINKS.some(k=>k.provider==='github')){OAUTH_LINKS.push({provider:'github',account:'admin-acme'});renderOAuth();}};
 $('bindGoogle').onclick=()=>{if(!OAUTH_LINKS.some(k=>k.provider==='google')){OAUTH_LINKS.push({provider:'google',account:'admin@acme.io'});renderOAuth();}};

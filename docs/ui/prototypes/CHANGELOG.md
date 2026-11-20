@@ -826,3 +826,18 @@ Harness dashboard-render synced (no trend); dead-controls refresh path awaits as
 dashboard-model group (45 total): live counts, no deltas/chart, 10 activity tags, refresh-in-head, zero
 inert, skeleton+error+retry, wired navigation, create form fields/password type, EMAIL_EXISTS, policy,
 count/stat/activity updates. All 45 pass. Screenshot: dashboard.
+
+## Adjudication 20 (A): Profile async contract — Busy + failure branches + name edit validation — 2026-11-20
+Panel Profile surface: sendVerify / name-save / password-change / unlink executed synchronously with no
+Busy and no failure branch, while real Profile.tsx is fully async (verifyBusy + verifyFailed :61-71;
+name Form required + savingName confirm/cancel :226-256; password change revokes sessions + pwdError
+:144-151; unlinkError :113-116). Ruling A: sendVerify gains Busy + a simulated first-send failure
+(verify-msg err variant) then success; name edit keeps explicit save/cancel but adds required inline
+error, savingName Busy and a simulated first-save failure; pwdSubmit gains Busy + a simulated server
+rejection branch (fields kept) and clears only on success; unlink routes through a new async run hook
+on the shared confirm modal (openConfirm opts.run / submitConfirm d.run) with Busy on the confirm
+button, a simulated provider-unreachable failure that keeps the link and turns the confirm button into
+Retry, then unlink on retry. Simulated failures disclosed in code comments, consistent with the
+audit/dashboard precedent. Harness profile + confirm-uniform synced to the async sequences; new
+profile-async group (46 total): verify Busy/fail/retry, name required/cancel/Busy/fail/success, password
+Busy/rejection/kept-then-cleared, unlink Busy/failure-keeps-link/retry-unlinks. All 46 pass. Screenshot.

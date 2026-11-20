@@ -193,21 +193,14 @@
     "profile": {
       "pass": true,
       "assertions": {
-        "verifyBanner": true,
-        "sendVerifyMsg": "Verification email sent to admin@acme.io.",
-        "nameInlineEdit": {
-          "before": "Admin User",
-          "after": "Jane Admin",
-          "avatarInitials": "JA"
-        },
         "email": "admin@acme.io",
         "statusActive": true,
         "passwordPolicy": {
           "weak": "Password needs 12+ chars with upper, lower, digit and special",
           "mismatch": "Passwords do not match",
-          "validResetsFields": true,
           "minLength": 12,
-          "dims": 5
+          "dims": 5,
+          "validResetsFields": true
         },
         "oauth": {
           "initial": 1,
@@ -215,6 +208,54 @@
           "emptyState": true,
           "afterBindGoogle": 1,
           "afterBindGithub": 2
+        },
+        "verifyBanner": true,
+        "sendVerifyMsg": "Verification email sent to admin@acme.io.",
+        "nameInlineEdit": {
+          "before": "Admin User",
+          "after": "Jane Admin",
+          "avatarInitials": "JA"
+        }
+      }
+    },
+    "profile-async": {
+      "pass": true,
+      "assertions": {
+        "vBusy": true,
+        "vFail": {
+          "msg": "Verification email failed to send: upstream timeout (prototype simulation) — retry.",
+          "err": true
+        },
+        "vOk": {
+          "msg": "Verification email sent to admin@acme.io.",
+          "err": false
+        },
+        "nReq": {
+          "err": "Name is required",
+          "editing": true
+        },
+        "nCancel": true,
+        "nBusy": true,
+        "nFail": true,
+        "nOk": true,
+        "pBusy": true,
+        "pFail": {
+          "err": true,
+          "kept": true
+        },
+        "pOk": {
+          "cleared": true,
+          "toast": "Password changed · other sessions signed out"
+        },
+        "o0": 1,
+        "oBusy": true,
+        "oFail": {
+          "err": true,
+          "kept": 1
+        },
+        "oOk": {
+          "rows": 0,
+          "closed": true
         }
       }
     },

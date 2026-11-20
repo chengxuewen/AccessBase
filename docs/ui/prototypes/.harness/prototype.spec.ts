@@ -287,17 +287,24 @@ test('mgmt-pages', async ({ page }) => {
 
 test('profile', async ({ page }) => {
   await page.goto(FILE);
+  // adjudication 20: verify/name/password/unlink are async w/ Busy + simulated first failure
+  await page.evaluate(() => { (document.querySelector('[data-page=profile]') as HTMLElement).click(); });
+  const verifyBanner = await page.evaluate(() => document.getElementById('profileVerifyBanner')!.style.display !== 'none');
+  await page.locator('#sendVerifyBtn').click();
+  await page.waitForTimeout(600);
+  await page.locator('#sendVerifyBtn').click();
+  await page.waitForTimeout(600);
+  const sendVerifyMsg = await page.evaluate(() => document.getElementById('verifyMsg')!.textContent);
+  const nameBefore = await page.evaluate(() => document.getElementById('nameCell')!.textContent!.trim());
+  await page.locator('#nameEdit').click();
+  await page.locator('#nameInput').fill('Jane Admin');
+  await page.locator('#nameSave').click();
+  await page.waitForTimeout(600);
+  await page.locator('#nameSave').click();
+  await page.waitForTimeout(600);
+  const nameAfter = await page.evaluate(() => document.getElementById('nameCell')!.textContent!.trim());
+  const avatar = await page.evaluate(() => document.querySelector('.avatar')!.textContent);
   const a = await page.evaluate(() => {
-    (document.querySelector('[data-page=profile]') as HTMLElement).click();
-    const verifyBanner = document.getElementById('profileVerifyBanner')!.style.display !== 'none';
-    (document.getElementById('sendVerifyBtn') as HTMLElement).click();
-    const sendVerifyMsg = document.getElementById('verifyMsg')!.textContent;
-    const nameBefore = document.getElementById('nameCell')!.textContent!.trim();
-    (document.getElementById('nameEdit') as HTMLElement).click();
-    (document.getElementById('nameInput') as HTMLInputElement).value = 'Jane Admin';
-    (document.getElementById('nameSave') as HTMLElement).click();
-    const nameAfter = document.getElementById('nameCell')!.textContent!.trim();
-    const avatar = document.querySelector('.avatar')!.textContent;
     // password policy
     const set = (id: string, v: string) => { (document.getElementById(id) as HTMLInputElement).value = v; };
     set('pwdOld', 'old'); set('pwdNew', 'weak'); set('pwdConfirm', 'weak');
@@ -307,33 +314,92 @@ test('profile', async ({ page }) => {
     (document.getElementById('pwdSubmit') as HTMLElement).click();
     const mismatch = document.getElementById('pwdErrorTx')!.textContent;
     set('pwdConfirm', 'Str0ng!Pass12');
-    (document.getElementById('pwdSubmit') as HTMLElement).click();
-    const validResetsFields = (document.getElementById('pwdNew') as HTMLInputElement).value === '';
-    // oauth
     const oauthInitial = document.querySelectorAll('#oauthList .oauth-row').length;
-    (document.querySelector('#oauthList [data-unlink=github]') as HTMLElement).click();
-    (document.getElementById('confirmDelete') as HTMLElement).click(); // adjudication 13: confirm-gated
-    const afterUnlink = document.querySelectorAll('#oauthList .oauth-row').length;
-    const emptyState = !!document.querySelector('#oauthList .oauth-empty');
-    (document.getElementById('bindGoogle') as HTMLElement).click();
-    const afterBindGoogle = document.querySelectorAll('#oauthList .oauth-row').length;
-    (document.getElementById('bindGithub') as HTMLElement).click();
-    const afterBindGithub = document.querySelectorAll('#oauthList .oauth-row').length;
     return {
-      verifyBanner, sendVerifyMsg,
-      nameInlineEdit: { before: nameBefore, after: nameAfter, avatarInitials: avatar },
       email: document.getElementById('emailCell')!.textContent,
       statusActive: document.getElementById('statusCell')!.textContent!.includes('Active'),
-      passwordPolicy: { weak, mismatch, validResetsFields, minLength: 12, dims: 5 },
-      oauth: { initial: oauthInitial, afterUnlink, emptyState, afterBindGoogle, afterBindGithub },
+      passwordPolicy: { weak, mismatch, minLength: 12, dims: 5 },
+      oauth: { initial: oauthInitial },
     };
   });
+  await page.locator('#pwdSubmit').click();
+  await page.waitForTimeout(600); // simulated server rejection keeps fields
+  await page.locator('#pwdSubmit').click();
+  await page.waitForTimeout(600);
+  (a.passwordPolicy as Record<string, unknown>).validResetsFields = await page.evaluate(() => (document.getElementById('pwdNew') as HTMLInputElement).value === '');
+  await page.locator('#oauthList [data-unlink=github]').click();
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600); // simulated unlink failure keeps the link
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
+  const afterUnlink = await page.evaluate(() => document.querySelectorAll('#oauthList .oauth-row').length);
+  const emptyState = await page.evaluate(() => !!document.querySelector('#oauthList .oauth-empty'));
+  await page.locator('#bindGoogle').click();
+  const afterBindGoogle = await page.evaluate(() => document.querySelectorAll('#oauthList .oauth-row').length);
+  await page.locator('#bindGithub').click();
+  const afterBindGithub = await page.evaluate(() => document.querySelectorAll('#oauthList .oauth-row').length);
+  Object.assign(a.oauth as Record<string, unknown>, { afterUnlink, emptyState, afterBindGoogle, afterBindGithub });
+  Object.assign(a, { verifyBanner, sendVerifyMsg, nameInlineEdit: { before: nameBefore, after: nameAfter, avatarInitials: avatar } });
   const pass = a.verifyBanner && a.nameInlineEdit.after === 'Jane Admin' && a.nameInlineEdit.avatarInitials === 'JA'
     && a.passwordPolicy.weak!.includes('12+') && a.passwordPolicy.mismatch === 'Passwords do not match'
     && a.passwordPolicy.validResetsFields && a.oauth.afterUnlink === 0 && a.oauth.emptyState
     && a.oauth.afterBindGoogle === 1 && a.oauth.afterBindGithub === 2;
   rec('profile', pass, a);
   expect(pass, 'profile').toBe(true);
+});
+
+test('profile-async', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 20 (A): verify / name-save / password-change / unlink are async with Busy states and
+  // failure branches (simulated first attempt, disclosed); name edit has required validation + cancel.
+  await page.evaluate(() => { (document.querySelector('[data-page=profile]') as HTMLElement).click(); });
+  await page.locator('#sendVerifyBtn').click();
+  const vBusy = await page.evaluate(() => (document.getElementById('sendVerifyBtn') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600);
+  const vFail = await page.evaluate(() => ({ msg: document.getElementById('verifyMsg')!.textContent!, err: document.getElementById('verifyMsg')!.className.includes('err') }));
+  await page.locator('#sendVerifyBtn').click();
+  await page.waitForTimeout(600);
+  const vOk = await page.evaluate(() => ({ msg: document.getElementById('verifyMsg')!.textContent!, err: document.getElementById('verifyMsg')!.className.includes('err') }));
+  await page.locator('#nameEdit').click();
+  await page.locator('#nameInput').fill('');
+  await page.locator('#nameSave').click();
+  const nReq = await page.evaluate(() => ({ err: document.getElementById('nameErr')!.textContent!, editing: !!document.getElementById('nameInput') }));
+  await page.locator('#nameCancel').click();
+  const nCancel = await page.evaluate(() => !document.getElementById('nameInput') && document.getElementById('nameCell')!.textContent!.includes('Admin User'));
+  await page.locator('#nameEdit').click();
+  await page.locator('#nameInput').fill('Async Admin');
+  await page.locator('#nameSave').click();
+  const nBusy = await page.evaluate(() => (document.getElementById('nameSave') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600);
+  const nFail = await page.evaluate(() => document.getElementById('nameErr')!.textContent!.includes('Save failed'));
+  await page.locator('#nameSave').click();
+  await page.waitForTimeout(600);
+  const nOk = await page.evaluate(() => document.getElementById('nameCell')!.textContent!.includes('Async Admin'));
+  const set = (id: string, v: string) => page.locator('#' + id).fill(v);
+  await set('pwdOld', 'Old!Pass1234'); await set('pwdNew', 'Str0ng!Pass12'); await set('pwdConfirm', 'Str0ng!Pass12');
+  await page.locator('#pwdSubmit').click();
+  const pBusy = await page.evaluate(() => (document.getElementById('pwdSubmit') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600);
+  const pFail = await page.evaluate(() => ({ err: document.getElementById('pwdErrorTx')!.textContent!.includes('rejected by server'), kept: (document.getElementById('pwdNew') as HTMLInputElement).value !== '' }));
+  await page.locator('#pwdSubmit').click();
+  await page.waitForTimeout(600);
+  const pOk = await page.evaluate(() => ({ cleared: (document.getElementById('pwdNew') as HTMLInputElement).value === '', toast: document.getElementById('protoToast')!.textContent }));
+  const o0 = await page.evaluate(() => document.querySelectorAll('#oauthList .oauth-row').length);
+  await page.locator('#oauthList [data-unlink]').first().click();
+  await page.locator('#confirmDelete').click();
+  const oBusy = await page.evaluate(() => (document.getElementById('confirmDelete') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600);
+  const oFail = await page.evaluate(() => ({ err: document.getElementById('confirmErr')!.textContent!.includes('provider unreachable'), kept: document.querySelectorAll('#oauthList .oauth-row').length }));
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
+  const oOk = await page.evaluate(() => ({ rows: document.querySelectorAll('#oauthList .oauth-row').length, closed: !document.getElementById('confirmModal')!.classList.contains('on') }));
+  const a = { vBusy, vFail, vOk, nReq, nCancel, nBusy, nFail, nOk, pBusy, pFail, pOk, o0, oBusy, oFail, oOk };
+  const pass = vBusy && vFail.err && vFail.msg.includes('failed') && !vOk.err && vOk.msg.includes('sent')
+    && nReq.err === 'Name is required' && nReq.editing && nCancel && nBusy && nFail && nOk
+    && pBusy && pFail.err && pFail.kept && pOk.cleared && pOk.toast.includes('other sessions signed out')
+    && oBusy && oFail.err && oFail.kept === o0 && oOk.rows === o0 - 1 && oOk.closed;
+  rec('profile-async', pass, a);
+  expect(pass, 'profile-async').toBe(true);
 });
 
 test('contrast', async ({ page }) => {
@@ -1236,6 +1302,9 @@ test('confirm-uniform', async ({ page }) => {
   const o1 = await page.evaluate(() => document.querySelectorAll('#oauthList [data-unlink]').length);
   await page.locator('#oauthList [data-unlink]').first().click();
   await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600); // adjudication 20: simulated unlink failure, confirm acts as Retry
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
   const o2 = await page.evaluate(() => document.querySelectorAll('#oauthList [data-unlink]').length);
   const s0 = await page.evaluate(() => document.querySelectorAll('#sessionRows tr').length);
   await page.locator('#revokeOthersBtn').click();
