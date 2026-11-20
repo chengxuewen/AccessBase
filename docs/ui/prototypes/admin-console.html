@@ -178,6 +178,8 @@ select option{background:var(--surface);color:var(--tx1)}
 .wswitch.on{background:var(--accent);border-color:var(--accent)}
 .wswitch.on .knob{left:16px;background:var(--txinv)}
 .wswitch:focus-visible{outline:2px solid var(--focus,var(--accent));outline-offset:1px}
+.toolbar input[type=date]{padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit;color-scheme:light}
+html[data-theme="dark"] .toolbar input[type=date]{color-scheme:dark}
 .ev-presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .ev-presets .tag{cursor:pointer;border:1px solid var(--bd);background:var(--surface);color:var(--tx2)}
 .ev-presets .tag:hover{border-color:var(--accent);color:var(--accent)}
@@ -445,7 +447,9 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 .fam-role{background:var(--ok-tint);color:var(--ok-text,var(--ok))}
 .fam-tenant{background:var(--warn-tint);color:var(--warn-text,var(--warn))}
 .fam-apikey{background:var(--danger-tint);color:var(--danger-text,var(--danger))}
-.fam-audit{background:var(--sunken);color:var(--tx2)}
+.fam-group{background:var(--accent-tint);color:var(--accent-text,var(--accent))}
+.fam-webhook{background:var(--sunken);color:var(--tx2)}
+.fam-auth{background:var(--sunken);color:var(--tx2)}
 .copyable{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:var(--fs12);color:var(--tx2);max-width:180px;min-width:0}
 .copyable .cp-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .copyable button{flex-shrink:0}
@@ -741,7 +745,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
     <section class="page" id="page-events">
       <div class="page-head"><div><h1>Events</h1><div class="sub">Domain event stream · typed payloads and fanout state</div></div></div>
       <div class="card">
-        <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="eventSearch" placeholder="Filter event type…"></div><select id="eventFamilyFilter"><option value="">All families</option><option value="user">user</option><option value="role">role</option><option value="tenant">tenant</option><option value="apikey">apikey</option><option value="audit">audit</option></select><div class="spacer"></div><span class="count" id="eventCount"></span></div>
+        <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="eventSearch" placeholder="Filter event type…"></div><select id="eventFamilyFilter"><option value="">All families</option><option value="user">user</option><option value="role">role</option><option value="tenant">tenant</option><option value="apikey">apikey</option><option value="group">group</option><option value="webhook">webhook</option><option value="auth">auth</option></select><input type="date" id="eventFrom" aria-label="From date"><span style="color:var(--tx3)">–</span><input type="date" id="eventTo" aria-label="To date"><div class="spacer"></div><span class="count" id="eventCount"></span></div>
         <div style="overflow-x:auto"><table>
           <thead><tr><th>Time</th><th>Type</th><th data-prio="3">Payload</th><th data-prio="2">Fanout</th><th style="text-align:right">Detail</th></tr></thead>
           <tbody id="eventRows"></tbody>
@@ -1170,15 +1174,17 @@ renderAudit();
 /* Events — time/type(family color)/payload JSON/fanout(done|pending)/detail modal. */
 const EVENTS=[
  {time:'2026-11-18 14:32',type:'user.created',payload:{userId:'usr_jane',email:'jane.doe@globex.com',tenant:'globex'},fanout:true,tenant:'globex'},
- {time:'2026-11-18 13:58',type:'role.updated',payload:{roleId:'editor',added:['audit:read']},fanout:true,tenant:'acme'},
+ {time:'2026-11-18 13:58',type:'role.changed',payload:{roleId:'editor',added:['audit:read']},fanout:true,tenant:'acme'},
  {time:'2026-11-18 12:41',type:'apikey.revoked',payload:{keyId:'7a1e',name:'legacy-export'},fanout:true,tenant:'acme'},
  {time:'2026-11-18 11:20',type:'tenant.suspended',payload:{tenantId:'initech',reason:'billing'},fanout:false,tenant:'default'},
  {time:'2026-11-18 09:47',type:'user.updated',payload:{userId:'usr_alice',fields:['status']},fanout:true,tenant:'acme'},
- {time:'2026-11-17 22:13',type:'audit.appended',payload:{entryId:'aud_9f2c',action:'POST /v1/auth/login'},fanout:true,tenant:'default'}
+ {time:'2026-11-18 10:05',type:'group.changed',payload:{groupId:'eng',added:['usr_bob']},fanout:true,tenant:'acme'},
+ {time:'2026-11-18 08:12',type:'webhook.test',payload:{endpointId:'wh_1',response:200},fanout:true,tenant:'acme'},
+ {time:'2026-11-17 22:13',type:'auth.login',payload:{userId:'usr_admin',method:'password'},fanout:true,tenant:'default'}
 ];
 function renderEvents(){
- const q=$('eventSearch').value.toLowerCase();const ff=$('eventFamilyFilter').value;
- const list=EVENTS.filter(e=>(!q||e.type.toLowerCase().includes(q))&&(!ff||e.type.startsWith(ff+'.')));
+ const q=$('eventSearch').value.toLowerCase();const ff=$('eventFamilyFilter').value;const df=$('eventFrom').value;const dt=$('eventTo').value;
+ const list=EVENTS.filter(e=>(!q||e.type.toLowerCase().includes(q))&&(!ff||e.type.startsWith(ff+'.'))&&(!df||e.time.slice(0,10)>=df)&&(!dt||e.time.slice(0,10)<=dt));
  $('eventCount').textContent=list.length+' events';
  $('eventRows').innerHTML=list.map(e=>{const i=EVENTS.indexOf(e);
   return '<tr><td class="mono">'+e.time+'</td><td><span class="tag '+famCls(e.type)+'">'+esc(e.type)+'</span></td><td><span class="json">'+esc(JSON.stringify(e.payload))+'</span></td><td>'+(e.fanout?'<span class="tag ok">Done</span>':'<span class="tag info">Pending</span>')+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="View detail" data-event="'+i+'" aria-label="View detail"><svg class="ic"><use href="#i-eye"/></svg></button></div></td></tr>';}).join('');
@@ -1186,6 +1192,8 @@ function renderEvents(){
 }
 $('eventSearch').addEventListener('input',renderEvents);
 $('eventFamilyFilter').addEventListener('input',renderEvents);
+$('eventFrom').addEventListener('input',renderEvents);
+$('eventTo').addEventListener('input',renderEvents);
 renderEvents();
 /* Create flows — per-page form modal; clients/webhooks reveal secret once on create. */
 const FORMS={

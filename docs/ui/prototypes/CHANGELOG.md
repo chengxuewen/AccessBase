@@ -702,3 +702,13 @@ events control with preset chips (*, user.created/updated/deleted, webhook.test)
 ('*' or ^[a-z]+\.[a-z_]+$) + http(s) url validation; sample data gains enabled/description and legal
 event names; actions column widened to 170px. New harness webhooks-model (36 total): switch toggle +
 toast, vocab clean, presets=5, url/event inline errors, chip append, description persisted. All 36 pass.
+
+## Adjudication 11 (A): Events catalog/families/date-range aligned to identity events.ts — 2026-11-19
+Panel F10: prototype invented role.updated and audit.appended (neither exists in the real catalog);
+family filter had audit but lacked group/webhook/auth; no date-range filter (real has RangePicker).
+Ruling A: samples remapped to real types (role.changed, auth.login) plus group.changed and webhook.test
+examples (8 rows); family filter now user/role/tenant/apikey/group/webhook/auth; from/to date inputs
+filter renderEvents by day; fam colors gain group (accent-tint) / webhook+auth (sunken) replacing the
+fictional fam-audit; date inputs themed incl. dark color-scheme. Harness mgmt-pages events rows 6->8;
+new events-model group (37 total): all types in catalog, no fiction, 7 families, from/to filtering,
+group filter. All 37 pass. Screenshot.

@@ -273,7 +273,7 @@ test('mgmt-pages', async ({ page }) => {
   const pass = a.tenants.rows === 5 && (a.tenants as Record<string, number>).suspendedFilter === 1
     && a.clients.rows === 4 && a.apikeys.rows === 4 && (a.apikeys as Record<string, number>).revokedFilter === 1
     && a.webhooks.rows === 3 && a.audit.rows === 7 && (a.audit as Record<string, number>).deleteFilter === 1
-    && (a.audit as Record<string, boolean>).verifyBanner && a.events.rows === 6 && (a.events as Record<string, number>).userFilter === 2;
+    && (a.audit as Record<string, boolean>).verifyBanner && a.events.rows === 8 && (a.events as Record<string, number>).userFilter === 2;
   rec('mgmt-pages', pass, a);
   expect(pass, 'mgmt-pages').toBe(true);
 });
@@ -1127,4 +1127,29 @@ test('webhooks-model', async ({ page }) => {
     && urlErr && evErr && chipVal.includes('*') && created.reveal && created.rows === 4 && created.desc;
   rec('webhooks-model', pass, a);
   expect(pass, 'webhooks-model').toBe(true);
+});
+
+test('events-model', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 11 (A): event catalog matches identity events.ts (no role.updated / audit.appended);
+  // families = user/role/tenant/apikey/group/webhook/auth (no audit); date-range filter works.
+  await page.evaluate(() => { (document.querySelector('[data-page=events]') as HTMLElement).click(); });
+  const base = await page.evaluate(() => {
+    const types = eval('EVENTS').map((e: any) => e.type);
+    const catalog = ['user.created', 'user.updated', 'user.deleted', 'user.suspended', 'role.changed', 'tenant.created', 'tenant.updated', 'tenant.suspended', 'tenant.deleted', 'apikey.revoked', 'group.changed', 'webhook.test', 'auth.login', 'auth.logout', 'auth.backchannel_logout'];
+    const fams = [...document.querySelectorAll('#eventFamilyFilter option')].map(o => o.value).filter(Boolean);
+    return { allReal: types.every((t: string) => catalog.includes(t)), noFiction: !types.includes('role.updated') && !types.includes('audit.appended'), fams, rows: document.querySelectorAll('#eventRows tr').length };
+  });
+  await page.evaluate(() => { const f = document.getElementById('eventFrom') as HTMLInputElement; f.value = '2026-11-18'; f.dispatchEvent(new Event('input')); });
+  const fromRows = await page.evaluate(() => document.querySelectorAll('#eventRows tr').length);
+  await page.evaluate(() => { const f = document.getElementById('eventTo') as HTMLInputElement; f.value = '2026-11-17'; f.dispatchEvent(new Event('input')); const fr = document.getElementById('eventFrom') as HTMLInputElement; fr.value = '2026-11-17'; fr.dispatchEvent(new Event('input')); });
+  const dayRows = await page.evaluate(() => document.querySelectorAll('#eventRows tr').length);
+  await page.evaluate(() => { const fr = document.getElementById('eventFrom') as HTMLInputElement; fr.value = ''; fr.dispatchEvent(new Event('input')); const ft = document.getElementById('eventTo') as HTMLInputElement; ft.value = ''; ft.dispatchEvent(new Event('input')); const ff = document.getElementById('eventFamilyFilter') as HTMLSelectElement; ff.value = 'group'; ff.dispatchEvent(new Event('input')); });
+  const groupRows = await page.evaluate(() => ({ n: document.querySelectorAll('#eventRows tr').length, tag: document.querySelector('#eventRows .tag')!.textContent }));
+  const a = { base, fromRows, dayRows, groupRows };
+  const pass = base.allReal && base.noFiction && base.rows === 8
+    && JSON.stringify(base.fams) === JSON.stringify(['user', 'role', 'tenant', 'apikey', 'group', 'webhook', 'auth'])
+    && fromRows === 7 && dayRows === 1 && groupRows.n === 1 && groupRows.tag === 'group.changed';
+  rec('events-model', pass, a);
+  expect(pass, 'events-model').toBe(true);
 });

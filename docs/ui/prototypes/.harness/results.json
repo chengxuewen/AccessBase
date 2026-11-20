@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 33,
-        "svgIcons": 249,
+        "svgIcons": 251,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -183,8 +183,8 @@
           "verifyBanner": true
         },
         "events": {
-          "rows": 6,
-          "familyTags": 6,
+          "rows": 8,
+          "familyTags": 8,
           "userFilter": 2
         }
       }
@@ -687,6 +687,31 @@
           "reveal": true,
           "rows": 4,
           "desc": true
+        }
+      }
+    },
+    "events-model": {
+      "pass": true,
+      "assertions": {
+        "base": {
+          "allReal": true,
+          "noFiction": true,
+          "fams": [
+            "user",
+            "role",
+            "tenant",
+            "apikey",
+            "group",
+            "webhook",
+            "auth"
+          ],
+          "rows": 8
+        },
+        "fromRows": 7,
+        "dayRows": 1,
+        "groupRows": {
+          "n": 1,
+          "tag": "group.changed"
         }
       }
     }
