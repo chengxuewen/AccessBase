@@ -1552,6 +1552,42 @@ test('events-model', async ({ page }) => {
   expect(pass, 'events-model').toBe(true);
 });
 
+test('events-load', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 29 (A): reload/Search async skeleton + simulated loadError Alert + Retry;
+  // Search primary button + reset-filters icon (Tooltip/aria-label) clearing filters and reloading.
+  await page.evaluate(() => { (document.querySelector('[data-page=events]') as HTMLElement).click(); });
+  const toolbar = await page.evaluate(() => ({
+    search: (document.getElementById('eventSearchBtn') as HTMLButtonElement).textContent,
+    resetAria: document.getElementById('eventResetBtn')!.getAttribute('aria-label'),
+    resetTip: document.getElementById('eventResetBtn')!.getAttribute('data-tip'),
+    note: document.querySelector('#page-events .range-note')!.textContent!.includes('startDate/endDate'),
+  }));
+  await page.locator('#page-events .icon-btn[data-reload=events]').click();
+  const skel = await page.evaluate(() => document.querySelectorAll('#eventRows .skel').length);
+  await page.waitForTimeout(600);
+  const loadErr = await page.evaluate(() => ({ banner: document.getElementById('evLoadBanner')!.style.display === 'flex', rows: document.querySelectorAll('#eventRows tr').length }));
+  await page.locator('#evLoadRetry').click();
+  await page.waitForTimeout(600);
+  const retryOk = await page.evaluate(() => ({ banner: document.getElementById('evLoadBanner')!.style.display === 'none', rows: document.querySelectorAll('#eventRows tr').length }));
+  await page.locator('#eventSearchBtn').click();
+  const searchSkel = await page.evaluate(() => document.querySelectorAll('#eventRows .skel').length);
+  await page.waitForTimeout(600);
+  const searchOk = await page.evaluate(() => document.querySelectorAll('#eventRows tr').length);
+  await page.evaluate(() => { const f = document.getElementById('eventFamilyFilter') as HTMLSelectElement; f.value = 'user'; f.dispatchEvent(new Event('input')); });
+  const narrowed = await page.evaluate(() => document.querySelectorAll('#eventRows tr').length);
+  await page.locator('#eventResetBtn').click();
+  await page.waitForTimeout(600);
+  const reset = await page.evaluate(() => ({ fam: (document.getElementById('eventFamilyFilter') as HTMLSelectElement).value, rows: document.querySelectorAll('#eventRows tr').length }));
+  const a = { toolbar, skel, loadErr, retryOk, searchSkel, searchOk, narrowed, reset };
+  const pass = toolbar.search === 'Search' && toolbar.resetAria === 'Reset filters' && toolbar.resetTip === 'Reset filters' && toolbar.note
+    && skel === 24 && loadErr.banner && loadErr.rows === 0
+    && retryOk.banner && retryOk.rows === 8 && searchSkel === 24 && searchOk === 8
+    && narrowed < 8 && reset.fam === '' && reset.rows === 8;
+  rec('events-load', pass, a);
+  expect(pass, 'events-load').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);

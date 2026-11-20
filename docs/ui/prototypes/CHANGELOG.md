@@ -973,3 +973,18 @@ per click, so retry succeeds); delete routes through the shared confirm async ru
 deleteError that keeps the row and turns confirm into Retry. Simulated failures disclosed per precedent.
 Harness clients-model synced (grants 2 / methods 3 / scope-required / async create-rotate-delete) and
 row-crud clients delete path synced (49 total). All 49 pass. Screenshot: register form.
+
+## Adjudication 29 (A): Events async load + loadError Alert + Search/reset toolbar — 2026-11-20
+Panel Events surface: the reload icon re-rendered instantly while the real ProTable request is async with
+a try/catch loadError Alert (Events.tsx:96-100,149-170); the real toolbar carries a primary Search button
+(reload) and a reset-filters icon button (Tooltip + aria-label, clears filters + reload) which the
+prototype lacked (live-input filtering only). Ruling A: reload and a new primary Search button share one
+async load path — skeleton rows, then a simulated first-load failure surfaced as an error Alert banner
+with Retry, then the real rows on retry; a reset-filters icon button (data-tip + aria-label "Reset
+filters") clears search/family/from/to and reloads; the from/to date inputs keep their RangePicker
+semantics with a visible "range -> startDate/endDate" disclosure (real maps to startDate/endDate).
+Live-input filtering retained as a prototype convenience. Family tags, payload code cell, Fanout
+Done/Pending tags and the pretty-printed payload detail modal were already aligned and are kept.
+Simulated failure disclosed per precedent. New harness events-load group (50 total): toolbar buttons +
+aria/tip + disclosure, skeleton, loadError banner + empty rows, retry restores, Search skeleton + rows,
+reset clears filters and reloads. All 50 pass. Screenshot: load error + toolbar.

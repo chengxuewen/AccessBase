@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 291,
+        "svgIcons": 293,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -949,6 +949,33 @@
         "groupRows": {
           "n": 1,
           "tag": "group.changed"
+        }
+      }
+    },
+    "events-load": {
+      "pass": true,
+      "assertions": {
+        "toolbar": {
+          "search": "Search",
+          "resetAria": "Reset filters",
+          "resetTip": "Reset filters",
+          "note": true
+        },
+        "skel": 24,
+        "loadErr": {
+          "banner": true,
+          "rows": 0
+        },
+        "retryOk": {
+          "banner": true,
+          "rows": 8
+        },
+        "searchSkel": 24,
+        "searchOk": 8,
+        "narrowed": 2,
+        "reset": {
+          "fam": "",
+          "rows": 8
         }
       }
     },
