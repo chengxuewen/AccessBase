@@ -22,6 +22,12 @@ branch and says so (see disclosure index). Read this file first, `CHANGELOG.md` 
   Member) and Webhooks → Operator / Auditor. They exercise permission gates; they are not real sessions.
 - Branding (Settings → General) persists to `localStorage` only — backend out of scope, mirroring real
   `Settings.tsx handleSaveSite`.
+- Combobox option lists use AntD-like metrics (32px rows, 5px 12px padding, 22px line-height), a tinted
+  selected state with a reserved check column (selecting never shifts text), hover on `--hover`, and a
+  fixed-positioned list placed at open time (flip-up near the viewport bottom, horizontal clamp, close on
+  scroll/resize) so modal/drawer/toolbar scroll containers cannot clip it. Selects built inside modals
+  (create/edit/add-option forms) are enhanced on open — they were previously native `<select multiple
+  size=4>` listboxes with OS styling. The companion reuses the same mechanism.
 - Tooltips are ONE body-level fixed element (`#floatTip`, z-index 600) shown on hover/focus of any
   `[data-tip]` host. The earlier CSS `::after` bubble was clipped by `tbody td{overflow:hidden}` and
   overpainted by later rows' sticky actions cells (`td:last-child{position:sticky;z-index:2}`), and
@@ -38,7 +44,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts
 npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --grep roles-edit
 ```
 
-- 56 groups, all must pass. Per-group assertions are written to
+- 57 groups, all must pass. Per-group assertions are written to
   `docs/ui/prototypes/.harness/results.json` (`results[name].assertions`, `fail` count) for evidence review.
 - The harness loads the same `file://` page; it never mocks the prototype itself except where a test
   deliberately stubs `navigator.clipboard` / `document.execCommand` to prove the copy-failure branch.
@@ -46,7 +52,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
   surface, motion family, tint-bearing color, or locale string requires extending the matching group
   (or adding one) in the same change — never ship a surface the harness cannot see.
 
-## Lock index (56 groups)
+## Lock index (57 groups)
 
 | Group | Locks | Ruling |
 |---|---|---|
@@ -74,6 +80,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | tooltip / overflow-menu / content-detail | body-level floating tooltip (no clipping/overpaint in any context), row overflow, truncate+detail | R1–R3, post-closure fix |
 | responsive-table / pagehead-overflow / table-fit / chip-columns | narrow adaptation, no phantom scrollbar, chip columns | R4, R5 |
 | combobox-popup / combobox-themed / cbx-disabled / cbx-capabilities | themed Select parity: clear/multiple/loading/keyboard/disabled mirror | 2, 15 |
+| cbx-option-list | form selects themed (were native size=4 listboxes); 32px option rows, tinted selected + reserved check column (no shift), fixed list escaping modal/toolbar clipping, flip-up + clamp; companion parity | post-closure fix 2 |
 | topbar-fidelity | real topbar affordances only | 3 |
 | reduced-motion | prefers-reduced-motion degradation + normal-mode motion intact | 30 |
 | i18n | 中文/EN toggle, stored lang, zh chrome + relative forms, data untouched, dictionary parity/coverage, en restore | 31 |

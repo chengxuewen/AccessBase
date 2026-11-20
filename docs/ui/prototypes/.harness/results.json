@@ -335,12 +335,12 @@
       "pass": true,
       "assertions": {
         "admin": {
-          "checked": 196,
+          "checked": 210,
           "min": 4.61,
           "fails": []
         },
         "companion": {
-          "checked": 112,
+          "checked": 126,
           "min": 4.67,
           "fails": []
         }
@@ -1254,6 +1254,46 @@
           "selCount": 0
         },
         "savedRoles": 0
+      }
+    },
+    "cbx-option-list": {
+      "pass": true,
+      "assertions": {
+        "themed": {
+          "hidden": true,
+          "wrapped": true,
+          "multi": true
+        },
+        "metrics": {
+          "minH": "32px",
+          "pad": "5px 12px",
+          "lh": "22px",
+          "pos": "fixed",
+          "inVp": true,
+          "onTop": true,
+          "w": 476
+        },
+        "selected": {
+          "aria": "true",
+          "bg": "rgba(15, 92, 90, 0.08)",
+          "tinted": true,
+          "w": 476,
+          "check": "rgb(15, 92, 90)"
+        },
+        "noShift": true,
+        "single": {
+          "hidden": true,
+          "wrapped": true
+        },
+        "flip": {
+          "above": true,
+          "inVp": true
+        },
+        "comp": {
+          "wrapped": true,
+          "minH": "32px",
+          "pad": "5px 12px"
+        }
       }
     },
     "modal-a11y": {

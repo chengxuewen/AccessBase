@@ -506,7 +506,7 @@ test('surfaces-contrast', async ({ page }) => {
     const ratio = (x: number[], y: number[]) => { const l1 = lum(x), l2 = lum(y); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
     const packs = ['broadsheet', 'geist', 'material', 'fluent', 'ant', 'carbon', 'cupertino'];
     const sets: Record<string, string[]> = {
-      users: ['#userRows .tag.ok', '#userRows .tag.danger', '#userRows .count-pill'],
+      users: ['#userRows .tag.ok', '#userRows .tag.danger', '#userRows .count-pill', '#page-users .cbx-opt[aria-selected="true"]'],
       roles: ['#roleRows .sys-tag'],
       audit: ['#auditRows .tag', '#auditVerifyBanner span', '#auditVerifyBanner .hash', '#auditErrBanner span'],
       profile: ['#profileVerifyBanner div', '#verifyMsg', '#statusCell .tag'],
@@ -519,6 +519,7 @@ test('surfaces-contrast', async ({ page }) => {
       document.documentElement.dataset.theme = th;
       for (const pg of Object.keys(sets)) {
         (document.querySelector('[data-page=' + pg + ']') as HTMLElement).click();
+        if (pg === 'users') { const cb = document.querySelector('#page-users .toolbar .cbx-btn') as HTMLElement; if (cb) cb.click(); }
         for (const sel of sets[pg]) {
           const el = document.querySelector(sel); if (!el) continue;
           checked++;
@@ -544,7 +545,8 @@ test('surfaces-contrast', async ({ page }) => {
     (document.getElementById('csRedirecting') as HTMLElement).style.display = 'flex';
     (document.getElementById('enRecovery') as HTMLElement).style.display = 'block';
     (document.getElementById('suSteps')!.children[1] as HTMLElement).className = 'st done';
-    const sels = ['#lgOk span', '#csRedirecting span', '#suSteps .st.on', '#suSteps .st.done', '#enUrl', '.auth-nav button.on', '#enRecovery .auth-ok span', '#mkOk span'];
+    (document.querySelector('#flow-magic .cbx-btn') as HTMLElement).click();
+    const sels = ['#lgOk span', '#csRedirecting span', '#suSteps .st.on', '#suSteps .st.done', '#enUrl', '.auth-nav button.on', '#enRecovery .auth-ok span', '#mkOk span', '#flow-magic .cbx-opt[aria-selected="true"]'];
     const packs = ['broadsheet', 'geist', 'material', 'fluent', 'ant', 'carbon', 'cupertino'];
     const fails: string[] = []; let checked = 0; let min = 99;
     for (const p of packs) for (const th of ['light', 'dark']) {
@@ -2020,6 +2022,72 @@ test('cbx-capabilities', async ({ page }) => {
     && savedRoles === 0;
   rec('cbx-capabilities', pass, a);
   expect(pass, 'cbx-capabilities').toBe(true);
+});
+
+test('cbx-option-list', async ({ page }) => {
+  await page.goto(FILE);
+  // Post-closure fix 2: form-built selects are themed comboboxes (were native size=4 listboxes);
+  // option rows carry AntD-like 32px metrics, tinted selected state with a reserved check column
+  // (no layout shift), and the list is fixed-positioned so modal/toolbar clipping cannot cut it.
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); (document.querySelector('[data-create=users]') as HTMLElement).click(); });
+  const themed = await page.evaluate(() => {
+    const sel = document.querySelector('#formBody select[data-field=roles]') as HTMLSelectElement;
+    return { hidden: getComputedStyle(sel).display === 'none', wrapped: !!sel._cbx, multi: sel.multiple };
+  });
+  await page.evaluate(() => { (document.querySelector('#formBody select[data-field=roles]')._cbx.querySelector('.cbx-btn') as HTMLElement).click(); });
+  const metrics = await page.evaluate(() => {
+    const opt = document.querySelector('#formBody .cbx-opt') as HTMLElement;
+    const list = document.querySelector('#formBody .cbx-list') as HTMLElement;
+    const cs = getComputedStyle(opt);
+    const r = list.getBoundingClientRect();
+    const or = opt.getBoundingClientRect();
+    const topEl = document.elementFromPoint(or.left + or.width / 2, or.top + or.height / 2);
+    return { minH: cs.minHeight, pad: cs.padding, lh: cs.lineHeight, pos: getComputedStyle(list).position,
+      inVp: r.top >= 0 && r.left >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight,
+      onTop: topEl === opt || opt.contains(topEl!), w: opt.offsetWidth };
+  });
+  await page.evaluate(() => { (document.querySelectorAll('#formBody .cbx-opt')[1] as HTMLElement).click(); });
+  const selected = await page.evaluate(() => {
+    const opt = document.querySelectorAll('#formBody .cbx-opt')[1] as HTMLElement;
+    const cs = getComputedStyle(opt);
+    return { aria: opt.getAttribute('aria-selected'), bg: cs.backgroundColor, tinted: cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent', w: opt.offsetWidth, check: getComputedStyle(opt, '::after').color };
+  });
+  const noShift = selected.w === metrics.w;
+  await page.keyboard.press('Escape');
+  // single-select form control themed too (clients auth method)
+  await page.evaluate(() => { (document.querySelector('[data-page=clients]') as HTMLElement).click(); (document.querySelector('[data-create=clients]') as HTMLElement).click(); });
+  const single = await page.evaluate(() => {
+    const sel = document.querySelector('#formBody select[data-field=tokenAuthMethod]') as HTMLSelectElement;
+    return { hidden: getComputedStyle(sel).display === 'none', wrapped: !!sel._cbx };
+  });
+  await page.keyboard.press('Escape');
+  // flip-up near viewport bottom + clamp inside viewport
+  await page.setViewportSize({ width: 1280, height: 420 });
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); (document.querySelector('[data-create=users]') as HTMLElement).click(); (document.querySelector('#formBody select[data-field=roles]')._cbx.querySelector('.cbx-btn') as HTMLElement).click(); });
+  const flip = await page.evaluate(() => {
+    const list = document.querySelector('#formBody .cbx-list') as HTMLElement;
+    const btn = document.querySelector('#formBody select[data-field=roles]')._cbx.querySelector('.cbx-btn') as HTMLElement;
+    const r = list.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    return { above: r.bottom <= br.top + 1, inVp: r.top >= 0 && r.bottom <= window.innerHeight };
+  });
+  // companion selects themed with same metrics
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(AUTH);
+  const comp = await page.evaluate(() => {
+    const sel = document.getElementById('mkState') as HTMLSelectElement;
+    (sel._cbx.querySelector('.cbx-btn') as HTMLElement).click();
+    const opt = document.querySelector('#flow-magic .cbx-opt') as HTMLElement;
+    const cs = getComputedStyle(opt);
+    return { wrapped: !!sel._cbx, minH: cs.minHeight, pad: cs.padding };
+  });
+  const a = { themed, metrics, selected, noShift, single, flip, comp };
+  const pass = themed.hidden && themed.wrapped && themed.multi
+    && metrics.minH === '32px' && metrics.pad === '5px 12px' && metrics.lh === '22px' && metrics.pos === 'fixed' && metrics.inVp && metrics.onTop
+    && selected.aria === 'true' && selected.tinted && noShift && selected.check !== 'rgba(0, 0, 0, 0)'
+    && single.hidden && single.wrapped && flip.above && flip.inVp
+    && comp.wrapped && comp.minH === '32px' && comp.pad === '5px 12px';
+  rec('cbx-option-list', pass, a);
+  expect(pass, 'cbx-option-list').toBe(true);
 });
 
 test('modal-a11y', async ({ page }) => {

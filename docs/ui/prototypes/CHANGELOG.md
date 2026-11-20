@@ -1084,3 +1084,22 @@ table-wrapper toolbar, viewport-top flip, modal-internal close) each assert visi
 opacity 1 + elementFromPoint at bubble center is the tooltip (paint-order proof) + inside viewport +
 aria-describedby, plus focus reveal, disabled-wrap reveal and hide-on-leave; reduced-motion group
 synced to #floatTip. Full re-run: 56 groups, 0 failures. Screenshot: row bubble unobscured.
+
+## Post-closure fix 2 (user-reported): Create user roles option list unstyled — themed combobox everywhere + option metrics + clipping-proof list — 2026-11-20
+Report: the roles option list in the Create user dialog looked bad (row height and styling). Root cause:
+enhanceAllSelects() ran only at init and on Settings, so selects built later inside modals were never
+themed — the roles field rendered as a NATIVE <select multiple size=4> inline listbox with OS row heights,
+OS selection blue and no pack tokens; single-select form fields likewise used OS popups. Comprehensive
+scan found the same class in the companion (mkState/vfState/styleSelect native) and a second defect in
+the themed list itself: absolute positioning inside modal/drawer/toolbar scroll containers clipped it,
+and the selected check mark appeared only when selected, shifting row text on toggle. Fix: openModal now
+enhances every select inside the modal; option rows carry AntD-like metrics (min-height 32px, padding
+5px 12px, line-height 22px), hover uses --hover, selected uses accent-tint + accent-text with a RESERVED
+check column (transparent glyph when unselected, so width never shifts); the list is position:fixed,
+placed at open time from the button rect with flip-up near the viewport bottom, horizontal clamp and a
+top clamp, content-sized width (max 320px), and closes on scroll/resize; the companion ports the whole
+themed-combobox mechanism (CSS + JS) and enhances its selects at init. New harness cbx-option-list group
+(57 total) locks: form multi/single selects themed and hidden native, 32px/5px 12px/22px metrics, fixed
+list inside viewport with elementFromPoint hitting the option (modal clipping proof), selected tint +
+no width shift, flip-up + clamp at 420px viewport, companion parity; surfaces-contrast extended to the
+selected-option tint surface in both files. All 57 pass. Screenshot: themed roles list in Create user.
