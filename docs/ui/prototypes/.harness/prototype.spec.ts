@@ -402,6 +402,48 @@ test('profile-async', async ({ page }) => {
   expect(pass, 'profile-async').toBe(true);
 });
 
+test('surfaces-contrast', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 21 (A): the contrast lock extends beyond semantic tags to EVERY tint-bearing text
+  // surface (banners, verify-msg, activity action tag, meta lines, sys-tag, count-pill) across all
+  // 7 packs x light/dark, with alpha-composited backgrounds (tints are translucent).
+  const a = await page.evaluate(() => {
+    const parse = (c: string) => { const m = c.match(/[\d.]+/g)!.map(Number); return m.length >= 4 ? m : [m[0], m[1], m[2], 1]; };
+    const over = (f: number[], b: number[]) => { const al = f[3]; return [f[0] * al + b[0] * (1 - al), f[1] * al + b[1] * (1 - al), f[2] * al + b[2] * (1 - al), 1]; };
+    const res = (el: Element) => { let e: Element | null = el; const stack: number[][] = []; while (e) { const c = parse(getComputedStyle(e).backgroundColor); if (c[3] > 0) stack.push(c); if (c[3] === 1) break; e = e.parentElement; } let base = [255, 255, 255, 1]; for (let i = stack.length - 1; i >= 0; i--) base = over(stack[i], base); return base; };
+    const lum = (c: number[]) => { const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+    const ratio = (x: number[], y: number[]) => { const l1 = lum(x), l2 = lum(y); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
+    const packs = ['broadsheet', 'geist', 'material', 'fluent', 'ant', 'carbon', 'cupertino'];
+    const sets: Record<string, string[]> = {
+      users: ['#userRows .tag.ok', '#userRows .tag.danger', '#userRows .count-pill'],
+      roles: ['#roleRows .sys-tag'],
+      audit: ['#auditRows .tag', '#auditVerifyBanner span', '#auditVerifyBanner .hash', '#auditErrBanner span'],
+      profile: ['#profileVerifyBanner div', '#verifyMsg', '#statusCell .tag'],
+      dashboard: ['#activity .t .tag', '#activity .m'],
+      settings: ['#sessionRows .tag', '#optionRows .mono'],
+    };
+    const fails: string[] = []; let checked = 0; let min = 99;
+    for (const p of packs) for (const th of ['light', 'dark']) {
+      const s = document.getElementById('styleSelect') as HTMLSelectElement; s.value = p; s.onchange!(new Event('change'));
+      document.documentElement.dataset.theme = th;
+      for (const pg of Object.keys(sets)) {
+        (document.querySelector('[data-page=' + pg + ']') as HTMLElement).click();
+        for (const sel of sets[pg]) {
+          const el = document.querySelector(sel); if (!el) continue;
+          checked++;
+          const r = ratio(parse(getComputedStyle(el).color), res(el));
+          min = Math.min(min, r);
+          if (r < 4.5) fails.push(p + '/' + th + ' ' + sel + ' ' + r.toFixed(2));
+        }
+      }
+    }
+    return { checked, min: Number(min.toFixed(2)), fails };
+  });
+  const pass = a.checked >= 190 && a.fails.length === 0 && a.min >= 4.5;
+  rec('surfaces-contrast', pass, a);
+  expect(pass, 'surfaces-contrast').toBe(true);
+});
+
 test('contrast', async ({ page }) => {
   await page.goto(FILE);
   const a = await page.evaluate(() => {

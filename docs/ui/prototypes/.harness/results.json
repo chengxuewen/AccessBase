@@ -259,12 +259,20 @@
         }
       }
     },
+    "surfaces-contrast": {
+      "pass": true,
+      "assertions": {
+        "checked": 196,
+        "min": 4.61,
+        "fails": []
+      }
+    },
     "contrast": {
       "pass": true,
       "assertions": {
         "packs": {
           "broadsheet": {
-            "warnTag": 4.72,
+            "warnTag": 5.52,
             "okTag": 5.35,
             "dangerTag": 5.99,
             "accentTag": 7.78,
@@ -278,15 +286,15 @@
             "tx3": 4.54
           },
           "material": {
-            "warnTag": 4.65,
-            "okTag": 5.02,
-            "dangerTag": 4.77,
-            "accentTag": 4.51,
+            "warnTag": 6.9,
+            "okTag": 6.79,
+            "dangerTag": 6.54,
+            "accentTag": 7.85,
             "tx3": 5
           },
           "fluent": {
-            "warnTag": 5.25,
-            "okTag": 5.37,
+            "warnTag": 8.82,
+            "okTag": 6.71,
             "dangerTag": 5.66,
             "accentTag": 5.38,
             "tx3": 5.1
@@ -306,9 +314,9 @@
             "tx3": 5.02
           },
           "cupertino": {
-            "warnTag": 4.72,
-            "okTag": 5.4,
-            "dangerTag": 5.66,
+            "warnTag": 6.9,
+            "okTag": 6.61,
+            "dangerTag": 7.79,
             "accentTag": 5.96,
             "tx3": 3.02
           }

@@ -841,3 +841,16 @@ Retry, then unlink on retry. Simulated failures disclosed in code comments, cons
 audit/dashboard precedent. Harness profile + confirm-uniform synced to the async sequences; new
 profile-async group (46 total): verify Busy/fail/retry, name required/cancel/Busy/fail/success, password
 Busy/rejection/kept-then-cleared, unlink Busy/failure-keeps-link/retry-unlinks. All 46 pass. Screenshot.
+
+## Adjudication 21 (A): contrast lock extended to all tint-bearing surfaces + per-pack *-text tokens — 2026-11-20
+The adjudication-4 contrast lock only asserted semantic tag text. Measured (alpha-composited) across
+7 packs x light/dark, 29 tint-bearing surfaces fell below 4.5:1 (material/light ok 4.27 / danger 3.99 /
+verify 4.07 / error 3.79; fluent/light verify 4.45; ant/dark activity tag 3.11; carbon/dark 3.64;
+cupertino 3.86-4.43; broadsheet/light warn 4.16; dark meta lines 3.17-3.70). Root cause: light *-text
+tokens leaked into dark themes and packs lacking them fell back to raw semantic colors; meta lines used
+tertiary tx3. Ruling A: an explicit override block defines --ok-text/--warn-text/--danger-text/
+--accent-text for EVERY pack x theme (theme-scoped selectors so cupertino's double-attribute light
+block cannot outrank them); meta lines (.a-tx .m, .verify-banner .hash, .sys-tag) move tx3 -> tx2;
+material dark tx2 lightened. Re-measured: 196 checks, min 4.61, zero failures. New harness
+surfaces-contrast group (47 total) locks the full surface set x 14 combos with alpha compositing.
+All 47 pass. Screenshot: material dark users.
