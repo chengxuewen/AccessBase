@@ -1752,6 +1752,11 @@ test('i18n', async ({ page }) => {
   const zhData = await page.evaluate(() => ({ sec: [...document.querySelectorAll('#groupRows tr')].some(tr => tr.textContent!.includes('Security')), email: true }));
   await page.evaluate(() => { (document.querySelector('[data-page=settings]') as HTMLElement).click(); });
   const zhTab = await page.evaluate(() => [...document.querySelectorAll('#settingsTabs button')].map(b => b.textContent!.trim()));
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  await page.locator('#userRows tr:first-child .row-actions button:nth-child(2)').click();
+  const zhEdit = await page.evaluate(() => document.getElementById('formModal')!.classList.contains('on'));
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => { (document.querySelector('[data-page=settings]') as HTMLElement).click(); });
   const dict = await page.evaluate(() => {
     const vals = Object.values(eval('I18N_ZH')) as string[];
     const keys = Object.keys(eval('I18N_ZH'));
@@ -1790,7 +1795,7 @@ test('i18n', async ({ page }) => {
     h1: document.querySelector('#flow-login h1')!.textContent,
     client: document.getElementById('csClient')!.textContent!.includes('Web App'),
   }));
-  const a = { en0, zhUsers, zhEmpty: zhEmpty.includes('没有符合当前过滤条件的结果'), zhTenants, zhVerb, zhData, zhTab, dict, enBack, enCreated, persisted, zhAuth, dictAuth, enAuth };
+  const a = { en0, zhUsers, zhEmpty: zhEmpty.includes('没有符合当前过滤条件的结果'), zhTenants, zhVerb, zhData, zhTab, zhEdit, dict, enBack, enCreated, persisted, zhAuth, dictAuth, enAuth };
   const pass = en0.btn === '中文' && en0.aria === 'Language' && en0.nav === 'Users'
     && zhUsers.lang === 'zh' && zhUsers.btn === 'EN' && zhUsers.nav === '用户' && zhUsers.h1 === '用户'
     && zhUsers.tag === '活跃' && zhUsers.search === '按姓名或邮箱搜索…' && zhUsers.stored === 'zh'
@@ -1801,7 +1806,7 @@ test('i18n', async ({ page }) => {
     && persisted.lang === 'zh' && persisted.nav === '用户'
     && zhAuth.nav === '登录' && zhAuth.h1 === '登录' && zhAuth.approve === '同意'
     && dictAuth.n > 100 && dictAuth.allNonEmpty && dictAuth.coverage
-    && enAuth.nav === 'Login' && enAuth.h1 === 'Sign in' && enAuth.client;
+    && enAuth.nav === 'Login' && enAuth.h1 === 'Sign in' && enAuth.client && zhEdit;
   rec('i18n', pass, a);
   expect(pass, 'i18n').toBe(true);
 });
@@ -2359,6 +2364,78 @@ test('dashboard-model', async ({ page }) => {
   rec('dashboard-model', pass, a);
   expect(pass, 'dashboard-model').toBe(true);
 });
+test('switch-checkbox', async ({ page }) => {
+  await page.goto(FILE);
+  // Post-closure fix 4: the blanket .field input{width:100%} rule stretched checkboxes into full-width
+  // bars and wrapped their labels; role=switch inputs now render the .wswitch 34x20 track+knob and all
+  // checkboxes are themed 16px squares; action routing no longer keys on translated aria/tip.
+  await page.evaluate(() => { (document.querySelector('[data-page=groups]') as HTMLElement).click(); });
+  await page.locator('#groupRows tr:first-child .row-actions button:nth-child(2)').click();
+  const editSw = await page.evaluate(() => {
+    const inp = document.querySelector('#formBody [data-field=isDepartment]') as HTMLInputElement;
+    const cs = getComputedStyle(inp); const ka = getComputedStyle(inp, '::after');
+    const r = inp.getBoundingClientRect(); const sp = inp.nextElementSibling!.getBoundingClientRect();
+    const on = document.querySelector('.wswitch.on') as HTMLElement;
+    return { w: r.width, h: r.height, appearance: cs.appearance, knobW: ka.width, knobLeft: ka.left,
+      checked: inp.checked, centerDiff: Math.abs((r.top + r.height / 2) - (sp.top + sp.height / 2)),
+      trackOn: on ? cs.backgroundColor === getComputedStyle(on).backgroundColor : false };
+  });
+  await page.keyboard.press('Escape');
+  await page.locator('[data-create=groups]').click();
+  const createSw = await page.evaluate(() => {
+    const inp = document.querySelector('#formBody [data-field=isDepartment]') as HTMLInputElement;
+    const ka = getComputedStyle(inp, '::after'); const r = inp.getBoundingClientRect();
+    const sp = inp.nextElementSibling!.getBoundingClientRect();
+    return { w: r.width, h: r.height, checked: inp.checked, knobLeft: ka.left,
+      centerDiff: Math.abs((r.top + r.height / 2) - (sp.top + sp.height / 2)) };
+  });
+  await page.keyboard.press('Escape');
+  const gates = await page.evaluate(() => {
+    const a = document.getElementById('mfaSaved') as HTMLInputElement;
+    const b = document.getElementById('eraseAudit') as HTMLInputElement;
+    return { mfaW: getComputedStyle(a).width, mfaApp: getComputedStyle(a).appearance,
+      eraseW: getComputedStyle(b).width, eraseApp: getComputedStyle(b).appearance };
+  });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const rm = await page.evaluate(() => {
+    const inp = document.createElement('input'); inp.type = 'checkbox';
+    const lab = document.createElement('label'); lab.className = 'sw-field'; lab.appendChild(inp);
+    document.body.appendChild(lab);
+    const r = { sw: getComputedStyle(inp).transitionDuration, knob: getComputedStyle(inp, '::after').transitionDuration };
+    lab.remove(); return r;
+  });
+  await page.emulateMedia({ reducedMotion: null });
+  await page.goto(AUTH);
+  await page.evaluate(() => { (document.querySelector('[data-flow=enroll]') as HTMLElement).click(); });
+  const enSaved = await page.evaluate(() => {
+    const inp = document.getElementById('enSaved') as HTMLInputElement;
+    const cs = getComputedStyle(inp);
+    return { w: cs.width, app: cs.appearance, labelAlign: getComputedStyle(inp.parentElement!).alignItems };
+  });
+  await page.evaluate(() => { (document.querySelector('[data-flow=consent]') as HTMLElement).click(); });
+  await page.waitForTimeout(600);
+  await page.locator('#csLoadRetry').click();
+  await page.waitForTimeout(600);
+  const scopes = await page.evaluate(() => {
+    const inp = document.querySelector('#csScopes input') as HTMLInputElement;
+    const cs = getComputedStyle(inp); const r = inp.getBoundingClientRect();
+    const sp = inp.nextElementSibling!.getBoundingClientRect();
+    return { w: r.width, app: cs.appearance, checked: inp.checked,
+      tinted: cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent',
+      centerDiff: Math.abs((r.top + r.height / 2) - (sp.top + sp.height / 2)) };
+  });
+  const a = { editSw, createSw, gates, rm, enSaved, scopes };
+  const pass = editSw.w === 34 && editSw.h === 20 && editSw.appearance === 'none' && editSw.knobW === '14px'
+    && editSw.knobLeft === '16px' && editSw.checked && editSw.centerDiff < 2 && editSw.trackOn
+    && createSw.w === 34 && createSw.h === 20 && !createSw.checked && createSw.knobLeft === '2px' && createSw.centerDiff < 2
+    && gates.mfaW === '16px' && gates.mfaApp === 'none' && gates.eraseW === '16px' && gates.eraseApp === 'none'
+    && rm.sw === '0s' && rm.knob === '0s'
+    && enSaved.w === '16px' && enSaved.app === 'none' && enSaved.labelAlign === 'center'
+    && scopes.w === 16 && scopes.app === 'none' && scopes.checked && scopes.tinted && scopes.centerDiff < 2;
+  rec('switch-checkbox', pass, a);
+  expect(pass, 'switch-checkbox').toBe(true);
+});
+
 test('auth-login', async ({ page }) => {
   await page.goto(AUTH);
   // Adjudication 33 (A): login required inline + simulated AUTH_002 then success; magic request;

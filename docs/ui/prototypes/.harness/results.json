@@ -1094,6 +1094,7 @@
           "选项",
           "邮件模板"
         ],
+        "zhEdit": true,
         "dict": {
           "n": 362,
           "allNonEmpty": true,
@@ -1476,6 +1477,50 @@
           "closed": true
         },
         "navAudit": true
+      }
+    },
+    "switch-checkbox": {
+      "pass": true,
+      "assertions": {
+        "editSw": {
+          "w": 34,
+          "h": 20,
+          "appearance": "none",
+          "knobW": "14px",
+          "knobLeft": "16px",
+          "checked": true,
+          "centerDiff": 0.828125,
+          "trackOn": true
+        },
+        "createSw": {
+          "w": 34,
+          "h": 20,
+          "checked": false,
+          "knobLeft": "2px",
+          "centerDiff": 0.828125
+        },
+        "gates": {
+          "mfaW": "16px",
+          "mfaApp": "none",
+          "eraseW": "16px",
+          "eraseApp": "none"
+        },
+        "rm": {
+          "sw": "0s",
+          "knob": "0s"
+        },
+        "enSaved": {
+          "w": "16px",
+          "app": "none",
+          "labelAlign": "center"
+        },
+        "scopes": {
+          "w": 16,
+          "app": "none",
+          "checked": true,
+          "tinted": true,
+          "centerDiff": 0
+        }
       }
     },
     "auth-login": {

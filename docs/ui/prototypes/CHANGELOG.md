@@ -1122,3 +1122,21 @@ restoring the 32px option metrics there. Harness cbx-option-list extended: cross
 visible with a value, geometrically inside the button rect, wrapper height equals button height (no extra
 line), click clears without opening and hides the cross, disabled hides it and ignores clicks, toolbar
 filter same geometry, companion same structure. All 57 pass. Screenshot: cross inside the control.
+
+## Post-closure fix 4 (user-reported): edit-group Department checkbox bar — themed switch/checkbox + blanket-rule exclusion + zh action routing — 2026-11-20
+Report: the Department control in the edit-group dialog displayed/laid out/styled wrong. Root cause: the
+blanket `.field input,.field select,.field textarea{width:100%;padding:6px 8px;border:...}` rule also hit
+checkbox inputs, stretching the Department "switch" into a 486x16 native checkbox bar with text-field
+border/padding and wrapping its label onto a second line; the same rule stretched the companion's
+consent-scope and recovery-gate checkboxes. Fix: the blanket rule now excludes checkbox/radio; all
+checkboxes are themed (appearance:none 16px square, border/radius tokens, accent checked state with a
+check glyph, focus ring, disabled state) and role=switch inputs render the same 34x20 track + 14px knob
+as the .wswitch button (checked = accent track + knob right), with reduce-motion collapsing their
+transitions; scope-list/gate labels align center (div.scope-list vs label.scope-list distinguished so the
+gate row is not flex-start). Comprehensive scan found a second defect of the same class: the Edit/Delete
+click delegates matched English aria-label/data-tip literals, which the zh translation pass rewrites, so
+row actions went dead under zh; they now read the en originals the layer stores on nodes
+(__i18nEnAttrs), language-independently. New harness switch-checkbox group (58 total): edit/create switch
+34x20 + knob 2/16px + track equals .wswitch.on + label centered, gate checkboxes 16px themed, reduce
+motion 0s, companion enSaved/scope checkboxes themed + centered; i18n group gains a zh Edit-click
+assertion (modal opens under zh). All 58 pass. Screenshot: edit-group switch.
