@@ -812,6 +812,7 @@
         },
         "pwdErr": true,
         "existsErr": true,
+        "initSrvErr": true,
         "created": true,
         "bootstrapped": true,
         "acmeDone": true,
@@ -823,7 +824,12 @@
           "kept": true
         },
         "slugErr": true,
-        "slugReq": true
+        "slugReq": true,
+        "createErr": true,
+        "createdRow": {
+          "rows": 6,
+          "closed": true
+        }
       }
     },
     "users-erasure": {

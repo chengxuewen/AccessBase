@@ -1336,13 +1336,17 @@ test('tenants-model', async ({ page }) => {
   await page.locator('#initName').fill('Globex Admin');
   await page.locator('#initPwd').fill('short');
   await page.locator('#initSubmit').click();
-  const pwdErr = await page.evaluate(() => document.getElementById('initErr')!.textContent!.includes('8+ chars'));
+  const pwdErr = await page.evaluate(() => document.getElementById('initPwdErr')!.textContent!.includes('12+')); // adjudication 27: shared policy, field-level
   await page.locator('#initEmail').fill('jane.doe@globex.com'); // existing user -> EMAIL_EXISTS
-  await page.locator('#initPwd').fill('Passw0rd12');
+  await page.locator('#initPwd').fill('Passw0rd123!');
   await page.locator('#initSubmit').click();
-  const existsErr = await page.evaluate(() => document.getElementById('initErr')!.textContent!.includes('EMAIL_EXISTS'));
+  const existsErr = await page.evaluate(() => document.getElementById('initEmailErr')!.textContent!.includes('EMAIL_EXISTS')); // adjudication 27: 409 highlights the field
   await page.locator('#initEmail').fill('newadmin@globex.example');
   await page.locator('#initSubmit').click();
+  await page.waitForTimeout(600); // adjudication 27: simulated TENANT_PROTECTED server error
+  const initSrvErr = await page.evaluate(() => document.getElementById('initErr')!.textContent!.includes('TENANT_PROTECTED'));
+  await page.locator('#initSubmit').click();
+  await page.waitForTimeout(600);
   const created = await page.evaluate(() => !document.getElementById('initAdminModal')!.classList.contains('on') && document.getElementById('protoToast')!.textContent === 'Initial admin created');
   await page.locator('#tenantRows button[data-tinit]').nth(2).click();
   const bootstrapped = await page.evaluate(() => document.getElementById('initDone')!.style.display === 'flex' && document.getElementById('initForm')!.style.display === 'none');
@@ -1353,10 +1357,16 @@ test('tenants-model', async ({ page }) => {
   await page.locator('#tenantRows button[data-tstatus]').nth(2).click();
   const susVerb = await page.evaluate(() => document.getElementById('confirmDelete')!.textContent);
   await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600); // adjudication 27: simulated statusError, confirm acts as Retry
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
   const suspended = await page.evaluate(() => document.querySelectorAll('#tenantRows tr')[2].textContent!.includes('Suspended'));
   await page.locator('#tenantRows tr').nth(4).locator('button[aria-label="Delete"]').click();
   const softMsg = await page.evaluate(() => document.getElementById('confirmMsg')!.textContent!.includes('soft delete'));
   await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600); // adjudication 27: simulated deleteError keeps the row
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
   const softKept = await page.evaluate(() => ({ rows: document.querySelectorAll('#tenantRows tr').length, kept: document.querySelectorAll('#tenantRows tr')[4].textContent!.includes('Umbrella') && document.querySelectorAll('#tenantRows tr')[4].textContent!.includes('Suspended') }));
   await page.locator('[data-create=tenants]').click();
   await page.locator('#formBody [data-field=name]').fill('Test Co');
@@ -1366,8 +1376,17 @@ test('tenants-model', async ({ page }) => {
   await page.locator('#formBody [data-field=slug]').fill('');
   await page.locator('#formSave').click();
   const slugReq = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('Slug is required'));
-  const a = { noFilter, initOpen, pwdErr, existsErr, created, bootstrapped, acmeDone, susVerb, suspended, softMsg, softKept, slugErr, slugReq };
-  const pass = noFilter && initOpen.on && initOpen.form && pwdErr && existsErr && created && bootstrapped && acmeDone
+  // create: async w/ simulated createError then success
+  await page.locator('#formBody [data-field=slug]').fill('test-co');
+  await page.locator('#formSave').click();
+  await page.waitForTimeout(600);
+  const createErr = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('Create failed'));
+  await page.locator('#formSave').click();
+  await page.waitForTimeout(600);
+  const createdRow = await page.evaluate(() => ({ rows: document.querySelectorAll('#tenantRows tr').length, closed: !document.getElementById('formModal')!.classList.contains('on') }));
+  const a = { noFilter, initOpen, pwdErr, existsErr, initSrvErr, created, bootstrapped, acmeDone, susVerb, suspended, softMsg, softKept, slugErr, slugReq, createErr, createdRow };
+  const pass = noFilter && initOpen.on && initOpen.form && pwdErr && existsErr && initSrvErr && created && bootstrapped && acmeDone
+    && createErr && createdRow.rows === 6 && createdRow.closed
     && susVerb === 'Suspend' && suspended && softMsg && softKept.rows === 5 && softKept.kept && slugErr && slugReq;
   rec('tenants-model', pass, a);
   expect(pass, 'tenants-model').toBe(true);

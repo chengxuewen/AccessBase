@@ -942,3 +942,18 @@ hook with simulated failures that keep the row and turn confirm into Retry; save
 draft but commits async with Busy + simulated rolesSaveError + Retry. Simulated failures disclosed per
 precedent. Harness groups-detail rewritten to the async sequences + create-switch assertions;
 a11y-keyboard and confirm-uniform synced (49 total). All 49 pass. Screenshot: create form switch.
+
+## Adjudication 27 (A): Tenants bootstrap shared policy + field-level 409 + async create/toggle/delete — 2026-11-20
+Panel Tenants surface: init-admin used a stale 8-char password policy while the real bootstrap shares the
+UserCreate 12+ policy (Tenants.tsx:34); 409 EMAIL_EXISTS rendered as a banner instead of highlighting the
+email field (real setFields precedent); server errors (TENANT_PROTECTED / TENANT_PLATFORM_ONLY /
+policy-400) had no inline branch; init/create/edit/toggle/delete all ran synchronously while the real
+console is async with initing/createError/updateError/statusError/deleteError. Ruling A: init validates
+with the shared pwdPolicyError (12+ upper/lower/digit/special) and renders email/name/password errors at
+field level (409 EMAIL_EXISTS highlights email); submit is async with Busy + a simulated TENANT_PROTECTED
+inline error + Retry, then bootstraps; create/edit are async with Busy + simulated createError/
+updateError + Retry (slug pattern/dup checks kept); suspend/activate and delete route through the shared
+confirm async run hook with simulated statusError/deleteError that keep the row and turn confirm into
+Retry, with suspended/activated success wording. Policy hint text updated to the shared 12+ wording.
+Simulated failures disclosed per precedent. Harness tenants-model synced to field-level errors + async
+sequences + create failure/retry (49 total). All 49 pass. Screenshot: init field errors.
