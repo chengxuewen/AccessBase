@@ -1588,6 +1588,52 @@ test('events-load', async ({ page }) => {
   expect(pass, 'events-load').toBe(true);
 });
 
+test('reduced-motion', async ({ page }) => {
+  // Adjudication 30 (A): under prefers-reduced-motion the shimmer/spinner stop, knob/chev/tooltip
+  // transitions collapse and scrolling is instant; normal mode keeps the motion (no over-kill).
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(FILE);
+  const reduced = await page.evaluate(() => {
+    const sk = document.createElement('div'); sk.className = 'skel'; document.body.appendChild(sk);
+    const knob = document.querySelector('.wswitch .knob')!;
+    const chev = document.querySelector('.cbx-chev')!;
+    const tipHost = document.querySelector('[data-tip]')!;
+    const tip = getComputedStyle(tipHost, '::after');
+    const r = {
+      matches: matchMedia('(prefers-reduced-motion: reduce)').matches,
+      skel: getComputedStyle(sk).animationName,
+      knob: getComputedStyle(knob).transitionDuration,
+      chev: getComputedStyle(chev).transitionDuration,
+      tip: tip.transitionDuration,
+      tipTransform: tip.transform,
+      scroll: getComputedStyle(document.documentElement).scrollBehavior,
+    };
+    sk.remove();
+    return r;
+  });
+  const page2 = await page.context().newPage();
+  await page2.goto(FILE);
+  const normal = await page2.evaluate(() => {
+    const sk = document.createElement('div'); sk.className = 'skel'; document.body.appendChild(sk);
+    const r = {
+      skel: getComputedStyle(sk).animationName,
+      knob: getComputedStyle(document.querySelector('.wswitch .knob')!).transitionDuration,
+      tip: getComputedStyle(document.querySelector('[data-tip]')!, '::after').transitionDuration,
+    };
+    sk.remove();
+    return r;
+  });
+  await page2.close();
+  const a = { reduced, normal };
+  const ty = (m: string) => Number(m.replace('matrix(', '').replace(')', '').split(',')[5]);
+  const pass = reduced.matches && reduced.skel === 'none' && reduced.knob === '0s' && reduced.chev === '0s'
+    && reduced.tip === '0s' && ty(reduced.tipTransform) === 0
+    && reduced.scroll === 'auto'
+    && normal.skel === 'skel' && normal.knob !== '0s' && normal.tip !== '0s';
+  rec('reduced-motion', pass, a);
+  expect(pass, 'reduced-motion').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);

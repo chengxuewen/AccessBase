@@ -979,6 +979,25 @@
         }
       }
     },
+    "reduced-motion": {
+      "pass": true,
+      "assertions": {
+        "reduced": {
+          "matches": true,
+          "skel": "none",
+          "knob": "0s",
+          "chev": "0s",
+          "tip": "0s",
+          "tipTransform": "matrix(1, 0, 0, 1, -42.0234, 0)",
+          "scroll": "auto"
+        },
+        "normal": {
+          "skel": "skel",
+          "knob": "0.15s, 0.15s",
+          "tip": "0.12s, 0.12s"
+        }
+      }
+    },
     "states": {
       "pass": true,
       "assertions": {

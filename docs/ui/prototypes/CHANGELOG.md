@@ -988,3 +988,19 @@ Done/Pending tags and the pretty-printed payload detail modal were already align
 Simulated failure disclosed per precedent. New harness events-load group (50 total): toolbar buttons +
 aria/tip + disclosure, skeleton, loadError banner + empty rows, retry restores, Search skeleton + rows,
 reset clears filters and reloads. All 50 pass. Screenshot: load error + toolbar.
+
+## Adjudication 30 (A): prefers-reduced-motion degradation + motion regression lock — 2026-11-20
+Panel motion surface: the prototype ships five motion families (skeleton shimmer @keyframes skel, busy
+spinner @keyframes cbxrot inline + .cbx-load, switch knob and combobox chev transitions, tooltip
+translate/opacity, smooth scrollIntoView) with zero prefers-reduced-motion handling, so users who enable
+"reduce motion" platform-wide still get shimmer/spin/smooth-scroll; the a11y harness locked focus and
+contrast but not motion (same lock-set-smaller-than-surface-set gap as adjudication 21). Ruling A: a
+@media (prefers-reduced-motion: reduce) block stops shimmer and spinner animations (spinner keeps its
+static ring plus the Busy label), collapses knob/chev/tooltip transitions, removes the tooltip offset
+(including the higher-specificity .topbar variant) and forces instant scrolling; openPanel's
+scrollIntoView picks 'auto' under reduce via matchMedia. The motion inventory and its AntD motion-token
+mapping (motionDurationMid=0) are disclosed in a CSS comment (WCAG 2.3.3 / 2.2.2). New harness
+reduced-motion group (51 total): under emulateMedia reduce, skeleton animation-name none, knob/chev/
+tooltip transition-duration 0s, tooltip transform translateY 0, scroll-behavior auto; a second
+un-emulated page asserts the motion still exists in normal mode (no over-kill). All 51 pass.
+Screenshot: reduced-motion users load (static skeleton phase).

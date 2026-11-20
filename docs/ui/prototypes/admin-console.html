@@ -587,6 +587,17 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .verify-msg{font-size:var(--fs12);color:var(--tx2);margin-top:4px}
 .profile-stack > .card{margin-top:var(--sp12)}
 .profile-stack > .card:first-child{margin-top:0}
+/* Adjudication 30 (A): prefers-reduced-motion degradation. Motion inventory: skeleton shimmer
+   (@keyframes skel), busy spinner (@keyframes cbxrot, inline + .cbx-load), switch knob + combobox
+   chev + tooltip transitions, smooth scrollIntoView. Under reduce: animations stop (spinner keeps
+   its static ring + the Busy label), transitions collapse, tooltip sits without offset, scrolling
+   is instant. Mirrors AntD motion tokens set to zero (motionDurationMid=0). WCAG 2.3.3 / 2.2.2. */
+@media (prefers-reduced-motion: reduce){
+  .skel,.cbx-load .ic,[style*="cbxrot"]{animation:none !important}
+  .wswitch .knob,.cbx-chev,[data-tip]::after{transition:none !important}
+  [data-tip]::after,.topbar [data-tip]::after{transform:translateX(-50%)}
+  *{scroll-behavior:auto !important}
+}
 </style>
 </head>
 <body>
@@ -1151,7 +1162,7 @@ function openPanel(){
  $('roleChecks').innerHTML='<div class="skel" style="width:60%"></div>';
  $('memberPicker').innerHTML='<option value="">Loading candidates…</option>';$('memberPicker').disabled=true;
  setTimeout(()=>{if(!grpDetailTried){grpDetailTried=true;$('grpDetailErrMsg').textContent='Failed to load group detail: upstream timeout (prototype simulation) — retry.';$('grpDetailErr').style.display='flex';return;}renderMembers();renderRoleChecks();},400);
- $('groupPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
+ $('groupPanel').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'nearest'});
 }
 $('grpDetailRetry').onclick=()=>{grpDetailTried=true;$('grpDetailErr').style.display='none';renderMembers();renderRoleChecks();};
 document.querySelectorAll('#groupPanel .tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
