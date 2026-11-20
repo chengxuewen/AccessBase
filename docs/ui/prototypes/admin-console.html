@@ -337,6 +337,8 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 .perm-cell.on{background:var(--accent);border-color:var(--accent)}
 .perm-cell.on .ic{opacity:1}
 .perm-cell.na{border-style:dashed;border-color:var(--bd);background:var(--sunken);cursor:default}
+.perm-cell.locked{border-style:dashed;border-color:var(--bd);background:var(--sunken);cursor:not-allowed}
+.perm-cell.locked .ic{opacity:1;width:11px;height:11px;color:var(--tx3)}
 .perm-cell.na::after{content:"\2013";color:var(--tx3);font-size:11px}
 .perm-cell:not(.na):not(:disabled):hover{border-color:var(--accent)}
 .perm-cell:disabled{cursor:not-allowed}
@@ -352,6 +354,7 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 .lg-swatch{width:14px;height:14px;border-radius:var(--r2);display:inline-block}
 .lg-on{background:var(--accent)}
 .lg-off{border:1px solid var(--bd2);background:var(--surface)}
+.lg-locked{border-style:dashed;border-color:var(--bd);background:var(--sunken)}
 .lg-na{border:1px dashed var(--bd);background:var(--sunken)}
 .panel{margin-top:var(--sp12)}
 .panel-head{display:flex;align-items:center;gap:10px;padding:var(--sp12) var(--sp16);border-bottom:1px solid var(--bd)}
@@ -643,14 +646,14 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
         </table></div>
       </div>
       <div class="card" style="margin-top:12px">
-        <div class="card-head matrix-head"><h3>Permission matrix</h3><span class="sel-role" id="matrixRole"></span><span class="perm-total" id="matrixTotal"></span>
+        <div class="card-head matrix-head"><h3>Permission matrix</h3><span class="sel-role" id="matrixRole"></span><span class="perm-total" id="matrixTotal"></span><span class="perm-total" id="matrixParent"></span><button class="btn danger ghost sm" id="clearPermsBtn" style="margin-left:8px">Clear all</button>
           <div class="scope-box"><label for="scopeSelect">users:* data scope</label><select id="scopeSelect"><option value="all">All rows</option><option value="dept">Department</option><option value="self">Self only</option></select><span class="mixed" id="scopeMixed" style="display:none">mixed</span></div>
         </div>
         <div class="matrix-wrap"><table class="matrix">
           <thead><tr><th>Resource</th><th>read</th><th>write</th><th>delete</th></tr></thead>
           <tbody id="matrixRows"></tbody>
         </table></div>
-        <div class="matrix-legend"><span><i class="lg-swatch lg-on"></i>granted</span><span><i class="lg-swatch lg-off"></i>not granted</span><span><i class="lg-swatch lg-na"></i>not applicable</span><span style="margin-left:auto">Click a cell to toggle · system role is read-only</span></div>
+        <div class="matrix-legend"><span><i class="lg-swatch lg-on"></i>granted</span><span><i class="lg-swatch lg-off"></i>not granted</span><span><i class="lg-swatch lg-na"></i>not applicable</span><span><i class="lg-swatch lg-locked"></i>platform-only (locked for tenant roles)</span><span style="margin-left:auto">Concept view: the real console edits bindings via an AntD Transfer picker saved in a modal · click a cell to toggle · system role is read-only</span></div>
       </div>
     </section>
     <section class="page" id="page-groups">
@@ -900,12 +903,14 @@ const PERMS=[['users','read'],['users','write'],['users','delete'],['roles','rea
 const RESOURCES=['users','roles','permissions','groups','tenants','clients','apikeys','webhooks','options','audit','stats'];
 const ACTIONS=['read','write','delete'];
 const permExists=(res,act)=>PERMS.some(p=>p[0]===res&&p[1]===act);
+const PLATFORM_ONLY=['tenants:read','tenants:write','tenants:delete','options:read','options:write','clients:read','clients:write','permissions:write','permissions:delete','apikeys:read','apikeys:write','apikeys:delete'];
+function platformLocked(r,code){return !r.system&&r.tenant!=='Default'&&PLATFORM_ONLY.includes(code);}
 const ROLES=[
- {name:'admin',desc:'Full platform access (built-in)',system:true,tenant:'Default',created:'2026-01-05',scope:'all',perms:PERMS.map(p=>p[0]+':'+p[1])},
- {name:'editor',desc:'Manage users and groups',system:false,tenant:'Acme Corp',created:'2026-03-12',scope:'dept',perms:['users:read','users:write','roles:read','permissions:read','groups:read','groups:write','tenants:read','clients:read','apikeys:read','webhooks:read','audit:read','stats:read','options:read']},
- {name:'viewer',desc:'Read-only across all resources',system:false,tenant:'Default',created:'2026-03-12',scope:'all',perms:RESOURCES.map(r=>r+':read')},
- {name:'billing-admin',desc:'API keys and tenant billing',system:false,tenant:'Globex',created:'2026-06-20',scope:'all',perms:['apikeys:read','apikeys:write','apikeys:delete','tenants:read','tenants:write','users:read','audit:read','stats:read']},
- {name:'auditor',desc:'Audit and compliance read access',system:false,tenant:'Initech',created:'2026-08-02',scope:'self',perms:['audit:read','stats:read','users:read','roles:read','permissions:read','groups:read','tenants:read','clients:read','apikeys:read','webhooks:read','options:read']}
+ {name:'admin',desc:'Full platform access (built-in)',system:true,tenant:'Default',created:'2026-01-05',scope:'all',parent:null,perms:PERMS.map(p=>p[0]+':'+p[1])},
+ {name:'editor',desc:'Manage users and groups',system:false,tenant:'Acme Corp',created:'2026-03-12',scope:'dept',parent:'viewer',perms:['users:read','users:write','roles:read','permissions:read','groups:read','groups:write','webhooks:read','audit:read','stats:read']},
+ {name:'viewer',desc:'Read-only across all resources',system:false,tenant:'Default',created:'2026-03-12',scope:'all',parent:null,perms:RESOURCES.map(r=>r+':read')},
+ {name:'billing-admin',desc:'Billing reports and webhook delivery',system:false,tenant:'Globex',created:'2026-06-20',scope:'all',parent:'viewer',perms:['users:read','audit:read','stats:read','webhooks:read','webhooks:write']},
+ {name:'auditor',desc:'Audit and compliance read access',system:false,tenant:'Initech',created:'2026-08-02',scope:'self',parent:null,perms:['audit:read','stats:read','users:read','roles:read','permissions:read','groups:read','webhooks:read']}
 ];
 let selRole=0;
 function renderRoles(){
@@ -919,20 +924,22 @@ function renderMatrix(){
  const r=ROLES[selRole];
  $('matrixRole').textContent=r.name;
  $('matrixTotal').textContent=r.perms.length+' / '+PERMS.length+' granted';
- $('scopeSelect').value=r.scope;$('scopeSelect').disabled=r.system;
+ const hasUsers=r.perms.some(c=>c.indexOf('users:')===0);document.querySelector('.scope-box').style.display=hasUsers?'flex':'none';$('scopeMixed').style.display=r.scope==='mixed'?'inline':'none';$('scopeSelect').value=r.scope==='mixed'?'all':r.scope;$('scopeSelect').disabled=r.system||r.scope==='mixed';$('matrixParent').textContent=r.parent?('inherits '+r.parent):'no parent';$('clearPermsBtn').disabled=r.system;
  $('matrixRows').innerHTML=RESOURCES.map(res=>'<tr><td>'+res+'</td>'+ACTIONS.map(act=>{
    if(!permExists(res,act))return '<td><span class="perm-cell na" title="No such permission"></span></td>';
    const code=res+':'+act;const on=r.perms.includes(code);
+   if(platformLocked(r,code))return '<td><button class="perm-cell locked" disabled title="Platform-only: not bindable by tenant roles"><svg class="ic"><use href="#i-lock"/></svg></button></td>';
    return '<td><button class="perm-cell'+(on?' on':'')+'" data-code="'+code+'" '+(r.system?'disabled title="System role is read-only"':'title="Toggle '+code+'"')+'><svg class="ic"><use href="#i-check"/></svg></button></td>';
  }).join('')+'</tr>').join('');
  document.querySelectorAll('#matrixRows .perm-cell:not(.na)').forEach(c=>c.onclick=()=>{
-   if(r.system)return;const code=c.dataset.code;const i=r.perms.indexOf(code);
+   if(r.system||c.classList.contains('locked'))return;const code=c.dataset.code;const i=r.perms.indexOf(code);
    if(i>=0)r.perms.splice(i,1);else r.perms.push(code);
    renderMatrix();renderRoles();
  });
 }
 $('roleSearch').addEventListener('input',renderRoles);
 $('scopeSelect').onchange=()=>{ROLES[selRole].scope=$('scopeSelect').value;};
+$('clearPermsBtn').onclick=()=>{const r=ROLES[selRole];openConfirm('roles-clear',selRole,{verb:'Clear',title:'Clear all permissions',msg:'Remove all <strong>'+r.perms.length+'</strong> permissions from <strong>'+esc(r.name)+'</strong>? Members lose the granted access immediately.',toast:'Permissions cleared'});};
 renderRoles();renderMatrix();
 /* Groups — kind (department/group), memberCount, roleCount; detail panel with
    Members tab (add/remove) and Roles tab (bind roles), per real Groups.tsx. */
@@ -1167,7 +1174,7 @@ $('formSave').onclick=()=>{
 /* ==== v0.95 row-level CRUD (adjudication A): Edit prefills formModal; Delete confirms then removes ==== */
 const EDITDEFS={
  users:{title:'Edit user',fields:[['name','Name'],['roles','Roles','checks'],['email','Email (read-only)','ro'],['tenant','Tenant (read-only)','ro']],get:i=>{const u=USERS[i];return{name:u[0],roles:u[5],email:u[1],tenant:u[3]};},set:(i,v)=>{USERS[i][0]=v.name;USERS[i][5]=v.roles;renderUsers();}},
- roles:{title:'Edit role',fields:[['name','Name'],['desc','Description']],get:i=>({name:ROLES[i].name,desc:ROLES[i].desc}),set:(i,v)=>{ROLES[i].name=v.name;ROLES[i].desc=v.desc;renderRoles();renderMatrix();}},
+ roles:{title:'Edit role',fields:[['name','Name'],['desc','Description'],['parent','Parent role','select:,'+ROLES.map(r=>r.name).join(',')]],get:i=>({name:ROLES[i].name,desc:ROLES[i].desc,parent:ROLES[i].parent||''}),set:(i,v)=>{ROLES[i].name=v.name;ROLES[i].desc=v.desc;ROLES[i].parent=v.parent||null;renderRoles();renderMatrix();}},
  groups:{title:'Edit group',fields:[['name','Name'],['desc','Description']],get:i=>({name:GROUPS[i].name,desc:GROUPS[i].desc}),set:(i,v)=>{GROUPS[i].name=v.name;GROUPS[i].desc=v.desc;renderGroups();if(selGroup===i){renderMembers();renderRoleChecks();}}},
  tenants:{title:'Edit tenant',fields:[['name','Name'],['slug','Slug']],get:i=>({name:TENANTS[i].name,slug:TENANTS[i].slug}),set:(i,v)=>{TENANTS[i].name=v.name;TENANTS[i].slug=v.slug;renderTenants();}},
  clients:{title:'Edit client',fields:[['name','Name'],['redirectUris','Redirect URIs (one per line)','textarea'],['scope','Scope']],get:i=>({name:CLIENTS[i].name,redirectUris:CLIENTS[i].redirectUris.join('\n'),scope:CLIENTS[i].scope}),set:(i,v)=>{CLIENTS[i].name=v.name;CLIENTS[i].redirectUris=v.redirectUris?v.redirectUris.split('\n').map(s=>s.trim()).filter(Boolean):[];CLIENTS[i].scope=v.scope;renderClients();}},
@@ -1185,7 +1192,8 @@ const DEL={
 DEL['apikeys-revoke']=i=>{APIKEYS[i].revoked=true;renderApikeys();};
 DEL['users-status']=i=>{USERS[i][2]=USERS[i][2]==='active'?'suspended':'active';renderUsers();};
 DEL['users-force']=i=>{};
-const ROW_NAME={'apikeys-revoke':i=>APIKEYS[i].name,'users-status':i=>USERS[i][0],'users-force':i=>USERS[i][0],users:i=>USERS[i][0],roles:i=>ROLES[i].name,groups:i=>GROUPS[i].name,tenants:i=>TENANTS[i].name,clients:i=>CLIENTS[i].name,webhooks:i=>WEBHOOKS[i].url};
+DEL['roles-clear']=i=>{ROLES[i].perms=[];renderMatrix();renderRoles();};
+const ROW_NAME={'apikeys-revoke':i=>APIKEYS[i].name,'users-status':i=>USERS[i][0],'users-force':i=>USERS[i][0],'roles-clear':i=>ROLES[i].name,users:i=>USERS[i][0],roles:i=>ROLES[i].name,groups:i=>GROUPS[i].name,tenants:i=>TENANTS[i].name,clients:i=>CLIENTS[i].name,webhooks:i=>WEBHOOKS[i].url};
 let pendingDelete=null;
 function openConfirm(kind,idx,opts){opts=opts||{};pendingDelete={kind:kind,idx:idx,toast:opts.toast};$('confirmTitle').textContent=opts.title||('Delete '+kind.replace(/s$/,''));$('confirmDelete').textContent=opts.verb||'Delete';$('confirmMsg').innerHTML=opts.msg||('Remove <strong>'+esc(ROW_NAME[kind](idx))+'</strong> from the prototype data? This cannot be undone.');openModal('confirmModal');}
 $('confirmDelete').onclick=()=>{if(!pendingDelete)return;const d=pendingDelete;pendingDelete=null;DEL[d.kind](d.idx);closeModal('confirmModal');toast(d.toast||'Deleted');};

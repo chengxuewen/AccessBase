@@ -649,3 +649,17 @@ Fixes: tags/esc were late const arrows (TDZ) now hoisted function declarations b
 them at load. Harness synced: filter-narrows suspended, overflow-menu first item = Force logout confirm,
 combobox-popup dynamic-select probe moved to Settings idleSelect (users edit no longer has a select),
 users-model new group (32 total) incl. narrow-viewport overflow + CSV download + sort. All 32 pass.
+
+## Adjudication 7 (A): Roles permission partition + hierarchy + scope timing + clear confirm — 2026-11-19
+Panel F6 / R4#1,#15 / R3#9: prototype matrix let any non-system role toggle platform-only codes
+(apikeys:*, tenants:*, options:*, clients:*, permissions:write/delete); real partition is 14
+tenant-bindable / 12 platform-only (permission-partition.ts) and tenant binding is refused
+(PERMISSION_NOT_BINDABLE). Real editing is Transfer+modal, has parent hierarchy, scope editor only with
+users:* (mixed disabled), clear-perms dangerous confirm. Ruling A: matrix kept as a CONCEPT view but
+platform-only cells render locked (dashed + lock, disabled) for non-default-tenant roles with a legend
+entry; sample roles corrected into the partition (editor 9/26, billing-admin/auditor trimmed); edit modal
+gains a Parent role select (data gains parent); scope box shows only when users:* bound and is disabled
+for mixed; Clear all button opens a dangerous confirm; legend note states the real console maps to an
+AntD Transfer picker saved in a modal. Harness roles-matrix editor count 13->9; new roles-model group
+(33 total): 12 locked cells disabled+unchanged on click, editor partition-clean, scope visibility,
+parent select, clear confirm -> 0 granted + scope hidden. All 33 pass. Screenshot: locked matrix.

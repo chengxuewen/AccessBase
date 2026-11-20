@@ -187,7 +187,7 @@ test('roles-matrix', async ({ page }) => {
   });
   const pass = a.roleRows === 5 && a.resourceRows === 11 && a.totalCells === 33 && a.naCells === 7
     && a.adminGranted === '26/26' && a.systemLock.matrixDisabled && a.systemLock.scopeDisabled
-    && a.editor.granted === '13/26' && a.editor.scope === 'dept' && a.toggle.reversible;
+    && a.editor.granted === '9/26' && a.editor.scope === 'dept' && a.toggle.reversible;
   rec('roles-matrix', pass, a);
   expect(pass, 'roles-matrix').toBe(true);
 });
@@ -945,4 +945,42 @@ test('users-model', async ({ page }) => {
     && sorted.first !== first0 && sorted.ic === '▼';
   rec('users-model', pass, a);
   expect(pass, 'users-model').toBe(true);
+});
+
+test('roles-model', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 7 (A): platform-only codes locked for tenant roles; sample data inside the partition;
+  // parent hierarchy in edit; scope editor only with users:*; clear-all is confirm-gated; matrix is a
+  // concept view annotated as mapping to AntD Transfer.
+  await page.evaluate(() => { (document.querySelector('[data-page=roles]') as HTMLElement).click(); (document.querySelector('#roleRows tr[data-role="1"]') as HTMLElement).click(); });
+  const lock = await page.evaluate(() => {
+    const cells = [...document.querySelectorAll('#matrixRows .perm-cell.locked')] as HTMLButtonElement[];
+    const n0 = document.querySelectorAll('#matrixRows .perm-cell.on').length;
+    cells.forEach(c => c.click());
+    const n1 = document.querySelectorAll('#matrixRows .perm-cell.on').length;
+    return { locked: cells.length, allDisabled: cells.every(c => c.disabled), unchanged: n0 === n1 };
+  });
+  const partition = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('#roleRows tr')];
+    // editor (Acme) must not show any platform-only granted cell
+    const codes = [...document.querySelectorAll('#matrixRows .perm-cell.on')].map(c => (c as HTMLElement).dataset.code);
+    const plat = ['tenants:', 'options:', 'clients:', 'apikeys:', 'permissions:write', 'permissions:delete'];
+    return { editorClean: codes.every(c => !plat.some(pp => c!.startsWith(pp))), granted: codes.length };
+  });
+  const scopeVis = await page.evaluate(() => getComputedStyle(document.querySelector('.scope-box')!).display !== 'none');
+  await page.locator('#roleRows tr[data-role="1"] button[aria-label="Edit"]').click();
+  const parentSel = await page.evaluate(() => { const s = document.querySelector('#formBody [data-field=parent]') as HTMLSelectElement; return { exists: !!s, opts: s ? s.options.length : 0 }; });
+  await page.keyboard.press('Escape');
+  const note = await page.evaluate(() => document.querySelector('.matrix-legend')!.textContent!.includes('AntD Transfer') && document.querySelector('.matrix-legend')!.textContent!.includes('platform-only'));
+  await page.locator('#clearPermsBtn').click();
+  const clearVerb = await page.evaluate(() => document.getElementById('confirmDelete')!.textContent);
+  await page.locator('#confirmDelete').click();
+  const cleared = await page.evaluate(() => ({ on: document.querySelectorAll('#matrixRows .perm-cell.on').length, scopeHidden: getComputedStyle(document.querySelector('.scope-box')!).display === 'none' }));
+  const a = { lock, partition, scopeVis, parentSel, note, clearVerb, cleared };
+  const pass = lock.locked > 0 && lock.allDisabled && lock.unchanged
+    && partition.editorClean && partition.granted === 9 && scopeVis
+    && parentSel.exists && parentSel.opts >= 6 && note
+    && clearVerb === 'Clear' && cleared.on === 0 && cleared.scopeHidden;
+  rec('roles-model', pass, a);
+  expect(pass, 'roles-model').toBe(true);
 });

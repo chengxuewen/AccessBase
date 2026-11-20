@@ -1,5 +1,5 @@
 {
-  "when": "2026-11-19",
+  "when": "2026-11-20",
   "prototype": "admin-console.html v0.96 (12 pages incl. Settings; 7 style packs x light/dark)",
   "runner": "playwright (reproducible suite; .harness/prototype.spec.ts)",
   "fail": 0,
@@ -123,7 +123,7 @@
           "scopeDisabled": true
         },
         "editor": {
-          "granted": "13/26",
+          "granted": "9/26",
           "scope": "dept",
           "scopeEnabled": true
         },
@@ -574,6 +574,31 @@
         "sorted": {
           "first": "Kate Bell",
           "ic": "▼"
+        }
+      }
+    },
+    "roles-model": {
+      "pass": true,
+      "assertions": {
+        "lock": {
+          "locked": 12,
+          "allDisabled": true,
+          "unchanged": true
+        },
+        "partition": {
+          "editorClean": true,
+          "granted": 9
+        },
+        "scopeVis": true,
+        "parentSel": {
+          "exists": true,
+          "opts": 6
+        },
+        "note": true,
+        "clearVerb": "Clear",
+        "cleared": {
+          "on": 0,
+          "scopeHidden": true
         }
       }
     }
