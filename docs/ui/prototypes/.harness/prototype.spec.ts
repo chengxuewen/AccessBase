@@ -256,45 +256,73 @@ test('roles-edit', async ({ page }) => {
 
 test('groups-detail', async ({ page }) => {
   await page.goto(FILE);
-  const a = await page.evaluate(() => {
-    (document.querySelector('[data-page=groups]') as HTMLElement).click();
-    const groupRows = document.querySelectorAll('#groupRows tr').length;
-    const deptTags = document.querySelectorAll('#groupRows .kind-dept').length;
-    (document.querySelector('#groupRows [data-manage="0"]') as HTMLElement).click();
-    const panel = document.getElementById('panelName')!.textContent;
-    const kind = document.getElementById('panelKind')!.textContent;
-    const membersInitial = document.querySelectorAll('#memberList li').length;
-    const pickerCandidates = (document.getElementById('memberPicker') as HTMLSelectElement).options.length - 1;
-    // add then remove a member
-    const picker = document.getElementById('memberPicker') as HTMLSelectElement;
-    picker.value = picker.options[1].value;
-    (document.getElementById('addMemberBtn') as HTMLElement).click();
-    const afterAdd = document.querySelectorAll('#memberList li').length;
-    (document.querySelector('#memberList [data-rm]') as HTMLElement).click();
-    (document.getElementById('confirmDelete') as HTMLElement).click(); // adjudication 13: confirm-gated
-    const afterRemove = document.querySelectorAll('#memberList li').length;
-    // staged role save (adjudication 5): toggle edits draft, save commits, close discards
-    (document.querySelector('.tabs [data-tab=roles]') as HTMLElement).click();
-    const checks = document.querySelectorAll('#roleChecks .role-check').length;
-    const bound = document.querySelectorAll('#roleChecks .role-check.on').length;
-    const committedBefore = GROUPS[0].roles.length;
-    (document.querySelector('#roleChecks .role-check') as HTMLElement).click();
-    const stagedNotCommitted = GROUPS[0].roles.length === committedBefore;
-    (document.getElementById('saveRolesBtn') as HTMLElement).click();
-    const saveCommits = GROUPS[0].roles.length !== committedBefore;
-    (document.querySelector('#roleChecks .role-check') as HTMLElement).click();
-    (document.getElementById('saveRolesBtn') as HTMLElement).click(); // restore
-    (document.getElementById('panelClose') as HTMLElement).click();
-    const panelClose = document.getElementById('groupPanel')!.style.display === 'none';
-    return {
-      groupRows, deptTags, panel, kind,
-      members: { initial: membersInitial, afterAdd, afterRemove, pickerCandidates },
-      rolesTab: { checks, bound, stagedNotCommitted, saveCommits }, panelClose,
-    };
-  });
-  const pass = a.groupRows === 5 && a.deptTags === 2 && a.members.afterAdd === a.members.initial + 1
-    && a.members.afterRemove === a.members.initial && a.rolesTab.checks === 5
-    && a.rolesTab.stagedNotCommitted && a.rolesTab.saveCommits && a.panelClose;
+  // Adjudication 26 (A): detail/candidates/add/remove/saveRoles are async with simulated first
+  // failures; staged role draft preserved; create/edit carry the isDepartment switch.
+  await page.evaluate(() => { (document.querySelector('[data-page=groups]') as HTMLElement).click(); });
+  const base = await page.evaluate(() => ({
+    groupRows: document.querySelectorAll('#groupRows tr').length,
+    deptTags: document.querySelectorAll('#groupRows .kind-dept').length,
+    createWired: !document.querySelector('#page-groups [data-create=groups]')!.hasAttribute('disabled'),
+  }));
+  await page.locator('#groupRows [data-manage="0"]').click();
+  const skel = await page.evaluate(() => document.querySelectorAll('#memberList .skel').length);
+  await page.waitForTimeout(600);
+  const detailErr = await page.evaluate(() => document.getElementById('grpDetailErr')!.style.display === 'flex');
+  await page.locator('#grpDetailRetry').click();
+  const membersInitial = await page.evaluate(() => document.querySelectorAll('#memberList li').length);
+  await page.waitForTimeout(600);
+  const candErr = await page.evaluate(() => document.getElementById('grpMemberErr')!.style.display === 'flex');
+  await page.locator('#grpMemberRetry').click();
+  await page.waitForTimeout(600);
+  const pickerCandidates = await page.evaluate(() => (document.getElementById('memberPicker') as HTMLSelectElement).options.length - 1);
+  const panel = await page.evaluate(() => ({ name: document.getElementById('panelName')!.textContent, kind: document.getElementById('panelKind')!.textContent }));
+  await page.evaluate(() => { const pk = document.getElementById('memberPicker') as HTMLSelectElement; pk.value = pk.options[1].value; });
+  await page.locator('#addMemberBtn').click();
+  await page.waitForTimeout(600); // simulated add failure
+  await page.locator('#addMemberBtn').click();
+  await page.waitForTimeout(600);
+  const afterAdd = await page.evaluate(() => document.querySelectorAll('#memberList li').length);
+  await page.locator('#memberList [data-rm]').first().click();
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600); // simulated remove failure keeps the member
+  const remFail = await page.evaluate(() => ({ err: document.getElementById('confirmErr')!.style.display === 'flex', n: document.querySelectorAll('#memberList li').length }));
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
+  const afterRemove = await page.evaluate(() => document.querySelectorAll('#memberList li').length);
+  await page.locator('.tabs [data-tab=roles]').click();
+  const checks = await page.evaluate(() => document.querySelectorAll('#roleChecks .role-check').length);
+  const committedBefore = await page.evaluate(() => eval('GROUPS')[0].roles.length);
+  await page.locator('#roleChecks .role-check').first().click();
+  const stagedNotCommitted = await page.evaluate((b) => eval('GROUPS')[0].roles.length === b, committedBefore);
+  await page.locator('#saveRolesBtn').click();
+  await page.waitForTimeout(600);
+  const rolesErr = await page.evaluate(() => document.getElementById('grpRolesErr')!.style.display === 'flex');
+  await page.locator('#grpRolesRetry').click();
+  await page.waitForTimeout(600);
+  const saveCommits = await page.evaluate((b) => eval('GROUPS')[0].roles.length !== b, committedBefore);
+  await page.locator('#roleChecks .role-check').first().click();
+  await page.locator('#saveRolesBtn').click();
+  await page.waitForTimeout(600); // restore (tried flag now true)
+  await page.locator('#panelClose').click();
+  const panelClose = await page.evaluate(() => document.getElementById('groupPanel')!.style.display === 'none');
+  // create form carries the isDepartment switch; edit maps kind
+  await page.locator('[data-create=groups]').click();
+  const createForm = await page.evaluate(() => ({ sw: (document.querySelector('#formBody [data-field=isDepartment]') as HTMLInputElement).type, role: document.querySelector('#formBody [data-field=isDepartment]')!.getAttribute('role') }));
+  await page.locator('#formBody [data-field=name]').fill('E2E Group');
+  await page.locator('#formBody [data-field=isDepartment]').check();
+  await page.locator('#formSave').click();
+  await page.waitForTimeout(600); // simulated create failure
+  await page.locator('#formSave').click();
+  await page.waitForTimeout(600);
+  const created = await page.evaluate(() => ({ n: eval('GROUPS').length, kind: eval('GROUPS')[eval('GROUPS').length - 1].kind, closed: !document.getElementById('formModal')!.classList.contains('on') }));
+  const a = { base, skel, detailErr, membersInitial, candErr, pickerCandidates, panel, afterAdd, remFail, afterRemove, checks, stagedNotCommitted, rolesErr, saveCommits, panelClose, createForm, created };
+  const pass = base.groupRows === 5 && base.deptTags === 2 && base.createWired
+    && skel === 3 && detailErr && candErr && pickerCandidates > 0
+    && panel.name === 'Engineering' && panel.kind === 'Department'
+    && afterAdd === membersInitial + 1 && remFail.err && remFail.n === afterAdd && afterRemove === membersInitial
+    && checks === 5 && stagedNotCommitted && rolesErr && saveCommits && panelClose
+    && createForm.sw === 'checkbox' && createForm.role === 'switch'
+    && created.n === 6 && created.kind === 'department' && created.closed;
   rec('groups-detail', pass, a);
   expect(pass, 'groups-detail').toBe(true);
 });
@@ -557,6 +585,8 @@ test('a11y-keyboard', async ({ page }) => {
     (document.querySelector('#groupRows [data-manage="0"]') as HTMLElement).click();
     (document.querySelector('.tabs [data-tab=roles]') as HTMLElement).click();
   });
+  await page.waitForTimeout(600); // adjudication 26: detail load async, first attempt simulated failure
+  await page.locator('#grpDetailRetry').click();
   const rc = page.locator('#roleChecks .role-check').first();
   const tag = await rc.evaluate(el => el.tagName);
   const role = await rc.getAttribute('role');
@@ -1554,6 +1584,8 @@ test('confirm-uniform', async ({ page }) => {
   // Adjudication 13 (A): every destructive action is confirm-gated — group member remove, OAuth
   // unlink, log-out-other-devices. Cancel must not execute; confirm must.
   await page.evaluate(() => { (document.querySelector('[data-page=groups]') as HTMLElement).click(); (document.querySelector('#groupRows [data-manage]') as HTMLElement).click(); });
+  await page.waitForTimeout(600); // adjudication 26: async detail load
+  await page.locator('#grpDetailRetry').click();
   const m0 = await page.evaluate(() => document.querySelectorAll('#memberList li').length);
   await page.locator('#memberList [data-rm]').first().click();
   const mConf = await page.evaluate(() => ({ on: document.getElementById('confirmModal')!.classList.contains('on'), verb: document.getElementById('confirmDelete')!.textContent, msg: document.getElementById('confirmMsg')!.textContent!.includes('inherited') }));
@@ -1561,6 +1593,9 @@ test('confirm-uniform', async ({ page }) => {
   const m1 = await page.evaluate(() => document.querySelectorAll('#memberList li').length);
   await page.locator('#memberList [data-rm]').first().click();
   await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600); // adjudication 26: simulated remove failure, confirm acts as Retry
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(600);
   const m2 = await page.evaluate(() => document.querySelectorAll('#memberList li').length);
   await page.evaluate(() => { (document.querySelector('[data-page=profile]') as HTMLElement).click(); });
   const o0 = await page.evaluate(() => document.querySelectorAll('#oauthList [data-unlink]').length);

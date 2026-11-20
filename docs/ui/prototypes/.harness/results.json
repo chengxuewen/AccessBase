@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 288,
+        "svgIcons": 291,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -192,23 +192,40 @@
     "groups-detail": {
       "pass": true,
       "assertions": {
-        "groupRows": 5,
-        "deptTags": 2,
-        "panel": "Engineering",
-        "kind": "Department",
-        "members": {
-          "initial": 4,
-          "afterAdd": 5,
-          "afterRemove": 4,
-          "pickerCandidates": 8
+        "base": {
+          "groupRows": 5,
+          "deptTags": 2,
+          "createWired": true
         },
-        "rolesTab": {
-          "checks": 5,
-          "bound": 3,
-          "stagedNotCommitted": true,
-          "saveCommits": true
+        "skel": 3,
+        "detailErr": true,
+        "membersInitial": 4,
+        "candErr": true,
+        "pickerCandidates": 8,
+        "panel": {
+          "name": "Engineering",
+          "kind": "Department"
         },
-        "panelClose": true
+        "afterAdd": 5,
+        "remFail": {
+          "err": true,
+          "n": 5
+        },
+        "afterRemove": 4,
+        "checks": 5,
+        "stagedNotCommitted": true,
+        "rolesErr": true,
+        "saveCommits": true,
+        "panelClose": true,
+        "createForm": {
+          "sw": "checkbox",
+          "role": "switch"
+        },
+        "created": {
+          "n": 6,
+          "kind": "department",
+          "closed": true
+        }
       }
     },
     "mgmt-pages": {

@@ -926,3 +926,19 @@ deleteError then deletes. Matrix legend updated from "concept view" to the stage
 Harness roles-model clear path synced to staged+confirm; new roles-edit group (49 total): staged-not-
 committed, cancel restore, save Busy/error/retry, scope fan-out, mixed disabled+value+tag, empty draft
 danger confirm + failure-keeps + wipe, async delete failure-keeps-row/retry. All 49 pass. Screenshot.
+
+## Adjudication 26 (A): Groups create wired + isDepartment switch + six async points — 2026-11-20
+Panel Groups surface: "Create group" was a proto-inert disabled button although real Groups creates
+groups (createGroup + isDepartment Switch -> kind, Groups.tsx:104-125); edit lacked the isDepartment
+field (:418); detail open, member candidates, add/remove member, saveRoles and delete all ran
+synchronously while the real console is async with detailError / memberLoadError / memberAddError /
+memberRemoveError / rolesSaveError / deleteError. Ruling A: Create group wired to FORMS.groups
+(name required + description + isDepartment switch; formCtl and openEdit gain a switch branch rendered
+without a duplicated outer label); edit maps isDepartment <-> kind; openPanel shows skeletons then a
+simulated detailError + Retry (banner at panel level so it stays visible on either tab); candidate
+load shows memberLoading then a simulated memberLoadError + Retry; add member async Busy + simulated
+memberAddError then success; remove member and delete group route through the shared confirm async run
+hook with simulated failures that keep the row and turn confirm into Retry; saveRoles keeps the staged
+draft but commits async with Busy + simulated rolesSaveError + Retry. Simulated failures disclosed per
+precedent. Harness groups-detail rewritten to the async sequences + create-switch assertions;
+a11y-keyboard and confirm-uniform synced (49 total). All 49 pass. Screenshot: create form switch.
