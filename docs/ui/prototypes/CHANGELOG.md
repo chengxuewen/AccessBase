@@ -1044,3 +1044,22 @@ redirecting alert, allowlist refusal. Setup: four Steps with heading focus, admi
 required, complete links to console. Four new harness groups (56 total): auth-login,
 auth-register-reset, auth-enroll-consent, auth-setup. README gains the companion guide, four lock rows,
 adjudication 32/33 rows and entry-flow simulation disclosures. All 56 pass. Screenshot: zh consent.
+
+## Adjudication 34 (A): closure audit — lock set == surface set across both prototypes — 2026-11-20
+Final audit of the kit (admin-console.html + auth-flows.html) against the series discipline that the
+harness lock set must cover the semantic surface set (adjudications 21/30/31). Three gaps found and
+closed: (1) the adjudication-30 reduced-motion block selected .skel/.cbx-load/[style*=cbxrot] but the
+companion's busy spinner animates via the .spin class, so it kept spinning under reduce — .spin added to
+the degradation selector in BOTH files; (2) the companion's zh dictionary had no parity/coverage/restore
+lock — the i18n group now also exercises auth-flows (zh chrome, >100 non-empty keys, coverage list, exact
+en restore, data untouched); (3) the companion's new tint surfaces (.auth-ok, .steps-bar on/done,
+.code-block, .auth-nav on, recovery banner) were outside surfaces-contrast — the group now measures them
+across 7 packs x light/dark (112 checks), which exposed fluent/light 4.21 and cupertino/light 4.23 on the
+active nav pill; nav-on and step-on text moved to --tx1 over the tint (min now 4.67, zero failures).
+README adjudication-33 commit placeholder filled (cc7aab8) and a 34 row added. Disclosure cross-check:
+64 "prototype simulation" strings = en+zh pairs across 13 surface families, all listed in the README
+simulation index. Full harness re-run: 56 groups, 0 failures (admin contrast 196+ checks min >= 4.61,
+companion 112 checks min 4.67; reduced-motion degraded + normal intact on both files; i18n parity on
+both dictionaries). Verdict: the kit is self-consistent — every semantic surface, motion family,
+tint-bearing color and locale dictionary is locked, every simulated failure is disclosed, and the
+handoff README indexes locks, disclosures, adjudications and provenance. Series closed at 34 rulings.

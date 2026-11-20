@@ -334,9 +334,16 @@
     "surfaces-contrast": {
       "pass": true,
       "assertions": {
-        "checked": 196,
-        "min": 4.61,
-        "fails": []
+        "admin": {
+          "checked": 196,
+          "min": 4.61,
+          "fails": []
+        },
+        "companion": {
+          "checked": 112,
+          "min": 4.67,
+          "fails": []
+        }
       }
     },
     "contrast": {
@@ -995,6 +1002,13 @@
           "skel": "skel",
           "knob": "0.15s, 0.15s",
           "tip": "0.12s, 0.12s"
+        },
+        "reducedAuth": {
+          "spin": "none",
+          "tip": "0s"
+        },
+        "normalAuth": {
+          "spin": "cbxrot"
         }
       }
     },
@@ -1047,6 +1061,21 @@
         "persisted": {
           "lang": "zh",
           "nav": "用户"
+        },
+        "zhAuth": {
+          "nav": "登录",
+          "h1": "登录",
+          "approve": "同意"
+        },
+        "dictAuth": {
+          "n": 142,
+          "allNonEmpty": true,
+          "coverage": true
+        },
+        "enAuth": {
+          "nav": "Login",
+          "h1": "Sign in",
+          "client": true
         }
       }
     },

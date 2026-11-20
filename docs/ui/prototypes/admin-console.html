@@ -593,7 +593,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
    its static ring + the Busy label), transitions collapse, tooltip sits without offset, scrolling
    is instant. Mirrors AntD motion tokens set to zero (motionDurationMid=0). WCAG 2.3.3 / 2.2.2. */
 @media (prefers-reduced-motion: reduce){
-  .skel,.cbx-load .ic,[style*="cbxrot"]{animation:none !important}
+  .skel,.cbx-load .ic,.spin,[style*="cbxrot"]{animation:none !important}
   .wswitch .knob,.cbx-chev,[data-tip]::after{transition:none !important}
   [data-tip]::after,.topbar [data-tip]::after{transform:translateX(-50%)}
   *{scroll-behavior:auto !important}

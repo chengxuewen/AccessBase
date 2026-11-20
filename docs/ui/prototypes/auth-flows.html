@@ -593,7 +593,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
    its static ring + the Busy label), transitions collapse, tooltip sits without offset, scrolling
    is instant. Mirrors AntD motion tokens set to zero (motionDurationMid=0). WCAG 2.3.3 / 2.2.2. */
 @media (prefers-reduced-motion: reduce){
-  .skel,.cbx-load .ic,[style*="cbxrot"]{animation:none !important}
+  .skel,.cbx-load .ic,.spin,[style*="cbxrot"]{animation:none !important}
   .wswitch .knob,.cbx-chev,[data-tip]::after{transition:none !important}
   [data-tip]::after,.topbar [data-tip]::after{transform:translateX(-50%)}
   *{scroll-behavior:auto !important}
@@ -604,7 +604,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .auth-top{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px 16px;border-bottom:1px solid var(--bd);background:var(--surface)}
 .auth-nav{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;background:var(--sunken);border-bottom:1px solid var(--bd)}
 .auth-nav button{border:1px solid var(--bd);background:var(--surface);color:var(--tx2);border-radius:var(--r4);padding:4px 10px;font-size:var(--fs12);cursor:pointer}
-.auth-nav button.on{background:var(--accent-tint);color:var(--accent-text,var(--accent));border-color:var(--accent)}
+.auth-nav button.on{background:var(--accent-tint);color:var(--tx1);border-color:var(--accent)}
 .auth-main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px}
 .auth-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .auth-card.wide{max-width:640px}
@@ -622,7 +622,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .scope-list label{display:flex;gap:8px;align-items:center;font-size:var(--fs13);color:var(--tx1);margin:0}
 .steps-bar{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
 .steps-bar .st{flex:1;min-width:110px;border:1px solid var(--bd);border-radius:var(--r4);padding:6px 8px;font-size:var(--fs11);color:var(--tx3);background:var(--sunken)}
-.steps-bar .st.on{border-color:var(--accent);color:var(--accent-text,var(--accent));background:var(--accent-tint)}
+.steps-bar .st.on{border-color:var(--accent);color:var(--tx1);background:var(--accent-tint)}
 .steps-bar .st.done{color:var(--ok-text,var(--ok));border-color:var(--ok)}
 .recovery-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);margin:10px 0}
 .flow{display:none}

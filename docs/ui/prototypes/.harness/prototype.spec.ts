@@ -530,8 +530,39 @@ test('surfaces-contrast', async ({ page }) => {
     }
     return { checked, min: Number(min.toFixed(2)), fails };
   });
-  const pass = a.checked >= 190 && a.fails.length === 0 && a.min >= 4.5;
-  rec('surfaces-contrast', pass, a);
+  // Adjudication 34 (A): the lock set must cover the companion's new tint surfaces too.
+  await page.goto(AUTH);
+  const b = await page.evaluate(() => {
+    const parse = (c: string) => { const m = c.match(/[\d.]+/g)!.map(Number); return m.length >= 4 ? m : [m[0], m[1], m[2], 1]; };
+    const over = (f: number[], b2: number[]) => { const al = f[3]; return [f[0] * al + b2[0] * (1 - al), f[1] * al + b2[1] * (1 - al), f[2] * al + b2[2] * (1 - al), 1]; };
+    const res = (el: Element) => { let e: Element | null = el; const stack: number[][] = []; while (e) { const c = parse(getComputedStyle(e).backgroundColor); if (c[3] > 0) stack.push(c); if (c[3] === 1) break; e = e.parentElement; } let base = [255, 255, 255, 1]; for (let i = stack.length - 1; i >= 0; i--) base = over(stack[i], base); return base; };
+    const lum = (c: number[]) => { const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+    const ratio = (x: number[], y: number[]) => { const l1 = lum(x), l2 = lum(y); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
+    document.querySelectorAll('.flow').forEach(f => f.classList.add('on'));
+    (document.getElementById('lgOk') as HTMLElement).style.display = 'flex';
+    (document.getElementById('csBody') as HTMLElement).style.display = 'block';
+    (document.getElementById('csRedirecting') as HTMLElement).style.display = 'flex';
+    (document.getElementById('enRecovery') as HTMLElement).style.display = 'block';
+    (document.getElementById('suSteps')!.children[1] as HTMLElement).className = 'st done';
+    const sels = ['#lgOk span', '#csRedirecting span', '#suSteps .st.on', '#suSteps .st.done', '#enUrl', '.auth-nav button.on', '#enRecovery .auth-ok span', '#mkOk span'];
+    const packs = ['broadsheet', 'geist', 'material', 'fluent', 'ant', 'carbon', 'cupertino'];
+    const fails: string[] = []; let checked = 0; let min = 99;
+    for (const p of packs) for (const th of ['light', 'dark']) {
+      const s = document.getElementById('styleSelect') as HTMLSelectElement; s.value = p; s.onchange!(new Event('change'));
+      document.documentElement.dataset.theme = th;
+      for (const sel of sels) {
+        const el = document.querySelector(sel); if (!el) continue;
+        checked++;
+        const r = ratio(parse(getComputedStyle(el).color), res(el));
+        min = Math.min(min, r);
+        if (r < 4.5) fails.push(p + '/' + th + ' ' + sel + ' ' + r.toFixed(2));
+      }
+    }
+    return { checked, min: Number(min.toFixed(2)), fails };
+  });
+  const pass = a.checked >= 190 && a.fails.length === 0 && a.min >= 4.5
+    && b.checked >= 110 && b.fails.length === 0 && b.min >= 4.5;
+  rec('surfaces-contrast', pass, { admin: a, companion: b });
   expect(pass, 'surfaces-contrast').toBe(true);
 });
 
@@ -1624,13 +1655,26 @@ test('reduced-motion', async ({ page }) => {
     sk.remove();
     return r;
   });
+  await page.goto(AUTH);
+  const reducedAuth = await page.evaluate(() => {
+    const sp = document.createElement('span'); sp.className = 'spin'; document.body.appendChild(sp);
+    const r = { spin: getComputedStyle(sp).animationName, tip: getComputedStyle(document.querySelector('[data-tip]')!, '::after').transitionDuration };
+    sp.remove(); return r;
+  });
+  await page2.goto(AUTH);
+  const normalAuth = await page2.evaluate(() => {
+    const sp = document.createElement('span'); sp.className = 'spin'; document.body.appendChild(sp);
+    const r = { spin: getComputedStyle(sp).animationName };
+    sp.remove(); return r;
+  });
   await page2.close();
-  const a = { reduced, normal };
+  const a = { reduced, normal, reducedAuth, normalAuth };
   const ty = (m: string) => Number(m.replace('matrix(', '').replace(')', '').split(',')[5]);
   const pass = reduced.matches && reduced.skel === 'none' && reduced.knob === '0s' && reduced.chev === '0s'
     && reduced.tip === '0s' && ty(reduced.tipTransform) === 0
     && reduced.scroll === 'auto'
-    && normal.skel === 'skel' && normal.knob !== '0s' && normal.tip !== '0s';
+    && normal.skel === 'skel' && normal.knob !== '0s' && normal.tip !== '0s'
+    && reducedAuth.spin === 'none' && reducedAuth.tip === '0s' && normalAuth.spin === 'cbxrot';
   rec('reduced-motion', pass, a);
   expect(pass, 'reduced-motion').toBe(true);
 });
@@ -1682,7 +1726,26 @@ test('i18n', async ({ page }) => {
   await page.locator('#langBtn').click();
   await page.reload();
   const persisted = await page.evaluate(() => ({ lang: document.documentElement.lang, nav: document.querySelector('[data-page=users] .lbl')!.textContent }));
-  const a = { en0, zhUsers, zhEmpty: zhEmpty.includes('没有符合当前过滤条件的结果'), zhTenants, zhVerb, zhData, zhTab, dict, enBack, enCreated, persisted };
+  // Adjudication 34 (A): companion dictionary parity/coverage + zh chrome + exact en restore.
+  await page.goto(AUTH);
+  const zhAuth = await page.evaluate(() => ({
+    nav: document.querySelector('[data-flow=login]')!.textContent,
+    h1: document.querySelector('#flow-login h1')!.textContent,
+    approve: (document.getElementById('csApprove') as HTMLButtonElement).textContent,
+  }));
+  const dictAuth = await page.evaluate(() => {
+    const vals = Object.values(eval('I18N_ZH')) as string[];
+    const keys = Object.keys(eval('I18N_ZH'));
+    const coverage = ['Sign in', 'Register', 'Approve', 'Deny', 'Continue', 'Next', 'Back', 'Finish', 'Retry', 'Copied to clipboard', 'Copy failed', 'Passwords do not match'];
+    return { n: keys.length, allNonEmpty: vals.every(v => typeof v === 'string' && v.trim().length > 0), coverage: coverage.every(k => keys.includes(k)) };
+  });
+  await page.locator('#langBtn').click();
+  const enAuth = await page.evaluate(() => ({
+    nav: document.querySelector('[data-flow=login]')!.textContent,
+    h1: document.querySelector('#flow-login h1')!.textContent,
+    client: document.getElementById('csClient')!.textContent!.includes('Web App'),
+  }));
+  const a = { en0, zhUsers, zhEmpty: zhEmpty.includes('没有符合当前过滤条件的结果'), zhTenants, zhVerb, zhData, zhTab, dict, enBack, enCreated, persisted, zhAuth, dictAuth, enAuth };
   const pass = en0.btn === '中文' && en0.aria === 'Language' && en0.nav === 'Users'
     && zhUsers.lang === 'zh' && zhUsers.btn === 'EN' && zhUsers.nav === '用户' && zhUsers.h1 === '用户'
     && zhUsers.tag === '活跃' && zhUsers.search === '按姓名或邮箱搜索…' && zhUsers.stored === 'zh'
@@ -1690,7 +1753,10 @@ test('i18n', async ({ page }) => {
     && zhData.sec && zhTab.includes('安全') && zhTab.includes('邮件模板')
     && dict.n > 200 && dict.allNonEmpty && dict.coverage
     && enBack.btn === '中文' && enBack.nav === 'Users' && enBack.tab && enBack.stored === 'en' && enCreated
-    && persisted.lang === 'zh' && persisted.nav === '用户';
+    && persisted.lang === 'zh' && persisted.nav === '用户'
+    && zhAuth.nav === '登录' && zhAuth.h1 === '登录' && zhAuth.approve === '同意'
+    && dictAuth.n > 100 && dictAuth.allNonEmpty && dictAuth.coverage
+    && enAuth.nav === 'Login' && enAuth.h1 === 'Sign in' && enAuth.client;
   rec('i18n', pass, a);
   expect(pass, 'i18n').toBe(true);
 });
