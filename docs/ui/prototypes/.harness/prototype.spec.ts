@@ -1081,3 +1081,50 @@ test('users-erasure', async ({ page }) => {
   rec('users-erasure', pass, a);
   expect(pass, 'users-erasure').toBe(true);
 });
+
+test('webhooks-model', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 10 (A): Enabled is a Switch (not a counter); delivery vocab pending/delivered/dead;
+  // form has description + per-event '*'|resource.action validation + presets; url http(s) required.
+  await page.evaluate(() => { (document.querySelector('[data-page=webhooks]') as HTMLElement).click(); });
+  const sw0 = await page.evaluate(() => ({ n: document.querySelectorAll('#webhookRows [role=switch]').length, on: document.querySelector('#webhookRows [role=switch]')!.getAttribute('aria-checked') }));
+  await page.locator('#webhookRows [data-wenabled]').first().click();
+  const sw1 = await page.evaluate(() => ({ on: document.querySelector('#webhookRows [role=switch]')!.getAttribute('aria-checked'), toast: document.getElementById('protoToast')!.textContent }));
+  await page.locator('#webhookRows [data-wenabled]').first().click();
+  await page.locator('#webhookRows [data-deliv]').first().click();
+  const vocab = await page.evaluate(() => {
+    const txt = document.getElementById('delivRows')!.textContent!;
+    return { ok: /delivered/.test(txt), bad: /success|failed/.test(txt) };
+  });
+  await page.keyboard.press('Escape');
+  await page.locator('[data-create=webhooks]').click();
+  const form = await page.evaluate(() => ({
+    url: !!document.querySelector('#formBody [data-field=url]'),
+    events: !!document.querySelector('#formBody [data-field=events]'),
+    desc: !!document.querySelector('#formBody [data-field=description]'),
+    presets: document.querySelectorAll('#formBody [data-evpreset]').length,
+  }));
+  await page.locator('#formBody [data-field=url]').fill('notaurl');
+  await page.locator('#formSave').click();
+  const urlErr = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('http(s)'));
+  await page.locator('#formBody [data-field=url]').fill('https://e2e.example/hook');
+  await page.locator('#formBody [data-field=events]').fill('Bad_Event');
+  await page.locator('#formSave').click();
+  const evErr = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('resource.action'));
+  await page.locator('#formBody [data-evpreset="*"]').click();
+  const chipVal = await page.evaluate(() => (document.querySelector('#formBody [data-field=events]') as HTMLInputElement).value);
+  await page.locator('#formBody [data-field=events]').fill('*');
+  await page.locator('#formBody [data-field=description]').fill('E2E sink');
+  await page.locator('#formSave').click();
+  const created = await page.evaluate(() => ({
+    reveal: document.getElementById('revealModal')!.classList.contains('on'),
+    rows: document.querySelectorAll('#webhookRows tr').length,
+    desc: document.getElementById('webhookRows')!.textContent!.includes('E2E sink'),
+  }));
+  const a = { sw0, sw1, vocab, form, urlErr, evErr, chipVal, created };
+  const pass = sw0.n === 3 && sw0.on === 'true' && sw1.on === 'false' && sw1.toast === 'Endpoint disabled'
+    && vocab.ok && !vocab.bad && form.url && form.events && form.desc && form.presets === 5
+    && urlErr && evErr && chipVal.includes('*') && created.reveal && created.rows === 4 && created.desc;
+  rec('webhooks-model', pass, a);
+  expect(pass, 'webhooks-model').toBe(true);
+});

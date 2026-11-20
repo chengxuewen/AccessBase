@@ -658,6 +658,37 @@
           "toast": "Deleted"
         }
       }
+    },
+    "webhooks-model": {
+      "pass": true,
+      "assertions": {
+        "sw0": {
+          "n": 3,
+          "on": "true"
+        },
+        "sw1": {
+          "on": "false",
+          "toast": "Endpoint disabled"
+        },
+        "vocab": {
+          "ok": true,
+          "bad": false
+        },
+        "form": {
+          "url": true,
+          "events": true,
+          "desc": true,
+          "presets": 5
+        },
+        "urlErr": true,
+        "evErr": true,
+        "chipVal": "Bad_Event, *",
+        "created": {
+          "reveal": true,
+          "rows": 4,
+          "desc": true
+        }
+      }
     }
   }
 }

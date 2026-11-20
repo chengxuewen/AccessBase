@@ -690,3 +690,15 @@ administrator (inline 409 LAST_ADMIN_GUARD), simulates the anchor lock on the fi
 shows a one-time erasure receipt (receiptHash 16-hex, rowsAffected, legalBasis, ledger-keeps-hash note)
 with Delete hidden and Cancel->Close; plain deletes keep the legacy splice+toast. New harness
 users-erasure (35 total): 400/last-admin/lock-busy+retry/receipt/plain-delete; all 35 pass. Screenshot.
+
+## Adjudication 10 (A): Webhooks enabled Switch + delivery vocab + subscription contract — 2026-11-19
+Panel F9: prototype "Active" column was a counter (12/5/0) while real is an enabled Switch; deliveries
+used success/failed vs real pending/delivered/dead; form lacked description, '*' wildcard and per-event
+format validation. Ruling A: Active column -> token-styled Enabled Switch (role=switch, aria-checked,
+direct toggle + toast, no confirm like real); pending/dead count columns kept; delivery vocab remapped
+(success->delivered, failed->pending unless retries exhausted->dead) and delivCls updated; ping now
+records a webhook.test delivery instead of bumping a counter; create/edit forms gain description and
+events control with preset chips (*, user.created/updated/deleted, webhook.test) + per-event validation
+('*' or ^[a-z]+\.[a-z_]+$) + http(s) url validation; sample data gains enabled/description and legal
+event names; actions column widened to 170px. New harness webhooks-model (36 total): switch toggle +
+toast, vocab clean, presets=5, url/event inline errors, chip append, description persisted. All 36 pass.
