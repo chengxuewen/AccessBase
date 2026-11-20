@@ -1293,7 +1293,25 @@
           "wrapped": true,
           "minH": "32px",
           "pad": "5px 12px"
-        }
+        },
+        "clearGeom": {
+          "sibling": true,
+          "abs": true,
+          "shown": true,
+          "inBtn": true,
+          "wrapH": true
+        },
+        "clearAct": {
+          "n": 0,
+          "open": false,
+          "hidden": true
+        },
+        "clearDisabled": {
+          "hidden": true,
+          "unchanged": true
+        },
+        "toolbarClear": true,
+        "compClear": true
       }
     },
     "modal-a11y": {

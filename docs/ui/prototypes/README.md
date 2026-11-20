@@ -28,6 +28,10 @@ branch and says so (see disclosure index). Read this file first, `CHANGELOG.md` 
   scroll/resize) so modal/drawer/toolbar scroll containers cannot clip it. Selects built inside modals
   (create/edit/add-option forms) are enhanced on open — they were previously native `<select multiple
   size=4>` listboxes with OS styling. The companion reuses the same mechanism.
+- The allowClear cross is a SIBLING of the combobox button positioned absolutely inside the relative
+  wrapper (a nested `<button>` is invalid HTML — the parser splits it, which wrapped the cross onto a
+  blank line below the control). The chev swaps out while the cross shows; the cross is hidden when the
+  value is empty or the control is disabled, and clicking it clears without opening the list.
 - Tooltips are ONE body-level fixed element (`#floatTip`, z-index 600) shown on hover/focus of any
   `[data-tip]` host. The earlier CSS `::after` bubble was clipped by `tbody td{overflow:hidden}` and
   overpainted by later rows' sticky actions cells (`td:last-child{position:sticky;z-index:2}`), and
@@ -80,7 +84,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | tooltip / overflow-menu / content-detail | body-level floating tooltip (no clipping/overpaint in any context), row overflow, truncate+detail | R1–R3, post-closure fix |
 | responsive-table / pagehead-overflow / table-fit / chip-columns | narrow adaptation, no phantom scrollbar, chip columns | R4, R5 |
 | combobox-popup / combobox-themed / cbx-disabled / cbx-capabilities | themed Select parity: clear/multiple/loading/keyboard/disabled mirror | 2, 15 |
-| cbx-option-list | form selects themed (were native size=4 listboxes); 32px option rows, tinted selected + reserved check column (no shift), fixed list escaping modal/toolbar clipping, flip-up + clamp; companion parity | post-closure fix 2 |
+| cbx-option-list | form selects themed (were native size=4 listboxes); 32px option rows, tinted selected + reserved check column (no shift), fixed list escaping modal/toolbar clipping, flip-up + clamp; allowClear cross inside the control (sibling + absolute, never a blank line below), hidden when empty/disabled, clears without opening; companion parity | post-closure fix 2/3 |
 | topbar-fidelity | real topbar affordances only | 3 |
 | reduced-motion | prefers-reduced-motion degradation + normal-mode motion intact | 30 |
 | i18n | 中文/EN toggle, stored lang, zh chrome + relative forms, data untouched, dictionary parity/coverage, en restore | 31 |

@@ -1103,3 +1103,22 @@ themed-combobox mechanism (CSS + JS) and enhances its selects at init. New harne
 list inside viewport with elementFromPoint hitting the option (modal clipping proof), selected tint +
 no width shift, flip-up + clamp at 420px viewport, companion parity; surfaces-contrast extended to the
 selected-option tint surface in both files. All 57 pass. Screenshot: themed roles list in Create user.
+
+## Post-closure fix 3 (user-reported): allowClear cross on a blank line below the roles control — 2026-11-20
+Report: after selecting roles in Create user, a cross icon appeared in the blank space below the option
+box. Root cause: the allowClear button was a SIBLING placed after the combobox button; in form fields the
+button is width:100%, so the inline-flex cross wrapped onto its own line below the control (same in
+toolbar filters once a value is set). A first attempt moved it inside the button, but nested <button> is
+invalid HTML and the parser splits it back into siblings. Final fix: keep it a sibling and position it
+absolutely (right:6px, vertically centered) inside the relative .cbx wrapper so it renders inside the
+control; the chev swaps out while the cross shows (.cbx-has-clear), the value reserves right padding, and
+the cross is hidden when the value is empty or the control is disabled (cbxRefresh condition +
+.cbx-disabled rule + a disabled guard in its click handler, which previously could mutate a disabled
+select). Comprehensive scan: no other widget places an interactive sibling after a full-width control
+(chips remove buttons live inside the value; search icons are absolute; add-member/name-form rows are
+intentional flex rows); the companion carried a DUPLICATE embedded combobox CSS block from its creation
+(the port added a second copy) — the stale copy was removed and the current admin CSS swapped in place,
+restoring the 32px option metrics there. Harness cbx-option-list extended: cross is sibling + absolute,
+visible with a value, geometrically inside the button rect, wrapper height equals button height (no extra
+line), click clears without opening and hides the cross, disabled hides it and ignores clicks, toolbar
+filter same geometry, companion same structure. All 57 pass. Screenshot: cross inside the control.

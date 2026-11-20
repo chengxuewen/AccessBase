@@ -2080,12 +2080,60 @@ test('cbx-option-list', async ({ page }) => {
     const cs = getComputedStyle(opt);
     return { wrapped: !!sel._cbx, minH: cs.minHeight, pad: cs.padding };
   });
-  const a = { themed, metrics, selected, noShift, single, flip, comp };
+  // post-closure fix 3: the allowClear cross lives INSIDE the control (was a sibling after the
+  // full-width button, wrapping onto a blank line below); hidden when empty/disabled; clicking it
+  // clears without opening the list; same geometry in toolbar filters and companion.
+  await page.goto(FILE);
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); (document.querySelector('[data-create=users]') as HTMLElement).click(); });
+  await page.evaluate(() => { const sel = document.querySelector('#formBody select[data-field=roles]') as HTMLSelectElement; sel.options[1].selected = true; sel.options[2].selected = true; sel.dispatchEvent(new Event('change', { bubbles: true })); });
+  const clearGeom = await page.evaluate(() => {
+    const sel = document.querySelector('#formBody select[data-field=roles]') as HTMLSelectElement;
+    const w = sel._cbx; const btn = w.querySelector('.cbx-btn'); const cl = w.querySelector('.cbx-clear');
+    const br = btn.getBoundingClientRect(), cr = cl.getBoundingClientRect();
+    return { sibling: !btn.contains(cl) && w.contains(cl), abs: getComputedStyle(cl).position === 'absolute', shown: getComputedStyle(cl).display !== 'none',
+      inBtn: cr.top >= br.top - 1 && cr.bottom <= br.bottom + 1 && cr.right <= br.right + 1,
+      wrapH: w.getBoundingClientRect().height <= br.height + 2 };
+  });
+  await page.evaluate(() => { (document.querySelector('#formBody select[data-field=roles]')._cbx.querySelector('.cbx-clear') as HTMLElement).click(); });
+  const clearAct = await page.evaluate(() => {
+    const sel = document.querySelector('#formBody select[data-field=roles]') as HTMLSelectElement;
+    const w = sel._cbx;
+    return { n: sel.selectedOptions.length, open: w.classList.contains('open'), hidden: getComputedStyle(w.querySelector('.cbx-clear')).display === 'none' };
+  });
+  await page.evaluate(() => { const sel = document.querySelector('#formBody select[data-field=roles]') as HTMLSelectElement; sel.options[1].selected = true; sel.dispatchEvent(new Event('change', { bubbles: true })); sel.disabled = true; });
+  const clearDisabled = await page.evaluate(() => {
+    const sel = document.querySelector('#formBody select[data-field=roles]') as HTMLSelectElement;
+    const cl = sel._cbx.querySelector('.cbx-clear') as HTMLElement;
+    const before = sel.selectedOptions.length; cl.click();
+    return { hidden: getComputedStyle(cl).display === 'none', unchanged: sel.selectedOptions.length === before };
+  });
+  await page.evaluate(() => { const sel = document.querySelector('#formBody select[data-field=roles]') as HTMLSelectElement; sel.disabled = false; });
+  await page.keyboard.press('Escape');
+  const toolbarClear = await page.evaluate(() => {
+    (document.querySelector('[data-page=users]') as HTMLElement).click();
+    const f = document.getElementById('tenantFilter') as HTMLSelectElement;
+    f.value = 'Acme Corp'; f.dispatchEvent(new Event('change', { bubbles: true }));
+    const w = f._cbx; const btn = w.querySelector('.cbx-btn'); const cl = w.querySelector('.cbx-clear');
+    const br = btn.getBoundingClientRect(), cr = cl.getBoundingClientRect();
+    const ok = !btn.contains(cl) && getComputedStyle(cl).position === 'absolute' && cr.top >= br.top - 1 && cr.bottom <= br.bottom + 1 && cr.right <= br.right + 1;
+    f.value = ''; f.dispatchEvent(new Event('change', { bubbles: true }));
+    return ok;
+  });
+  await page.goto(AUTH);
+  const compClear = await page.evaluate(() => {
+    const sel = document.getElementById('mkState') as HTMLSelectElement;
+    const btn = sel._cbx.querySelector('.cbx-btn'); const cl = sel._cbx.querySelector('.cbx-clear');
+    return !btn.contains(cl) && getComputedStyle(cl).position === 'absolute';
+  });
+  const a = { themed, metrics, selected, noShift, single, flip, comp, clearGeom, clearAct, clearDisabled, toolbarClear, compClear };
   const pass = themed.hidden && themed.wrapped && themed.multi
     && metrics.minH === '32px' && metrics.pad === '5px 12px' && metrics.lh === '22px' && metrics.pos === 'fixed' && metrics.inVp && metrics.onTop
     && selected.aria === 'true' && selected.tinted && noShift && selected.check !== 'rgba(0, 0, 0, 0)'
     && single.hidden && single.wrapped && flip.above && flip.inVp
-    && comp.wrapped && comp.minH === '32px' && comp.pad === '5px 12px';
+    && comp.wrapped && comp.minH === '32px' && comp.pad === '5px 12px'
+    && clearGeom.sibling && clearGeom.abs && clearGeom.shown && clearGeom.inBtn && clearGeom.wrapH
+    && clearAct.n === 0 && !clearAct.open && clearAct.hidden
+    && clearDisabled.hidden && clearDisabled.unchanged && toolbarClear && compClear;
   rec('cbx-option-list', pass, a);
   expect(pass, 'cbx-option-list').toBe(true);
 });
