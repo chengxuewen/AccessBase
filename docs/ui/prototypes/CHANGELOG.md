@@ -807,3 +807,22 @@ HTTP-like values incl. null -> '-'. Harness mgmt-pages + states verify steps now
 pagehead-overflow export path awaits failure+retry; new audit-model group (44 total): numeric/'-' status,
 range filtering, Busy, failure report fields, success meta, filtered 1-row CSV, load failure+retry.
 All 44 pass. Screenshot: verify failure report.
+
+## Adjudication 19 (A): Dashboard real model — live statistics, no chart, wired quick actions, users create — 2026-11-20
+Panel Dashboard surface: KPI cards were Total Users/Active Sessions/Tenants/API Keys with invented
+deltas; a Sign-in trend chart existed that real Dashboard.tsx does not have; quick actions were four
+disabled proto-inert buttons; activity lacked the action/resourceType Tag pair and userId·relTime
+description; refresh sat in the page head instead of the activity card head; error Alert + Spin missing.
+Ruling A: four live Statistics (Total Users/Active Roles/Active Sessions/Audit Logs) bound to
+USERS/ROLES/SESSIONS/AUDIT counts, deltas and trend chart removed; layout 2:1 (activity lg=16 / quick
+actions lg=8); activity List items = action Tag + resourceType Tag + userId·relTime; refresh moved to the
+activity card head with Spin-like skeleton + simulated first-load failure + error Alert Retry
+(disclosed); View all navigates to Audit; quick actions = three wired buttons (Create user opens the
+users create form, Manage roles, View audit). The users page-head Create user button was also inert:
+now enabled with FORMS.users (name/email/password/roles-multi) + create branch validating email format,
+409 EMAIL_EXISTS, and the shared 12+ policy; success pushes the user, prepends a user.created activity
+item and refreshes statistics. renderStats initial call moved after demo-data definitions (load order).
+Harness dashboard-render synced (no trend); dead-controls refresh path awaits async failure+retry; new
+dashboard-model group (45 total): live counts, no deltas/chart, 10 activity tags, refresh-in-head, zero
+inert, skeleton+error+retry, wired navigation, create form fields/password type, EMAIL_EXISTS, policy,
+count/stat/activity updates. All 45 pass. Screenshot: dashboard.

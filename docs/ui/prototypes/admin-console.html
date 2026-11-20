@@ -210,6 +210,8 @@ html[data-theme="dark"] .cbx-list{box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .cbx-opt{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--r4);font-size:var(--fs12);color:var(--tx1);cursor:pointer;white-space:nowrap}
 .cbx-opt:hover,.cbx-opt.active{background:var(--sunken)}
 .cbx-opt[aria-selected="true"]{color:var(--accent);font-weight:500}
+.grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px}
+@media(max-width:760px){.grid-2-1{grid-template-columns:1fr}}
 tr.clickable:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
 .cbx-opt[aria-selected="true"]::after{content:"\2713";margin-left:auto;color:var(--accent)}
 .toolbar .cbx-btn{padding:5px 8px;font-size:var(--fs12)}
@@ -633,39 +635,32 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   </header>
   <main class="main">
     <section class="page on" id="page-dashboard">
-      <div class="page-head"><div><h1>Dashboard</h1><div class="sub">Identity platform overview · last 7 days</div></div><button class="btn" id="dashRefresh"><svg class="ic" style="width:13px;height:13px"><use href="#i-refresh"/></svg>Refresh</button></div>
+      <div class="page-head"><div><h1>Dashboard</h1><div class="sub">Identity platform overview · counts live from prototype data</div></div></div>
+      <div class="error-banner" id="dashErrBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="dashErrMsg">Failed to load dashboard stats.</span><button class="btn sm" id="dashErrRetry">Retry</button></div>
       <div class="stats">
-        <div class="card stat"><div class="lbl">Total Users<svg class="ic"><use href="#i-user"/></svg></div><div class="val">1,284</div><div class="delta up">+12.4% <span>vs last week</span></div></div>
-        <div class="card stat"><div class="lbl">Active Sessions<svg class="ic"><use href="#i-zap"/></svg></div><div class="val">342</div><div class="delta up">+3.1%</div></div>
-        <div class="card stat"><div class="lbl">Tenants<svg class="ic"><use href="#i-building"/></svg></div><div class="val">18</div><div class="delta up">+2 new</div></div>
-        <div class="card stat"><div class="lbl">API Keys<svg class="ic"><use href="#i-key"/></svg></div><div class="val">96</div><div class="delta down">-4 expiring</div></div>
+        <div class="card stat"><div class="lbl">Total Users<svg class="ic"><use href="#i-user"/></svg></div><div class="val" id="statUsers">–</div></div>
+        <div class="card stat"><div class="lbl">Active Roles<svg class="ic"><use href="#i-shield"/></svg></div><div class="val" id="statRoles">–</div></div>
+        <div class="card stat"><div class="lbl">Active Sessions<svg class="ic"><use href="#i-zap"/></svg></div><div class="val" id="statSessions">–</div></div>
+        <div class="card stat"><div class="lbl">Audit Logs<svg class="ic"><use href="#i-file"/></svg></div><div class="val" id="statAudits">–</div></div>
       </div>
-      <div class="grid-2">
+      <div class="grid-2-1">
         <div class="card">
-          <div class="card-head"><h3>Sign-in trend</h3><span class="tag info">7 days</span></div>
-          <div class="card-body">
-            <svg viewBox="0 0 560 160" width="100%" height="160" preserveAspectRatio="none" id="trend"></svg>
-            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);margin-top:6px;font-family:var(--mono)"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
-          </div>
+          <div class="card-head"><h3>Recent activity</h3><div style="display:flex;gap:8px"><button class="btn sm" id="viewAllBtn">View all</button><button class="icon-btn" id="dashRefresh" data-tip="Refresh" aria-label="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button></div></div>
+          <div class="card-body" style="padding:4px 16px"><ul class="activity" id="activity"></ul></div>
         </div>
         <div class="card">
           <div class="card-head"><h3>Quick actions</h3></div>
           <div class="card-body"><div class="quick">
-            <button disabled class="proto-inert" title="Prototype: not wired"><span class="q-ic"><svg class="ic"><use href="#i-plus"/></svg></span><span class="q-t">Create user</span><span class="q-d">Add a single account</span></button>
-            <button disabled class="proto-inert" title="Prototype: not wired"><span class="q-ic"><svg class="ic"><use href="#i-upload"/></svg></span><span class="q-t">Import users</span><span class="q-d">Bulk CSV upload</span></button>
-            <button disabled class="proto-inert" title="Prototype: not wired"><span class="q-ic"><svg class="ic"><use href="#i-shield"/></svg></span><span class="q-t">New role</span><span class="q-d">Define permissions</span></button>
-            <button disabled class="proto-inert" title="Prototype: not wired"><span class="q-ic"><svg class="ic"><use href="#i-key"/></svg></span><span class="q-t">Issue API key</span><span class="q-d">Service credential</span></button>
+            <button id="qaCreateUser"><span class="q-ic"><svg class="ic"><use href="#i-plus"/></svg></span><span class="q-t">Create user</span><span class="q-d">Add a single account</span></button>
+            <button id="qaManageRoles"><span class="q-ic"><svg class="ic"><use href="#i-shield"/></svg></span><span class="q-t">Manage roles</span><span class="q-d">Permissions &amp; partition</span></button>
+            <button id="qaViewAudit"><span class="q-ic"><svg class="ic"><use href="#i-file"/></svg></span><span class="q-t">View audit</span><span class="q-d">Hash-chained log</span></button>
           </div></div>
         </div>
-      </div>
-      <div class="card" style="margin-top:12px">
-        <div class="card-head"><h3>Recent activity</h3><button class="btn sm" id="viewAllBtn">View all</button></div>
-        <div class="card-body" style="padding:4px 16px"><ul class="activity" id="activity"></ul></div>
       </div>
     </section>
     <section class="page" id="page-users">
       <div class="page-head"><div><h1>Users</h1><div class="sub">Manage accounts, status and roles · prototype shows multi-tenant demo data; the real console partitions by sign-in token</div></div>
-        <div style="display:flex;gap:8px"><button class="btn proto-inert" data-phsecondary disabled title="Prototype: not wired"><svg class="ic" style="width:13px;height:13px"><use href="#i-upload"/></svg>Import</button><button class="btn primary proto-inert" disabled title="Prototype: not wired"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create user</button><button class="btn ph-more" data-phmore="users" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:13px;height:13px"><use href="#i-more"/></svg></button></div></div>
+        <div style="display:flex;gap:8px"><button class="btn proto-inert" data-phsecondary disabled title="Prototype: not wired"><svg class="ic" style="width:13px;height:13px"><use href="#i-upload"/></svg>Import</button><button class="btn primary" data-create="users"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create user</button><button class="btn ph-more" data-phmore="users" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:13px;height:13px"><use href="#i-more"/></svg></button></div></div>
       <div class="card">
         <div class="toolbar">
           <div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="userSearch" placeholder="Search name or email…"></div>
@@ -943,12 +938,21 @@ document.querySelectorAll('#nav a').forEach(a=>{a.onclick=e=>{e.preventDefault()
 function applyHash(){const m={'#/403':'state-403','#/404':'state-404','#/error':'state-error'};const sid=m[location.hash];document.querySelectorAll('.state-page').forEach(s=>s.classList.toggle('on',s.id===sid));if(sid){document.querySelectorAll('.page').forEach(s=>s.classList.remove('on'));document.querySelectorAll('#nav a').forEach(x=>x.classList.remove('on'));$('crumbPage').textContent=sid==='state-403'?'Forbidden':sid==='state-404'?'Not found':'Error';}else{document.querySelectorAll('.page').forEach(s=>s.classList.toggle('on',s.id==='page-'+curPage));}}
 window.addEventListener('hashchange',applyHash);applyHash();
 document.addEventListener('click',e=>{if(e.target.closest('[data-state-back]')){location.hash='';return;}if(e.target.closest('[data-state-retry]')){location.hash='';toast('View re-rendered','info');return;}if(e.target.closest('[data-state-request]')){toast('Access request sent to administrators','info');return;}});
-(function(){const data=[120,180,150,220,260,190,310];const w=560,h=160,pad=8;const max=Math.max(...data);const pts=data.map((v,i)=>[pad+i*(w-2*pad)/(data.length-1),h-pad-(v/max)*(h-2*pad)]);const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');const area=line+' L '+pts[pts.length-1][0]+' '+h+' L '+pts[0][0]+' '+h+' Z';$('trend').innerHTML='<path d="'+area+'" fill="var(--accent)" opacity=".07"/><path d="'+line+'" fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-linecap="round"/>'+pts.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="2.5" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>').join('');})();
-const acts=[['i-user','New user registered','jane.doe@globex.com · via OIDC','2m'],['i-key','API key expiring soon','svc-billing · expires in 3 days','18m'],['i-shield','Role updated','editor · +audit:read permission','1h'],['i-zap','Failed sign-in blocked','CIDR gate · 203.0.113.9','2h'],['i-building','Tenant created','Initech · plan: enterprise','5h']];
-function renderActivity(){$('activity').innerHTML=acts.map(a=>'<li><div class="a-ic"><svg class="ic"><use href="#'+a[0]+'"/></svg></div><div class="a-tx"><div class="t">'+a[1]+'</div><div class="m">'+a[2]+'</div></div><div class="a-time">'+a[3]+'</div></li>').join('');}
+const acts=[{action:'user.created',resourceType:'user',userId:'jane.doe@globex.com',rel:'2m'},{action:'apikey.revoked',resourceType:'apikey',userId:'svc-billing',rel:'18m'},{action:'role.changed',resourceType:'role',userId:'editor',rel:'1h'},{action:'auth.login',resourceType:'auth',userId:'203.0.113.9',rel:'2h'},{action:'tenant.updated',resourceType:'tenant',userId:'initech',rel:'5h'}];
+function renderActivity(){$('activity').innerHTML=acts.map(a=>'<li><div class="a-tx"><div class="t"><span class="tag" style="background:var(--accent-tint);color:var(--accent-text,var(--accent))">'+esc(a.action)+'</span>'+(a.resourceType?' <span class="tag">'+esc(a.resourceType)+'</span>':'')+'</div><div class="m">'+esc(a.userId||'—')+' · '+esc(a.rel)+'</div></div></li>').join('');}
+function renderStats(){$('statUsers').textContent=USERS.length.toLocaleString();$('statRoles').textContent=ROLES.length.toLocaleString();$('statSessions').textContent=SESSIONS.length.toLocaleString();$('statAudits').textContent=AUDIT.length.toLocaleString();}
 renderActivity();
-$('dashRefresh').onclick=()=>{renderActivity();toast('Refreshed');};
+/* Adjudication 19 (A): dashboard mirrors real Dashboard.tsx — 4 live Statistics, no chart, activity
+   List with action/resourceType Tags + userId·relTime, refresh on the activity card head, wired quick
+   actions, error Alert + Spin-like loading. Async failure simulated briefly (disclosed). */
+let dashTried=false;
+function dashLoad(){['statUsers','statRoles','statSessions','statAudits'].forEach(id=>$(id).textContent='…');$('activity').innerHTML=Array.from({length:4},()=>'<li><div class="a-tx"><div class="t"><div class="skel" style="width:180px"></div></div><div class="m"><div class="skel" style="width:120px;margin-top:6px"></div></div></div></li>').join('');setTimeout(()=>{if(!dashTried){dashTried=true;$('dashErrMsg').textContent='Failed to load dashboard stats: upstream timeout (prototype simulation) — retry.';$('dashErrBanner').style.display='flex';renderStats();renderActivity();toast('Dashboard load failed — retry','error');return;}$('dashErrBanner').style.display='none';renderStats();renderActivity();toast('Refreshed');},500);}
+$('dashRefresh').onclick=dashLoad;
+$('dashErrRetry').onclick=dashLoad;
 $('viewAllBtn').onclick=()=>{document.querySelector('#nav a[data-page="audit"]').click();};
+$('qaCreateUser').onclick=()=>{document.querySelector('#nav a[data-page="users"]').click();document.querySelector('[data-create=users]').click();};
+$('qaManageRoles').onclick=()=>{document.querySelector('#nav a[data-page="roles"]').click();};
+$('qaViewAudit').onclick=()=>{document.querySelector('#nav a[data-page="audit"]').click();};
 const USERS=[['Jane Doe','jane.doe@globex.com','active','Globex','2026-11-02',['editor']],['Alice Chen','alice@acme.io','active','Acme Corp','2026-10-28',['owner','editor']],['Bob Smith','bob@initech.com','suspended','Initech','2026-09-15',['viewer']],['Carol Wu','carol@acme.io','pending','Acme Corp','2026-11-12',[]],['David Kim','david@globex.com','active','Globex','2026-08-30',['editor']],['Eve Torres','eve@initech.com','active','Initech','2026-11-01',['auditor']],['Frank Lee','frank@acme.io','suspended','Acme Corp','2026-07-22',['viewer']],['Grace Park','grace@globex.com','active','Globex','2026-10-10',['editor']],['Henry Zhao','henry@initech.com','pending','Initech','2026-11-14',[]],['Ivy Nguyen','ivy@acme.io','active','Acme Corp','2026-06-18',['billing-admin']],['Jack Ma','jack@globex.com','active','Globex','2026-05-09',['viewer']],['Kate Bell','kate@initech.com','suspended','Initech','2026-04-27',['auditor']]];
 const PAGE=8;let cur=1;let uSort={key:null,dir:1};
 document.addEventListener('click',e=>{const sb=e.target.closest('[data-usort]');if(!sb)return;const k=sb.dataset.usort;if(uSort.key===k){uSort.dir=-uSort.dir;}else{uSort.key=k;uSort.dir=1;}document.querySelectorAll('[data-usort]').forEach(b=>{b.querySelector('.sort-ic').textContent=b.dataset.usort===uSort.key?(uSort.dir===1?'\u25B2':'\u25BC'):'';});cur=1;renderUsers();});
@@ -1267,6 +1271,7 @@ const RELOAD={users:{rows:'userRows',cols:6,render:renderUsers},roles:{rows:'rol
 document.addEventListener('click',e=>{const rb=e.target.closest('[data-reload]');if(!rb)return;const cfg=RELOAD[rb.dataset.reload];if(!cfg)return;$(cfg.rows).innerHTML=Array.from({length:4},()=>'<tr>'+Array.from({length:cfg.cols},()=>'<td><div class="skel"></div></td>').join('')+'</tr>').join('');if(rb.dataset.reload==='audit'&&!auditLoadTried){const seq=++auditLoadSeq;setTimeout(()=>{if(seq!==auditLoadSeq)return;auditLoadTried=true;$('auditRows').innerHTML='';$('auditLoadMsg').textContent='Failed to load audit entries: upstream timeout (prototype simulation) — retry.';$('auditLoadBanner').style.display='flex';toast('Load failed — retry','error');},500);return;}setTimeout(cfg.render,500);});
 /* Create flows — per-page form modal; clients/webhooks reveal secret once on create. */
 const FORMS={
+ users:{title:'Create user',fields:[['name','Name'],['email','Email'],['password','Password','password'],['roles','Roles','multi']]},
  tenants:{title:'Create tenant',fields:[['name','Name'],['slug','Slug']]},
  clients:{title:'Register client',fields:[['name','Name'],['redirectUris','Redirect URIs (one per line, https or http://localhost)','textarea'],['grantTypes','Grant types','grants'],['scope','Scope'],['tokenAuthMethod','Token endpoint auth method','select:client_secret_basic,client_secret_post,private_key_jwt,none'],['backchannelLogoutUri','Back-channel logout URI (optional, http(s))']]},
  apikeys:{title:'Issue API key',fields:[['name','Name'],['expires','Expires (YYYY-MM-DD, blank = never)']]},
@@ -1275,7 +1280,8 @@ const FORMS={
 let formKind=null;let formEdit=null;
 document.querySelectorAll('[data-create]').forEach(b=>b.onclick=()=>{formKind=b.dataset.create;formEdit=null;$('formSave').textContent='Create';const f=FORMS[formKind];$('formTitle').textContent=f.title;$('formBody').innerHTML=f.fields.map(([k,l,ty])=>'<div class="field"><label>'+l+'</label>'+formCtl(k,l,ty,'')+'</div>').join('');openModal('formModal');});
 const ALLOWED_GRANTS=['authorization_code','client_credentials','urn:ietf:params:oauth:grant-type:device_code'];
-function formCtl(k,l,ty,val){if(ty==='multi'){return '<select multiple data-field="'+k+'" data-clearable size="4">'+ROLES.map(r=>'<option value="'+esc(r.name)+'"'+((val||[]).includes(r.name)?' selected':'')+'>'+esc(r.name)+'</option>').join('')+'</select>';}
+function formCtl(k,l,ty,val){if(ty==='password'){return '<input type="password" data-field="'+k+'" placeholder="'+l+'">';}
+ if(ty==='multi'){return '<select multiple data-field="'+k+'" data-clearable size="4">'+ROLES.map(r=>'<option value="'+esc(r.name)+'"'+((val||[]).includes(r.name)?' selected':'')+'>'+esc(r.name)+'</option>').join('')+'</select>';}
  if(ty==='grants'){return '<div data-field="'+k+'" class="ev-presets">'+ALLOWED_GRANTS.map(g=>'<button type="button" class="tag" data-grant="'+g+'" aria-pressed="'+((val||[]).includes(g)?'true':'false')+'">'+g+'</button>').join('')+'</div>';}
  if(ty&&ty.indexOf('select:')===0){return '<select data-field="'+k+'">'+ty.slice(7).split(',').map(o=>'<option'+(o===val?' selected':'')+'>'+o+'</option>').join('')+'</select>';}
  if(ty==='textarea'||k==='redirectUris'){return '<textarea data-field="'+k+'" rows="3" placeholder="'+l+'">'+esc(val||'')+'</textarea>';}
@@ -1289,6 +1295,7 @@ function formError(msg){let e=document.getElementById('formErr');if(!e){e=docume
 $('formSave').onclick=()=>{
  const get=k=>{const el=document.querySelector('#formBody [data-field="'+k+'"]');return el?el.value.trim():'';};
  if(formEdit!==null){const d=EDITDEFS[formKind];const vals={};d.fields.forEach(f=>{if(f[2]==='checks'){vals[f[0]]=[...document.querySelectorAll('#formBody [data-field="'+f[0]+'"] input:checked')].map(c=>c.value);}else if(f[2]==='multi'){const s=document.querySelector('#formBody [data-field="'+f[0]+'"]');vals[f[0]]=[...s.selectedOptions].map(o=>o.value);}else{vals[f[0]]=get(f[0]);}});const req=formKind==='webhooks'?'url':(formKind==='options'?'value':(formKind==='templates'?'subject':'name'));if(!vals[req]){formError((req==='url'?'URL':(req==='value'?'Value':(req==='subject'?'Subject':'Name')))+' is required');return;}if(formKind==='options'){try{JSON.parse(vals.value);}catch(_){formError('Value must be valid JSON');return;}}if(formKind==='tenants'){if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(vals.slug)){formError('Slug must be lowercase letters/digits separated by single hyphens');return;}if(TENANTS.some((x,xi)=>xi!==formEdit&&x.slug===vals.slug)){formError('Slug "'+vals.slug+'" already exists');return;}}if(formKind==='webhooks'){if(!/^https?:\/\/\S+$/.test(vals.url)){formError('URL must be http(s)://…');return;}const ev=vals.events?vals.events.split(',').map(s=>s.trim()).filter(Boolean):[];const badEv=ev.filter(x=>x!=='*'&&!/^[a-z]+\.[a-z_]+$/.test(x));if(badEv.length){formError('Each event must be * or resource.action (lowercase): '+badEv.join(', '));return;}}d.set(formEdit,vals);closeModal('formModal');toast('Saved');formEdit=null;return;}
+ if(formKind==='users'){const n=get('name');if(!n){formError('Name is required');return;}const em=get('email');if(!em||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){formError('A valid email is required');return;}if(USERS.some(u=>u[1]===em)){formError('409 EMAIL_EXISTS: a user with this email already exists');return;}const pe=pwdPolicyError(get('password')||'');if(pe){formError(pe);return;}const rl=[...document.querySelectorAll('#formBody [data-field=roles] option')].filter(o=>o.selected).map(o=>o.value);USERS.push([n,em,'active','Acme Corp','just now',rl]);acts.unshift({action:'user.created',resourceType:'user',userId:em,rel:'just now'});renderUsers();renderStats();renderActivity();closeModal('formModal');toast('User created');return;}
  if(formKind==='tenants'){const n=get('name');if(!n){formError('Name is required');return;}const sl=get('slug');if(!sl){formError('Slug is required');return;}if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(sl)){formError('Slug must be lowercase letters/digits separated by single hyphens');return;}if(TENANTS.some(x=>x.slug===sl)){formError('Slug "'+sl+'" already exists');return;}TENANTS.push({name:n,slug:sl,status:'active',created:'just now',bootstrapped:false});renderTenants();}
  else if(formKind==='clients'){const n=get('name');if(!n){formError('CLIENT_001: name is required');return;}const uris=get('redirectUris')?get('redirectUris').split('\n').map(s=>s.trim()).filter(Boolean):[];if(!uris.length){formError('CLIENT_002: redirectUris must be a non-empty array (even for M2M)');return;}if(!uris.every(u=>/^https:\/\//.test(u)||/^http:\/\/localhost(:\d+)?(\/|$)/.test(u))){formError('CLIENT_003: redirectUris must use https (or http://localhost for dev)');return;}const gr=grantsVal();if(!gr.length){formError('CLIENT_004: select at least one grant type');return;}const sc=(get('scope')||'openid profile email').split(/\s+/).filter(Boolean);if(!sc.every(s=>['openid','profile','email','offline_access'].includes(s))){formError('scope must be a subset of: openid profile email offline_access');return;}const tam=get('tokenAuthMethod')||'client_secret_basic';if(tam==='none'&&gr.some(g=>g==='client_credentials'||g.indexOf('device_code')>=0)){formError('B5: tokenAuthMethod "none" cannot be combined with client_credentials / device_code');return;}const bc=get('backchannelLogoutUri')||'';if(bc&&!/^https?:\/\//.test(bc)){formError('backchannelLogoutUri must be http(s)');return;}CLIENTS.push({name:n,clientId:'ab_new_'+Math.random().toString(36).slice(2,10),redirectUris:uris,grantTypes:gr,scope:sc.join(' '),tokenAuthMethod:tam,backchannelLogoutUri:bc||undefined,created:'just now'});renderClients();closeModal('formModal');reveal('Client secret','cs_'+Math.random().toString(36).slice(2,18),'Client ID: '+CLIENTS[CLIENTS.length-1].clientId);return;}
  else if(formKind==='apikeys'){const n=get('name');if(!n){formError('Name is required');return;}const secret='ab_'+Array.from({length:32},()=> 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random()*36)]).join('');APIKEYS.push({name:n,prefix:secret.slice(0,7),scopes:['users:read'],created:'just now',expires:get('expires')||null,revoked:false});renderApikeys();closeModal('formModal');reveal('API key — shown once',secret,'Copy it now: only a hash is stored, the plaintext is never shown again. Scopes are assigned server-side.');return;}
@@ -1467,6 +1474,7 @@ function renderOAuth(){
 $('bindGithub').onclick=()=>{if(!OAUTH_LINKS.some(k=>k.provider==='github')){OAUTH_LINKS.push({provider:'github',account:'admin-acme'});renderOAuth();}};
 $('bindGoogle').onclick=()=>{if(!OAUTH_LINKS.some(k=>k.provider==='google')){OAUTH_LINKS.push({provider:'google',account:'admin@acme.io'});renderOAuth();}};
 renderProfile();renderOAuth();
+renderStats(); // adjudication 19: after all demo data is defined (load-order)
 // R4: propagate thead labels + column priority onto tbody cells (drives card view + narrow hiding).
 // Re-applied via MutationObserver on every re-render (search/filter); colspan empty rows are skipped.
 (function(){const tables=[...document.querySelectorAll('.page table:not(.matrix):not(.plain)')];

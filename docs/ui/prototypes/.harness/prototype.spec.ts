@@ -52,7 +52,7 @@ test('dashboard-render', async ({ page }) => {
     trendSvg: !!document.querySelector('#trend'),
     activityItems: document.querySelectorAll('#activity li').length,
   }));
-  const pass = a.statCards === 4 && a.trendSvg && a.activityItems === 5;
+  const pass = a.statCards === 4 && !a.trendSvg && a.activityItems === 5; // adjudication 19: real has no chart
   rec('dashboard-render', pass, a);
   expect(pass, 'dashboard-render').toBe(true);
 });
@@ -629,6 +629,9 @@ test('dead-controls', async ({ page }) => {
   await page.keyboard.press('Escape');
   await page.evaluate(() => { (document.querySelector('[data-page=dashboard]') as HTMLElement).click(); });
   await page.locator('#dashRefresh').click();
+  await page.waitForTimeout(700); // adjudication 19: async load, first attempt simulated failure
+  await page.locator('#dashErrRetry').click();
+  await page.waitForTimeout(700);
   const refreshToast = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
   await page.locator('#viewAllBtn').click();
   const jumpedAudit = await page.evaluate(() => document.getElementById('page-audit')!.classList.contains('on'));
@@ -1501,4 +1504,68 @@ test('audit-model', async ({ page }) => {
     && loadErr.banner && loadErr.rows === 0 && loadOk.banner && loadOk.rows === 7;
   rec('audit-model', pass, a);
   expect(pass, 'audit-model').toBe(true);
+});
+
+test('dashboard-model', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 19 (A): 4 live Statistics (users/roles/sessions/audits, no deltas), no trend chart,
+  // activity = action+resourceType Tags + userId·relTime, refresh on activity head w/ error Alert +
+  // Spin-like loading, quick actions wired (create user opens the real-shaped create form).
+  const base = await page.evaluate(() => ({
+    stats: ['statUsers', 'statRoles', 'statSessions', 'statAudits'].map(id => document.getElementById(id)!.textContent),
+    live: [eval('USERS.length'), eval('ROLES.length'), eval('SESSIONS.length'), eval('AUDIT.length')].map(n => n.toLocaleString()),
+    noDelta: !document.querySelector('#page-dashboard .delta'),
+    noTrend: !document.querySelector('#trend'),
+    actTags: document.querySelectorAll('#activity li .t .tag').length,
+    actDesc: document.querySelector('#activity li .m')!.textContent!.includes('·'),
+    refreshInHead: !!document.querySelector('#page-dashboard .card-head #dashRefresh'),
+    inert: document.querySelectorAll('#page-dashboard .proto-inert').length,
+  }));
+  await page.locator('#dashRefresh').click();
+  const spin = await page.evaluate(() => document.querySelectorAll('#activity .skel').length);
+  await page.waitForTimeout(700);
+  const err = await page.evaluate(() => document.getElementById('dashErrBanner')!.style.display === 'flex');
+  await page.locator('#dashErrRetry').click();
+  await page.waitForTimeout(700);
+  const ok = await page.evaluate(() => ({ banner: document.getElementById('dashErrBanner')!.style.display === 'none', items: document.querySelectorAll('#activity li').length }));
+  await page.locator('#qaManageRoles').click();
+  const navRoles = await page.evaluate(() => document.getElementById('page-roles')!.classList.contains('on'));
+  await page.evaluate(() => { (document.querySelector('[data-page=dashboard]') as HTMLElement).click(); });
+  await page.locator('#qaCreateUser').click();
+  const form = await page.evaluate(() => ({
+    on: document.getElementById('formModal')!.classList.contains('on'),
+    usersPage: document.getElementById('page-users')!.classList.contains('on'),
+    fields: [...document.querySelectorAll('#formBody [data-field]')].map(el => el.getAttribute('data-field')),
+    pwdType: (document.querySelector('#formBody [data-field=password]') as HTMLInputElement).type,
+  }));
+  await page.locator('#formBody [data-field=name]').fill('E2E User');
+  await page.locator('#formBody [data-field=email]').fill('jane.doe@globex.com');
+  await page.locator('#formBody [data-field=password]').fill('Str0ng!Pass12');
+  await page.locator('#formSave').click();
+  const dup = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('EMAIL_EXISTS'));
+  await page.locator('#formBody [data-field=email]').fill('e2e.user@acme.io');
+  await page.locator('#formBody [data-field=password]').fill('weak');
+  await page.locator('#formSave').click();
+  const policy = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('12+'));
+  await page.locator('#formBody [data-field=password]').fill('Str0ng!Pass12');
+  const users0 = await page.evaluate(() => eval('USERS.length'));
+  await page.locator('#formSave').click();
+  const created = await page.evaluate(() => ({
+    users: eval('USERS.length'),
+    stat: document.getElementById('statUsers')!.textContent,
+    actFirst: document.querySelector('#activity li .t .tag')!.textContent,
+    closed: !document.getElementById('formModal')!.classList.contains('on'),
+  }));
+  await page.evaluate(() => { (document.querySelector('[data-page=dashboard]') as HTMLElement).click(); });
+  await page.locator('#viewAllBtn').click();
+  const navAudit = await page.evaluate(() => document.getElementById('page-audit')!.classList.contains('on'));
+  const a = { base, spin, err, ok, navRoles, form, dup, policy, users0, created, navAudit };
+  const pass = JSON.stringify(base.stats) === JSON.stringify(base.live) && base.noDelta && base.noTrend
+    && base.actTags === 10 && base.actDesc && base.refreshInHead && base.inert === 0
+    && spin === 8 && err && ok.banner && ok.items === 5 && navRoles
+    && form.on && form.usersPage && JSON.stringify(form.fields) === JSON.stringify(['name', 'email', 'password', 'roles']) && form.pwdType === 'password'
+    && dup && policy && created.users === users0 + 1 && created.stat === (users0 + 1).toLocaleString()
+    && created.actFirst === 'user.created' && created.closed && navAudit;
+  rec('dashboard-model', pass, a);
+  expect(pass, 'dashboard-model').toBe(true);
 });

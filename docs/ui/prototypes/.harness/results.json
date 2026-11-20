@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 279,
+        "svgIcons": 274,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -17,7 +17,7 @@
       "pass": true,
       "assertions": {
         "statCards": 4,
-        "trendSvg": true,
+        "trendSvg": false,
         "activityItems": 5
       }
     },
@@ -944,6 +944,59 @@
           "banner": true,
           "rows": 7
         }
+      }
+    },
+    "dashboard-model": {
+      "pass": true,
+      "assertions": {
+        "base": {
+          "stats": [
+            "12",
+            "5",
+            "3",
+            "7"
+          ],
+          "live": [
+            "12",
+            "5",
+            "3",
+            "7"
+          ],
+          "noDelta": true,
+          "noTrend": true,
+          "actTags": 10,
+          "actDesc": true,
+          "refreshInHead": true,
+          "inert": 0
+        },
+        "spin": 8,
+        "err": true,
+        "ok": {
+          "banner": true,
+          "items": 5
+        },
+        "navRoles": true,
+        "form": {
+          "on": true,
+          "usersPage": true,
+          "fields": [
+            "name",
+            "email",
+            "password",
+            "roles"
+          ],
+          "pwdType": "password"
+        },
+        "dup": true,
+        "policy": true,
+        "users0": 12,
+        "created": {
+          "users": 13,
+          "stat": "13",
+          "actFirst": "user.created",
+          "closed": true
+        },
+        "navAudit": true
       }
     }
   }
