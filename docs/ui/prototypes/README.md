@@ -22,6 +22,13 @@ branch and says so (see disclosure index). Read this file first, `CHANGELOG.md` 
   Member) and Webhooks → Operator / Auditor. They exercise permission gates; they are not real sessions.
 - Branding (Settings → General) persists to `localStorage` only — backend out of scope, mirroring real
   `Settings.tsx handleSaveSite`.
+- Tooltips are ONE body-level fixed element (`#floatTip`, z-index 600) shown on hover/focus of any
+  `[data-tip]` host. The earlier CSS `::after` bubble was clipped by `tbody td{overflow:hidden}` and
+  overpainted by later rows' sticky actions cells (`td:last-child{position:sticky;z-index:2}`), and
+  clipped by table/modal/drawer scroll containers; a fixed element outside every ancestor cannot be
+  clipped or overpainted. It flips below near the viewport top, clamps horizontally, hides on
+  scroll/resize/Escape/leave/blur (focused hosts survive programmatic scroll), and links
+  `aria-describedby` while visible. The zh pass translates `data-tip` attributes, so tooltips localize.
 
 ## Run the regression harness
 
@@ -64,7 +71,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | row-crud / dead-controls | edit prefill + delete confirm; no silent-dead controls | row-CRUD, 3, 26, 28 |
 | contrast / surfaces-contrast / danger-contrast | 4.5:1 across packs/themes incl. tint surfaces and danger two-tier | 1, 21 |
 | a11y-keyboard / modal-a11y / tabs-a11y | focus trap/return/labelledby, APG tabs, keyboard rows | 10, 16, 17 |
-| tooltip / overflow-menu / content-detail | tooltip mechanism/position, row overflow, truncate+detail | R1–R3 |
+| tooltip / overflow-menu / content-detail | body-level floating tooltip (no clipping/overpaint in any context), row overflow, truncate+detail | R1–R3, post-closure fix |
 | responsive-table / pagehead-overflow / table-fit / chip-columns | narrow adaptation, no phantom scrollbar, chip columns | R4, R5 |
 | combobox-popup / combobox-themed / cbx-disabled / cbx-capabilities | themed Select parity: clear/multiple/loading/keyboard/disabled mirror | 2, 15 |
 | topbar-fidelity | real topbar affordances only | 3 |

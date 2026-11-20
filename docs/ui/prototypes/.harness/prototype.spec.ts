@@ -654,33 +654,80 @@ test('a11y-keyboard', async ({ page }) => {
 
 test('tooltip', async ({ page }) => {
   await page.goto(FILE);
-  // R1=B: themed CSS tooltip on icon actions (data-tip + aria-label), hover + focus reveal.
+  // Post-closure fix: one body-level fixed tooltip replaces the CSS ::after bubble, which was clipped
+  // by tbody td{overflow:hidden} and overpainted by later rows' sticky actions cells (z-index:2), and
+  // clipped by table/modal scroll containers. Lock the whole class: for hosts in every risky context
+  // the bubble must be visible, on top at its own center (elementFromPoint), and inside the viewport.
   await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
   const edit = page.locator('#userRows button[data-tip="Edit"]').first();
   const aria = await edit.getAttribute('aria-label');
   const tip = await edit.getAttribute('data-tip');
-  const hiddenOpacity = await edit.evaluate(el => getComputedStyle(el, '::after').opacity);
-  await edit.hover();
-  await page.waitForTimeout(250); // let the .12s opacity transition finish
-  const hoverOpacity = await edit.evaluate(el => getComputedStyle(el, '::after').opacity);
-  const hoverContent = await edit.evaluate(el => getComputedStyle(el, '::after').content);
-  // keyboard/programmatic focus also reveals the tooltip
-  const view = page.locator('#userRows button[data-tip="View"]').first();
-  await view.focus();
-  await page.waitForTimeout(250);
-  const focusOpacity = await view.evaluate(el => getComputedStyle(el, '::after').opacity);
-  // disabled (locked) row action is wrapped in .tip-wrap so its hint still shows on hover
+  const hiddenOpacity = await page.evaluate(() => getComputedStyle(document.getElementById('floatTip')!).opacity);
+  const probe = async (sel: string) => {
+    const host = page.locator(sel).first();
+    await host.hover();
+    await page.waitForTimeout(200);
+    return page.evaluate((s) => {
+      const h = document.querySelector(s)!;
+      const ft = document.getElementById('floatTip')!;
+      const r = ft.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      ft.style.pointerEvents = 'auto'; // hit-test probe only; painting order is unchanged
+      const topEl = document.elementFromPoint(cx, cy);
+      ft.style.pointerEvents = 'none';
+      return {
+        on: ft.classList.contains('on'),
+        text: ft.textContent,
+        want: h.getAttribute('data-tip'),
+        opacity: getComputedStyle(ft).opacity,
+        onTop: topEl === ft,
+        inViewport: r.top >= 0 && r.left >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight,
+        described: h.getAttribute('aria-describedby') === 'floatTip',
+      };
+    }, sel);
+  };
+  const stickyRow = await probe('#userRows button[data-tip="Edit"]');
+  const wrapperEdge = await probe('[data-reload=users]');
+  const flipTop = await probe('#themeBtn');
+  await page.evaluate(() => { (document.querySelector('[data-page=tenants]') as HTMLElement).click(); });
+  const clippedCell = await probe('#tenantRows .copyable button[data-tip="Copy"]');
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  // focus reveal (keyboard parity)
+  await page.locator('#userRows button[data-tip="View"]').first().focus();
+  await page.waitForTimeout(200);
+  const focusTip = await page.evaluate(() => ({ on: document.getElementById('floatTip')!.classList.contains('on'), text: document.getElementById('floatTip')!.textContent }));
+  // modal-internal host: bubble must escape the modal scroll container
+  await page.evaluate(() => { (document.querySelector('#userRows [data-detail="user"]') as HTMLElement).click(); });
+  await page.locator('#detailModal .icon-btn.close').focus();
+  await page.waitForTimeout(200);
+  const modalTip = await page.evaluate(() => {
+    const h = document.querySelector('#detailModal .icon-btn.close')!;
+    const ft = document.getElementById('floatTip')!;
+    const r = ft.getBoundingClientRect();
+    ft.style.pointerEvents = 'auto';
+    const topEl = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    ft.style.pointerEvents = 'none';
+    return { on: ft.classList.contains('on'), text: ft.textContent, want: h.getAttribute('data-tip'), opacity: getComputedStyle(ft).opacity, onTop: topEl === ft, inViewport: r.top >= 0 && r.left >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight, described: h.getAttribute('aria-describedby') === 'floatTip' };
+  });
+  await page.keyboard.press('Escape');
+  // disabled (locked) row action keeps its .tip-wrap host so the hint still shows
   await page.evaluate(() => { (document.querySelector('[data-page=roles]') as HTMLElement).click(); });
   const wrap = page.locator('#roleRows .tip-wrap').first();
   const wrapTip = await wrap.getAttribute('data-tip');
   const btnDisabled = await wrap.locator('button').evaluate(el => (el as HTMLButtonElement).disabled);
   const btnAria = await wrap.locator('button').getAttribute('aria-label');
   await wrap.hover();
-  await page.waitForTimeout(250);
-  const wrapHoverOpacity = await wrap.evaluate(el => getComputedStyle(el, '::after').opacity);
-  const a = { aria, tip, hiddenOpacity, hoverOpacity, hoverContent, focusOpacity, wrapTip, btnDisabled, btnAria, wrapHoverOpacity };
-  const pass = aria === 'Edit' && tip === 'Edit' && hiddenOpacity === '0' && hoverOpacity === '1'
-    && hoverContent === '"Edit"' && focusOpacity === '1' && btnDisabled && btnAria === wrapTip && wrapHoverOpacity === '1';
+  await page.waitForTimeout(200);
+  const wrapOn = await page.evaluate(() => document.getElementById('floatTip')!.classList.contains('on') && document.getElementById('floatTip')!.textContent === document.querySelector('#roleRows .tip-wrap')!.getAttribute('data-tip'));
+  // leave hides
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(200);
+  const hiddenAfter = await page.evaluate(() => !document.getElementById('floatTip')!.classList.contains('on'));
+  const contexts = [stickyRow, clippedCell, wrapperEdge, flipTop, modalTip];
+  const a = { aria, tip, hiddenOpacity, contexts, focusTip, wrapTip, btnDisabled, btnAria, wrapOn, hiddenAfter };
+  const pass = aria === 'Edit' && tip === 'Edit' && hiddenOpacity === '0'
+    && contexts.every(c => c.on && c.text === c.want && c.opacity === '1' && c.onTop && c.inViewport && c.described)
+    && focusTip.on && focusTip.text === 'View' && btnDisabled && btnAria === wrapTip && wrapOn && hiddenAfter;
   rec('tooltip', pass, a);
   expect(pass, 'tooltip').toBe(true);
 });
@@ -1629,15 +1676,12 @@ test('reduced-motion', async ({ page }) => {
     const sk = document.createElement('div'); sk.className = 'skel'; document.body.appendChild(sk);
     const knob = document.querySelector('.wswitch .knob')!;
     const chev = document.querySelector('.cbx-chev')!;
-    const tipHost = document.querySelector('[data-tip]')!;
-    const tip = getComputedStyle(tipHost, '::after');
     const r = {
       matches: matchMedia('(prefers-reduced-motion: reduce)').matches,
       skel: getComputedStyle(sk).animationName,
       knob: getComputedStyle(knob).transitionDuration,
       chev: getComputedStyle(chev).transitionDuration,
-      tip: tip.transitionDuration,
-      tipTransform: tip.transform,
+      tip: getComputedStyle(document.getElementById('floatTip')!).transitionDuration,
       scroll: getComputedStyle(document.documentElement).scrollBehavior,
     };
     sk.remove();
@@ -1650,7 +1694,7 @@ test('reduced-motion', async ({ page }) => {
     const r = {
       skel: getComputedStyle(sk).animationName,
       knob: getComputedStyle(document.querySelector('.wswitch .knob')!).transitionDuration,
-      tip: getComputedStyle(document.querySelector('[data-tip]')!, '::after').transitionDuration,
+      tip: getComputedStyle(document.getElementById('floatTip')!).transitionDuration,
     };
     sk.remove();
     return r;
@@ -1658,7 +1702,7 @@ test('reduced-motion', async ({ page }) => {
   await page.goto(AUTH);
   const reducedAuth = await page.evaluate(() => {
     const sp = document.createElement('span'); sp.className = 'spin'; document.body.appendChild(sp);
-    const r = { spin: getComputedStyle(sp).animationName, tip: getComputedStyle(document.querySelector('[data-tip]')!, '::after').transitionDuration };
+    const r = { spin: getComputedStyle(sp).animationName, tip: getComputedStyle(document.getElementById('floatTip')!).transitionDuration };
     sp.remove(); return r;
   });
   await page2.goto(AUTH);
@@ -1669,9 +1713,8 @@ test('reduced-motion', async ({ page }) => {
   });
   await page2.close();
   const a = { reduced, normal, reducedAuth, normalAuth };
-  const ty = (m: string) => Number(m.replace('matrix(', '').replace(')', '').split(',')[5]);
   const pass = reduced.matches && reduced.skel === 'none' && reduced.knob === '0s' && reduced.chev === '0s'
-    && reduced.tip === '0s' && ty(reduced.tipTransform) === 0
+    && reduced.tip === '0s'
     && reduced.scroll === 'auto'
     && normal.skel === 'skel' && normal.knob !== '0s' && normal.tip !== '0s'
     && reducedAuth.spin === 'none' && reducedAuth.tip === '0s' && normalAuth.spin === 'cbxrot';

@@ -43,10 +43,14 @@ html{scrollbar-color:var(--bd2) transparent;scrollbar-width:thin}
    hover + keyboard focus; .tip-wrap wraps disabled buttons (no :hover on disabled) so locked /
    not-wired hints still appear. Matrix cells / page-head Create / select keep native title. */
 [data-tip]{position:relative}
-[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%) translateY(3px);background:var(--surface);color:var(--tx1);border:1px solid var(--bd);border-radius:var(--r4);font-size:var(--fs11);font-weight:500;line-height:1.35;padding:3px 8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;z-index:300;transition:opacity .12s ease,transform .12s ease}
-[data-tip]:hover::after,[data-tip]:focus::after,[data-tip]:focus-within::after{opacity:1;transform:translateX(-50%) translateY(0)}
-.topbar [data-tip]::after{bottom:auto;top:calc(100% + 6px);transform:translateX(-50%) translateY(-3px)}
-.topbar [data-tip]:hover::after,.topbar [data-tip]:focus::after,.topbar [data-tip]:focus-within::after{transform:translateX(-50%) translateY(0)}
+/* Post-closure fix (user-reported: row tooltip obscured by neighbouring rows): the CSS ::after
+   bubble could not escape clipping/stacking ancestors — tbody td{overflow:hidden} clipped it and the
+   sticky actions column (td:last-child{position:sticky;z-index:2}) confined it to a per-cell stacking
+   context that later rows paint over; table/modal/drawer scroll containers clipped edge bubbles.
+   Replaced by ONE body-level fixed tooltip (#floatTip) above every context: no ancestor can clip or
+   overpaint it. Pack tokens still apply; reduced-motion collapses its fade. */
+#floatTip{position:fixed;z-index:600;background:var(--surface);color:var(--tx1);border:1px solid var(--bd);border-radius:var(--r4);font-size:var(--fs11);font-weight:500;line-height:1.35;padding:3px 8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;transition:opacity .12s ease;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+#floatTip.on{opacity:1}
 .tip-wrap{display:inline-flex;position:relative}
 /* R2 overflow menu (adjudication R2=A): reusable drop-down for secondary/danger row actions;
    position:fixed so it escapes the table's overflow-x clip. R5 toolbar overflow reuses it. */
@@ -594,8 +598,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
    is instant. Mirrors AntD motion tokens set to zero (motionDurationMid=0). WCAG 2.3.3 / 2.2.2. */
 @media (prefers-reduced-motion: reduce){
   .skel,.cbx-load .ic,.spin,[style*="cbxrot"]{animation:none !important}
-  .wswitch .knob,.cbx-chev,[data-tip]::after{transition:none !important}
-  [data-tip]::after,.topbar [data-tip]::after{transform:translateX(-50%)}
+  .wswitch .knob,.cbx-chev,#floatTip{transition:none !important}
   *{scroll-behavior:auto !important}
 }
 </style>
@@ -994,7 +997,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   <div class="modal-foot"><button class="btn" data-close="confirmModal" id="confirmCancel">Cancel</button><button class="btn danger" id="confirmDelete">Delete</button></div>
 </div></div>
 <div class="modal-overlay" id="detailModal"><div class="modal" role="dialog" aria-modal="true">
-  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-eye"/></svg><h3 id="detailTitle">Detail</h3><button class="icon-btn close" aria-label="Close" data-close="detailModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-eye"/></svg><h3 id="detailTitle">Detail</h3><button class="icon-btn close" aria-label="Close" data-tip="Close" data-close="detailModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body" id="detailBody"></div>
   <div class="modal-foot"><button class="btn" data-close="detailModal">Close</button></div>
 </div></div>
@@ -1772,6 +1775,26 @@ renderStats(); // adjudication 19: after all demo data is defined (load-order)
 (function(){const tables=[...document.querySelectorAll('.page table:not(.matrix):not(.plain)')];
 function label(t){const ths=[...t.querySelectorAll('thead th')];t.querySelectorAll('tbody tr').forEach(tr=>{if(tr.children.length!==ths.length)return;[...tr.children].forEach((td,i)=>{const th=ths[i];td.setAttribute('data-label',th.textContent.trim());if(th.dataset.prio)td.setAttribute('data-prio',th.dataset.prio);else td.removeAttribute('data-prio');});});}
 tables.forEach(t=>{label(t);const tb=t.querySelector('tbody');if(tb)new MutationObserver(()=>label(t)).observe(tb,{childList:true});});})();
+/* ==== body-level floating tooltip (post-closure fix) ====
+   One fixed element outside every overflow/stacking ancestor; shown on hover AND focus of any
+   [data-tip] host (disabled buttons keep their .tip-wrap host). Reads the attribute at show time so
+   the zh pass applies. Flips below near the viewport top, clamps horizontally, hides on scroll/resize/
+   Escape/leave/blur. aria-describedby links host -> tooltip while visible. */
+const floatTip=document.createElement('div');floatTip.id='floatTip';floatTip.setAttribute('role','tooltip');document.body.appendChild(floatTip);
+let tipHost=null;
+function tipShow(host){const txt=host.getAttribute('data-tip');if(!txt)return;tipHost=host;floatTip.textContent=txt;floatTip.classList.add('on');host.setAttribute('aria-describedby','floatTip');
+ const r=host.getBoundingClientRect();const tw=floatTip.offsetWidth,th=floatTip.offsetHeight;
+ let top=r.top-th-6;if(top<4)top=r.bottom+6;
+ let left=r.left+r.width/2-tw/2;left=Math.max(4,Math.min(left,window.innerWidth-tw-4));
+ floatTip.style.top=top+'px';floatTip.style.left=left+'px';}
+function tipHide(){if(tipHost){tipHost.removeAttribute('aria-describedby');tipHost=null;}floatTip.classList.remove('on');}
+document.addEventListener('mouseover',e=>{const h=e.target.closest('[data-tip]');if(h&&h!==tipHost)tipShow(h);});
+document.addEventListener('mouseout',e=>{const h=e.target.closest('[data-tip]');if(h&&(!e.relatedTarget||!h.contains(e.relatedTarget))){if(document.activeElement===tipHost)return;tipHide();}});
+document.addEventListener('focusin',e=>{const h=e.target.closest('[data-tip]');if(h)tipShow(h);});
+document.addEventListener('focusout',e=>{const h=e.target.closest('[data-tip]');if(h)setTimeout(()=>{if(!document.activeElement||!document.activeElement.closest||!document.activeElement.closest('[data-tip]'))tipHide();},0);});
+document.addEventListener('scroll',()=>{if(tipHost&&document.activeElement===tipHost)return;tipHide();},true);
+window.addEventListener('resize',()=>tipHide());
+document.addEventListener('keydown',e=>{if(e.key==='Escape')tipHide();});
 initLang();
 </script>
 <div class="proto-toast" id="protoToast" role="status" aria-live="polite"></div>

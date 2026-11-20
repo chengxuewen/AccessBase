@@ -1063,3 +1063,24 @@ companion 112 checks min 4.67; reduced-motion degraded + normal intact on both f
 both dictionaries). Verdict: the kit is self-consistent — every semantic surface, motion family,
 tint-bearing color and locale dictionary is locked, every simulated failure is disclosed, and the
 handoff README indexes locks, disclosures, adjudications and provenance. Series closed at 34 rulings.
+
+## Post-closure fix (user-reported): row tooltip obscured by neighbouring rows — body-level floating tooltip — 2026-11-20
+Report: in the users detail/list surface the hover hint bubble on row items was hidden behind inline
+row content. Root cause analysis found a whole CLASS of clipping/stacking defects in the CSS ::after
+tooltip mechanism, not a single position bug: (1) tbody td{overflow:hidden} clips any bubble extending
+beyond its cell (Copy/Edit/Delete/More/Manage/Init/rotate/ping/deliveries hints); (2) the sticky actions
+column td:last-child{position:sticky;z-index:2} creates a per-cell stacking context, so a later row's
+sticky cell paints OVER an earlier row's bubble — exactly the reported symptom; (3) the table wrappers
+(div overflow-x:auto), .modal{overflow-y:auto}, .drawer .modal-body{overflow-y:auto}, .matrix-wrap and
+.sidebar{overflow:hidden} clip bubbles at their edges. Fix: replace the ::after mechanism in BOTH
+prototypes with ONE body-level fixed #floatTip (z-index 600, above menu 400 / modal 50), shown on hover
+AND focus of any [data-tip] host (disabled buttons keep their .tip-wrap host), reading the attribute at
+show time so the zh pass applies; it flips below near the viewport top, clamps horizontally, and hides
+on scroll/resize/Escape/leave/blur — with guards so a focused host's tooltip survives programmatic
+scroll and mouse boundary events; aria-describedby links host to tooltip while visible. detailModal's
+close button gained data-tip so modal-internal hints exist and are locked. Harness tooltip group
+rewritten to lock the whole class: five risky contexts (sticky actions cell, overflow-hidden copy cell,
+table-wrapper toolbar, viewport-top flip, modal-internal close) each assert visible + correct text +
+opacity 1 + elementFromPoint at bubble center is the tooltip (paint-order proof) + inside viewport +
+aria-describedby, plus focus reveal, disabled-wrap reveal and hide-on-leave; reduced-motion group
+synced to #floatTip. Full re-run: 56 groups, 0 failures. Screenshot: row bubble unobscured.
