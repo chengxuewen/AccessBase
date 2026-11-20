@@ -780,3 +780,14 @@ open dialog; closeModal returns focus to the trigger when still connected+visibl
 click now route through closeModal (recovery-modal guard preserved). New harness modal-a11y (42 total):
 initial focus inside + labelledby=formTitle, trap wrap forward/back, Escape returns to Edit trigger,
 detail labelledby=detailTitle, overlay click returns to View trigger. All 42 pass.
+
+## Adjudication 17 (A): tabs WAI-ARIA pattern + keyboard-selectable Roles rows — 2026-11-20
+Panel a11y deferred open item: tabs were bare .on buttons (no tablist/tab/aria-selected/aria-controls,
+no arrow keys) and Roles selectable rows had no keyboard path. Real Settings uses AntD Tabs (rc-tabs
+provides the full APG pattern). Ruling A: both tablists get role=tablist + aria-label; tabs get
+role=tab + id + aria-controls + aria-selected + roving tabindex; all six panes get role=tabpanel +
+aria-labelledby; syncTabs keeps aria-selected/tabindex in step inside setTab/setSettingsTab; a global
+keydown implements Left/Right/Home/End roving focus+activation per tablist; Roles tr.clickable gains
+tabindex=0 + aria-selected + Enter/Space selection (re-focus after re-render) + --focus focus ring.
+New harness tabs-a11y (43 total): semantics/roving/pane linkage, Right/End/Home/Left-wrap on Settings,
+Right on Groups, Roles row Enter/Space selection + aria-selected + focus retention. All 43 pass.

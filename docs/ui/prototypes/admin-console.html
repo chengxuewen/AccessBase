@@ -210,6 +210,7 @@ html[data-theme="dark"] .cbx-list{box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .cbx-opt{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--r4);font-size:var(--fs12);color:var(--tx1);cursor:pointer;white-space:nowrap}
 .cbx-opt:hover,.cbx-opt.active{background:var(--sunken)}
 .cbx-opt[aria-selected="true"]{color:var(--accent);font-weight:500}
+tr.clickable:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
 .cbx-opt[aria-selected="true"]::after{content:"\2713";margin-left:auto;color:var(--accent)}
 .toolbar .cbx-btn{padding:5px 8px;font-size:var(--fs12)}
 .scope-box .cbx-btn{padding:4px 8px;font-size:var(--fs12)}
@@ -710,12 +711,12 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       </div>
       <div class="card panel" id="groupPanel" style="display:none">
         <div class="panel-head"><svg class="ic" style="color:var(--accent)"><use href="#i-users"/></svg><h3 id="panelName"></h3><span class="tag" id="panelKind"></span><button class="icon-btn close" id="panelClose" data-tip="Close" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
-        <div class="tabs"><button class="on" data-tab="members">Members <span id="tabMemberCount"></span></button><button data-tab="roles">Roles <span id="tabRoleCount"></span></button></div>
-        <div class="tab-pane on" id="pane-members">
+        <div class="tabs" role="tablist" aria-label="Group detail"><button class="on" role="tab" id="tab-members" aria-controls="pane-members" aria-selected="true" tabindex="0" data-tab="members">Members <span id="tabMemberCount"></span></button><button role="tab" id="tab-roles" aria-controls="pane-roles" aria-selected="false" tabindex="-1" data-tab="roles">Roles <span id="tabRoleCount"></span></button></div>
+        <div class="tab-pane on" id="pane-members" role="tabpanel" aria-labelledby="tab-members">
           <ul class="member-list" id="memberList"></ul>
           <div class="add-member"><select id="memberPicker"><option value="">Add a member…</option></select><button class="btn primary" id="addMemberBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add</button></div>
         </div>
-        <div class="tab-pane" id="pane-roles">
+        <div class="tab-pane" id="pane-roles" role="tabpanel" aria-labelledby="tab-roles">
           <div class="role-checks" id="roleChecks"></div>
           <button class="btn primary" id="saveRolesBtn" style="margin-top:16px">Save role bindings</button>
         </div>
@@ -820,14 +821,14 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
     <section class="page" id="page-settings">
       <div class="page-head"><div><h1>Settings</h1><div class="sub">Branding, session security, platform options and email templates</div></div></div>
       <div class="card">
-        <div class="tabs" id="settingsTabs"><button class="on" data-tab="sgeneral">General</button><button data-tab="ssecurity">Security</button><button data-tab="soptions">Options</button><button data-tab="semail">Email templates</button></div>
-        <div class="tab-pane on" id="pane-sgeneral">
+        <div class="tabs" id="settingsTabs" role="tablist" aria-label="Settings"><button class="on" role="tab" id="tab-sgeneral" aria-controls="pane-sgeneral" aria-selected="true" tabindex="0" data-tab="sgeneral">General</button><button role="tab" id="tab-ssecurity" aria-controls="pane-ssecurity" aria-selected="false" tabindex="-1" data-tab="ssecurity">Security</button><button role="tab" id="tab-soptions" aria-controls="pane-soptions" aria-selected="false" tabindex="-1" data-tab="soptions">Options</button><button role="tab" id="tab-semail" aria-controls="pane-semail" aria-selected="false" tabindex="-1" data-tab="semail">Email templates</button></div>
+        <div class="tab-pane on" id="pane-sgeneral" role="tabpanel" aria-labelledby="tab-sgeneral">
           <div class="field"><label>Site name</label><input id="brandName"></div>
           <div class="field"><label>Logo URL</label><input id="brandLogo" placeholder="https://example.com/logo.svg"></div>
           <div class="field"><label>Primary color</label><input id="brandColor" type="color" style="width:64px;height:32px;padding:2px"></div>
           <div style="margin-top:var(--sp12)"><button class="btn primary" id="brandSave">Save branding</button></div>
         </div>
-        <div class="tab-pane" id="pane-ssecurity">
+        <div class="tab-pane" id="pane-ssecurity" role="tabpanel" aria-labelledby="tab-ssecurity">
           <div class="card panel"><div class="panel-head"><h3>Active sessions</h3><button class="btn danger ghost sm" id="revokeOthersBtn2" style="margin-left:auto">Log out other devices</button></div>
             <div style="padding:var(--sp16)"><div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Device</th><th>IP</th><th>Signed in</th><th style="text-align:right">Session</th></tr></thead><tbody id="sessionRows"></tbody></table></div></div></div>
           <div class="card panel"><div class="panel-head"><h3>Idle timeout</h3></div>
@@ -837,11 +838,11 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
           <div class="card panel"><div class="panel-head"><h3>Passkeys</h3><button class="btn sm" id="passkeyAdd" style="margin-left:auto"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Register passkey</button></div>
             <div style="padding:var(--sp16)"><div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Name</th><th>Added</th><th style="text-align:right">Actions</th></tr></thead><tbody id="passkeyRows"></tbody></table></div></div></div>
         </div>
-        <div class="tab-pane" id="pane-soptions">
+        <div class="tab-pane" id="pane-soptions" role="tabpanel" aria-labelledby="tab-soptions">
           <div style="padding:var(--sp16)"><div style="display:flex;justify-content:flex-end;margin-bottom:var(--sp12)"><button class="btn primary" id="optionAdd"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add option</button></div>
           <div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Key</th><th>Value</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody id="optionRows"></tbody></table></div></div>
         </div>
-        <div class="tab-pane" id="pane-semail">
+        <div class="tab-pane" id="pane-semail" role="tabpanel" aria-labelledby="tab-semail">
           <div style="padding:var(--sp16)"><div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Template</th><th>Subject</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody id="templateRows"></tbody></table></div></div>
         </div>
       </div>
@@ -985,7 +986,7 @@ function renderRoles(){
  const q=$('roleSearch').value.toLowerCase();
  const list=ROLES.filter(r=>!q||r.name.toLowerCase().includes(q)||r.desc.toLowerCase().includes(q));
  $('roleCount').textContent=ROLES.length+' roles';
- $('roleRows').innerHTML=list.map(r=>{const idx=ROLES.indexOf(r);return '<tr class="clickable'+(idx===selRole?' sel':'')+'" data-role="'+idx+'"><td><div class="entity-name">'+(r.system?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+r.name+(r.system?' <span class="sys-tag">system</span>':'')+'</div></td><td style="color:var(--tx2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.desc+'</td><td><span class="perm-count">'+r.perms.length+'</span></td><td>'+r.tenant+'</td><td class="mono">'+r.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Edit')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Edit')+'"><svg class="ic"><use href="#'+(r.system?'i-lock':'i-pencil')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Delete')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('')||emptyRow(7,'roles',ROLES.length,'roles');
+ $('roleRows').innerHTML=list.map(r=>{const idx=ROLES.indexOf(r);return '<tr class="clickable'+(idx===selRole?' sel':'')+'" data-role="'+idx+'" tabindex="0" aria-selected="'+(idx===selRole?'true':'false')+'"><td><div class="entity-name">'+(r.system?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+r.name+(r.system?' <span class="sys-tag">system</span>':'')+'</div></td><td style="color:var(--tx2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.desc+'</td><td><span class="perm-count">'+r.perms.length+'</span></td><td>'+r.tenant+'</td><td class="mono">'+r.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Edit')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Edit')+'"><svg class="ic"><use href="#'+(r.system?'i-lock':'i-pencil')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(r.system?'Locked (system role)':'Delete')+'"><button  '+(r.system?'disabled':'')+' aria-label="'+(r.system?'Locked (system role)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('')||emptyRow(7,'roles',ROLES.length,'roles');
  document.querySelectorAll('#roleRows tr').forEach(tr=>tr.onclick=e=>{if(e.target.closest('button'))return;selRole=+tr.dataset.role;renderRoles();renderMatrix();});
 }
 function renderMatrix(){
@@ -1027,7 +1028,8 @@ function renderGroups(){
  $('groupRows').innerHTML=list.map(g=>{const idx=GROUPS.indexOf(g);return '<tr><td><div class="entity-name">'+g.name+'</div></td><td>'+kindTag(g.kind)+'</td><td style="color:var(--tx2)">'+g.desc+'</td><td><span class="perm-count">'+g.members.length+'</span></td><td><span class="perm-count">'+g.roles.length+'</span></td><td class="mono">'+g.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Manage" data-manage="'+idx+'" aria-label="Manage"><svg class="ic"><use href="#i-users"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('')||emptyRow(8,'groups',GROUPS.length,'groups');
  document.querySelectorAll('#groupRows [data-manage]').forEach(b=>b.onclick=()=>{selGroup=+b.dataset.manage;groupTab='members';openPanel();});
 }
-function setTab(tb){groupTab=tb;document.querySelectorAll('#groupPanel .tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tb));$('pane-members').classList.toggle('on',tb==='members');$('pane-roles').classList.toggle('on',tb==='roles');}
+function syncTabs(sel,tb){document.querySelectorAll(sel).forEach(b=>{const on=b.dataset.tab===tb;b.classList.toggle('on',on);b.setAttribute('aria-selected',on?'true':'false');b.tabIndex=on?0:-1;});}
+function setTab(tb){groupTab=tb;syncTabs('#groupPanel .tabs button',tb);$('pane-members').classList.toggle('on',tb==='members');$('pane-roles').classList.toggle('on',tb==='roles');}
 function renderMembers(){
  const g=GROUPS[selGroup];
  $('tabMemberCount').textContent='('+g.members.length+')';
@@ -1366,7 +1368,11 @@ function renderMfa(){$('mfaBody').innerHTML=MFA.enabled?'<div class="error-banne
  if(MFA.enabled){$('mfaOpenDisable').onclick=()=>{$('mfaDisablePwd').value='';$('mfaDisableErr').style.display='none';openModal('mfaDisableModal');};}
  else{$('mfaOpenSetup').onclick=()=>{$('mfaCode').value='';$('mfaSetupErr').style.display='none';$('mfaSecret').textContent='JBSWY3DPEHPK3PXP JBSWY3DPEHPK3PXP';openModal('mfaSetupModal');};}}
 function renderBranding(){$('brandName').value=BRANDING.siteName;$('brandLogo').value=BRANDING.logoUrl;$('brandColor').value=BRANDING.primaryColor;}
-function setSettingsTab(tb){document.querySelectorAll('#settingsTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tb));['sgeneral','ssecurity','soptions','semail'].forEach(k=>$('pane-'+k).classList.toggle('on',k===tb));}
+function setSettingsTab(tb){syncTabs('#settingsTabs button',tb);['sgeneral','ssecurity','soptions','semail'].forEach(k=>$('pane-'+k).classList.toggle('on',k===tb));}
+/* Adjudication 17 (A): WAI-ARIA tabs pattern — Left/Right/Home/End roving focus within a tablist
+   (parity with AntD Tabs / rc-tabs); selectable Roles rows gain a keyboard path + aria-selected. */
+document.addEventListener('keydown',e=>{const tb=e.target.closest&&e.target.closest('[role=tab]');if(!tb)return;if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const tl=tb.closest('[role=tablist]');const tabs=[...tl.querySelectorAll('[role=tab]')];const i=tabs.indexOf(tb);const ni=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;const key=tabs[ni].dataset.tab;if(tl.id==='settingsTabs')setSettingsTab(key);else setTab(key);tabs[ni].focus();});
+document.addEventListener('keydown',e=>{const tr=e.target.closest&&e.target.closest('#roleRows tr[tabindex]');if(!tr||e.target!==tr)return;if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();selRole=+tr.dataset.role;renderRoles();renderMatrix();const nt=document.querySelector('#roleRows tr[data-role="'+selRole+'"]');if(nt)nt.focus();});
 document.querySelectorAll('#settingsTabs button').forEach(b=>b.onclick=()=>setSettingsTab(b.dataset.tab));
 $('brandSave').onclick=()=>{BRANDING.siteName=$('brandName').value.trim()||'AccessBase';BRANDING.logoUrl=$('brandLogo').value.trim();BRANDING.primaryColor=$('brandColor').value;const nm=document.querySelector('.brand .name');if(nm)nm.childNodes[0].nodeValue=BRANDING.siteName;toast('Branding saved');};
 $('idleSelect').onchange=()=>{const v=+$('idleSelect').value;const row=OPTIONS.find(o=>o.key==='session.idle_timeout_seconds');if(row){row.value=v;row.updated='just now';}else{OPTIONS.push({key:'session.idle_timeout_seconds',value:v,updated:'just now'});}renderOptions();toast('Idle timeout saved');};

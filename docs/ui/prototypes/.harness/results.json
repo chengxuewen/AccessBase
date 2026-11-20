@@ -861,6 +861,56 @@
           "back": true
         }
       }
+    },
+    "tabs-a11y": {
+      "pass": true,
+      "assertions": {
+        "sem": {
+          "list": "tablist",
+          "tabs": 4,
+          "sel": "true",
+          "roving": [
+            0,
+            -1,
+            -1,
+            -1
+          ],
+          "pane": "tabpanel",
+          "labelled": "tab-sgeneral"
+        },
+        "right": {
+          "sel": "true",
+          "focused": "tab-ssecurity",
+          "paneOn": true
+        },
+        "end": {
+          "sel": "true",
+          "focused": "tab-semail"
+        },
+        "home": {
+          "sel": "true",
+          "focused": "tab-sgeneral"
+        },
+        "leftWrap": "tab-semail",
+        "gRight": {
+          "sel": "true",
+          "paneOn": true,
+          "labelled": "tab-roles"
+        },
+        "rowSem": {
+          "tab": "0",
+          "aria": "true"
+        },
+        "enterSel": {
+          "sel": 2,
+          "aria": "true",
+          "focused": "2"
+        },
+        "spaceSel": {
+          "sel": 1,
+          "aria": "true"
+        }
+      }
     }
   }
 }

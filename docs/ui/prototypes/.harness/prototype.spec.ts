@@ -1389,3 +1389,54 @@ test('modal-a11y', async ({ page }) => {
   rec('modal-a11y', pass, a);
   expect(pass, 'modal-a11y').toBe(true);
 });
+
+test('tabs-a11y', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 17 (A): WAI-ARIA tabs pattern (tablist/tab/aria-selected/aria-controls + tabpanel
+  // labelledby + Left/Right/Home/End roving focus, AntD Tabs parity) and keyboard-selectable Roles rows.
+  await page.evaluate(() => { (document.querySelector('[data-page=settings]') as HTMLElement).click(); });
+  const sem = await page.evaluate(() => ({
+    list: document.getElementById('settingsTabs')!.getAttribute('role'),
+    tabs: document.querySelectorAll('#settingsTabs [role=tab]').length,
+    sel: document.getElementById('tab-sgeneral')!.getAttribute('aria-selected'),
+    roving: [...document.querySelectorAll('#settingsTabs [role=tab]')].map(b => b.tabIndex),
+    pane: document.getElementById('pane-sgeneral')!.getAttribute('role'),
+    labelled: document.getElementById('pane-sgeneral')!.getAttribute('aria-labelledby'),
+  }));
+  await page.locator('#tab-sgeneral').focus();
+  await page.keyboard.press('ArrowRight');
+  const right = await page.evaluate(() => ({ sel: document.getElementById('tab-ssecurity')!.getAttribute('aria-selected'), focused: document.activeElement!.id, paneOn: document.getElementById('pane-ssecurity')!.classList.contains('on') }));
+  await page.keyboard.press('End');
+  const end = await page.evaluate(() => ({ sel: document.getElementById('tab-semail')!.getAttribute('aria-selected'), focused: document.activeElement!.id }));
+  await page.keyboard.press('Home');
+  const home = await page.evaluate(() => ({ sel: document.getElementById('tab-sgeneral')!.getAttribute('aria-selected'), focused: document.activeElement!.id }));
+  await page.keyboard.press('ArrowLeft');
+  const leftWrap = await page.evaluate(() => document.activeElement!.id);
+  // groups tablist
+  await page.evaluate(() => { (document.querySelector('[data-page=groups]') as HTMLElement).click(); (document.querySelector('#groupRows [data-manage]') as HTMLElement).click(); });
+  await page.locator('#tab-members').focus();
+  await page.keyboard.press('ArrowRight');
+  const gRight = await page.evaluate(() => ({ sel: document.getElementById('tab-roles')!.getAttribute('aria-selected'), paneOn: document.getElementById('pane-roles')!.classList.contains('on'), labelled: document.getElementById('pane-roles')!.getAttribute('aria-labelledby') }));
+  // roles rows keyboard path
+  await page.evaluate(() => { (document.querySelector('[data-page=roles]') as HTMLElement).click(); });
+  const rowSem = await page.evaluate(() => ({ tab: document.querySelector('#roleRows tr')!.getAttribute('tabindex'), aria: document.querySelector('#roleRows tr')!.getAttribute('aria-selected') }));
+  await page.evaluate(() => { (document.querySelectorAll('#roleRows tr')[2] as HTMLElement).focus(); });
+  await page.keyboard.press('Enter');
+  const enterSel = await page.evaluate(() => ({ sel: eval('selRole'), aria: document.querySelectorAll('#roleRows tr')[2].getAttribute('aria-selected'), focused: document.activeElement!.getAttribute('data-role') }));
+  await page.evaluate(() => { (document.querySelectorAll('#roleRows tr')[1] as HTMLElement).focus(); });
+  await page.keyboard.press(' ');
+  const spaceSel = await page.evaluate(() => ({ sel: eval('selRole'), aria: document.querySelectorAll('#roleRows tr')[1].getAttribute('aria-selected') }));
+  const a = { sem, right, end, home, leftWrap, gRight, rowSem, enterSel, spaceSel };
+  const pass = sem.list === 'tablist' && sem.tabs === 4 && sem.sel === 'true'
+    && JSON.stringify(sem.roving) === JSON.stringify([0, -1, -1, -1])
+    && sem.pane === 'tabpanel' && sem.labelled === 'tab-sgeneral'
+    && right.sel === 'true' && right.focused === 'tab-ssecurity' && right.paneOn
+    && end.sel === 'true' && end.focused === 'tab-semail'
+    && home.sel === 'true' && home.focused === 'tab-sgeneral' && leftWrap === 'tab-semail'
+    && gRight.sel === 'true' && gRight.paneOn && gRight.labelled === 'tab-roles'
+    && rowSem.tab === '0' && rowSem.aria === 'true'
+    && enterSel.sel === 2 && enterSel.aria === 'true' && enterSel.focused === '2'
+    && spaceSel.sel === 1 && spaceSel.aria === 'true';
+  rec('tabs-a11y', pass, a);
+  expect(pass, 'tabs-a11y').toBe(true);
+});
