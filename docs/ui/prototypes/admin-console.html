@@ -670,6 +670,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   <header class="topbar">
     <div class="crumb">Admin / <b id="crumbPage">Dashboard</b></div>
     <div class="top-actions">
+      <button class="btn sm" id="langBtn" data-tip="Language" aria-label="Language">中文</button>
       <select id="styleSelect" title="Style pack" style="padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit"><option value="broadsheet">Broadsheet</option><option value="geist">Geist</option><option value="material">Material</option><option value="fluent">Fluent</option><option value="ant">Ant</option><option value="carbon">Carbon</option><option value="cupertino">Cupertino</option></select>
       <button class="icon-btn" id="themeBtn" data-tip="Toggle theme" aria-label="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
       <div class="tenant-tag" title="Tenant partition is set by your sign-in token (read-only)"><svg class="ic" style="width:13px;height:13px"><use href="#i-building"/></svg><span>Acme Corp</span></div>
@@ -1001,6 +1002,108 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 <script>
 addEventListener("load",()=>{const l=document.createElement("link");l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Roboto:wght@400;500&family=Inter:wght@400;500;600&display=swap";document.head.appendChild(l);});
 const $=id=>document.getElementById(id);
+/* ==== Adjudication 31 (A): bilingual chrome (en canonical / zh) ====
+   Real contract: i18n/index.ts stored+probe language, topbar 中文/EN toggle (aria-label),
+   en/zh key parity test; relative timestamps follow the UI language because Tenants.tsx:57-58
+   sets dayjs.locale per render (register != activate). The prototype mirrors the affordance and
+   the locale-aware relative forms via an en->zh translation pass over text nodes + chrome
+   attributes; data values (names/emails/ids/urls/JSON/dates/codes) never match dictionary keys
+   and are left untouched; [data-i18n-skip] exempts data-bearing name cells. Originals are kept
+   on the nodes so switching back to en restores exactly. A MutationObserver translates async
+   renders while zh is active. */
+const I18N_ZH={
+'Overview':'概览','Identity':'身份','Access':'访问','Operations':'运维','System':'系统',
+'Dashboard':'仪表盘','Users':'用户','Roles':'角色','Groups':'用户组','Tenants':'租户','OIDC Clients':'OIDC 客户端','API Keys':'API 密钥','Webhooks':'Webhooks','Audit Log':'审计日志','Events':'事件','Profile':'个人资料','Settings':'设置',
+'Admin /':'管理 /','Identity & Access':'身份与访问',
+'Identity platform overview · counts live from prototype data':'身份平台概览 · 计数来自原型数据',
+'Manage accounts, status and roles · prototype shows multi-tenant demo data; the real console partitions by sign-in token':'管理账户、状态与角色 · 原型展示多租户演示数据；真实控制台按登录令牌分区',
+'Role definitions and permission bindings · 26 builtin permissions':'角色定义与权限绑定 · 26 个内置权限',
+'User groups and departments · membership and role bindings':'用户组与部门 · 成员与角色绑定',
+'Isolated identity partitions · slug, status and lifecycle':'隔离的身份分区 · slug、状态与生命周期',
+'Event endpoints · subscriptions and delivery health':'事件端点 · 订阅与投递健康',
+'Service credentials · scoped, expiring, revocable · immutable — revoke & reissue to change':'服务凭据 · 有范围、可过期、可吊销 · 不可变 —— 变更需吊销后重发',
+'Append-only, hash-chained record of every mutation · export is a server-side full export of all rows matching the filters (tenant-safe)':'仅追加、哈希链记录每次变更 · 导出为服务端按过滤条件全量导出（租户安全）',
+'Domain event stream · typed payloads and fanout state':'域事件流 · 类型化 payload 与 fanout 状态',
+'Your account, security and linked identities':'你的账户、安全与关联身份',
+'Branding, session security, platform options and email templates':'品牌、会话安全、平台选项与邮件模板',
+'Search name or email…':'按姓名或邮箱搜索…','Search roles…':'搜索角色…','Search groups…':'搜索用户组…','Search name or slug…':'按名称或 slug 搜索…','Search name or client ID…':'按名称或 Client ID 搜索…','Search name or prefix…':'按名称或前缀搜索…','Search URL…':'搜索 URL…','Filter actor…':'按操作者过滤…','Filter event type…':'按事件类型过滤…',
+'All tenants':'全部租户','All status':'全部状态','All kinds':'全部类型','All families':'全部族','All actions':'全部操作','All rows':'全部行',
+'Reload':'重新加载','Reset filters':'重置过滤','Search':'搜索','Import':'导入','Export':'导出','Refresh':'刷新','Preview':'预览',
+'Create user':'创建用户','Create role':'创建角色','Create group':'创建用户组','Create tenant':'创建租户','Register client':'注册客户端','Issue key':'签发密钥','Add endpoint':'添加端点','Add option':'添加选项','Edit template':'编辑模板','Create admin':'创建管理员',
+'From date':'起始日期','To date':'结束日期','From day':'起始日','To day':'结束日','range → startDate/endDate':'范围 → startDate/endDate','Real console uses an AntD RangePicker mapping to startDate/endDate':'真实控制台使用 AntD RangePicker，映射为 startDate/endDate',
+'Style pack':'样式包','Toggle theme':'切换主题','Language':'语言','Collapse':'收起','Expand':'展开','More actions':'更多操作','Manage':'管理','View':'查看','View detail':'查看详情','View all':'查看全部','View audit':'查看审计','Edit':'编辑','Delete':'删除','Remove':'移除','Copy':'复制','Retry':'重试','Cancel':'取消','Close':'关闭','Save':'保存','Create':'创建','Add':'添加','Clear':'清空','Clear all':'全部清空','Clear filters':'清除过滤',
+'Send test':'发送测试','Send ping':'发送 ping','Send verification':'发送验证','Rotate secret':'轮换 secret','Deliveries':'投递记录','Verify chain':'校验链',
+'Export failed.':'导出失败。','Verification failed.':'校验失败。','Hash chain verified':'哈希链校验通过','Load failed — retry':'加载失败 — 重试',
+'User':'用户','Status':'状态','Tenant':'租户','Created':'创建时间','Actions':'操作','Name':'名称','Kind':'类型','Description':'描述','Members':'成员','Slug':'Slug','Client ID':'Client ID','Redirect URIs':'重定向 URI','Grant types':'授权类型','Scope':'范围','Scopes':'范围','Expires':'过期时间','Prefix':'前缀','URL':'URL','Pending':'待投递','Dead':'死信','Time':'时间','Type':'类型','Payload':'Payload','Fanout':'Fanout','Detail':'详情','Actor':'操作者','Action':'操作','Target':'目标','Resource':'资源','Response':'响应','Attempts':'尝试次数','Device':'设备','IP':'IP','IP address':'IP 地址','Session':'会话','Signed in':'登录时间','Current':'当前','Key':'键','Value':'值','Value (JSON)':'值（JSON）','Subject':'主题','Template':'模板','Permissions':'权限','Role':'角色','Event':'事件',
+'Active':'活跃','Suspended':'已暂停','Revoked':'已吊销','Done':'完成','Department':'部门','Group':'用户组','Default':'默认','default':'默认','System':'系统','system':'系统','mixed':'混合','Mixed (stored scopes diverge)':'混合（存储 scope 分歧）','Self only':'仅本人','no parent':'无父角色','not applicable':'不适用','not granted':'未授予','granted':'已授予','inherits viewer':'继承 viewer','platform-only (locked for tenant roles)':'仅平台（租户角色锁定）','No such permission':'无此权限','users:* data scope':'users:* 数据范围','Locked (system role)':'锁定（系统角色）','Locked (default tenant)':'锁定（默认租户）','System role is read-only':'系统角色只读','Already revoked':'已吊销','Never':'永不','Off':'关闭','Enabled':'已启用','Disable':'禁用','Enable':'启用','complete':'完成','delivered':'已投递','pending':'待投递','dead':'死信',
+'1 hour':'1 小时','8 hours':'8 小时','24 hours':'24 小时','7 days':'7 天','just now':'刚刚',
+'No results match the current filters':'没有符合当前过滤条件的结果','Try adjusting or clearing the filters.':'尝试调整或清除过滤条件。',
+'Delete user':'删除用户','Delete role':'删除角色','Delete client':'删除客户端','Delete webhook':'删除 webhook','Remove member':'移除成员','Revoke API key':'吊销 API 密钥','Suspend':'暂停','Activate':'激活','Reactivate':'重新激活','Revoke':'吊销','Unlink':'解绑','Force logout':'强制登出','Log out other devices':'登出其他设备','Save empty':'保存为空',
+'Suspend ':'暂停 ','Activate ':'激活 ','Delete ':'删除 ','Remove ':'移除 ','Revoke ':'吊销 ','Unlink ':'解绑 ',
+'? All tenant sessions and API keys are revoked immediately; reactivating does not restore them.':'？所有租户会话与 API key 立即吊销；重新激活不会恢复它们。',
+'? Users can sign in again; previously revoked sessions and keys stay revoked.':'？用户可重新登录；此前吊销的会话与 key 保持吊销。',
+'? The key stops working immediately and cannot be restored — issue a new key to replace it.':'？该密钥立即失效且不可恢复 —— 需签发新密钥替代。',
+'from the prototype data? This cannot be undone.':'从原型数据中删除？此操作不可撤销。',
+'Email':'邮箱','Password':'密码','Admin name':'管理员姓名','Current password':'当前密码','New password':'新密码','Confirm new password':'确认新密码','Site name':'站点名称','Logo URL':'Logo URL','Primary color':'主色','Verification code':'验证码','Legal basis (required)':'法律依据（必填）','Also erase audit data (RTBF)':'同时擦除审计数据（RTBF）','e.g. GDPR Art. 17 request #1234':'例如 GDPR Art. 17 请求 #1234','I have saved these recovery codes':'我已保存这些恢复码',
+'Token endpoint auth method':'Token 端点认证方法','Back-channel logout URI (optional, http(s))':'Back-channel 登出 URI（可选，http(s)）','Redirect URIs (one per line, https or http://localhost)':'重定向 URI（每行一个，https 或 http://localhost）','Subject (EN)':'主题（EN）','Subject (ZH)':'主题（ZH）','HTML (EN)':'HTML（EN）','HTML (ZH)':'HTML（ZH）',
+'Name is required':'名称必填','Key is required':'键必填','A valid recipient email is required':'需要有效的收件邮箱','A valid email is required':'需要有效邮箱',
+'Password needs 12+ chars with upper, lower, digit and special':'密码需 12+ 字符，含大写、小写、数字与特殊字符',
+'Passwords need 12+ characters with an uppercase letter, a lowercase letter, a digit and a special character.':'密码需 12+ 字符，含大写字母、小写字母、数字与特殊字符。',
+'Policy: same as user creation — 12+ chars with upper, lower, digit and special.':'策略：与创建用户一致 —— 12+ 字符，含大写、小写、数字与特殊字符。',
+'Copied to clipboard':'已复制到剪贴板','Copy failed':'复制失败','Saved':'已保存','Deleted':'已删除',
+'Group created':'用户组已创建','Tenant created':'租户已创建','Tenant updated':'租户已更新','Tenant suspended':'租户已暂停','Tenant activated':'租户已激活','Tenant deleted':'租户已删除','Client registered':'客户端已注册','Client deleted':'客户端已删除','Client secret rotated':'客户端 secret 已轮换','API key issued':'API 密钥已签发','Member added':'成员已添加','Member removed':'成员已移除','Roles saved':'角色已保存','Initial admin created':'初始管理员已创建','Endpoint updated':'端点已更新','Secret rotated':'Secret 已轮换','Ping queued (webhook.test)':'Ping 已排队（webhook.test）',
+'Rotate failed: upstream timeout (prototype simulation) — retry':'轮换失败：上游超时（原型模拟）— 重试','Update failed: upstream timeout (prototype simulation) — retry':'更新失败：上游超时（原型模拟）— 重试',
+'Create failed: upstream timeout (prototype simulation) — retry.':'创建失败：上游超时（原型模拟）— 重试。','Delete failed: upstream timeout (prototype simulation) — retry.':'删除失败：上游超时（原型模拟）— 重试。','Status change failed: upstream timeout (prototype simulation) — retry.':'状态变更失败：上游超时（原型模拟）— 重试。','Add failed: upstream timeout (prototype simulation) — retry':'添加失败：上游超时（原型模拟）— 重试','Remove failed: upstream timeout (prototype simulation) — retry.':'移除失败：上游超时（原型模拟）— 重试。','Save failed: upstream timeout (prototype simulation) — retry.':'保存失败：上游超时（原型模拟）— 重试。',
+'Failed to load audit entries: upstream timeout (prototype simulation) — retry.':'加载审计条目失败：上游超时（原型模拟）— 重试。','Failed to load options: upstream timeout (prototype simulation) — retry.':'加载选项失败：上游超时（原型模拟）— 重试。','Failed to load events: upstream timeout (prototype simulation) — retry.':'加载事件失败：上游超时（原型模拟）— 重试。','Failed to load deliveries: upstream timeout (prototype simulation) — retry.':'加载投递记录失败：上游超时（原型模拟）— 重试。','Failed to load group detail: upstream timeout (prototype simulation) — retry.':'加载用户组详情失败：上游超时（原型模拟）— 重试。','Failed to load member candidates: upstream timeout (prototype simulation) — retry.':'加载成员候选失败：上游超时（原型模拟）— 重试。','Preview failed: template service timeout (prototype simulation) — retry.':'预览失败：模板服务超时（原型模拟）— 重试。',
+'Failed to save idle timeout.':'保存空闲超时失败。','Failed to load options.':'加载选项失败。','Failed to load audit entries.':'加载审计条目失败。','Failed to load dashboard stats.':'加载仪表盘统计失败。',
+'403 FORBIDDEN: this tab requires options:read.':'403 FORBIDDEN：此 tab 需要 options:read。','Requires options:write.':'需要 options:write。','Read-only across all resources':'跨所有资源只读',
+'Administrator · options:read+write':'管理员 · options:read+write','Auditor · options:read only':'审计员 · 仅 options:read','Member · no options perms':'成员 · 无 options 权限','Auditor · read-only':'审计员 · 只读','Operator · webhooks:write':'操作员 · webhooks:write','Permission perspective (demo)':'权限视角（演示）','Perspective: ':'视角：',
+'Personal information':'个人信息','Edit name':'编辑姓名','Change password':'修改密码','Reset your password':'重置密码','Two-factor authentication (MFA)':'双因素认证（MFA）','Set up MFA':'设置 MFA','Disable MFA':'禁用 MFA',
+'Scan with your authenticator app, then enter the 6-digit code.':'用认证器 App 扫描，然后输入 6 位代码。','Protect your account with a time-based one-time code (TOTP). Recovery codes are shown once at setup.':'用基于时间的一次性码（TOTP）保护账户。恢复码仅在设置时展示一次。','Disabling removes your authenticator and all recovery codes. Confirm with your current password.':'禁用将移除认证器与所有恢复码。需当前密码确认。',
+'Your recovery codes':'你的恢复码','Recovery codes — shown once':'恢复码 — 仅展示一次','Store these safely. Each code works once if you lose your authenticator. They will not be shown again.':'妥善保存。丢失认证器时每个码可用一次。不会再次展示。',
+'Passkeys':'通行密钥','Register passkey':'注册通行密钥','Linked accounts':'关联账户','Bind GitHub':'绑定 GitHub','Bind Google':'绑定 Google','Linked as':'已绑定为','Active sessions':'活跃会话','Active Sessions':'活跃会话',
+'You are invited':'你受邀请','Verify your email':'验证你的邮箱','Your email is not verified.':'你的邮箱未验证。','Primary identity sink':'主身份汇聚','Quick actions':'快捷操作','Recent activity':'最近活动','Total Users':'用户总数','Active Roles':'活跃角色','Manage users and groups':'管理用户与组','Manage roles':'管理角色','Back to dashboard':'返回仪表盘',
+'Access denied':'访问被拒绝','Page not found':'页面不存在','Something went wrong':'出现错误','Request access':'申请权限',
+'An unexpected error interrupted this view and the error boundary captured it. Retrying re-renders the last page; your data is untouched.':'意外错误中断了此视图，错误边界已捕获。重试将重新渲染上一页；你的数据不受影响。',
+'The route you followed does not exist in this console. It may have been renamed or removed.':'你访问的路由在此控制台不存在。可能已被改名或移除。',
+'Your role does not include the permission this surface requires. Ask an administrator to grant it, or return to a page you can access.':'你的角色不含此界面所需权限。请管理员授予，或返回你有权限的页面。',
+'General':'通用','Security':'安全','Options':'选项','Email templates':'邮件模板','Idle timeout':'空闲超时','Sign out after inactivity':'无活动后登出','Save branding':'保存品牌',
+'Branding persists to localStorage only — backend out of scope (real Settings.tsx handleSaveSite).':'品牌仅持久化到 localStorage —— 后端不在范围（真实 Settings.tsx handleSaveSite）。','A server-side default still applies when unset.':'未设置时仍适用服务端默认值。',
+'Save role bindings':'保存角色绑定','Save template':'保存模板','Unsaved permission changes':'未保存的权限变更','Permission matrix':'权限矩阵','Group detail':'用户组详情','Init admin':'初始化管理员','Bootstrap the first administrator of this tenant.':'引导该租户的首个管理员。','This tenant already has an initial administrator (alreadyBootstrapped).':'该租户已有初始管理员（alreadyBootstrapped）。',
+'Add a member…':'添加成员…','Loading candidates…':'加载候选中…','Tenant partition is set by your sign-in token (read-only)':'租户分区由登录令牌设定（只读）','Full platform access (built-in)':'全平台访问（内置）','Audit and compliance read access':'审计与合规只读访问','Billing reports and webhook delivery':'账单报告与 webhook 投递','Ops fan-out':'运维 fan-out','Hash-chained log':'哈希链日志','QR placeholder':'QR 占位','Secret':'Secret',
+'This secret is shown only once. Copy it now — it cannot be retrieved again.':'此 secret 仅展示一次。立即复制 —— 无法再次获取。','Created:':'创建时间：','Tenant:':'租户：','Fanout:':'Fanout：',
+'Staged edit: cell clicks draft changes; Save commits async (saving an empty set raises a danger confirm), mapping to the real AntD Transfer picker + modal Save · scope fans out to users:* on save · system role is read-only':'暂存编辑：点击单元格起草变更；Save 异步提交（保存空集合会弹 danger 确认），对应真实 AntD Transfer 选择器 + 模态 Save · 保存时 scope fan-out 到 users:* · 系统角色只读',
+'Erasure requires tenant-wide (all) data scope.':'擦除需要租户级（all）数据范围。','Prototype: not wired':'原型：未接线',
+};
+const I18N_RULES=[
+ [/^(\d+) users$/,'$1 个用户'],[/^(\d+) roles$/,'$1 个角色'],[/^(\d+) tenants$/,'$1 个租户'],[/^(\d+) groups$/,'$1 个用户组'],[/^(\d+) clients$/,'$1 个客户端'],[/^(\d+) keys$/,'$1 个密钥'],[/^(\d+) endpoints$/,'$1 个端点'],[/^(\d+) events$/,'$1 个事件'],[/^(\d+) entries$/,'$1 条记录'],[/^(\d+) perms$/,'$1 个权限'],
+ [/^(\d+) perms · system$/,'$1 个权限 · 系统'],[/^(\d+) \/ 26 granted$/,'已授予 $1 / 26'],[/^(\d+)–(\d+) of (\d+)$/,'第 $1–$2 条，共 $3 条'],
+ [/^(\d+) (m|h|d|w|mo) ago$/,function(m){return m[1]+' '+({m:'分钟',h:'小时',d:'天',w:'周',mo:'个月'})[m[2]]+'前';}],
+ [/^(\d+) (minutes|hours|days|weeks|months) ago$/,function(m){return m[1]+' '+({minutes:'分钟',hours:'小时',days:'天',weeks:'周',months:'个月'})[m[2]]+'前';}],
+ [/^from (.+)\? They lose every role and permission inherited from this group\.$/,'从 $1 移除？其将失去从该组继承的所有角色与权限。'],
+ [/^Deliveries · (.+)$/,'投递记录 · $1'],[/^Edit template · (.+)$/,'编辑模板 · $1'],
+];
+let LANG='en';try{const st=localStorage.getItem('ab-lang');LANG=(st==='zh'||st==='en')?st:(navigator.language||'en').startsWith('zh')?'zh':'en';}catch(_){}
+function tr(s){if(LANG!=='zh')return s;const hit=I18N_ZH[s];if(hit)return hit;for(const[re,rep]of I18N_RULES){const m=s.match(re);if(m)return typeof rep==='function'?rep(m):s.replace(re,rep);}return s;}
+const I18N_ATTRS=['placeholder','aria-label','data-tip','title'];
+function translateNode(root){
+ if(!root)return;
+ if(root.nodeType===3){const raw=root.textContent;const s=raw.trim();if(!s)return;const z=tr(s);if(LANG==='zh'){if(root.__i18nEn===undefined)root.__i18nEn=raw;if(z!==s)root.textContent=raw.replace(s,z);}else if(root.__i18nEn!==undefined){root.textContent=root.__i18nEn;delete root.__i18nEn;}return;}
+ if(root.nodeType!==1&&root.nodeType!==9)return;
+ if(root.nodeType===1){
+  if(root.hasAttribute&&root.hasAttribute('data-i18n-skip'))return;
+  if(root.__i18nEnAttrs===undefined&&LANG==='zh'){root.__i18nEnAttrs={};I18N_ATTRS.forEach(a=>{if(root.hasAttribute(a))root.__i18nEnAttrs[a]=root.getAttribute(a);});}
+  I18N_ATTRS.forEach(a=>{if(!root.hasAttribute(a))return;const src=LANG==='zh'?(root.__i18nEnAttrs&&root.__i18nEnAttrs[a]!==undefined?root.__i18nEnAttrs[a]:root.getAttribute(a)):root.getAttribute(a);const z=tr(src);if(LANG==='zh'){if(z!==src)root.setAttribute(a,z);}else if(root.__i18nEnAttrs&&root.__i18nEnAttrs[a]!==undefined){root.setAttribute(a,root.__i18nEnAttrs[a]);}});
+  if(LANG==='en'&&root.__i18nEnAttrs)delete root.__i18nEnAttrs;
+ }
+ for(const child of Array.from(root.childNodes))translateNode(child);
+}
+function updateLangBtn(){const b=$('langBtn');if(!b)return;b.textContent=LANG==='zh'?'EN':'中文';const lab=LANG==='zh'?'语言':'Language';b.setAttribute('aria-label',lab);b.setAttribute('data-tip',lab);b.__i18nEnAttrs={'aria-label':'Language','data-tip':'Language'};}
+let i18nTimer=null;
+new MutationObserver(()=>{if(LANG!=='zh')return;clearTimeout(i18nTimer);i18nTimer=setTimeout(()=>translateNode(document.body),30);}).observe(document.body,{childList:true,subtree:true,characterData:true});
+function initLang(){document.documentElement.lang=LANG;updateLangBtn();if(LANG==='zh')translateNode(document.body);}
+$('langBtn').onclick=()=>{LANG=LANG==='zh'?'en':'zh';try{localStorage.setItem('ab-lang',LANG);}catch(_){}document.documentElement.lang=LANG;updateLangBtn();translateNode(document.body);};
+
 const STYLE_MIGRATE={enterprise:'broadsheet',engineer:'geist',google:'material',microsoft:'fluent'};try{let s=localStorage.getItem('ab_style')||'broadsheet';s=STYLE_MIGRATE[s]||s;document.documentElement.dataset.style=s;localStorage.setItem('ab_style',s);}catch(e){}
 const styleSel=$('styleSelect');styleSel.value=document.documentElement.dataset.style||'broadsheet';
 styleSel.onchange=()=>{document.documentElement.dataset.style=styleSel.value;try{localStorage.setItem('ab_style',styleSel.value)}catch(e){}};
@@ -1125,7 +1228,7 @@ function renderGroups(){
  const q=$('groupSearch').value.toLowerCase();const kf=$('kindFilter').value;
  const list=GROUPS.filter(g=>(!q||g.name.toLowerCase().includes(q))&&(!kf||g.kind===kf));
  $('groupCount').textContent=GROUPS.length+' groups';
- $('groupRows').innerHTML=list.map(g=>{const idx=GROUPS.indexOf(g);return '<tr><td><div class="entity-name">'+g.name+'</div></td><td>'+kindTag(g.kind)+'</td><td style="color:var(--tx2)">'+g.desc+'</td><td><span class="perm-count">'+g.members.length+'</span></td><td><span class="perm-count">'+g.roles.length+'</span></td><td class="mono">'+g.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Manage" data-manage="'+idx+'" aria-label="Manage"><svg class="ic"><use href="#i-users"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('')||emptyRow(8,'groups',GROUPS.length,'groups');
+ $('groupRows').innerHTML=list.map(g=>{const idx=GROUPS.indexOf(g);return '<tr><td><div class="entity-name"><span data-i18n-skip>'+g.name+'</span></div></td><td>'+kindTag(g.kind)+'</td><td style="color:var(--tx2)">'+g.desc+'</td><td><span class="perm-count">'+g.members.length+'</span></td><td><span class="perm-count">'+g.roles.length+'</span></td><td class="mono">'+g.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Manage" data-manage="'+idx+'" aria-label="Manage"><svg class="ic"><use href="#i-users"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('')||emptyRow(8,'groups',GROUPS.length,'groups');
  document.querySelectorAll('#groupRows [data-manage]').forEach(b=>b.onclick=()=>{selGroup=+b.dataset.manage;groupTab='members';openPanel();});
 }
 function syncTabs(sel,tb){document.querySelectorAll(sel).forEach(b=>{const on=b.dataset.tab===tb;b.classList.toggle('on',on);b.setAttribute('aria-selected',on?'true':'false');b.tabIndex=on?0:-1;});}
@@ -1256,12 +1359,15 @@ $('initSubmit').onclick=()=>{const t=TENANTS[initIdx];const em=$('initEmail').va
   t.bootstrapped=true;USERS.push([nm,em,'active',t.name,'just now',[]]);closeModal('initAdminModal');toast('Initial admin created');renderTenants();},400);};
 
 
+/* Adjudication 31 (A): tenants created column is relative like the real fromNow() (Tenants.tsx:219);
+   the zh translation pass localizes the rendered relative form (real sets dayjs.locale per render). */
+function relFrom(iso){const days=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/86400000));if(days<1)return 'just now';if(days<7)return days+(days===1?' day ago':' days ago');if(days<30){const w=Math.round(days/7);return w+(w===1?' week ago':' weeks ago');}const mo=Math.round(days/30);return mo+(mo===1?' month ago':' months ago');}
 function renderTenants(){
  const q=$('tenantSearch').value.toLowerCase();const sf='';
  const list=TENANTS.filter(t=>(!q||t.name.toLowerCase().includes(q)||t.slug.includes(q))&&(!sf||t.status===sf));
  $('tenantCount').textContent=TENANTS.length+' tenants';
  $('tenantRows').innerHTML=list.map(t=>{const i=TENANTS.indexOf(t);const locked=t.isDefault;
-  return '<tr><td><div class="entity-name">'+(locked?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+esc(t.name)+(locked?' <span class="sys-tag">default</span>':'')+'</div></td><td>'+copyCell(t.slug)+'</td><td>'+(t.status==='active'?'<span class="tag ok"><span class="dot"></span>Active</span>':'<span class="tag danger"><span class="dot"></span>Suspended</span>')+'</td><td class="mono">'+t.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Init admin')+'"><button data-tinit="'+i+'" '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Init admin')+'"><svg class="ic"><use href="#i-user"/></svg></button></span><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Edit')+'"><button  '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Edit')+'"><svg class="ic"><use href="#i-pencil"/></svg></button></span><span class="tip-wrap" data-tip="'+(t.status==='active'?'Suspend':'Activate')+'"><button  data-tstatus="'+i+'" '+(locked?'disabled':'')+' aria-label="'+(t.status==='active'?'Suspend':'Activate')+'"><svg class="ic"><use href="#'+(t.status==='active'?'i-x':'i-check')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Delete')+'"><button  '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('')||emptyRow(6,'tenants',TENANTS.length,'tenants');
+  return '<tr><td><div class="entity-name">'+(locked?'<svg class="ic lock-ic"><use href="#i-lock"/></svg>':'')+'<span data-i18n-skip>'+esc(t.name)+'</span>'+(locked?' <span class="sys-tag">default</span>':'')+'</div></td><td>'+copyCell(t.slug)+'</td><td>'+(t.status==='active'?'<span class="tag ok"><span class="dot"></span>Active</span>':'<span class="tag danger"><span class="dot"></span>Suspended</span>')+'</td><td class="mono">'+relFrom(t.created)+'</td><td><div class="row-actions" style="justify-content:flex-end"><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Init admin')+'"><button data-tinit="'+i+'" '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Init admin')+'"><svg class="ic"><use href="#i-user"/></svg></button></span><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Edit')+'"><button  '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Edit')+'"><svg class="ic"><use href="#i-pencil"/></svg></button></span><span class="tip-wrap" data-tip="'+(t.status==='active'?'Suspend':'Activate')+'"><button  data-tstatus="'+i+'" '+(locked?'disabled':'')+' aria-label="'+(t.status==='active'?'Suspend':'Activate')+'"><svg class="ic"><use href="#'+(t.status==='active'?'i-x':'i-check')+'"/></svg></button></span><span class="tip-wrap" data-tip="'+(locked?'Locked (default tenant)':'Delete')+'"><button  '+(locked?'disabled':'')+' aria-label="'+(locked?'Locked (default tenant)':'Delete')+'"><svg class="ic"><use href="#i-trash"/></svg></button></span></div></td></tr>';}).join('')||emptyRow(6,'tenants',TENANTS.length,'tenants');
  document.querySelectorAll('[data-tstatus]').forEach(b=>b.onclick=()=>{const i=+b.dataset.tstatus;const t=TENANTS[i];const sus=t.status==='active';tStatusTried=false;openConfirm('tenants-status',i,{verb:sus?'Suspend':'Activate',title:sus?'Suspend tenant':'Activate tenant',toast:sus?'Tenant suspended':'Tenant activated',run:(done,fail)=>{setTimeout(()=>{if(!tStatusTried){tStatusTried=true;fail('Status change failed: upstream timeout (prototype simulation) — retry.');return;}DEL['tenants-status'](i);done();},400);},msg:sus?'Suspend <strong>'+esc(t.name)+'</strong>? All tenant sessions and API keys are revoked immediately; reactivating does not restore them.':'Activate <strong>'+esc(t.name)+'</strong>? Users can sign in again; previously revoked sessions and keys stay revoked.'});});
  document.querySelectorAll('[data-tinit]').forEach(b=>b.onclick=()=>openInitAdmin(+b.dataset.tinit));
 }
@@ -1666,6 +1772,7 @@ renderStats(); // adjudication 19: after all demo data is defined (load-order)
 (function(){const tables=[...document.querySelectorAll('.page table:not(.matrix):not(.plain)')];
 function label(t){const ths=[...t.querySelectorAll('thead th')];t.querySelectorAll('tbody tr').forEach(tr=>{if(tr.children.length!==ths.length)return;[...tr.children].forEach((td,i)=>{const th=ths[i];td.setAttribute('data-label',th.textContent.trim());if(th.dataset.prio)td.setAttribute('data-prio',th.dataset.prio);else td.removeAttribute('data-prio');});});}
 tables.forEach(t=>{label(t);const tb=t.querySelector('tbody');if(tb)new MutationObserver(()=>label(t)).observe(tb,{childList:true});});})();
+initLang();
 </script>
 <div class="proto-toast" id="protoToast" role="status" aria-live="polite"></div>
 </body>

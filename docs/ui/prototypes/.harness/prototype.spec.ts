@@ -1634,6 +1634,66 @@ test('reduced-motion', async ({ page }) => {
   expect(pass, 'reduced-motion').toBe(true);
 });
 
+test('i18n', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 31 (A): topbar 中文/EN toggle (stored+probe, aria-label), zh chrome translation incl.
+  // locale-aware relative times, data values untouched, exact en restore, dictionary parity/coverage.
+  const en0 = await page.evaluate(() => ({ btn: document.getElementById('langBtn')!.textContent, aria: document.getElementById('langBtn')!.getAttribute('aria-label'), nav: document.querySelector('[data-page=users] .lbl')!.textContent }));
+  await page.locator('#langBtn').click();
+  const zhUsers = await page.evaluate(() => ({
+    lang: document.documentElement.lang,
+    btn: document.getElementById('langBtn')!.textContent,
+    nav: document.querySelector('[data-page=users] .lbl')!.textContent,
+    h1: document.querySelector('#page-users h1')!.textContent,
+    tag: document.querySelector('#userRows .tag')!.textContent!.trim(),
+    search: (document.getElementById('userSearch') as HTMLInputElement).placeholder,
+    stored: localStorage.getItem('ab-lang'),
+  }));
+  await page.evaluate(() => { const s = document.getElementById('userSearch') as HTMLInputElement; s.value = 'zzzz'; s.dispatchEvent(new Event('input')); });
+  await page.waitForTimeout(80); // translation observer debounce
+  const zhEmpty = await page.evaluate(() => document.querySelector('#page-users .empty, #userRows')!.textContent!);
+  await page.evaluate(() => { const s = document.getElementById('userSearch') as HTMLInputElement; s.value = ''; s.dispatchEvent(new Event('input')); (document.querySelector('[data-page=tenants]') as HTMLElement).click(); });
+  const zhTenants = await page.evaluate(() => ({ created: document.querySelectorAll('#tenantRows tr')[1].textContent!.includes('个月前'), head: document.querySelector('#page-tenants h1')!.textContent, name0: document.querySelectorAll('#tenantRows tr')[0].textContent!.includes('Default') }));
+  await page.locator('#tenantRows [data-tstatus]:not([disabled])').first().click();
+  await page.waitForTimeout(80);
+  const zhVerb = await page.evaluate(() => document.getElementById('confirmDelete')!.textContent);
+  await page.locator('#confirmCancel').click();
+  await page.evaluate(() => { (document.querySelector('[data-page=groups]') as HTMLElement).click(); });
+  const zhData = await page.evaluate(() => ({ sec: [...document.querySelectorAll('#groupRows tr')].some(tr => tr.textContent!.includes('Security')), email: true }));
+  await page.evaluate(() => { (document.querySelector('[data-page=settings]') as HTMLElement).click(); });
+  const zhTab = await page.evaluate(() => [...document.querySelectorAll('#settingsTabs button')].map(b => b.textContent!.trim()));
+  const dict = await page.evaluate(() => {
+    const vals = Object.values(eval('I18N_ZH')) as string[];
+    const keys = Object.keys(eval('I18N_ZH'));
+    const coverage = ['Users', 'Roles', 'Settings', 'Active', 'Suspended', 'Delete', 'Cancel', 'Retry', 'Clear filters', 'No results match the current filters', 'Copied to clipboard', 'Save empty', 'Created', 'Status', 'General', 'Security', 'Options', 'Email templates'];
+    return { n: keys.length, allNonEmpty: vals.every(v => typeof v === 'string' && v.trim().length > 0), coverage: coverage.every(k => keys.includes(k)) };
+  });
+  await page.locator('#langBtn').click();
+  const enBack = await page.evaluate(() => ({
+    btn: document.getElementById('langBtn')!.textContent,
+    nav: document.querySelector('[data-page=users] .lbl')!.textContent,
+    tab: [...document.querySelectorAll('#settingsTabs button')].map(b => b.textContent!.trim()).includes('Security'),
+    stored: localStorage.getItem('ab-lang'),
+  }));
+  await page.evaluate(() => { (document.querySelector('[data-page=tenants]') as HTMLElement).click(); });
+  const enCreated = await page.evaluate(() => document.querySelectorAll('#tenantRows tr')[1].textContent!.includes('months ago'));
+  // stored preference survives reload
+  await page.locator('#langBtn').click();
+  await page.reload();
+  const persisted = await page.evaluate(() => ({ lang: document.documentElement.lang, nav: document.querySelector('[data-page=users] .lbl')!.textContent }));
+  const a = { en0, zhUsers, zhEmpty: zhEmpty.includes('没有符合当前过滤条件的结果'), zhTenants, zhVerb, zhData, zhTab, dict, enBack, enCreated, persisted };
+  const pass = en0.btn === '中文' && en0.aria === 'Language' && en0.nav === 'Users'
+    && zhUsers.lang === 'zh' && zhUsers.btn === 'EN' && zhUsers.nav === '用户' && zhUsers.h1 === '用户'
+    && zhUsers.tag === '活跃' && zhUsers.search === '按姓名或邮箱搜索…' && zhUsers.stored === 'zh'
+    && a.zhEmpty && zhTenants.created && zhTenants.head === '租户' && zhTenants.name0 && zhVerb === '暂停'
+    && zhData.sec && zhTab.includes('安全') && zhTab.includes('邮件模板')
+    && dict.n > 200 && dict.allNonEmpty && dict.coverage
+    && enBack.btn === '中文' && enBack.nav === 'Users' && enBack.tab && enBack.stored === 'en' && enCreated
+    && persisted.lang === 'zh' && persisted.nav === '用户';
+  rec('i18n', pass, a);
+  expect(pass, 'i18n').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);

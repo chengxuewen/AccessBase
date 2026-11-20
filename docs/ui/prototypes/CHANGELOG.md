@@ -1004,3 +1004,22 @@ reduced-motion group (51 total): under emulateMedia reduce, skeleton animation-n
 tooltip transition-duration 0s, tooltip transform translateY 0, scroll-behavior auto; a second
 un-emulated page asserts the motion still exists in normal mode (no over-kill). All 51 pass.
 Screenshot: reduced-motion users load (static skeleton phase).
+
+## Adjudication 31 (A): bilingual chrome (en/zh) + language toggle + locale-aware relative times + parity lock — 2026-11-20
+Panel i18n surface: the prototype was English-only with no language affordance while the real console has
+a topbar 中文/EN toggle (stored + navigator probe, aria-label, i18n/index.ts:8-17/111/190-193), en/zh key
+parity enforced by i18n/__tests__/parity.test.ts, and relative timestamps that follow the UI language
+because Tenants.tsx:57-58 sets dayjs.locale per render (register != activate); the prototype's tenants
+created column was even absolute dates while the real one is fromNow(). Ruling A: a topbar language
+button (中文/EN swap, aria-label/data-tip, localStorage ab-lang + navigator probe, document.lang) drives
+an en->zh translation pass over text nodes and chrome attributes (placeholder/aria-label/data-tip/title)
+with a 362-key dictionary plus regex rules for counts, pagination and relative-time forms; data values
+(names/emails/ids/urls/JSON/dates/codes) never match keys and stay untouched, with [data-i18n-skip]
+exempting group/tenant name cells whose demo names collide with chrome words ("Security", "Default");
+originals are stored on nodes so switching back to en restores exactly; a MutationObserver translates
+async renders while zh is active. Tenants created now renders relative via relFrom(iso) like the real
+fromNow(), and the zh pass localizes it (N 个月前 / 周前 / 天前). The dayjs register-vs-activate gotcha is
+disclosed in the layer comment. New harness i18n group (52 total): toggle affordance + stored lang, zh
+nav/head/status/placeholder/empty/confirm-verb/settings-tabs/relative forms, data names untouched,
+dictionary non-empty + coverage lock, exact en restore, preference survives reload. All 52 pass.
+Screenshot: zh tenants.

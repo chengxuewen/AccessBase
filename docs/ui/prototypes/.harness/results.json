@@ -988,13 +988,65 @@
           "knob": "0s",
           "chev": "0s",
           "tip": "0s",
-          "tipTransform": "matrix(1, 0, 0, 1, -42.0234, 0)",
+          "tipTransform": "matrix(1, 0, 0, 1, -33.4766, 0)",
           "scroll": "auto"
         },
         "normal": {
           "skel": "skel",
           "knob": "0.15s, 0.15s",
           "tip": "0.12s, 0.12s"
+        }
+      }
+    },
+    "i18n": {
+      "pass": true,
+      "assertions": {
+        "en0": {
+          "btn": "中文",
+          "aria": "Language",
+          "nav": "Users"
+        },
+        "zhUsers": {
+          "lang": "zh",
+          "btn": "EN",
+          "nav": "用户",
+          "h1": "用户",
+          "tag": "活跃",
+          "search": "按姓名或邮箱搜索…",
+          "stored": "zh"
+        },
+        "zhEmpty": true,
+        "zhTenants": {
+          "created": true,
+          "head": "租户",
+          "name0": true
+        },
+        "zhVerb": "暂停",
+        "zhData": {
+          "sec": true,
+          "email": true
+        },
+        "zhTab": [
+          "通用",
+          "安全",
+          "选项",
+          "邮件模板"
+        ],
+        "dict": {
+          "n": 362,
+          "allNonEmpty": true,
+          "coverage": true
+        },
+        "enBack": {
+          "btn": "中文",
+          "nav": "Users",
+          "tab": true,
+          "stored": "en"
+        },
+        "enCreated": true,
+        "persisted": {
+          "lang": "zh",
+          "nav": "用户"
         }
       }
     },
