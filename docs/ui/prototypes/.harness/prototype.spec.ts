@@ -966,6 +966,9 @@ test('settings', async ({ page }) => {
   const mfaOn = await page.evaluate(() => document.getElementById('mfaBody')!.textContent!.includes('MFA is enabled'));
   // options: sensitive masked; invalid JSON rejected on edit
   await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=soptions]') as HTMLElement).click(); });
+  await page.waitForTimeout(600); // adjudication 22: options load is async w/ simulated first failure
+  await page.locator('#optLoadRetry').click();
+  await page.waitForTimeout(600);
   const masked = await page.evaluate(() => [...document.querySelectorAll('#optionRows tr')].some(tr => tr.textContent!.includes('smtp_password') && tr.textContent!.includes('••••')));
   await page.evaluate(() => { const i = [...document.querySelectorAll('#optionRows tr')].findIndex(tr => tr.textContent!.includes('captcha_enabled')); (document.querySelector('#optionRows tr:nth-child(' + (i + 1) + ') button[data-optedit]') as HTMLElement).click(); });
   await page.locator('#formBody [data-field=value]').fill('not-json');
@@ -975,7 +978,7 @@ test('settings', async ({ page }) => {
   // template preview + idle timeout
   await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=semail]') as HTMLElement).click(); });
   await page.locator('#templateRows button[data-tplview]').first().click();
-  const preview = await page.evaluate(() => document.getElementById('detailModal')!.classList.contains('on'));
+  const preview = await page.evaluate(() => document.getElementById('tplDrawer')!.classList.contains('on'));
   await page.keyboard.press('Escape');
   await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=ssecurity]') as HTMLElement).click(); });
   await page.evaluate(() => {
@@ -983,6 +986,9 @@ test('settings', async ({ page }) => {
     sel._cbx.querySelector('.cbx-btn').click();
     [...sel._cbx.querySelectorAll('.cbx-opt')].find((o: any) => o.dataset.value === '3600').click();
   });
+  await page.waitForTimeout(600); // adjudication 22: idle save async w/ simulated first failure
+  await page.locator('#idleErrRetry').click();
+  await page.waitForTimeout(600);
   const idleToast = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
   const a = { shell, sec0, revVerb, sec1, badCode, rec0, recEsc, rec1, mfaOn, masked, jsonErr, preview, idleToast };
   const pass = shell.on && shell.tabs === 4 && shell.title === 'Settings'
@@ -991,6 +997,89 @@ test('settings', async ({ page }) => {
     && masked && jsonErr && preview && idleToast === 'Idle timeout saved';
   rec('settings', pass, a);
   expect(pass, 'settings').toBe(true);
+});
+
+test('settings-model', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 22 (A): general url validation + localStorage-only + saved feedback; idle 5 real
+  // values + options:write gate + Busy + saveError; options options:read gate + load error + key
+  // pattern; templates drawer w/ stored-preview locale en/zh + test send; permission perspectives.
+  await page.evaluate(() => { (document.querySelector('[data-page=settings]') as HTMLElement).click(); });
+  await page.locator('#brandLogo').fill('not-a-url');
+  await page.locator('#brandSave').click();
+  const gBad = await page.evaluate(() => ({ err: document.getElementById('brandLogoErr')!.style.display === 'block', saved: document.getElementById('brandSaved')!.style.display !== 'none' }));
+  await page.locator('#brandLogo').fill('https://x.io/l.svg');
+  await page.locator('#brandSave').click();
+  const gOk = await page.evaluate(() => ({ saved: document.getElementById('brandSaved')!.style.display !== 'none', ls: (localStorage.getItem('ab-branding') || '').includes('https://x.io/l.svg'), toast: document.getElementById('protoToast')!.textContent }));
+  const setPersp = (v: string) => page.evaluate((val) => { const s = document.getElementById('permView') as HTMLSelectElement; s.value = val; s.onchange!(new Event('change')); }, v);
+  await setPersp('read');
+  const pRead = await page.evaluate(() => ({ idleDisabled: (document.getElementById('idleSelect') as HTMLSelectElement).disabled, hint: document.getElementById('idleHint')!.textContent!.includes('Read-only'), optTab: !(document.querySelector('#settingsTabs button[data-tab=soptions]') as HTMLButtonElement).disabled }));
+  await setPersp('none');
+  const pNone = await page.evaluate(() => ({ optTab: (document.querySelector('#settingsTabs button[data-tab=soptions]') as HTMLButtonElement).disabled, aria: document.querySelector('#settingsTabs button[data-tab=soptions]')!.getAttribute('aria-disabled'), gate: document.getElementById('optGateBanner')!.style.display === 'flex', wrap: document.getElementById('optTableWrap')!.style.display === 'none' }));
+  await setPersp('admin');
+  const idleVals = await page.evaluate(() => [...(document.getElementById('idleSelect') as HTMLSelectElement).options].map(o => o.value));
+  await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=ssecurity]') as HTMLElement).click(); });
+  await page.evaluate(() => { const sel = document.getElementById('idleSelect') as any; sel._cbx.querySelector('.cbx-btn').click(); [...sel._cbx.querySelectorAll('.cbx-opt')].find((o: any) => o.dataset.value === '604800').click(); });
+  const idleBusy = await page.evaluate(() => (document.getElementById('idleSelect') as HTMLSelectElement).disabled);
+  await page.waitForTimeout(600);
+  const idleErr = await page.evaluate(() => document.getElementById('idleErrBanner')!.style.display === 'flex');
+  await page.locator('#idleErrRetry').click();
+  await page.waitForTimeout(600);
+  const idleOk = await page.evaluate(() => ({ v: eval('OPTIONS').find((o: any) => o.key === 'session.idle_timeout_seconds').value, banner: document.getElementById('idleErrBanner')!.style.display === 'none' }));
+  await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=soptions]') as HTMLElement).click(); });
+  await page.waitForTimeout(600);
+  const optLoadErr = await page.evaluate(() => document.getElementById('optLoadBanner')!.style.display === 'flex');
+  await page.locator('#optLoadRetry').click();
+  await page.locator('#optionAdd').click();
+  await page.locator('#formBody [data-field=key]').fill('Bad Key!');
+  await page.locator('#formBody [data-field=value]').fill('true');
+  await page.locator('#formSave').click();
+  const keyErr = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('lowercase start'));
+  await page.locator('#formBody [data-field=key]').fill('feature_flag_e2e');
+  await page.locator('#formSave').click();
+  const keyOk = await page.evaluate(() => [...document.querySelectorAll('#optionRows tr')].some(tr => tr.textContent!.includes('feature_flag_e2e')));
+  await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=semail]') as HTMLElement).click(); });
+  await page.locator('#templateRows button[data-tpledit]').first().click();
+  const drawer = await page.evaluate(() => ({ on: document.getElementById('tplDrawer')!.classList.contains('on'), fields: ['tplSubjectEn', 'tplSubjectZh', 'tplHtmlEn', 'tplHtmlZh'].every(id => !!document.getElementById(id)) }));
+  await page.locator('#tplPreviewBtn').click();
+  const pvBusy = await page.evaluate(() => (document.getElementById('tplPreviewBtn') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600);
+  const pvErr = await page.evaluate(() => document.getElementById('tplPreviewErr')!.style.display === 'flex');
+  await page.locator('#tplPreviewBtn').click();
+  await page.waitForTimeout(600);
+  const pvEn = await page.evaluate(() => ({ box: document.getElementById('tplPreviewBox')!.style.display === 'block', txt: document.getElementById('tplPreviewBox')!.textContent! }));
+  await page.locator('#tplSubjectEn').fill('UNSAVED SUBJECT');
+  await page.evaluate(() => { (document.querySelector('#tplDrawer input[name=tplLocale][value=zh]') as HTMLInputElement).checked = true; });
+  await page.locator('#tplPreviewBtn').click();
+  await page.waitForTimeout(600);
+  const pvZh = await page.evaluate(() => document.getElementById('tplPreviewBox')!.textContent!);
+  await page.locator('#tplTestTo').fill('bad');
+  await page.locator('#tplTestBtn').click();
+  const testBad = await page.evaluate(() => document.getElementById('tplTestErr')!.style.display === 'block');
+  await page.locator('#tplTestTo').fill('qa@example.com');
+  await page.locator('#tplTestBtn').click();
+  await page.waitForTimeout(600);
+  const testErr = await page.evaluate(() => document.getElementById('tplTestMsgTx')!.textContent!.includes('SMTP'));
+  await page.locator('#tplTestBtn').click();
+  await page.waitForTimeout(600);
+  const testOk = await page.evaluate(() => document.getElementById('tplTestMsgTx')!.textContent!.includes('Test email sent to qa@example.com'));
+  await page.locator('#tplSubjectEn').fill('E2E Subject');
+  await page.locator('#tplSave').click();
+  const saved = await page.evaluate(() => ({ closed: !document.getElementById('tplDrawer')!.classList.contains('on'), row: document.querySelector('#templateRows tr')!.textContent!.includes('E2E Subject') }));
+  await page.locator('#templateRows button[data-tplview]').first().click();
+  const ro = await page.evaluate(() => ({ readonly: (document.getElementById('tplSubjectEn') as HTMLInputElement).readOnly, saveHidden: document.getElementById('tplSave')!.style.display === 'none' }));
+  const a = { gBad, gOk, pRead, pNone, idleVals, idleBusy, idleErr, idleOk, optLoadErr, keyErr, keyOk, drawer, pvBusy, pvErr, pvEn, pvZh, testBad, testErr, testOk, saved, ro };
+  const pass = gBad.err && !gBad.saved && gOk.saved && gOk.ls && gOk.toast.includes('localStorage')
+    && pRead.idleDisabled && pRead.hint && pRead.optTab
+    && pNone.optTab && pNone.aria === 'true' && pNone.gate && pNone.wrap
+    && JSON.stringify(idleVals) === JSON.stringify(['3600', '28800', '86400', '604800', '0'])
+    && idleBusy && idleErr && idleOk.v === 604800 && idleOk.banner
+    && optLoadErr && keyErr && keyOk
+    && drawer.on && drawer.fields && pvBusy && pvErr && pvEn.box && pvEn.txt.includes('Ada') && pvEn.txt.includes('Verify your email')
+    && pvZh.includes('验证您的邮箱') && pvZh.includes('Ada') && !pvZh.includes('UNSAVED SUBJECT')
+    && testBad && testErr && testOk && saved.closed && saved.row && ro.readonly && ro.saveHidden;
+  rec('settings-model', pass, a);
+  expect(pass, 'settings-model').toBe(true);
 });
 
 test('apikeys-model', async ({ page }) => {
@@ -1291,6 +1380,9 @@ test('states', async ({ page }) => {
   await page.locator('#userRows [data-empty-clear=users]').click();
   const cleared = await page.evaluate(() => document.querySelectorAll('#userRows .u-nm').length);
   await page.evaluate(() => { eval('OPTIONS.length=0'); eval('renderOptions()'); (document.querySelector('[data-page=settings]') as HTMLElement).click(); (document.querySelector('#settingsTabs button[data-tab=soptions]') as HTMLElement).click(); });
+  await page.waitForTimeout(600); // adjudication 22: async options load, first attempt simulated failure
+  await page.locator('#optLoadRetry').click();
+  await page.waitForTimeout(600);
   const emptyTrue = await page.evaluate(() => ({ state: !!document.querySelector('#optionRows .empty-state'), cta: !!document.querySelector('#optionRows [data-create=options]') }));
   await page.evaluate(() => { (document.querySelector('[data-page=audit]') as HTMLElement).click(); });
   await page.locator('#verifyBtn').click();

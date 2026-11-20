@@ -854,3 +854,23 @@ block cannot outrank them); meta lines (.a-tx .m, .verify-banner .hash, .sys-tag
 material dark tx2 lightened. Re-measured: 196 checks, min 4.61, zero failures. New harness
 surfaces-contrast group (47 total) locks the full surface set x 14 combos with alpha compositing.
 All 47 pass. Screenshot: material dark users.
+
+## Adjudication 22 (A): Settings four-tab parity — gates, validation, load/error states, templates drawer — 2026-11-20
+Panel Settings surface: general saved branding instantly with no validation and no localStorage
+disclosure; idle Select carried a non-real 15-minute option and had no permission gate / Busy /
+saveError; options had no options:read gate, no loading/loadError and no key pattern; templates edit was
+a plain modal and preview a static detail (real EmailTemplatesCard uses a Drawer with subjectEn/
+subjectZh/htmlEn/htmlZh, a server-rendered STORED-template preview with en/zh locale switch, and a
+test-send with recipient validation). Ruling A: general gains inline http(s) logoUrl validation, a
+Saved tag and a localStorage-only disclosure (real handleSaveSite is localStorage-only, backend out of
+scope); idle drops 15min (real IDLE_OPTIONS = 1h/8h/24h/7d/off), gains an options:write gate, Busy and a
+simulated saveError + Retry; options gains an options:read gate (403 banner), skeleton load + simulated
+loadError + Retry, and the real OPTION_KEY_PATTERN inline validation; templates edit/preview move into a
+right-side drawer reusing the modal focus trap, with four en/zh fields, a stored-template preview
+(locale en/zh, SAMPLE_VARS substitution, previewing Busy + simulated previewError + Retry) and a
+test-send (recipient email validation, Busy, simulated SMTP failure then success). A demo permission
+perspective switch (Administrator / Auditor read-only / Member no-options) exercises the gates.
+Harness settings + states synced for the async loads; new settings-model group (48 total): url
+validation + localStorage + saved, perspectives gating idle/options, idle 5 values + Busy + error +
+retry, options load error + key pattern, drawer fields + stored preview en/zh + unsaved-not-previewed +
+test validation/failure/success + save + read-only preview mode. All 48 pass. Screenshot: drawer.

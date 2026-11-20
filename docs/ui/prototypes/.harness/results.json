@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 274,
+        "svgIcons": 283,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -492,8 +492,8 @@
       "pass": true,
       "assertions": {
         "base": {
-          "selCount": 10,
-          "cbxCount": 10,
+          "selCount": 11,
+          "cbxCount": 11,
           "allNativeHidden": true,
           "surface": "#FFFFFF"
         },
@@ -578,6 +578,69 @@
         "jsonErr": true,
         "preview": true,
         "idleToast": "Idle timeout saved"
+      }
+    },
+    "settings-model": {
+      "pass": true,
+      "assertions": {
+        "gBad": {
+          "err": true,
+          "saved": false
+        },
+        "gOk": {
+          "saved": true,
+          "ls": true,
+          "toast": "Branding saved (localStorage only)"
+        },
+        "pRead": {
+          "idleDisabled": true,
+          "hint": true,
+          "optTab": true
+        },
+        "pNone": {
+          "optTab": true,
+          "aria": "true",
+          "gate": true,
+          "wrap": true
+        },
+        "idleVals": [
+          "3600",
+          "28800",
+          "86400",
+          "604800",
+          "0"
+        ],
+        "idleBusy": true,
+        "idleErr": true,
+        "idleOk": {
+          "v": 604800,
+          "banner": true
+        },
+        "optLoadErr": true,
+        "keyErr": true,
+        "keyOk": true,
+        "drawer": {
+          "on": true,
+          "fields": true
+        },
+        "pvBusy": true,
+        "pvErr": true,
+        "pvEn": {
+          "box": true,
+          "txt": "Verify your email\n\nHi Ada,\n\nConfirm your address: https://example.invalid/x\n\n— AccessBase"
+        },
+        "pvZh": "验证您的邮箱\n\nAda 您好，\n\n请确认邮箱：https://example.invalid/x\n\n— AccessBase",
+        "testBad": true,
+        "testErr": true,
+        "testOk": true,
+        "saved": {
+          "closed": true,
+          "row": true
+        },
+        "ro": {
+          "readonly": true,
+          "saveHidden": true
+        }
       }
     },
     "apikeys-model": {
