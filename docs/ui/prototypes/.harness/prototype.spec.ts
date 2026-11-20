@@ -1034,3 +1034,50 @@ test('tenants-model', async ({ page }) => {
   rec('tenants-model', pass, a);
   expect(pass, 'tenants-model').toBe(true);
 });
+
+test('users-erasure', async ({ page }) => {
+  await page.goto(FILE);
+  // Adjudication 9 (A): delete confirm carries the RTBF branch (eraseAudit + required legalBasis),
+  // LAST_ADMIN_GUARD refusal, ERASE_LOCK_BUSY retryable 409, and a one-time erasure receipt.
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  const openDel = async (n: number) => {
+    await page.locator('#userRows button[data-more]').nth(n).click();
+    await page.locator('#rowMenu [data-maction=delete]').click();
+  };
+  await openDel(1); // Alice = only active owner -> last-admin guard
+  const secShown = await page.evaluate(() => document.getElementById('eraseSection')!.style.display === 'block');
+  await page.locator('#eraseAudit').check();
+  const basisShown = await page.evaluate(() => document.getElementById('legalBasisWrap')!.style.display === 'block');
+  await page.locator('#confirmDelete').click();
+  const err400 = await page.evaluate(() => ({ on: document.getElementById('confirmModal')!.classList.contains('on'), msg: document.getElementById('confirmErr')!.textContent!.includes('legalBasis is required') }));
+  await page.locator('#legalBasis').fill('GDPR Art. 17 request #1');
+  await page.locator('#confirmDelete').click();
+  const guard = await page.evaluate(() => ({ on: document.getElementById('confirmModal')!.classList.contains('on'), msg: document.getElementById('confirmErr')!.textContent!.includes('LAST_ADMIN_GUARD') }));
+  await page.locator('#confirmCancel').click();
+  const rows0 = await page.evaluate(() => eval('USERS.length'));
+  await openDel(0); // Jane, not admin
+  await page.locator('#eraseAudit').check();
+  await page.locator('#legalBasis').fill('GDPR Art. 17 request #2');
+  await page.locator('#confirmDelete').click();
+  const busy = await page.evaluate(() => ({ msg: document.getElementById('confirmErr')!.textContent!.includes('ERASE_LOCK_BUSY'), retry: document.getElementById('confirmRetry')!.style.display !== 'none' }));
+  await page.locator('#confirmRetry').click();
+  const receipt = await page.evaluate(() => ({
+    shown: document.getElementById('confirmReceipt')!.style.display === 'block',
+    hash: /receiptHash: [0-9a-f]{16}/.test(document.getElementById('confirmReceipt')!.textContent!),
+    rows: document.getElementById('confirmReceipt')!.textContent!.includes('rowsAffected'),
+    delHidden: document.getElementById('confirmDelete')!.style.display === 'none',
+    closeLabel: document.getElementById('confirmCancel')!.textContent === 'Close',
+  }));
+  await page.locator('#confirmCancel').click();
+  const rows1 = await page.evaluate(() => eval('USERS.length'));
+  await openDel(1); // Bob, plain delete (no erase)
+  const eraseOff = await page.evaluate(() => !document.getElementById('eraseAudit')!.checked);
+  await page.locator('#confirmDelete').click();
+  const plain = await page.evaluate(() => ({ rows: eval('USERS.length'), toast: document.getElementById('protoToast')!.textContent }));
+  const a = { secShown, basisShown, err400, guard, busy, receipt, rows0, rows1, eraseOff, plain };
+  const pass = secShown && basisShown && err400.on && err400.msg && guard.on && guard.msg
+    && busy.msg && busy.retry && receipt.shown && receipt.hash && receipt.rows && receipt.delHidden && receipt.closeLabel
+    && rows1 === rows0 - 1 && eraseOff && plain.rows === rows1 - 1 && plain.toast === 'Deleted';
+  rec('users-erasure', pass, a);
+  expect(pass, 'users-erasure').toBe(true);
+});

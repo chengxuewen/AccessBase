@@ -677,3 +677,16 @@ revoke wording; slug required+pattern on create AND edit (+uniqueness); removed 
 (harness combobox-popup probe + mgmt-pages switched to name search); tenants actions column widened to
 150px so 4 buttons fit. New harness tenants-model (34 total): init flow/policy/EMAIL_EXISTS/bootstrapped,
 suspend verb, soft-delete keeps row, slug errors, no status filter. All 34 pass. Screenshot: init modal.
+
+## Adjudication 9 (A): user delete carries the RTBF erasure branch + guards + receipt — 2026-11-19
+Panel F8 / R4#3: prototype delete was a generic confirm + splice; real DELETE /users/:id accepts
+{eraseAudit:true, legalBasis} (400 VALIDATION_001 when legalBasis missing; erasure requires tenant-wide
+'all' scope), runs the sanctioned funnel returning a one-time receipt (hash + rowsAffected), and can
+refuse with LAST_ADMIN_GUARD or retryable ERASE_LOCK_BUSY (anchor-worker advisory lock). Ruling A: the
+users delete confirm now shows an "Also erase audit data (RTBF)" checkbox revealing a required
+legalBasis input (+ all-scope hint); submit validates legalBasis (inline 400), refuses the last active
+administrator (inline 409 LAST_ADMIN_GUARD), simulates the anchor lock on the first erase attempt
+(inline 409 ERASE_LOCK_BUSY with a Retry button, disclosed as prototype simulation), and on success
+shows a one-time erasure receipt (receiptHash 16-hex, rowsAffected, legalBasis, ledger-keeps-hash note)
+with Delete hidden and Cancel->Close; plain deletes keep the legacy splice+toast. New harness
+users-erasure (35 total): 400/last-admin/lock-busy+retry/receipt/plain-delete; all 35 pass. Screenshot.

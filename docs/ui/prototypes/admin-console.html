@@ -864,8 +864,14 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 </div></div>
 <div class="modal-overlay" id="confirmModal"><div class="modal" role="dialog" aria-modal="true" style="max-width:420px">
   <div class="modal-head"><svg class="ic" style="color:var(--danger)"><use href="#i-alert"/></svg><h3 id="confirmTitle">Delete</h3><button class="icon-btn close" aria-label="Close" data-close="confirmModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
-  <div class="modal-body"><div class="detail-meta" id="confirmMsg"></div></div>
-  <div class="modal-foot"><button class="btn" data-close="confirmModal">Cancel</button><button class="btn danger" id="confirmDelete">Delete</button></div>
+  <div class="modal-body"><div class="detail-meta" id="confirmMsg"></div>
+    <div id="eraseSection" style="display:none;margin-top:12px">
+      <label style="display:flex;gap:8px;align-items:center;font-size:var(--fs12);color:var(--tx1)"><input type="checkbox" id="eraseAudit"> Also erase audit data (RTBF)</label>
+      <div id="legalBasisWrap" style="display:none;margin-top:8px"><div class="field"><label>Legal basis (required)</label><input id="legalBasis" placeholder="e.g. GDPR Art. 17 request #1234"></div><div class="sub">Erasure requires tenant-wide (all) data scope.</div></div>
+    </div>
+    <div class="error-banner" id="confirmErr" style="display:none;margin-top:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span><button class="btn sm" id="confirmRetry" style="display:none;margin-left:auto">Retry</button></div>
+    <div id="confirmReceipt" class="detail-meta" style="display:none;margin-top:12px"></div></div>
+  <div class="modal-foot"><button class="btn" data-close="confirmModal" id="confirmCancel">Cancel</button><button class="btn danger" id="confirmDelete">Delete</button></div>
 </div></div>
 <div class="modal-overlay" id="detailModal"><div class="modal" role="dialog" aria-modal="true">
   <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-eye"/></svg><h3 id="detailTitle">Detail</h3><button class="icon-btn close" aria-label="Close" data-close="detailModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
@@ -1203,7 +1209,7 @@ const EDITDEFS={
 };
 function openEdit(kind,idx){formKind=kind;formEdit=idx;const d=EDITDEFS[kind];const cur=d.get(idx);$('formTitle').textContent=d.title;$('formBody').innerHTML=d.fields.map(f=>{const k=f[0],l=f[1],type=f[2];const val=cur[k]==null?'':cur[k];let ctl;if(type&&type.indexOf('select:')===0){ctl='<select data-field="'+k+'">'+type.slice(7).split(',').map(o=>'<option'+(o===val?' selected':'')+'>'+o+'</option>').join('')+'</select>';}else if(type==='checks'){ctl='<div data-field="'+k+'">'+ROLES.map(r=>'<label style="display:flex;gap:6px;align-items:center;font-size:var(--fs12);color:var(--tx1);margin-bottom:4px"><input type="checkbox" value="'+esc(r.name)+'"'+((val||[]).includes(r.name)?' checked':'')+'> '+esc(r.name)+'</label>').join('')+'</div>';}else if(type==='ro'){ctl='<input data-field="'+k+'" value="'+esc(val)+'" disabled>';}else if(type==='textarea'){ctl='<textarea data-field="'+k+'" rows="3">'+esc(val)+'</textarea>';}else{ctl='<input data-field="'+k+'" value="'+esc(val)+'">';}return '<div class="field"><label>'+l+'</label>'+ctl+'</div>';}).join('');$('formSave').textContent='Save';enhanceAllSelects($('formBody'));openModal('formModal');}
 const DEL={
- users:i=>{USERS.splice(i,1);renderUsers();},
+ users:i=>{USERS_NAME_CACHE[i]=USERS[i][0];USERS.splice(i,1);renderUsers();},
  roles:i=>{ROLES.splice(i,1);selRole=Math.max(0,Math.min(selRole,ROLES.length-1));renderRoles();renderMatrix();},
  groups:i=>{GROUPS.splice(i,1);if(selGroup===i){selGroup=-1;$('groupPanel').style.display='none';}else if(selGroup>i){selGroup--;}renderGroups();if(selGroup>=0){renderMembers();renderRoleChecks();}},
  tenants:i=>{TENANTS[i].status='suspended';renderTenants();},
@@ -1217,8 +1223,27 @@ DEL['users-force']=i=>{};
 DEL['roles-clear']=i=>{ROLES[i].perms=[];renderMatrix();renderRoles();};
 const ROW_NAME={'apikeys-revoke':i=>APIKEYS[i].name,'users-status':i=>USERS[i][0],'users-force':i=>USERS[i][0],'roles-clear':i=>ROLES[i].name,'tenants-status':i=>TENANTS[i].name,users:i=>USERS[i][0],roles:i=>ROLES[i].name,groups:i=>GROUPS[i].name,tenants:i=>TENANTS[i].name,clients:i=>CLIENTS[i].name,webhooks:i=>WEBHOOKS[i].url};
 let pendingDelete=null;
-function openConfirm(kind,idx,opts){opts=opts||{};pendingDelete={kind:kind,idx:idx,toast:opts.toast};$('confirmTitle').textContent=opts.title||('Delete '+kind.replace(/s$/,''));$('confirmDelete').textContent=opts.verb||'Delete';$('confirmMsg').innerHTML=opts.msg||(kind==='tenants'?'Delete <strong>'+esc(ROW_NAME[kind](idx))+'</strong>? This is a soft delete: the tenant is suspended, all its sessions and API keys are revoked, and the row is kept for reactivation.':'Remove <strong>'+esc(ROW_NAME[kind](idx))+'</strong> from the prototype data? This cannot be undone.');openModal('confirmModal');}
-$('confirmDelete').onclick=()=>{if(!pendingDelete)return;const d=pendingDelete;pendingDelete=null;DEL[d.kind](d.idx);closeModal('confirmModal');toast(d.toast||'Deleted');};
+let eraseLockBusy=true;
+function isLastAdmin(i){const a=USERS.filter(u=>u[2]==='active'&&u[5].includes('owner'));return a.length===1&&USERS[i]===a[0];}
+function confirmErr(msg,retry){const e=$('confirmErr');e.style.display='flex';e.querySelector('span').textContent=msg;$('confirmRetry').style.display=retry?'inline-flex':'none';}
+function openConfirm(kind,idx,opts){opts=opts||{};pendingDelete={kind:kind,idx:idx,toast:opts.toast};eraseLockBusy=true;$('eraseSection').style.display=kind==='users'?'block':'none';$('eraseAudit').checked=false;$('legalBasisWrap').style.display='none';$('legalBasis').value='';$('confirmErr').style.display='none';$('confirmReceipt').style.display='none';$('confirmDelete').style.display='inline-flex';$('confirmCancel').textContent='Cancel';$('confirmTitle').textContent=opts.title||('Delete '+kind.replace(/s$/,''));$('confirmDelete').textContent=opts.verb||'Delete';$('confirmMsg').innerHTML=opts.msg||(kind==='tenants'?'Delete <strong>'+esc(ROW_NAME[kind](idx))+'</strong>? This is a soft delete: the tenant is suspended, all its sessions and API keys are revoked, and the row is kept for reactivation.':'Remove <strong>'+esc(ROW_NAME[kind](idx))+'</strong> from the prototype data? This cannot be undone.');openModal('confirmModal');}
+$('eraseAudit').onchange=()=>{$('legalBasisWrap').style.display=$('eraseAudit').checked?'block':'none';};
+function submitConfirm(){if(!pendingDelete)return;const d=pendingDelete;
+ if(d.kind==='users'){
+   const erase=$('eraseAudit').checked;
+   if(erase&&!$('legalBasis').value.trim()){confirmErr('400 VALIDATION_001: legalBasis is required when eraseAudit is true',false);return;}
+   if(isLastAdmin(d.idx)){confirmErr('409 LAST_ADMIN_GUARD: this is the last active administrator of the tenant — promote another admin first.',false);return;}
+   if(erase&&eraseLockBusy){eraseLockBusy=false;confirmErr('409 ERASE_LOCK_BUSY: audit erasure is temporarily locked by the anchor worker — retry shortly. (Prototype simulates the lock on the first attempt.)',true);return;}
+   DEL[d.kind](d.idx);
+   if(erase){const basis=$('legalBasis').value.trim();let h=0;for(const ch of (USERS_NAME_CACHE[d.idx]||'')+basis)h=(h*31+ch.charCodeAt(0))>>>0;const hash=('00000000'+h.toString(16)).slice(-8)+('00000000'+((h^0x9e3779b9)>>>0).toString(16)).slice(-8);
+     $('eraseSection').style.display='none';$('confirmErr').style.display='none';$('confirmDelete').style.display='none';$('confirmCancel').textContent='Close';
+     const r=$('confirmReceipt');r.style.display='block';r.innerHTML='<strong>Erasure receipt (shown once)</strong><br>receiptHash: <span class="mono">'+hash+'</span><br>rowsAffected: 4 · legalBasis: '+esc(basis)+'<br>The erasure ledger keeps the hash and a tombstone, not the data. Store this receipt now.';
+     pendingDelete=null;toast('User erased');return;}
+   pendingDelete=null;closeModal('confirmModal');toast('Deleted');return;}
+ pendingDelete=null;DEL[d.kind](d.idx);closeModal('confirmModal');toast(d.toast||'Deleted');}
+const USERS_NAME_CACHE={};
+$('confirmDelete').onclick=submitConfirm;
+$('confirmRetry').onclick=submitConfirm;
 const EDIT_ANCHOR={users:'data-more',roles:'data-role',groups:'data-manage',tenants:'data-tstatus',clients:'data-rotate-client',webhooks:'data-ping'};
 document.addEventListener('click',e=>{const eb=e.target.closest('button[aria-label="Edit"],button[data-tip="Edit"]');const db=e.target.closest('button[aria-label="Delete"],button[data-tip="Delete"]');if(!eb&&!db)return;const btn=eb||db;if(btn.disabled)return;const page=btn.closest('section.page');if(!page)return;const kind=page.id.replace('page-','');if(!EDIT_ANCHOR[kind])return;const tr=btn.closest('tr');const anchor=tr.hasAttribute(EDIT_ANCHOR[kind])?tr:tr.querySelector('['+EDIT_ANCHOR[kind]+']');if(!anchor)return;const idx=+anchor.getAttribute(EDIT_ANCHOR[kind]);if(eb){openEdit(kind,idx);}else{openConfirm(kind,idx);}});
 /* ==== Themed combobox enhancement: wrap every <select> in a token-styled combobox; the native select

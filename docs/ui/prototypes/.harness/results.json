@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 33,
-        "svgIcons": 248,
+        "svgIcons": 249,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -624,6 +624,39 @@
         },
         "slugErr": true,
         "slugReq": true
+      }
+    },
+    "users-erasure": {
+      "pass": true,
+      "assertions": {
+        "secShown": true,
+        "basisShown": true,
+        "err400": {
+          "on": true,
+          "msg": true
+        },
+        "guard": {
+          "on": true,
+          "msg": true
+        },
+        "busy": {
+          "msg": true,
+          "retry": true
+        },
+        "receipt": {
+          "shown": true,
+          "hash": true,
+          "rows": true,
+          "delHidden": true,
+          "closeLabel": true
+        },
+        "rows0": 12,
+        "rows1": 11,
+        "eraseOff": true,
+        "plain": {
+          "rows": 10,
+          "toast": "Deleted"
+        }
       }
     }
   }
