@@ -485,7 +485,21 @@
         "btnDisabled": true,
         "btnAria": "Locked (system role)",
         "wrapOn": true,
-        "hiddenAfter": true
+        "hiddenAfter": true,
+        "dStatus": {
+          "present": true,
+          "cls": true,
+          "w": 34,
+          "h": 20,
+          "on": true,
+          "knob": true
+        },
+        "dFail": true,
+        "dOk": {
+          "toast": "Status updated",
+          "on": false,
+          "row": true
+        }
       }
     },
     "overflow-menu": {
@@ -1507,6 +1521,14 @@
           "label": "Active"
         },
         "unchecked": true,
+        "grantsCk": {
+          "n": 2,
+          "allCk": true,
+          "labels": [
+            "authorization_code",
+            "client_credentials"
+          ]
+        },
         "imm": {
           "tag": "BUTTON",
           "cls": true,

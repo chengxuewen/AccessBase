@@ -711,6 +711,17 @@ test('tooltip', async ({ page }) => {
     ft.style.pointerEvents = 'none';
     return { on: ft.classList.contains('on'), text: ft.textContent, want: h.getAttribute('data-tip'), opacity: getComputedStyle(ft).opacity, onTop: topEl === ft, inViewport: r.top >= 0 && r.left >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight, described: h.getAttribute('aria-describedby') === 'floatTip' };
   });
+  const dStatus = await page.evaluate(() => {
+    const b = document.querySelector('#detailBody [data-dstatus]') as HTMLButtonElement;
+    const r = b.getBoundingClientRect();
+    return { present: !!b, cls: b.className.includes('wswitch'), w: r.width, h: r.height, on: b.className.includes('on'), knob: !!b.querySelector('.knob') };
+  });
+  await page.locator('#detailBody [data-dstatus]').click();
+  await page.waitForTimeout(600);
+  const dFail = await page.evaluate(() => document.getElementById('protoToast')!.textContent!.includes('Failed to update status'));
+  await page.locator('#detailBody [data-dstatus]').click();
+  await page.waitForTimeout(600);
+  const dOk = await page.evaluate(() => ({ toast: document.getElementById('protoToast')!.textContent, on: (document.querySelector('#detailBody [data-dstatus]') as HTMLButtonElement).className.includes('on'), row: document.getElementById('userRows')!.textContent!.includes('Suspended') }));
   await page.keyboard.press('Escape');
   // disabled (locked) row action keeps its .tip-wrap host so the hint still shows
   await page.evaluate(() => { (document.querySelector('[data-page=roles]') as HTMLElement).click(); });
@@ -726,10 +737,12 @@ test('tooltip', async ({ page }) => {
   await page.waitForTimeout(200);
   const hiddenAfter = await page.evaluate(() => !document.getElementById('floatTip')!.classList.contains('on'));
   const contexts = [stickyRow, clippedCell, wrapperEdge, flipTop, modalTip];
-  const a = { aria, tip, hiddenOpacity, contexts, focusTip, wrapTip, btnDisabled, btnAria, wrapOn, hiddenAfter };
+  const a = { aria, tip, hiddenOpacity, contexts, focusTip, wrapTip, btnDisabled, btnAria, wrapOn, hiddenAfter, dStatus, dFail, dOk };
   const pass = aria === 'Edit' && tip === 'Edit' && hiddenOpacity === '0'
     && contexts.every(c => c.on && c.text === c.want && c.opacity === '1' && c.onTop && c.inViewport && c.described)
-    && focusTip.on && focusTip.text === 'View' && btnDisabled && btnAria === wrapTip && wrapOn && hiddenAfter;
+    && focusTip.on && focusTip.text === 'View' && btnDisabled && btnAria === wrapTip && wrapOn && hiddenAfter
+    && dStatus.present && dStatus.cls && dStatus.w === 34 && dStatus.h === 20 && dStatus.on && dStatus.knob
+    && dFail && dOk.toast === 'Status updated' && !dOk.on && dOk.row;
   rec('tooltip', pass, a);
   expect(pass, 'tooltip').toBe(true);
 });
@@ -1915,7 +1928,7 @@ test('clients-model', async ({ page }) => {
   const noEdit = await page.evaluate(() => !document.querySelector('#clientRows button[aria-label="Edit"]'));
   await page.locator('[data-create=clients]').click();
   const form = await page.evaluate(() => ({
-    grants: document.querySelectorAll('#formBody [data-grant]').length,
+    grants: document.querySelectorAll('#formBody [data-field=grantTypes] input[type=checkbox]').length,
     tam: (document.querySelector('#formBody [data-field=tokenAuthMethod]') as HTMLSelectElement).options.length,
     bc: !!document.querySelector('#formBody [data-field=backchannelLogoutUri]'),
   }));
@@ -1926,7 +1939,7 @@ test('clients-model', async ({ page }) => {
   await page.locator('#formSave').click();
   const e003 = await page.evaluate(() => document.getElementById('formBody')!.textContent!.includes('CLIENT_003'));
   await page.locator('#formBody [data-field=redirectUris]').fill('https://svc.e2e.io/cb');
-  await page.locator('#formBody [data-grant="client_credentials"]').click();
+  await page.locator('#formBody [data-field=grantTypes] input[value=client_credentials]').check();
   await page.locator('#formBody [data-field=scope]').fill('openid'); // adjudication 28: scope required precedes B5
   await page.evaluate(() => { (document.querySelector('#formBody [data-field=tokenAuthMethod]') as HTMLSelectElement).value = 'none'; });
   await page.locator('#formSave').click();
@@ -2396,6 +2409,12 @@ test('boolean-controls', async ({ page }) => {
   await page.locator('#formBody [data-field=isActive]').uncheck();
   const unchecked = await page.evaluate(() => !(document.querySelector('#formBody [data-field=isActive]') as HTMLInputElement).checked);
   await page.keyboard.press('Escape');
+  await page.evaluate(() => { (document.querySelector('[data-page=clients]') as HTMLElement).click(); (document.querySelector('[data-create=clients]') as HTMLElement).click(); });
+  const grantsCk = await page.evaluate(() => {
+    const ins = [...document.querySelectorAll('#formBody [data-field=grantTypes] input')] as HTMLInputElement[];
+    return { n: ins.length, allCk: ins.every(i => i.type === 'checkbox' && getComputedStyle(i).width === '16px' && !i.getAttribute('role')), labels: ins.map(i => i.nextElementSibling!.textContent) };
+  });
+  await page.keyboard.press('Escape');
   // immediate domain stays Switch: webhooks row toggle is a .wswitch button with a knob
   await page.evaluate(() => { (document.querySelector('[data-page=webhooks]') as HTMLElement).click(); });
   const imm = await page.evaluate(() => {
@@ -2437,11 +2456,12 @@ test('boolean-controls', async ({ page }) => {
       tinted: cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent',
       centerDiff: Math.abs((r.top + r.height / 2) - (sp.top + sp.height / 2)) };
   });
-  const a = { editCk, createCk, activeCk, unchecked, imm, gates, rm, enSaved, scopes };
+  const a = { editCk, createCk, activeCk, unchecked, grantsCk, imm, gates, rm, enSaved, scopes };
   const pass = editCk.type === 'checkbox' && editCk.role === null && editCk.w === '16px' && editCk.app === 'none'
     && editCk.checked && editCk.centerDiff < 2 && editCk.label === 'ck-field'
     && createCk.w === '16px' && !createCk.checked && createCk.role === null
     && activeCk.present && activeCk.w === '16px' && activeCk.checked && activeCk.role === null && activeCk.label === 'Active' && unchecked
+    && grantsCk.n === 2 && grantsCk.allCk && JSON.stringify(grantsCk.labels) === JSON.stringify(['authorization_code', 'client_credentials'])
     && imm.tag === 'BUTTON' && imm.cls && imm.w === 34 && imm.h === 20 && imm.knob && imm.on
     && gates.mfaW === '16px' && gates.mfaApp === 'none' && gates.eraseW === '16px' && gates.eraseApp === 'none'
     && rm.knob === '0s' && rm.ck === '0s'

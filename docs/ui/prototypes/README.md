@@ -32,8 +32,11 @@ branch and says so (see disclosure index). Read this file first, `CHANGELOG.md` 
   `Switch` (the `.wswitch` 34x20 track+knob button) is reserved for **immediate-effect** binary toggles
   (webhooks row active, user detail status). `Checkbox` (themed 16px square, check glyph, focus ring,
   disabled state, inline label) carries **form-submitted binary marking** (groups `isDepartment`, users
-  `isActive`), **multi-select** (grants, roles, scopes) and **attestation gates** (recovery saved, MFA
-  saved, erase confirm). The two domains are disjoint; no form field uses `role=switch` anymore. The
+  `isActive`), **multi-select** (grants as a Checkbox.Group like real `Clients.tsx:308`; roles/scopes as
+  Select-multiple mirrors) and **attestation gates** (recovery saved, MFA saved, erase confirm). The
+  user-detail status is an immediate-effect `.wswitch` beside its Tag (real `UserDetail.tsx:139`), with
+  loading + success/error feedback and no confirm; row-level suspend keeps its Popconfirm-equivalent
+  confirm like real `Users.tsx`. The two domains are disjoint; no form field uses `role=switch` anymore. The
   blanket `.field input{width:100%}` rule excludes checkbox/radio — it previously stretched them into
   full-width bars and wrapped their labels. Real testids migrated: `groups-kind-switch` ->
   `groups-kind-checkbox`, new `users-active-checkbox`.
@@ -186,5 +189,9 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
 - Entry-flow token states (magic/verify) and the enroll dead-token are demo selects/buttons; the real
   surfaces consume server-issued tokens. Setup admin password policy is min 8 (real AdminStep), not the
   console 12+ — the difference is intentional and disclosed in-page.
+- Webhook subscribed events: real uses `Select mode="tags"` with `EVENT_PRESETS` options
+  (`Webhooks.tsx:505-509`); the prototype renders a free-text entry plus the same preset quick-picks,
+  which is functionally equivalent (catalog selection + custom entries). The prototype additionally
+  validates `resource.action` format client-side, which the real Select does not — disclosed strictness.
 - Not modeled: real network/auth/tenancy enforcement, server-side export, dayjs itself, AntD itself.
   Demo data names/emails/ids are fixtures; the zh pass deliberately never translates them.

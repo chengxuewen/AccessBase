@@ -1164,3 +1164,24 @@ groups-detail createForm assertion now expects checkbox+null role+16px; dashboar
 gains isActive with default-checked assertion. Full re-run: 58 groups, 0 failures. README gains the
 boolean-control rule section + migrated-testid disclosure + renamed lock row. Screenshot: edit-group
 Department as themed checked checkbox with inline label.
+
+## Post-closure fix 6 (comprehensive follow-up audit): remaining control-representation divergences — 2026-11-23
+After the boolean-rule unification, a full re-audit of both prototypes against the real app checked three
+axes: rule-domain violations, real<->prototype representation parity, and leftover native/unthemed or
+mis-laid-out controls. The boolean rule itself was clean on both sides (real Switch now only Webhooks
+row + UserDetail status, both immediate; Checkbox only form-marking/multi/attestation). Three remaining
+divergences of the same class were found: (1) prototype client grantTypes rendered as aria-pressed tag
+buttons while real Clients.tsx:308 uses Checkbox.Group — converted to a themed checkbox group (ck-group
+of ck-field labels), grantsVal reads checked inputs, dead [data-grant] handler removed; (2) prototype
+user detail showed status as a read-only Tag while real UserDetail.tsx:139 pairs the Tag with an
+immediate-effect Switch (loading + success/error, no confirm) — added a .wswitch data-dstatus toggle
+with simulated first-attempt failure then success, re-rendering row + detail; row-level suspend keeps
+its confirm like real Users.tsx Popconfirm; (3) dead control branches (formSave 'switch'/'checks',
+openEdit 'checks') removed since no defs use them. Webhook events (free-text + preset quick-picks) was
+audited against real Select mode=tags with EVENT_PRESETS and judged functionally equivalent
+(catalog + custom entries); kept and disclosed in README together with the prototype-only client-side
+resource.action validation that real lacks. Harness: clients group grants selectors moved to checkbox
+inputs; tooltip group gained detail-switch locks (34x20 .wswitch + knob + on, first-attempt error toast,
+second-attempt success toast + row/detail flip to Suspended); boolean-controls gained the grants
+checkbox-domain lock (2 inputs, 16px, no role, labels = ALLOWED_GRANTS). Full re-run: 58 groups, 0
+failures. Screenshot: user detail Status Tag + immediate Switch.
