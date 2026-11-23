@@ -1225,7 +1225,7 @@
         ],
         "zhEdit": true,
         "dict": {
-          "n": 425,
+          "n": 426,
           "allNonEmpty": true,
           "coverage": true
         },
@@ -1356,6 +1356,31 @@
           "tag": [
             "2px"
           ]
+        }
+      }
+    },
+    "narrow-nav": {
+      "pass": true,
+      "assertions": {
+        "narrow": {
+          "groupVis": "hidden",
+          "groupH": 6,
+          "foot": "none",
+          "sbOver": false,
+          "aria": "Users",
+          "tip": "Users",
+          "docOver": false
+        },
+        "wide": {
+          "groupVis": "visible",
+          "foot": "block",
+          "aria": "Users",
+          "tip": null
+        },
+        "collapsed": {
+          "groupVis": "hidden",
+          "tip": "Users",
+          "lbl": ""
         }
       }
     },

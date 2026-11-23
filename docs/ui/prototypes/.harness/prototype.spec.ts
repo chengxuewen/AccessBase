@@ -2080,6 +2080,39 @@ test('shape-scale', async ({ page }) => {
   expect(pass, 'shape-scale: icon tiers + single pop radius + label-family radius per pack').toBe(true);
 });
 
+test('narrow-nav', async ({ page }) => {
+  // Post-seal fix 8: the <=760px breakpoint must apply the SAME icon-only semantics as manual
+  // collapse (group labels hidden, trigger hidden) and icon-only nav keeps accessible names + tips.
+  await page.goto(FILE);
+  await page.setViewportSize({ width: 565, height: 800 });
+  await page.waitForTimeout(250);
+  const narrow = await page.evaluate(() => {
+    const g = document.querySelector('.nav .group') as HTMLElement;
+    const sb = document.querySelector('.sidebar') as HTMLElement;
+    const a = document.querySelector('.nav a[data-page=users]') as HTMLElement;
+    return { groupVis: getComputedStyle(g).visibility, groupH: g.getBoundingClientRect().height, foot: getComputedStyle(document.querySelector('.side-foot')!).display, sbOver: sb.scrollWidth > sb.clientWidth, aria: a.getAttribute('aria-label'), tip: a.getAttribute('data-tip'), docOver: document.documentElement.scrollWidth > window.innerWidth };
+  });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForTimeout(250);
+  const wide = await page.evaluate(() => {
+    const a = document.querySelector('.nav a[data-page=users]') as HTMLElement;
+    return { groupVis: getComputedStyle(document.querySelector('.nav .group')!).visibility, foot: getComputedStyle(document.querySelector('.side-foot')!).display, aria: a.getAttribute('aria-label'), tip: a.getAttribute('data-tip') };
+  });
+  await page.evaluate(() => (document.getElementById('collapseBtn') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  const collapsed = await page.evaluate(() => {
+    const a = document.querySelector('.nav a[data-page=users]') as HTMLElement;
+    return { groupVis: getComputedStyle(document.querySelector('.nav .group')!).visibility, tip: a.getAttribute('data-tip'), lbl: (document.getElementById('collapseLbl') as HTMLElement).textContent };
+  });
+  const a = { narrow, wide, collapsed };
+  const pass = narrow.groupVis === 'hidden' && narrow.groupH <= 6 && narrow.foot === 'none' && !narrow.sbOver && !narrow.docOver
+    && !!narrow.aria && narrow.tip === narrow.aria
+    && wide.groupVis === 'visible' && wide.foot !== 'none' && wide.aria === 'Users' && wide.tip === null
+    && collapsed.groupVis === 'hidden' && collapsed.tip === 'Users' && collapsed.lbl === '';
+  rec('narrow-nav', pass, a);
+  expect(pass, 'narrow-nav: breakpoint collapse semantics + icon-only nav names/tips').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);

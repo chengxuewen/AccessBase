@@ -1278,3 +1278,18 @@ token (cupertino 999px, material 8px, carbon 0) so the whole family stays intra-
 group shape-scale (62 total) asserts icon tier membership, single pop radius and single label-family
 radius per pack across ant/cupertino/fluent. Full re-run: 62 groups, 0 failures. Screenshot: cupertino
 create-user dialog with pill chips matching pill tags. README shape-scale section + lock row.
+
+## Post-seal fix 8 (user-reported): narrow-screen sider clipped group labels / Collapse button — 2026-11-23
+Report: at ~565px the sidebar showed truncated group words (OVERV/IDENT/ACCES/OPERA/SYSTE) and a
+clipped "Collaps" trigger. Root cause: the <=760px media query narrowed the grid to --nav-w-min and
+hid .lbl/.brand .name but never applied the .app.collapsed semantics, so .nav .group stayed visible
+(white-space:nowrap) and the collapse trigger kept its text at 56px width. Fix: the breakpoint now
+owns the collapse with the same semantics as manual collapse (group labels visibility:hidden + 6px
+spacers, .side-foot hidden); plus a connected a11y gap found while fixing: display:none on .lbl
+removes the link name from the accessibility tree, so icon-only nav (manual collapse OR breakpoint)
+now keeps aria-label + hover data-tip on every nav link via syncNavTips() (matchMedia change +
+toggle + init after the titles map), localized by the zh layer like other aria/tip attributes.
+Also added the missing zh key for the static stat label "Audit Logs". New harness group narrow-nav
+(63 total): narrow group hidden/6px + trigger hidden + no sidebar/doc overflow + aria==tip; wide
+restores labels/trigger and drops tips; manual collapse hides groups and adds tips. Full re-run:
+63 groups, 0 failures. Screenshot: 565px dashboard with clean icon-only sider.
