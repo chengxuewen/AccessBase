@@ -2471,3 +2471,11 @@ upstream self-documents the TS backend as less stable — the V4 live-fire
 verdict feeds the first adoption recheck. Plan:
 `docs/superpowers/plans/2026-11-06-serena-local-mcp.md` (adjudication record
 inside).
+
+## D128: 布尔控件规则统一——Switch=立即生效域 / Checkbox=提交标记+多选+attestation 域，真实与原型联动迁移 (2026-11-23)
+
+用户裁决 A：混用不是随意而是语义分工，但审计出 2 个离群（真实 Groups isDepartment / UserCreate isActive 为提交型 Switch）+1 parity 缺口（原型 create user 缺 isActive）。统一**规则**而非零件：真实两文件 Switch→Checkbox（testid groups-kind-switch→groups-kind-checkbox、新增 users-active-checkbox），原型镜像 ck-field 16px + isActive 默认勾选 + save 派生 status；即时域 .wswitch 不动；两域不相交。后续 fix 6 补 grants Checkbox.Group 与详情即时 Switch。锁：boolean-controls。代价：真实 testid 迁移需 e2e 同步（本次真实无组件测试引用，vitest 29 全过）。
+
+## D129: 形状刻度 token 化——图标三语义档 / 浮层单一圆角 / 标签族圆角 token (2026-11-23)
+
+设计 backlog 三裁决全 A：8 档手写图标 → --ic-s:12/--ic-m:14/--ic-l:16 + --ic-display:28（控件几何保留 px）；浮层 tooltip/cbx-list/toast/menu/modal 共用 --r-pop=pack r6（AntD borderRadiusLG parity），贴边 drawer 方角例外；.tag/.cbx-chip/.sys-tag 共用 --r-tag，pack 个性（cupertino 999/material 8/carbon 0）移到 token 保证族内一致。锁：shape-scale（档位成员+每 pack 单值）。理由：token 化目的是停止发明新档，语义命名+成员断言才治本。

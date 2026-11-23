@@ -772,3 +772,52 @@ intentional void so the gap is machine-visible and the number is never reused.
   edit-safety.md "Verification Honesty" gains the both-samples rule as a
   NON-NEGOTIABLE bullet; the evolution protocol's self-test pairing duty now
   covers predicates, not just gates.
+
+## PIT-098: 恒真锁三 costume——采样不触发缺陷的样本/白名单排除失败面/存在性检查冒充覆盖 (2026-11-23, panel-folded)
+
+- **症状**: harness 全绿但缺陷仍在：cbx 键盘锁用 7 项 select（列表永不内滚）测"内滚即关"缺陷；contrast 锁记录 tx3=3.36 却把它排除在合格判定外；i18n coverage 锁=18 个硬编码键存在性（对动态漏翻恒真）；switch 锁测隐藏块内元素 rect=0。
+- **根因**: 锁的采样/判定面与缺陷触发面不相交；"记录了失败值"≠"判定了失败值"；存在性断言≠覆盖断言。
+- **解法**: 每条锁必须包含**会触发缺陷的样本**（9 项 picker、tx3 入判定、源码字面量扫描 tr(lit)!==lit、隐藏元素改测 computed）；面板纪律"锁集合==表面集合"按触发面而非选择器面维护。
+- **验证**: `npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts` 全绿后，逐组问"若缺陷复活，哪条断言会红？"答不出=恒真锁；shape-scale/a11y-env/i18n-dynamic/narrow-nav 为改造后的样板。
+
+## PIT-099: playwright 失败后重启 worker → results.json 只含后半程组，"fail:0" 是假象 (2026-11-23)
+
+- **症状**: 有组失败时 results.json 只剩 4~42 组且 fail:0；失败组的 assertions 读不到；`--grep '^contrast'` 报 No tests found。
+- **根因**: workers=1 但失败触发 worker 重启，首 worker 的 test.afterAll 不执行 → 模块级 results 对象丢失前半程；grep 匹配完整标题子串而非锚定行首。
+- **解法**: 失败明细从 playwright stdout 读（Error/expect received），不要信 results.json；取失败组 assertions 用"临时 expect(true) 诊断跑→读 results→恢复断言"三步；--grep 用子串不加 ^。
+- **验证**: 故意弄红一组后 `python3 -c "import json;print(len(json.load(open('docs/ui/prototypes/.harness/results.json'))['results']))"` < 总组数 即复现；全绿跑才等于总组数。
+
+## PIT-100: inert 加在 app 根上会连模态一起禁掉——overlays 在根内时必须只 inert 背景容器 (2026-11-23)
+
+- **症状**: 为修"模态开着背景可被读屏/指针触及"给 #app 加 inert 后，6 个 harness 组超时：模态内 checkbox "<body> intercepts pointer events"。
+- **根因**: 该 kit 的 modal-overlay 是 #app 的**子节点**（不是 body 直挂），inert 覆盖整根=覆盖模态自身。
+- **解法**: syncInert() 只作用于背景容器 `#app > .sidebar, #app > .main`；开/关模态都同步；锁断言 inert on/off 两态。
+- **验证**: 探针 `document.getElementById('app').contains(document.getElementById('formModal'))===true` 时 inert 必须 scoped；a11y-env 组含 inert 断言。
+
+## PIT-101: forced-colors 下换色技巧不可靠——headless palette 让 Canvas==HighlightText，表单控件回退原生 (2026-11-23)
+
+- **症状**: forced-colors 模式主题化 checkbox 选中/未选中计算色相同（白底白勾不可辨）；改伪元素字形色对比仍相同。
+- **根因**: UA 在 forced-colors 下强制表单控件背景；headless 模拟 palette 中 Canvas 与 HighlightText 同值，任何"两系统色互换"的区分技巧失效。
+- **解法**: @media (forced-colors: active) 内 checkbox `appearance:auto` + 移除自定义勾（OS 保证状态色）；非表单控件（.wswitch button）用 forced-color-adjust:none + Highlight/HighlightText/ButtonText 作者规则；锁断言"原生回退生效"而非色差。
+- **验证**: playwright `emulateMedia({forcedColors:'active'})` 后 `getComputedStyle(ck).appearance==='auto' && getComputedStyle(ck,'::after').content==='none'`（a11y-env 组）。
+
+## PIT-102: 顶层 init 调用插到 const 定义前 = TDZ 静默中断整段经典脚本，node --check 全绿 (2026-11-23)
+
+- **症状**: 插入 syncNavTips() init 后页面半死（导航 aria/tip 全 null、toggle 抛错），console 3×"Cannot access 'titles' before initialization"；node --check 通过。
+- **根因**: 经典 `<script>` 顶层 const 有 TDZ；init 调用行号先于依赖 const 定义行号 → 顶层抛错后**其后所有顶层语句不执行**（渲染/handler 全失）。
+- **解法**: 插入 init 调用前 grep 依赖 const 的行号确认顺序；单文件脚本编辑后除 node --check 外必须跑运行时探针收集 pageerror/console.error==0。
+- **验证**: playwright 加载页 `page.on('pageerror')` 收集为空；已入 edit-safety 规则第 4 条。
+
+## PIT-103: 响应式断点只改布局不套状态语义 → 裁切 chrome；一个状态两个入口必须同语义 (2026-11-23, user-reported)
+
+- **症状**: 565px 侧栏分组标题裁成 OVERV/IDENT/…、Collapse 按钮裁成 Collaps；宽屏手动 collapse 正常。
+- **根因**: ≤760px 媒体查询收窄 grid+隐藏 .lbl，但未应用 .app.collapsed 规则族（group visibility/trigger 隐藏）——断点路径与手动路径语义分叉。
+- **解法**: 断点"拥有"该状态：媒体块复用与手动态完全相同的语义声明；连带修 display:none 标签移除无障碍名的问题（icon-only 补 aria-label+tip，syncNavTips 于 matchMedia/toggle/init）。
+- **验证**: narrow-nav 组：窄屏 group hidden≤6px + side-foot none + 无溢出 + aria==tip；宽屏恢复；手动 collapsed 同语义。
+
+## PIT-104: python 批量 patch 两陷阱——选择器子串碰撞 + 工具回显 JSON 转义误导 old_str (2026-11-23, ≥3 轮失败)
+
+- **症状**: rep() assert count 反复失败：`.error-banner .ic` 先匹配进 `#page-profile .error-banner .ic` 把长规则提前吃掉；按工具回显的 \" 构造 old_str 与文件真实 plain 引号不符。
+- **根因**: 短选择器是长选择器子串，替换顺序未排序；tool result 经 JSON 编码转义引号，回显≠文件字节。
+- **解法**: 选择器映射按长度降序处理；构造 old_str 前用 repr()/od 读原始字节确认引号形态；two-pass assert 全 pattern 后再 write（edit-safety 第 3 条）。
+- **验证**: patch 脚本先 dry-run 打印每 pattern count==期望再写；失败后 read 目标区域而非盲重试。

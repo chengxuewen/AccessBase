@@ -159,9 +159,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### decisions
 - full text: `.agents/memorys/decisions.md`
-... 102 older entries omitted (read the full file)
-- D103: Admin 自动创建策略 (2026-08-27)
-- D104: E2E 测试不覆盖跨 session 状态 (2026-08-27)
+... 104 older entries omitted (read the full file)
 - D105: 用户 CRUD API 类型约束 (2026-08-27)
 - D106: E2E 测试 Mock vs 真后端策略 (2026-08-27)
 - D110: 安全基座架构（RS256 回退 + DB 权威会话 + 可注入审计存储） (2026-08-31)
@@ -185,17 +183,12 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - D107: REGISTERED VOID — never assigned, number reserved (2026-11-17)
 - D108: REGISTERED VOID — never assigned, number reserved (2026-11-17)
 - D127: Introduce local-serena (pixi-kind MCP) — Batch-4 npm-only pruning reversed by ruling (2026-11-18)
+- D128: 布尔控件规则统一——Switch=立即生效域 / Checkbox=提交标记+多选+attestation 域，真实与原型联动迁移 (2026-11-23)
+- D129: 形状刻度 token 化——图标三语义档 / 浮层单一圆角 / 标签族圆角 token (2026-11-23)
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 85 older entries omitted (read the full file)
-- PIT-084: node-saml SLO/ACS integration triple trap (2026-10-08, logout-coherence)
-- PIT-085: oidc-provider RP walls — human-confirm logoutSource + built-in SSRF dispatcher (2026-10-08, verification day)
-- PIT-086: StrictMode double-fire burns one-time exchange codes; mocks structurally hide it (2026-10-08, verification day)
-- PIT-087: bash-tool timeout reaps detached children; ctx_execute background sandbox survives (2026-10-08, verification day)
-- PIT-088: emitEvent on a TX handle poisons the COMMIT — telemetry rides its own pool (2026-10-12, Q3D integration)
-- PIT-089: "Creating" a file that is git-tracked-but-deleted silently overwrites repo history
-- PIT-090: A host consuming the generated MCP declaration can fire self-healing installs that drift the dependency tree
+... 92 older entries omitted (read the full file)
 - PIT-091: External CI validity is invisible to every local gate - a rejected workflow file stayed red-but-unread for 46 days (2026-11-06, E11/E12/E13 wave)
 - PIT-092: The local e2e invocation has three environment traps, each eating a 60 s timeout before the real question is even asked (2026-11-05/06, T8)
 - PIT-093: The measuring instrument lies more often than the measurement - three costumes seen in one wave (2026-11-06, panel-folded)
@@ -204,6 +197,13 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-079: REGISTERED VOID — never assigned, number reserved (2026-11-17)
 - PIT-096: A success log line as a function's last statement swallowed real gate failures
 - PIT-097: A wrong verification predicate produces confident false findings — test the checker on BOTH samples before trusting its verdict
+- PIT-098: 恒真锁三 costume——采样不触发缺陷的样本/白名单排除失败面/存在性检查冒充覆盖 (2026-11-23, panel-folded)
+- PIT-099: playwright 失败后重启 worker → results.json 只含后半程组，"fail:0" 是假象 (2026-11-23)
+- PIT-100: inert 加在 app 根上会连模态一起禁掉——overlays 在根内时必须只 inert 背景容器 (2026-11-23)
+- PIT-101: forced-colors 下换色技巧不可靠——headless palette 让 Canvas==HighlightText，表单控件回退原生 (2026-11-23)
+- PIT-102: 顶层 init 调用插到 const 定义前 = TDZ 静默中断整段经典脚本，node --check 全绿 (2026-11-23)
+- PIT-103: 响应式断点只改布局不套状态语义 → 裁切 chrome；一个状态两个入口必须同语义 (2026-11-23, user-reported)
+- PIT-104: python 批量 patch 两陷阱——选择器子串碰撞 + 工具回显 JSON 转义误导 old_str (2026-11-23, ≥3 轮失败)
 
 ### status
 - full text: `.agents/memorys/status.md`

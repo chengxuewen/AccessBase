@@ -398,3 +398,19 @@ report, not to the reader hunting for proof.
 **Naming**: C-series entries start at C1 here (2026-11-17). External panel
 findings keep their own namespace and are always cited as
 `panel:<date>#<id>` — never as bare "C-1" (collision with this series).
+
+## C2: icon-only / 隐藏标签模式必须携带 aria-label（+hover tip），display:none 标签会移除无障碍名 (2026-11-23)
+
+**Rule**: 任何把可见标签 display:none 的模式（侧栏 collapse、断点 icon-only、响应式隐藏列标题）必须给交互元素补 aria-label；hover 提示在 icon-only 模式同步提供。翻译层需覆盖这些 aria/tip 属性。
+
+**Source**: post-seal fix 8（用户窄屏报告连带发现）；PIT-103。
+
+**Check**: `grep -n 'syncNavTips' docs/ui/prototypes/admin-console.html` 存在且 matchMedia/toggle/init 三处调用；narrow-nav 锁断言 aria==tip（icon-only）/tip==null（宽屏）。
+
+## C3: 新增模拟失败必须同 commit 三更新——披露索引行 + "(prototype simulation)" 标记 + zh 词条 (2026-11-23)
+
+**Rule**: 每个 simulated failure 落地时同步：README 模拟索引行（表面/点位/真实对照）、消息带统一标记、zh 词典键或规则；频率语义（per-open vs per-page-load）写明。幻影行（索引有代码无）与漏报行同罪。
+
+**Source**: panel 2026-11-23 H7/M6-M8（fix 6/7 后索引漂移：Users create 幻影、Profile MFA/session 幻影、dStatus 未披露无标记无 zh）。
+
+**Check**: `grep -c 'prototype simulation' docs/ui/prototypes/*.html` 与索引行族数对照；i18n-dynamic 锁扫 toast/btnBusy/formError 字面量 tr(lit)!==lit；README not-modelled 清单收未模拟的真实分支。
