@@ -238,6 +238,9 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   semantics as the manual `.app.collapsed` state (group labels hidden to 6px spacers, collapse trigger
   hidden); icon-only nav links keep an aria-label and a hover tip in both icon-only modes, because
   display:none on the visible label would otherwise remove the link name from the accessibility tree.
+  The sider never scrolls horizontally: .nav sets overflow-x:hidden and icon-only group spacers take
+  width:0 (visibility:hidden alone keeps their nowrap text width, which overflow-y:auto turned into
+  a horizontal scrollbar at the sider bottom).
 - Environment baseline (locked by a11y-env): no document-level horizontal overflow at ~200% zoom
   (640px viewport; data tables scroll inside their focusable regions), modals/drawers fit narrow
   viewports with a working focus trap and `inert` background while open, and forced-colors mode keeps

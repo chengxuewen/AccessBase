@@ -159,8 +159,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### decisions
 - full text: `.agents/memorys/decisions.md`
-... 104 older entries omitted (read the full file)
-- D105: 用户 CRUD API 类型约束 (2026-08-27)
+... 105 older entries omitted (read the full file)
 - D106: E2E 测试 Mock vs 真后端策略 (2026-08-27)
 - D110: 安全基座架构（RS256 回退 + DB 权威会话 + 可注入审计存储） (2026-08-31)
 - D111: FlowTokenService 单次用途 token 作为多步认证主干 (2026-08-31)
@@ -185,6 +184,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - D127: Introduce local-serena (pixi-kind MCP) — Batch-4 npm-only pruning reversed by ruling (2026-11-18)
 - D128: 布尔控件规则统一——Switch=立即生效域 / Checkbox=提交标记+多选+attestation 域，真实与原型联动迁移 (2026-11-23)
 - D129: 形状刻度 token 化——图标三语义档 / 浮层单一圆角 / 标签族圆角 token (2026-11-23)
+- D130: 4A optimization roadmap — eight adjudications ratified one by one (2026-11-23)
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`

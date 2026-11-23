@@ -2090,7 +2090,8 @@ test('narrow-nav', async ({ page }) => {
     const g = document.querySelector('.nav .group') as HTMLElement;
     const sb = document.querySelector('.sidebar') as HTMLElement;
     const a = document.querySelector('.nav a[data-page=users]') as HTMLElement;
-    return { groupVis: getComputedStyle(g).visibility, groupH: g.getBoundingClientRect().height, foot: getComputedStyle(document.querySelector('.side-foot')!).display, sbOver: sb.scrollWidth > sb.clientWidth, aria: a.getAttribute('aria-label'), tip: a.getAttribute('data-tip'), docOver: document.documentElement.scrollWidth > window.innerWidth };
+    const nv = document.querySelector('.nav') as HTMLElement;
+    return { groupVis: getComputedStyle(g).visibility, groupH: g.getBoundingClientRect().height, foot: getComputedStyle(document.querySelector('.side-foot')!).display, sbOver: sb.scrollWidth > sb.clientWidth, navOver: nv.scrollWidth > nv.clientWidth, navOx: getComputedStyle(nv).overflowX, aria: a.getAttribute('aria-label'), tip: a.getAttribute('data-tip'), docOver: document.documentElement.scrollWidth > window.innerWidth };
   });
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.waitForTimeout(250);
@@ -2105,7 +2106,7 @@ test('narrow-nav', async ({ page }) => {
     return { groupVis: getComputedStyle(document.querySelector('.nav .group')!).visibility, tip: a.getAttribute('data-tip'), lbl: (document.getElementById('collapseLbl') as HTMLElement).textContent };
   });
   const a = { narrow, wide, collapsed };
-  const pass = narrow.groupVis === 'hidden' && narrow.groupH <= 6 && narrow.foot === 'none' && !narrow.sbOver && !narrow.docOver
+  const pass = narrow.groupVis === 'hidden' && narrow.groupH <= 6 && narrow.foot === 'none' && !narrow.sbOver && !narrow.navOver && narrow.navOx === 'hidden' && !narrow.docOver
     && !!narrow.aria && narrow.tip === narrow.aria
     && wide.groupVis === 'visible' && wide.foot !== 'none' && wide.aria === 'Users' && wide.tip === null
     && collapsed.groupVis === 'hidden' && collapsed.tip === 'Users' && collapsed.lbl === '';

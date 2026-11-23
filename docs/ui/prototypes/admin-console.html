@@ -80,9 +80,9 @@ button{font-family:inherit;cursor:pointer}
 .brand .name{font-weight:600;font-size:var(--fs14);letter-spacing:-.01em;white-space:nowrap}
 .brand .name small{display:block;font-weight:400;font-size:var(--fs11);color:var(--tx3);letter-spacing:0}
 .app.collapsed .brand .name{display:none}
-.nav{flex:1;overflow-y:auto;padding:var(--sp8) 0}
+.nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:var(--sp8) 0}
 .nav .group{font-size:var(--fs11);font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);padding:var(--sp12) var(--sp16) var(--sp4);white-space:nowrap}
-.app.collapsed .nav .group{visibility:hidden;height:6px;padding:0}
+.app.collapsed .nav .group{visibility:hidden;height:6px;padding:0;width:0;overflow:hidden}
 .nav a{position:relative;display:flex;align-items:center;gap:10px;padding:7px var(--sp16);color:var(--tx2);text-decoration:none;font-size:var(--fs13);white-space:nowrap}
 .nav a:hover{background:var(--hover);color:var(--tx1)}
 .nav a.on{background:var(--accent-tint);color:var(--accent-text,var(--tx1));font-weight:500}
@@ -276,7 +276,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 .placeholder .big .ic{width:var(--ic-display);height:var(--ic-display)}
 .placeholder h2{font-size:var(--fs16);font-weight:600;color:var(--tx1);margin-bottom:4px}
 @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
-@media(max-width:760px){.app{grid-template-columns:var(--nav-w-min) 1fr}.app .nav a span.lbl,.app .brand .name{display:none}.app .nav .group{visibility:hidden;height:6px;padding:0}.app .side-foot{display:none}.stats{grid-template-columns:1fr}.search{display:none}}
+@media(max-width:760px){.app{grid-template-columns:var(--nav-w-min) 1fr}.app .nav a span.lbl,.app .brand .name{display:none}.app .nav .group{visibility:hidden;height:6px;padding:0;width:0;overflow:hidden}.app .side-foot{display:none}.stats{grid-template-columns:1fr}.search{display:none}}
 /* ==== v0.6 STYLE PACKS (single-word design-language names; data-style x data-theme).
    Mechanism provenance: the token-pack switching architecture follows Fusion
    Design's "theme factory" philosophy (configurable theme packs over one

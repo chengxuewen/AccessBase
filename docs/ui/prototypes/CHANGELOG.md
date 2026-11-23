@@ -1301,3 +1301,13 @@ cbxOpen/openModal/closeModal admin; tr/cbxOpen/enhanceSelect companion) plus nav
 rendered rows/flows — a silent top-level TDZ abort (node --check green, page half-dead) now reds the
 suite. Verified on BOTH samples per PIT-097: injecting an early syncNavTips() call before the titles
 const reds the group; removing it greens it. Full re-run: 64 groups, 0 failures. README lock row.
+
+## Post-seal fix 9 (user-reported): horizontal scrollbar at icon-only sider bottom — 2026-11-23
+Report: narrow screen showed a horizontal scrollbar thumb at the sidebar bottom. Root cause: .nav
+uses overflow-y:auto, which computes overflow-x to auto; the icon-only group spacers used
+visibility:hidden (keeps layout width) with white-space:nowrap, so their text width overflowed the
+56px sider and produced the horizontal scrollbar. Fix: .nav overflow-x:hidden (sider never scrolls
+horizontally) + icon-only group spacers width:0;overflow:hidden (keep the 6px vertical spacer without
+layout width), in both the manual .app.collapsed rule and the <=760px breakpoint rule. narrow-nav lock
+extended: nav scrollWidth<=clientWidth + overflowX==='hidden' at narrow. Full re-run: 64 groups, 0
+failures. Screenshot: 675px dashboard, sider bottom clean.
