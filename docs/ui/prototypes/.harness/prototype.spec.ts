@@ -2048,6 +2048,38 @@ test('a11y-env', async ({ page }) => {
   expect(pass, 'a11y-env: reflow@200% + modal fit/trap/inert + forced-colors states').toBe(true);
 });
 
+test('shape-scale', async ({ page }) => {
+  // Design backlog rulings 1-3 (A/A/A): icon tiers {12,14,16,28}, single pop radius, label-family
+  // radius token (cupertino pill kept but intra-family consistent). Control geometry (knob/checkbox/
+  // swatch/scrollbar) stays px by design.
+  await page.goto(FILE);
+  const res: Record<string, unknown> = {};
+  let ok = true;
+  for (const pack of ['ant', 'cupertino', 'fluent']) {
+    await page.evaluate(p => { const s = document.getElementById('styleSelect') as HTMLSelectElement; s.value = p; s.onchange!(new Event('change')); }, pack);
+    await page.evaluate(() => document.querySelector('[data-page=users]')!.click());
+    await page.evaluate(() => document.querySelector('[data-create=users]')!.click());
+    await page.waitForTimeout(150);
+    const m = await page.evaluate(() => {
+      const ics = [...document.querySelectorAll('.ic')].filter(e => (e as HTMLElement).getBoundingClientRect().width > 0).map(e => Math.round((e as HTMLElement).getBoundingClientRect().width));
+      const pop = ['#floatTip', '#formModal .cbx-list', '#rowMenu', '#formModal .modal', '#protoToast'].map(sel => { const e = document.querySelector(sel); return e ? getComputedStyle(e).borderTopLeftRadius : null; }).filter(Boolean);
+      const tag = ['.tag', '.cbx-chip', '.sys-tag'].map(sel => { const e = document.querySelector(sel); return e ? getComputedStyle(e).borderTopLeftRadius : null; }).filter(Boolean);
+      return { ics: [...new Set(ics)], pop: [...new Set(pop)], tag: [...new Set(tag)] };
+    });
+    res[pack] = m;
+    const tiers = [12, 14, 16, 28];
+    if (!(m as any).ics.every((w: number) => tiers.includes(w))) ok = false;
+    if ((m as any).pop.length !== 1) ok = false;
+    if ((m as any).tag.length !== 1) ok = false;
+    await page.keyboard.press('Escape');
+  }
+  const cup = (res.cupertino as any).tag[0];
+  const ant = (res.ant as any).tag[0];
+  const pass = ok && cup !== ant && parseFloat(cup) > 100;
+  rec('shape-scale', pass, res);
+  expect(pass, 'shape-scale: icon tiers + single pop radius + label-family radius per pack').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);

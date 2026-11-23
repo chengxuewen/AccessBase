@@ -18,6 +18,7 @@
   --sp4:4px;--sp8:8px;--sp12:12px;--sp16:16px;--sp20:20px;--sp24:24px;
   --sans:"IBM Plex Sans",-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ic-s:12px;--ic-m:14px;--ic-l:16px;--ic-display:28px;--r-pop:var(--r6);--r-tag:var(--r2);
   --fs11:11px;--fs12:12px;--fs13:13px;--fs14:14px;--fs16:16px;--fs20:20px;--fs22:22px;--fs26:26px;--fs40:40px;
   --shadow-tip:0 2px 10px rgba(0,0,0,.12);--shadow-pop:0 8px 32px rgba(0,0,0,.18);--shadow-toast:0 4px 16px rgba(0,0,0,.2);--shadow-card:0 2px 12px rgba(0,0,0,.06);--shadow-sm:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24);--shadow-hair:0 1px 2px rgba(0,0,0,.06),0 0 1px rgba(0,0,0,.10);
   --nav-w:224px;--nav-w-min:56px;--top-h:52px;
@@ -50,22 +51,22 @@ html{scrollbar-color:var(--bd2) transparent;scrollbar-width:thin}
    context that later rows paint over; table/modal/drawer scroll containers clipped edge bubbles.
    Replaced by ONE body-level fixed tooltip (#floatTip) above every context: no ancestor can clip or
    overpaint it. Pack tokens still apply; reduced-motion collapses its fade. */
-#floatTip{position:fixed;z-index:600;background:var(--surface);color:var(--tx1);border:1px solid var(--bd);border-radius:var(--r4);font-size:var(--fs11);font-weight:500;line-height:1.35;padding:3px 8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;transition:opacity .12s ease;box-shadow:var(--shadow-tip)}
+#floatTip{position:fixed;z-index:600;background:var(--surface);color:var(--tx1);border:1px solid var(--bd);border-radius:var(--r-pop);font-size:var(--fs11);font-weight:500;line-height:1.35;padding:3px 8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;transition:opacity .12s ease;box-shadow:var(--shadow-tip)}
 #floatTip.on{opacity:1}
 .tip-wrap{display:inline-flex;position:relative}
 /* R2 overflow menu (adjudication R2=A): reusable drop-down for secondary/danger row actions;
    position:fixed so it escapes the table's overflow-x clip. R5 toolbar overflow reuses it. */
-.menu{position:fixed;z-index:400;min-width:190px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);box-shadow:var(--shadow-pop);padding:4px;display:none}
+.menu{position:fixed;z-index:400;min-width:190px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r-pop);box-shadow:var(--shadow-pop);padding:4px;display:none}
 .menu.on{display:block}
 .menu-item{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;background:transparent;color:var(--tx1);font-size:var(--fs13);border-radius:var(--r4);cursor:pointer;text-align:left;font-family:inherit}
 .menu-item:hover,.menu-item:focus-visible{background:var(--hover)}
-.menu-item .ic{width:15px;height:15px;color:var(--tx3);flex:none}
+.menu-item .ic{width:var(--ic-l);height:var(--ic-l);color:var(--tx3);flex:none}
 .menu-item.danger{color:var(--danger-text,var(--danger))}
 .menu-item.danger .ic{color:var(--danger-text,var(--danger))}
 .menu-sep{height:1px;background:var(--bd);margin:4px 0}
 body{font-family:var(--sans);font-size:var(--fs14);color:var(--tx1);background:var(--bg);-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
-.ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.ic{width:var(--ic-l);height:var(--ic-l);stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bd2);border:3px solid transparent;border-radius:var(--r4);background-clip:padding-box}
@@ -96,7 +97,7 @@ button{font-family:inherit;cursor:pointer}
 .search{flex:1;max-width:380px;position:relative}
 .search input{width:100%;padding:6px 10px 6px 30px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--sunken);color:var(--tx1);font-size:var(--fs13);font-family:inherit;outline:none}
 .search input:focus{border-color:var(--focus);background:var(--surface)}
-.search .ic{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--tx3)}
+.search .ic{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:var(--ic-m);height:var(--ic-m);color:var(--tx3)}
 .top-actions{margin-left:auto;display:flex;align-items:center;gap:var(--sp8)}
 .icon-btn{width:30px;height:30px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--surface);color:var(--tx2);display:grid;place-items:center}
 .icon-btn:hover{background:var(--hover);color:var(--tx1)}
@@ -127,7 +128,7 @@ button{font-family:inherit;cursor:pointer}
 .card .card-head{display:flex;align-items:center;justify-content:space-between;padding:var(--sp12) var(--sp16);border-bottom:1px solid var(--bd)}
 .card .card-head h3{font-size:var(--fs13);font-weight:600}
 .card .card-body{padding:var(--sp16)}
-.tag{display:inline-flex;align-items:center;gap:5px;padding:1px 6px;border-radius:var(--r2);font-size:var(--fs11);font-weight:500;background:var(--sunken);color:var(--tx2);border:1px solid var(--bd)}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:1px 6px;border-radius:var(--r-tag);font-size:var(--fs11);font-weight:500;background:var(--sunken);color:var(--tx2);border:1px solid var(--bd)}
 .tag.ok{background:var(--ok-tint);color:var(--ok-text,var(--ok))}
 .tag.warn{background:var(--warn-tint);color:var(--warn-text,var(--warn))}
 .tag.danger{background:var(--danger-tint);color:var(--danger-text,var(--danger))}
@@ -136,7 +137,7 @@ button{font-family:inherit;cursor:pointer}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp12);margin-bottom:var(--sp12)}
 .stat{padding:var(--sp16)}
 .stat .lbl{font-size:var(--fs12);color:var(--tx2);display:flex;align-items:center;justify-content:space-between}
-.stat .lbl .ic{color:var(--tx3);width:14px;height:14px}
+.stat .lbl .ic{color:var(--tx3);width:var(--ic-m);height:var(--ic-m)}
 .stat .val{font-size:var(--fs26);font-weight:600;letter-spacing:-.02em;margin:6px 0 2px;font-variant-numeric:tabular-nums}
 .stat .delta{font-size:var(--fs11);font-family:var(--mono)}
 .stat .delta.up{color:var(--ok-text,var(--ok))}.stat .delta.down{color:var(--danger-text,var(--danger))}
@@ -146,7 +147,7 @@ button{font-family:inherit;cursor:pointer}
 .activity li{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd)}
 .activity li:last-child{border-bottom:none}
 .activity .a-ic{width:26px;height:26px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--sunken);display:grid;place-items:center;flex-shrink:0;color:var(--tx2)}
-.activity .a-ic .ic{width:13px;height:13px}
+.activity .a-ic .ic{width:var(--ic-m);height:var(--ic-m)}
 .activity .a-tx{flex:1;min-width:0}
 .activity .a-tx .t{font-size:var(--fs13)}
 .activity .a-tx .m{font-size:var(--fs11);color:var(--tx2);margin-top:1px;font-family:var(--mono)}
@@ -194,10 +195,10 @@ html[data-theme="dark"] .toolbar input[type=date]{color-scheme:dark}
 .cbx-btn:disabled:hover{background:var(--surface)}
 .cbx-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cbx[data-multi] .cbx-val{display:flex;gap:4px;flex-wrap:wrap;align-items:center;white-space:normal}
-.cbx-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:var(--r2);background:var(--accent-tint);color:var(--accent-text,var(--accent));font-size:var(--fs11)}
+.cbx-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:var(--r-tag);background:var(--accent-tint);color:var(--accent-text,var(--accent));font-size:var(--fs11)}
 .cbx-chip button{border:none;background:none;padding:0;cursor:pointer;color:inherit;display:inline-flex;position:relative}
 .cbx-chip button::before{content:"";position:absolute;inset:-7px;}
-.cbx-chip .ic{width:10px;height:10px}
+.cbx-chip .ic{width:var(--ic-s);height:var(--ic-s)}
 .cbx-btn .cbx-val{flex:1;min-width:0}
 /* allowClear cross is a sibling of the button (nested <button> is invalid HTML and the parser
    splits it, which wrapped the cross onto a blank line below the control). Absolute inside the
@@ -207,16 +208,16 @@ html[data-theme="dark"] .toolbar input[type=date]{color-scheme:dark}
 .cbx-has-clear .cbx-val{padding-right:26px}
 .cbx-disabled .cbx-clear{display:none !important}
 .cbx-clear:hover{color:var(--tx1)}
-.cbx-clear .ic{width:11px;height:11px}
+.cbx-clear .ic{width:var(--ic-s);height:var(--ic-s)}
 .cbx-load{display:none;align-items:center;color:var(--tx3)}
-.cbx-load .ic{width:12px;height:12px;animation:cbxrot 1s linear infinite}
+.cbx-load .ic{width:var(--ic-s);height:var(--ic-s);animation:cbxrot 1s linear infinite}
 .cbx.cbx-loading .cbx-load{display:inline-flex}
 .cbx.cbx-loading .cbx-chev{display:none}
 @keyframes cbxrot{to{transform:rotate(360deg)}}
-.cbx-chev{width:12px;height:12px;color:var(--tx3);flex-shrink:0;transform:rotate(90deg);transition:transform .15s}
+.cbx-chev{width:var(--ic-s);height:var(--ic-s);color:var(--tx3);flex-shrink:0;transform:rotate(90deg);transition:transform .15s}
 .cbx.open .cbx-chev{transform:rotate(270deg)}
 .cbx.open .cbx-btn{border-color:var(--accent)}
-.cbx-list{position:fixed;top:0;left:0;width:max-content;max-width:min(320px,92vw);max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r4);box-shadow:var(--shadow-pop);z-index:70;padding:4px;display:none}
+.cbx-list{position:fixed;top:0;left:0;width:max-content;max-width:min(320px,92vw);max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r-pop);box-shadow:var(--shadow-pop);z-index:70;padding:4px;display:none}
 .cbx.open .cbx-list{display:block}
 
 .cbx-list::-webkit-scrollbar{width:8px}
@@ -263,7 +264,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 .row-actions button{width:24px;height:24px;border-radius:var(--r2);border:1px solid transparent;background:transparent;color:var(--tx3);display:grid;place-items:center}
 .row-actions button:disabled{opacity:.45;cursor:not-allowed}
 .row-actions button:hover:not(:disabled){background:var(--hover);color:var(--tx1);border-color:var(--bd)}
-.row-actions .ic{width:13px;height:13px}
+.row-actions .ic{width:var(--ic-m);height:var(--ic-m)}
 .pagination{display:flex;align-items:center;justify-content:space-between;padding:var(--sp12) var(--sp16)}
 .pagination .info{font-size:var(--fs12);color:var(--tx3);font-family:var(--mono)}
 .pagination .pages{display:flex;gap:4px}
@@ -272,7 +273,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 .empty{padding:var(--sp24);text-align:center;color:var(--tx3);font-size:var(--fs13)}
 .placeholder{padding:60px;text-align:center;color:var(--tx3)}
 .placeholder .big{margin-bottom:12px;color:var(--tx3)}
-.placeholder .big .ic{width:32px;height:32px}
+.placeholder .big .ic{width:var(--ic-display);height:var(--ic-display)}
 .placeholder h2{font-size:var(--fs16);font-weight:600;color:var(--tx1);margin-bottom:4px}
 @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
 @media(max-width:760px){.app{grid-template-columns:var(--nav-w-min) 1fr}.app .nav a span.lbl,.app .brand .name{display:none}.stats{grid-template-columns:1fr}.search{display:none}}
@@ -309,7 +310,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
   --ok:#81C995;--ok-tint:rgba(129,201,149,.16);--warn:#FDD663;--warn-tint:rgba(253,214,99,.16);--danger:#F28B82;--danger-text:#FFA39E;--danger-solid:#B3261E;--danger-tint:rgba(242,139,130,.16)}
 [data-style="material"] .btn{border-radius:999px}
 [data-style="material"] .card{box-shadow:var(--shadow-sm)}
-[data-style="material"] .tag{border-radius:8px}
+[data-style="material"]{--r-tag:8px}
 [data-style="material"] .icon-btn,[data-style="material"] .avatar{border-radius:999px}
 /* fluent — Fluent 2 language: 4px controls / 8px surfaces, Segoe UI, layered subtle shadow + border */
 [data-style="fluent"]{--r2:2px;--r4:4px;--r6:8px;
@@ -352,7 +353,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
   --tx1:#F4F4F4;--tx2:#C6C6C6;--tx3:#8D8D8D;--txinv:#FFFFFF;--bd:#393939;--bd2:#525252;--focus:#FFFFFF;
   --accent:#4589FF;--accent-hi:#6EA6FF;--accent-tint:rgba(69,137,255,.16);--accent-text:#78A9FF;
   --ok:#42BE65;--ok-tint:rgba(66,190,101,.16);--warn:#F1C21B;--warn-tint:rgba(241,194,27,.16);--danger:#FF8389;--danger-solid:#DA1E28;--danger-tint:rgba(255,131,137,.16)}
-[data-style="carbon"] .tag{border-radius:0}
+[data-style="carbon"]{--r-tag:0}
 [data-style="carbon"] tbody td{padding:10px 16px}
 [data-style="carbon"] thead th{padding:10px 16px}
 /* cupertino — Apple HIG language: large continuous radius, system SF font,
@@ -367,7 +368,7 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
   --tx1:#FFFFFF;--tx2:rgba(235,235,245,.6);--tx3:rgba(235,235,245,.75);--txinv:#FFFFFF;--bd:rgba(84,84,88,.65);--bd2:#38383A;--focus:#0A84FF;
   --accent:#0A84FF;--accent-hi:#409CFF;--accent-tint:rgba(10,132,255,.16);--accent-text:#6CB2FF;--danger-text:#FF8A80;
   --ok:#30D158;--ok-tint:rgba(48,209,88,.16);--warn:#FF9F0A;--warn-tint:rgba(255,159,10,.16);--danger:#FF453A;--danger-solid:#C42B1C;--danger-tint:rgba(255,69,58,.16)}
-[data-style="cupertino"] .tag{border-radius:999px}
+[data-style="cupertino"]{--r-tag:999px}
 [data-style="cupertino"] .btn{font-weight:500}
 [data-style="cupertino"][data-theme="light"] .topbar{background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px)}
 [data-style="cupertino"][data-theme="dark"] .topbar{background:rgba(28,28,30,.72);backdrop-filter:saturate(180%) blur(20px)}
@@ -390,8 +391,8 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 [data-style="cupertino"][data-theme="dark"]{--ok-text:#30D158;--warn-text:#FF9F0A;--danger-text:#FF8A80;--accent-text:#6CB2FF}
 /* ==== v0.7 Roles permission matrix + Groups detail (token-driven; all 7 packs apply) ==== */
 .entity-name{display:flex;align-items:center;gap:8px;font-weight:500}
-.lock-ic{color:var(--tx3);width:13px;height:13px}
-.sys-tag{font-size:var(--fs11);color:var(--tx2);border:1px solid var(--bd);border-radius:var(--r2);padding:0 5px;font-family:var(--mono)}
+.lock-ic{color:var(--tx3);width:var(--ic-m);height:var(--ic-m)}
+.sys-tag{font-size:var(--fs11);color:var(--tx2);border:1px solid var(--bd);border-radius:var(--r-tag);padding:0 5px;font-family:var(--mono)}
 tbody tr.sel{background:var(--accent-tint)}
 tbody tr.clickable{cursor:pointer}
 .perm-count{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
@@ -402,12 +403,12 @@ table.matrix thead th:first-child{text-align:left}
 table.matrix tbody td{text-align:center;padding:6px var(--sp12)}
 table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);font-weight:500}
 .perm-cell{width:22px;height:22px;border-radius:var(--r2);border:1px solid var(--bd2);background:var(--surface);display:inline-grid;place-items:center;color:var(--txinv);vertical-align:middle;padding:0}
-.perm-cell .ic{width:13px;height:13px;opacity:0}
+.perm-cell .ic{width:var(--ic-m);height:var(--ic-m);opacity:0}
 .perm-cell.on{background:var(--accent);border-color:var(--accent)}
 .perm-cell.on .ic{opacity:1}
 .perm-cell.na{border-style:dashed;border-color:var(--bd);background:var(--sunken);cursor:default}
 .perm-cell.locked{border-style:dashed;border-color:var(--bd);background:var(--sunken);cursor:not-allowed}
-.perm-cell.locked .ic{opacity:1;width:11px;height:11px;color:var(--tx3)}
+.perm-cell.locked .ic{opacity:1;width:var(--ic-s);height:var(--ic-s);color:var(--tx3)}
 .perm-cell.na::after{content:"\2013";color:var(--tx3);font-size:11px}
 .perm-cell:not(.na):not(:disabled):hover{border-color:var(--accent)}
 .perm-cell:disabled{cursor:not-allowed}
@@ -465,7 +466,7 @@ input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed}
 .role-check:hover{background:var(--hover)}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .role-check .rc-box{width:18px;height:18px;border-radius:var(--r2);border:1px solid var(--bd2);background:var(--surface);display:grid;place-items:center;color:var(--txinv);flex-shrink:0}
-.role-check .rc-box .ic{width:12px;height:12px;opacity:0}
+.role-check .rc-box .ic{width:var(--ic-s);height:var(--ic-s);opacity:0}
 .role-check.on .rc-box{background:var(--accent);border-color:var(--accent)}
 .role-check.on .rc-box .ic{opacity:1}
 .role-check .rc-nm{font-size:var(--fs13);font-weight:500}
@@ -532,24 +533,24 @@ input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed}
 .copyable button{flex-shrink:0}
 .copyable button{border:none;background:transparent;color:var(--tx3);display:grid;place-items:center;padding:2px;border-radius:var(--r2)}
 .copyable button:hover{color:var(--accent);background:var(--hover)}
-.copyable .ic{width:12px;height:12px}
+.copyable .ic{width:var(--ic-s);height:var(--ic-s)}
 .json{font-family:var(--mono);font-size:var(--fs11);color:var(--tx2);background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:2px 6px;display:inline-block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
 pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:var(--sp12);overflow-x:auto;white-space:pre;margin:0}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:var(--sp24)}
 .modal-overlay.on{display:flex}
-.modal{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);max-width:520px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-pop)}
+.modal{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r-pop);max-width:520px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-pop)}
 .modal-head{display:flex;align-items:center;gap:10px;padding:var(--sp16);border-bottom:1px solid var(--bd)}
 .modal-head h3{font-size:var(--fs14);font-weight:600}
 .modal-head .close{margin-left:auto}
 .modal-body{padding:var(--sp16)}
 .modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:var(--sp12) var(--sp16);border-top:1px solid var(--bd)}
 .warn-banner{display:flex;gap:8px;align-items:flex-start;background:var(--warn-tint);color:var(--warn-text,var(--warn));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12)}
-.warn-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+.warn-banner .ic{width:var(--ic-l);height:var(--ic-l);flex-shrink:0;margin-top:1px}
 .secret-box{display:flex;gap:8px;align-items:center}
 .secret-box input{flex:1;font-family:var(--mono);font-size:var(--fs12);padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--sunken);color:var(--tx1)}
 .secret-meta{font-family:var(--mono);font-size:var(--fs11);color:var(--tx3);margin-top:8px}
 .verify-banner{display:flex;align-items:center;gap:8px;background:var(--ok-tint);color:var(--ok-text,var(--ok));border-radius:var(--r4);padding:8px var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12)}
-.verify-banner .ic{width:15px;height:15px}
+.verify-banner .ic{width:var(--ic-l);height:var(--ic-l)}
 .verify-banner .hash{margin-left:auto;font-family:var(--mono);font-size:var(--fs11);color:var(--tx2)}
 .count-pill{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 .count-pill.dead{color:var(--danger-text,var(--danger))}
@@ -559,17 +560,17 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea{width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
 .field textarea{resize:vertical;min-height:64px}
 .proto-inert,.btn:disabled{opacity:.5;cursor:not-allowed}
-.proto-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx1);color:var(--bg);padding:8px 16px;border-radius:var(--r4);font-size:var(--fs12);z-index:100;display:none;align-items:center;gap:8px;box-shadow:var(--shadow-toast)}
-.proto-toast .ic{width:14px;height:14px;flex:none}
+.proto-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx1);color:var(--bg);padding:8px 16px;border-radius:var(--r-pop);font-size:var(--fs12);z-index:100;display:none;align-items:center;gap:8px;box-shadow:var(--shadow-toast)}
+.proto-toast .ic{width:var(--ic-m);height:var(--ic-m);flex:none}
 .proto-toast.error{background:var(--danger-solid,var(--danger));color:var(--danger-inv)}
 .skel{height:12px;border-radius:var(--r2);background:linear-gradient(90deg,var(--sunken) 25%,var(--bd) 50%,var(--sunken) 75%);background-size:200% 100%;animation:skel 1.2s linear infinite}
 @keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .empty-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 16px;text-align:center;color:var(--tx3)}
-.empty-state .ic{width:28px;height:28px}
+.empty-state .ic{width:var(--ic-display);height:var(--ic-display)}
 .empty-state h4{margin:0;font-size:var(--fs14);color:var(--tx1);font-weight:600}
 .empty-state p{margin:0;font-size:var(--fs12)}
 .error-banner{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--danger);background:var(--danger-tint);color:var(--danger-text,var(--danger));border-radius:var(--r4);font-size:var(--fs12)}
-.error-banner .ic{width:14px;height:14px;flex:none}
+.error-banner .ic{width:var(--ic-m);height:var(--ic-m);flex:none}
 .error-banner .btn{margin-left:auto;flex:none}
 .state-page{display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:64px 24px;text-align:center}
 .state-page.on{display:flex}
@@ -597,13 +598,13 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .name-form input{padding:4px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit;width:200px}
 .link-btn{border:none;background:transparent;color:var(--accent);display:inline-grid;place-items:center;padding:3px;border-radius:var(--r2);cursor:pointer}
 .link-btn:hover{background:var(--accent-tint)}
-.link-btn .ic{width:14px;height:14px}
+.link-btn .ic{width:var(--ic-m);height:var(--ic-m)}
 .info-banner{display:flex;gap:8px;align-items:flex-start;background:var(--accent-tint);color:var(--accent-text,var(--accent));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12);max-width:420px}
-.info-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+.info-banner .ic{width:var(--ic-l);height:var(--ic-l);flex-shrink:0;margin-top:1px}
 #page-profile .error-banner{display:flex;gap:8px;align-items:flex-start;background:var(--danger-tint);color:var(--danger-text,var(--danger));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12);max-width:420px}
-#page-profile .error-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+#page-profile .error-banner .ic{width:var(--ic-l);height:var(--ic-l);flex-shrink:0;margin-top:1px}
 .ok-banner{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--ok);background:var(--ok-tint);color:var(--ok-text,var(--ok));border-radius:var(--r4);font-size:var(--fs12)}
-.ok-banner .ic{width:14px;height:14px;flex:none}
+.ok-banner .ic{width:var(--ic-m);height:var(--ic-m);flex:none}
 .pwd-form{max-width:420px}
 .oauth-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);font-size:var(--fs13)}
 .oauth-row:last-of-type{border-bottom:none}
@@ -611,7 +612,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .oauth-row .o-ac{font-family:var(--mono);font-size:var(--fs11);color:var(--tx3)}
 .oauth-row .o-rm{margin-left:auto}
 .prov-ic{width:22px;height:22px;display:grid;place-items:center;color:var(--tx2);flex-shrink:0}
-.prov-ic .ic{width:17px;height:17px}
+.prov-ic .ic{width:var(--ic-l);height:var(--ic-l)}
 .prov-g{font-weight:700;font-size:var(--fs13);color:var(--tx2)}
 .oauth-empty{color:var(--tx3);font-size:var(--fs13);padding:6px 0}
 .oauth-bind{display:flex;gap:8px;margin-top:var(--sp16);padding-top:var(--sp16);border-top:1px solid var(--bd)}
@@ -723,7 +724,7 @@ html[lang="zh-CN"] body{line-height:1.7}
       <button class="btn sm" id="langBtn" data-tip="Language" aria-label="Language">中文</button>
       <select id="styleSelect" title="Style pack" style="padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit"><option value="broadsheet">Broadsheet</option><option value="geist">Geist</option><option value="material">Material</option><option value="fluent">Fluent</option><option value="ant">Ant</option><option value="carbon">Carbon</option><option value="cupertino">Cupertino</option></select>
       <button class="icon-btn" id="themeBtn" data-tip="Toggle theme" aria-label="Toggle theme"><svg class="ic"><use href="#i-moon"/></svg></button>
-      <div class="tenant-tag" title="Tenant partition is set by your sign-in token (read-only)"><svg class="ic" style="width:13px;height:13px"><use href="#i-building"/></svg><span>Acme Corp</span></div>
+      <div class="tenant-tag" title="Tenant partition is set by your sign-in token (read-only)"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-building"/></svg><span>Acme Corp</span></div>
       <div class="avatar">AD</div>
     </div>
   </header>
@@ -754,7 +755,7 @@ html[lang="zh-CN"] body{line-height:1.7}
     </section>
     <section class="page" id="page-users">
       <div class="page-head"><div><h1>Users</h1><div class="sub">Manage accounts, status and roles · prototype shows multi-tenant demo data; the real console partitions by sign-in token</div></div>
-        <div style="display:flex;gap:8px"><button class="btn proto-inert" data-phsecondary disabled title="Prototype: not wired"><svg class="ic" style="width:13px;height:13px"><use href="#i-upload"/></svg>Import</button><button class="btn primary" data-create="users"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create user</button><button class="btn ph-more" data-phmore="users" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:13px;height:13px"><use href="#i-more"/></svg></button></div></div>
+        <div style="display:flex;gap:8px"><button class="btn proto-inert" data-phsecondary disabled title="Prototype: not wired"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-upload"/></svg>Import</button><button class="btn primary" data-create="users"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-plus"/></svg>Create user</button><button class="btn ph-more" data-phmore="users" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-more"/></svg></button></div></div>
       <div class="card">
         <div class="toolbar">
           <div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="userSearch" placeholder="Search name or email…"></div>
@@ -770,7 +771,7 @@ html[lang="zh-CN"] body{line-height:1.7}
       </div>
     </section>
     <section class="page" id="page-roles">
-      <div class="page-head"><div><h1>Roles</h1><div class="sub">Role definitions and permission bindings · 26 builtin permissions</div></div><button class="btn primary proto-inert" disabled title="Prototype: not wired"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create role</button></div>
+      <div class="page-head"><div><h1>Roles</h1><div class="sub">Role definitions and permission bindings · 26 builtin permissions</div></div><button class="btn primary proto-inert" disabled title="Prototype: not wired"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-plus"/></svg>Create role</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="roleSearch" placeholder="Search roles…"></div><div class="spacer"></div><button class="icon-btn" data-reload="roles" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="roleCount"></span></div>
         <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
@@ -792,7 +793,7 @@ html[lang="zh-CN"] body{line-height:1.7}
       </div>
     </section>
     <section class="page" id="page-groups">
-      <div class="page-head"><div><h1>Groups</h1><div class="sub">User groups and departments · membership and role bindings</div></div><button class="btn primary" data-create="groups"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create group</button></div>
+      <div class="page-head"><div><h1>Groups</h1><div class="sub">User groups and departments · membership and role bindings</div></div><button class="btn primary" data-create="groups"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-plus"/></svg>Create group</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="groupSearch" placeholder="Search groups…"></div><select id="kindFilter"><option value="">All kinds</option><option value="department">Department</option><option value="group">Group</option></select><div class="spacer"></div><button class="icon-btn" data-reload="groups" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="groupCount"></span></div>
         <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
@@ -807,7 +808,7 @@ html[lang="zh-CN"] body{line-height:1.7}
         <div class="tab-pane on" id="pane-members" role="tabpanel" aria-labelledby="tab-members">
           <div class="error-banner" role="alert" id="grpMemberErr" style="display:none;margin:0 0 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="grpMemberErrMsg"></span><button class="btn sm" id="grpMemberRetry">Retry</button></div>
           <ul class="member-list" id="memberList"></ul>
-          <div class="add-member"><select id="memberPicker"><option value="">Add a member…</option></select><button class="btn primary" id="addMemberBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add</button></div>
+          <div class="add-member"><select id="memberPicker"><option value="">Add a member…</option></select><button class="btn primary" id="addMemberBtn"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-plus"/></svg>Add</button></div>
         </div>
         <div class="tab-pane" id="pane-roles" role="tabpanel" aria-labelledby="tab-roles">
           <div class="role-checks" id="roleChecks"></div>
@@ -817,7 +818,7 @@ html[lang="zh-CN"] body{line-height:1.7}
       </div>
     </section>
     <section class="page" id="page-tenants">
-      <div class="page-head"><div><h1>Tenants</h1><div class="sub">Isolated identity partitions · slug, status and lifecycle</div></div><button class="btn primary" data-create="tenants"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create tenant</button></div>
+      <div class="page-head"><div><h1>Tenants</h1><div class="sub">Isolated identity partitions · slug, status and lifecycle</div></div><button class="btn primary" data-create="tenants"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-plus"/></svg>Create tenant</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="tenantSearch" placeholder="Search name or slug…"></div><div class="spacer"></div><button class="icon-btn" data-reload="tenants" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="tenantCount"></span></div>
         <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
@@ -827,7 +828,7 @@ html[lang="zh-CN"] body{line-height:1.7}
       </div>
     </section>
     <section class="page" id="page-clients">
-      <div class="page-head"><div><h1>OIDC Clients</h1><div class="sub">Relying parties · immutable after registration — rotate the secret or delete &amp; re-register to change · server requires non-empty https redirectUris even for M2M</div></div><button class="btn primary" data-create="clients"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Register client</button></div>
+      <div class="page-head"><div><h1>OIDC Clients</h1><div class="sub">Relying parties · immutable after registration — rotate the secret or delete &amp; re-register to change · server requires non-empty https redirectUris even for M2M</div></div><button class="btn primary" data-create="clients"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-plus"/></svg>Register client</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="clientSearch" placeholder="Search name or client ID…"></div><div class="spacer"></div><button class="icon-btn" data-reload="clients" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="clientCount"></span></div>
         <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
@@ -837,7 +838,7 @@ html[lang="zh-CN"] body{line-height:1.7}
       </div>
     </section>
     <section class="page" id="page-apikeys">
-      <div class="page-head"><div><h1>API Keys</h1><div class="sub">Service credentials · scoped, expiring, revocable · immutable — revoke &amp; reissue to change</div></div><button class="btn primary" data-create="apikeys"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Issue key</button></div>
+      <div class="page-head"><div><h1>API Keys</h1><div class="sub">Service credentials · scoped, expiring, revocable · immutable — revoke &amp; reissue to change</div></div><button class="btn primary" data-create="apikeys"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-plus"/></svg>Issue key</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="apikeySearch" placeholder="Search name or prefix…"></div><select id="apikeyStatusFilter"><option value="">All status</option><option value="active">Active</option><option value="revoked">Revoked</option></select><div class="spacer"></div><button class="icon-btn" data-reload="apikeys" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="apikeyCount"></span></div>
         <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
@@ -847,7 +848,7 @@ html[lang="zh-CN"] body{line-height:1.7}
       </div>
     </section>
     <section class="page" id="page-webhooks">
-      <div class="page-head"><div><h1>Webhooks</h1><div class="sub">Event endpoints · subscriptions and delivery health</div></div><div class="field" style="margin:0;min-width:210px"><label>Permission perspective (demo)</label><select id="whPermView"><option value="write">Operator · webhooks:write</option><option value="read">Auditor · read-only</option></select></div><button class="btn primary" data-create="webhooks"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add endpoint</button></div>
+      <div class="page-head"><div><h1>Webhooks</h1><div class="sub">Event endpoints · subscriptions and delivery health</div></div><div class="field" style="margin:0;min-width:210px"><label>Permission perspective (demo)</label><select id="whPermView"><option value="write">Operator · webhooks:write</option><option value="read">Auditor · read-only</option></select></div><button class="btn primary" data-create="webhooks"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-plus"/></svg>Add endpoint</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="webhookSearch" placeholder="Search URL…"></div><div class="spacer"></div><button class="icon-btn" data-reload="webhooks" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="webhookCount"></span></div>
         <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
@@ -857,7 +858,7 @@ html[lang="zh-CN"] body{line-height:1.7}
       </div>
     </section>
     <section class="page" id="page-audit">
-      <div class="page-head"><div><h1>Audit Log</h1><div class="sub">Append-only, hash-chained record of every mutation · export is a server-side full export of all rows matching the filters (tenant-safe)</div></div><div style="display:flex;gap:8px"><button class="btn" id="verifyBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-shield"/></svg>Verify chain</button><button class="btn" id="exportBtn" data-phsecondary><svg class="ic" style="width:13px;height:13px"><use href="#i-download"/></svg>Export</button><button class="btn ph-more" data-phmore="audit" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:13px;height:13px"><use href="#i-more"/></svg></button></div></div>
+      <div class="page-head"><div><h1>Audit Log</h1><div class="sub">Append-only, hash-chained record of every mutation · export is a server-side full export of all rows matching the filters (tenant-safe)</div></div><div style="display:flex;gap:8px"><button class="btn" id="verifyBtn"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-shield"/></svg>Verify chain</button><button class="btn" id="exportBtn" data-phsecondary><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-download"/></svg>Export</button><button class="btn ph-more" data-phmore="audit" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-more"/></svg></button></div></div>
       <div class="error-banner" role="alert" id="auditLoadBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditLoadMsg">Failed to load audit entries.</span><button class="btn sm" id="auditLoadRetry">Retry</button></div>
       <div class="error-banner" role="alert" id="auditExportBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditExportMsg">Export failed.</span><button class="btn sm" id="auditExportRetry">Retry</button></div>
       <div class="error-banner" role="alert" id="auditErrBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditErrMsg">Verification failed.</span><button class="btn sm" id="auditRetry">Retry</button></div>
@@ -886,7 +887,7 @@ html[lang="zh-CN"] body{line-height:1.7}
       <div class="profile-stack">
         <div class="warn-banner" id="profileVerifyBanner" style="align-items:center"><svg class="ic"><use href="#i-mail"/></svg><div style="flex:1"><div>Your email is not verified.</div><div class="verify-msg" id="verifyMsg" style="display:none"></div></div><button class="btn sm" id="sendVerifyBtn">Send verification</button></div>
         <div class="card">
-          <div class="p-card-head"><h3>Personal information</h3><button class="btn danger ghost sm extra" id="revokeOthersBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-logout"/></svg>Log out other devices</button></div>
+          <div class="p-card-head"><h3>Personal information</h3><button class="btn danger ghost sm extra" id="revokeOthersBtn"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-logout"/></svg>Log out other devices</button></div>
           <div class="p-card-body">
             <div class="desc-row"><div class="d-l">Name</div><div class="d-v" id="nameCell"></div></div>
             <div class="desc-row"><div class="d-l">Email</div><div class="d-v mono" id="emailCell"></div></div>
@@ -910,7 +911,7 @@ html[lang="zh-CN"] body{line-height:1.7}
           <div class="p-card-head"><h3>Linked accounts</h3></div>
           <div class="p-card-body">
             <div id="oauthList"></div>
-            <div class="oauth-bind"><button class="btn" id="bindGithub"><svg class="ic" style="width:14px;height:14px"><use href="#i-github"/></svg>Bind GitHub</button><button class="btn" id="bindGoogle"><span class="prov-g">G</span>&nbsp;Bind Google</button></div>
+            <div class="oauth-bind"><button class="btn" id="bindGithub"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-github"/></svg>Bind GitHub</button><button class="btn" id="bindGoogle"><span class="prov-g">G</span>&nbsp;Bind Google</button></div>
           </div>
         </div>
       </div>
@@ -932,13 +933,13 @@ html[lang="zh-CN"] body{line-height:1.7}
             <div style="padding:var(--sp16)"><div class="field" style="max-width:320px"><label>Sign out after inactivity</label><select id="idleSelect"><option value="3600">1 hour</option><option value="28800">8 hours</option><option value="86400">24 hours</option><option value="604800">7 days</option><option value="0">Off</option></select></div><div class="perm-hint" id="idleHint">Requires options:write.</div><div class="error-banner" role="alert" id="idleErrBanner" style="display:none;margin-top:8px"><svg class="ic"><use href="#i-alert"/></svg><span id="idleErrMsg">Failed to save idle timeout.</span><button class="btn sm" id="idleErrRetry">Retry</button></div><div class="sub" style="margin-top:var(--sp12)">A server-side default still applies when unset.</div></div></div>
           <div class="card panel"><div class="panel-head"><h3>Two-factor authentication (MFA)</h3></div>
             <div style="padding:var(--sp16)" id="mfaBody"></div></div>
-          <div class="card panel"><div class="panel-head"><h3>Passkeys</h3><button class="btn sm" id="passkeyAdd" style="margin-left:auto"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Register passkey</button></div>
+          <div class="card panel"><div class="panel-head"><h3>Passkeys</h3><button class="btn sm" id="passkeyAdd" style="margin-left:auto"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-plus"/></svg>Register passkey</button></div>
             <div style="padding:var(--sp16)"><div class="error-banner" role="alert" id="pkLoadBanner" style="display:none;margin:0 0 var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span id="pkLoadMsg"></span><button class="btn sm" id="pkLoadRetry">Retry</button></div><div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table class="plain" style="width:100%"><thead><tr><th>Name</th><th>Added</th><th style="text-align:right">Actions</th></tr></thead><tbody id="passkeyRows"></tbody></table></div></div></div>
         </div>
         <div class="tab-pane" id="pane-soptions" role="tabpanel" aria-labelledby="tab-soptions">
           <div class="error-banner" role="alert" id="optGateBanner" style="display:none;margin:var(--sp16)"><svg class="ic"><use href="#i-alert"/></svg><span>403 FORBIDDEN: this tab requires options:read.</span></div>
           <div class="error-banner" role="alert" id="optLoadBanner" style="display:none;margin:0 var(--sp16)"><svg class="ic"><use href="#i-alert"/></svg><span id="optLoadMsg">Failed to load options.</span><button class="btn sm" id="optLoadRetry">Retry</button></div>
-          <div style="padding:var(--sp16)" id="optTableWrap"><div style="display:flex;justify-content:flex-end;margin-bottom:var(--sp12)"><button class="btn primary" id="optionAdd"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add option</button></div>
+          <div style="padding:var(--sp16)" id="optTableWrap"><div style="display:flex;justify-content:flex-end;margin-bottom:var(--sp12)"><button class="btn primary" id="optionAdd"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-plus"/></svg>Add option</button></div>
           <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table class="plain" style="width:100%"><thead><tr><th>Key</th><th>Value</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody id="optionRows"></tbody></table></div></div>
         </div>
         <div class="tab-pane" id="pane-semail" role="tabpanel" aria-labelledby="tab-semail">
@@ -978,7 +979,7 @@ html[lang="zh-CN"] body{line-height:1.7}
   <div class="modal-head"><svg class="ic" style="color:var(--warn)"><use href="#i-alert"/></svg><h3 id="revealTitle">Secret</h3><button class="icon-btn close" aria-label="Close" data-close="revealModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body">
     <div class="warn-banner"><svg class="ic"><use href="#i-alert"/></svg><span>This secret is shown only once. Copy it now — it cannot be retrieved again.</span></div>
-    <div class="secret-box"><input id="revealValue" readonly><button class="btn" id="revealCopy"><svg class="ic" style="width:13px;height:13px"><use href="#i-copy"/></svg>Copy</button></div>
+    <div class="secret-box"><input id="revealValue" readonly><button class="btn" id="revealCopy"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-copy"/></svg>Copy</button></div>
     <div class="secret-meta" id="revealMeta"></div>
   </div>
   <div class="modal-foot"><button class="btn primary" data-close="revealModal">Done</button></div>

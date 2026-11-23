@@ -1315,6 +1315,50 @@
         "swForced": true
       }
     },
+    "shape-scale": {
+      "pass": true,
+      "assertions": {
+        "ant": {
+          "ics": [
+            16,
+            12,
+            14
+          ],
+          "pop": [
+            "8px"
+          ],
+          "tag": [
+            "4px"
+          ]
+        },
+        "cupertino": {
+          "ics": [
+            16,
+            12,
+            14
+          ],
+          "pop": [
+            "16px"
+          ],
+          "tag": [
+            "999px"
+          ]
+        },
+        "fluent": {
+          "ics": [
+            16,
+            12,
+            14
+          ],
+          "pop": [
+            "8px"
+          ],
+          "tag": [
+            "2px"
+          ]
+        }
+      }
+    },
     "states": {
       "pass": true,
       "assertions": {

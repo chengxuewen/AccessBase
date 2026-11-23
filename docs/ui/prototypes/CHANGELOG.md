@@ -1265,3 +1265,16 @@ cupertino light, geist light, fluent dark screenshots clean (nav-on readable, to
 New harness group a11y-env (61 total): reflow x5 pages, modal fit + trap + inert on/off, forced-colors
 native-checkbox fallback + switch state distinction. Manual acceptance (not automatable) disclosed in
 README: real screen-reader pass, touch drag, print stylesheet. Full re-run: 61 groups, 0 failures.
+
+## Design backlog execution (rulings 1-3, user-adjudicated one by one A/A/A) — 2026-11-23
+Closed DS-12/L8, the last explicit backlog. (1) Icon scale: eight hand-written .ic sizes (10/11/12/13/
+14/15/16/17 + display 28/32) remapped to three semantic tiers --ic-s:12 / --ic-m:14 / --ic-l:16 plus
+--ic-display:28; cbx-chev and lock-ic tokenized too; control geometry (knob 14, checkbox 16, swatch 14,
+scrollbar 10, forced-colors native 13) intentionally stays px. (2) Pop radius: tooltip/cbx-list/toast/
+menu/modal now share --r-pop = pack r6 (AntD borderRadiusLG parity: ant 8, cupertino 16, fluent 8,
+carbon 0); the edge-attached drawer sheet keeps 0 like real AntD Drawer. (3) Label family: .tag/
+.cbx-chip/.sys-tag share --r-tag (base r2); pack personality moved from member-level overrides to the
+token (cupertino 999px, material 8px, carbon 0) so the whole family stays intra-consistent. New harness
+group shape-scale (62 total) asserts icon tier membership, single pop radius and single label-family
+radius per pack across ant/cupertino/fluent. Full re-run: 62 groups, 0 failures. Screenshot: cupertino
+create-user dialog with pill chips matching pill tags. README shape-scale section + lock row.

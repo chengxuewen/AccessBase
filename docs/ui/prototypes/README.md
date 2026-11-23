@@ -80,7 +80,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts
 npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --grep roles-edit
 ```
 
-- 61 groups, all must pass. Per-group assertions are written to
+- 62 groups, all must pass. Per-group assertions are written to
   `docs/ui/prototypes/.harness/results.json` (`results[name].assertions`, `fail` count) for evidence review.
 - The harness loads the same `file://` page; it never mocks the prototype itself except where a test
   deliberately stubs `navigator.clipboard` / `document.execCommand` to prove the copy-failure branch.
@@ -88,7 +88,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
   surface, motion family, tint-bearing color, or locale string requires extending the matching group
   (or adding one) in the same change — never ship a surface the harness cannot see.
 
-## Lock index (61 groups)
+## Lock index (62 groups)
 
 | Group | Locks | Ruling |
 |---|---|---|
@@ -118,6 +118,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | combobox-popup / combobox-themed / cbx-disabled / cbx-capabilities | themed Select parity: clear/multiple/loading/keyboard/disabled mirror | 2, 15 |
 | cbx-option-list | form selects themed (were native size=4 listboxes); 32px option rows, tinted selected + reserved check column (no shift), fixed list escaping modal/toolbar clipping, flip-up + clamp; allowClear cross inside the control (sibling + absolute, never a blank line below), hidden when empty/disabled, clears without opening; companion parity | post-closure fix 2/3 |
 | security-states | security tab three-state loads (sessions/passkeys/templates) + tplSave bilingual-subject guard + sessions-others fail-closed | post-closure panel execution |
+| shape-scale | icon tiers {12,14,16,28} via --ic-s/m/l/display; single pop radius --r-pop (drawer sheet 0 exception); label-family --r-tag per pack (cupertino pill, material 8, carbon 0) shared by tag/chip/sys-tag | design backlog rulings 1-3 |
 | a11y-env | reflow@200% zoom (no doc overflow, 5 pages), narrow modal/drawer fit + focus trap + background inert on/off, forced-colors checked/switch-on state visibility | verification-deepening batch |
 | i18n-dynamic | source-literal lock: every toast/busy/formError literal in both prototypes translates under zh (dictionary key or rule) | post-closure panel execution |
 | boolean-controls | boolean-control rule: forms use themed 16px checkboxes (groups isDepartment, users isActive default-checked), immediate domain stays .wswitch 34x20 button+knob, gates/scopes 16px centered; reduce-motion collapses knob+checkbox transitions; no role=switch in forms | post-closure fix 4/5/6 |
@@ -224,6 +225,13 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   `Descriptions` and `Dashboard.tsx` `Statistic` are rendered as definition grids / stat cards.
   Functional filters are NOT simplified: users status/tenant, audit action/actor/days, events
   type/range all mirror the real Select/Input/RangePicker filters.
+- Shape scale (design backlog rulings 1-3, locked by shape-scale): icons use three semantic tiers
+  (--ic-s:12 inline meta, --ic-m:14 control-adjacent, --ic-l:16 standalone) plus --ic-display:28 for
+  empty/placeholder art; control geometry (switch knob, checkbox box, legend swatch, scrollbar) stays
+  px by design. All floating pops (tooltip/cbx-list/menu/modal/toast) share --r-pop = pack r6 (AntD
+  borderRadiusLG parity); the edge-attached drawer sheet keeps square corners like real AntD Drawer.
+  Label-like pieces (.tag/.cbx-chip/.sys-tag) share --r-tag so pack personality (cupertino pill,
+  material 8px, carbon 0) applies to the whole family, never one member.
 - Environment baseline (locked by a11y-env): no document-level horizontal overflow at ~200% zoom
   (640px viewport; data tables scroll inside their focusable regions), modals/drawers fit narrow
   viewports with a working focus trap and `inert` background while open, and forced-colors mode keeps
