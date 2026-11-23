@@ -1293,3 +1293,11 @@ Also added the missing zh key for the static stat label "Audit Logs". New harnes
 (63 total): narrow group hidden/6px + trigger hidden + no sidebar/doc overflow + aria==tip; wide
 restores labels/trigger and drops tips; manual collapse hides groups and adds tips. Full re-run:
 63 groups, 0 failures. Screenshot: 565px dashboard with clean icon-only sider.
+
+## lesson-review upgrade: script-health lock group (PIT-102 prevention) — 2026-11-23
+New harness group script-health (64 total): loads BOTH prototypes, collects pageerror +
+console.error (must be zero) and asserts key handlers alive (syncNavTips/syncInert/copyFeedback/tr/
+cbxOpen/openModal/closeModal admin; tr/cbxOpen/enhanceSelect companion) plus nav aria-labels >=12 and
+rendered rows/flows — a silent top-level TDZ abort (node --check green, page half-dead) now reds the
+suite. Verified on BOTH samples per PIT-097: injecting an early syncNavTips() call before the titles
+const reds the group; removing it greens it. Full re-run: 64 groups, 0 failures. README lock row.

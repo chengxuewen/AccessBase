@@ -2113,6 +2113,34 @@ test('narrow-nav', async ({ page }) => {
   expect(pass, 'narrow-nav: breakpoint collapse semantics + icon-only nav names/tips').toBe(true);
 });
 
+test('script-health', async ({ page }) => {
+  // lesson-review upgrade (PIT-102): a top-level TDZ abort kills every later statement while
+  // node --check stays green. Load both prototypes and require zero runtime errors plus the
+  // presence of the handlers whose absence would mean a silent partial script.
+  const errs: string[] = [];
+  page.on('pageerror', e => errs.push('pageerror: ' + e.message));
+  page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+  await page.goto(FILE);
+  await page.waitForTimeout(500);
+  const admin = await page.evaluate(() => ({
+    fns: ['syncNavTips', 'syncInert', 'copyFeedback', 'tr', 'cbxOpen', 'openModal', 'closeModal'].every(n => typeof (window as any)[n] === 'function' || typeof eval(n) === 'function'),
+    navNames: document.querySelectorAll('.nav a[aria-label]').length,
+    rows: document.querySelectorAll('#userRows tr').length,
+  }));
+  const adminErrs = errs.slice();
+  errs.length = 0;
+  await page.goto(AUTH);
+  await page.waitForTimeout(500);
+  const auth = await page.evaluate(() => ({
+    fns: ['tr', 'cbxOpen', 'enhanceSelect'].every(n => typeof eval(n) === 'function'),
+    flows: document.querySelectorAll('[data-flow]').length,
+  }));
+  const a = { adminErrs, authErrs: errs.slice(), admin, auth };
+  const pass = adminErrs.length === 0 && a.authErrs.length === 0 && admin.fns && admin.navNames >= 12 && admin.rows > 0 && auth.fns && auth.flows >= 9;
+  rec('script-health', pass, a);
+  expect(pass, 'script-health: zero runtime errors + handlers alive in both prototypes').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);
