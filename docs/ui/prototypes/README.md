@@ -43,6 +43,14 @@ branch and says so (see disclosure index). Read this file first, `CHANGELOG.md` 
 - Action delegates (Edit/Delete) read the en originals stored by the translation layer instead of the
   live `aria-label`/`data-tip`, so row actions keep working under zh (they went dead when the zh pass
   translated those attributes).
+- Copy icons (every `copyable` cell: users/tenants/clients/webhooks/apikeys ids, slugs, URLs) give AntD
+  copyable-style feedback: a `Copied` toast plus a transient green check glyph (1.2s) on success; when
+  `navigator.clipboard` is unavailable or rejects (file:// / denied permission) an `execCommand('copy')`
+  fallback runs, and only if both paths fail does an error toast appear. They were previously silent
+  (promise errors swallowed), which made the icons look dead. The locked default-tenant row's disabled
+  action icons explain themselves through the `.tip-wrap` hover hint (`Locked (default tenant)`), matching
+  the real lock-glyph disabled affordance; under zh all tenants row actions still respond because the
+  Edit/Delete delegates read the translation layer's en originals.
 - The allowClear cross is a SIBLING of the combobox button positioned absolutely inside the relative
   wrapper (a nested `<button>` is invalid HTML — the parser splits it, which wrapped the cross onto a
   blank line below the control). The chev swaps out while the cross shows; the cross is hidden when the
@@ -84,7 +92,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | roles-matrix / roles-model / roles-edit | partition locks, parent, staged draft, empty-save danger confirm, scope fan-out, mixed disabled, async delete | 7, 25 |
 | groups-detail | create+isDepartment, detail/candidates/add/remove/saveRoles/delete async | 26 |
 | mgmt-pages | tenants/clients/apikeys/webhooks/audit/events row contracts | 8, 10, 11, 14, 24, 28 |
-| tenants-model | soft-delete, slug validation, init-admin shared 12+ policy, field-level 409, async CRUD | 8, 27 |
+| tenants-model | soft-delete, slug validation, init-admin shared 12+ policy, field-level 409, async CRUD; copy feedback (toast + check glyph + revert), clipboard-reject fallback, both-fail error toast, locked-row hover hint, zh row-action routing | 8, 27, post-closure fix 7 |
 | clients-model | immutable clients, server enums, scope required, B5 gate, async create/rotate/delete | 14, 28 |
 | apikeys-model | revoke-only, reveal-once, server-default scopes, expires validation, copy fallback | 5, 24 |
 | webhooks-model | ping queues pending, toggle/rotate gate+Busy+error, deliveries loading | 10, 23 |

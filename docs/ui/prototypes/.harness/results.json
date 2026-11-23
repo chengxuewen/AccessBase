@@ -900,7 +900,30 @@
         "createdRow": {
           "rows": 6,
           "closed": true
-        }
+        },
+        "copyOk": {
+          "toast": "Copied",
+          "glyph": "#i-check",
+          "cls": true
+        },
+        "copyRevert": {
+          "glyph": "#i-copy",
+          "cls": false
+        },
+        "copyFallback": "Copied",
+        "copyFail": {
+          "t": "Copy failed",
+          "kind": "proto-toast error"
+        },
+        "lockedHint": {
+          "tip": "Locked (default tenant)",
+          "dis": true
+        },
+        "lockedTipOn": true,
+        "zhEdit": true,
+        "zhStatus": true,
+        "zhInit": true,
+        "zhDel": true
       }
     },
     "users-erasure": {

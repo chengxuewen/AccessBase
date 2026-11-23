@@ -522,6 +522,7 @@ input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed}
 .fam-webhook{background:var(--sunken);color:var(--tx2)}
 .fam-auth{background:var(--sunken);color:var(--tx2)}
 .copyable{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:var(--fs12);color:var(--tx2);max-width:180px;min-width:0}
+.copyable button.copied{color:var(--ok)}
 .copyable .cp-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .copyable button{flex-shrink:0}
 .copyable button{border:none;background:transparent;color:var(--tx3);display:grid;place-items:center;padding:2px;border-radius:var(--r2)}
@@ -1329,7 +1330,13 @@ else if(t.dataset.detail==='scope'){openDetail(c.name+' · Scope','<div class="d
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){if(o.id==='mfaRecoveryModal'&&!$('mfaSaved').checked)return;closeModal(o.id);}}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(open){if(open.id==='mfaRecoveryModal'&&!$('mfaSaved').checked)return;closeModal(open.id);}}});
-document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(c){try{navigator.clipboard.writeText(c.dataset.copy).catch(()=>{});}catch(err){}}});
+/* Post-closure fix 7: copy actions were SILENT (clipboard promise errors swallowed, no success
+   feedback) so every copyable cell's icon looked dead. AntD copyable parity: success toast + transient
+   check glyph; clipboard-unavailable contexts fall back to execCommand; failure reports an error toast. */
+function fallbackCopy(txt){try{const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok;}catch(err){return false;}}
+function copyFeedback(c,ok){if(ok){toast('Copied');const u=c.querySelector('use');if(u){const old=u.getAttribute('href');u.setAttribute('href','#i-check');c.classList.add('copied');setTimeout(()=>{u.setAttribute('href',old);c.classList.remove('copied');},1200);}}else{toast('Copy failed','error');}}
+document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(!c)return;const txt=c.dataset.copy;let p=null;try{if(navigator.clipboard&&navigator.clipboard.writeText)p=navigator.clipboard.writeText(txt);}catch(err){}
+ if(p&&p.then){p.then(()=>copyFeedback(c,true)).catch(()=>copyFeedback(c,fallbackCopy(txt)));}else{copyFeedback(c,fallbackCopy(txt));}});
 // R2 overflow menu logic (reusable). Inert secondary actions disclose via the same toast.
 const rowMenu=$('rowMenu');let menuTrigger=null;
 function openMenu(trigger,items){menuTrigger=trigger;

@@ -1481,10 +1481,76 @@ test('tenants-model', async ({ page }) => {
   await page.locator('#formSave').click();
   await page.waitForTimeout(600);
   const createdRow = await page.evaluate(() => ({ rows: document.querySelectorAll('#tenantRows tr').length, closed: !document.getElementById('formModal')!.classList.contains('on') }));
-  const a = { noFilter, initOpen, pwdErr, existsErr, initSrvErr, created, bootstrapped, acmeDone, susVerb, suspended, softMsg, softKept, slugErr, slugReq, createErr, createdRow };
+  // post-closure fix 7: copy icons give feedback (were silent); clipboard-reject falls back to
+  // execCommand; both-fail reports an error toast; the locked default row explains its disabled icons
+  // via the tip-wrap hint; under zh every tenants row action still responds (en-original delegates).
+  const copyOk = await page.evaluate(async () => {
+    const b = document.querySelector('#tenantRows tr:nth-child(2) [data-copy]') as HTMLButtonElement;
+    b.click();
+    await new Promise(r => setTimeout(r, 100));
+    return { toast: document.getElementById('protoToast')!.textContent, glyph: b.querySelector('use')!.getAttribute('href'), cls: b.classList.contains('copied') };
+  });
+  await page.waitForTimeout(1300);
+  const copyRevert = await page.evaluate(() => {
+    const b = document.querySelector('#tenantRows tr:nth-child(2) [data-copy]') as HTMLButtonElement;
+    return { glyph: b.querySelector('use')!.getAttribute('href'), cls: b.classList.contains('copied') };
+  });
+  const copyFallback = await page.evaluate(async () => {
+    const orig = navigator.clipboard.writeText.bind(navigator.clipboard);
+    (navigator.clipboard as any).writeText = () => Promise.reject(new Error('denied'));
+    const ec = document.execCommand.bind(document);
+    (document as any).execCommand = (cmd: string) => cmd === 'copy' ? true : ec(cmd);
+    const b = document.querySelector('#tenantRows tr:nth-child(3) [data-copy]') as HTMLButtonElement;
+    b.click();
+    await new Promise(r => setTimeout(r, 100));
+    const t = document.getElementById('protoToast')!.textContent;
+    (navigator.clipboard as any).writeText = orig; (document as any).execCommand = ec;
+    return t;
+  });
+  const copyFail = await page.evaluate(async () => {
+    const orig = navigator.clipboard.writeText.bind(navigator.clipboard);
+    (navigator.clipboard as any).writeText = () => Promise.reject(new Error('denied'));
+    const ec = document.execCommand.bind(document);
+    (document as any).execCommand = () => false;
+    const b = document.querySelector('#tenantRows tr:nth-child(4) [data-copy]') as HTMLButtonElement;
+    b.click();
+    await new Promise(r => setTimeout(r, 100));
+    const t = document.getElementById('protoToast')!.textContent;
+    const kind = document.getElementById('protoToast')!.className;
+    (navigator.clipboard as any).writeText = orig; (document as any).execCommand = ec;
+    return { t, kind };
+  });
+  const lockedHint = await page.evaluate(() => {
+    const w = document.querySelector('#tenantRows tr:first-child .row-actions .tip-wrap') as HTMLElement;
+    return { tip: w.getAttribute('data-tip'), dis: (w.querySelector('button') as HTMLButtonElement).disabled };
+  });
+  await page.locator('#tenantRows tr:first-child .row-actions .tip-wrap').first().hover();
+  await page.waitForTimeout(200);
+  const lockedTipOn = await page.evaluate(() => document.getElementById('floatTip')!.classList.contains('on') && document.getElementById('floatTip')!.textContent!.includes('Locked'));
+  await page.evaluate(() => { (document.getElementById('langBtn') as HTMLElement).click(); });
+  const zhTr = '#tenantRows tr:nth-child(2)';
+  await page.locator(zhTr + ' button[aria-label="编辑"]').click();
+  const zhEdit = await page.evaluate(() => document.getElementById('formModal')!.classList.contains('on'));
+  await page.keyboard.press('Escape');
+  await page.locator(zhTr + ' [data-tstatus]').click();
+  const zhStatus = await page.evaluate(() => document.getElementById('confirmModal')!.classList.contains('on'));
+  await page.keyboard.press('Escape');
+  await page.locator(zhTr + ' [data-tinit]').click();
+  const zhInit = await page.evaluate(() => document.getElementById('initAdminModal')!.classList.contains('on'));
+  await page.keyboard.press('Escape');
+  await page.locator(zhTr + ' button[aria-label="删除"]').click();
+  const zhDel = await page.evaluate(() => document.getElementById('confirmModal')!.classList.contains('on'));
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => { (document.getElementById('langBtn') as HTMLElement).click(); });
+  const a = { noFilter, initOpen, pwdErr, existsErr, initSrvErr, created, bootstrapped, acmeDone, susVerb, suspended, softMsg, softKept, slugErr, slugReq, createErr, createdRow, copyOk, copyRevert, copyFallback, copyFail, lockedHint, lockedTipOn, zhEdit, zhStatus, zhInit, zhDel };
   const pass = noFilter && initOpen.on && initOpen.form && pwdErr && existsErr && initSrvErr && created && bootstrapped && acmeDone
     && createErr && createdRow.rows === 6 && createdRow.closed
-    && susVerb === 'Suspend' && suspended && softMsg && softKept.rows === 5 && softKept.kept && slugErr && slugReq;
+    && susVerb === 'Suspend' && suspended && softMsg && softKept.rows === 5 && softKept.kept && slugErr && slugReq
+    && copyOk.toast === 'Copied' && copyOk.glyph === '#i-check' && copyOk.cls
+    && copyRevert.glyph === '#i-copy' && !copyRevert.cls
+    && copyFallback === 'Copied' && copyFail.t === 'Copy failed' && copyFail.kind.includes('error')
+    && lockedHint.tip === 'Locked (default tenant)' && lockedHint.dis && lockedTipOn
+    && zhEdit && zhStatus && zhInit && zhDel;
   rec('tenants-model', pass, a);
   expect(pass, 'tenants-model').toBe(true);
 });

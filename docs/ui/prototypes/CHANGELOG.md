@@ -1185,3 +1185,24 @@ inputs; tooltip group gained detail-switch locks (34x20 .wswitch + knob + on, fi
 second-attempt success toast + row/detail flip to Suspended); boolean-controls gained the grants
 checkbox-domain lock (2 inputs, 16px, no role, labels = ALLOWED_GRANTS). Full re-run: 58 groups, 0
 failures. Screenshot: user detail Status Tag + immediate Switch.
+
+## Post-closure fix 7 (user-reported): tenants row icon buttons look dead — silent copy feedback class-wide — 2026-11-23
+Report: clicking the icon buttons on tenants list rows appeared to do nothing. Per-button reproduction
+from a clean state showed Init admin / Edit / Suspend / Delete all open their modals correctly (and the
+locked default-tenant row is disabled by design with lock glyphs plus a .tip-wrap hover hint, matching
+real Tenants.tsx D5). The genuinely dead-feeling control was the COPY icon: the document-level copy
+handler wrote navigator.clipboard and swallowed every rejection with .catch(()=>{}), giving NO success
+feedback either — so in clipboard-denied contexts (file://, headless, permission prompts) nothing visible
+happened, and even on success the user got no confirmation. This affected EVERY copyable cell class-wide
+(users/tenants/clients/webhooks/apikeys ids, slugs, URLs), not just tenants. Fix: AntD copyable-style
+feedback — success toast 'Copied' + transient green check glyph (1.2s, .copied color token) with revert;
+clipboard-unavailable/rejected paths fall back to a hidden textarea + execCommand('copy'); only when both
+paths fail does an error toast 'Copy failed' appear. Comprehensive scan of silent swallows found only this
+one user-action handler (the remaining catch(_){} sites are localStorage persistence, disclosed). Real
+parity checked: slug stays editable on edit (real Input not disabled), locked actions disabled with lock
+glyph (real D5), copyable column feedback mirrors ProTable copyable. Harness tenants-model extended:
+copy success toast + #i-check glyph + .copied class, revert to #i-copy after the window, clipboard-reject
++ execCommand-true fallback still 'Copied', both-fail yields 'Copy failed' error toast, locked-row
+tip-wrap hint shows on hover, and under zh Edit/Delete/Suspend/Init all still open their modals
+(en-original delegates). Full re-run: 58 groups, 0 failures. Screenshot: Acme slug copy icon as green
+check with the Copied toast.
