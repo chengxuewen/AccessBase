@@ -24,3 +24,5 @@ When creating PRs:
 
 > For the full development process (planning, TDD, code review) before git operations,
 > see [development-workflow.md](./development-workflow.md).
+
+6. **并行工作流暂存纪律（C4）**：只 add 本轮意图路径；commit 前 `git diff --cached --name-only` 核对==意图清单；外来修改 `git reset -- <path>` 撤暂存，外来在制品不提交/不回滚/不覆盖（2026-11-23 曾盲 add .agents 暂存了他_session 的 D130）。

@@ -414,3 +414,11 @@ findings keep their own namespace and are always cited as
 **Source**: panel 2026-11-23 H7/M6-M8（fix 6/7 后索引漂移：Users create 幻影、Profile MFA/session 幻影、dStatus 未披露无标记无 zh）。
 
 **Check**: `grep -c 'prototype simulation' docs/ui/prototypes/*.html` 与索引行族数对照；i18n-dynamic 锁扫 toast/btnBusy/formError 字面量 tr(lit)!==lit；README not-modelled 清单收未模拟的真实分支。
+
+## C4: 多会话并行仓库只暂存自己的路径；commit 前核 diff 归属；外来在制品原样保留 (2026-11-23)
+
+**Rule**: 本仓库存在并行工作流（他会话/agent 同时写 memorys/plans/specs）。git add 只列本轮意图路径；禁 `git add -A`/整目录盲 add；commit 前 `git diff --cached --stat` 核对路径清单==意图清单，发现外来修改 `git reset -- <path>` 撤暂存；外来未跟踪/已修改文件**不提交、不回滚、不覆盖**。
+
+**Source**: 2026-11-23 fix 9 提交后残留 5 项，核 diff 发现 D130（4A 工作流决策）+ 4 个 4a plans/specs/reports 属并行会话；盲 add .agents 曾把 D130 暂存，已撤。
+
+**Check**: `git status --porcelain` 残留项逐条归因；`git diff --cached --name-only` 与本轮改动路径集合相等才允许 commit。

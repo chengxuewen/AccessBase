@@ -188,8 +188,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 92 older entries omitted (read the full file)
-- PIT-091: External CI validity is invisible to every local gate - a rejected workflow file stayed red-but-unread for 46 days (2026-11-06, E11/E12/E13 wave)
+... 93 older entries omitted (read the full file)
 - PIT-092: The local e2e invocation has three environment traps, each eating a 60 s timeout before the real question is even asked (2026-11-05/06, T8)
 - PIT-093: The measuring instrument lies more often than the measurement - three costumes seen in one wave (2026-11-06, panel-folded)
 - PIT-094: A product fetch-surface change without its e2e mock-surface twin silently breaks specs nobody touched (2026-11-06, E10 wave)
@@ -204,6 +203,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-102: 顶层 init 调用插到 const 定义前 = TDZ 静默中断整段经典脚本，node --check 全绿 (2026-11-23)
 - PIT-103: 响应式断点只改布局不套状态语义 → 裁切 chrome；一个状态两个入口必须同语义 (2026-11-23, user-reported)
 - PIT-104: python 批量 patch 两陷阱——选择器子串碰撞 + 工具回显 JSON 转义误导 old_str (2026-11-23, ≥3 轮失败)
+- PIT-105: overflow-y:auto 把 overflow-x 计算成 auto + visibility:hidden 保留布局宽 = 隐藏间隔造出横滚条 (2026-11-23, user-reported)
 
 ### status
 - full text: `.agents/memorys/status.md`

@@ -806,7 +806,7 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **症状**: 插入 syncNavTips() init 后页面半死（导航 aria/tip 全 null、toggle 抛错），console 3×"Cannot access 'titles' before initialization"；node --check 通过。
 - **根因**: 经典 `<script>` 顶层 const 有 TDZ；init 调用行号先于依赖 const 定义行号 → 顶层抛错后**其后所有顶层语句不执行**（渲染/handler 全失）。
 - **解法**: 插入 init 调用前 grep 依赖 const 的行号确认顺序；单文件脚本编辑后除 node --check 外必须跑运行时探针收集 pageerror/console.error==0。
-- **验证**: playwright 加载页 `page.on('pageerror')` 收集为空；已入 edit-safety 规则第 4 条。
+- **验证**: playwright 加载页 `page.on('pageerror')` 收集为空；已入 edit-safety 规则第 4 条；harness script-health 组（PIT-097 双样本验过：注入 TDZ 红/移除绿）。
 
 ## PIT-103: 响应式断点只改布局不套状态语义 → 裁切 chrome；一个状态两个入口必须同语义 (2026-11-23, user-reported)
 
@@ -821,3 +821,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: 短选择器是长选择器子串，替换顺序未排序；tool result 经 JSON 编码转义引号，回显≠文件字节。
 - **解法**: 选择器映射按长度降序处理；构造 old_str 前用 repr()/od 读原始字节确认引号形态；two-pass assert 全 pattern 后再 write（edit-safety 第 3 条）。
 - **验证**: patch 脚本先 dry-run 打印每 pattern count==期望再写；失败后 read 目标区域而非盲重试。
+
+## PIT-105: overflow-y:auto 把 overflow-x 计算成 auto + visibility:hidden 保留布局宽 = 隐藏间隔造出横滚条 (2026-11-23, user-reported)
+
+- **症状**: 窄屏 icon-only 侧栏底部出现横向滚动条 thumb；宽屏手动 collapse 同病。
+- **根因**: CSS 规定 overflow 一轴设 auto/scroll/hidden 时另一轴 visible 计算为 auto；.nav overflow-y:auto 故横向溢出必成滚条；icon-only 分组间隔用 visibility:hidden（只隐绘制不移布局宽）+ white-space:nowrap，文字宽 > 56px 侧栏 → 横向溢出。
+- **解法**: 固定宽容器显式 overflow-x:hidden（侧栏永不需要横滚）；隐藏间隔改 width:0;overflow:hidden 保留纵向 spacer；手动与断点两入口同改；锁扩断言 nav.scrollWidth<=clientWidth + overflowX==='hidden'（扩既有 narrow-nav 组而非新建组）。
+- **验证**: `npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --grep narrow-nav` 绿且 assertions.narrow.navOver=false/navOx='hidden'；截图侧栏底部无 thumb。
