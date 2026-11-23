@@ -637,6 +637,18 @@ html[lang="zh-CN"] body{line-height:1.7}
 .tabs button:active{background:var(--bd)}
 .pagination .pages button:hover:not(.on){background:var(--hover);color:var(--tx1)}
 .pagination .pages button:active{background:var(--bd)}
+@media (forced-colors: active){
+  input[type=checkbox],.wswitch,.wswitch .knob,.cbx-opt,.nav a.on{forced-color-adjust:none}
+  /* native control in forced-colors: the OS palette guarantees checked/unchecked distinction */
+  input[type=checkbox]{appearance:auto;-webkit-appearance:auto;forced-color-adjust:auto;width:13px;height:13px;border:none;background:none}
+  input[type=checkbox]::after{content:none}
+  .wswitch{background:Canvas;border:1px solid ButtonText}
+  .wswitch .knob{background:ButtonText}
+  .wswitch.on{background:Highlight;border-color:Highlight}
+  .wswitch.on .knob{background:HighlightText}
+  .cbx-opt[aria-selected="true"]{outline:1px solid Highlight;outline-offset:-1px}
+  .nav a.on{outline:1px solid Highlight;outline-offset:-1px}
+}
 </style>
 </head>
 <body>
@@ -1334,8 +1346,9 @@ const delivCls=s=>({delivered:'ok',pending:'warn',dead:'danger'}[s]||'');
    to the modal head title. */
 let modalReturnFocus=null;
 function modalFocusables(m){return [...m.querySelectorAll('button,input,select,textarea,a[href],[tabindex]')].filter(el=>!el.disabled&&el.tabIndex>=0&&el.offsetParent!==null);}
-function openModal(id){const ov=$(id);enhanceAllSelects(ov);const m=ov.querySelector('.modal');modalReturnFocus=document.activeElement;const h=m.querySelector('.modal-head h3');if(h){if(!h.id)h.id=id+'-title';m.setAttribute('aria-labelledby',h.id);}ov.classList.add('on');const f=modalFocusables(m);const target=m.querySelector('[data-autofocus]')||f.find(el=>el.matches('input:not([type=checkbox]):not([type=radio]),textarea'))||f[0];if(target)setTimeout(()=>{if(ov.classList.contains('on'))target.focus();},0);}
-function closeModal(id){const ov=$(id);ov.classList.remove('on');if(modalReturnFocus&&document.contains(modalReturnFocus)&&modalReturnFocus.offsetParent!==null){modalReturnFocus.focus();}else{const pg=document.querySelector('section.page.on');const anchor=pg&&(pg.querySelector('.page-head button')||pg.querySelector('h1'));if(anchor){if(!anchor.hasAttribute('tabindex'))anchor.setAttribute('tabindex','-1');anchor.focus();}}modalReturnFocus=null;}
+function openModal(id){const ov=$(id);enhanceAllSelects(ov);const m=ov.querySelector('.modal');modalReturnFocus=document.activeElement;const h=m.querySelector('.modal-head h3');if(h){if(!h.id)h.id=id+'-title';m.setAttribute('aria-labelledby',h.id);}ov.classList.add('on');syncInert();const f=modalFocusables(m);const target=m.querySelector('[data-autofocus]')||f.find(el=>el.matches('input:not([type=checkbox]):not([type=radio]),textarea'))||f[0];if(target)setTimeout(()=>{if(ov.classList.contains('on'))target.focus();},0);}
+function syncInert(){const on=[...document.querySelectorAll('.modal-overlay.on')].length>0;document.querySelectorAll('#app > .sidebar, #app > .main').forEach(el=>{el.inert=on;});}
+function closeModal(id){const ov=$(id);ov.classList.remove('on');syncInert();if(modalReturnFocus&&document.contains(modalReturnFocus)&&modalReturnFocus.offsetParent!==null){modalReturnFocus.focus();}else{const pg=document.querySelector('section.page.on');const anchor=pg&&(pg.querySelector('.page-head button')||pg.querySelector('h1'));if(anchor){if(!anchor.hasAttribute('tabindex'))anchor.setAttribute('tabindex','-1');anchor.focus();}}modalReturnFocus=null;}
 document.addEventListener('keydown',e=>{if(e.key!=='Tab')return;const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(!open)return;const m=open.querySelector('.modal');const f=modalFocusables(m);if(!f.length){e.preventDefault();return;}const first=f[0],last=f[f.length-1];const act=document.activeElement;if(e.shiftKey){if(act===first||!m.contains(act)){e.preventDefault();last.focus();}}else{if(act===last||!m.contains(act)){e.preventDefault();first.focus();}}});
 function openDetail(title,html){$('detailTitle').textContent=title;$('detailBody').innerHTML=html;openModal('detailModal');}
 function toast(msg,kind){kind=kind||'success';const tt=$('protoToast');tt.className='proto-toast '+kind;tt.setAttribute('role',kind==='error'?'alert':'status');tt.setAttribute('aria-live',kind==='error'?'assertive':'polite');tt.innerHTML='<svg class="ic" style="color:'+(kind==='error'?'var(--danger-inv)':kind==='info'?'var(--accent)':'var(--ok)')+'"><use href="#i-'+(kind==='error'?'alert':kind==='info'?'info':'check')+'"/></svg><span>'+esc(msg)+'</span>';tt.style.display='flex';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},2200);}

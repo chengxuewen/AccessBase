@@ -1295,6 +1295,26 @@
         "sessBefore": 3
       }
     },
+    "a11y-env": {
+      "pass": true,
+      "assertions": {
+        "reflow": {
+          "users": true,
+          "tenants": true,
+          "settings": true,
+          "audit": true,
+          "roles": true
+        },
+        "modal": {
+          "fits": true,
+          "inert": true
+        },
+        "trap": true,
+        "inertOff": true,
+        "ckForced": true,
+        "swForced": true
+      }
+    },
     "states": {
       "pass": true,
       "assertions": {

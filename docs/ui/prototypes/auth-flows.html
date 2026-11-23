@@ -667,6 +667,18 @@ html[lang="zh-CN"] body{line-height:1.7}
 .tabs button:active{background:var(--bd)}
 .pagination .pages button:hover:not(.on){background:var(--hover);color:var(--tx1)}
 .pagination .pages button:active{background:var(--bd)}
+@media (forced-colors: active){
+  input[type=checkbox],.wswitch,.wswitch .knob,.cbx-opt,.nav a.on{forced-color-adjust:none}
+  /* native control in forced-colors: the OS palette guarantees checked/unchecked distinction */
+  input[type=checkbox]{appearance:auto;-webkit-appearance:auto;forced-color-adjust:auto;width:13px;height:13px;border:none;background:none}
+  input[type=checkbox]::after{content:none}
+  .wswitch{background:Canvas;border:1px solid ButtonText}
+  .wswitch .knob{background:ButtonText}
+  .wswitch.on{background:Highlight;border-color:Highlight}
+  .wswitch.on .knob{background:HighlightText}
+  .cbx-opt[aria-selected="true"]{outline:1px solid Highlight;outline-offset:-1px}
+  .nav a.on{outline:1px solid Highlight;outline-offset:-1px}
+}
 </style>
 </head>
 <body>

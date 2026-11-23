@@ -80,7 +80,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts
 npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --grep roles-edit
 ```
 
-- 60 groups, all must pass. Per-group assertions are written to
+- 61 groups, all must pass. Per-group assertions are written to
   `docs/ui/prototypes/.harness/results.json` (`results[name].assertions`, `fail` count) for evidence review.
 - The harness loads the same `file://` page; it never mocks the prototype itself except where a test
   deliberately stubs `navigator.clipboard` / `document.execCommand` to prove the copy-failure branch.
@@ -88,7 +88,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
   surface, motion family, tint-bearing color, or locale string requires extending the matching group
   (or adding one) in the same change — never ship a surface the harness cannot see.
 
-## Lock index (60 groups)
+## Lock index (61 groups)
 
 | Group | Locks | Ruling |
 |---|---|---|
@@ -118,6 +118,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | combobox-popup / combobox-themed / cbx-disabled / cbx-capabilities | themed Select parity: clear/multiple/loading/keyboard/disabled mirror | 2, 15 |
 | cbx-option-list | form selects themed (were native size=4 listboxes); 32px option rows, tinted selected + reserved check column (no shift), fixed list escaping modal/toolbar clipping, flip-up + clamp; allowClear cross inside the control (sibling + absolute, never a blank line below), hidden when empty/disabled, clears without opening; companion parity | post-closure fix 2/3 |
 | security-states | security tab three-state loads (sessions/passkeys/templates) + tplSave bilingual-subject guard + sessions-others fail-closed | post-closure panel execution |
+| a11y-env | reflow@200% zoom (no doc overflow, 5 pages), narrow modal/drawer fit + focus trap + background inert on/off, forced-colors checked/switch-on state visibility | verification-deepening batch |
 | i18n-dynamic | source-literal lock: every toast/busy/formError literal in both prototypes translates under zh (dictionary key or rule) | post-closure panel execution |
 | boolean-controls | boolean-control rule: forms use themed 16px checkboxes (groups isDepartment, users isActive default-checked), immediate domain stays .wswitch 34x20 button+knob, gates/scopes 16px centered; reduce-motion collapses knob+checkbox transitions; no role=switch in forms | post-closure fix 4/5/6 |
 | topbar-fidelity | real topbar affordances only | 3 |
@@ -215,6 +216,20 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   which is functionally equivalent (catalog selection + custom entries). Both sides validate
   `resource.action` with the identical regex (`Webhooks.tsx:51` EVENT_PATTERN); preset quick-picks are
   add/remove toggles with aria-pressed, mirroring tag selection.
+- Representation simplifications (disclosed, functionally equivalent): real `Roles.tsx` permission
+  `Transfer` (two-list) is rendered as the permission matrix checkbox grid; real `Groups.tsx` /
+  `Webhooks.tsx` `Drawer` surfaces are rendered as an in-page panel / modal; real `DatePicker` /
+  `RangePicker` (ApiKeys expires, Audit days, Events range) are native date inputs with the same
+  validation and startDate/endDate mapping (Events carries an inline range note); real `Profile.tsx`
+  `Descriptions` and `Dashboard.tsx` `Statistic` are rendered as definition grids / stat cards.
+  Functional filters are NOT simplified: users status/tenant, audit action/actor/days, events
+  type/range all mirror the real Select/Input/RangePicker filters.
+- Environment baseline (locked by a11y-env): no document-level horizontal overflow at ~200% zoom
+  (640px viewport; data tables scroll inside their focusable regions), modals/drawers fit narrow
+  viewports with a working focus trap and `inert` background while open, and forced-colors mode keeps
+  checked/switch-on states distinguishable via system Highlight/HighlightText/ButtonText colors.
+  Manual acceptance (not automatable here): real screen-reader announcement pass (NVDA/VoiceOver),
+  touch drag, print stylesheet.
 - Not modeled: real network/auth/tenancy enforcement, server-side export, dayjs itself, AntD itself;
   also the real `Users.tsx` createError and `Profile.tsx` MFA enable/disable failure branches (no
   simulated counterpart yet — listed here instead of as phantom index rows).

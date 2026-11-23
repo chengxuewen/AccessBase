@@ -1242,3 +1242,26 @@ key removed, ev-presets become aria-pressed toggles, permissions-seed self-comme
 Harness: 60 groups, 0 failures (contrast min 4.54 across 14 pack-theme combos; i18n-dynamic 84 admin
 literals + companion literals all translate; security-states three-state/guard/fail-closed locked).
 Open backlog (explicit): shape/icon scale tokenization (DS-12/L8) deferred to a design ruling round.
+
+## Verification-deepening batch (user ruling B): panel NOT-COVERED automatable subset — 2026-11-23
+Executed the automatable part of the panel's not-covered union and locked it. Probes at 640x400
+(~200% zoom of 1280x800): no document-level horizontal overflow on users/tenants/settings/audit/roles
+(data tables scroll inside their focusable regions); modals and the template drawer fit narrow
+viewports; the modal focus trap wraps Tab inside the dialog. Two real gaps found and fixed:
+(1) background was NOT inert while a modal/drawer was open (screen-reader virtual cursor and pointer
+could reach the page behind) — openModal/closeModal now sync inert on the background containers
+(#app > .sidebar / .main; overlays live inside #app so inert must not cover them);
+(2) forced-colors mode flattened themed checkbox/switch states (author fills forced to system colors;
+headless palette even makes Canvas == HighlightText) — switches keep author system-color rules
+(Highlight/HighlightText/ButtonText with forced-color-adjust:none) while checkboxes fall back to the
+NATIVE control in forced-colors (appearance:auto, glyph removed) so the OS palette guarantees the
+checked/unchecked distinction; selected cbx options and nav-on gain Highlight outlines.
+Parity sweep across every real page's control inventory found NO functional gaps (users status/tenant,
+audit action/actor/days, events type/range filters all mirror real Select/Input/RangePicker); remaining
+divergences are representation-level and now disclosed in README: Roles Transfer -> matrix grid,
+Groups/Webhooks Drawer -> panel/modal, DatePicker/RangePicker -> native date inputs + validation +
+range note, Profile Descriptions / Dashboard Statistic -> grids/cards. Render spot-checks: carbon dark,
+cupertino light, geist light, fluent dark screenshots clean (nav-on readable, tokens consistent).
+New harness group a11y-env (61 total): reflow x5 pages, modal fit + trap + inert on/off, forced-colors
+native-checkbox fallback + switch state distinction. Manual acceptance (not automatable) disclosed in
+README: real screen-reader pass, touch drag, print stylesheet. Full re-run: 61 groups, 0 failures.

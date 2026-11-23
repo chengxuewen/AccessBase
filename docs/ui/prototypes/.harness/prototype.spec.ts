@@ -1999,6 +1999,55 @@ test('security-states', async ({ page }) => {
   expect(secPass, 'security-states').toBe(true);
 });
 
+test('a11y-env', async ({ page }) => {
+  // Verification-deepening batch (panel NOT-COVERED subset): reflow at ~200% zoom, narrow-viewport
+  // modal/drawer fit + focus trap + background inert, forced-colors state visibility.
+  await page.goto(FILE);
+  await page.setViewportSize({ width: 640, height: 400 });
+  const reflow: Record<string, boolean> = {};
+  for (const pg of ['users', 'tenants', 'settings', 'audit', 'roles']) {
+    await page.evaluate(k => document.querySelector('[data-page=' + k + ']')!.click(), pg);
+    await page.waitForTimeout(150);
+    reflow[pg] = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+  }
+  await page.evaluate(() => document.querySelector('[data-page=users]')!.click());
+  await page.evaluate(() => document.querySelector('[data-create=users]')!.click());
+  await page.waitForTimeout(150);
+  const modal = await page.evaluate(() => { const r = document.querySelector('#formModal .modal')!.getBoundingClientRect(); return { fits: r.width <= window.innerWidth && r.left >= 0, inert: (document.querySelector('#app > .main') as HTMLElement).inert === true }; });
+  const trap = await page.evaluate(async () => {
+    const m = document.querySelector('#formModal .modal')!;
+    const f = [...m.querySelectorAll('button,input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(el => !(el as HTMLButtonElement).disabled && (el as HTMLElement).offsetParent !== null);
+    (f[f.length - 1] as HTMLElement).focus();
+    const ev = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    document.dispatchEvent(ev);
+    await new Promise(r => setTimeout(r, 30));
+    return m.contains(document.activeElement) && ev.defaultPrevented;
+  });
+  await page.keyboard.press('Escape');
+  const inertOff = await page.evaluate(() => (document.querySelector('#app > .main') as HTMLElement).inert === false);
+  await page.emulateMedia({ forcedColors: 'active' });
+  await page.evaluate(() => document.querySelector('[data-page=groups]')!.click());
+  await page.evaluate(() => (document.querySelector('#groupRows tr:first-child .row-actions button:nth-child(2)') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  const ckForced = await page.evaluate(() => {
+    const ck = document.querySelector('#formBody [data-field=isDepartment]') as HTMLInputElement;
+    return getComputedStyle(ck).appearance === 'auto' && getComputedStyle(ck, '::after').content === 'none';
+  });
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => document.querySelector('[data-page=webhooks]')!.click());
+  const swForced = await page.evaluate(() => {
+    const sw = document.querySelector('#webhookRows .wswitch') as HTMLElement;
+    const on = getComputedStyle(sw).backgroundColor; sw.classList.remove('on');
+    const off = getComputedStyle(sw).backgroundColor; sw.classList.add('on');
+    return on !== off;
+  });
+  await page.emulateMedia({ forcedColors: 'none' });
+  const a = { reflow, modal, trap, inertOff, ckForced, swForced };
+  const pass = Object.values(reflow).every(Boolean) && modal.fits && modal.inert && trap && inertOff && ckForced && swForced;
+  rec('a11y-env', pass, a);
+  expect(pass, 'a11y-env: reflow@200% + modal fit/trap/inert + forced-colors states').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);
