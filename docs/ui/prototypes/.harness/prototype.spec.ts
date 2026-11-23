@@ -575,29 +575,45 @@ test('contrast', async ({ page }) => {
     const ratio = (c1: number[], c2: number[]) => { const l1 = lum(c1), l2 = lum(c2); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
     const parse = (s: string) => { const m = s.match(/rgba?\(([^)]+)\)/)!; const p = m[1].split(',').map(parseFloat); return [p[0], p[1], p[2], p[3] === undefined ? 1 : p[3]]; };
     const comp = (rgba: number[]) => { const al = rgba[3]; return [0, 1, 2].map(i => Math.round(al * rgba[i] + (1 - al) * 255)); };
+    const probeRaw = (expr: string) => { const e = document.createElement('span'); e.style.color = expr; document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return parse(c); };
+    const compOn = (rgba: number[], base: number[]) => { const al = rgba[3]; return [0, 1, 2].map(i => Math.round(al * rgba[i] + (1 - al) * base[i])); };
     const probe = (expr: string) => { const e = document.createElement('span'); e.style.color = expr; document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return comp(parse(c)); };
     const W = [255, 255, 255];
     const sel = document.getElementById('styleSelect') as HTMLSelectElement;
-    document.documentElement.dataset.theme = 'light';
     const packs: Record<string, unknown> = {};
     let allSemanticAbove45 = true;
-    for (const s of ['broadsheet', 'geist', 'material', 'fluent', 'ant', 'carbon', 'cupertino']) {
-      sel.value = s; sel.onchange!(new Event('change'));
-      const m = {
-        warnTag: +ratio(probe('var(--warn-text,var(--warn))'), W).toFixed(2),
-        okTag: +ratio(probe('var(--ok-text,var(--ok))'), W).toFixed(2),
-        dangerTag: +ratio(probe('var(--danger-text,var(--danger))'), W).toFixed(2),
-        accentTag: +ratio(probe('var(--accent-text,var(--accent))'), W).toFixed(2),
-        tx3: +ratio(probe('var(--tx3)'), W).toFixed(2),
-      };
-      packs[s] = m;
-      if (Math.min(m.warnTag, m.okTag, m.dangerTag, m.accentTag) < 4.5) allSemanticAbove45 = false;
+    // ruling 1A: tx3-bearing text and the nav-on tint pair are semantic surfaces; lock them in
+    // BOTH themes against their real composited backgrounds (surface / sunken / tint-over-surface).
+    for (const theme of ['light', 'dark']) {
+      document.documentElement.dataset.theme = theme;
+      for (const s of ['broadsheet', 'geist', 'material', 'fluent', 'ant', 'carbon', 'cupertino']) {
+        sel.value = s; sel.onchange!(new Event('change'));
+        const surface = probeRaw('var(--surface)');
+        const sunken = probeRaw('var(--sunken)');
+        const tintBg = compOn(probeRaw('var(--accent-tint)'), surface);
+        const navFg = compOn(probeRaw('var(--accent-text,var(--tx1))'), tintBg);
+        const tagBg = (tint: string) => compOn(probeRaw(tint), surface);
+        const onTag = (expr: string, tint: string) => { const bg = tagBg(tint); return +ratio(compOn(probeRaw(expr), bg), bg).toFixed(2); };
+        const m = {
+          warnTag: onTag('var(--warn-text,var(--warn))', 'var(--warn-tint)'),
+          okTag: onTag('var(--ok-text,var(--ok))', 'var(--ok-tint)'),
+          dangerTag: onTag('var(--danger-text,var(--danger))', 'var(--danger-tint)'),
+          accentTag: onTag('var(--accent-text,var(--accent))', 'var(--accent-tint)'),
+          tx3: +ratio(compOn(probeRaw('var(--tx3)'), surface), surface).toFixed(2),
+          tx3Surface: +ratio(compOn(probeRaw('var(--tx3)'), surface), surface).toFixed(2),
+          tx3Sunken: +ratio(compOn(probeRaw('var(--tx3)'), sunken), sunken).toFixed(2),
+          navOn: +ratio(navFg, tintBg).toFixed(2),
+        };
+        packs[s + ':' + theme] = m;
+        if (Math.min(m.warnTag, m.okTag, m.dangerTag, m.accentTag, m.tx3Surface, m.tx3Sunken, m.navOn) < 4.5) allSemanticAbove45 = false;
+      }
     }
+    document.documentElement.dataset.theme = 'light';
     sel.value = 'broadsheet'; sel.onchange!(new Event('change'));
     return { packs, allSemanticAbove45 };
   });
   rec('contrast', a.allSemanticAbove45, a);
-  expect(a.allSemanticAbove45, 'contrast: semantic tag text >=4.5:1 in all 7 packs').toBe(true);
+  expect(a.allSemanticAbove45, 'contrast: semantic + tx3 + nav-on text >=4.5:1 in all 7 packs x both themes').toBe(true);
 });
 
 test('all-pages-high-fidelity', async ({ page }) => {
@@ -1127,6 +1143,9 @@ test('settings', async ({ page }) => {
     title: document.getElementById('crumbPage')!.textContent,
   }));
   await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=ssecurity]') as HTMLElement).click(); });
+  await page.waitForTimeout(600);
+  await page.evaluate(() => { const b = document.getElementById('sessLoadBanner') as HTMLElement; if (b.style.display !== 'none') { (document.getElementById('sessLoadRetry') as HTMLElement).click(); (document.getElementById('pkLoadRetry') as HTMLElement).click(); } });
+  await page.waitForTimeout(600);
   const sec0 = await page.evaluate(() => ({
     paneOn: document.getElementById('pane-ssecurity')!.classList.contains('on'),
     rows: document.querySelectorAll('#sessionRows tr').length,
@@ -1166,10 +1185,16 @@ test('settings', async ({ page }) => {
   await page.keyboard.press('Escape');
   // template preview + idle timeout
   await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=semail]') as HTMLElement).click(); });
+  await page.waitForTimeout(600);
+  await page.evaluate(() => { const b = document.getElementById('tplLoadBanner') as HTMLElement; if (b.style.display !== 'none') (document.getElementById('tplLoadRetry') as HTMLElement).click(); });
+  await page.waitForTimeout(600);
   await page.locator('#templateRows button[data-tplview]').first().click();
   const preview = await page.evaluate(() => document.getElementById('tplDrawer')!.classList.contains('on'));
   await page.keyboard.press('Escape');
   await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=ssecurity]') as HTMLElement).click(); });
+  await page.waitForTimeout(600);
+  await page.evaluate(() => { const b = document.getElementById('sessLoadBanner') as HTMLElement; if (b.style.display !== 'none') { (document.getElementById('sessLoadRetry') as HTMLElement).click(); (document.getElementById('pkLoadRetry') as HTMLElement).click(); } });
+  await page.waitForTimeout(600);
   await page.evaluate(() => {
     const sel = document.getElementById('idleSelect') as any;
     sel._cbx.querySelector('.cbx-btn').click();
@@ -1208,6 +1233,9 @@ test('settings-model', async ({ page }) => {
   await setPersp('admin');
   const idleVals = await page.evaluate(() => [...(document.getElementById('idleSelect') as HTMLSelectElement).options].map(o => o.value));
   await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=ssecurity]') as HTMLElement).click(); });
+  await page.waitForTimeout(600);
+  await page.evaluate(() => { const b = document.getElementById('sessLoadBanner') as HTMLElement; if (b.style.display !== 'none') { (document.getElementById('sessLoadRetry') as HTMLElement).click(); (document.getElementById('pkLoadRetry') as HTMLElement).click(); } });
+  await page.waitForTimeout(600);
   await page.evaluate(() => { const sel = document.getElementById('idleSelect') as any; sel._cbx.querySelector('.cbx-btn').click(); [...sel._cbx.querySelectorAll('.cbx-opt')].find((o: any) => o.dataset.value === '604800').click(); });
   const idleBusy = await page.evaluate(() => (document.getElementById('idleSelect') as HTMLSelectElement).disabled);
   await page.waitForTimeout(600);
@@ -1228,6 +1256,9 @@ test('settings-model', async ({ page }) => {
   await page.locator('#formSave').click();
   const keyOk = await page.evaluate(() => [...document.querySelectorAll('#optionRows tr')].some(tr => tr.textContent!.includes('feature_flag_e2e')));
   await page.evaluate(() => { (document.querySelector('#settingsTabs button[data-tab=semail]') as HTMLElement).click(); });
+  await page.waitForTimeout(600);
+  await page.evaluate(() => { const b = document.getElementById('tplLoadBanner') as HTMLElement; if (b.style.display !== 'none') (document.getElementById('tplLoadRetry') as HTMLElement).click(); });
+  await page.waitForTimeout(600);
   await page.locator('#templateRows button[data-tpledit]').first().click();
   const drawer = await page.evaluate(() => ({ on: document.getElementById('tplDrawer')!.classList.contains('on'), fields: ['tplSubjectEn', 'tplSubjectZh', 'tplHtmlEn', 'tplHtmlZh'].every(id => !!document.getElementById(id)) }));
   await page.locator('#tplPreviewBtn').click();
@@ -1876,18 +1907,96 @@ test('i18n', async ({ page }) => {
   }));
   const a = { en0, zhUsers, zhEmpty: zhEmpty.includes('没有符合当前过滤条件的结果'), zhTenants, zhVerb, zhData, zhTab, zhEdit, dict, enBack, enCreated, persisted, zhAuth, dictAuth, enAuth };
   const pass = en0.btn === '中文' && en0.aria === 'Language' && en0.nav === 'Users'
-    && zhUsers.lang === 'zh' && zhUsers.btn === 'EN' && zhUsers.nav === '用户' && zhUsers.h1 === '用户'
+    && zhUsers.lang === 'zh-CN' && zhUsers.btn === 'EN' && zhUsers.nav === '用户' && zhUsers.h1 === '用户'
     && zhUsers.tag === '活跃' && zhUsers.search === '按姓名或邮箱搜索…' && zhUsers.stored === 'zh'
     && a.zhEmpty && zhTenants.created && zhTenants.head === '租户' && zhTenants.name0 && zhVerb === '暂停'
     && zhData.sec && zhTab.includes('安全') && zhTab.includes('邮件模板')
     && dict.n > 200 && dict.allNonEmpty && dict.coverage
     && enBack.btn === '中文' && enBack.nav === 'Users' && enBack.tab && enBack.stored === 'en' && enCreated
-    && persisted.lang === 'zh' && persisted.nav === '用户'
+    && persisted.lang === 'zh-CN' && persisted.nav === '用户'
     && zhAuth.nav === '登录' && zhAuth.h1 === '登录' && zhAuth.approve === '同意'
     && dictAuth.n > 100 && dictAuth.allNonEmpty && dictAuth.coverage
     && enAuth.nav === 'Login' && enAuth.h1 === 'Sign in' && enAuth.client && zhEdit;
   rec('i18n', pass, a);
   expect(pass, 'i18n').toBe(true);
+});
+
+test('i18n-dynamic', async ({ page }) => {
+  // ruling 7A: every dynamic toast/busy/formError literal in BOTH prototypes must translate under
+  // zh (dictionary key or rule). Source-literal scan replaces the old 18-key existence tautology.
+  await page.goto(FILE);
+  const src = fs.readFileSync(path.resolve(__dirname, '../admin-console.html'), 'utf8');
+  const srcB = fs.readFileSync(path.resolve(__dirname, '../auth-flows.html'), 'utf8');
+  const un = (s: string) => s.replace(/\\'/g, "'").replace(/\\"/g, '"');
+  const lits = (t: string) => {
+    const out: string[] = [];
+    for (const m of t.matchAll(/(?:toast|formError)\('((?:[^'\\]|\\.)*)'(?:,[^)]*)?\)/g)) out.push(un(m[1]));
+    for (const m of t.matchAll(/btnBusy\([^,]+,\s*(?:true|false)\s*,\s*'((?:[^'\\]|\\.)*)'\)/g)) out.push(un(m[1]));
+    return [...new Set(out)].filter(Boolean);
+  };
+  const PREFIX: Record<string, string> = {
+    'Exported ': 'Exported 3 rows',
+    'Slug "': 'Slug "x" already exists',
+    'Each event must be * or resource.action (lowercase): ': 'Each event must be * or resource.action (lowercase): bad',
+  };
+  await page.evaluate(() => { if (!document.documentElement.lang.startsWith('zh')) (document.getElementById('langBtn') as HTMLElement).click(); });
+  const adminMissing = await page.evaluate((args: { lits: string[]; prefix: Record<string, string> }) => {
+    const bad: string[] = [];
+    for (const L of args.lits) { const sample = args.prefix[L] || L; if (tr(sample) === sample) bad.push(L); }
+    return bad;
+  }, { lits: lits(src), prefix: PREFIX });
+  await page.goto(AUTH);
+  await page.evaluate(() => { if (!document.documentElement.lang.startsWith('zh')) (document.getElementById('langBtn') as HTMLElement).click(); });
+  const companionMissing = await page.evaluate((ls: string[]) => ls.filter(L => tr(L) === L), lits(srcB));
+  const a = { adminMissing, companionMissing, n: lits(src).length };
+  const pass = adminMissing.length === 0 && companionMissing.length === 0 && a.n > 50;
+  rec('i18n-dynamic', pass, a);
+  expect(pass, 'i18n-dynamic: every dynamic literal translates under zh').toBe(true);
+});
+
+test('security-states', async ({ page }) => {
+  // post-closure panel execution (rulings 6A/8B): security tab three-state loads + tplSave
+  // validation + sessions-others fail-closed, all disclosed in the README simulation index.
+  await page.goto(FILE);
+  await page.evaluate(() => { (document.querySelector('[data-page=settings]') as HTMLElement).click(); });
+  await page.locator('#settingsTabs button[data-tab=ssecurity]').click();
+  await page.waitForTimeout(600);
+  const secLoad = await page.evaluate(() => ({ sess: document.getElementById('sessLoadBanner')!.style.display, sessRows: document.querySelectorAll('#sessionRows tr').length, pk: document.getElementById('pkLoadBanner')!.style.display }));
+  await page.locator('#sessLoadRetry').click();
+  await page.locator('#pkLoadRetry').click();
+  await page.waitForTimeout(600);
+  const secOk = await page.evaluate(() => ({ sess: document.getElementById('sessLoadBanner')!.style.display, sessRows: document.querySelectorAll('#sessionRows tr').length, pkRows: document.querySelectorAll('#passkeyRows tr').length }));
+  await page.locator('#settingsTabs button[data-tab=semail]').click();
+  await page.waitForTimeout(600);
+  const tplLoad = await page.evaluate(() => document.getElementById('tplLoadBanner')!.style.display);
+  await page.locator('#tplLoadRetry').click();
+  await page.waitForTimeout(600);
+  const tplOk = await page.evaluate(() => ({ banner: document.getElementById('tplLoadBanner')!.style.display, rows: document.querySelectorAll('#templateRows tr').length }));
+  await page.locator('#templateRows [data-tpledit]').first().click();
+  await page.locator('#tplSubjectEn').fill('');
+  await page.locator('#tplSave').click();
+  const tplGuard = await page.evaluate(() => ({ toast: document.getElementById('protoToast')!.textContent, open: document.getElementById('tplDrawer')!.classList.contains('on') }));
+  await page.keyboard.press('Escape');
+  const sessBefore = await page.evaluate(() => document.querySelectorAll('#sessionRows tr').length);
+  await page.locator('#settingsTabs button[data-tab=ssecurity]').click();
+  await page.waitForTimeout(600);
+  await page.locator('#revokeOthersBtn2').click();
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(300);
+  const revFail = await page.evaluate(() => ({ toast: document.getElementById('protoToast')!.textContent, rows: document.querySelectorAll('#sessionRows tr').length }));
+  await page.locator('#revokeOthersBtn2').click();
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(300);
+  const revOk = await page.evaluate(() => document.querySelectorAll('#sessionRows tr').length);
+  const sec = { secLoad, secOk, tplLoad, tplOk, tplGuard, revFail, revOk, sessBefore };
+  const secPass = secLoad.sess === 'flex' && secLoad.sessRows === 0 && secLoad.pk === 'flex'
+    && secOk.sess === 'none' && secOk.sessRows > 0 && secOk.pkRows > 0
+    && tplLoad === 'flex' && tplOk.banner === 'none' && tplOk.rows > 0
+    && tplGuard.toast.includes('required in both en and zh') && tplGuard.open
+    && revFail.toast.includes('sessions kept') && revFail.rows === sessBefore && revOk < sessBefore;
+
+  rec('security-states', secPass, sec);
+  expect(secPass, 'security-states').toBe(true);
 });
 
 test('states', async ({ page }) => {
@@ -1976,11 +2085,16 @@ test('confirm-uniform', async ({ page }) => {
   const s1 = await page.evaluate(() => document.querySelectorAll('#sessionRows tr').length);
   await page.locator('#revokeOthersBtn').click();
   await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(300); // fail-closed first attempt keeps sessions (disclosed)
+  const s2fail = await page.evaluate(() => document.querySelectorAll('#sessionRows tr').length);
+  await page.locator('#revokeOthersBtn').click();
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(300);
   const s2 = await page.evaluate(() => document.querySelectorAll('#sessionRows tr').length);
-  const a = { m0, mConf, m1, m2, o0, oConf, o1, o2, s0, sConf, s1, s2 };
+  const a = { m0, mConf, m1, m2, o0, oConf, o1, o2, s0, sConf, s1, s2fail, s2 };
   const pass = mConf.on && mConf.verb === 'Remove' && mConf.msg && m1 === m0 && m2 === m0 - 1
     && oConf.on && oConf.verb === 'Unlink' && oConf.msg && o1 === o0 && o2 === o0 - 1
-    && sConf.on && sConf.verb === 'Sign out' && sConf.msg && s1 === s0 && s2 === 1;
+    && sConf.on && sConf.verb === 'Sign out' && sConf.msg && s1 === s0 && s2fail === s0 && s2 === 1;
   rec('confirm-uniform', pass, a);
   expect(pass, 'confirm-uniform').toBe(true);
 });

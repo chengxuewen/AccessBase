@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 293,
+        "svgIcons": 296,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -351,54 +351,145 @@
       "pass": true,
       "assertions": {
         "packs": {
-          "broadsheet": {
-            "warnTag": 5.52,
-            "okTag": 5.35,
-            "dangerTag": 5.99,
-            "accentTag": 7.78,
-            "tx3": 4.53
+          "broadsheet:light": {
+            "warnTag": 4.87,
+            "okTag": 4.68,
+            "dangerTag": 5.23,
+            "accentTag": 6.87,
+            "tx3": 5.57,
+            "tx3Surface": 5.57,
+            "tx3Sunken": 5.15,
+            "navOn": 6.87
           },
-          "geist": {
-            "warnTag": 5.52,
-            "okTag": 6.79,
-            "dangerTag": 5.99,
-            "accentTag": 18.88,
-            "tx3": 4.54
+          "geist:light": {
+            "warnTag": 4.95,
+            "okTag": 6.03,
+            "dangerTag": 5.31,
+            "accentTag": 16.87,
+            "tx3": 5.1,
+            "tx3Surface": 5.1,
+            "tx3Sunken": 4.89,
+            "navOn": 16.87
           },
-          "material": {
-            "warnTag": 6.9,
-            "okTag": 6.79,
-            "dangerTag": 6.54,
-            "accentTag": 7.85,
-            "tx3": 5
+          "material:light": {
+            "warnTag": 5.92,
+            "okTag": 5.79,
+            "dangerTag": 5.45,
+            "accentTag": 6.7,
+            "tx3": 6.05,
+            "tx3Surface": 6.05,
+            "tx3Sunken": 5.44,
+            "navOn": 6.7
           },
-          "fluent": {
-            "warnTag": 8.82,
-            "okTag": 6.71,
-            "dangerTag": 5.66,
-            "accentTag": 5.38,
-            "tx3": 5.1
+          "fluent:light": {
+            "warnTag": 7.72,
+            "okTag": 5.84,
+            "dangerTag": 4.84,
+            "accentTag": 4.67,
+            "tx3": 6.19,
+            "tx3Surface": 6.19,
+            "tx3Sunken": 5.54,
+            "navOn": 4.67
           },
-          "ant": {
-            "warnTag": 5.52,
-            "okTag": 6.79,
-            "dangerTag": 5.99,
-            "accentTag": 6.52,
-            "tx3": 3.36
+          "ant:light": {
+            "warnTag": 5.19,
+            "okTag": 6.26,
+            "dangerTag": 5.3,
+            "accentTag": 5.73,
+            "tx3": 7,
+            "tx3Surface": 7,
+            "tx3Sunken": 6.82,
+            "navOn": 5.73
           },
-          "carbon": {
-            "warnTag": 4.99,
-            "okTag": 7.72,
-            "dangerTag": 7.79,
-            "accentTag": 7.79,
-            "tx3": 5.02
+          "carbon:light": {
+            "warnTag": 4.68,
+            "okTag": 6.93,
+            "dangerTag": 6.66,
+            "accentTag": 6.75,
+            "tx3": 5.02,
+            "tx3Surface": 5.02,
+            "tx3Sunken": 4.57,
+            "navOn": 6.75
           },
-          "cupertino": {
-            "warnTag": 6.9,
-            "okTag": 6.61,
-            "dangerTag": 7.79,
-            "accentTag": 5.96,
-            "tx3": 3.02
+          "cupertino:light": {
+            "warnTag": 6.26,
+            "okTag": 5.99,
+            "dangerTag": 6.61,
+            "accentTag": 5.25,
+            "tx3": 5.15,
+            "tx3Surface": 5.15,
+            "tx3Sunken": 4.54,
+            "navOn": 5.25
+          },
+          "broadsheet:dark": {
+            "warnTag": 5.82,
+            "okTag": 5.78,
+            "dangerTag": 4.71,
+            "accentTag": 5.28,
+            "tx3": 6.4,
+            "tx3Surface": 6.4,
+            "tx3Sunken": 7.15,
+            "navOn": 5.28
+          },
+          "geist:dark": {
+            "warnTag": 6.93,
+            "okTag": 6.91,
+            "dangerTag": 5.57,
+            "accentTag": 13.26,
+            "tx3": 6.71,
+            "tx3Surface": 6.71,
+            "tx3Sunken": 6.91,
+            "navOn": 13.26
+          },
+          "material:dark": {
+            "warnTag": 6.41,
+            "okTag": 4.97,
+            "dangerTag": 5.35,
+            "accentTag": 4.71,
+            "tx3": 5.14,
+            "tx3Surface": 5.14,
+            "tx3Sunken": 6.73,
+            "navOn": 4.71
+          },
+          "fluent:dark": {
+            "warnTag": 7.13,
+            "okTag": 5.11,
+            "dangerTag": 5.1,
+            "accentTag": 6.53,
+            "tx3": 6.38,
+            "tx3Surface": 6.38,
+            "tx3Sunken": 7.74,
+            "navOn": 6.53
+          },
+          "ant:dark": {
+            "warnTag": 5.65,
+            "okTag": 7.69,
+            "dangerTag": 6.17,
+            "accentTag": 7.2,
+            "tx3": 8.21,
+            "tx3Surface": 8.21,
+            "tx3Sunken": 8.42,
+            "navOn": 7.2
+          },
+          "carbon:dark": {
+            "warnTag": 6.25,
+            "okTag": 4.8,
+            "dangerTag": 4.8,
+            "accentTag": 5.16,
+            "tx3": 4.56,
+            "tx3Surface": 4.56,
+            "tx3Sunken": 5.45,
+            "navOn": 5.16
+          },
+          "cupertino:dark": {
+            "warnTag": 6.11,
+            "okTag": 6.21,
+            "dangerTag": 6.21,
+            "accentTag": 6.32,
+            "tx3": 8.54,
+            "tx3Surface": 8.54,
+            "tx3Sunken": 9.75,
+            "navOn": 6.32
           }
         },
         "allSemanticAbove45": true
@@ -1107,7 +1198,7 @@
           "nav": "Users"
         },
         "zhUsers": {
-          "lang": "zh",
+          "lang": "zh-CN",
           "btn": "EN",
           "nav": "用户",
           "h1": "用户",
@@ -1134,7 +1225,7 @@
         ],
         "zhEdit": true,
         "dict": {
-          "n": 362,
+          "n": 425,
           "allNonEmpty": true,
           "coverage": true
         },
@@ -1146,7 +1237,7 @@
         },
         "enCreated": true,
         "persisted": {
-          "lang": "zh",
+          "lang": "zh-CN",
           "nav": "用户"
         },
         "zhAuth": {
@@ -1164,6 +1255,44 @@
           "h1": "Sign in",
           "client": true
         }
+      }
+    },
+    "i18n-dynamic": {
+      "pass": true,
+      "assertions": {
+        "adminMissing": [],
+        "companionMissing": [],
+        "n": 84
+      }
+    },
+    "security-states": {
+      "pass": true,
+      "assertions": {
+        "secLoad": {
+          "sess": "flex",
+          "sessRows": 0,
+          "pk": "flex"
+        },
+        "secOk": {
+          "sess": "none",
+          "sessRows": 3,
+          "pkRows": 2
+        },
+        "tplLoad": "flex",
+        "tplOk": {
+          "banner": "none",
+          "rows": 4
+        },
+        "tplGuard": {
+          "toast": "Template subject is required in both en and zh",
+          "open": true
+        },
+        "revFail": {
+          "toast": "Revocation failed: upstream timeout (prototype simulation) — sessions kept",
+          "rows": 3
+        },
+        "revOk": 1,
+        "sessBefore": 3
       }
     },
     "states": {
@@ -1235,6 +1364,7 @@
           "msg": true
         },
         "s1": 3,
+        "s2fail": 3,
         "s2": 1
       }
     },
@@ -1361,7 +1491,7 @@
           "labelledby": "formTitle"
         },
         "trap": {
-          "n": 5,
+          "n": 7,
           "lastFocused": true
         },
         "wrapFwd": true,

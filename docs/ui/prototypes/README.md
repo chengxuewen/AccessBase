@@ -51,6 +51,15 @@ branch and says so (see disclosure index). Read this file first, `CHANGELOG.md` 
   action icons explain themselves through the `.tip-wrap` hover hint (`Locked (default tenant)`), matching
   the real lock-glyph disabled affordance; under zh all tenants row actions still respond because the
   Edit/Delete delegates read the translation layer's en originals.
+- Security tab sessions/passkeys/templates tables load asynchronously with skeleton + error banner +
+  Retry (options precedent); tplSave refuses empty en/zh subjects; "log out other devices" is fail-closed
+  (first attempt simulates an upstream timeout and keeps the sessions).
+- zh covers dynamic strings too: every toast/busy/formError literal has a dictionary key or rule, locked
+  by a source-literal scan (i18n-dynamic), not by a fixed key-existence list. `<html lang>` is zh-CN.
+- Contrast lock spans 7 packs x BOTH themes and includes tx3-bearing text (surface/sunken) and the
+  nav-on tint pair; all >=4.5:1. Disabled row actions degrade (opacity + no hover); hit areas are >=24px
+  via padding/pseudo-elements while visual metrics stay AntD-like; the combobox trigger is a
+  role=combobox div so chip remove buttons are valid, keyboard-reachable children; shadows use tokens.
 - The allowClear cross is a SIBLING of the combobox button positioned absolutely inside the relative
   wrapper (a nested `<button>` is invalid HTML — the parser splits it, which wrapped the cross onto a
   blank line below the control). The chev swaps out while the cross shows; the cross is hidden when the
@@ -71,7 +80,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts
 npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --grep roles-edit
 ```
 
-- 58 groups, all must pass. Per-group assertions are written to
+- 60 groups, all must pass. Per-group assertions are written to
   `docs/ui/prototypes/.harness/results.json` (`results[name].assertions`, `fail` count) for evidence review.
 - The harness loads the same `file://` page; it never mocks the prototype itself except where a test
   deliberately stubs `navigator.clipboard` / `document.execCommand` to prove the copy-failure branch.
@@ -79,7 +88,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
   surface, motion family, tint-bearing color, or locale string requires extending the matching group
   (or adding one) in the same change — never ship a surface the harness cannot see.
 
-## Lock index (58 groups)
+## Lock index (60 groups)
 
 | Group | Locks | Ruling |
 |---|---|---|
@@ -93,7 +102,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | groups-detail | create+isDepartment, detail/candidates/add/remove/saveRoles/delete async | 26 |
 | mgmt-pages | tenants/clients/apikeys/webhooks/audit/events row contracts | 8, 10, 11, 14, 24, 28 |
 | tenants-model | soft-delete, slug validation, init-admin shared 12+ policy, field-level 409, async CRUD; copy feedback (toast + check glyph + revert), clipboard-reject fallback, both-fail error toast, locked-row hover hint, zh row-action routing | 8, 27, post-closure fix 7 |
-| clients-model | immutable clients, server enums, scope required, B5 gate, async create/rotate/delete | 14, 28 |
+| clients-model | immutable clients, server enums, scope required, B5 gate, async create/rotate/delete | 14, 28, post-closure fix 6 |
 | apikeys-model | revoke-only, reveal-once, server-default scopes, expires validation, copy fallback | 5, 24 |
 | webhooks-model | ping queues pending, toggle/rotate gate+Busy+error, deliveries loading | 10, 23 |
 | events-model / events-load | real catalog/families, date range, async load + loadError + Search/reset | 11, 29 |
@@ -104,11 +113,13 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | row-crud / dead-controls | edit prefill + delete confirm; no silent-dead controls | row-CRUD, 3, 26, 28 |
 | contrast / surfaces-contrast / danger-contrast | 4.5:1 across packs/themes incl. tint surfaces and danger two-tier | 1, 21 |
 | a11y-keyboard / modal-a11y / tabs-a11y | focus trap/return/labelledby, APG tabs, keyboard rows | 10, 16, 17 |
-| tooltip / overflow-menu / content-detail | body-level floating tooltip (no clipping/overpaint in any context), row overflow, truncate+detail | R1–R3, post-closure fix |
+| tooltip / overflow-menu / content-detail | body-level floating tooltip (no clipping/overpaint in any context), row overflow, truncate+detail | R1–R3, post-closure fix 1/6 |
 | responsive-table / pagehead-overflow / table-fit / chip-columns | narrow adaptation, no phantom scrollbar, chip columns | R4, R5 |
 | combobox-popup / combobox-themed / cbx-disabled / cbx-capabilities | themed Select parity: clear/multiple/loading/keyboard/disabled mirror | 2, 15 |
 | cbx-option-list | form selects themed (were native size=4 listboxes); 32px option rows, tinted selected + reserved check column (no shift), fixed list escaping modal/toolbar clipping, flip-up + clamp; allowClear cross inside the control (sibling + absolute, never a blank line below), hidden when empty/disabled, clears without opening; companion parity | post-closure fix 2/3 |
-| boolean-controls | boolean-control rule: forms use themed 16px checkboxes (groups isDepartment, users isActive default-checked), immediate domain stays .wswitch 34x20 button+knob, gates/scopes 16px centered; reduce-motion collapses knob+checkbox transitions; no role=switch in forms | post-closure fix 4/5 |
+| security-states | security tab three-state loads (sessions/passkeys/templates) + tplSave bilingual-subject guard + sessions-others fail-closed | post-closure panel execution |
+| i18n-dynamic | source-literal lock: every toast/busy/formError literal in both prototypes translates under zh (dictionary key or rule) | post-closure panel execution |
+| boolean-controls | boolean-control rule: forms use themed 16px checkboxes (groups isDepartment, users isActive default-checked), immediate domain stays .wswitch 34x20 button+knob, gates/scopes 16px centered; reduce-motion collapses knob+checkbox transitions; no role=switch in forms | post-closure fix 4/5/6 |
 | topbar-fidelity | real topbar affordances only | 3 |
 | reduced-motion | prefers-reduced-motion degradation + normal-mode motion intact | 30 |
 | i18n | 中文/EN toggle, stored lang, zh chrome + relative forms, data untouched, dictionary parity/coverage, en restore | 31 |
@@ -119,23 +130,25 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 
 ## Simulation & demo disclosure index
 
-Simulated failures fire **once per surface per page load**, then retry succeeds; the message always
-carries "(prototype simulation)". They exist to demonstrate the real error branch, not to model uptime.
+Simulated failures fire **once per dialog open** for dialog/confirm flows (reopening re-arms the
+first-attempt failure by design so the error branch can be demonstrated repeatedly) and **once per page
+load** for page-level loads and webhooks actions; retry then succeeds. Every message carries
+"(prototype simulation)". They exist to demonstrate the real error branch, not to model uptime.
 
 | Surface | Simulated point(s) | Real counterpart |
 |---|---|---|
 | Dashboard | stats load failure + Retry | `Dashboard.tsx` load error Alert |
-| Users | create failure; delete RTBF guard/lock refusals | `Users.tsx` createError; server guards |
+| Users | detail-status first-attempt failure; delete RTBF guard/lock refusals | `Users.tsx` updateError; server guards (createError not simulated — see Not modeled) |
 | Roles | save (role-service timeout), delete | `Roles.tsx` updateError/deleteError |
-| Groups | detail load, candidate load, add/remove member, saveRoles, delete | `Groups.tsx` detailError/memberLoadError/memberAddError/memberRemoveError/rolesSaveError/deleteError |
+| Groups | create, detail load, candidate load, add/remove member, saveRoles, delete | `Groups.tsx` detailError/memberLoadError/memberAddError/memberRemoveError/rolesSaveError/deleteError |
 | Tenants | create/update, status change, delete; init TENANT_PROTECTED | `Tenants.tsx` createError/updateError/statusError/deleteError/initError |
 | Clients | create, rotate, delete | `Clients.tsx` createError/rotateError/deleteError |
 | API Keys | create (key-service), revoke (key-service); clipboard rejection stub in harness | `ApiKeys.tsx` createError/revokeError/copyFailed |
 | Webhooks | ping, toggle update, rotate, deliveries load | `Webhooks.tsx` pingError/updateError/rotateError/deliveriesLoadError |
 | Audit | entries load, export, verify failure | `Audit.tsx` load/export/verify errors |
 | Events | load failure + Retry | `Events.tsx` request try/catch loadError |
-| Settings | options load, idle save, template preview, test-send SMTP | `Settings.tsx`/`EmailTemplatesCard.tsx` error branches |
-| Profile | password change, MFA enable/disable, name save, session logout | `Profile.tsx` failure branches |
+| Settings | options/sessions/passkeys/templates load, idle save, template preview, test-send SMTP, session revoke fail-closed | `Settings.tsx`/`EmailTemplatesCard.tsx` error branches |
+| Profile | password change, name save, verification send, OAuth unlink | `Profile.tsx` failure branches (MFA enable/disable failure not simulated — see Not modeled) |
 | Entry flows (auth-flows.html) | login AUTH_002, magic send, register/forgot/reset/confirm/setup create, consent decision | `Login/MagicLogin/Register/ForgotPassword/ResetPassword/EnrollMfa/Consent/setup` error branches |
 
 Demo-only mechanisms (disclosed in-page): permission perspective switches (Settings/Webhooks);
@@ -144,7 +157,7 @@ Demo-only mechanisms (disclosed in-page): permission perspective switches (Setti
 from/to date inputs stand in for AntD RangePicker (`startDate/endDate`); staged matrix maps to the real
 AntD Transfer picker + modal Save; create-form note that UI sends no scopes and server defaults `['*']`.
 
-## Adjudication index (1–31)
+## Adjudication index (1–34)
 
 | # | Subject | Commit | Primary locks |
 |---|---|---|---|
@@ -199,7 +212,10 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   console 12+ — the difference is intentional and disclosed in-page.
 - Webhook subscribed events: real uses `Select mode="tags"` with `EVENT_PRESETS` options
   (`Webhooks.tsx:505-509`); the prototype renders a free-text entry plus the same preset quick-picks,
-  which is functionally equivalent (catalog selection + custom entries). The prototype additionally
-  validates `resource.action` format client-side, which the real Select does not — disclosed strictness.
-- Not modeled: real network/auth/tenancy enforcement, server-side export, dayjs itself, AntD itself.
+  which is functionally equivalent (catalog selection + custom entries). Both sides validate
+  `resource.action` with the identical regex (`Webhooks.tsx:51` EVENT_PATTERN); preset quick-picks are
+  add/remove toggles with aria-pressed, mirroring tag selection.
+- Not modeled: real network/auth/tenancy enforcement, server-side export, dayjs itself, AntD itself;
+  also the real `Users.tsx` createError and `Profile.tsx` MFA enable/disable failure branches (no
+  simulated counterpart yet — listed here instead of as phantom index rows).
   Demo data names/emails/ids are fixtures; the zh pass deliberately never translates them.

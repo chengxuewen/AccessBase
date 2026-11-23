@@ -18,18 +18,19 @@
   --sp4:4px;--sp8:8px;--sp12:12px;--sp16:16px;--sp20:20px;--sp24:24px;
   --sans:"IBM Plex Sans",-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-  --fs11:11px;--fs12:12px;--fs13:13px;--fs14:14px;--fs16:16px;--fs20:20px;--fs26:26px;
+  --fs11:11px;--fs12:12px;--fs13:13px;--fs14:14px;--fs16:16px;--fs20:20px;--fs22:22px;--fs26:26px;--fs40:40px;
+  --shadow-tip:0 2px 10px rgba(0,0,0,.12);--shadow-pop:0 8px 32px rgba(0,0,0,.18);--shadow-toast:0 4px 16px rgba(0,0,0,.2);--shadow-card:0 2px 12px rgba(0,0,0,.06);--shadow-sm:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24);--shadow-hair:0 1px 2px rgba(0,0,0,.06),0 0 1px rgba(0,0,0,.10);
   --nav-w:224px;--nav-w-min:56px;--top-h:52px;
 }
 :root[data-theme="light"]{color-scheme:light;
   --bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F7F6F3;--hover:#F2F1ED;
   --danger-inv:#FFFFFF;
-  --tx1:#29363D;--tx2:#5C6B73;--tx3:#6E787C;--txinv:#FFFFFF;
+  --tx1:#29363D;--tx2:#5C6B73;--tx3:#5F6A6E;--txinv:#FFFFFF;
   --bd:#E6E4DF;--bd2:#D4D2CC;--focus:#0F5C5A;
 }
 :root[data-theme="dark"]{color-scheme:dark;
   --bg:#15191B;--surface:#1B2124;--sunken:#121618;--hover:#22292C;
-  --tx1:#E8E6E2;--tx2:#A8B0B4;--tx3:#6E787C;--txinv:#15191B;
+  --tx1:#E8E6E2;--tx2:#A8B0B4;--tx3:#9AA4A8;--txinv:#15191B;
   --bd:#2A3236;--bd2:#3A4348;--focus:#4FB3AE;
   --accent:#4FB3AE;--accent-hi:#63C4BF;--accent-tint:rgba(79,179,174,.12);
   --ok:#5CBF8A;--ok-tint:rgba(92,191,138,.12);
@@ -49,12 +50,12 @@ html{scrollbar-color:var(--bd2) transparent;scrollbar-width:thin}
    context that later rows paint over; table/modal/drawer scroll containers clipped edge bubbles.
    Replaced by ONE body-level fixed tooltip (#floatTip) above every context: no ancestor can clip or
    overpaint it. Pack tokens still apply; reduced-motion collapses its fade. */
-#floatTip{position:fixed;z-index:600;background:var(--surface);color:var(--tx1);border:1px solid var(--bd);border-radius:var(--r4);font-size:var(--fs11);font-weight:500;line-height:1.35;padding:3px 8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;transition:opacity .12s ease;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+#floatTip{position:fixed;z-index:600;background:var(--surface);color:var(--tx1);border:1px solid var(--bd);border-radius:var(--r4);font-size:var(--fs11);font-weight:500;line-height:1.35;padding:3px 8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;transition:opacity .12s ease;box-shadow:var(--shadow-tip)}
 #floatTip.on{opacity:1}
 .tip-wrap{display:inline-flex;position:relative}
 /* R2 overflow menu (adjudication R2=A): reusable drop-down for secondary/danger row actions;
    position:fixed so it escapes the table's overflow-x clip. R5 toolbar overflow reuses it. */
-.menu{position:fixed;z-index:400;min-width:190px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);box-shadow:0 8px 32px rgba(0,0,0,.18);padding:4px;display:none}
+.menu{position:fixed;z-index:400;min-width:190px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);box-shadow:var(--shadow-pop);padding:4px;display:none}
 .menu.on{display:block}
 .menu-item{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;background:transparent;color:var(--tx1);font-size:var(--fs13);border-radius:var(--r4);cursor:pointer;text-align:left;font-family:inherit}
 .menu-item:hover,.menu-item:focus-visible{background:var(--hover)}
@@ -83,7 +84,7 @@ button{font-family:inherit;cursor:pointer}
 .app.collapsed .nav .group{visibility:hidden;height:6px;padding:0}
 .nav a{position:relative;display:flex;align-items:center;gap:10px;padding:7px var(--sp16);color:var(--tx2);text-decoration:none;font-size:var(--fs13);white-space:nowrap}
 .nav a:hover{background:var(--hover);color:var(--tx1)}
-.nav a.on{background:var(--accent-tint);color:var(--accent);font-weight:500}
+.nav a.on{background:var(--accent-tint);color:var(--accent-text,var(--tx1));font-weight:500}
 .nav a.on::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:2px;background:var(--accent)}
 .app.collapsed .nav a span.lbl{display:none}
 .side-foot{padding:var(--sp8);border-top:1px solid var(--bd)}
@@ -178,6 +179,8 @@ select option{background:var(--surface);color:var(--tx1)}
 .th-sort{border:none;background:none;padding:0;cursor:pointer;font:inherit;color:inherit}
 .sort-ic{font-size:var(--fs11);color:var(--tx3)}
 .wswitch{position:relative;width:34px;height:20px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--sunken);cursor:pointer;padding:0;vertical-align:middle}
+.wswitch::before{content:"";position:absolute;inset:-2px 0;}
+.cbx-disabled .cbx-btn{cursor:not-allowed;opacity:.6}
 .wswitch .knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:var(--r2);background:var(--tx3);transition:left .15s,background .15s}
 .wswitch.on{background:var(--accent);border-color:var(--accent)}
 .wswitch.on .knob{left:16px;background:var(--txinv)}
@@ -192,15 +195,16 @@ html[data-theme="dark"] .toolbar input[type=date]{color-scheme:dark}
 .cbx-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cbx[data-multi] .cbx-val{display:flex;gap:4px;flex-wrap:wrap;align-items:center;white-space:normal}
 .cbx-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:var(--r2);background:var(--accent-tint);color:var(--accent-text,var(--accent));font-size:var(--fs11)}
-.cbx-chip button{border:none;background:none;padding:0;cursor:pointer;color:inherit;display:inline-flex}
+.cbx-chip button{border:none;background:none;padding:0;cursor:pointer;color:inherit;display:inline-flex;position:relative}
+.cbx-chip button::before{content:"";position:absolute;inset:-7px;}
 .cbx-chip .ic{width:10px;height:10px}
 .cbx-btn .cbx-val{flex:1;min-width:0}
 /* allowClear cross is a sibling of the button (nested <button> is invalid HTML and the parser
    splits it, which wrapped the cross onto a blank line below the control). Absolute inside the
    relative .cbx wrapper puts it visually inside the control; the chev swaps out while shown. */
-.cbx-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;padding:0 2px;cursor:pointer;color:var(--tx3);display:none;align-items:center}
+.cbx-clear{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:24px;height:24px;border:none;background:none;padding:0;cursor:pointer;color:var(--tx3);display:none;align-items:center;justify-content:center}
 .cbx-has-clear .cbx-chev{display:none}
-.cbx-has-clear .cbx-val{padding-right:16px}
+.cbx-has-clear .cbx-val{padding-right:26px}
 .cbx-disabled .cbx-clear{display:none !important}
 .cbx-clear:hover{color:var(--tx1)}
 .cbx-clear .ic{width:11px;height:11px}
@@ -212,9 +216,9 @@ html[data-theme="dark"] .toolbar input[type=date]{color-scheme:dark}
 .cbx-chev{width:12px;height:12px;color:var(--tx3);flex-shrink:0;transform:rotate(90deg);transition:transform .15s}
 .cbx.open .cbx-chev{transform:rotate(270deg)}
 .cbx.open .cbx-btn{border-color:var(--accent)}
-.cbx-list{position:fixed;top:0;left:0;width:max-content;max-width:min(320px,92vw);max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r4);box-shadow:0 8px 24px rgba(0,0,0,.16);z-index:70;padding:4px;display:none}
+.cbx-list{position:fixed;top:0;left:0;width:max-content;max-width:min(320px,92vw);max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r4);box-shadow:var(--shadow-pop);z-index:70;padding:4px;display:none}
 .cbx.open .cbx-list{display:block}
-html[data-theme="dark"] .cbx-list{box-shadow:0 8px 24px rgba(0,0,0,.5)}
+
 .cbx-list::-webkit-scrollbar{width:8px}
 .cbx-list::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
 .cbx-list::-webkit-scrollbar-track{background:transparent}
@@ -233,7 +237,8 @@ html[data-theme="dark"] .cbx-list{box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .name-form .field-err{flex-basis:100%;font-size:var(--fs11);color:var(--danger-text,var(--danger));margin-top:4px}
 @media(max-width:760px){.grid-2-1{grid-template-columns:1fr}}
 tr.clickable:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
-.cbx-opt[aria-selected="true"]::after{content:"\2713";margin-left:auto;color:var(--accent)}
+.cbx-opt::after{content:"\2713";margin-left:auto;padding-left:8px;color:transparent;font-weight:600}
+.cbx-opt[aria-selected="true"]::after{color:var(--accent-text,var(--accent))}
 .toolbar .cbx-btn{padding:5px 8px;font-size:var(--fs12)}
 .scope-box .cbx-btn{padding:4px 8px;font-size:var(--fs12)}
 .add-member .cbx{flex:1}
@@ -276,14 +281,14 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
    component base) — referenced as MECHANISM, not added as a visual pack
    (Fusion ~= AntD visually; admin-ui implements AntD, so Ant is the pack). ==== */
 /* geist — Geist/Linear developer-tool language: monochrome, tiny radius, high density */
-[data-style="geist"]{--r2:2px;--r4:3px;--r6:4px;--sp12:10px;--sp16:12px;--sp24:16px;
+[data-style="geist"]{--r2:2px;--r4:3px;--r6:4px;--sp8:6px;--sp12:10px;--sp16:14px;--sp20:16px;--sp24:20px;
   --sans:"Inter","Geist",-apple-system,"Segoe UI","PingFang SC",sans-serif}
 [data-style="geist"][data-theme="light"]{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#FAFAFA;--hover:#EFEFEF;
-  --tx1:#111111;--tx2:#666666;--tx3:#767676;--txinv:#FFFFFF;--bd:#EAEAEA;--bd2:#D4D4D4;--focus:#111111;
+  --tx1:#111111;--tx2:#666666;--tx3:#6E6E6E;--txinv:#FFFFFF;--bd:#EAEAEA;--bd2:#D4D4D4;--focus:#111111;
   --accent:#111111;--accent-hi:#000000;--accent-tint:rgba(0,0,0,.05);
   --ok:#116932;--ok-tint:rgba(17,105,50,.08);--warn:#8A6116;--warn-tint:rgba(138,97,22,.08);--danger:#B3372F;--danger-solid:#B3372F;--danger-tint:rgba(179,55,47,.08)}
 [data-style="geist"][data-theme="dark"]{--bg:#0A0A0A;--surface:#111111;--sunken:#0D0D0D;--hover:#1A1A1A;
-  --tx1:#EDEDED;--tx2:#A0A0A0;--tx3:#6E6E6E;--txinv:#0A0A0A;--bd:#222222;--bd2:#333333;--focus:#EDEDED;
+  --tx1:#EDEDED;--tx2:#A0A0A0;--tx3:#9A9A9A;--txinv:#0A0A0A;--bd:#222222;--bd2:#333333;--focus:#EDEDED;
   --accent:#EDEDED;--accent-hi:#FFFFFF;--accent-tint:rgba(255,255,255,.08);
   --ok:#5CBF8A;--ok-tint:rgba(92,191,138,.12);--warn:#D9A441;--warn-tint:rgba(217,164,65,.12);--danger:#E07B72;--danger-solid:#B3372F;--danger-tint:rgba(224,123,114,.12)}
 [data-style="geist"] tbody td{padding:6px 12px}
@@ -294,40 +299,40 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 [data-style="material"]{--r2:8px;--r4:12px;--r6:16px;
   --sans:"Roboto","Google Sans",-apple-system,"Segoe UI","PingFang SC",sans-serif}
 [data-style="material"][data-theme="light"]{--bg:#F8F9FA;--surface:#FFFFFF;--sunken:#F1F3F4;--hover:#E8EAED;
-  --tx1:#202124;--tx2:#5F6368;--tx3:#6B7075;--txinv:#FFFFFF;--bd:#DADCE0;--bd2:#BDC1C6;--focus:#1A73E8;
+  --tx1:#202124;--tx2:#5F6368;--tx3:#5F6368;--txinv:#FFFFFF;--bd:#DADCE0;--bd2:#BDC1C6;--focus:#1A73E8;
   --accent:#1A73E8;--accent-hi:#1765CC;--accent-tint:rgba(26,115,232,.12);
   --ok:#188038;--ok-tint:rgba(24,128,56,.12);--ok-text:#116932;--warn:#B06000;--warn-tint:rgba(176,96,0,.12);--warn-text:#8A6116;--danger:#D93025;--danger-text:#B3261E;--accent-text:#174EA6;--danger-solid:#D93025;--danger-tint:rgba(217,48,37,.12)}
 [data-style="material"][data-theme="dark"]{--bg:#202124;--surface:#2D2E31;--sunken:#17181A;--hover:#3C4043;
-  --tx1:#E8EAED;--tx2:#9AA0A6;--tx3:#757B80;--txinv:#202124;--bd:#3C4043;--bd2:#5F6368;--focus:#8AB4F8;
+  --tx1:#E8EAED;--tx2:#9AA0A6;--tx3:#9AA0A6;--txinv:#202124;--bd:#3C4043;--bd2:#5F6368;--focus:#8AB4F8;
   --accent:#8AB4F8;--accent-hi:#AECBFA;--accent-tint:rgba(138,180,248,.16);
   --ok:#81C995;--ok-tint:rgba(129,201,149,.16);--warn:#FDD663;--warn-tint:rgba(253,214,99,.16);--danger:#F28B82;--danger-text:#FFA39E;--danger-solid:#B3261E;--danger-tint:rgba(242,139,130,.16)}
 [data-style="material"] .btn{border-radius:999px}
-[data-style="material"] .card{box-shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24)}
+[data-style="material"] .card{box-shadow:var(--shadow-sm)}
 [data-style="material"] .tag{border-radius:8px}
 [data-style="material"] .icon-btn,[data-style="material"] .avatar{border-radius:999px}
 /* fluent — Fluent 2 language: 4px controls / 8px surfaces, Segoe UI, layered subtle shadow + border */
 [data-style="fluent"]{--r2:2px;--r4:4px;--r6:8px;
   --sans:"Segoe UI",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 [data-style="fluent"][data-theme="light"]{--bg:#FAF9F8;--surface:#FFFFFF;--sunken:#F3F2F1;--hover:#EDEBE9;
-  --tx1:#242424;--tx2:#616161;--tx3:#6E6E6E;--txinv:#FFFFFF;--bd:#E0E0E0;--bd2:#C8C8C8;--focus:#0F6CBD;
+  --tx1:#242424;--tx2:#616161;--tx3:#616161;--txinv:#FFFFFF;--bd:#E0E0E0;--bd2:#C8C8C8;--focus:#0F6CBD;
   --accent:#0F6CBD;--accent-hi:#0E5FA8;--accent-tint:rgba(15,108,189,.10);
   --ok:#107C10;--ok-tint:rgba(16,124,16,.10);--warn:#9D5D00;--warn-tint:rgba(157,93,0,.10);--warn-text:#7A4A00;--danger:#C42B1C;--danger-solid:#C42B1C;--danger-tint:rgba(196,43,28,.10)}
 [data-style="fluent"][data-theme="dark"]{--bg:#201F1E;--surface:#2B2A29;--sunken:#1B1A19;--hover:#3B3A39;
-  --tx1:#FFFFFF;--tx2:#D6D6D6;--tx3:#9E9E9E;--txinv:#1F1F1F;--bd:#3D3D3D;--bd2:#525252;--focus:#479EF5;
+  --tx1:#FFFFFF;--tx2:#D6D6D6;--tx3:#ADADAD;--txinv:#1F1F1F;--bd:#3D3D3D;--bd2:#525252;--focus:#479EF5;
   --accent:#479EF5;--accent-hi:#62ABF5;--accent-tint:rgba(71,158,245,.16);--accent-text:#82CFFF;
   --ok:#6CCB5F;--ok-tint:rgba(108,203,95,.16);--warn:#FCE100;--warn-tint:rgba(252,225,0,.16);--danger:#FF99A4;--danger-solid:#C42B1C;--danger-tint:rgba(255,153,164,.16)}
-[data-style="fluent"] .card{box-shadow:0 1px 2px rgba(0,0,0,.06),0 0 1px rgba(0,0,0,.10)}
+[data-style="fluent"] .card{box-shadow:var(--shadow-hair)}
 /* ant — Ant Design v5 language: mid-backend blue #1677FF, radius 6, dense tables.
    TOKEN-LEVEL reference to the admin-ui implementation layer (AntD v5): token values match
    the AntD seed, but the component structure is the prototype's own skeleton, not an AntD replica. */
 [data-style="ant"]{--r2:4px;--r4:6px;--r6:8px;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","PingFang SC","Microsoft YaHei",sans-serif}
 [data-style="ant"][data-theme="light"]{--bg:#F5F5F5;--surface:#FFFFFF;--sunken:#FAFAFA;--hover:rgba(0,0,0,.04);
-  --tx1:rgba(0,0,0,.88);--tx2:rgba(0,0,0,.65);--tx3:rgba(0,0,0,.45);--txinv:#FFFFFF;--bd:#D9D9D9;--bd2:#BFBFBF;--focus:#1677FF;
+  --tx1:rgba(0,0,0,.88);--tx2:rgba(0,0,0,.65);--tx3:rgba(0,0,0,.65);--txinv:#FFFFFF;--bd:#D9D9D9;--bd2:#BFBFBF;--focus:#1677FF;
   --accent:#1677FF;--accent-hi:#4096FF;--accent-tint:rgba(22,119,255,.10);
   --ok:#52C41A;--ok-tint:rgba(82,196,26,.10);--warn:#FAAD14;--warn-tint:rgba(250,173,20,.10);--danger:#FF4D4F;--danger-solid:#CF1322;--danger-tint:rgba(255,77,79,.10);--ok-text:#116932;--warn-text:#8A6116;--danger-text:#B3372F;--accent-text:#0E5FA8}
 [data-style="ant"][data-theme="dark"]{--bg:#000000;--surface:#141414;--sunken:#0A0A0A;--hover:rgba(255,255,255,.08);
-  --tx1:rgba(255,255,255,.85);--tx2:rgba(255,255,255,.65);--tx3:rgba(255,255,255,.45);--txinv:#FFFFFF;--bd:#424242;--bd2:#5A5A5A;--focus:#1668DC;
+  --tx1:rgba(255,255,255,.85);--tx2:rgba(255,255,255,.65);--tx3:rgba(255,255,255,.65);--txinv:#FFFFFF;--bd:#424242;--bd2:#5A5A5A;--focus:#1668DC;
   --accent:#1668DC;--accent-hi:#3C89E8;--accent-tint:rgba(22,104,220,.16);--accent-text:#69B1FF;
   --ok:#49AA19;--ok-tint:rgba(73,170,25,.16);--warn:#D89614;--warn-tint:rgba(216,150,20,.16);--danger:#DC4446;--danger-solid:#CF1322;--danger-tint:rgba(220,68,70,.16);--danger-text:#FF7875}
 [data-style="ant"] .btn{font-weight:400}
@@ -354,11 +359,11 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 [data-style="cupertino"]{--r2:8px;--r4:10px;--r6:16px;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","PingFang SC",sans-serif}
 [data-style="cupertino"][data-theme="light"]{--bg:#F2F2F7;--surface:#FFFFFF;--sunken:#E5E5EA;--hover:rgba(0,0,0,.04);
-  --tx1:#000000;--tx2:rgba(60,60,67,.6);--tx3:rgba(60,60,67,.55);--txinv:#FFFFFF;--bd:rgba(60,60,67,.29);--bd2:#C6C6C8;--focus:#007AFF;
+  --tx1:#000000;--tx2:rgba(60,60,67,.6);--tx3:rgba(60,60,67,.75);--txinv:#FFFFFF;--bd:rgba(60,60,67,.29);--bd2:#C6C6C8;--focus:#007AFF;
   --accent:#007AFF;--accent-hi:#0062CC;--accent-tint:rgba(0,122,255,.10);
   --ok:#34C759;--ok-tint:rgba(52,199,89,.12);--warn:#FF9500;--warn-tint:rgba(255,149,0,.12);--warn-text:#8A6116;--danger:#FF3B30;--danger-text:#B3261E;--danger-solid:#D70015;--danger-tint:rgba(255,59,48,.12);--ok-text:#1E7A34;--warn-text:#9A6A1B;--danger-text:#C42B1C;--accent-text:#0B5FCC}
 [data-style="cupertino"][data-theme="dark"]{--bg:#000000;--surface:#1C1C1E;--sunken:#000000;--hover:#2C2C2E;
-  --tx1:#FFFFFF;--tx2:rgba(235,235,245,.6);--tx3:rgba(235,235,245,.55);--txinv:#FFFFFF;--bd:rgba(84,84,88,.65);--bd2:#38383A;--focus:#0A84FF;
+  --tx1:#FFFFFF;--tx2:rgba(235,235,245,.6);--tx3:rgba(235,235,245,.75);--txinv:#FFFFFF;--bd:rgba(84,84,88,.65);--bd2:#38383A;--focus:#0A84FF;
   --accent:#0A84FF;--accent-hi:#409CFF;--accent-tint:rgba(10,132,255,.16);--accent-text:#6CB2FF;--danger-text:#FF8A80;
   --ok:#30D158;--ok-tint:rgba(48,209,88,.16);--warn:#FF9F0A;--warn-tint:rgba(255,159,10,.16);--danger:#FF453A;--danger-solid:#C42B1C;--danger-tint:rgba(255,69,58,.16)}
 [data-style="cupertino"] .tag{border-radius:999px}
@@ -415,22 +420,16 @@ table.matrix tbody td:first-child{text-align:left;font-family:var(--mono);font-s
 /* Adjudication 25 (A): staged matrix edit bar (draft -> Save/Cancel), per real Transfer+Save model */
 .range-note{font-size:var(--fs11);color:var(--tx3)}
 .mtx-bar{display:flex;gap:8px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--bd);background:var(--sunken);font-size:var(--fs12);color:var(--tx2)}
-/* Adjudication 26 (A): isDepartment switch control (real Groups Form.Item valuePropName=checked) */
-.sw-field{display:inline-flex;align-items:center;gap:8px;font-size:var(--fs13);color:var(--tx1)}
 /* Post-closure fix 4 (user-reported: edit-group Department rendered as a full-width native
    checkbox bar with its label wrapped below): the blanket .field input{width:100%} rule stretched
    every checkbox and gave it text-field border/padding. It now excludes checkbox/radio, and all
-   checkboxes are themed; role=switch inputs render the same 34x20 track+knob as .wswitch. */
+   checkboxes are themed 16px squares; the immediate-domain .wswitch button keeps the 34x20 track+knob. */
 input[type=checkbox]{appearance:none;-webkit-appearance:none;position:relative;width:16px;height:16px;flex-shrink:0;margin:0;border:1px solid var(--bd);border-radius:var(--r2);background:var(--surface);cursor:pointer;vertical-align:middle;transition:background .15s,border-color .15s}
 input[type=checkbox]::after{content:"\2713";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:transparent}
 input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
 input[type=checkbox]:checked::after{color:var(--txinv)}
 input[type=checkbox]:focus-visible{outline:2px solid var(--focus,var(--accent));outline-offset:1px}
 input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed}
-.sw-field input[type=checkbox]{width:34px;height:20px;border-radius:var(--r4);background:var(--sunken)}
-.sw-field input[type=checkbox]::after{content:"";inset:auto;top:2px;left:2px;width:14px;height:14px;border-radius:var(--r2);background:var(--tx3);transition:left .15s,background .15s}
-.sw-field input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
-.sw-field input[type=checkbox]:checked::after{left:16px;background:var(--txinv)}
 .matrix-legend{display:flex;gap:var(--sp16);padding:var(--sp12) var(--sp16);border-top:1px solid var(--bd);font-size:var(--fs11);color:var(--tx3);flex-wrap:wrap}
 .matrix-legend span{display:inline-flex;align-items:center;gap:6px}
 .lg-swatch{width:14px;height:14px;border-radius:var(--r2);display:inline-block}
@@ -532,7 +531,7 @@ input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed}
 pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:var(--sp12);overflow-x:auto;white-space:pre;margin:0}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:var(--sp24)}
 .modal-overlay.on{display:flex}
-.modal{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);max-width:520px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.modal{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);max-width:520px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-pop)}
 .modal-head{display:flex;align-items:center;gap:10px;padding:var(--sp16);border-bottom:1px solid var(--bd)}
 .modal-head h3{font-size:var(--fs14);font-weight:600}
 .modal-head .close{margin-left:auto}
@@ -554,7 +553,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea{width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
 .field textarea{resize:vertical;min-height:64px}
 .proto-inert,.btn:disabled{opacity:.5;cursor:not-allowed}
-.proto-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx1);color:var(--bg);padding:8px 16px;border-radius:var(--r4);font-size:var(--fs12);z-index:100;display:none;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.proto-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx1);color:var(--bg);padding:8px 16px;border-radius:var(--r4);font-size:var(--fs12);z-index:100;display:none;align-items:center;gap:8px;box-shadow:var(--shadow-toast)}
 .proto-toast .ic{width:14px;height:14px;flex:none}
 .proto-toast.error{background:var(--danger-solid,var(--danger));color:var(--danger-inv)}
 .skel{height:12px;border-radius:var(--r2);background:linear-gradient(90deg,var(--sunken) 25%,var(--bd) 50%,var(--sunken) 75%);background-size:200% 100%;animation:skel 1.2s linear infinite}
@@ -595,8 +594,10 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .link-btn .ic{width:14px;height:14px}
 .info-banner{display:flex;gap:8px;align-items:flex-start;background:var(--accent-tint);color:var(--accent-text,var(--accent));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12);max-width:420px}
 .info-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
-.error-banner{display:flex;gap:8px;align-items:flex-start;background:var(--danger-tint);color:var(--danger-text,var(--danger));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12);max-width:420px}
-.error-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+#page-profile .error-banner{display:flex;gap:8px;align-items:flex-start;background:var(--danger-tint);color:var(--danger-text,var(--danger));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12);max-width:420px}
+#page-profile .error-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+.ok-banner{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--ok);background:var(--ok-tint);color:var(--ok-text,var(--ok));border-radius:var(--r4);font-size:var(--fs12)}
+.ok-banner .ic{width:14px;height:14px;flex:none}
 .pwd-form{max-width:420px}
 .oauth-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);font-size:var(--fs13)}
 .oauth-row:last-of-type{border-bottom:none}
@@ -618,7 +619,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
    is instant. Mirrors AntD motion tokens set to zero (motionDurationMid=0). WCAG 2.3.3 / 2.2.2. */
 @media (prefers-reduced-motion: reduce){
   .skel,.cbx-load .ic,.spin,[style*="cbxrot"]{animation:none !important}
-  .wswitch .knob,.cbx-chev,#floatTip,input[type=checkbox],.sw-field input[type=checkbox]::after{transition:none !important}
+  .wswitch .knob,.cbx-chev,#floatTip,input[type=checkbox]{transition:none !important}
   *{scroll-behavior:auto !important}
 }
 
@@ -627,15 +628,17 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .auth-top{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px 16px;border-bottom:1px solid var(--bd);background:var(--surface)}
 .auth-nav{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;background:var(--sunken);border-bottom:1px solid var(--bd)}
 .auth-nav button{border:1px solid var(--bd);background:var(--surface);color:var(--tx2);border-radius:var(--r4);padding:4px 10px;font-size:var(--fs12);cursor:pointer}
+.auth-nav button:hover:not(.on){background:var(--hover);color:var(--tx1)}
+.auth-nav button:active{background:var(--bd)}
 .auth-nav button.on{background:var(--accent-tint);color:var(--tx1);border-color:var(--accent)}
 .auth-main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px}
-.auth-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.auth-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);padding:24px;box-shadow:var(--shadow-card)}
 .auth-card.wide{max-width:640px}
 .auth-card h1{font-size:var(--fs20);margin:0 0 4px;color:var(--tx1)}
 .auth-card .sub{color:var(--tx2);font-size:var(--fs13);margin-bottom:16px}
 .auth-card .field{margin-bottom:12px}
 .auth-card label{display:block;font-size:var(--fs12);color:var(--tx2);margin-bottom:4px}
-.auth-card input[type=text],.auth-card input[type=email],.auth-card input[type=password],.auth-card input[type=number],.auth-card select{width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--bg);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
+.auth-card input[type=text],.auth-card input[type=email],.auth-card input[type=password],.auth-card input[type=number],.auth-card select{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
 .auth-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .auth-note{font-size:var(--fs11);color:var(--tx3);margin-top:10px}
 .auth-ok{display:none;align-items:flex-start;gap:8px;background:var(--ok-tint);color:var(--ok-text,var(--ok));border:1px solid var(--ok);border-radius:var(--r4);padding:8px 12px;font-size:var(--fs12);margin-bottom:12px}
@@ -655,6 +658,15 @@ label.scope-list{align-items:center}
 .flow{display:none}
 .flow.on{display:block}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--bd);border-top-color:var(--accent);border-radius:50%;animation:cbxrot 1s linear infinite;vertical-align:-2px}
+html[data-theme="dark"]{--danger-inv:#fff;--shadow-tip:0 2px 10px rgba(0,0,0,.45);--shadow-pop:0 8px 24px rgba(0,0,0,.5);--shadow-toast:0 4px 16px rgba(0,0,0,.5);--shadow-card:0 2px 12px rgba(0,0,0,.4);--shadow-sm:0 1px 3px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.6);--shadow-hair:0 1px 2px rgba(0,0,0,.4),0 0 1px rgba(0,0,0,.5)}
+html[lang="zh-CN"] thead th,html[lang="zh-CN"] .nav .group{letter-spacing:0}
+html[lang="zh-CN"] body{line-height:1.7}
+.btn:active{filter:brightness(.94)}
+.row-actions button:active:not(:disabled){background:var(--hover)}
+.tabs button:hover{color:var(--tx1);background:var(--hover)}
+.tabs button:active{background:var(--bd)}
+.pagination .pages button:hover:not(.on){background:var(--hover);color:var(--tx1)}
+.pagination .pages button:active{background:var(--bd)}
 </style>
 </head>
 <body>
@@ -674,7 +686,7 @@ label.scope-list{align-items:center}
     <section class="flow on auth-card" id="flow-login" aria-label="Login">
       <h1>Sign in</h1><div class="sub">Password sign-in · magic link · OIDC code consumption</div>
       <div class="auth-ok" id="lgOk"><span>Signed in — continue to the console.</span><a class="auth-link" href="admin-console.html">Open console</a></div>
-      <div class="error-banner" id="lgErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="error-banner" role="alert" id="lgErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
       <div class="field"><label>Email</label><input id="lgEmail" type="email" autocomplete="username"><div class="field-err" id="lgEmailErr" style="display:none"></div></div>
       <div class="field"><label>Password</label><input id="lgPwd" type="password" autocomplete="current-password"><div class="field-err" id="lgPwdErr" style="display:none"></div></div>
       <div class="auth-actions"><button class="btn primary" id="lgSubmit">Sign in</button><button class="btn" id="lgMagicBtn">Email me a magic link</button><a class="auth-link" href="#register">Create account</a><a class="auth-link" href="#forgot">Forgot password?</a></div>
@@ -700,13 +712,13 @@ label.scope-list{align-items:center}
       <div class="field"><label>Demo token state</label><select id="mkState"><option value="valid">valid</option><option value="suspended">suspended (AUTH_004)</option><option value="invalid">invalid / consumed</option></select></div>
       <div class="auth-actions"><button class="btn primary" id="mkConsume">Open magic link</button><span class="spin" id="mkSpin" style="display:none"></span></div>
       <div class="auth-ok" id="mkOk" style="margin-top:12px"><span>Signed in via magic link.</span><a class="auth-link" href="admin-console.html">Open console</a></div>
-      <div class="error-banner" id="mkErr" style="display:none;margin-top:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="error-banner" role="alert" id="mkErr" style="display:none;margin-top:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
     </section>
 
     <section class="flow auth-card" id="flow-register" aria-label="Register">
       <h1>Create account</h1><div class="sub">Self-service registration · admin approval happens in Users, not here</div>
       <div class="auth-ok" id="rgOk" style="margin-bottom:12px"><span>Account created — verify your email.</span><a class="auth-link" href="#verify">Verify now</a></div>
-      <div class="error-banner" id="rgErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="error-banner" role="alert" id="rgErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
       <div class="field"><label>Name</label><input id="rgName" type="text"><div class="field-err" id="rgNameErr" style="display:none"></div></div>
       <div class="field"><label>Email</label><input id="rgEmail" type="email"><div class="field-err" id="rgEmailErr" style="display:none"></div></div>
       <div class="field"><label>Password</label><input id="rgPwd" type="password" autocomplete="new-password"><div class="field-err" id="rgPwdErr" style="display:none"></div></div>
@@ -718,7 +730,7 @@ label.scope-list{align-items:center}
     <section class="flow auth-card" id="flow-forgot" aria-label="Forgot password">
       <h1>Reset your password</h1><div class="sub">Requests a reset link by email</div>
       <div class="auth-ok" id="fgSent" style="margin-bottom:12px"><span>If the address exists, a reset link is on its way.</span></div>
-      <div class="error-banner" id="fgErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="error-banner" role="alert" id="fgErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
       <div class="field"><label>Email</label><input id="fgEmail" type="email"><div class="field-err" id="fgEmailErr" style="display:none"></div></div>
       <div class="auth-actions"><button class="btn primary" id="fgSubmit">Send reset link</button><a class="auth-link" href="#login">Back to sign in</a></div>
     </section>
@@ -726,7 +738,7 @@ label.scope-list{align-items:center}
     <section class="flow auth-card" id="flow-reset" aria-label="Reset password">
       <h1>Choose a new password</h1><div class="sub">/reset-password?token= — the link token is consumed once</div>
       <div class="auth-ok" id="rsOk" style="margin-bottom:12px"><span>Password updated — sign in with the new password.</span><a class="auth-link" href="#login">Sign in</a></div>
-      <div class="error-banner" id="rsErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="error-banner" role="alert" id="rsErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
       <div class="auth-note" id="rsToken" style="margin-bottom:12px">Reset token present (demo).</div>
       <div class="field"><label>New password</label><input id="rsPwd" type="password" autocomplete="new-password"><div class="field-err" id="rsPwdErr" style="display:none"></div></div>
       <div class="field"><label>Confirm password</label><input id="rsConfirm" type="password" autocomplete="new-password"><div class="field-err" id="rsConfirmErr" style="display:none"></div></div>
@@ -738,12 +750,12 @@ label.scope-list{align-items:center}
       <div class="field"><label>Demo token state</label><select id="vfState"><option value="valid">valid</option><option value="expired">expired / consumed</option></select></div>
       <div class="auth-actions"><button class="btn primary" id="vfRun">Open verification link</button><span class="spin" id="vfSpin" style="display:none"></span><button class="auth-link" id="vfResend">Resend verification email</button></div>
       <div class="auth-ok" id="vfOk" style="margin-top:12px"><span>Email verified.</span><a class="auth-link" href="#login">Sign in</a></div>
-      <div class="error-banner" id="vfErr" style="display:none;margin-top:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+      <div class="error-banner" role="alert" id="vfErr" style="display:none;margin-top:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
     </section>
 
     <section class="flow auth-card" id="flow-enroll" aria-label="Enroll MFA">
       <h1>Set up two-factor authentication</h1><div class="sub">Enrollment token from the admin invite · TOTP</div>
-      <div class="error-banner" id="enDead" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span>Enrollment link is dead — ask an administrator to re-issue it.</span></div>
+      <div class="error-banner" role="alert" id="enDead" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span>Enrollment link is dead — ask an administrator to re-issue it.</span></div>
       <div id="enBody">
         <label>otpauth URL (copyable)</label>
         <div class="code-block" id="enUrl">otpauth://totp/AccessBase:admin@acme.io?secret=JBSWY3DPEHPK3PXP&issuer=AccessBase</div>
@@ -762,7 +774,7 @@ label.scope-list{align-items:center}
 
     <section class="flow auth-card" id="flow-consent" aria-label="Consent">
       <h1>Authorize client</h1><div class="sub">OIDC interaction consent · scopes are explicit choices</div>
-      <div class="error-banner" id="csLoadErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span>Failed to load the interaction.</span><button class="btn sm" id="csLoadRetry">Retry</button></div>
+      <div class="error-banner" role="alert" id="csLoadErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span>Failed to load the interaction.</span><button class="btn sm" id="csLoadRetry">Retry</button></div>
       <div id="csBody" style="display:none">
         <div class="sub" id="csClient">Client: <strong>Web App</strong></div>
         <div class="scope-list" id="csScopes">
@@ -771,7 +783,7 @@ label.scope-list{align-items:center}
           <label><input type="checkbox" value="email"><span>email</span></label>
         </div>
         <div class="field"><label>redirect (allowlist)</label><input id="csRedirect" type="text" value="/oidc/auth/abc"></div>
-        <div class="error-banner" id="csErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+        <div class="error-banner" role="alert" id="csErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
         <div class="auth-ok" id="csRedirecting" style="margin-bottom:12px"><span>Decision recorded — redirecting…</span></div>
         <div class="auth-actions"><button class="btn primary" id="csApprove">Approve</button><button class="btn" id="csDeny">Deny</button></div>
         <div class="auth-note">Only allowlisted /oidc/auth/… or /oidc/device/… redirects are honored (open-redirect hygiene, J13).</div>
@@ -787,7 +799,7 @@ label.scope-list{align-items:center}
         <div class="sub">Welcome — this wizard creates the first administrator and base configuration. Nothing is stored until each step succeeds.</div>
       </div>
       <div id="su1" style="display:none">
-        <div class="error-banner" id="suErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+        <div class="error-banner" role="alert" id="suErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
         <div class="field"><label>Admin name</label><input id="suName" type="text"><div class="field-err" id="suNameErr" style="display:none"></div></div>
         <div class="field"><label>Admin email</label><input id="suEmail" type="email"><div class="field-err" id="suEmailErr" style="display:none"></div></div>
         <div class="field"><label>Password</label><input id="suPwd" type="password" autocomplete="new-password"><div class="field-err" id="suPwdErr" style="display:none"></div></div>
@@ -813,7 +825,7 @@ label.scope-list{align-items:center}
 <script>
 const $=id=>document.getElementById(id);
 function toast(msg,kind){const t=$('protoToast');t.className='proto-toast '+(kind||'success');t.textContent=msg;t.style.display='flex';clearTimeout(t.__h);t.__h=setTimeout(()=>{t.style.display='none';},2600);}
-function banner(id,msg){const e=$(id);e.style.display=msg?'flex':'none';if(msg)e.querySelector('span').textContent=msg;}
+function banner(id,msg){const e=$(id);e.setAttribute('role','alert');e.style.display=msg?'flex':'none';if(msg)e.querySelector('span').textContent=msg;}
 function ferr(id,msg){const e=$(id);e.style.display=msg?'block':'none';e.textContent=msg||'';}
 function busy(b,on,label){if(on){b.dataset.label=b.innerHTML;b.disabled=true;b.innerHTML='<span class="spin"></span> '+(label||'Working…');}else{b.disabled=false;b.innerHTML=b.dataset.label||b.innerHTML;}}
 function pwdPolicyError(p){if(p.length<12)return 'Password needs 12+ chars with upper, lower, digit and special';if(!/[A-Z]/.test(p))return 'Password needs an uppercase letter';if(!/[a-z]/.test(p))return 'Password needs a lowercase letter';if(!/[0-9]/.test(p))return 'Password needs a digit';if(!/[^A-Za-z0-9]/.test(p))return 'Password needs a special character';return '';}
@@ -826,9 +838,9 @@ function showFlow(f){curFlow=f;document.querySelectorAll('.flow').forEach(s=>s.c
 document.querySelectorAll('.auth-nav button').forEach(b=>b.onclick=()=>showFlow(b.dataset.flow));
 if(location.hash)showFlow(location.hash.slice(1));
 /* theme + pack (same mechanism as admin-console: data-style x data-theme) */
-document.documentElement.dataset.style='ant';document.getElementById('styleSelect').value='ant';
-$('themeBtn').onclick=()=>{const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';};
-$('styleSelect').onchange=()=>{document.documentElement.dataset.style=$('styleSelect').value;};
+(function(){let st=null,th=null;try{st=localStorage.getItem('ab_style');th=localStorage.getItem('ab_theme');}catch(e){}const ss=document.getElementById('styleSelect');const pack=(st&&[...ss.options].some(o=>o.value===st))?st:'ant';document.documentElement.dataset.style=pack;ss.value=pack;if(th==='dark'||th==='light')document.documentElement.dataset.theme=th;})();
+$('themeBtn').onclick=()=>{const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';try{localStorage.setItem('ab_theme',d.dataset.theme);}catch(e){}};
+$('styleSelect').onchange=()=>{document.documentElement.dataset.style=$('styleSelect').value;try{localStorage.setItem('ab_style',$('styleSelect').value);}catch(e){}};
 /* ==== login ==== */
 let lgTried=false,ocConsumed=false;
 $('lgSubmit').onclick=()=>{ferr('lgEmailErr','');ferr('lgPwdErr','');banner('lgErr','');const em=$('lgEmail').value.trim(),pw=$('lgPwd').value;
@@ -898,16 +910,16 @@ paintSteps();
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let cbxSeq=0;let openCbx=null;
 function cbxBuildList(sel){const w=sel._cbx;if(!w)return;const list=w.querySelector('.cbx-list');list.innerHTML='';list.setAttribute('aria-multiselectable',sel.multiple?'true':'false');[...sel.options].forEach((o,oi)=>{const d=document.createElement('div');d.className='cbx-opt';d.setAttribute('role','option');d.id=list.id+'-opt-'+oi;d.dataset.value=o.value;d.setAttribute('aria-selected',o.selected?'true':'false');d.textContent=o.textContent;d.onclick=e=>{e.stopPropagation();if(sel.multiple){o.selected=!o.selected;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxRefresh(sel);}else{sel.value=o.value;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxClose();}};list.appendChild(d);});}
-function cbxRefresh(sel){const w=sel._cbx;if(!w)return;const val=w.querySelector('.cbx-val');if(sel.multiple){const selOpts=[...sel.selectedOptions];val.innerHTML=selOpts.length?selOpts.map(o=>'<span class="cbx-chip">'+esc(o.textContent)+'<button type="button" data-cbxrm="'+esc(o.value)+'" aria-label="Remove '+esc(o.textContent)+'" tabindex="-1"><svg class="ic"><use href="#i-x"/></svg></button></span>').join(''):'<span style="color:var(--tx3)">Select…</span>';}else{const o=sel.options[sel.selectedIndex];val.textContent=o?o.textContent:'';}const cl=w.querySelector('.cbx-clear');const showCl=!sel.disabled&&sel.hasAttribute('data-clearable')&&(sel.multiple?sel.selectedOptions.length:sel.value!=='');if(cl)cl.style.display=showCl?'inline-flex':'none';w.classList.toggle('cbx-has-clear',!!showCl);if(w.classList.contains('open'))cbxBuildList(sel);}
+function cbxRefresh(sel){const w=sel._cbx;if(!w)return;const val=w.querySelector('.cbx-val');if(sel.multiple){const selOpts=[...sel.selectedOptions];val.innerHTML=selOpts.length?selOpts.map(o=>'<span class="cbx-chip">'+esc(o.textContent)+'<button type="button" data-cbxrm="'+esc(o.value)+'" aria-label="Remove '+esc(o.textContent)+'" tabindex="0"><svg class="ic"><use href="#i-x"/></svg></button></span>').join(''):'<span style="color:var(--tx3)">Select…</span>';}else{const o=sel.options[sel.selectedIndex];val.textContent=o?o.textContent:'';}const cl=w.querySelector('.cbx-clear');const showCl=!sel.disabled&&sel.hasAttribute('data-clearable')&&(sel.multiple?sel.selectedOptions.length:sel.value!=='');if(cl)cl.style.display=showCl?'inline-flex':'none';w.classList.toggle('cbx-has-clear',!!showCl);if(w.classList.contains('open'))cbxBuildList(sel);}
 function cbxPlace(w){const list=w.querySelector('.cbx-list');const br=w.querySelector('.cbx-btn').getBoundingClientRect();list.style.minWidth=br.width+'px';list.style.visibility='hidden';const lw=list.offsetWidth,lh=list.offsetHeight;let top=br.bottom+4;if(top+lh>window.innerHeight-4)top=Math.max(4,br.top-4-lh);const left=Math.max(4,Math.min(br.left,window.innerWidth-lw-4));list.style.top=top+'px';list.style.left=left+'px';list.style.visibility='';}
-function cbxClose(){if(openCbx){openCbx.classList.remove('open');openCbx.querySelector('.cbx-btn').setAttribute('aria-expanded','false');openCbx=null;}}
-function cbxSyncDisabled(sel){const w=sel._cbx;if(!w)return;const b=w.querySelector('.cbx-btn');b.disabled=sel.disabled;b.setAttribute('aria-disabled',sel.disabled?'true':'false');w.classList.toggle('cbx-disabled',sel.disabled);if(sel.disabled)cbxClose();}
+function cbxClose(){if(openCbx){openCbx.classList.remove('open');const bb=openCbx.querySelector('.cbx-btn');bb.setAttribute('aria-expanded','false');bb.removeAttribute('aria-activedescendant');openCbx=null;}}
+function cbxSyncDisabled(sel){const w=sel._cbx;if(!w)return;const b=w.querySelector('.cbx-btn');b.disabled=sel.disabled;b.tabIndex=sel.disabled?-1:0;b.setAttribute('aria-disabled',sel.disabled?'true':'false');w.classList.toggle('cbx-disabled',sel.disabled);if(sel.disabled)cbxClose();}
 function cbxSetActive(w,opts,ai){opts.forEach(o=>o.classList.remove('active'));if(ai>=0&&opts[ai]){opts[ai].classList.add('active');opts[ai].scrollIntoView({block:'nearest'});w.querySelector('.cbx-btn').setAttribute('aria-activedescendant',opts[ai].id);}else{w.querySelector('.cbx-btn').removeAttribute('aria-activedescendant');}}
 function cbxOpen(sel){const w=sel._cbx;if(sel.disabled||w.classList.contains('cbx-loading'))return;cbxClose();cbxBuildList(sel);w.classList.add('open');cbxPlace(w);w.querySelector('.cbx-btn').setAttribute('aria-expanded','true');openCbx=w;const opts=[...w.querySelectorAll('.cbx-opt')];const si=opts.findIndex(o=>o.getAttribute('aria-selected')==='true');cbxSetActive(w,opts,si>=0?si:0);}
-function enhanceSelect(sel){if(sel._cbx)return;const w=document.createElement('span');w.className='cbx';const id='cbx-list-'+(++cbxSeq);if(sel.multiple)w.setAttribute('data-multi','');w.innerHTML='<button type="button" class="cbx-btn" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="'+id+'"><span class="cbx-val"></span><span class="cbx-load"><svg class="ic"><use href="#i-refresh"/></svg></span><svg class="ic cbx-chev"><use href="#i-chev-r"/></svg></button><button type="button" class="cbx-clear" aria-label="Clear" tabindex="-1"><svg class="ic"><use href="#i-x"/></svg></button><div class="cbx-list" role="listbox" id="'+id+'"></div>';sel.parentNode.insertBefore(w,sel);sel.classList.add('cbx-src');w.appendChild(sel);sel._cbx=w;const btn=w.querySelector('.cbx-btn');cbxSyncDisabled(sel);w.querySelector('.cbx-clear').onclick=e=>{e.stopPropagation();if(sel.disabled)return;if(sel.multiple){[...sel.options].forEach(o=>o.selected=false);}else{sel.value='';}sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxRefresh(sel);};w.addEventListener('click',e=>{const rm=e.target.closest('[data-cbxrm]');if(!rm)return;e.stopPropagation();const o=[...sel.options].find(x=>x.value===rm.dataset.cbxrm);if(o)o.selected=false;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxRefresh(sel);});sel._cbxSetLoading=on=>{w.classList.toggle('cbx-loading',!!on);if(on)cbxClose();};btn.onclick=e=>{if(e.target.closest('[data-cbxrm]'))return;e.stopPropagation();if(sel.disabled)return;if(openCbx===w){cbxClose();}else{cbxOpen(sel);}};btn.onkeydown=e=>{const opts=[...w.querySelectorAll('.cbx-opt')];let ai=opts.findIndex(o=>o.classList.contains('active'));if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(openCbx!==w){cbxOpen(sel);return;}ai=ai<0?0:(ai+(e.key==='ArrowDown'?1:-1)+opts.length)%opts.length;cbxSetActive(w,opts,ai);}else if(e.key==='Home'||e.key==='End'){e.preventDefault();if(openCbx!==w)cbxOpen(sel);const o2=[...w.querySelectorAll('.cbx-opt')];cbxSetActive(w,o2,e.key==='Home'?0:o2.length-1);}else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(openCbx!==w){cbxOpen(sel);}else if(ai>=0){opts[ai].click();if(sel.multiple)cbxSetActive(w,[...w.querySelectorAll('.cbx-opt')],ai);}}else if(e.key==='Escape'||e.key==='Tab'){cbxClose();}else if(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();if(openCbx!==w)cbxOpen(sel);const o2=[...w.querySelectorAll('.cbx-opt')];const ch=e.key.toLowerCase();let start=ai+1;for(let k=0;k<o2.length;k++){const idx=(start+k)%o2.length;if(o2[idx].textContent.trim().toLowerCase().startsWith(ch)){cbxSetActive(w,o2,idx);break;}}}};sel.addEventListener('change',()=>cbxRefresh(sel));sel.addEventListener('input',()=>cbxRefresh(sel));new MutationObserver(()=>{cbxSyncDisabled(sel);cbxBuildList(sel);cbxRefresh(sel);}).observe(sel,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['disabled']});const desc=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value');Object.defineProperty(sel,'value',{configurable:true,get(){return desc.get.call(this);},set(v){desc.set.call(this,v);cbxRefresh(this);}});cbxRefresh(sel);}
+function enhanceSelect(sel){if(sel._cbx)return;const w=document.createElement('span');w.className='cbx';const id='cbx-list-'+(++cbxSeq);if(sel.multiple)w.setAttribute('data-multi','');w.innerHTML='<div class="cbx-btn" role="combobox" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-controls="'+id+'"><span class="cbx-val"></span><span class="cbx-load"><svg class="ic"><use href="#i-refresh"/></svg></span><svg class="ic cbx-chev"><use href="#i-chev-r"/></svg></div><button type="button" class="cbx-clear" aria-label="Clear" tabindex="0"><svg class="ic"><use href="#i-x"/></svg></button><div class="cbx-list" role="listbox" id="'+id+'"></div>';sel.parentNode.insertBefore(w,sel);sel.classList.add('cbx-src');w.appendChild(sel);sel._cbx=w;const btn=w.querySelector('.cbx-btn');cbxSyncDisabled(sel);w.querySelector('.cbx-clear').onclick=e=>{e.stopPropagation();if(sel.disabled)return;if(sel.multiple){[...sel.options].forEach(o=>o.selected=false);}else{sel.value='';}sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxRefresh(sel);};w.addEventListener('click',e=>{const rm=e.target.closest('[data-cbxrm]');if(!rm)return;e.stopPropagation();const o=[...sel.options].find(x=>x.value===rm.dataset.cbxrm);if(o)o.selected=false;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxRefresh(sel);});sel._cbxSetLoading=on=>{w.classList.toggle('cbx-loading',!!on);if(on)cbxClose();};btn.onclick=e=>{if(sel.disabled)return;if(e.target.closest('[data-cbxrm]'))return;e.stopPropagation();if(sel.disabled)return;if(openCbx===w){cbxClose();}else{cbxOpen(sel);}};btn.onkeydown=e=>{if(sel.disabled)return;const opts=[...w.querySelectorAll('.cbx-opt')];let ai=opts.findIndex(o=>o.classList.contains('active'));if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(openCbx!==w){cbxOpen(sel);return;}ai=ai<0?0:(ai+(e.key==='ArrowDown'?1:-1)+opts.length)%opts.length;cbxSetActive(w,opts,ai);}else if(e.key==='Home'||e.key==='End'){e.preventDefault();if(openCbx!==w)cbxOpen(sel);const o2=[...w.querySelectorAll('.cbx-opt')];cbxSetActive(w,o2,e.key==='Home'?0:o2.length-1);}else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(openCbx!==w){cbxOpen(sel);}else if(ai>=0){opts[ai].click();if(sel.multiple)cbxSetActive(w,[...w.querySelectorAll('.cbx-opt')],ai);}}else if(e.key==='Escape'){e.stopPropagation();cbxClose();}else if(e.key==='Tab'){cbxClose();}else if(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();if(openCbx!==w)cbxOpen(sel);const o2=[...w.querySelectorAll('.cbx-opt')];const ch=e.key.toLowerCase();let start=ai+1;for(let k=0;k<o2.length;k++){const idx=(start+k)%o2.length;if(o2[idx].textContent.trim().toLowerCase().startsWith(ch)){cbxSetActive(w,o2,idx);break;}}}};sel.addEventListener('change',()=>cbxRefresh(sel));sel.addEventListener('input',()=>cbxRefresh(sel));new MutationObserver(()=>{cbxSyncDisabled(sel);cbxBuildList(sel);cbxRefresh(sel);}).observe(sel,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['disabled']});const desc=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value');Object.defineProperty(sel,'value',{configurable:true,get(){return desc.get.call(this);},set(v){desc.set.call(this,v);cbxRefresh(this);}});cbxRefresh(sel);}
 function enhanceAllSelects(root){(root||document).querySelectorAll('select').forEach(enhanceSelect);}
 document.addEventListener('click',e=>{if(openCbx&&!e.target.closest('.cbx'))cbxClose();});
-document.addEventListener('scroll',()=>cbxClose(),true);
+document.addEventListener('scroll',e=>{if(openCbx&&openCbx.contains(e.target))return;cbxClose();},true);
 window.addEventListener('resize',()=>cbxClose());
 enhanceAllSelects();
 /* ==== i18n (mechanism reused from admin-console adjudication 31) ==== */
@@ -959,8 +971,8 @@ function translateNode(root){
 function updateLangBtn(){const b=$('langBtn');if(!b)return;b.textContent=LANG==='zh'?'EN':'中文';const lab=LANG==='zh'?'语言':'Language';b.setAttribute('aria-label',lab);b.setAttribute('data-tip',lab);b.__i18nEnAttrs={'aria-label':'Language','data-tip':'Language'};}
 let i18nTimer=null;
 new MutationObserver(()=>{if(LANG!=='zh')return;clearTimeout(i18nTimer);i18nTimer=setTimeout(()=>translateNode(document.body),30);}).observe(document.body,{childList:true,subtree:true,characterData:true});
-function initLang(){document.documentElement.lang=LANG;updateLangBtn();if(LANG==='zh')translateNode(document.body);}
-$('langBtn').onclick=()=>{LANG=LANG==='zh'?'en':'zh';try{localStorage.setItem('ab-lang',LANG);}catch(_){}document.documentElement.lang=LANG;updateLangBtn();translateNode(document.body);};
+function initLang(){document.documentElement.lang=LANG==='zh'?'zh-CN':'en';updateLangBtn();if(LANG==='zh')translateNode(document.body);}
+$('langBtn').onclick=()=>{LANG=LANG==='zh'?'en':'zh';try{localStorage.setItem('ab-lang',LANG);}catch(_){}document.documentElement.lang=LANG==='zh'?'zh-CN':'en';updateLangBtn();translateNode(document.body);};
 /* ==== body-level floating tooltip (post-closure fix) ====
    One fixed element outside every overflow/stacking ancestor; shown on hover AND focus of any
    [data-tip] host (disabled buttons keep their .tip-wrap host). Reads the attribute at show time so
@@ -968,7 +980,7 @@ $('langBtn').onclick=()=>{LANG=LANG==='zh'?'en':'zh';try{localStorage.setItem('a
    Escape/leave/blur. aria-describedby links host -> tooltip while visible. */
 const floatTip=document.createElement('div');floatTip.id='floatTip';floatTip.setAttribute('role','tooltip');document.body.appendChild(floatTip);
 let tipHost=null;
-function tipShow(host){const txt=host.getAttribute('data-tip');if(!txt)return;tipHost=host;floatTip.textContent=txt;floatTip.classList.add('on');host.setAttribute('aria-describedby','floatTip');
+function tipShow(host){const txt=host.getAttribute('data-tip');if(!txt)return;if(tipHost&&tipHost!==host)tipHost.removeAttribute('aria-describedby');tipHost=host;floatTip.textContent=txt;floatTip.classList.add('on');host.setAttribute('aria-describedby','floatTip');
  const r=host.getBoundingClientRect();const tw=floatTip.offsetWidth,th=floatTip.offsetHeight;
  let top=r.top-th-6;if(top<4)top=r.bottom+6;
  let left=r.left+r.width/2-tw/2;left=Math.max(4,Math.min(left,window.innerWidth-tw-4));

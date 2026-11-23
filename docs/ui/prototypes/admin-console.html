@@ -18,18 +18,19 @@
   --sp4:4px;--sp8:8px;--sp12:12px;--sp16:16px;--sp20:20px;--sp24:24px;
   --sans:"IBM Plex Sans",-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-  --fs11:11px;--fs12:12px;--fs13:13px;--fs14:14px;--fs16:16px;--fs20:20px;--fs26:26px;
+  --fs11:11px;--fs12:12px;--fs13:13px;--fs14:14px;--fs16:16px;--fs20:20px;--fs22:22px;--fs26:26px;--fs40:40px;
+  --shadow-tip:0 2px 10px rgba(0,0,0,.12);--shadow-pop:0 8px 32px rgba(0,0,0,.18);--shadow-toast:0 4px 16px rgba(0,0,0,.2);--shadow-card:0 2px 12px rgba(0,0,0,.06);--shadow-sm:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24);--shadow-hair:0 1px 2px rgba(0,0,0,.06),0 0 1px rgba(0,0,0,.10);
   --nav-w:224px;--nav-w-min:56px;--top-h:52px;
 }
 :root[data-theme="light"]{color-scheme:light;
   --bg:#FFFFFF;--surface:#FFFFFF;--sunken:#F7F6F3;--hover:#F2F1ED;
   --danger-inv:#FFFFFF;
-  --tx1:#29363D;--tx2:#5C6B73;--tx3:#6E787C;--txinv:#FFFFFF;
+  --tx1:#29363D;--tx2:#5C6B73;--tx3:#5F6A6E;--txinv:#FFFFFF;
   --bd:#E6E4DF;--bd2:#D4D2CC;--focus:#0F5C5A;
 }
 :root[data-theme="dark"]{color-scheme:dark;
   --bg:#15191B;--surface:#1B2124;--sunken:#121618;--hover:#22292C;
-  --tx1:#E8E6E2;--tx2:#A8B0B4;--tx3:#6E787C;--txinv:#15191B;
+  --tx1:#E8E6E2;--tx2:#A8B0B4;--tx3:#9AA4A8;--txinv:#15191B;
   --bd:#2A3236;--bd2:#3A4348;--focus:#4FB3AE;
   --accent:#4FB3AE;--accent-hi:#63C4BF;--accent-tint:rgba(79,179,174,.12);
   --ok:#5CBF8A;--ok-tint:rgba(92,191,138,.12);
@@ -49,12 +50,12 @@ html{scrollbar-color:var(--bd2) transparent;scrollbar-width:thin}
    context that later rows paint over; table/modal/drawer scroll containers clipped edge bubbles.
    Replaced by ONE body-level fixed tooltip (#floatTip) above every context: no ancestor can clip or
    overpaint it. Pack tokens still apply; reduced-motion collapses its fade. */
-#floatTip{position:fixed;z-index:600;background:var(--surface);color:var(--tx1);border:1px solid var(--bd);border-radius:var(--r4);font-size:var(--fs11);font-weight:500;line-height:1.35;padding:3px 8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;transition:opacity .12s ease;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+#floatTip{position:fixed;z-index:600;background:var(--surface);color:var(--tx1);border:1px solid var(--bd);border-radius:var(--r4);font-size:var(--fs11);font-weight:500;line-height:1.35;padding:3px 8px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;transition:opacity .12s ease;box-shadow:var(--shadow-tip)}
 #floatTip.on{opacity:1}
 .tip-wrap{display:inline-flex;position:relative}
 /* R2 overflow menu (adjudication R2=A): reusable drop-down for secondary/danger row actions;
    position:fixed so it escapes the table's overflow-x clip. R5 toolbar overflow reuses it. */
-.menu{position:fixed;z-index:400;min-width:190px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);box-shadow:0 8px 32px rgba(0,0,0,.18);padding:4px;display:none}
+.menu{position:fixed;z-index:400;min-width:190px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);box-shadow:var(--shadow-pop);padding:4px;display:none}
 .menu.on{display:block}
 .menu-item{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;background:transparent;color:var(--tx1);font-size:var(--fs13);border-radius:var(--r4);cursor:pointer;text-align:left;font-family:inherit}
 .menu-item:hover,.menu-item:focus-visible{background:var(--hover)}
@@ -74,7 +75,7 @@ button{font-family:inherit;cursor:pointer}
 .app.collapsed{grid-template-columns:var(--nav-w-min) 1fr}
 .sidebar{grid-row:1/3;background:var(--surface);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
 .brand{height:var(--top-h);display:flex;align-items:center;gap:10px;padding:0 var(--sp16);border-bottom:1px solid var(--bd);flex-shrink:0}
-.brand .logo{width:26px;height:26px;border-radius:var(--r4);background:var(--accent);color:var(--txinv);display:grid;place-items:center;font-weight:600;font-size:12px;letter-spacing:.02em;flex-shrink:0}
+.brand .logo{width:26px;height:26px;border-radius:var(--r4);background:var(--accent);color:var(--txinv);display:grid;place-items:center;font-weight:600;font-size:var(--fs12);letter-spacing:.02em;flex-shrink:0}
 .brand .name{font-weight:600;font-size:var(--fs14);letter-spacing:-.01em;white-space:nowrap}
 .brand .name small{display:block;font-weight:400;font-size:var(--fs11);color:var(--tx3);letter-spacing:0}
 .app.collapsed .brand .name{display:none}
@@ -83,7 +84,7 @@ button{font-family:inherit;cursor:pointer}
 .app.collapsed .nav .group{visibility:hidden;height:6px;padding:0}
 .nav a{position:relative;display:flex;align-items:center;gap:10px;padding:7px var(--sp16);color:var(--tx2);text-decoration:none;font-size:var(--fs13);white-space:nowrap}
 .nav a:hover{background:var(--hover);color:var(--tx1)}
-.nav a.on{background:var(--accent-tint);color:var(--accent);font-weight:500}
+.nav a.on{background:var(--accent-tint);color:var(--accent-text,var(--tx1));font-weight:500}
 .nav a.on::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:2px;background:var(--accent)}
 .app.collapsed .nav a span.lbl{display:none}
 .side-foot{padding:var(--sp8);border-top:1px solid var(--bd)}
@@ -178,6 +179,8 @@ select option{background:var(--surface);color:var(--tx1)}
 .th-sort{border:none;background:none;padding:0;cursor:pointer;font:inherit;color:inherit}
 .sort-ic{font-size:var(--fs11);color:var(--tx3)}
 .wswitch{position:relative;width:34px;height:20px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--sunken);cursor:pointer;padding:0;vertical-align:middle}
+.wswitch::before{content:"";position:absolute;inset:-2px 0;}
+.cbx-disabled .cbx-btn{cursor:not-allowed;opacity:.6}
 .wswitch .knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:var(--r2);background:var(--tx3);transition:left .15s,background .15s}
 .wswitch.on{background:var(--accent);border-color:var(--accent)}
 .wswitch.on .knob{left:16px;background:var(--txinv)}
@@ -192,15 +195,16 @@ html[data-theme="dark"] .toolbar input[type=date]{color-scheme:dark}
 .cbx-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cbx[data-multi] .cbx-val{display:flex;gap:4px;flex-wrap:wrap;align-items:center;white-space:normal}
 .cbx-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:var(--r2);background:var(--accent-tint);color:var(--accent-text,var(--accent));font-size:var(--fs11)}
-.cbx-chip button{border:none;background:none;padding:0;cursor:pointer;color:inherit;display:inline-flex}
+.cbx-chip button{border:none;background:none;padding:0;cursor:pointer;color:inherit;display:inline-flex;position:relative}
+.cbx-chip button::before{content:"";position:absolute;inset:-7px;}
 .cbx-chip .ic{width:10px;height:10px}
 .cbx-btn .cbx-val{flex:1;min-width:0}
 /* allowClear cross is a sibling of the button (nested <button> is invalid HTML and the parser
    splits it, which wrapped the cross onto a blank line below the control). Absolute inside the
    relative .cbx wrapper puts it visually inside the control; the chev swaps out while shown. */
-.cbx-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;padding:0 2px;cursor:pointer;color:var(--tx3);display:none;align-items:center}
+.cbx-clear{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:24px;height:24px;border:none;background:none;padding:0;cursor:pointer;color:var(--tx3);display:none;align-items:center;justify-content:center}
 .cbx-has-clear .cbx-chev{display:none}
-.cbx-has-clear .cbx-val{padding-right:16px}
+.cbx-has-clear .cbx-val{padding-right:26px}
 .cbx-disabled .cbx-clear{display:none !important}
 .cbx-clear:hover{color:var(--tx1)}
 .cbx-clear .ic{width:11px;height:11px}
@@ -212,9 +216,9 @@ html[data-theme="dark"] .toolbar input[type=date]{color-scheme:dark}
 .cbx-chev{width:12px;height:12px;color:var(--tx3);flex-shrink:0;transform:rotate(90deg);transition:transform .15s}
 .cbx.open .cbx-chev{transform:rotate(270deg)}
 .cbx.open .cbx-btn{border-color:var(--accent)}
-.cbx-list{position:fixed;top:0;left:0;width:max-content;max-width:min(320px,92vw);max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r4);box-shadow:0 8px 24px rgba(0,0,0,.16);z-index:70;padding:4px;display:none}
+.cbx-list{position:fixed;top:0;left:0;width:max-content;max-width:min(320px,92vw);max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--bd);border-radius:var(--r4);box-shadow:var(--shadow-pop);z-index:70;padding:4px;display:none}
 .cbx.open .cbx-list{display:block}
-html[data-theme="dark"] .cbx-list{box-shadow:0 8px 24px rgba(0,0,0,.5)}
+
 .cbx-list::-webkit-scrollbar{width:8px}
 .cbx-list::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
 .cbx-list::-webkit-scrollbar-track{background:transparent}
@@ -257,7 +261,8 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 .u-cell .u-em{font-size:var(--fs11);color:var(--tx3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row-actions{display:flex;gap:4px}
 .row-actions button{width:24px;height:24px;border-radius:var(--r2);border:1px solid transparent;background:transparent;color:var(--tx3);display:grid;place-items:center}
-.row-actions button:hover{background:var(--hover);color:var(--tx1);border-color:var(--bd)}
+.row-actions button:disabled{opacity:.45;cursor:not-allowed}
+.row-actions button:hover:not(:disabled){background:var(--hover);color:var(--tx1);border-color:var(--bd)}
 .row-actions .ic{width:13px;height:13px}
 .pagination{display:flex;align-items:center;justify-content:space-between;padding:var(--sp12) var(--sp16)}
 .pagination .info{font-size:var(--fs12);color:var(--tx3);font-family:var(--mono)}
@@ -277,58 +282,58 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
    component base) — referenced as MECHANISM, not added as a visual pack
    (Fusion ~= AntD visually; admin-ui implements AntD, so Ant is the pack). ==== */
 /* geist — Geist/Linear developer-tool language: monochrome, tiny radius, high density */
-[data-style="geist"]{--r2:2px;--r4:3px;--r6:4px;--sp12:10px;--sp16:12px;--sp24:16px;
+[data-style="geist"]{--r2:2px;--r4:3px;--r6:4px;--sp8:6px;--sp12:10px;--sp16:14px;--sp20:16px;--sp24:20px;
   --sans:"Inter","Geist",-apple-system,"Segoe UI","PingFang SC",sans-serif}
 [data-style="geist"][data-theme="light"]{--bg:#FFFFFF;--surface:#FFFFFF;--sunken:#FAFAFA;--hover:#EFEFEF;
-  --tx1:#111111;--tx2:#666666;--tx3:#767676;--txinv:#FFFFFF;--bd:#EAEAEA;--bd2:#D4D4D4;--focus:#111111;
+  --tx1:#111111;--tx2:#666666;--tx3:#6E6E6E;--txinv:#FFFFFF;--bd:#EAEAEA;--bd2:#D4D4D4;--focus:#111111;
   --accent:#111111;--accent-hi:#000000;--accent-tint:rgba(0,0,0,.05);
   --ok:#116932;--ok-tint:rgba(17,105,50,.08);--warn:#8A6116;--warn-tint:rgba(138,97,22,.08);--danger:#B3372F;--danger-solid:#B3372F;--danger-tint:rgba(179,55,47,.08)}
 [data-style="geist"][data-theme="dark"]{--bg:#0A0A0A;--surface:#111111;--sunken:#0D0D0D;--hover:#1A1A1A;
-  --tx1:#EDEDED;--tx2:#A0A0A0;--tx3:#6E6E6E;--txinv:#0A0A0A;--bd:#222222;--bd2:#333333;--focus:#EDEDED;
+  --tx1:#EDEDED;--tx2:#A0A0A0;--tx3:#9A9A9A;--txinv:#0A0A0A;--bd:#222222;--bd2:#333333;--focus:#EDEDED;
   --accent:#EDEDED;--accent-hi:#FFFFFF;--accent-tint:rgba(255,255,255,.08);
   --ok:#5CBF8A;--ok-tint:rgba(92,191,138,.12);--warn:#D9A441;--warn-tint:rgba(217,164,65,.12);--danger:#E07B72;--danger-solid:#B3372F;--danger-tint:rgba(224,123,114,.12)}
 [data-style="geist"] tbody td{padding:6px 12px}
 [data-style="geist"] thead th{padding:6px 12px}
-[data-style="geist"] .stat .val{font-size:22px}
+[data-style="geist"] .stat .val{font-size:var(--fs22)}
 [data-style="geist"] .nav a{padding:5px 12px}
 /* material — Material 2 (Google-blue era) language: large radius, capsule buttons, elevation, Roboto */
 [data-style="material"]{--r2:8px;--r4:12px;--r6:16px;
   --sans:"Roboto","Google Sans",-apple-system,"Segoe UI","PingFang SC",sans-serif}
 [data-style="material"][data-theme="light"]{--bg:#F8F9FA;--surface:#FFFFFF;--sunken:#F1F3F4;--hover:#E8EAED;
-  --tx1:#202124;--tx2:#5F6368;--tx3:#6B7075;--txinv:#FFFFFF;--bd:#DADCE0;--bd2:#BDC1C6;--focus:#1A73E8;
+  --tx1:#202124;--tx2:#5F6368;--tx3:#5F6368;--txinv:#FFFFFF;--bd:#DADCE0;--bd2:#BDC1C6;--focus:#1A73E8;
   --accent:#1A73E8;--accent-hi:#1765CC;--accent-tint:rgba(26,115,232,.12);
   --ok:#188038;--ok-tint:rgba(24,128,56,.12);--ok-text:#116932;--warn:#B06000;--warn-tint:rgba(176,96,0,.12);--warn-text:#8A6116;--danger:#D93025;--danger-text:#B3261E;--accent-text:#174EA6;--danger-solid:#D93025;--danger-tint:rgba(217,48,37,.12)}
 [data-style="material"][data-theme="dark"]{--bg:#202124;--surface:#2D2E31;--sunken:#17181A;--hover:#3C4043;
-  --tx1:#E8EAED;--tx2:#9AA0A6;--tx3:#757B80;--txinv:#202124;--bd:#3C4043;--bd2:#5F6368;--focus:#8AB4F8;
+  --tx1:#E8EAED;--tx2:#9AA0A6;--tx3:#9AA0A6;--txinv:#202124;--bd:#3C4043;--bd2:#5F6368;--focus:#8AB4F8;
   --accent:#8AB4F8;--accent-hi:#AECBFA;--accent-tint:rgba(138,180,248,.16);
   --ok:#81C995;--ok-tint:rgba(129,201,149,.16);--warn:#FDD663;--warn-tint:rgba(253,214,99,.16);--danger:#F28B82;--danger-text:#FFA39E;--danger-solid:#B3261E;--danger-tint:rgba(242,139,130,.16)}
 [data-style="material"] .btn{border-radius:999px}
-[data-style="material"] .card{box-shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24)}
+[data-style="material"] .card{box-shadow:var(--shadow-sm)}
 [data-style="material"] .tag{border-radius:8px}
 [data-style="material"] .icon-btn,[data-style="material"] .avatar{border-radius:999px}
 /* fluent — Fluent 2 language: 4px controls / 8px surfaces, Segoe UI, layered subtle shadow + border */
 [data-style="fluent"]{--r2:2px;--r4:4px;--r6:8px;
   --sans:"Segoe UI",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 [data-style="fluent"][data-theme="light"]{--bg:#FAF9F8;--surface:#FFFFFF;--sunken:#F3F2F1;--hover:#EDEBE9;
-  --tx1:#242424;--tx2:#616161;--tx3:#6E6E6E;--txinv:#FFFFFF;--bd:#E0E0E0;--bd2:#C8C8C8;--focus:#0F6CBD;
+  --tx1:#242424;--tx2:#616161;--tx3:#616161;--txinv:#FFFFFF;--bd:#E0E0E0;--bd2:#C8C8C8;--focus:#0F6CBD;
   --accent:#0F6CBD;--accent-hi:#0E5FA8;--accent-tint:rgba(15,108,189,.10);
   --ok:#107C10;--ok-tint:rgba(16,124,16,.10);--warn:#9D5D00;--warn-tint:rgba(157,93,0,.10);--warn-text:#7A4A00;--danger:#C42B1C;--danger-solid:#C42B1C;--danger-tint:rgba(196,43,28,.10)}
 [data-style="fluent"][data-theme="dark"]{--bg:#201F1E;--surface:#2B2A29;--sunken:#1B1A19;--hover:#3B3A39;
-  --tx1:#FFFFFF;--tx2:#D6D6D6;--tx3:#9E9E9E;--txinv:#1F1F1F;--bd:#3D3D3D;--bd2:#525252;--focus:#479EF5;
+  --tx1:#FFFFFF;--tx2:#D6D6D6;--tx3:#ADADAD;--txinv:#1F1F1F;--bd:#3D3D3D;--bd2:#525252;--focus:#479EF5;
   --accent:#479EF5;--accent-hi:#62ABF5;--accent-tint:rgba(71,158,245,.16);--accent-text:#82CFFF;
   --ok:#6CCB5F;--ok-tint:rgba(108,203,95,.16);--warn:#FCE100;--warn-tint:rgba(252,225,0,.16);--danger:#FF99A4;--danger-solid:#C42B1C;--danger-tint:rgba(255,153,164,.16)}
-[data-style="fluent"] .card{box-shadow:0 1px 2px rgba(0,0,0,.06),0 0 1px rgba(0,0,0,.10)}
+[data-style="fluent"] .card{box-shadow:var(--shadow-hair)}
 /* ant — Ant Design v5 language: mid-backend blue #1677FF, radius 6, dense tables.
    TOKEN-LEVEL reference to the admin-ui implementation layer (AntD v5): token values match
    the AntD seed, but the component structure is the prototype's own skeleton, not an AntD replica. */
 [data-style="ant"]{--r2:4px;--r4:6px;--r6:8px;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","PingFang SC","Microsoft YaHei",sans-serif}
 [data-style="ant"][data-theme="light"]{--bg:#F5F5F5;--surface:#FFFFFF;--sunken:#FAFAFA;--hover:rgba(0,0,0,.04);
-  --tx1:rgba(0,0,0,.88);--tx2:rgba(0,0,0,.65);--tx3:rgba(0,0,0,.45);--txinv:#FFFFFF;--bd:#D9D9D9;--bd2:#BFBFBF;--focus:#1677FF;
+  --tx1:rgba(0,0,0,.88);--tx2:rgba(0,0,0,.65);--tx3:rgba(0,0,0,.65);--txinv:#FFFFFF;--bd:#D9D9D9;--bd2:#BFBFBF;--focus:#1677FF;
   --accent:#1677FF;--accent-hi:#4096FF;--accent-tint:rgba(22,119,255,.10);
   --ok:#52C41A;--ok-tint:rgba(82,196,26,.10);--warn:#FAAD14;--warn-tint:rgba(250,173,20,.10);--danger:#FF4D4F;--danger-solid:#CF1322;--danger-tint:rgba(255,77,79,.10);--ok-text:#116932;--warn-text:#8A6116;--danger-text:#B3372F;--accent-text:#0E5FA8}
 [data-style="ant"][data-theme="dark"]{--bg:#000000;--surface:#141414;--sunken:#0A0A0A;--hover:rgba(255,255,255,.08);
-  --tx1:rgba(255,255,255,.85);--tx2:rgba(255,255,255,.65);--tx3:rgba(255,255,255,.45);--txinv:#FFFFFF;--bd:#424242;--bd2:#5A5A5A;--focus:#1668DC;
+  --tx1:rgba(255,255,255,.85);--tx2:rgba(255,255,255,.65);--tx3:rgba(255,255,255,.65);--txinv:#FFFFFF;--bd:#424242;--bd2:#5A5A5A;--focus:#1668DC;
   --accent:#1668DC;--accent-hi:#3C89E8;--accent-tint:rgba(22,104,220,.16);--accent-text:#69B1FF;
   --ok:#49AA19;--ok-tint:rgba(73,170,25,.16);--warn:#D89614;--warn-tint:rgba(216,150,20,.16);--danger:#DC4446;--danger-solid:#CF1322;--danger-tint:rgba(220,68,70,.16);--danger-text:#FF7875}
 [data-style="ant"] .btn{font-weight:400}
@@ -355,11 +360,11 @@ td.mono{font-family:var(--mono);font-size:var(--fs12);color:var(--tx2)}
 [data-style="cupertino"]{--r2:8px;--r4:10px;--r6:16px;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","PingFang SC",sans-serif}
 [data-style="cupertino"][data-theme="light"]{--bg:#F2F2F7;--surface:#FFFFFF;--sunken:#E5E5EA;--hover:rgba(0,0,0,.04);
-  --tx1:#000000;--tx2:rgba(60,60,67,.6);--tx3:rgba(60,60,67,.55);--txinv:#FFFFFF;--bd:rgba(60,60,67,.29);--bd2:#C6C6C8;--focus:#007AFF;
+  --tx1:#000000;--tx2:rgba(60,60,67,.6);--tx3:rgba(60,60,67,.75);--txinv:#FFFFFF;--bd:rgba(60,60,67,.29);--bd2:#C6C6C8;--focus:#007AFF;
   --accent:#007AFF;--accent-hi:#0062CC;--accent-tint:rgba(0,122,255,.10);
   --ok:#34C759;--ok-tint:rgba(52,199,89,.12);--warn:#FF9500;--warn-tint:rgba(255,149,0,.12);--warn-text:#8A6116;--danger:#FF3B30;--danger-text:#B3261E;--danger-solid:#D70015;--danger-tint:rgba(255,59,48,.12);--ok-text:#1E7A34;--warn-text:#9A6A1B;--danger-text:#C42B1C;--accent-text:#0B5FCC}
 [data-style="cupertino"][data-theme="dark"]{--bg:#000000;--surface:#1C1C1E;--sunken:#000000;--hover:#2C2C2E;
-  --tx1:#FFFFFF;--tx2:rgba(235,235,245,.6);--tx3:rgba(235,235,245,.55);--txinv:#FFFFFF;--bd:rgba(84,84,88,.65);--bd2:#38383A;--focus:#0A84FF;
+  --tx1:#FFFFFF;--tx2:rgba(235,235,245,.6);--tx3:rgba(235,235,245,.75);--txinv:#FFFFFF;--bd:rgba(84,84,88,.65);--bd2:#38383A;--focus:#0A84FF;
   --accent:#0A84FF;--accent-hi:#409CFF;--accent-tint:rgba(10,132,255,.16);--accent-text:#6CB2FF;--danger-text:#FF8A80;
   --ok:#30D158;--ok-tint:rgba(48,209,88,.16);--warn:#FF9F0A;--warn-tint:rgba(255,159,10,.16);--danger:#FF453A;--danger-solid:#C42B1C;--danger-tint:rgba(255,69,58,.16)}
 [data-style="cupertino"] .tag{border-radius:999px}
@@ -532,7 +537,7 @@ input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed}
 pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:var(--sp12);overflow-x:auto;white-space:pre;margin:0}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:var(--sp24)}
 .modal-overlay.on{display:flex}
-.modal{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);max-width:520px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.modal{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6);max-width:520px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-pop)}
 .modal-head{display:flex;align-items:center;gap:10px;padding:var(--sp16);border-bottom:1px solid var(--bd)}
 .modal-head h3{font-size:var(--fs14);font-weight:600}
 .modal-head .close{margin-left:auto}
@@ -554,7 +559,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea{width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
 .field textarea{resize:vertical;min-height:64px}
 .proto-inert,.btn:disabled{opacity:.5;cursor:not-allowed}
-.proto-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx1);color:var(--bg);padding:8px 16px;border-radius:var(--r4);font-size:var(--fs12);z-index:100;display:none;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.proto-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx1);color:var(--bg);padding:8px 16px;border-radius:var(--r4);font-size:var(--fs12);z-index:100;display:none;align-items:center;gap:8px;box-shadow:var(--shadow-toast)}
 .proto-toast .ic{width:14px;height:14px;flex:none}
 .proto-toast.error{background:var(--danger-solid,var(--danger));color:var(--danger-inv)}
 .skel{height:12px;border-radius:var(--r2);background:linear-gradient(90deg,var(--sunken) 25%,var(--bd) 50%,var(--sunken) 75%);background-size:200% 100%;animation:skel 1.2s linear infinite}
@@ -568,7 +573,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .error-banner .btn{margin-left:auto;flex:none}
 .state-page{display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:64px 24px;text-align:center}
 .state-page.on{display:flex}
-.state-page .code{font-family:var(--mono);font-size:40px;font-weight:700;color:var(--tx3)}
+.state-page .code{font-family:var(--mono);font-size:var(--fs40);font-weight:700;color:var(--tx3)}
 .state-page h2{margin:0;font-size:var(--fs20);color:var(--tx1)}
 .state-page p{margin:0;max-width:440px;font-size:var(--fs13);color:var(--tx2)}
 .detail-meta{font-size:var(--fs12);color:var(--tx2);margin-bottom:6px}
@@ -595,8 +600,10 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .link-btn .ic{width:14px;height:14px}
 .info-banner{display:flex;gap:8px;align-items:flex-start;background:var(--accent-tint);color:var(--accent-text,var(--accent));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12);max-width:420px}
 .info-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
-.error-banner{display:flex;gap:8px;align-items:flex-start;background:var(--danger-tint);color:var(--danger-text,var(--danger));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12);max-width:420px}
-.error-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+#page-profile .error-banner{display:flex;gap:8px;align-items:flex-start;background:var(--danger-tint);color:var(--danger-text,var(--danger));border-radius:var(--r4);padding:var(--sp12);font-size:var(--fs12);margin-bottom:var(--sp12);max-width:420px}
+#page-profile .error-banner .ic{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+.ok-banner{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--ok);background:var(--ok-tint);color:var(--ok-text,var(--ok));border-radius:var(--r4);font-size:var(--fs12)}
+.ok-banner .ic{width:14px;height:14px;flex:none}
 .pwd-form{max-width:420px}
 .oauth-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);font-size:var(--fs13)}
 .oauth-row:last-of-type{border-bottom:none}
@@ -621,15 +628,23 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   .wswitch .knob,.cbx-chev,#floatTip,input[type=checkbox]{transition:none !important}
   *{scroll-behavior:auto !important}
 }
+html[data-theme="dark"]{--danger-inv:#fff;--shadow-tip:0 2px 10px rgba(0,0,0,.45);--shadow-pop:0 8px 24px rgba(0,0,0,.5);--shadow-toast:0 4px 16px rgba(0,0,0,.5);--shadow-card:0 2px 12px rgba(0,0,0,.4);--shadow-sm:0 1px 3px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.6);--shadow-hair:0 1px 2px rgba(0,0,0,.4),0 0 1px rgba(0,0,0,.5)}
+html[lang="zh-CN"] thead th,html[lang="zh-CN"] .nav .group{letter-spacing:0}
+html[lang="zh-CN"] body{line-height:1.7}
+.btn:active{filter:brightness(.94)}
+.row-actions button:active:not(:disabled){background:var(--hover)}
+.tabs button:hover{color:var(--tx1);background:var(--hover)}
+.tabs button:active{background:var(--bd)}
+.pagination .pages button:hover:not(.on){background:var(--hover);color:var(--tx1)}
+.pagination .pages button:active{background:var(--bd)}
 </style>
 </head>
 <body>
 <!-- SCOPE BOUNDARY (adjudication 4-A, 2026-11-19): this prototype covers the AUTHENTICATED admin
      console only: dashboard/users/roles/groups/tenants/clients/apikeys/webhooks/audit/events/profile
-     + settings (4 tabs). Pre-auth and end-user surfaces are COMPANION prototypes (TODO, not here):
-     Login (+MFA arm/SMS/captcha/OAuth), MagicLogin, Register, VerifyEmail, ForgotPassword,
-     ResetPassword, EnrollMfa wizard, Consent (OIDC authorization screen; cross-ref from Clients),
-     and the first-run Setup wizard. Do not add them to this file. -->
+     + settings (4 tabs). Pre-auth and end-user surfaces are COMPANION prototypes, delivered as auth-flows.html at
+     adjudication 33 (login/magic/register/verify/forgot/reset/enroll/consent/setup). Do not add them
+     to this file. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
 <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
@@ -703,7 +718,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   <main class="main">
     <section class="page on" id="page-dashboard">
       <div class="page-head"><div><h1>Dashboard</h1><div class="sub">Identity platform overview · counts live from prototype data</div></div></div>
-      <div class="error-banner" id="dashErrBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="dashErrMsg">Failed to load dashboard stats.</span><button class="btn sm" id="dashErrRetry">Retry</button></div>
+      <div class="error-banner" role="alert" id="dashErrBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="dashErrMsg">Failed to load dashboard stats.</span><button class="btn sm" id="dashErrRetry">Retry</button></div>
       <div class="stats">
         <div class="card stat"><div class="lbl">Total Users<svg class="ic"><use href="#i-user"/></svg></div><div class="val" id="statUsers">–</div></div>
         <div class="card stat"><div class="lbl">Active Roles<svg class="ic"><use href="#i-shield"/></svg></div><div class="val" id="statRoles">–</div></div>
@@ -735,7 +750,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
           <select id="statusFilter" data-clearable><option value="">All status</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="pending">Pending</option></select>
           <div class="spacer"></div><button class="icon-btn" data-reload="users" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="userCount"></span>
         </div>
-        <div style="overflow-x:auto"><table>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
           <thead><tr><th><button class="th-sort" data-usort="name">User <span class="sort-ic"></span></button></th><th>Status</th><th>Roles</th><th data-prio="2">Tenant</th><th data-prio="3"><button class="th-sort" data-usort="created">Created <span class="sort-ic"></span></button></th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="userRows"></tbody>
         </table></div>
@@ -746,7 +761,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="page-head"><div><h1>Roles</h1><div class="sub">Role definitions and permission bindings · 26 builtin permissions</div></div><button class="btn primary proto-inert" disabled title="Prototype: not wired"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create role</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="roleSearch" placeholder="Search roles…"></div><div class="spacer"></div><button class="icon-btn" data-reload="roles" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="roleCount"></span></div>
-        <div style="overflow-x:auto"><table>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
           <thead><tr><th>Role</th><th data-prio="2">Description</th><th>Permissions</th><th data-prio="2">Tenant</th><th data-prio="3">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="roleRows"></tbody>
         </table></div>
@@ -756,8 +771,8 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
           <div class="scope-box"><label for="scopeSelect">users:* data scope</label><select id="scopeSelect"><option value="mixed" disabled>Mixed (stored scopes diverge)</option><option value="all">All rows</option><option value="dept">Department</option><option value="self">Self only</option></select><span class="mixed" id="scopeMixed" style="display:none">mixed</span></div>
         </div>
         <div class="mtx-bar" id="mtxBar" style="display:none"><span>Unsaved permission changes</span><button class="btn primary sm" id="mtxSave">Save</button><button class="btn sm" id="mtxCancel">Cancel</button></div>
-        <div class="error-banner" id="mtxErr" style="display:none;margin:0 16px 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="mtxErrMsg"></span><button class="btn sm" id="mtxErrRetry">Retry</button></div>
-        <div class="matrix-wrap"><table class="matrix">
+        <div class="error-banner" role="alert" id="mtxErr" style="display:none;margin:0 16px 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="mtxErrMsg"></span><button class="btn sm" id="mtxErrRetry">Retry</button></div>
+        <div class="matrix-wrap" tabindex="0" role="region" aria-label="Permission matrix"><table class="matrix">
           <thead><tr><th>Resource</th><th>read</th><th>write</th><th>delete</th></tr></thead>
           <tbody id="matrixRows"></tbody>
         </table></div>
@@ -768,23 +783,23 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="page-head"><div><h1>Groups</h1><div class="sub">User groups and departments · membership and role bindings</div></div><button class="btn primary" data-create="groups"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create group</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="groupSearch" placeholder="Search groups…"></div><select id="kindFilter"><option value="">All kinds</option><option value="department">Department</option><option value="group">Group</option></select><div class="spacer"></div><button class="icon-btn" data-reload="groups" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="groupCount"></span></div>
-        <div style="overflow-x:auto"><table>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
           <thead><tr><th>Name</th><th data-prio="3">Kind</th><th data-prio="2">Description</th><th>Members</th><th data-prio="3">Roles</th><th data-prio="2">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="groupRows"></tbody>
         </table></div>
       </div>
       <div class="card panel" id="groupPanel" style="display:none">
         <div class="panel-head"><svg class="ic" style="color:var(--accent)"><use href="#i-users"/></svg><h3 id="panelName"></h3><span class="tag" id="panelKind"></span><button class="icon-btn close" id="panelClose" data-tip="Close" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div>
-        <div class="error-banner" id="grpDetailErr" style="display:none;margin:0 16px 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="grpDetailErrMsg"></span><button class="btn sm" id="grpDetailRetry">Retry</button></div>
+        <div class="error-banner" role="alert" id="grpDetailErr" style="display:none;margin:0 16px 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="grpDetailErrMsg"></span><button class="btn sm" id="grpDetailRetry">Retry</button></div>
         <div class="tabs" role="tablist" aria-label="Group detail"><button class="on" role="tab" id="tab-members" aria-controls="pane-members" aria-selected="true" tabindex="0" data-tab="members">Members <span id="tabMemberCount"></span></button><button role="tab" id="tab-roles" aria-controls="pane-roles" aria-selected="false" tabindex="-1" data-tab="roles">Roles <span id="tabRoleCount"></span></button></div>
         <div class="tab-pane on" id="pane-members" role="tabpanel" aria-labelledby="tab-members">
-          <div class="error-banner" id="grpMemberErr" style="display:none;margin:0 0 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="grpMemberErrMsg"></span><button class="btn sm" id="grpMemberRetry">Retry</button></div>
+          <div class="error-banner" role="alert" id="grpMemberErr" style="display:none;margin:0 0 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="grpMemberErrMsg"></span><button class="btn sm" id="grpMemberRetry">Retry</button></div>
           <ul class="member-list" id="memberList"></ul>
           <div class="add-member"><select id="memberPicker"><option value="">Add a member…</option></select><button class="btn primary" id="addMemberBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add</button></div>
         </div>
         <div class="tab-pane" id="pane-roles" role="tabpanel" aria-labelledby="tab-roles">
           <div class="role-checks" id="roleChecks"></div>
-          <div class="error-banner" id="grpRolesErr" style="display:none;margin-top:8px"><svg class="ic"><use href="#i-alert"/></svg><span id="grpRolesErrMsg"></span><button class="btn sm" id="grpRolesRetry">Retry</button></div>
+          <div class="error-banner" role="alert" id="grpRolesErr" style="display:none;margin-top:8px"><svg class="ic"><use href="#i-alert"/></svg><span id="grpRolesErrMsg"></span><button class="btn sm" id="grpRolesRetry">Retry</button></div>
           <button class="btn primary" id="saveRolesBtn" style="margin-top:16px">Save role bindings</button>
         </div>
       </div>
@@ -793,7 +808,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="page-head"><div><h1>Tenants</h1><div class="sub">Isolated identity partitions · slug, status and lifecycle</div></div><button class="btn primary" data-create="tenants"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Create tenant</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="tenantSearch" placeholder="Search name or slug…"></div><div class="spacer"></div><button class="icon-btn" data-reload="tenants" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="tenantCount"></span></div>
-        <div style="overflow-x:auto"><table>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
           <thead><tr><th>Name</th><th data-prio="3">Slug</th><th>Status</th><th data-prio="2">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="tenantRows"></tbody>
         </table></div>
@@ -803,7 +818,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="page-head"><div><h1>OIDC Clients</h1><div class="sub">Relying parties · immutable after registration — rotate the secret or delete &amp; re-register to change · server requires non-empty https redirectUris even for M2M</div></div><button class="btn primary" data-create="clients"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Register client</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="clientSearch" placeholder="Search name or client ID…"></div><div class="spacer"></div><button class="icon-btn" data-reload="clients" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="clientCount"></span></div>
-        <div style="overflow-x:auto"><table>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
           <thead><tr><th>Name</th><th data-prio="2">Client ID</th><th>Redirect URIs</th><th data-prio="2">Grant types</th><th data-prio="3">Scope</th><th data-prio="3">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="clientRows"></tbody>
         </table></div>
@@ -813,7 +828,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="page-head"><div><h1>API Keys</h1><div class="sub">Service credentials · scoped, expiring, revocable · immutable — revoke &amp; reissue to change</div></div><button class="btn primary" data-create="apikeys"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Issue key</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="apikeySearch" placeholder="Search name or prefix…"></div><select id="apikeyStatusFilter"><option value="">All status</option><option value="active">Active</option><option value="revoked">Revoked</option></select><div class="spacer"></div><button class="icon-btn" data-reload="apikeys" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="apikeyCount"></span></div>
-        <div style="overflow-x:auto"><table>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
           <thead><tr><th>Name</th><th data-prio="3">Prefix</th><th data-prio="2">Scopes</th><th data-prio="2">Created</th><th data-prio="3">Expires</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="apikeyRows"></tbody>
         </table></div>
@@ -823,7 +838,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="page-head"><div><h1>Webhooks</h1><div class="sub">Event endpoints · subscriptions and delivery health</div></div><div class="field" style="margin:0;min-width:210px"><label>Permission perspective (demo)</label><select id="whPermView"><option value="write">Operator · webhooks:write</option><option value="read">Auditor · read-only</option></select></div><button class="btn primary" data-create="webhooks"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add endpoint</button></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="webhookSearch" placeholder="Search URL…"></div><div class="spacer"></div><button class="icon-btn" data-reload="webhooks" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="webhookCount"></span></div>
-        <div style="overflow-x:auto"><table>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
           <thead><tr><th>URL</th><th data-prio="2">Events</th><th>Enabled</th><th data-prio="3">Pending</th><th data-prio="3">Dead</th><th data-prio="2">Created</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="webhookRows"></tbody>
         </table></div>
@@ -831,13 +846,13 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
     </section>
     <section class="page" id="page-audit">
       <div class="page-head"><div><h1>Audit Log</h1><div class="sub">Append-only, hash-chained record of every mutation · export is a server-side full export of all rows matching the filters (tenant-safe)</div></div><div style="display:flex;gap:8px"><button class="btn" id="verifyBtn"><svg class="ic" style="width:13px;height:13px"><use href="#i-shield"/></svg>Verify chain</button><button class="btn" id="exportBtn" data-phsecondary><svg class="ic" style="width:13px;height:13px"><use href="#i-download"/></svg>Export</button><button class="btn ph-more" data-phmore="audit" data-tip="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false"><svg class="ic" style="width:13px;height:13px"><use href="#i-more"/></svg></button></div></div>
-      <div class="error-banner" id="auditLoadBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditLoadMsg">Failed to load audit entries.</span><button class="btn sm" id="auditLoadRetry">Retry</button></div>
-      <div class="error-banner" id="auditExportBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditExportMsg">Export failed.</span><button class="btn sm" id="auditExportRetry">Retry</button></div>
-      <div class="error-banner" id="auditErrBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditErrMsg">Verification failed.</span><button class="btn sm" id="auditRetry">Retry</button></div>
+      <div class="error-banner" role="alert" id="auditLoadBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditLoadMsg">Failed to load audit entries.</span><button class="btn sm" id="auditLoadRetry">Retry</button></div>
+      <div class="error-banner" role="alert" id="auditExportBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditExportMsg">Export failed.</span><button class="btn sm" id="auditExportRetry">Retry</button></div>
+      <div class="error-banner" role="alert" id="auditErrBanner" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="auditErrMsg">Verification failed.</span><button class="btn sm" id="auditRetry">Retry</button></div>
       <div class="verify-banner" id="auditVerifyBanner" style="display:none"><svg class="ic"><use href="#i-shield"/></svg><span id="verifyMsg">Hash chain verified</span><span class="hash" id="verifyMeta"></span></div>
       <div class="card">
         <div class="toolbar"><select id="auditActionFilter"><option value="">All actions</option><option value="POST">POST</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option><option value="DELETE">DELETE</option></select><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="auditActorFilter" placeholder="Filter actor…"></div><input type="date" id="auditFrom" aria-label="From day"><input type="date" id="auditTo" aria-label="To day"><div class="spacer"></div><button class="icon-btn" data-reload="audit" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="auditCount"></span></div>
-        <div style="overflow-x:auto"><table>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
           <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th data-prio="2">Resource</th><th data-prio="3">IP address</th><th>Status</th></tr></thead>
           <tbody id="auditRows"></tbody>
         </table></div>
@@ -847,8 +862,8 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <div class="page-head"><div><h1>Events</h1><div class="sub">Domain event stream · typed payloads and fanout state</div></div></div>
       <div class="card">
         <div class="toolbar"><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="eventSearch" placeholder="Filter event type…"></div><select id="eventFamilyFilter"><option value="">All families</option><option value="user">user</option><option value="role">role</option><option value="tenant">tenant</option><option value="apikey">apikey</option><option value="group">group</option><option value="webhook">webhook</option><option value="auth">auth</option></select><input type="date" id="eventFrom" aria-label="From date"><span style="color:var(--tx3)">–</span><input type="date" id="eventTo" aria-label="To date"><span class="range-note" title="Real console uses an AntD RangePicker mapping to startDate/endDate">range → startDate/endDate</span><button class="btn primary sm" id="eventSearchBtn" data-reload="events">Search</button><button class="icon-btn" id="eventResetBtn" data-tip="Reset filters" aria-label="Reset filters"><svg class="ic"><use href="#i-refresh"/></svg></button><div class="spacer"></div><button class="icon-btn" data-reload="events" data-tip="Reload" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button><span class="count" id="eventCount"></span></div>
-        <div class="error-banner" id="evLoadBanner" style="display:none;margin:0 16px 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="evLoadMsg"></span><button class="btn sm" id="evLoadRetry">Retry</button></div>
-        <div style="overflow-x:auto"><table>
+        <div class="error-banner" role="alert" id="evLoadBanner" style="display:none;margin:0 16px 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="evLoadMsg"></span><button class="btn sm" id="evLoadRetry">Retry</button></div>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table>
           <thead><tr><th>Time</th><th>Type</th><th data-prio="3">Payload</th><th data-prio="2">Fanout</th><th style="text-align:right">Detail</th></tr></thead>
           <tbody id="eventRows"></tbody>
         </table></div>
@@ -870,7 +885,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
           <div class="p-card-head"><h3>Change password</h3></div>
           <div class="p-card-body">
             <div class="info-banner"><svg class="ic"><use href="#i-info"/></svg><span>Passwords need 12+ characters with an uppercase letter, a lowercase letter, a digit and a special character.</span></div>
-            <div class="error-banner" id="pwdError" style="display:none"><svg class="ic"><use href="#i-alert"/></svg><span id="pwdErrorTx"></span></div>
+            <div class="error-banner" role="alert" id="pwdError" style="display:none"><svg class="ic"><use href="#i-alert"/></svg><span id="pwdErrorTx"></span></div>
             <div class="pwd-form">
               <div class="field"><label>Current password</label><input type="password" id="pwdOld" autocomplete="current-password"></div>
               <div class="field"><label>New password</label><input type="password" id="pwdNew" autocomplete="new-password"></div>
@@ -900,22 +915,22 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
         </div>
         <div class="tab-pane" id="pane-ssecurity" role="tabpanel" aria-labelledby="tab-ssecurity">
           <div class="card panel"><div class="panel-head"><h3>Active sessions</h3><button class="btn danger ghost sm" id="revokeOthersBtn2" style="margin-left:auto">Log out other devices</button></div>
-            <div style="padding:var(--sp16)"><div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Device</th><th>IP</th><th>Signed in</th><th style="text-align:right">Session</th></tr></thead><tbody id="sessionRows"></tbody></table></div></div></div>
+            <div style="padding:var(--sp16)"><div class="error-banner" role="alert" id="sessLoadBanner" style="display:none;margin:0 0 var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span id="sessLoadMsg"></span><button class="btn sm" id="sessLoadRetry">Retry</button></div><div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table class="plain" style="width:100%"><thead><tr><th>Device</th><th>IP</th><th>Signed in</th><th style="text-align:right">Session</th></tr></thead><tbody id="sessionRows"></tbody></table></div></div></div>
           <div class="card panel"><div class="panel-head"><h3>Idle timeout</h3></div>
-            <div style="padding:var(--sp16)"><div class="field" style="max-width:320px"><label>Sign out after inactivity</label><select id="idleSelect"><option value="3600">1 hour</option><option value="28800">8 hours</option><option value="86400">24 hours</option><option value="604800">7 days</option><option value="0">Off</option></select></div><div class="perm-hint" id="idleHint">Requires options:write.</div><div class="error-banner" id="idleErrBanner" style="display:none;margin-top:8px"><svg class="ic"><use href="#i-alert"/></svg><span id="idleErrMsg">Failed to save idle timeout.</span><button class="btn sm" id="idleErrRetry">Retry</button></div><div class="sub" style="margin-top:var(--sp12)">A server-side default still applies when unset.</div></div></div>
+            <div style="padding:var(--sp16)"><div class="field" style="max-width:320px"><label>Sign out after inactivity</label><select id="idleSelect"><option value="3600">1 hour</option><option value="28800">8 hours</option><option value="86400">24 hours</option><option value="604800">7 days</option><option value="0">Off</option></select></div><div class="perm-hint" id="idleHint">Requires options:write.</div><div class="error-banner" role="alert" id="idleErrBanner" style="display:none;margin-top:8px"><svg class="ic"><use href="#i-alert"/></svg><span id="idleErrMsg">Failed to save idle timeout.</span><button class="btn sm" id="idleErrRetry">Retry</button></div><div class="sub" style="margin-top:var(--sp12)">A server-side default still applies when unset.</div></div></div>
           <div class="card panel"><div class="panel-head"><h3>Two-factor authentication (MFA)</h3></div>
             <div style="padding:var(--sp16)" id="mfaBody"></div></div>
           <div class="card panel"><div class="panel-head"><h3>Passkeys</h3><button class="btn sm" id="passkeyAdd" style="margin-left:auto"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Register passkey</button></div>
-            <div style="padding:var(--sp16)"><div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Name</th><th>Added</th><th style="text-align:right">Actions</th></tr></thead><tbody id="passkeyRows"></tbody></table></div></div></div>
+            <div style="padding:var(--sp16)"><div class="error-banner" role="alert" id="pkLoadBanner" style="display:none;margin:0 0 var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span id="pkLoadMsg"></span><button class="btn sm" id="pkLoadRetry">Retry</button></div><div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table class="plain" style="width:100%"><thead><tr><th>Name</th><th>Added</th><th style="text-align:right">Actions</th></tr></thead><tbody id="passkeyRows"></tbody></table></div></div></div>
         </div>
         <div class="tab-pane" id="pane-soptions" role="tabpanel" aria-labelledby="tab-soptions">
-          <div class="error-banner" id="optGateBanner" style="display:none;margin:var(--sp16)"><svg class="ic"><use href="#i-alert"/></svg><span>403 FORBIDDEN: this tab requires options:read.</span></div>
-          <div class="error-banner" id="optLoadBanner" style="display:none;margin:0 var(--sp16)"><svg class="ic"><use href="#i-alert"/></svg><span id="optLoadMsg">Failed to load options.</span><button class="btn sm" id="optLoadRetry">Retry</button></div>
+          <div class="error-banner" role="alert" id="optGateBanner" style="display:none;margin:var(--sp16)"><svg class="ic"><use href="#i-alert"/></svg><span>403 FORBIDDEN: this tab requires options:read.</span></div>
+          <div class="error-banner" role="alert" id="optLoadBanner" style="display:none;margin:0 var(--sp16)"><svg class="ic"><use href="#i-alert"/></svg><span id="optLoadMsg">Failed to load options.</span><button class="btn sm" id="optLoadRetry">Retry</button></div>
           <div style="padding:var(--sp16)" id="optTableWrap"><div style="display:flex;justify-content:flex-end;margin-bottom:var(--sp12)"><button class="btn primary" id="optionAdd"><svg class="ic" style="width:13px;height:13px"><use href="#i-plus"/></svg>Add option</button></div>
-          <div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Key</th><th>Value</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody id="optionRows"></tbody></table></div></div>
+          <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table class="plain" style="width:100%"><thead><tr><th>Key</th><th>Value</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody id="optionRows"></tbody></table></div></div>
         </div>
         <div class="tab-pane" id="pane-semail" role="tabpanel" aria-labelledby="tab-semail">
-          <div style="padding:var(--sp16)"><div style="overflow-x:auto"><table class="plain" style="width:100%"><thead><tr><th>Template</th><th>Subject</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody id="templateRows"></tbody></table></div></div>
+          <div style="padding:var(--sp16)"><div class="error-banner" role="alert" id="tplLoadBanner" style="display:none;margin:0 0 var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span id="tplLoadMsg"></span><button class="btn sm" id="tplLoadRetry">Retry</button></div><div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table class="plain" style="width:100%"><thead><tr><th>Template</th><th>Subject</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody id="templateRows"></tbody></table></div></div>
         </div>
       </div>
     </section>
@@ -935,14 +950,14 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
         <div class="perm-hint" style="margin:0 0 8px">Preview renders the STORED template via the server route — unsaved edits are not previewed. Sample vars only fill {{placeholders}}.</div>
         <div class="radio-row"><label><input type="radio" name="tplLocale" value="en" checked> EN</label><label><input type="radio" name="tplLocale" value="zh"> ZH</label><button class="btn sm" id="tplPreviewBtn">Preview</button></div>
         <div class="tpl-preview" id="tplPreviewBox" style="display:none;margin-top:8px"></div>
-        <div class="error-banner" id="tplPreviewErr" style="display:none;margin-top:8px"><svg class="ic"><use href="#i-alert"/></svg><span id="tplPreviewErrMsg"></span></div>
+        <div class="error-banner" role="alert" id="tplPreviewErr" style="display:none;margin-top:8px"><svg class="ic"><use href="#i-alert"/></svg><span id="tplPreviewErrMsg"></span></div>
       </div></div>
     <div class="card panel" style="margin-top:var(--sp12)"><div class="panel-head"><h3>Send test</h3></div>
       <div style="padding:var(--sp12)">
         <div class="field" style="margin:0"><label>To</label><input id="tplTestTo" placeholder="you@example.com"></div>
         <div class="field-err" id="tplTestErr" style="display:none"></div>
         <div style="margin-top:8px"><button class="btn sm" id="tplTestBtn">Send test</button></div>
-        <div class="error-banner" id="tplTestMsg" style="display:none;margin-top:8px"><svg class="ic"><use href="#i-alert"/></svg><span id="tplTestMsgTx"></span></div>
+        <div class="error-banner" role="alert" id="tplTestMsg" style="display:none;margin-top:8px"><svg class="ic"><use href="#i-alert"/></svg><span id="tplTestMsgTx"></span></div>
       </div></div>
   </div>
   <div class="modal-foot"><button class="btn" data-close="tplDrawer">Cancel</button><button class="btn primary" id="tplSave">Save template</button></div>
@@ -963,7 +978,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 </div></div>
 <div class="modal-overlay" id="delivModal"><div class="modal" style="max-width:640px" role="dialog" aria-modal="true">
   <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-webhook"/></svg><h3 id="delivTitle">Deliveries</h3><button class="icon-btn close" aria-label="Close" data-close="delivModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
-  <div class="modal-body"><div class="error-banner" id="delivErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="delivErrMsg"></span><button class="btn sm" id="delivRetry">Retry</button></div><div style="overflow-x:auto"><table><thead><tr><th>Status</th><th>Attempts</th><th>Response</th><th>Created</th></tr></thead><tbody id="delivRows"></tbody></table></div></div>
+  <div class="modal-body"><div class="error-banner" role="alert" id="delivErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="delivErrMsg"></span><button class="btn sm" id="delivRetry">Retry</button></div><div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table><thead><tr><th>Status</th><th>Attempts</th><th>Response</th><th>Created</th></tr></thead><tbody id="delivRows"></tbody></table></div></div>
   <div class="modal-foot"><button class="btn" data-close="delivModal">Close</button></div>
 </div></div>
 <div class="modal-overlay" id="formModal"><div class="modal" role="dialog" aria-modal="true">
@@ -976,7 +991,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
   <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-shield"/></svg><h3>Set up MFA</h3><button class="icon-btn close" aria-label="Close" data-close="mfaSetupModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body"><div class="detail-meta">Scan with your authenticator app, then enter the 6-digit code.</div>
     <div style="display:flex;gap:var(--sp16);align-items:center;margin:var(--sp12) 0"><div style="width:120px;height:120px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--sunken);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:var(--fs11);flex-shrink:0">QR placeholder</div><div class="mono" id="mfaSecret" style="font-size:var(--fs12);word-break:break-all"></div></div>
-    <div class="error-banner" id="mfaSetupErr" style="display:none;margin-bottom:var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+    <div class="error-banner" role="alert" id="mfaSetupErr" style="display:none;margin-bottom:var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
     <div class="field"><label>Verification code</label><input id="mfaCode" inputmode="numeric" maxlength="6" placeholder="123456"></div></div>
   <div class="modal-foot"><button class="btn" data-close="mfaSetupModal">Cancel</button><button class="btn primary" id="mfaEnable">Enable</button></div>
 </div></div>
@@ -990,15 +1005,15 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 <div class="modal-overlay" id="mfaDisableModal"><div class="modal" role="dialog" aria-modal="true" style="max-width:420px">
   <div class="modal-head"><svg class="ic" style="color:var(--danger)"><use href="#i-alert"/></svg><h3>Disable MFA</h3><button class="icon-btn close" aria-label="Close" data-close="mfaDisableModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body"><div class="detail-meta">Disabling removes your authenticator and all recovery codes. Confirm with your current password.</div>
-    <div class="error-banner" id="mfaDisableErr" style="display:none;margin-bottom:var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+    <div class="error-banner" role="alert" id="mfaDisableErr" style="display:none;margin-bottom:var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
     <div class="field"><label>Current password</label><input id="mfaDisablePwd" type="password"></div></div>
   <div class="modal-foot"><button class="btn" data-close="mfaDisableModal">Cancel</button><button class="btn danger" id="mfaDisable">Disable</button></div>
 </div></div>
 <div class="modal-overlay" id="initAdminModal"><div class="modal" role="dialog" aria-modal="true" style="max-width:440px">
   <div class="modal-head"><svg class="ic" style="color:var(--accent)"><use href="#i-user"/></svg><h3 id="initTitle">Init admin</h3><button class="icon-btn close" aria-label="Close" data-close="initAdminModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
   <div class="modal-body"><div class="detail-meta" id="initMeta">Bootstrap the first administrator of this tenant.</div>
-    <div class="error-banner" id="initDone" style="display:none;background:var(--ok-tint);color:var(--ok-text,var(--ok));border-color:var(--ok)"><svg class="ic"><use href="#i-check"/></svg><span>This tenant already has an initial administrator (alreadyBootstrapped).</span></div>
-    <div class="error-banner" id="initErr" style="display:none;margin-bottom:var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
+    <div class="error-banner" role="alert" id="initDone" style="display:none;background:var(--ok-tint);color:var(--ok-text,var(--ok));border-color:var(--ok)"><svg class="ic"><use href="#i-check"/></svg><span>This tenant already has an initial administrator (alreadyBootstrapped).</span></div>
+    <div class="error-banner" role="alert" id="initErr" style="display:none;margin-bottom:var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span></span></div>
     <div id="initForm"><div class="field"><label>Email</label><input id="initEmail" type="email" placeholder="admin@tenant.example"><div class="field-err" id="initEmailErr" style="display:none"></div></div>
     <div class="field"><label>Admin name</label><input id="initName"><div class="field-err" id="initNameErr" style="display:none"></div></div>
     <div class="field"><label>Password</label><input id="initPwd" type="password" autocomplete="new-password"><div class="field-err" id="initPwdErr" style="display:none"></div></div>
@@ -1012,7 +1027,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
       <label style="display:flex;gap:8px;align-items:center;font-size:var(--fs12);color:var(--tx1)"><input type="checkbox" id="eraseAudit"> Also erase audit data (RTBF)</label>
       <div id="legalBasisWrap" style="display:none;margin-top:8px"><div class="field"><label>Legal basis (required)</label><input id="legalBasis" placeholder="e.g. GDPR Art. 17 request #1234"></div><div class="sub">Erasure requires tenant-wide (all) data scope.</div></div>
     </div>
-    <div class="error-banner" id="confirmErr" style="display:none;margin-top:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span><button class="btn sm" id="confirmRetry" style="display:none;margin-left:auto">Retry</button></div>
+    <div class="error-banner" role="alert" id="confirmErr" style="display:none;margin-top:12px"><svg class="ic"><use href="#i-alert"/></svg><span></span><button class="btn sm" id="confirmRetry" style="display:none;margin-left:auto">Retry</button></div>
     <div id="confirmReceipt" class="detail-meta" style="display:none;margin-top:12px"></div></div>
   <div class="modal-foot"><button class="btn" data-close="confirmModal" id="confirmCancel">Cancel</button><button class="btn danger" id="confirmDelete">Delete</button></div>
 </div></div>
@@ -1035,6 +1050,7 @@ const $=id=>document.getElementById(id);
    on the nodes so switching back to en restores exactly. A MutationObserver translates async
    renders while zh is active. */
 const I18N_ZH={
+'View re-rendered':'视图已重渲染','Access request sent to administrators':'访问请求已发送给管理员','Dashboard load failed — retry':'仪表盘加载失败 — 重试','Refreshed':'已刷新','Failed to update status (prototype simulation) — retry':'状态更新失败（原型模拟）— 重试','Status updated':'状态已更新','Role permissions saved':'角色权限已保存','Copied':'已复制','Exported':'已导出','Prototype: this action is not wired in the demo':'原型：此动作在演示中未接线','Copy failed — select the value and copy manually':'复制失败 — 请选中值手动复制','Ping failed: upstream timeout (prototype simulation) — retry':'Ping 失败：上游超时（原型模拟）— 重试','Verification failed — retry':'验证失败 — 重试','Chain verified':'链已验证','Export failed — retry':'导出失败 — 重试','User created':'用户已创建','Added':'已添加','User erased':'用户已擦除','Branding saved (localStorage only)':'品牌已保存（仅 localStorage）','Idle timeout saved':'空闲超时已保存','Passkey registered':'通行密钥已注册','MFA enabled':'MFA 已启用','MFA disabled':'MFA 已禁用','Template saved':'模板已保存','Name save failed — retry':'姓名保存失败 — 重试','Name updated':'姓名已更新','Verification send failed — retry':'验证邮件发送失败 — 重试','Verification email sent':'验证邮件已发送','Password change failed — retry':'密码修改失败 — 重试','Password changed · other sessions signed out':'密码已修改 · 其他会话已签出','Saving…':'保存中…','Creating…':'创建中…','Verifying…':'验证中…','Exporting…':'导出中…','Registering…':'注册中…','Issuing…':'签发中…','Working…':'处理中…','Previewing…':'预览中…','Sending…':'发送中…','Changing…':'修改中…','Value must be valid JSON':'值必须为合法 JSON','Slug must be lowercase letters/digits separated by single hyphens':'Slug 须为小写字母/数字、单连字符分隔','URL must be http(s)://…':'URL 须为 http(s)://…','Update failed: upstream timeout (prototype simulation) — retry.':'更新失败：上游超时（原型模拟）— 重试。','409 EMAIL_EXISTS: a user with this email already exists':'409 EMAIL_EXISTS：该邮箱用户已存在','Slug is required':'Slug 必填','CLIENT_001: name is required':'CLIENT_001：名称必填','CLIENT_002: redirectUris must be a non-empty array (even for M2M)':'CLIENT_002：redirectUris 须为非空数组（M2M 亦然）','CLIENT_003: redirectUris must use https (or http://localhost for dev)':'CLIENT_003：redirectUris 须用 https（开发可用 http://localhost）','CLIENT_004: select at least one grant type':'CLIENT_004：至少选一种 grant type','scope is required':'scope 必填','scope must be a subset of: openid profile email offline_access':'scope 须为子集：openid profile email offline_access','B5: tokenAuthMethod "none" cannot be combined with client_credentials / device_code':'B5：tokenAuthMethod "none" 不可与 client_credentials / device_code 组合','backchannelLogoutUri must be http(s)':'backchannelLogoutUri 须为 http(s)','Expires must be YYYY-MM-DD and not in the past':'Expires 须为 YYYY-MM-DD 且不在过去','Create failed: key service timeout (prototype simulation) — retry.':'创建失败：密钥服务超时（原型模拟）— 重试。','Key must match /^[a-z][a-zA-Z0-9_.-]{1,63}$/ (lowercase start, 2-64 chars)':'Key 须匹配 /^[a-z][a-zA-Z0-9_.-]{1,63}$/（小写开头、2-64 字符）','URL is required':'URL 必填','Template subject is required in both en and zh':'模板主题须同时填写 en 与 zh','Revocation failed: upstream timeout (prototype simulation) — sessions kept':'吊销失败：上游超时（原型模拟）— 会话保留','Failed to load sessions: upstream timeout (prototype simulation) — retry.':'会话加载失败：上游超时（原型模拟）— 重试。','Failed to load passkeys: upstream timeout (prototype simulation) — retry.':'通行密钥加载失败：上游超时（原型模拟）— 重试。','Failed to load templates: upstream timeout (prototype simulation) — retry.':'模板加载失败：上游超时（原型模拟）— 重试。',
 'Overview':'概览','Identity':'身份','Access':'访问','Operations':'运维','System':'系统',
 'Dashboard':'仪表盘','Users':'用户','Roles':'角色','Groups':'用户组','Tenants':'租户','OIDC Clients':'OIDC 客户端','API Keys':'API 密钥','Webhooks':'Webhooks','Audit Log':'审计日志','Events':'事件','Profile':'个人资料','Settings':'设置',
 'Admin /':'管理 /','Identity & Access':'身份与访问',
@@ -1058,7 +1074,7 @@ const I18N_ZH={
 'Send test':'发送测试','Send ping':'发送 ping','Send verification':'发送验证','Rotate secret':'轮换 secret','Deliveries':'投递记录','Verify chain':'校验链',
 'Export failed.':'导出失败。','Verification failed.':'校验失败。','Hash chain verified':'哈希链校验通过','Load failed — retry':'加载失败 — 重试',
 'User':'用户','Status':'状态','Tenant':'租户','Created':'创建时间','Actions':'操作','Name':'名称','Kind':'类型','Description':'描述','Members':'成员','Slug':'Slug','Client ID':'Client ID','Redirect URIs':'重定向 URI','Grant types':'授权类型','Scope':'范围','Scopes':'范围','Expires':'过期时间','Prefix':'前缀','URL':'URL','Pending':'待投递','Dead':'死信','Time':'时间','Type':'类型','Payload':'Payload','Fanout':'Fanout','Detail':'详情','Actor':'操作者','Action':'操作','Target':'目标','Resource':'资源','Response':'响应','Attempts':'尝试次数','Device':'设备','IP':'IP','IP address':'IP 地址','Session':'会话','Signed in':'登录时间','Current':'当前','Key':'键','Value':'值','Value (JSON)':'值（JSON）','Subject':'主题','Template':'模板','Permissions':'权限','Role':'角色','Event':'事件',
-'Active':'活跃','Suspended':'已暂停','Revoked':'已吊销','Done':'完成','Department':'部门','Group':'用户组','Default':'默认','default':'默认','System':'系统','system':'系统','mixed':'混合','Mixed (stored scopes diverge)':'混合（存储 scope 分歧）','Self only':'仅本人','no parent':'无父角色','not applicable':'不适用','not granted':'未授予','granted':'已授予','inherits viewer':'继承 viewer','platform-only (locked for tenant roles)':'仅平台（租户角色锁定）','No such permission':'无此权限','users:* data scope':'users:* 数据范围','Locked (system role)':'锁定（系统角色）','Locked (default tenant)':'锁定（默认租户）','System role is read-only':'系统角色只读','Already revoked':'已吊销','Never':'永不','Off':'关闭','Enabled':'已启用','Disable':'禁用','Enable':'启用','complete':'完成','delivered':'已投递','pending':'待投递','dead':'死信',
+'Active':'活跃','Suspended':'已暂停','Revoked':'已吊销','Done':'完成','Department':'部门','Group':'用户组','Default':'默认','default':'默认','system':'系统','mixed':'混合','Mixed (stored scopes diverge)':'混合（存储 scope 分歧）','Self only':'仅本人','no parent':'无父角色','not applicable':'不适用','not granted':'未授予','granted':'已授予','inherits viewer':'继承 viewer','platform-only (locked for tenant roles)':'仅平台（租户角色锁定）','No such permission':'无此权限','users:* data scope':'users:* 数据范围','Locked (system role)':'锁定（系统角色）','Locked (default tenant)':'锁定（默认租户）','System role is read-only':'系统角色只读','Already revoked':'已吊销','Never':'永不','Off':'关闭','Enabled':'已启用','Disable':'禁用','Enable':'启用','complete':'完成','delivered':'已投递','pending':'待投递','dead':'死信',
 '1 hour':'1 小时','8 hours':'8 小时','24 hours':'24 小时','7 days':'7 天','just now':'刚刚',
 'No results match the current filters':'没有符合当前过滤条件的结果','Try adjusting or clearing the filters.':'尝试调整或清除过滤条件。',
 'Delete user':'删除用户','Delete role':'删除角色','Delete client':'删除客户端','Delete webhook':'删除 webhook','Remove member':'移除成员','Revoke API key':'吊销 API 密钥','Suspend':'暂停','Activate':'激活','Reactivate':'重新激活','Revoke':'吊销','Unlink':'解绑','Force logout':'强制登出','Log out other devices':'登出其他设备','Save empty':'保存为空',
@@ -1102,6 +1118,8 @@ const I18N_RULES=[
  [/^(\d+) users$/,'$1 个用户'],[/^(\d+) roles$/,'$1 个角色'],[/^(\d+) tenants$/,'$1 个租户'],[/^(\d+) groups$/,'$1 个用户组'],[/^(\d+) clients$/,'$1 个客户端'],[/^(\d+) keys$/,'$1 个密钥'],[/^(\d+) endpoints$/,'$1 个端点'],[/^(\d+) events$/,'$1 个事件'],[/^(\d+) entries$/,'$1 条记录'],[/^(\d+) perms$/,'$1 个权限'],
  [/^(\d+) perms · system$/,'$1 个权限 · 系统'],[/^(\d+) \/ 26 granted$/,'已授予 $1 / 26'],[/^(\d+)–(\d+) of (\d+)$/,'第 $1–$2 条，共 $3 条'],
  [/^(\d+) (m|h|d|w|mo) ago$/,function(m){return m[1]+' '+({m:'分钟',h:'小时',d:'天',w:'周',mo:'个月'})[m[2]]+'前';}],
+ [/^(\d+)(m|h|d)$/,function(m){return m[1]+({m:' 分钟前',h:' 小时前',d:' 天前'})[m[2]];}],
+ [/^Exported (\d+) rows$/,'已导出 $1 行'],[/^Slug "([^"]+)" already exists$/,'Slug "$1" 已存在'],[/^Each event must be \* or resource\.action \(lowercase\): (.+)$/,'每个事件须为 * 或 resource.action（小写）：$1'],
  [/^(\d+) (minutes|hours|days|weeks|months) ago$/,function(m){return m[1]+' '+({minutes:'分钟',hours:'小时',days:'天',weeks:'周',months:'个月'})[m[2]]+'前';}],
  [/^from (.+)\? They lose every role and permission inherited from this group\.$/,'从 $1 移除？其将失去从该组继承的所有角色与权限。'],
  [/^Deliveries · (.+)$/,'投递记录 · $1'],[/^Edit template · (.+)$/,'编辑模板 · $1'],
@@ -1124,8 +1142,8 @@ function translateNode(root){
 function updateLangBtn(){const b=$('langBtn');if(!b)return;b.textContent=LANG==='zh'?'EN':'中文';const lab=LANG==='zh'?'语言':'Language';b.setAttribute('aria-label',lab);b.setAttribute('data-tip',lab);b.__i18nEnAttrs={'aria-label':'Language','data-tip':'Language'};}
 let i18nTimer=null;
 new MutationObserver(()=>{if(LANG!=='zh')return;clearTimeout(i18nTimer);i18nTimer=setTimeout(()=>translateNode(document.body),30);}).observe(document.body,{childList:true,subtree:true,characterData:true});
-function initLang(){document.documentElement.lang=LANG;updateLangBtn();if(LANG==='zh')translateNode(document.body);}
-$('langBtn').onclick=()=>{LANG=LANG==='zh'?'en':'zh';try{localStorage.setItem('ab-lang',LANG);}catch(_){}document.documentElement.lang=LANG;updateLangBtn();translateNode(document.body);};
+function initLang(){document.documentElement.lang=LANG==='zh'?'zh-CN':'en';updateLangBtn();if(LANG==='zh')translateNode(document.body);}
+$('langBtn').onclick=()=>{LANG=LANG==='zh'?'en':'zh';try{localStorage.setItem('ab-lang',LANG);}catch(_){}document.documentElement.lang=LANG==='zh'?'zh-CN':'en';updateLangBtn();translateNode(document.body);};
 
 const STYLE_MIGRATE={enterprise:'broadsheet',engineer:'geist',google:'material',microsoft:'fluent'};try{let s=localStorage.getItem('ab_style')||'broadsheet';s=STYLE_MIGRATE[s]||s;document.documentElement.dataset.style=s;localStorage.setItem('ab_style',s);}catch(e){}
 const styleSel=$('styleSelect');styleSel.value=document.documentElement.dataset.style||'broadsheet';
@@ -1161,7 +1179,7 @@ document.addEventListener('click',e=>{const sb=e.target.closest('[data-ustatus]'
 /* Post-closure fix 6: user detail status is an immediate-effect Switch like real UserDetail.tsx:139
    (loading + success/error feedback, no confirm); row-level suspend keeps its Popconfirm-equivalent. */
 let dStatusTried=false;
-document.addEventListener('click',e=>{const b=e.target.closest('[data-dstatus]');if(!b||b.disabled)return;const i=+b.dataset.dstatus;b.disabled=true;setTimeout(()=>{b.disabled=false;if(!dStatusTried){dStatusTried=true;toast('Failed to update status','error');return;}USERS[i][2]=USERS[i][2]==='active'?'suspended':'active';renderUsers();const wrap=b.parentElement;wrap.innerHTML=statusTag(USERS[i][2])+'<button type="button" class="wswitch'+(USERS[i][2]==='active'?' on':'')+'" data-dstatus="'+i+'" aria-label="Toggle status"><span class="knob"></span></button>';toast('Status updated');},500);});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-dstatus]');if(!b||b.disabled)return;const i=+b.dataset.dstatus;b.disabled=true;setTimeout(()=>{b.disabled=false;if(!dStatusTried){dStatusTried=true;toast('Failed to update status (prototype simulation) — retry','error');return;}USERS[i][2]=USERS[i][2]==='active'?'suspended':'active';renderUsers();const wrap=b.parentElement;wrap.innerHTML=statusTag(USERS[i][2])+'<button type="button" role="switch" aria-checked="'+(USERS[i][2]==='active')+'" class="wswitch'+(USERS[i][2]==='active'?' on':'')+'" data-dstatus="'+i+'" aria-label="Toggle status"><span class="knob"></span></button>';const nb=wrap.querySelector('[data-dstatus]');if(nb)nb.focus();toast('Status updated');},500);});
 function statusTag(s){return s==='active'?'<span class="tag ok"><span class="dot"></span>Active</span>':s==='suspended'?'<span class="tag danger"><span class="dot"></span>Suspended</span>':'<span class="tag warn"><span class="dot"></span>Pending</span>';}
 function renderUsers(){const q=$('userSearch').value.toLowerCase();const tf=$('tenantFilter').value;const sf=$('statusFilter').value;
 let filtered=USERS.filter(u=>(!q||u[0].toLowerCase().includes(q)||u[1].toLowerCase().includes(q))&&(!tf||u[3]===tf)&&(!sf||u[2]===sf));
@@ -1317,13 +1335,13 @@ const delivCls=s=>({delivered:'ok',pending:'warn',dead:'danger'}[s]||'');
 let modalReturnFocus=null;
 function modalFocusables(m){return [...m.querySelectorAll('button,input,select,textarea,a[href],[tabindex]')].filter(el=>!el.disabled&&el.tabIndex>=0&&el.offsetParent!==null);}
 function openModal(id){const ov=$(id);enhanceAllSelects(ov);const m=ov.querySelector('.modal');modalReturnFocus=document.activeElement;const h=m.querySelector('.modal-head h3');if(h){if(!h.id)h.id=id+'-title';m.setAttribute('aria-labelledby',h.id);}ov.classList.add('on');const f=modalFocusables(m);const target=m.querySelector('[data-autofocus]')||f.find(el=>el.matches('input:not([type=checkbox]):not([type=radio]),textarea'))||f[0];if(target)setTimeout(()=>{if(ov.classList.contains('on'))target.focus();},0);}
-function closeModal(id){const ov=$(id);ov.classList.remove('on');if(modalReturnFocus&&document.contains(modalReturnFocus)&&modalReturnFocus.offsetParent!==null){modalReturnFocus.focus();}modalReturnFocus=null;}
+function closeModal(id){const ov=$(id);ov.classList.remove('on');if(modalReturnFocus&&document.contains(modalReturnFocus)&&modalReturnFocus.offsetParent!==null){modalReturnFocus.focus();}else{const pg=document.querySelector('section.page.on');const anchor=pg&&(pg.querySelector('.page-head button')||pg.querySelector('h1'));if(anchor){if(!anchor.hasAttribute('tabindex'))anchor.setAttribute('tabindex','-1');anchor.focus();}}modalReturnFocus=null;}
 document.addEventListener('keydown',e=>{if(e.key!=='Tab')return;const open=[...document.querySelectorAll('.modal-overlay.on')].pop();if(!open)return;const m=open.querySelector('.modal');const f=modalFocusables(m);if(!f.length){e.preventDefault();return;}const first=f[0],last=f[f.length-1];const act=document.activeElement;if(e.shiftKey){if(act===first||!m.contains(act)){e.preventDefault();last.focus();}}else{if(act===last||!m.contains(act)){e.preventDefault();first.focus();}}});
 function openDetail(title,html){$('detailTitle').textContent=title;$('detailBody').innerHTML=html;openModal('detailModal');}
 function toast(msg,kind){kind=kind||'success';const tt=$('protoToast');tt.className='proto-toast '+kind;tt.setAttribute('role',kind==='error'?'alert':'status');tt.setAttribute('aria-live',kind==='error'?'assertive':'polite');tt.innerHTML='<svg class="ic" style="color:'+(kind==='error'?'var(--danger-inv)':kind==='info'?'var(--accent)':'var(--ok)')+'"><use href="#i-'+(kind==='error'?'alert':kind==='info'?'info':'check')+'"/></svg><span>'+esc(msg)+'</span>';tt.style.display='flex';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},2200);}
 function emptyRow(cols,page,base,createKind){const filtered=base>0;return '<tr><td colspan="'+cols+'"><div class="empty-state"><svg class="ic"><use href="#i-inbox"/></svg><h4>'+(filtered?'No results match the current filters':'Nothing here yet')+'</h4><p>'+(filtered?'Try adjusting or clearing the filters.':'Create the first record to get started.')+'</p>'+(filtered?'<button class="btn sm" data-empty-clear="'+page+'">Clear filters</button>':(createKind?'<button class="btn sm" data-create="'+createKind+'">Create</button>':''))+'</div></td></tr>';}
 document.addEventListener('click',e=>{const t=e.target.closest('[data-detail]');if(!t)return;const idx=+t.dataset.idx;
-if(t.dataset.detail==='user'){const u=USERS[idx];openDetail(u[0]+' · User','<div class="detail-meta">'+esc(u[1])+'</div><div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:var(--fs12);align-items:center"><span style="color:var(--tx3)">Status</span><span style="display:inline-flex;align-items:center;gap:8px">'+statusTag(u[2])+'<button type="button" class="wswitch'+(u[2]==='active'?' on':'')+'" data-dstatus="'+idx+'" aria-label="Toggle status"><span class="knob"></span></button></span><span style="color:var(--tx3)">Tenant</span><span>'+esc(u[3])+'</span><span style="color:var(--tx3)">Created</span><span class="mono">'+esc(u[4])+'</span></div>');return;}
+if(t.dataset.detail==='user'){const u=USERS[idx];openDetail(u[0]+' · User','<div class="detail-meta">'+esc(u[1])+'</div><div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:var(--fs12);align-items:center"><span style="color:var(--tx3)">Status</span><span style="display:inline-flex;align-items:center;gap:8px">'+statusTag(u[2])+'<button type="button" role="switch" aria-checked="'+(u[2]==='active')+'" class="wswitch'+(u[2]==='active'?' on':'')+'" data-dstatus="'+idx+'" aria-label="Toggle status"><span class="knob"></span></button></span><span style="color:var(--tx3)">Tenant</span><span>'+esc(u[3])+'</span><span style="color:var(--tx3)">Created</span><span class="mono">'+esc(u[4])+'</span></div>');return;}
 const c=CLIENTS[idx];
 if(t.dataset.detail==='uris'){openDetail(c.name+' · Redirect URIs',c.redirectUris.length?'<div class="detail-meta">'+c.redirectUris.length+' registered redirect URI'+(c.redirectUris.length>1?'s':'')+'</div>'+c.redirectUris.map(u=>'<div class="mono" style="font-size:var(--fs12);padding:6px 8px;background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);margin-bottom:6px;word-break:break-all">'+esc(u)+'</div>').join(''):'<div class="detail-meta">No redirect URIs — machine-to-machine client.</div>');}
 else if(t.dataset.detail==='scope'){openDetail(c.name+' · Scope','<div class="detail-meta">Granted scopes</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+tags(c.scope.split(' '))+'</div>');}});
@@ -1334,7 +1352,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){const open=[...docu
    feedback) so every copyable cell's icon looked dead. AntD copyable parity: success toast + transient
    check glyph; clipboard-unavailable contexts fall back to execCommand; failure reports an error toast. */
 function fallbackCopy(txt){try{const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok;}catch(err){return false;}}
-function copyFeedback(c,ok){if(ok){toast('Copied');const u=c.querySelector('use');if(u){const old=u.getAttribute('href');u.setAttribute('href','#i-check');c.classList.add('copied');setTimeout(()=>{u.setAttribute('href',old);c.classList.remove('copied');},1200);}}else{toast('Copy failed','error');}}
+function copyFeedback(c,ok){if(ok){toast('Copied');const u=c.querySelector('use');if(u){if(!c.dataset.copyOrig)c.dataset.copyOrig=u.getAttribute('href');clearTimeout(c._copyT);u.setAttribute('href','#i-check');c.classList.add('copied');c._copyT=setTimeout(()=>{u.setAttribute('href',c.dataset.copyOrig);c.classList.remove('copied');},1200);}}else{toast('Copy failed','error');}}
 document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(!c)return;const txt=c.dataset.copy;let p=null;try{if(navigator.clipboard&&navigator.clipboard.writeText)p=navigator.clipboard.writeText(txt);}catch(err){}
  if(p&&p.then){p.then(()=>copyFeedback(c,true)).catch(()=>copyFeedback(c,fallbackCopy(txt)));}else{copyFeedback(c,fallbackCopy(txt));}});
 // R2 overflow menu logic (reusable). Inert secondary actions disclose via the same toast.
@@ -1388,7 +1406,7 @@ $('initSubmit').onclick=()=>{const t=TENANTS[initIdx];const em=$('initEmail').va
  if(!nm){initFieldErr('initNameErr','Admin name is required');return;}
  const pe=pwdPolicyError(pw);if(pe){initFieldErr('initPwdErr',pe);return;}
  const b=$('initSubmit');btnBusy(b,true,'Creating…');setTimeout(()=>{btnBusy(b,false);
-  if(!tInitTried){tInitTried=true;initErr('403 TENANT_PROTECTED: bootstrap is temporarily locked by the platform guard — retry shortly. (Prototype simulates the server error on the first attempt.)');return;}
+  if(!tInitTried){tInitTried=true;initErr('403 TENANT_PROTECTED: bootstrap is temporarily locked by the platform guard — retry shortly. (prototype simulation: server error on first attempt)');return;}
   t.bootstrapped=true;USERS.push([nm,em,'active',t.name,'just now',[]]);closeModal('initAdminModal');toast('Initial admin created');renderTenants();},400);};
 
 
@@ -1458,6 +1476,7 @@ const WEBHOOKS=[
  {url:'https://ops.globex.com/events',description:'Ops fan-out',events:['user.deleted','webhook.test'],enabled:true,pending:2,dead:1,created:'6 weeks ago',deliveries:[{status:'pending',attempts:2,response:null,created:'3m ago'},{status:'pending',attempts:3,response:503,created:'22m ago'},{status:'delivered',attempts:1,response:200,created:'2h ago'}]},
  {url:'https://audit.initech.com/sink',description:'',events:['*'],enabled:false,pending:0,dead:3,created:'3 weeks ago',deliveries:[{status:'dead',attempts:5,response:410,created:'1d ago'},{status:'dead',attempts:5,response:410,created:'2d ago'}]}
 ];
+let whPingTried=false,whToggleTried=false,whRotateTried=false,whDelivTried=false,whDelivIdx=null;
 function renderWebhooks(){
  const q=$('webhookSearch').value.toLowerCase();
  const list=WEBHOOKS.filter(w=>!q||w.url.toLowerCase().includes(q));
@@ -1465,14 +1484,13 @@ function renderWebhooks(){
  $('webhookRows').innerHTML=list.map(w=>{const i=WEBHOOKS.indexOf(w);
   return '<tr><td>'+copyCell(w.url)+(w.description?'<div class="u-em">'+esc(w.description)+'</div>':'')+'</td><td>'+tags(w.events)+'</td><td><button class="wswitch'+(w.enabled?' on':'')+'" data-wenabled="'+i+'" role="switch" aria-checked="'+w.enabled+'" aria-label="Enabled"><span class="knob"></span></button></td><td><span class="count-pill'+(w.pending?' pending':'')+'">'+w.pending+'</span></td><td><span class="count-pill'+(w.dead?' dead':'')+'">'+w.dead+'</span></td><td class="mono">'+w.created+'</td><td><div class="row-actions" style="justify-content:flex-end"><button data-tip="Send ping" data-ping="'+i+'" aria-label="Send ping"><svg class="ic"><use href="#i-send"/></svg></button><button data-tip="Rotate secret" data-rotate-wh="'+i+'" aria-label="Rotate secret"><svg class="ic"><use href="#i-refresh"/></svg></button><button data-tip="Deliveries" data-deliv="'+i+'" aria-label="Deliveries"><svg class="ic"><use href="#i-eye"/></svg></button><button data-tip="Edit" aria-label="Edit"><svg class="ic"><use href="#i-pencil"/></svg></button><button data-tip="Delete" aria-label="Delete"><svg class="ic"><use href="#i-trash"/></svg></button></div></td></tr>';}).join('')||emptyRow(8,'webhooks',WEBHOOKS.length,'webhooks');
  if(!WH_PERMS.write){document.querySelectorAll('#webhookRows [data-ping],#webhookRows [data-rotate-wh],#webhookRows [data-wenabled],#webhookRows button[aria-label="Edit"],#webhookRows button[aria-label="Delete"]').forEach(b=>{b.disabled=true;b.title='Requires webhooks:write';});}
- let whPingTried=false,whToggleTried=false,whRotateTried=false,whDelivTried=false,whDelivIdx=null;
  document.querySelectorAll('[data-ping]').forEach(b=>b.onclick=()=>{if(!WH_PERMS.write)return;const w=WEBHOOKS[+b.dataset.ping];btnBusy(b,true,'');setTimeout(()=>{btnBusy(b,false);if(!whPingTried){whPingTried=true;toast('Ping failed: upstream timeout (prototype simulation) — retry','error');return;}w.deliveries.unshift({status:'pending',attempts:1,response:null,created:'just now'});w.pending++;renderWebhooks();toast('Ping queued (webhook.test)');},400);});
  document.querySelectorAll('[data-wenabled]').forEach(b=>b.onclick=()=>{if(!WH_PERMS.write)return;const w=WEBHOOKS[+b.dataset.wenabled];b.disabled=true;setTimeout(()=>{if(!whToggleTried){whToggleTried=true;b.disabled=false;toast('Update failed: upstream timeout (prototype simulation) — retry','error');return;}w.enabled=!w.enabled;renderWebhooks();toast('Endpoint updated');},400);});
  document.querySelectorAll('[data-rotate-wh]').forEach(b=>b.onclick=()=>{if(!WH_PERMS.write)return;const w=WEBHOOKS[+b.dataset.rotateWh];btnBusy(b,true,'');setTimeout(()=>{btnBusy(b,false);if(!whRotateTried){whRotateTried=true;toast('Rotate failed: upstream timeout (prototype simulation) — retry','error');return;}reveal('Webhook secret rotated','whsec_'+Math.random().toString(36).slice(2,18),w.url);toast('Secret rotated');},400);});
  function renderDelivRows(w){$('delivRows').innerHTML=w.deliveries.map(d=>'<tr><td><span class="tag '+delivCls(d.status)+'">'+d.status+'</span></td><td class="mono">'+d.attempts+'</td><td class="mono">'+(d.response===null?'—':d.response)+'</td><td class="mono">'+d.created+'</td></tr>').join('')||emptyRow(4,'deliveries',w.deliveries.length,null);}
  function delivSkeleton(){$('delivRows').innerHTML=Array.from({length:3},()=>'<tr><td colspan="4"><div class="skel" style="width:70%"></div></td></tr>').join('');}
  document.querySelectorAll('[data-deliv]').forEach(b=>b.onclick=()=>{whDelivIdx=+b.dataset.deliv;const w=WEBHOOKS[whDelivIdx];$('delivTitle').textContent='Deliveries · '+w.url;$('delivErr').style.display='none';delivSkeleton();openModal('delivModal');setTimeout(()=>{if(!whDelivTried){whDelivTried=true;$('delivErrMsg').textContent='Failed to load deliveries: upstream timeout (prototype simulation) — retry.';$('delivErr').style.display='flex';$('delivRows').innerHTML='';return;}renderDelivRows(w);},400);});
- $('delivRetry').onclick=()=>{whDelivTried=true;const w=WEBHOOKS[whDelivIdx];$('delivErr').style.display='none';delivSkeleton();setTimeout(()=>renderDelivRows(w),400);};
+ $('delivRetry').onclick=()=>{whDelivTried=true;const w=WEBHOOKS[whDelivIdx];if(!w)return;$('delivErr').style.display='none';delivSkeleton();setTimeout(()=>renderDelivRows(w),400);};
 }
 $('webhookSearch').addEventListener('input',renderWebhooks);
 $('whPermView').onchange=()=>{WH_PERMS={write:$('whPermView').value==='write'};document.querySelector('[data-create=webhooks]').disabled=!WH_PERMS.write;renderWebhooks();toast('Perspective: '+$('whPermView').selectedOptions[0].textContent);};
@@ -1505,7 +1523,7 @@ $('auditTo').addEventListener('input',renderAudit);
    simulated briefly (disclosed) because prototype data is local. */
 let verifyTried=false;let exportTried=false;let auditLoadTried=false;let auditLoadSeq=0;
 function btnBusy(btn,on,label){if(on){btn.dataset.label=btn.innerHTML;btn.disabled=true;btn.innerHTML='<svg class="ic" style="animation:cbxrot 1s linear infinite"><use href="#i-refresh"/></svg>'+label;}else{btn.disabled=false;btn.innerHTML=btn.dataset.label;}}
-function runVerify(){const b=$('verifyBtn');btnBusy(b,true,'Verifying…');$('auditVerifyBanner').style.display='none';$('auditErrBanner').style.display='none';setTimeout(()=>{btnBusy(b,false);if(!verifyTried){verifyTried=true;const f={kind:'anchor_mismatch',day:'2026-11-17',seq:4};$('auditErrMsg').textContent='Verification failed: '+f.kind+' at day '+f.day+' seq '+f.seq+' (prototype simulates anchor lag) — retry.';$('auditErrBanner').style.display='flex';toast('Verification failed — retry','error');}else{const rep={chainOk:true,rowsChecked:AUDIT.length,anchorsChecked:2};$('verifyMsg').textContent='Hash chain verified';$('verifyMeta').textContent='rowsChecked: '+rep.rowsChecked+' · anchorsChecked: '+rep.anchorsChecked;$('auditVerifyBanner').style.display='flex';toast('Chain verified');}},500);}
+function runVerify(){const b=$('verifyBtn');btnBusy(b,true,'Verifying…');$('auditVerifyBanner').style.display='none';$('auditErrBanner').style.display='none';setTimeout(()=>{btnBusy(b,false);if(!verifyTried){verifyTried=true;const f={kind:'anchor_mismatch',day:'2026-11-17',seq:4};$('auditErrMsg').textContent='Verification failed: '+f.kind+' at day '+f.day+' seq '+f.seq+' (prototype simulation: anchor lag) — retry.';$('auditErrBanner').style.display='flex';toast('Verification failed — retry','error');}else{const rep={chainOk:true,rowsChecked:AUDIT.length,anchorsChecked:2};$('verifyMsg').textContent='Hash chain verified';$('verifyMeta').textContent='rowsChecked: '+rep.rowsChecked+' · anchorsChecked: '+rep.anchorsChecked;$('auditVerifyBanner').style.display='flex';toast('Chain verified');}},500);}
 $('verifyBtn').onclick=runVerify;
 $('auditRetry').onclick=runVerify;
 function runExport(){const b=$('exportBtn');btnBusy(b,true,'Exporting…');$('auditExportBanner').style.display='none';setTimeout(()=>{btnBusy(b,false);if(!exportTried){exportTried=true;$('auditExportMsg').textContent='Export failed: upstream timeout (prototype simulation) — retry.';$('auditExportBanner').style.display='flex';toast('Export failed — retry','error');return;}const rows=auditFiltered();const csv=['time,actor,action,resource,ip,status'].concat(rows.map(a=>[a.time,a.actor,a.action,a.resource,a.ip,a.status==null?'':a.status].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(','))).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='audit.csv';a.click();URL.revokeObjectURL(a.href);toast('Exported '+rows.length+' rows');},400);}
@@ -1575,9 +1593,11 @@ function formCtl(k,l,ty,val){if(ty==='password'){return '<input type="password" 
  if(k==='events'){return eventsCtl(val);}
  return '<input data-field="'+k+'" value="'+esc(val||'')+'" placeholder="'+l+'">';}
 function grantsVal(){return [...document.querySelectorAll('#formBody [data-field=grantTypes] input:checked')].map(c=>c.value);}
-function eventsCtl(val){return '<input data-field="events" value="'+esc(val)+'" placeholder="* or resource.action, comma-separated"><div class="ev-presets">'+['*','user.created','user.updated','user.deleted','webhook.test'].map(pr=>'<button type="button" class="tag" data-evpreset="'+pr+'">'+pr+'</button>').join('')+'</div>';}
-document.addEventListener('click',e=>{const pr=e.target.closest('[data-evpreset]');if(!pr)return;const inp=document.querySelector('#formBody [data-field=events]');const cur=inp.value?inp.value.split(',').map(s=>s.trim()).filter(Boolean):[];if(!cur.includes(pr.dataset.evpreset))cur.push(pr.dataset.evpreset);inp.value=cur.join(', ');});
-function formError(msg){let e=document.getElementById('formErr');if(!e){e=document.createElement('div');e.id='formErr';e.className='error-banner';e.style.marginBottom='12px';$('formBody').prepend(e);}e.innerHTML='<svg class="ic"><use href="#i-alert"/></svg><span>'+esc(msg)+'</span>';e.style.display='flex';}
+function eventsCtl(val){return '<input data-field="events" value="'+esc(val)+'" placeholder="* or resource.action, comma-separated"><div class="ev-presets">'+['*','user.created','user.updated','user.deleted','webhook.test'].map(pr=>'<button type="button" class="tag" data-evpreset="'+pr+'" aria-pressed="false">'+pr+'</button>').join('')+'</div>';}
+function syncEvPresets(){const inp=document.querySelector('#formBody [data-field=events]');if(!inp)return;const cur=inp.value?inp.value.split(',').map(s=>s.trim()).filter(Boolean):[];document.querySelectorAll('#formBody [data-evpreset]').forEach(b=>b.setAttribute('aria-pressed',String(cur.includes(b.dataset.evpreset))));}
+document.addEventListener('click',e=>{const pr=e.target.closest('[data-evpreset]');if(!pr)return;const inp=document.querySelector('#formBody [data-field=events]');const cur=inp.value?inp.value.split(',').map(s=>s.trim()).filter(Boolean):[];const v=pr.dataset.evpreset;const next=cur.includes(v)?cur.filter(x=>x!==v):cur.concat(v);inp.value=next.join(', ');syncEvPresets();});
+document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('#formBody [data-field=events]'))syncEvPresets();});
+function formError(msg){let e=document.getElementById('formErr');if(!e){e=document.createElement('div');e.id='formErr';e.className='error-banner';e.setAttribute('role','alert');e.style.marginBottom='12px';$('formBody').prepend(e);}e.innerHTML='<svg class="ic"><use href="#i-alert"/></svg><span>'+esc(msg)+'</span>';e.style.display='flex';}
 $('formSave').onclick=()=>{
  const get=k=>{const el=document.querySelector('#formBody [data-field="'+k+'"]');return el?el.value.trim():'';};
  if(formEdit!==null){const d=EDITDEFS[formKind];const vals={};d.fields.forEach(f=>{if(f[2]==='multi'){const s=document.querySelector('#formBody [data-field="'+f[0]+'"]');vals[f[0]]=[...s.selectedOptions].map(o=>o.value);}else{vals[f[0]]=get(f[0]);}});const req=formKind==='webhooks'?'url':(formKind==='options'?'value':(formKind==='templates'?'subject':'name'));if(!vals[req]){formError((req==='url'?'URL':(req==='value'?'Value':(req==='subject'?'Subject':'Name')))+' is required');return;}if(formKind==='options'){try{JSON.parse(vals.value);}catch(_){formError('Value must be valid JSON');return;}}if(formKind==='tenants'){if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(vals.slug)){formError('Slug must be lowercase letters/digits separated by single hyphens');return;}if(TENANTS.some((x,xi)=>xi!==formEdit&&x.slug===vals.slug)){formError('Slug "'+vals.slug+'" already exists');return;}}if(formKind==='webhooks'){if(!/^https?:\/\/\S+$/.test(vals.url)){formError('URL must be http(s)://…');return;}const ev=vals.events?vals.events.split(',').map(s=>s.trim()).filter(Boolean):[];const badEv=ev.filter(x=>x!=='*'&&!/^[a-z]+\.[a-z_]+$/.test(x));if(badEv.length){formError('Each event must be * or resource.action (lowercase): '+badEv.join(', '));return;}}if(formKind==='tenants'){const b=$('formSave');const idx=formEdit;btnBusy(b,true,'Saving…');setTimeout(()=>{btnBusy(b,false);if(!tEditTried){tEditTried=true;formError('Update failed: upstream timeout (prototype simulation) — retry.');return;}d.set(idx,vals);closeModal('formModal');toast('Tenant updated');formEdit=null;},400);return;}d.set(formEdit,vals);closeModal('formModal');toast('Saved');formEdit=null;return;}
@@ -1617,7 +1637,7 @@ const DEL={
 DEL['apikeys-revoke']=i=>{APIKEYS[i].revoked=true;renderApikeys();};
 DEL['groups-member']=i=>{GROUPS[selGroup].members.splice(i,1);renderMembers();renderGroups();};
 DEL['oauth-unlink']=i=>{OAUTH_LINKS.splice(i,1);renderOAuth();};
-DEL['sessions-others']=()=>{SESSIONS=SESSIONS.filter(s=>s.current);renderSessions();};
+DEL['sessions-others']=()=>{if(!sessRevTried){sessRevTried=true;toast('Revocation failed: upstream timeout (prototype simulation) — sessions kept','error');return false;}SESSIONS=SESSIONS.filter(s=>s.current);renderSessions();};
 DEL['users-status']=i=>{USERS[i][2]=USERS[i][2]==='active'?'suspended':'active';renderUsers();};
 DEL['users-force']=i=>{};
 DEL['roles-clear']=i=>{ROLES[i].perms=[];renderMatrix();renderRoles();};
@@ -1633,7 +1653,7 @@ function submitConfirm(){if(!pendingDelete)return;const d=pendingDelete;
    const erase=$('eraseAudit').checked;
    if(erase&&!$('legalBasis').value.trim()){confirmErr('400 VALIDATION_001: legalBasis is required when eraseAudit is true',false);return;}
    if(isLastAdmin(d.idx)){confirmErr('409 LAST_ADMIN_GUARD: this is the last active administrator of the tenant — promote another admin first.',false);return;}
-   if(erase&&eraseLockBusy){eraseLockBusy=false;confirmErr('409 ERASE_LOCK_BUSY: audit erasure is temporarily locked by the anchor worker — retry shortly. (Prototype simulates the lock on the first attempt.)',true);return;}
+   if(erase&&eraseLockBusy){eraseLockBusy=false;confirmErr('409 ERASE_LOCK_BUSY: audit erasure is temporarily locked by the anchor worker — retry shortly. (prototype simulation: lock on first attempt)',true);return;}
    DEL[d.kind](d.idx);
    if(erase){const basis=$('legalBasis').value.trim();let h=0;for(const ch of (USERS_NAME_CACHE[d.idx]||'')+basis)h=(h*31+ch.charCodeAt(0))>>>0;const hash=('00000000'+h.toString(16)).slice(-8)+('00000000'+((h^0x9e3779b9)>>>0).toString(16)).slice(-8);
      $('eraseSection').style.display='none';$('confirmErr').style.display='none';$('confirmDelete').style.display='none';$('confirmCancel').textContent='Close';
@@ -1643,7 +1663,7 @@ function submitConfirm(){if(!pendingDelete)return;const d=pendingDelete;
  /* Adjudication 20 (A): async confirm actions (unlink) carry Busy + a failure branch; pendingDelete
     stays alive on failure so the confirm button acts as Retry. Simulated failures disclosed. */
  if(d.run){btnBusy($('confirmDelete'),true,'Working…');d.run(()=>{btnBusy($('confirmDelete'),false);pendingDelete=null;closeModal('confirmModal');toast(d.toast||'Deleted');},(msg)=>{btnBusy($('confirmDelete'),false);confirmErr(msg,false);});return;}
- pendingDelete=null;DEL[d.kind](d.idx);closeModal('confirmModal');toast(d.toast||'Deleted');}
+ pendingDelete=null;const dr=DEL[d.kind](d.idx);closeModal('confirmModal');if(dr!==false)toast(d.toast||'Deleted');}
 const USERS_NAME_CACHE={};
 $('confirmDelete').onclick=submitConfirm;
 $('confirmRetry').onclick=submitConfirm;
@@ -1664,16 +1684,16 @@ document.addEventListener('click',e=>{const b=e.target.closest('button[data-tip]
    Implementation maps 1:1 to <Select showSearch allowClear mode loading> props. ==== */
 let cbxSeq=0;let openCbx=null;
 function cbxBuildList(sel){const w=sel._cbx;if(!w)return;const list=w.querySelector('.cbx-list');list.innerHTML='';list.setAttribute('aria-multiselectable',sel.multiple?'true':'false');[...sel.options].forEach((o,oi)=>{const d=document.createElement('div');d.className='cbx-opt';d.setAttribute('role','option');d.id=list.id+'-opt-'+oi;d.dataset.value=o.value;d.setAttribute('aria-selected',o.selected?'true':'false');d.textContent=o.textContent;d.onclick=e=>{e.stopPropagation();if(sel.multiple){o.selected=!o.selected;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxRefresh(sel);}else{sel.value=o.value;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxClose();}};list.appendChild(d);});}
-function cbxRefresh(sel){const w=sel._cbx;if(!w)return;const val=w.querySelector('.cbx-val');if(sel.multiple){const selOpts=[...sel.selectedOptions];val.innerHTML=selOpts.length?selOpts.map(o=>'<span class="cbx-chip">'+esc(o.textContent)+'<button type="button" data-cbxrm="'+esc(o.value)+'" aria-label="Remove '+esc(o.textContent)+'" tabindex="-1"><svg class="ic"><use href="#i-x"/></svg></button></span>').join(''):'<span style="color:var(--tx3)">Select…</span>';}else{const o=sel.options[sel.selectedIndex];val.textContent=o?o.textContent:'';}const cl=w.querySelector('.cbx-clear');const showCl=!sel.disabled&&sel.hasAttribute('data-clearable')&&(sel.multiple?sel.selectedOptions.length:sel.value!=='');if(cl)cl.style.display=showCl?'inline-flex':'none';w.classList.toggle('cbx-has-clear',!!showCl);if(w.classList.contains('open'))cbxBuildList(sel);}
+function cbxRefresh(sel){const w=sel._cbx;if(!w)return;const val=w.querySelector('.cbx-val');if(sel.multiple){const selOpts=[...sel.selectedOptions];val.innerHTML=selOpts.length?selOpts.map(o=>'<span class="cbx-chip">'+esc(o.textContent)+'<button type="button" data-cbxrm="'+esc(o.value)+'" aria-label="Remove '+esc(o.textContent)+'" tabindex="0"><svg class="ic"><use href="#i-x"/></svg></button></span>').join(''):'<span style="color:var(--tx3)">Select…</span>';}else{const o=sel.options[sel.selectedIndex];val.textContent=o?o.textContent:'';}const cl=w.querySelector('.cbx-clear');const showCl=!sel.disabled&&sel.hasAttribute('data-clearable')&&(sel.multiple?sel.selectedOptions.length:sel.value!=='');if(cl)cl.style.display=showCl?'inline-flex':'none';w.classList.toggle('cbx-has-clear',!!showCl);if(w.classList.contains('open'))cbxBuildList(sel);}
 function cbxPlace(w){const list=w.querySelector('.cbx-list');const br=w.querySelector('.cbx-btn').getBoundingClientRect();list.style.minWidth=br.width+'px';list.style.visibility='hidden';const lw=list.offsetWidth,lh=list.offsetHeight;let top=br.bottom+4;if(top+lh>window.innerHeight-4)top=Math.max(4,br.top-4-lh);top=Math.max(4,Math.min(top,window.innerHeight-lh-4));const left=Math.max(4,Math.min(br.left,window.innerWidth-lw-4));list.style.top=top+'px';list.style.left=left+'px';list.style.visibility='';}
-function cbxClose(){if(openCbx){openCbx.classList.remove('open');openCbx.querySelector('.cbx-btn').setAttribute('aria-expanded','false');openCbx=null;}}
-function cbxSyncDisabled(sel){const w=sel._cbx;if(!w)return;const b=w.querySelector('.cbx-btn');b.disabled=sel.disabled;b.setAttribute('aria-disabled',sel.disabled?'true':'false');w.classList.toggle('cbx-disabled',sel.disabled);if(sel.disabled)cbxClose();}
+function cbxClose(){if(openCbx){openCbx.classList.remove('open');const bb=openCbx.querySelector('.cbx-btn');bb.setAttribute('aria-expanded','false');bb.removeAttribute('aria-activedescendant');openCbx=null;}}
+function cbxSyncDisabled(sel){const w=sel._cbx;if(!w)return;const b=w.querySelector('.cbx-btn');b.disabled=sel.disabled;b.tabIndex=sel.disabled?-1:0;b.setAttribute('aria-disabled',sel.disabled?'true':'false');w.classList.toggle('cbx-disabled',sel.disabled);if(sel.disabled)cbxClose();}
 function cbxSetActive(w,opts,ai){opts.forEach(o=>o.classList.remove('active'));if(ai>=0&&opts[ai]){opts[ai].classList.add('active');opts[ai].scrollIntoView({block:'nearest'});w.querySelector('.cbx-btn').setAttribute('aria-activedescendant',opts[ai].id);}else{w.querySelector('.cbx-btn').removeAttribute('aria-activedescendant');}}
 function cbxOpen(sel){const w=sel._cbx;if(sel.disabled||w.classList.contains('cbx-loading'))return;cbxClose();cbxBuildList(sel);w.classList.add('open');cbxPlace(w);w.querySelector('.cbx-btn').setAttribute('aria-expanded','true');openCbx=w;const opts=[...w.querySelectorAll('.cbx-opt')];const si=opts.findIndex(o=>o.getAttribute('aria-selected')==='true');cbxSetActive(w,opts,si>=0?si:0);}
-function enhanceSelect(sel){if(sel._cbx)return;const w=document.createElement('span');w.className='cbx';const id='cbx-list-'+(++cbxSeq);if(sel.multiple)w.setAttribute('data-multi','');w.innerHTML='<button type="button" class="cbx-btn" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="'+id+'"><span class="cbx-val"></span><span class="cbx-load"><svg class="ic"><use href="#i-refresh"/></svg></span><svg class="ic cbx-chev"><use href="#i-chev-r"/></svg></button><button type="button" class="cbx-clear" aria-label="Clear" tabindex="-1"><svg class="ic"><use href="#i-x"/></svg></button><div class="cbx-list" role="listbox" id="'+id+'"></div>';sel.parentNode.insertBefore(w,sel);sel.classList.add('cbx-src');w.appendChild(sel);sel._cbx=w;const btn=w.querySelector('.cbx-btn');cbxSyncDisabled(sel);w.querySelector('.cbx-clear').onclick=e=>{e.stopPropagation();if(sel.disabled)return;if(sel.multiple){[...sel.options].forEach(o=>o.selected=false);}else{sel.value='';}sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxRefresh(sel);};w.addEventListener('click',e=>{const rm=e.target.closest('[data-cbxrm]');if(!rm)return;e.stopPropagation();const o=[...sel.options].find(x=>x.value===rm.dataset.cbxrm);if(o)o.selected=false;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxRefresh(sel);});sel._cbxSetLoading=on=>{w.classList.toggle('cbx-loading',!!on);if(on)cbxClose();};btn.onclick=e=>{if(e.target.closest('[data-cbxrm]'))return;e.stopPropagation();if(sel.disabled)return;if(openCbx===w){cbxClose();}else{cbxOpen(sel);}};btn.onkeydown=e=>{const opts=[...w.querySelectorAll('.cbx-opt')];let ai=opts.findIndex(o=>o.classList.contains('active'));if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(openCbx!==w){cbxOpen(sel);return;}ai=ai<0?0:(ai+(e.key==='ArrowDown'?1:-1)+opts.length)%opts.length;cbxSetActive(w,opts,ai);}else if(e.key==='Home'||e.key==='End'){e.preventDefault();if(openCbx!==w)cbxOpen(sel);const o2=[...w.querySelectorAll('.cbx-opt')];cbxSetActive(w,o2,e.key==='Home'?0:o2.length-1);}else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(openCbx!==w){cbxOpen(sel);}else if(ai>=0){opts[ai].click();if(sel.multiple)cbxSetActive(w,[...w.querySelectorAll('.cbx-opt')],ai);}}else if(e.key==='Escape'||e.key==='Tab'){cbxClose();}else if(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();if(openCbx!==w)cbxOpen(sel);const o2=[...w.querySelectorAll('.cbx-opt')];const ch=e.key.toLowerCase();let start=ai+1;for(let k=0;k<o2.length;k++){const idx=(start+k)%o2.length;if(o2[idx].textContent.trim().toLowerCase().startsWith(ch)){cbxSetActive(w,o2,idx);break;}}}};sel.addEventListener('change',()=>cbxRefresh(sel));sel.addEventListener('input',()=>cbxRefresh(sel));new MutationObserver(()=>{cbxSyncDisabled(sel);cbxBuildList(sel);cbxRefresh(sel);}).observe(sel,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['disabled']});const desc=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value');Object.defineProperty(sel,'value',{configurable:true,get(){return desc.get.call(this);},set(v){desc.set.call(this,v);cbxRefresh(this);}});cbxRefresh(sel);}
+function enhanceSelect(sel){if(sel._cbx)return;const w=document.createElement('span');w.className='cbx';const id='cbx-list-'+(++cbxSeq);if(sel.multiple)w.setAttribute('data-multi','');w.innerHTML='<div class="cbx-btn" role="combobox" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-controls="'+id+'"><span class="cbx-val"></span><span class="cbx-load"><svg class="ic"><use href="#i-refresh"/></svg></span><svg class="ic cbx-chev"><use href="#i-chev-r"/></svg></div><button type="button" class="cbx-clear" aria-label="Clear" tabindex="0"><svg class="ic"><use href="#i-x"/></svg></button><div class="cbx-list" role="listbox" id="'+id+'"></div>';sel.parentNode.insertBefore(w,sel);sel.classList.add('cbx-src');w.appendChild(sel);sel._cbx=w;const btn=w.querySelector('.cbx-btn');cbxSyncDisabled(sel);w.querySelector('.cbx-clear').onclick=e=>{e.stopPropagation();if(sel.disabled)return;if(sel.multiple){[...sel.options].forEach(o=>o.selected=false);}else{sel.value='';}sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxRefresh(sel);};w.addEventListener('click',e=>{const rm=e.target.closest('[data-cbxrm]');if(!rm)return;e.stopPropagation();const o=[...sel.options].find(x=>x.value===rm.dataset.cbxrm);if(o)o.selected=false;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));cbxRefresh(sel);});sel._cbxSetLoading=on=>{w.classList.toggle('cbx-loading',!!on);if(on)cbxClose();};btn.onclick=e=>{if(sel.disabled)return;if(e.target.closest('[data-cbxrm]'))return;e.stopPropagation();if(sel.disabled)return;if(openCbx===w){cbxClose();}else{cbxOpen(sel);}};btn.onkeydown=e=>{if(sel.disabled)return;const opts=[...w.querySelectorAll('.cbx-opt')];let ai=opts.findIndex(o=>o.classList.contains('active'));if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(openCbx!==w){cbxOpen(sel);return;}ai=ai<0?0:(ai+(e.key==='ArrowDown'?1:-1)+opts.length)%opts.length;cbxSetActive(w,opts,ai);}else if(e.key==='Home'||e.key==='End'){e.preventDefault();if(openCbx!==w)cbxOpen(sel);const o2=[...w.querySelectorAll('.cbx-opt')];cbxSetActive(w,o2,e.key==='Home'?0:o2.length-1);}else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(openCbx!==w){cbxOpen(sel);}else if(ai>=0){opts[ai].click();if(sel.multiple)cbxSetActive(w,[...w.querySelectorAll('.cbx-opt')],ai);}}else if(e.key==='Escape'){e.stopPropagation();cbxClose();}else if(e.key==='Tab'){cbxClose();}else if(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();if(openCbx!==w)cbxOpen(sel);const o2=[...w.querySelectorAll('.cbx-opt')];const ch=e.key.toLowerCase();let start=ai+1;for(let k=0;k<o2.length;k++){const idx=(start+k)%o2.length;if(o2[idx].textContent.trim().toLowerCase().startsWith(ch)){cbxSetActive(w,o2,idx);break;}}}};sel.addEventListener('change',()=>cbxRefresh(sel));sel.addEventListener('input',()=>cbxRefresh(sel));new MutationObserver(()=>{cbxSyncDisabled(sel);cbxBuildList(sel);cbxRefresh(sel);}).observe(sel,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['disabled']});const desc=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value');Object.defineProperty(sel,'value',{configurable:true,get(){return desc.get.call(this);},set(v){desc.set.call(this,v);cbxRefresh(this);}});cbxRefresh(sel);}
 function enhanceAllSelects(root){(root||document).querySelectorAll('select').forEach(enhanceSelect);}
 document.addEventListener('click',e=>{if(openCbx&&!e.target.closest('.cbx'))cbxClose();});
-document.addEventListener('scroll',()=>cbxClose(),true);
+document.addEventListener('scroll',e=>{if(openCbx&&openCbx.contains(e.target))return;cbxClose();},true);
 window.addEventListener('resize',()=>cbxClose());
 enhanceAllSelects();
 /* ==== v0.96 Settings (adjudication 4-A): grounded in real Settings.tsx 4 tabs ==== */
@@ -1695,12 +1715,19 @@ function renderSessions(){$('sessionRows').innerHTML=SESSIONS.map((s,i)=>'<tr><t
 function renderPasskeys(){$('passkeyRows').innerHTML=PASSKEYS.map((p,i)=>'<tr><td>'+esc(p.name)+'</td><td class="mono">'+esc(p.created)+'</td><td style="text-align:right"><button class="btn danger ghost sm" data-pkdel="'+i+'">Remove</button></td></tr>').join('')||emptyRow(3,'passkeys',0,null);}
 function renderOptions(){$('optionRows').innerHTML=OPTIONS.map((o,i)=>'<tr><td class="mono">'+esc(o.key)+'</td><td class="mono">'+(SENSITIVE_OPT.test(o.key)?'••••••••':esc(JSON.stringify(o.value)))+'</td><td>'+esc(o.updated)+'</td><td style="text-align:right"><button class="btn sm" data-optedit="'+i+'">Edit</button> <button class="btn danger ghost sm" data-optdel="'+i+'">Delete</button></td></tr>').join('')||emptyRow(4,'options',0,'options');}
 function renderTemplates(){$('templateRows').innerHTML=TEMPLATES.map((t,i)=>'<tr><td class="mono">'+esc(t.key)+'</td><td>'+esc(t.subjectEn)+'</td><td>'+esc(t.updated)+'</td><td style="text-align:right"><button class="btn sm" data-tpledit="'+i+'"'+(SETTINGS_PERMS.write?'':' disabled title="Requires options:write"')+'>Edit</button> <button class="btn sm" data-tplview="'+i+'">Preview</button></td></tr>').join('')||emptyRow(4,'templates',TEMPLATES.length,null);}
-function renderMfa(){$('mfaBody').innerHTML=MFA.enabled?'<div class="error-banner" style="display:flex;background:var(--ok-tint);color:var(--ok-text,var(--ok));border-color:var(--ok)"><svg class="ic"><use href="#i-check"/></svg><span>MFA is enabled on this account.</span></div><div style="margin-top:var(--sp12)"><button class="btn danger ghost" id="mfaOpenDisable">Disable MFA</button></div>':'<div class="sub">Protect your account with a time-based one-time code (TOTP). Recovery codes are shown once at setup.</div><div style="margin-top:var(--sp12)"><button class="btn primary" id="mfaOpenSetup">Set up MFA</button></div>';
+function renderMfa(){$('mfaBody').innerHTML=MFA.enabled?'<div class="ok-banner" role="status" style="display:flex"><svg class="ic"><use href="#i-check"/></svg><span>MFA is enabled on this account.</span></div><div style="margin-top:var(--sp12)"><button class="btn danger ghost" id="mfaOpenDisable">Disable MFA</button></div>':'<div class="sub">Protect your account with a time-based one-time code (TOTP). Recovery codes are shown once at setup.</div><div style="margin-top:var(--sp12)"><button class="btn primary" id="mfaOpenSetup">Set up MFA</button></div>';
  if(MFA.enabled){$('mfaOpenDisable').onclick=()=>{$('mfaDisablePwd').value='';$('mfaDisableErr').style.display='none';openModal('mfaDisableModal');};}
  else{$('mfaOpenSetup').onclick=()=>{$('mfaCode').value='';$('mfaSetupErr').style.display='none';$('mfaSecret').textContent='JBSWY3DPEHPK3PXP JBSWY3DPEHPK3PXP';openModal('mfaSetupModal');};}}
 function renderBranding(){$('brandName').value=BRANDING.siteName;$('brandLogo').value=BRANDING.logoUrl;$('brandColor').value=BRANDING.primaryColor;}
-function setSettingsTab(tb){syncTabs('#settingsTabs button',tb);['sgeneral','ssecurity','soptions','semail'].forEach(k=>$('pane-'+k).classList.toggle('on',k===tb));if(tb==='soptions')loadOptions();}
+function setSettingsTab(tb){syncTabs('#settingsTabs button',tb);['sgeneral','ssecurity','soptions','semail'].forEach(k=>$('pane-'+k).classList.toggle('on',k===tb));if(tb==='soptions')loadOptions();if(tb==='ssecurity'){loadSessions();loadPasskeys();}if(tb==='semail')loadTemplates();}
 let optLoadTried=false;
+let sessLoadTried=false,pkLoadTried=false,tplLoadTried=false,sessRevTried=false;
+function loadSessions(){$('sessLoadBanner').style.display='none';$('sessionRows').innerHTML=Array.from({length:3},()=>'<tr><td colspan="4"><div class="skel" style="width:60%"></div></td></tr>').join('');setTimeout(()=>{if(!sessLoadTried){sessLoadTried=true;$('sessLoadMsg').textContent='Failed to load sessions: upstream timeout (prototype simulation) — retry.';$('sessLoadBanner').style.display='flex';$('sessionRows').innerHTML='';return;}renderSessions();},500);}
+function loadPasskeys(){$('pkLoadBanner').style.display='none';$('passkeyRows').innerHTML=Array.from({length:2},()=>'<tr><td colspan="3"><div class="skel" style="width:60%"></div></td></tr>').join('');setTimeout(()=>{if(!pkLoadTried){pkLoadTried=true;$('pkLoadMsg').textContent='Failed to load passkeys: upstream timeout (prototype simulation) — retry.';$('pkLoadBanner').style.display='flex';$('passkeyRows').innerHTML='';return;}renderPasskeys();},500);}
+function loadTemplates(){$('tplLoadBanner').style.display='none';$('templateRows').innerHTML=Array.from({length:3},()=>'<tr><td colspan="4"><div class="skel" style="width:60%"></div></td></tr>').join('');setTimeout(()=>{if(!tplLoadTried){tplLoadTried=true;$('tplLoadMsg').textContent='Failed to load templates: upstream timeout (prototype simulation) — retry.';$('tplLoadBanner').style.display='flex';$('templateRows').innerHTML='';return;}renderTemplates();},500);}
+$('sessLoadRetry').onclick=()=>{sessLoadTried=true;loadSessions();};
+$('pkLoadRetry').onclick=()=>{pkLoadTried=true;loadPasskeys();};
+$('tplLoadRetry').onclick=()=>{tplLoadTried=true;loadTemplates();};
 function loadOptions(){if(!SETTINGS_PERMS.read)return;$('optLoadBanner').style.display='none';$('optionRows').innerHTML=Array.from({length:3},()=>'<tr><td colspan="4"><div class="skel" style="width:60%"></div></td></tr>').join('');setTimeout(()=>{if(!optLoadTried){optLoadTried=true;$('optLoadMsg').textContent='Failed to load options: upstream timeout (prototype simulation) — retry.';$('optLoadBanner').style.display='flex';$('optionRows').innerHTML='';return;}renderOptions();},400);}
 $('optLoadRetry').onclick=()=>{optLoadTried=true;loadOptions();};
 function applySettingsGates(){const r=SETTINGS_PERMS.read,w=SETTINGS_PERMS.write;const tb=document.querySelector('#settingsTabs button[data-tab=soptions]');tb.disabled=!r;tb.setAttribute('aria-disabled',String(!r));$('optGateBanner').style.display=r?'none':'flex';$('optTableWrap').style.display=r?'block':'none';if(!r&&$('pane-soptions').classList.contains('on'))setSettingsTab('sgeneral');$('idleSelect').disabled=!w;$('idleHint').textContent=w?'Requires options:write.':'Read-only perspective: changing the idle timeout requires options:write.';renderTemplates();}
@@ -1735,9 +1762,9 @@ function openTplDrawer(i,readOnly){tplEdit=i;const t=TEMPLATES[i];tplStored={sub
  openModal('tplDrawer');}
 $('tplPreviewBtn').onclick=()=>{const b=$('tplPreviewBtn');btnBusy(b,true,'Previewing…');setTimeout(()=>{btnBusy(b,false);if(!tplPreviewTried){tplPreviewTried=true;$('tplPreviewErrMsg').textContent='Preview failed: template service timeout (prototype simulation) — retry.';$('tplPreviewErr').style.display='flex';return;}$('tplPreviewErr').style.display='none';const loc=document.querySelector('#tplDrawer input[name=tplLocale]:checked').value;const box=$('tplPreviewBox');box.style.display='block';box.textContent=(loc==='zh'?tplStored.subjectZh:tplStored.subjectEn)+'\n\n'+fillVars(loc==='zh'?tplStored.htmlZh:tplStored.htmlEn);},400);};
 $('tplTestBtn').onclick=()=>{const to=$('tplTestTo').value.trim();const e=$('tplTestErr');if(!to||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)){e.textContent='A valid recipient email is required';e.style.display='block';return;}e.style.display='none';const b=$('tplTestBtn');btnBusy(b,true,'Sending…');setTimeout(()=>{btnBusy(b,false);const m=$('tplTestMsg');m.style.display='flex';if(!tplTestTried){tplTestTried=true;m.style.background='var(--danger-tint)';m.style.color='var(--danger-text,var(--danger))';m.style.borderColor='var(--danger)';$('tplTestMsgTx').textContent='SMTP downstream unavailable (prototype simulation) — retry.';return;}m.style.background='var(--ok-tint)';m.style.color='var(--ok-text,var(--ok))';m.style.borderColor='var(--ok)';$('tplTestMsgTx').textContent='Test email sent to '+to+'.';},400);};
-$('tplSave').onclick=()=>{const t=TEMPLATES[tplEdit];t.subjectEn=$('tplSubjectEn').value;t.subjectZh=$('tplSubjectZh').value;t.htmlEn=$('tplHtmlEn').value;t.htmlZh=$('tplHtmlZh').value;t.updated='just now';renderTemplates();closeModal('tplDrawer');toast('Template saved');};
+$('tplSave').onclick=()=>{const t=TEMPLATES[tplEdit];if(!$('tplSubjectEn').value.trim()||!$('tplSubjectZh').value.trim()){toast('Template subject is required in both en and zh','error');return;}t.subjectEn=$('tplSubjectEn').value;t.subjectZh=$('tplSubjectZh').value;t.htmlEn=$('tplHtmlEn').value;t.htmlZh=$('tplHtmlZh').value;t.updated='just now';renderTemplates();closeModal('tplDrawer');toast('Template saved');};
 DEL.sessions=i=>{SESSIONS.splice(i,1);renderSessions();};
-DEL['sessions-others']=()=>{SESSIONS=SESSIONS.filter(s=>s.current);renderSessions();};
+DEL['sessions-others']=()=>{if(!sessRevTried){sessRevTried=true;toast('Revocation failed: upstream timeout (prototype simulation) — sessions kept','error');return false;}SESSIONS=SESSIONS.filter(s=>s.current);renderSessions();};
 DEL.passkeys=i=>{PASSKEYS.splice(i,1);renderPasskeys();};
 DEL.options=i=>{OPTIONS.splice(i,1);renderOptions();};
 ROW_NAME.sessions=i=>SESSIONS[i].ua;
@@ -1817,7 +1844,7 @@ tables.forEach(t=>{label(t);const tb=t.querySelector('tbody');if(tb)new Mutation
    Escape/leave/blur. aria-describedby links host -> tooltip while visible. */
 const floatTip=document.createElement('div');floatTip.id='floatTip';floatTip.setAttribute('role','tooltip');document.body.appendChild(floatTip);
 let tipHost=null;
-function tipShow(host){const txt=host.getAttribute('data-tip');if(!txt)return;tipHost=host;floatTip.textContent=txt;floatTip.classList.add('on');host.setAttribute('aria-describedby','floatTip');
+function tipShow(host){const txt=host.getAttribute('data-tip');if(!txt)return;if(tipHost&&tipHost!==host)tipHost.removeAttribute('aria-describedby');tipHost=host;floatTip.textContent=txt;floatTip.classList.add('on');host.setAttribute('aria-describedby','floatTip');
  const r=host.getBoundingClientRect();const tw=floatTip.offsetWidth,th=floatTip.offsetHeight;
  let top=r.top-th-6;if(top<4)top=r.bottom+6;
  let left=r.left+r.width/2-tw/2;left=Math.max(4,Math.min(left,window.innerWidth-tw-4));

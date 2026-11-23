@@ -1,6 +1,6 @@
 /**
  * Builtin permission seeding — idempotent, best-effort.
- * Seeds 21 {resource, action} permissions and binds all to the admin role.
+ * Seeds 26 {resource, action} permissions and binds all to the admin role.
  */
 import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import type { DbLike, DrizzleDB } from '@accessbase/identity/db';
@@ -9,7 +9,7 @@ import { logger } from '@accessbase/logging';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 
 /**
- * 21 builtin permissions — resource/action pairs must match
+ * 26 builtin permissions — resource/action pairs must match
  * authorize.ts getRequiredPermission() mapping verbatim.
  */
 export const BUILTIN_PERMISSIONS: {
@@ -134,7 +134,7 @@ export async function ensureDefaultTenantRow(db: DrizzleDB): Promise<void> {
 }
 
 /**
- * STRICT kernel (L-prime X4): ensure the 21 builtin permission rows exist, bind the
+ * STRICT kernel (L-prime X4): ensure the 26 builtin permission rows exist, bind the
  * given permission NAMES to a role, then ASSERT the role holds exactly that many
  * bindings — throws on any shortfall so a caller (tenant bootstrap) can never
  * report 201 with a silently unbound admin role. Binding is additive with ON
@@ -177,7 +177,7 @@ export async function bindPermissions(
 }
 
 /**
- * Best-effort seed of ALL 21 builtin permissions onto a role. NEVER throws —
+ * Best-effort seed of ALL 26 builtin permissions onto a role. NEVER throws —
  * failures are logged and swallowed (admin creation must not be blocked by a
  * transient seed error; startup self-heal retries). Wizard/init keep calling
  * this; bootstrap uses the strict kernel directly with the tenant partition.

@@ -1024,6 +1024,12 @@ nav/head/status/placeholder/empty/confirm-verb/settings-tabs/relative forms, dat
 dictionary non-empty + coverage lock, exact en restore, preference survives reload. All 52 pass.
 Screenshot: zh tenants.
 
+## Adjudication 32 (A): kit handoff README — 2026-11-20
+Commit 5fe8cc4. Added docs/ui/prototypes/README.md as the handoff navigation layer: run instructions,
+lock index, simulation disclosure index, adjudication index with commit hashes, provenance and
+not-modelled list. (Section reconstructed during the 2026-11-23 panel execution; the original round
+shipped the README without a dedicated CHANGELOG section.)
+
 ## Adjudication 33 (A): entry-flows companion prototype (nine surfaces) + four auth lock groups — 2026-11-20
 The kit covered only the authenticated console; the entire entry layer (Login, MagicLogin, Register,
 ForgotPassword, ResetPassword, VerifyEmail, EnrollMfa, Consent, setup wizard) had no reference sample,
@@ -1064,7 +1070,7 @@ both dictionaries). Verdict: the kit is self-consistent — every semantic surfa
 tint-bearing color and locale dictionary is locked, every simulated failure is disclosed, and the
 handoff README indexes locks, disclosures, adjudications and provenance. Series closed at 34 rulings.
 
-## Post-closure fix (user-reported): row tooltip obscured by neighbouring rows — body-level floating tooltip — 2026-11-20
+## Post-closure fix 1 (user-reported): row tooltip obscured by neighbouring rows — body-level floating tooltip — 2026-11-20
 Report: in the users detail/list surface the hover hint bubble on row items was hidden behind inline
 row content. Root cause analysis found a whole CLASS of clipping/stacking defects in the CSS ::after
 tooltip mechanism, not a single position bug: (1) tbody td{overflow:hidden} clips any bubble extending
@@ -1206,3 +1212,33 @@ copy success toast + #i-check glyph + .copied class, revert to #i-copy after the
 tip-wrap hint shows on hover, and under zh Edit/Delete/Suspend/Init all still open their modals
 (en-original delegates). Full re-run: 58 groups, 0 failures. Screenshot: Acme slug copy icon as green
 check with the Copied toast.
+
+## Post-closure panel execution (rulings 1-8, user-adjudicated one by one) — 2026-11-23
+Expert panel (5 isolated roles) found 10 HIGH / 21 MEDIUM / 10 LOW + 5 conflicts; user adjudicated all
+eight decision points (1A 2A 3A 4A 5C 6A 7A 8B). Executed in five batches:
+(1) mechanism/a11y: Escape layering (cbx Esc no longer closes the modal), cbx list survives its own
+internal scroll, copy check-glyph timer race fixed, tooltip clears stale aria-describedby, closeModal
+focus fallback, detail status switch gains role=switch/aria-checked + focus preservation, disabled row
+actions degrade + no hover, --danger-inv defined for dark, invalid ::: scrollbar selectors fixed,
+scroll regions keyboard-focusable, companion persists ab_theme/ab_style, webhooks Tried flags hoisted
+to module scope (per-open dialog resets kept as disclosed demo semantics).
+(2) structure: combobox trigger de-nested to role=combobox div (chip remove buttons valid + tabbable),
+hit areas >=24 via pseudo-elements (visual 34x20 / 16px kept), companion ports reserved check column +
+accent-text token, error-banner profile clamp scoped to #page-profile, success banner gets .ok-banner.
+(3) contrast/scale: tx3 raised per pack/theme and nav-on uses accent-text; contrast lock extended to
+7 packs x both themes incl tx3 surface/sunken + nav-on composite (min 4.54); geist spacing scale made
+monotonic; raw px fonts tokenized; zh letter-spacing/line-height + lang zh-CN; companion input family
+aligned; shadows tokenized light/dark; :active + tabs/pagination/auth-nav hover added.
+(4) disclosure/zh: simulation index truth pass (phantom Users create / Profile MFA+session rows removed,
+Groups create + detail-status + security loads + fail-closed added, not-modelled list extended), marker
+wording normalized, false "real does not validate" claim corrected (identical EVENT_PATTERN), frequency
+semantics two-tier; zh dictionary grew 362 -> 425 unique keys covering every dynamic literal + rules for
+Exported N rows / Slug exists / event list / bare relative times; new i18n-dynamic source-literal lock;
+security tab three-state loads + tplSave bilingual-subject guard + sessions-others fail-closed (confirm
+generic toast suppressed when the action reports failure); new security-states lock group.
+(5) LOW: fix numbering 1/6 tags, adjudication index title 1-34, CHANGELOG 32 section reconstructed,
+SCOPE BOUNDARY TODO comment truthed, companion dead .sw-field port residue removed, duplicate System
+key removed, ev-presets become aria-pressed toggles, permissions-seed self-comments 21 -> 26.
+Harness: 60 groups, 0 failures (contrast min 4.54 across 14 pack-theme combos; i18n-dynamic 84 admin
+literals + companion literals all translate; security-states three-state/guard/fail-closed locked).
+Open backlog (explicit): shape/icon scale tokenization (DS-12/L8) deferred to a design ruling round.
