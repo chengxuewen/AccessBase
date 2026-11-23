@@ -13,7 +13,6 @@ import {
   Popconfirm,
   Select,
   Space,
-  Switch,
   Tabs,
   Tag,
 } from 'antd';
@@ -415,8 +414,10 @@ export default function Groups() {
           <Form.Item name="description" label={t('groups.description')}>
             <Input data-testid="groups-description-input" />
           </Form.Item>
-          <Form.Item name="isDepartment" valuePropName="checked" label={t('groups.isDepartment')}>
-            <Switch data-testid="groups-kind-switch" />
+          {/* Boolean-control rule (post-closure unification): form-submitted binary marking uses
+              Checkbox; Switch is reserved for immediate-effect toggles (webhooks / user status). */}
+          <Form.Item name="isDepartment" valuePropName="checked">
+            <Checkbox data-testid="groups-kind-checkbox">{t('groups.isDepartment')}</Checkbox>
           </Form.Item>
         </Form>
       </Modal>

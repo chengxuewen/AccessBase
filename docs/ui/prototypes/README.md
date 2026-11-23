@@ -28,10 +28,15 @@ branch and says so (see disclosure index). Read this file first, `CHANGELOG.md` 
   scroll/resize) so modal/drawer/toolbar scroll containers cannot clip it. Selects built inside modals
   (create/edit/add-option forms) are enhanced on open — they were previously native `<select multiple
   size=4>` listboxes with OS styling. The companion reuses the same mechanism.
-- Form switches (`role=switch`, groups create/edit Department) render the same 34x20 track + 14px knob
-  as the `.wswitch` button (checked = accent track, knob right); every other checkbox is a themed 16px
-  square with a check glyph, focus ring and disabled state. The blanket `.field input{width:100%}` rule
-  excludes checkbox/radio — it previously stretched them into full-width bars and wrapped their labels.
+- **Boolean-control rule (post-closure unification, mirrors real `Groups.tsx` / `UserCreate.tsx`):**
+  `Switch` (the `.wswitch` 34x20 track+knob button) is reserved for **immediate-effect** binary toggles
+  (webhooks row active, user detail status). `Checkbox` (themed 16px square, check glyph, focus ring,
+  disabled state, inline label) carries **form-submitted binary marking** (groups `isDepartment`, users
+  `isActive`), **multi-select** (grants, roles, scopes) and **attestation gates** (recovery saved, MFA
+  saved, erase confirm). The two domains are disjoint; no form field uses `role=switch` anymore. The
+  blanket `.field input{width:100%}` rule excludes checkbox/radio — it previously stretched them into
+  full-width bars and wrapped their labels. Real testids migrated: `groups-kind-switch` ->
+  `groups-kind-checkbox`, new `users-active-checkbox`.
 - Action delegates (Edit/Delete) read the en originals stored by the translation layer instead of the
   live `aria-label`/`data-tip`, so row actions keep working under zh (they went dead when the zh pass
   translated those attributes).
@@ -92,7 +97,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | responsive-table / pagehead-overflow / table-fit / chip-columns | narrow adaptation, no phantom scrollbar, chip columns | R4, R5 |
 | combobox-popup / combobox-themed / cbx-disabled / cbx-capabilities | themed Select parity: clear/multiple/loading/keyboard/disabled mirror | 2, 15 |
 | cbx-option-list | form selects themed (were native size=4 listboxes); 32px option rows, tinted selected + reserved check column (no shift), fixed list escaping modal/toolbar clipping, flip-up + clamp; allowClear cross inside the control (sibling + absolute, never a blank line below), hidden when empty/disabled, clears without opening; companion parity | post-closure fix 2/3 |
-| switch-checkbox | role=switch inputs render the .wswitch 34x20 track+knob (were full-width native checkbox bars from the blanket .field input rule); all checkboxes themed 16px squares; gate/scope labels centered; reduce-motion collapses switch transitions; zh action routing (Edit/Delete delegates read en originals, not translated aria/tip) | post-closure fix 4 |
+| boolean-controls | boolean-control rule: forms use themed 16px checkboxes (groups isDepartment, users isActive default-checked), immediate domain stays .wswitch 34x20 button+knob, gates/scopes 16px centered; reduce-motion collapses knob+checkbox transitions; no role=switch in forms | post-closure fix 4/5 |
 | topbar-fidelity | real topbar affordances only | 3 |
 | reduced-motion | prefers-reduced-motion degradation + normal-mode motion intact | 30 |
 | i18n | 中文/EN toggle, stored lang, zh chrome + relative forms, data untouched, dictionary parity/coverage, en restore | 31 |

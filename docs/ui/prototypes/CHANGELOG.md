@@ -1140,3 +1140,27 @@ row actions went dead under zh; they now read the en originals the layer stores 
 34x20 + knob 2/16px + track equals .wswitch.on + label centered, gate checkboxes 16px themed, reduce
 motion 0s, companion enSaved/scope checkboxes themed + centered; i18n group gains a zh Edit-click
 assertion (modal opens under zh). All 58 pass. Screenshot: edit-group switch.
+
+## Post-closure fix 5 (user ruling A): boolean-control rule unification — real + prototype coordinated — 2026-11-23
+Question raised: why do some surfaces use Switch and others Checkbox, and would Checkbox be better for
+the group Department flag? Analysis showed the mix is a semantic split (AntD: Switch = immediate-effect
+toggle, Checkbox = form-submitted marking / multi-select / attestation), not arbitrary — but audit found
+two outliers violating the rule (form-submitted switches): real Groups.tsx isDepartment and
+UserCreate.tsx isActive, mirrored by the prototype's groups form; plus a parity gap (prototype create
+user lacked isActive entirely). Ruling A: unify the RULE, migrate the outliers, keep the domains
+disjoint. Real changes: Groups.tsx isDepartment Switch->Checkbox (Form.Item label moved into the
+Checkbox child, testid groups-kind-switch -> groups-kind-checkbox), UserCreate.tsx isActive
+Switch->Checkbox (child label users.statusActive, new testid users-active-checkbox), unused Switch
+imports removed; tsc clean and all 29 real vitest tests pass (i18n parity untouched — existing keys
+reused). Prototype mirrors: formCtl/openEdit 'switch' branch replaced by 'checkbox' (ck-field inline
+label, themed 16px square, no role=switch), FORMS groups isDepartment -> checkbox, FORMS users gains
+['isActive','Active','checkbox',true] (default checked like real initialValues), create handler passes
+per-field defaults, formSave users derives status from isActive (active/suspended), dead .sw-field
+track CSS removed and reduced-motion selector synced to .wswitch knob + checkbox. Immediate domain
+unchanged (.wswitch buttons: webhooks row, detail status). Harness: switch-checkbox group renamed
+boolean-controls and re-locked to the rule (form checkboxes 16px/no role/inline label/checked defaults,
+immediate .wswitch 34x20+knob+on, gates/scopes 16px centered, reduce-motion 0s both families);
+groups-detail createForm assertion now expects checkbox+null role+16px; dashboard-model field list
+gains isActive with default-checked assertion. Full re-run: 58 groups, 0 failures. README gains the
+boolean-control rule section + migrated-testid disclosure + renamed lock row. Screenshot: edit-group
+Department as themed checked checkbox with inline label.

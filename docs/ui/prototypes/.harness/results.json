@@ -1,5 +1,5 @@
 {
-  "when": "2026-11-20",
+  "when": "2026-11-23",
   "prototype": "admin-console.html v0.96 (12 pages incl. Settings; 7 style packs x light/dark)",
   "runner": "playwright (reproducible suite; .harness/prototype.spec.ts)",
   "fail": 0,
@@ -219,7 +219,8 @@
         "panelClose": true,
         "createForm": {
           "sw": "checkbox",
-          "role": "switch"
+          "role": null,
+          "w": "16px"
         },
         "created": {
           "n": 6,
@@ -790,7 +791,7 @@
           "expires": true,
           "scopes": false,
           "dateType": "date",
-          "min": "2026-11-20",
+          "min": "2026-11-23",
           "note": true
         },
         "pastErr": true,
@@ -1463,8 +1464,10 @@
             "name",
             "email",
             "password",
+            "isActive",
             "roles"
           ],
+          "activeChecked": true,
           "pwdType": "password"
         },
         "dup": true,
@@ -1479,25 +1482,38 @@
         "navAudit": true
       }
     },
-    "switch-checkbox": {
+    "boolean-controls": {
       "pass": true,
       "assertions": {
-        "editSw": {
-          "w": 34,
-          "h": 20,
-          "appearance": "none",
-          "knobW": "14px",
-          "knobLeft": "16px",
+        "editCk": {
+          "type": "checkbox",
+          "role": null,
+          "w": "16px",
+          "app": "none",
           "checked": true,
           "centerDiff": 0.828125,
-          "trackOn": true
+          "label": "ck-field"
         },
-        "createSw": {
+        "createCk": {
+          "w": "16px",
+          "checked": false,
+          "role": null
+        },
+        "activeCk": {
+          "present": true,
+          "w": "16px",
+          "checked": true,
+          "role": null,
+          "label": "Active"
+        },
+        "unchecked": true,
+        "imm": {
+          "tag": "BUTTON",
+          "cls": true,
           "w": 34,
           "h": 20,
-          "checked": false,
-          "knobLeft": "2px",
-          "centerDiff": 0.828125
+          "knob": true,
+          "on": true
         },
         "gates": {
           "mfaW": "16px",
@@ -1506,8 +1522,8 @@
           "eraseApp": "none"
         },
         "rm": {
-          "sw": "0s",
-          "knob": "0s"
+          "knob": "0s",
+          "ck": "0s"
         },
         "enSaved": {
           "w": "16px",

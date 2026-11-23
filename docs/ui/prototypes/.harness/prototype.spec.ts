@@ -306,9 +306,9 @@ test('groups-detail', async ({ page }) => {
   await page.waitForTimeout(600); // restore (tried flag now true)
   await page.locator('#panelClose').click();
   const panelClose = await page.evaluate(() => document.getElementById('groupPanel')!.style.display === 'none');
-  // create form carries the isDepartment switch; edit maps kind
+  // create form carries the isDepartment checkbox (boolean-control rule); edit maps kind
   await page.locator('[data-create=groups]').click();
-  const createForm = await page.evaluate(() => ({ sw: (document.querySelector('#formBody [data-field=isDepartment]') as HTMLInputElement).type, role: document.querySelector('#formBody [data-field=isDepartment]')!.getAttribute('role') }));
+  const createForm = await page.evaluate(() => ({ sw: (document.querySelector('#formBody [data-field=isDepartment]') as HTMLInputElement).type, role: document.querySelector('#formBody [data-field=isDepartment]')!.getAttribute('role'), w: getComputedStyle(document.querySelector('#formBody [data-field=isDepartment]')!).width }));
   await page.locator('#formBody [data-field=name]').fill('E2E Group');
   await page.locator('#formBody [data-field=isDepartment]').check();
   await page.locator('#formSave').click();
@@ -322,7 +322,7 @@ test('groups-detail', async ({ page }) => {
     && panel.name === 'Engineering' && panel.kind === 'Department'
     && afterAdd === membersInitial + 1 && remFail.err && remFail.n === afterAdd && afterRemove === membersInitial
     && checks === 5 && stagedNotCommitted && rolesErr && saveCommits && panelClose
-    && createForm.sw === 'checkbox' && createForm.role === 'switch'
+    && createForm.sw === 'checkbox' && createForm.role === null && createForm.w === '16px'
     && created.n === 6 && created.kind === 'department' && created.closed;
   rec('groups-detail', pass, a);
   expect(pass, 'groups-detail').toBe(true);
@@ -2331,6 +2331,7 @@ test('dashboard-model', async ({ page }) => {
     on: document.getElementById('formModal')!.classList.contains('on'),
     usersPage: document.getElementById('page-users')!.classList.contains('on'),
     fields: [...document.querySelectorAll('#formBody [data-field]')].map(el => el.getAttribute('data-field')),
+    activeChecked: (document.querySelector('#formBody [data-field=isActive]') as HTMLInputElement).checked,
     pwdType: (document.querySelector('#formBody [data-field=password]') as HTMLInputElement).type,
   }));
   await page.locator('#formBody [data-field=name]').fill('E2E User');
@@ -2358,38 +2359,51 @@ test('dashboard-model', async ({ page }) => {
   const pass = JSON.stringify(base.stats) === JSON.stringify(base.live) && base.noDelta && base.noTrend
     && base.actTags === 10 && base.actDesc && base.refreshInHead && base.inert === 0
     && spin === 8 && err && ok.banner && ok.items === 5 && navRoles
-    && form.on && form.usersPage && JSON.stringify(form.fields) === JSON.stringify(['name', 'email', 'password', 'roles']) && form.pwdType === 'password'
+    && form.on && form.usersPage && JSON.stringify(form.fields) === JSON.stringify(['name', 'email', 'password', 'isActive', 'roles']) && form.pwdType === 'password' && form.activeChecked
     && dup && policy && created.users === users0 + 1 && created.stat === (users0 + 1).toLocaleString()
     && created.actFirst === 'user.created' && created.closed && navAudit;
   rec('dashboard-model', pass, a);
   expect(pass, 'dashboard-model').toBe(true);
 });
-test('switch-checkbox', async ({ page }) => {
+test('boolean-controls', async ({ page }) => {
   await page.goto(FILE);
-  // Post-closure fix 4: the blanket .field input{width:100%} rule stretched checkboxes into full-width
-  // bars and wrapped their labels; role=switch inputs now render the .wswitch 34x20 track+knob and all
-  // checkboxes are themed 16px squares; action routing no longer keys on translated aria/tip.
+  // Boolean-control rule (post-closure unification; mirrors real Groups.tsx / UserCreate.tsx):
+  // Switch (.wswitch button) = immediate-effect binary toggles ONLY; Checkbox = form-submitted binary
+  // marking (groups isDepartment, users isActive), multi-select and attestation gates. Form checkboxes
+  // are themed 16px squares with inline labels and no role=switch; the blanket-width defect stays fixed.
   await page.evaluate(() => { (document.querySelector('[data-page=groups]') as HTMLElement).click(); });
   await page.locator('#groupRows tr:first-child .row-actions button:nth-child(2)').click();
-  const editSw = await page.evaluate(() => {
+  const editCk = await page.evaluate(() => {
     const inp = document.querySelector('#formBody [data-field=isDepartment]') as HTMLInputElement;
-    const cs = getComputedStyle(inp); const ka = getComputedStyle(inp, '::after');
-    const r = inp.getBoundingClientRect(); const sp = inp.nextElementSibling!.getBoundingClientRect();
-    const on = document.querySelector('.wswitch.on') as HTMLElement;
-    return { w: r.width, h: r.height, appearance: cs.appearance, knobW: ka.width, knobLeft: ka.left,
+    const cs = getComputedStyle(inp); const r = inp.getBoundingClientRect();
+    const sp = inp.nextElementSibling!.getBoundingClientRect();
+    return { type: inp.type, role: inp.getAttribute('role'), w: cs.width, app: cs.appearance,
       checked: inp.checked, centerDiff: Math.abs((r.top + r.height / 2) - (sp.top + sp.height / 2)),
-      trackOn: on ? cs.backgroundColor === getComputedStyle(on).backgroundColor : false };
+      label: inp.parentElement!.className };
   });
   await page.keyboard.press('Escape');
   await page.locator('[data-create=groups]').click();
-  const createSw = await page.evaluate(() => {
+  const createCk = await page.evaluate(() => {
     const inp = document.querySelector('#formBody [data-field=isDepartment]') as HTMLInputElement;
-    const ka = getComputedStyle(inp, '::after'); const r = inp.getBoundingClientRect();
-    const sp = inp.nextElementSibling!.getBoundingClientRect();
-    return { w: r.width, h: r.height, checked: inp.checked, knobLeft: ka.left,
-      centerDiff: Math.abs((r.top + r.height / 2) - (sp.top + sp.height / 2)) };
+    return { w: getComputedStyle(inp).width, checked: inp.checked, role: inp.getAttribute('role') };
   });
   await page.keyboard.press('Escape');
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); (document.querySelector('[data-create=users]') as HTMLElement).click(); });
+  const activeCk = await page.evaluate(() => {
+    const inp = document.querySelector('#formBody [data-field=isActive]') as HTMLInputElement;
+    return { present: !!inp, w: getComputedStyle(inp).width, checked: inp.checked, role: inp.getAttribute('role'), label: inp.nextElementSibling!.textContent };
+  });
+  await page.locator('#formBody [data-field=isActive]').uncheck();
+  const unchecked = await page.evaluate(() => !(document.querySelector('#formBody [data-field=isActive]') as HTMLInputElement).checked);
+  await page.keyboard.press('Escape');
+  // immediate domain stays Switch: webhooks row toggle is a .wswitch button with a knob
+  await page.evaluate(() => { (document.querySelector('[data-page=webhooks]') as HTMLElement).click(); });
+  const imm = await page.evaluate(() => {
+    const b = document.querySelector('#webhookRows [data-wenabled]') as HTMLButtonElement;
+    const k = b.querySelector('.knob') as HTMLElement;
+    const r = b.getBoundingClientRect();
+    return { tag: b.tagName, cls: b.className.includes('wswitch'), w: r.width, h: r.height, knob: !!k, on: b.className.includes('on') };
+  });
   const gates = await page.evaluate(() => {
     const a = document.getElementById('mfaSaved') as HTMLInputElement;
     const b = document.getElementById('eraseAudit') as HTMLInputElement;
@@ -2398,11 +2412,10 @@ test('switch-checkbox', async ({ page }) => {
   });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const rm = await page.evaluate(() => {
-    const inp = document.createElement('input'); inp.type = 'checkbox';
-    const lab = document.createElement('label'); lab.className = 'sw-field'; lab.appendChild(inp);
-    document.body.appendChild(lab);
-    const r = { sw: getComputedStyle(inp).transitionDuration, knob: getComputedStyle(inp, '::after').transitionDuration };
-    lab.remove(); return r;
+    const knob = document.querySelector('#webhookRows .wswitch .knob') as HTMLElement;
+    const inp = document.createElement('input'); inp.type = 'checkbox'; document.body.appendChild(inp);
+    const r = { knob: getComputedStyle(knob).transitionDuration, ck: getComputedStyle(inp).transitionDuration };
+    inp.remove(); return r;
   });
   await page.emulateMedia({ reducedMotion: null });
   await page.goto(AUTH);
@@ -2424,16 +2437,18 @@ test('switch-checkbox', async ({ page }) => {
       tinted: cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent',
       centerDiff: Math.abs((r.top + r.height / 2) - (sp.top + sp.height / 2)) };
   });
-  const a = { editSw, createSw, gates, rm, enSaved, scopes };
-  const pass = editSw.w === 34 && editSw.h === 20 && editSw.appearance === 'none' && editSw.knobW === '14px'
-    && editSw.knobLeft === '16px' && editSw.checked && editSw.centerDiff < 2 && editSw.trackOn
-    && createSw.w === 34 && createSw.h === 20 && !createSw.checked && createSw.knobLeft === '2px' && createSw.centerDiff < 2
+  const a = { editCk, createCk, activeCk, unchecked, imm, gates, rm, enSaved, scopes };
+  const pass = editCk.type === 'checkbox' && editCk.role === null && editCk.w === '16px' && editCk.app === 'none'
+    && editCk.checked && editCk.centerDiff < 2 && editCk.label === 'ck-field'
+    && createCk.w === '16px' && !createCk.checked && createCk.role === null
+    && activeCk.present && activeCk.w === '16px' && activeCk.checked && activeCk.role === null && activeCk.label === 'Active' && unchecked
+    && imm.tag === 'BUTTON' && imm.cls && imm.w === 34 && imm.h === 20 && imm.knob && imm.on
     && gates.mfaW === '16px' && gates.mfaApp === 'none' && gates.eraseW === '16px' && gates.eraseApp === 'none'
-    && rm.sw === '0s' && rm.knob === '0s'
+    && rm.knob === '0s' && rm.ck === '0s'
     && enSaved.w === '16px' && enSaved.app === 'none' && enSaved.labelAlign === 'center'
     && scopes.w === 16 && scopes.app === 'none' && scopes.checked && scopes.tinted && scopes.centerDiff < 2;
-  rec('switch-checkbox', pass, a);
-  expect(pass, 'switch-checkbox').toBe(true);
+  rec('boolean-controls', pass, a);
+  expect(pass, 'boolean-controls').toBe(true);
 });
 
 test('auth-login', async ({ page }) => {

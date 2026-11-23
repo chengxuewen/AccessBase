@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
-import { Alert, Button, Card, Form, Input, Popconfirm, Select, Space, Switch } from 'antd';
+import { Alert, Button, Card, Checkbox, Form, Input, Popconfirm, Select, Space } from 'antd';
 import { createUser } from '../../api/users';
 import { listRoles } from '../../api/roles';
 import { message } from '../../api/feedback';
@@ -125,8 +125,10 @@ export default function UserCreate() {
         >
           <Input.Password autoComplete="new-password" />
         </Form.Item>
-        <Form.Item name="isActive" label={t('users.status')} valuePropName="checked">
-          <Switch />
+        {/* Boolean-control rule (post-closure unification): form-submitted binary marking uses
+            Checkbox; Switch is reserved for immediate-effect toggles (webhooks / user status). */}
+        <Form.Item name="isActive" valuePropName="checked">
+          <Checkbox data-testid="users-active-checkbox">{t('users.statusActive')}</Checkbox>
         </Form.Item>
         <Form.Item name="roleIds" label={t('users.roles')}>
           <Select
