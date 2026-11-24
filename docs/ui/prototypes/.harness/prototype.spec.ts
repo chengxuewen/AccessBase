@@ -2236,6 +2236,18 @@ test('control-heights', async ({ page }) => {
   const panel = await heights('.scope-box .cbx-btn, #mtxSave, #mtxCancel');
   res.panelCompact = panel;
   if (panel.length !== 1 || panel[0] !== 24) ok = false;
+  // post-seal fix 15: fixed-height buttons must never wrap or shrink (page-head at mid width).
+  await page.setViewportSize({ width: 830, height: 600 });
+  await page.evaluate(() => (document.querySelector('[data-page=users]') as HTMLElement).click());
+  await page.waitForTimeout(200);
+  const phNarrow = await page.evaluate(() => {
+    const bs = [...document.querySelectorAll('#page-users .page-head button')] as HTMLElement[];
+    const vis = bs.filter(b => b.getBoundingClientRect().height > 0);
+    return { heights: [...new Set(vis.map(b => Math.round(b.getBoundingClientRect().height)))], wrapped: vis.some(b => b.scrollHeight > b.clientHeight + 1), over: document.documentElement.scrollWidth > window.innerWidth };
+  });
+  res.pageHeadNarrow = phNarrow;
+  if (phNarrow.heights.length !== 1 || phNarrow.heights[0] !== 32 || phNarrow.wrapped || phNarrow.over) ok = false;
+  await page.setViewportSize({ width: 1280, height: 720 });
   rec('control-heights', ok, res);
   expect(ok, 'control-heights: one height tier per container family').toBe(true);
 });

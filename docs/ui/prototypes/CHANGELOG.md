@@ -1382,3 +1382,13 @@ cbx uses min-height + 4px padding so chips can wrap; compact tier (24) applied t
 in toolbar/topbar/form plus a new panel-compact probe (scope cbx + matrix Save/Cancel = 24). Full
 re-run: 65 groups, 0 failures, every container single-tier including cbx. Screenshot: users toolbar
 with cbx, search and refresh all 32px; topbar all 24px. PIT-111 recorded.
+
+## Post-seal fix 15 (user-reported): Create user button wraps at mid width — fixed-height buttons must not wrap or shrink — 2026-11-24
+Report: at ~830px the page-head Create user button folded into two lines and painted taller than its
+Import neighbor. Root cause: after fix 13 gave .btn a fixed 32px height, buttons remained shrinkable
+flex items with default white-space:normal, so the page-head title squeezed them and the label
+wrapped beyond the fixed height. Fix: .btn gets white-space:nowrap + flex-shrink:0; the page-head
+action group gets flex-shrink:0 so the title text wraps instead of the buttons; tabs and tags gain
+nowrap as same-family protection. control-heights lock gains an 830px probe asserting page-head
+buttons are single-tier 32, unwrapped (scrollHeight<=clientHeight+1) and no document overflow. Full
+re-run: 65 groups, 0 failures. Screenshot: 830px page-head with single-line Create user. PIT-112.

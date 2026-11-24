@@ -1495,7 +1495,14 @@
         ],
         "panelCompact": [
           24
-        ]
+        ],
+        "pageHeadNarrow": {
+          "heights": [
+            32
+          ],
+          "wrapped": false,
+          "over": false
+        }
       }
     },
     "states": {

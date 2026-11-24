@@ -870,3 +870,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: themed cbx 是 div 控件（.cbx-btn padding 推导高度），fix 13 的 select 高度规则覆盖不到；control-heights 锁采样 `.toolbar select`（enhance 后隐藏、height 0 被滤掉）而非可见 `.cbx-btn` → 恒真盲区（PIT-098 同族）。
 - **解法**: .cbx-btn 显式 height:var(--ctl-h)；multi min-height+padding 4；紧凑档 .top-actions/.scope-box/.panel-head 内 cbx-btn 24；锁 selector 补 `.cbx-btn`（toolbar/topbar/form/panel 四处）。
 - **验证**: control-heights 各容器单值（含 cbx）；截图 users toolbar cbx 与搜索/刷新同高。教训：刻度类锁必须采样**可见渲染控件**而非被替换的原生元素。
+
+## PIT-112: 固定高按钮 + flex 可收缩 + 默认可换行 = 窄屏文字折行溢出 (2026-11-24, user-reported)
+
+- **症状**: 830px 下 page-head 的 Create user 钮折成两行、蓝色块高出邻钮（Import 32 单行）。
+- **根因**: fix 13 给 .btn 固定 height 后，按钮仍是 flex 可收缩项且 white-space 默认 normal：page-head 左标题挤占宽度时右钮被压窄→文字折行→固定高容纳不下溢出绘制。
+- **解法**: .btn{white-space:nowrap;flex-shrink:0}；.page-head > div:last-child{flex-shrink:0}（让左文案换行而非右钮）；tabs/tag 补 nowrap 防同族；锁加 830px 探针（page-head 钮单值 32 + scrollHeight<=clientHeight+1 + 无文档横溢）。
+- **验证**: control-heights pageHeadNarrow={heights:[32],wrapped:false,over:false}；截图 830px Create user 单行。教训：固定高度控件必须同时锁"不换行+不收缩"，三者缺一即溢出。

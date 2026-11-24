@@ -112,6 +112,7 @@ button{font-family:inherit;cursor:pointer}
 .main{overflow-y:auto;padding:var(--sp24)}
 .page{display:none}.page.on{display:block}
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:var(--sp20)}
+.page-head > div:last-child{flex-shrink:0}
 .page-head h1{font-size:var(--fs20);font-weight:600;letter-spacing:-.02em}
 .page-head .sub{color:var(--tx3);font-size:var(--fs12);margin-top:2px}
 /* R5 page-head narrow (adjudication R5=A): stack title above actions; secondary actions (Import /
@@ -123,7 +124,7 @@ button{font-family:inherit;cursor:pointer}
 .page-head .ph-more{display:inline-flex}
 .page-head [data-phsecondary]{display:none}
 }
-.btn{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 12px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 12px;white-space:nowrap;flex-shrink:0;border-radius:var(--r4);border:1px solid var(--bd);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-weight:500}
 .btn:hover{background:var(--hover)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--txinv)}
 .btn.danger{background:var(--danger-solid,var(--danger));border-color:var(--danger-solid,var(--danger));color:var(--danger-inv)}
@@ -134,7 +135,7 @@ button{font-family:inherit;cursor:pointer}
 .card .card-head{display:flex;align-items:center;justify-content:space-between;padding:var(--sp12) var(--sp16);border-bottom:1px solid var(--bd)}
 .card .card-head h3{font-size:var(--fs13);font-weight:600}
 .card .card-body{padding:var(--sp16)}
-.tag{display:inline-flex;align-items:center;gap:5px;padding:1px 6px;border-radius:var(--r-tag);font-size:var(--fs11);font-weight:500;background:var(--sunken);color:var(--tx2);border:1px solid var(--bd)}
+.tag{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;padding:1px 6px;border-radius:var(--r-tag);font-size:var(--fs11);font-weight:500;background:var(--sunken);color:var(--tx2);border:1px solid var(--bd)}
 .tag.ok{background:var(--ok-tint);color:var(--ok-text,var(--ok))}
 .tag.warn{background:var(--warn-tint);color:var(--warn-text,var(--warn))}
 .tag.danger{background:var(--danger-tint);color:var(--danger-text,var(--danger))}
@@ -457,7 +458,7 @@ input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed}
 .panel-head h3{font-size:var(--fs13);font-weight:600}
 .panel-head .close{margin-left:auto}
 .tabs{display:flex;gap:2px;padding:0 var(--sp16);border-bottom:1px solid var(--bd)}
-.tabs button{padding:8px 12px;border:none;background:transparent;color:var(--tx2);font-size:var(--fs13);font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button{white-space:nowrap;padding:8px 12px;border:none;background:transparent;color:var(--tx2);font-size:var(--fs13);font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px}
 .tabs button.on{color:var(--accent-text,var(--accent));border-bottom-color:var(--accent);font-weight:500}
 .tab-pane{display:none;padding:var(--sp16)}
 .tab-pane.on{display:block}
