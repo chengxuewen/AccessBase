@@ -207,7 +207,7 @@ AntD Transfer picker + modal Save; create-form note that UI sends no scopes and 
 | 39 | contract extension P2: settings security fourth card MfaCard (setup QR+code+enable error, enabled alert+disable confirm, one-time recovery codes) mirroring settings/MfaCard.tsx | 189248e | security-states, i18n-dynamic |
 | 40 | contract extension P2: 403/404/500 standalone full pages (chrome hidden, viewport-filling, primary back CTA) — real routes live outside the layout (App.tsx:285-287) | b268f53 | states |
 | 41 | contract extension P2: audit export modeled as server job (busy→error w/ audit-export-error testid→retry), full filtered set (no client paging), filename mirrors api/audit.ts exportAuditLogs | 808f3dc | audit-model |
-| 42 | contract extension P2: forced password-change handoff (login → mode=force panel, policy+confirm) + admin reset-password / resend-invite on UserDetail (real testids, eligible vs suspended) | pending | auth-login, user-detail-page |
+| 42 | contract extension P2: forced password-change handoff (login → mode=force panel, policy+confirm) + admin reset-password / resend-invite on UserDetail (real testids, eligible vs suspended) | 10a0c8c | auth-login, user-detail-page |
 | import-users | two-phase import: limitation alert, strict-header parse error, dry-run report (valid/skipped/error), commit gated on check, first-attempt commit failure, committed report + USERS growth | 37 |
 | user-detail-page | #/users/:id deep-link page: same builder as modal, role=switch immediate toggle, inline+toast error on first attempt, retry flips, back restores list | 36 |
 
