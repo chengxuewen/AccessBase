@@ -2490,3 +2490,7 @@ inside).
 ## D131: 控件度量刻度定稿——图标按钮家族刻度 + 高度两档按语义归属 + 内联图标族 (2026-11-24)
 
 fix 12-17 连锁定稿：图标按钮四族统一（ghost 行 28x28/16 gap8、bordered 32x32/16、内联 copy/link 20x20/14、pagination 32）；actions 列宽按按钮数定下限（3 钮 132/5 钮 204/2 钮 96/1 钮 88）+ flex-shrink:0；高度两档 --ctl-h:32/--ctl-h-sm:24 **按控件语义归属**（编辑动作含 banner/card-head/row/模板/矩阵 panel=32；仅 topbar chrome 与 16 个 error-retry=24）；固定高btn 三件套 nowrap+no-shrink；cbx div 控件入档（multi min-height）；sticky 末列随 tr:hover 同步。锁：shape-scale(ib/hoverSync) + control-heights(全容器单值+830px+panel+retries)。理由：刻度漂移的根因是"按容器/按 padding 推导"，语义归属+显式 token+可见控件锁才闭环。
+
+## D132: 契约扩展 35–42 决策汇总——双入口同 builder / 服务端 job 建模 / 整页 state-mode / 强制改密交接 (2026-11-24)
+
+重构会话 gap 清单 13 表面落地裁决：35 clients caep(url+https 行内)+apikeys cidr(服务端校验回显)，共享 fieldErr 机制；36 UserCreate/Edit 路由↔弹窗**裁为双入口同 builder**（非二选一删除），UserDetail #/users/:id 页同 builder，即时 switch 行内错；37 ImportUsersModal 两阶段（严格 CSV/干跑/提交门控）；38 login MFA TOTP+SMS 段镜像真实 testid；39 MfaCard 第四卡（一次性恢复码）；40 403/404/500 独立整页（真实路由在 layout 外）；41 审计导出建模为**服务端 job**（client blob stand-in 披露，文件名镜像 exportAuditLogs）；42 强制改密交接面板+管理员 reset/invite（eligible vs suspended）。理由：契约要覆盖真实分支语义而非像素复制；模拟点一律披露+zh+锁。锁 65→67 无收缩。

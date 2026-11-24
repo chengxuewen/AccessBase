@@ -820,7 +820,7 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **症状**: rep() assert count 反复失败：`.error-banner .ic` 先匹配进 `#page-profile .error-banner .ic` 把长规则提前吃掉；按工具回显的 \" 构造 old_str 与文件真实 plain 引号不符。
 - **根因**: 短选择器是长选择器子串，替换顺序未排序；tool result 经 JSON 编码转义引号，回显≠文件字节。
 - **解法**: 选择器映射按长度降序处理；构造 old_str 前用 repr()/od 读原始字节确认引号形态；two-pass assert 全 pattern 后再 write（edit-safety 第 3 条）。
-- **验证**: patch 脚本先 dry-run 打印每 pattern count==期望再写；失败后 read 目标区域而非盲重试。
+- **验证**: patch 脚本先 dry-run 打印每 pattern count==期望再写；失败后 read 目标区域而非盲重试。**增补(2026-11-24)**: 锚串须按文件实际行尾构造——CRLF 文件用 \r\n join（本会话 st403 块两次 assert count==0 皆因 \n 锚）；count==0 先 repr 读目标行真字节。
 
 ## PIT-105: overflow-y:auto 把 overflow-x 计算成 auto + visibility:hidden 保留布局宽 = 隐藏间隔造出横滚条 (2026-11-23, user-reported)
 
@@ -912,3 +912,17 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: .app grid-template-rows:var(--top-h) 1fr；state-mode 隐藏 topbar/sidebar 后 main 成为首个 grid item 被自动放置进**首行 52px**，overflow-y:auto 把 600px 内容裁成不可见空窗；锁测的是子元素 rect（溢出仍 600）而非裁剪窗 → 恒真盲区（PIT-098 同族）。
 - **解法**: .app.state-mode{grid-template-rows:1fr} 单行；锁补**可见窗探针**：main.clientHeight>=viewport-1 + elementFromPoint(视口中心).closest(目标页) 非空。
 - **验证**: states st403={mainH:720,centerHit:true}；双样本：去掉单行规则组红/恢复绿；截图 403 居中整页无 chrome。教训：整页/裁切类断言必须测**裁剪容器可见窗+中心命中**，子 rect 不算证据。
+
+## PIT-118: 单文件 kit 扩展的标识符碰撞族——既有 id/const/helper 重名 + 改名漏掉被移动的代码块 (2026-11-24, 契约扩展批 ≥5 次)
+
+- **症状**: MfaCard 新增 #mfaSetupModal/#mfaCode 与裁决 4 遗存模态重名（openModal 开错层、settings 组 fill 隐藏 input 超时）；harness 新探针 const s403/expErr/csv/dl 与既有组重名致编译错；DEL['mfa'] 被 TDZ 修复移出改名区后仍用旧 id（null.style 抛错）；admin 误用 companion 的 busy()（admin 只有 btnBusy）ReferenceError。
+- **根因**: 单文件 kit 的 id/顶层 const/函数名是**全局命名空间**，扩展前未枚举既有占用；跨文件复制 handler 时 helper 名不核对定义；批量改名按"区域"切块时，被移动到其他位置的代码块漏改。
+- **解法**: 扩展前 grep 新 id/const/函数名在兩文件的既有占用（含 harness spec 的组内 const）；新表面 id 加命名空间前缀（mfaCard*）；跨文件复用 helper 先 grep 定义（busy vs btnBusy）；改名后对**全文件**再 grep 旧名残留（不只改名区）。
+- **验证**: `grep -c 'id="mfaSetupModal"' docs/ui/prototypes/admin-console.html` ==1；`npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts` 无 SyntaxError/ReferenceError；改名后 `grep -n 'mfaOff\|mfaOn' admin-console.html` 仅余命名空间版。
+
+## PIT-119: 探针值域靠猜 + 同组探针状态耦合 → 断言假失败/假通过 (2026-11-24, 契约扩展批 ≥3 次)
+
+- **症状**: audit 过滤 selectOption('user.created') 静默无效（options 值域是 HTTP 动词 POST/PUT/DELETE，设不存在值→value=''→"过滤后"仍全量）；enhanced select 隐藏后 selectOption 直接超时；invite 断言期望 'Invite sent' 却得 'Invite not eligible'——同组前序 switch 探针已把 user 0 翻成 suspended。
+- **根因**: 探针写值前未读真实 options 值域；themed 控件需走 evaluate+input/change 事件而非 playwright selectOption；**同组内探针共享页面状态**，前序 mutation 污染后序断言样本。
+- **解法**: 写值前读 options/控件类型（hidden select 走 evaluate 派发事件）；受状态影响的断言选**未污染样本**（invite 改测 user 1）或显式重置 sim flag（exportTried=false）；断言失败先打印实际值区分"缺陷"与"样本污染"。
+- **验证**: audit-model ex={filteredCount:3,filteredRows:3,allFiltered:true}（POST 子集）；user-detail-page adm={invSusp:'Invite not eligible',invOk:'Invite sent…'} 双分支；失败明细经临时 expect(true) 诊断跑读取（PIT-099）。

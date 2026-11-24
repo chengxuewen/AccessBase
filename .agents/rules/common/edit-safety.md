@@ -162,3 +162,5 @@ curl -sf http://localhost:5173 && echo "Frontend OK" || echo "Frontend DOWN"
 
 4. **经典 `<script>` 单文件编辑后跑运行时探针，不只 node --check**。顶层 init 调用插到依赖 const 定义前 = TDZ 静默中断整段脚本（语法检查全绿、页面半死）。检查：插入 init 前 grep 依赖 const 行号确认顺序；编辑后 playwright/puppeteer 加载页收集 `pageerror`/`console.error` 必须为 0（PIT-102）。
 5. **python 批量 patch：选择器按长度降序 + 读原始字节构造 old_str**。短选择器是长选择器子串（`.error-banner .ic` ⊂ `#page-profile .error-banner .ic`），先短后长会提前吃掉长规则；工具回显经 JSON 转义引号，回显≠文件字节（repr/od 确认）。two-pass assert 后统一 write（第 3 条）（PIT-104）。
+
+6. **patch/replace 锚按文件实际行尾构造**：CRLF 文件用 \r\n join 锚串；assert count==0 先 repr 读目标行真字节再重试，不盲改锚（PIT-104 增补，2026-11-24 两次失败）。

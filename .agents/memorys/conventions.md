@@ -434,3 +434,11 @@ findings keep their own namespace and are always cited as
 **Source**: fix 13→15（固定高折行）、13→14（cbx 漏档+锁采样隐藏 select）、16→17（档归属只改矩阵漏全库）连锁；PIT-109/111/112/113/114/115。
 
 **Check**: `grep -n 'cbx-btn' docs/ui/prototypes/.harness/prototype.spec.ts` 刻度锁含可见 cbx；`grep -c 'class="btn[^"]*sm"' docs/ui/prototypes/admin-console.html` 剩余 sm 仅 chrome+retry（当前 17）；control-heights/shape-scale 全绿且含 830px/panel/retries 探针。
+
+## C6: 契约扩展三同步 + 版本 tag + 组数无收缩 (2026-11-24, 重构会话工作单裁决 21/30 承接)
+
+**Rule**: 每加一个原型表面＝同一变更内 (1) 扩展对应 harness 组或新增组（断言含触发样本），(2) README 锁索引行+计数更新，(3) CHANGELOG 记新裁决号；批次完成贴 `proto-v0.9x+psN` tag；锁组数只增不减（重构会话按无收缩锁感知吸收）。新表面遵循横切契约：32/24 语义档、boolean 两域、copy 反馈、三态、对比度、zh 字面量入 i18n-dynamic、键盘/焦点/inert 走统一机制。
+
+**Source**: 2026-11-24 契约扩展清单（13 表面/9 项，裁决 35–42，八批提交 da8250b…10a0c8c，tag ps19/ps20）。
+
+**Check**: `grep -c '^test(' docs/ui/prototypes/.harness/prototype.spec.ts` >= 上期；README `## Lock index (N groups)` 与 results.json 组数相等；`git tag | tail -1` 为最新 psN；CHANGELOG 含本期裁决号段。

@@ -159,8 +159,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### decisions
 - full text: `.agents/memorys/decisions.md`
-... 106 older entries omitted (read the full file)
-- D110: 安全基座架构（RS256 回退 + DB 权威会话 + 可注入审计存储） (2026-08-31)
+... 107 older entries omitted (read the full file)
 - D111: FlowTokenService 单次用途 token 作为多步认证主干 (2026-08-31)
 - D109: GitHub OAuth 豁免 PKCE（经典 OAuth App 限制） (2026-08-31)
 - D112: 用户名无发现 WebAuthn Passkey 作为主登录因子 (2026-08-31)
@@ -185,12 +184,11 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - D129: 形状刻度 token 化——图标三语义档 / 浮层单一圆角 / 标签族圆角 token (2026-11-23)
 - D130: 4A optimization roadmap — eight adjudications ratified one by one (2026-11-23)
 - D131: 控件度量刻度定稿——图标按钮家族刻度 + 高度两档按语义归属 + 内联图标族 (2026-11-24)
+- D132: 契约扩展 35–42 决策汇总——双入口同 builder / 服务端 job 建模 / 整页 state-mode / 强制改密交接 (2026-11-24)
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 105 older entries omitted (read the full file)
-- PIT-103: 响应式断点只改布局不套状态语义 → 裁切 chrome；一个状态两个入口必须同语义 (2026-11-23, user-reported)
-- PIT-104: python 批量 patch 两陷阱——选择器子串碰撞 + 工具回显 JSON 转义误导 old_str (2026-11-23, ≥3 轮失败)
+... 107 older entries omitted (read the full file)
 - PIT-105: overflow-y:auto 把 overflow-x 计算成 auto + visibility:hidden 保留布局宽 = 隐藏间隔造出横滚条 (2026-11-23, user-reported)
 - PIT-106: 外层标签 descendant 规则以特异性压死复合 label 的 flex/gap → 勾选框贴字 (2026-11-24, user-reported)
 - PIT-107: fixed 布局挤压 tag 列 + overflow:visible 溢出被不透明 sticky 列盖住 = "遮挡" (2026-11-24, user-reported)
@@ -204,6 +202,8 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-115: 探针三 guard 缺失 → null throw 或隐藏块 0 值假象（复发 ≥4 次） (2026-11-24)
 - PIT-116: fixed 浮层两陷阱——scrollIntoView 触发祖先 scroll 被外滚守卫误关 + backdrop-filter 祖先改变 fixed 包含块致错位 (2026-11-24, user-reported)
 - PIT-117: 隐藏 chrome 后 grid 自动-placement 把 main 塞进首行 + 锁只测子 rect 不测可见窗 (2026-11-24, 自抓)
+- PIT-118: 单文件 kit 扩展的标识符碰撞族——既有 id/const/helper 重名 + 改名漏掉被移动的代码块 (2026-11-24, 契约扩展批 ≥5 次)
+- PIT-119: 探针值域靠猜 + 同组探针状态耦合 → 断言假失败/假通过 (2026-11-24, 契约扩展批 ≥3 次)
 
 ### status
 - full text: `.agents/memorys/status.md`
