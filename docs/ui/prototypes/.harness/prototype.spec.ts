@@ -2191,6 +2191,48 @@ test('script-health', async ({ page }) => {
   expect(pass, 'script-health: zero runtime errors + handlers alive in both prototypes').toBe(true);
 });
 
+test('control-heights', async ({ page }) => {
+  // post-seal fix 13: two-tier control height scale (--ctl-h 32 / --ctl-h-sm 24); every control
+  // inside one container family shares one tier (toolbar/page-head/modal-foot/form = 32,
+  // topbar/card-head/banner-retry = 24). Ragged padding-derived heights are gone.
+  await page.goto(FILE);
+  const heights = (sel: string) => page.evaluate((s) => {
+    const els = [...document.querySelectorAll(s)] as HTMLElement[];
+    return [...new Set(els.filter(e => e.getBoundingClientRect().height > 0).map(e => Math.round(e.getBoundingClientRect().height)))];
+  }, sel);
+  const res: Record<string, unknown> = {};
+  let ok = true;
+  for (const pg of ['users', 'events', 'audit', 'apikeys', 'tenants']) {
+    await page.evaluate(k => (document.querySelector('[data-page=' + k + ']') as HTMLElement).click(), pg);
+    await page.waitForTimeout(150);
+    const h = await heights('#page-' + pg + ' .toolbar input, #page-' + pg + ' .toolbar select, #page-' + pg + ' .toolbar button');
+    res[pg + 'Toolbar'] = h;
+    if (h.length !== 1 || h[0] !== 32) ok = false;
+  }
+  const top = await heights('.top-actions button, .top-actions select, .top-actions .avatar');
+  res.topbar = top;
+  if (top.length !== 1 || top[0] !== 24) ok = false;
+  await page.evaluate(() => (document.querySelector('[data-page=users]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  const ph = await heights('#page-users .page-head button');
+  res.pageHead = ph;
+  if (ph.length !== 1 || ph[0] !== 32) ok = false;
+  await page.evaluate(() => (document.querySelector('[data-create=users]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  const foot = await heights('#formModal .modal-foot button');
+  const form = await heights('#formBody input:not([type=checkbox]), #formBody select');
+  res.modalFoot = foot; res.form = form;
+  if (foot.length !== 1 || foot[0] !== 32 || form.length !== 1 || form[0] !== 32) ok = false;
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => (document.querySelector('[data-page=dashboard]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  const ch = await heights('#page-dashboard .card-head button');
+  res.cardHead = ch;
+  if (ch.length !== 1 || ch[0] !== 24) ok = false;
+  rec('control-heights', ok, res);
+  expect(ok, 'control-heights: one height tier per container family').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);

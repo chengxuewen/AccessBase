@@ -80,7 +80,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts
 npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --grep roles-edit
 ```
 
-- 64 groups, all must pass. Per-group assertions are written to
+- 65 groups, all must pass. Per-group assertions are written to
   `docs/ui/prototypes/.harness/results.json` (`results[name].assertions`, `fail` count) for evidence review.
 - The harness loads the same `file://` page; it never mocks the prototype itself except where a test
   deliberately stubs `navigator.clipboard` / `document.execCommand` to prove the copy-failure branch.
@@ -88,7 +88,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
   surface, motion family, tint-bearing color, or locale string requires extending the matching group
   (or adding one) in the same change — never ship a surface the harness cannot see.
 
-## Lock index (64 groups)
+## Lock index (65 groups)
 
 | Group | Locks | Ruling |
 |---|---|---|
@@ -120,6 +120,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | security-states | security tab three-state loads (sessions/passkeys/templates) + tplSave bilingual-subject guard + sessions-others fail-closed | post-closure panel execution |
 | script-health | both prototypes load with zero pageerror/console.error and key handlers alive (TDZ/partial-script catcher; lesson-review PIT-102 upgrade) | lesson-review 2026-11-23 |
 | narrow-nav | <=760px breakpoint applies icon-only sider semantics (group labels hidden, collapse trigger hidden, no sidebar/doc overflow); icon-only nav keeps aria-label + hover tip (manual collapse and breakpoint); wide restores labels/trigger and drops tips | post-seal fix 8 |
+| control-heights | two-tier control height scale (32 default / 24 compact); toolbar/page-head/modal-foot/form controls all 32, topbar/card-head all 24 — one tier per container family | post-seal fix 13 |
 | shape-scale | icon tiers {12,14,16,28} via --ic-s/m/l/display; single pop radius --r-pop (drawer sheet 0 exception); label-family --r-tag per pack (cupertino pill, material 8, carbon 0) shared by tag/chip/sys-tag | design backlog rulings 1-3 |
 | a11y-env | reflow@200% zoom (no doc overflow, 5 pages), narrow modal/drawer fit + focus trap + background inert on/off, forced-colors checked/switch-on state visibility | verification-deepening batch |
 | i18n-dynamic | source-literal lock: every toast/busy/formError literal in both prototypes translates under zh (dictionary key or rule) | post-closure panel execution |

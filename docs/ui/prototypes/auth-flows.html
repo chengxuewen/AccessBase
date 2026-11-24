@@ -19,6 +19,7 @@
   --sans:"IBM Plex Sans",-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --ic-s:12px;--ic-m:14px;--ic-l:16px;--ic-display:28px;--r-pop:var(--r6);--r-tag:var(--r2);
+  --ctl-h:32px;--ctl-h-sm:24px;
   --fs11:11px;--fs12:12px;--fs13:13px;--fs14:14px;--fs16:16px;--fs20:20px;--fs22:22px;--fs26:26px;--fs40:40px;
   --shadow-tip:0 2px 10px rgba(0,0,0,.12);--shadow-pop:0 8px 32px rgba(0,0,0,.18);--shadow-toast:0 4px 16px rgba(0,0,0,.2);--shadow-card:0 2px 12px rgba(0,0,0,.06);--shadow-sm:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24);--shadow-hair:0 1px 2px rgba(0,0,0,.06),0 0 1px rgba(0,0,0,.10);
   --nav-w:224px;--nav-w-min:56px;--top-h:52px;
@@ -117,13 +118,13 @@ button{font-family:inherit;cursor:pointer}
 .page-head .ph-more{display:inline-flex}
 .page-head [data-phsecondary]{display:none}
 }
-.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 12px;border-radius:var(--r4);border:1px solid var(--bd);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-weight:500}
 .btn:hover{background:var(--hover)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--txinv)}
 .btn.danger{background:var(--danger-solid,var(--danger));border-color:var(--danger-solid,var(--danger));color:var(--danger-inv)}
 .btn.danger:not(.ghost):hover{filter:brightness(1.12)}
 .btn.primary:hover{background:var(--accent-hi)}
-.btn.sm{padding:3px 8px;font-size:var(--fs12)}
+.btn.sm{height:var(--ctl-h-sm);padding:0 8px;font-size:var(--fs12)}
 .card{background:var(--surface);border:1px solid var(--bd);border-radius:var(--r6)}
 .card .card-head{display:flex;align-items:center;justify-content:space-between;padding:var(--sp12) var(--sp16);border-bottom:1px solid var(--bd)}
 .card .card-head h3{font-size:var(--fs13);font-weight:600}

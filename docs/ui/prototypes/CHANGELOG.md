@@ -1355,3 +1355,17 @@ background sync; also removed a duplicate sticky box-shadow rule using raw rgba 
 token shadow. shape-scale lock extended (ib metrics + hover sync); responsive-table mid-width pass
 still green for seven tables. Full re-run: 64 groups, 0 failures. Screenshot: hovered users row with
 16px icons, 8px gaps and fully synced row hover. PIT-109 recorded.
+
+## Post-seal fix 13 (user-reported): search vs refresh button height mismatch — two-tier control height scale — 2026-11-24
+Report: on Events the search input and the refresh icon button differed visibly in height. Root
+cause: no explicit height scale existed — every control family derived its height from
+padding+font-size (search ~32, toolbar select/date ~29, btn.sm ~25, icon-btn 32), so one toolbar mixed
+four heights; topbar mixed 24/29/32 and card-head mixed 24/32. Comprehensive fix: two-tier tokens
+--ctl-h:32 / --ctl-h-sm:24 applied as explicit heights to btn, btn.sm, icon-btn, search input, toolbar
+select, date inputs and form input/select; one tier per container family (toolbar / page-head /
+modal-foot / form = 32; topbar / card-head = 24 including their icon buttons and the avatar); the
+toolbar Search button dropped its sm class; the style-pack select's inline padding style was folded
+into the topbar family rule. New harness group control-heights (65 total) asserts each container's
+control-height set is a single value equal to its tier across five pages plus topbar/page-head/
+modal-foot/form/card-head. Full re-run: 65 groups, 0 failures. Screenshot: 860px Events toolbar with
+uniform 32px controls and uniform 24px topbar. PIT-110 recorded.

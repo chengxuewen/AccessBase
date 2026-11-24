@@ -856,3 +856,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: 四族图标按钮各自发明度量（row 24/14、icon-btn 30/16、copy 16/12、pagination 26）无统一刻度；`.row-actions` flex 子项默认可收缩，fixed 布局 actions 列宽不足时按钮被压到 18px 且 td overflow:hidden 裁切命中区；`td:last-child` 不透明背景不随 `tr:hover` 同步；511 行重复 sticky 阴影用裸 rgba 覆盖 fix11 的 token 阴影。
 - **解法**: 统一刻度 row ghost 28/16/gap8、bordered 32/16、inline copy 20/14、pagination 32；`flex-shrink:0` + **按按钮数**定 actions 列下限（3 钮 132/5 钮 204/2 钮 96/1 钮 88）；`tr:hover td:last-child{background:var(--hover)}`；删重复裸 rgba 阴影保留 token 版。
 - **验证**: shape-scale 锁 ib 段（28/28/16/gap8/32/16/copy14/pag32）+ hoverSync（末列 bg==tr bg）；responsive-table mid 七表不横溢；截图 hover 整行同色。
+
+## PIT-110: 控件高度靠 padding+font 推导 → 同 toolbar 混档参差不齐 (2026-11-24, user-reported)
+
+- **症状**: events toolbar 搜索框≈32、select/date≈29、Search 钮(sm)≈25、刷新 icon-btn 32 同排参差；topbar 24/29/32 混档；card-head 24/32 混档。
+- **根因**: 无显式高度刻度，各家族 height 由 padding+font-size+line-height 推导，彼此不等；sm 按钮混入默认档容器；inline style 的 select 绕过家族规则。
+- **解法**: 两档 token --ctl-h:32 / --ctl-h-sm:24 显式 height 覆盖 btn/btn.sm/icon-btn/search input/toolbar select/date/form input-select；**同容器族同档**：toolbar/page-head/modal-foot/form=32，topbar/card-head=24（含其内 icon-btn 与 avatar）；toolbar 内 sm 按钮归默认档；inline style select 收编进家族规则。
+- **验证**: control-heights 锁（65 组之一）：五页 toolbar/topbar/page-head/modal-foot/form/card-head 各容器高度集合单值且等于档位；截图 events toolbar 全控件同高。

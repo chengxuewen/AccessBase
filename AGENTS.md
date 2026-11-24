@@ -188,8 +188,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 97 older entries omitted (read the full file)
-- PIT-079: REGISTERED VOID — never assigned, number reserved (2026-11-17)
+... 98 older entries omitted (read the full file)
 - PIT-096: A success log line as a function's last statement swallowed real gate failures
 - PIT-097: A wrong verification predicate produces confident false findings — test the checker on BOTH samples before trusting its verdict
 - PIT-098: 恒真锁三 costume——采样不触发缺陷的样本/白名单排除失败面/存在性检查冒充覆盖 (2026-11-23, panel-folded)
@@ -204,6 +203,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-107: fixed 布局挤压 tag 列 + overflow:visible 溢出被不透明 sticky 列盖住 = "遮挡" (2026-11-24, user-reported)
 - PIT-108: 共享 git index 是进程全局的——他会话预 stage 的改动会搭我的 commit 便车 (2026-11-24, 事故)
 - PIT-109: 图标按钮家族刻度漂移 + fixed 布局 actions 列 flex 收缩裁切 + sticky hover 不同步 (2026-11-24, user-reported)
+- PIT-110: 控件高度靠 padding+font 推导 → 同 toolbar 混档参差不齐 (2026-11-24, user-reported)
 
 ### status
 - full text: `.agents/memorys/status.md`
