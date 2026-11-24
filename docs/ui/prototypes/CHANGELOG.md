@@ -1450,3 +1450,19 @@ and are stored on the key. New fieldErr/clearFieldErr mechanism is the shared in
 future Form.Item-rule surfaces. zh keys added; i18n-dynamic prefix sample extended; clients-model and
 apikeys-model locks extended (caep url/https/clear/testid/aria; cidr bad/good/testid/rows). README lock
 rows + simulation index + adjudication index 35. 65 groups, 0 failures.
+
+## Adjudication 36 — contract extension P1 (user routes + UserDetail, 2026-11-24)
+UserCreate/UserEdit route-page contract is represented by the shared modal form (二选一 adjudicated):
+same fields, validation and failure states; users create is now ASYNC with a simulated first-attempt
+failure ("Create failed: user service timeout (prototype simulation) — retry.", per-open re-arm, zh key)
+mirroring real UserCreate createError; retry succeeds and updates stats/activity. UserDetail gains a
+real deep-link page #/users/:id (page-user-detail) rendered by the SAME builder as the quick-view modal
+(userDetailHtml extracted; modal entry unchanged), with a "Open as full page" affordance in the modal
+and Back-to-users on the page; hash router extended (applyHash) alongside #/403/#/404/#/error. The
+immediate status switch now also writes an inline .field-err (role=alert) next to the switch on failure
+(real UserDetail.tsx:139 inline-feedback precedent) and removes it on success, in both entry points.
+Locks: users-model extended (async create fail/retry via USERS.length), dashboard-model create flow
+re-timed for async + first-failure, new user-detail-page group (page on/title/switch role+checked/
+modal closed/inline error/retry flip/back), all-pages-high-fidelity section count 12→13. README
+simulation index + Not-modelled truthed + representation note + lock rows + adjudication 36.
+66 groups, 0 failures.

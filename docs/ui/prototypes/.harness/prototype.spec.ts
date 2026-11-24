@@ -622,7 +622,7 @@ test('all-pages-high-fidelity', async ({ page }) => {
     placeholdersLeft: document.querySelectorAll('.placeholder').length,
     sections: document.querySelectorAll('section.page').length,
   }));
-  const pass = a.placeholdersLeft === 0 && a.sections === 12;
+  const pass = a.placeholdersLeft === 0 && a.sections === 13;
   rec('all-pages-high-fidelity', pass, a);
   expect(pass, 'all-pages-high-fidelity').toBe(true);
 });
@@ -1438,11 +1438,29 @@ test('users-model', async ({ page }) => {
   await page.locator('[data-usort=name]').click();
   await page.locator('[data-usort=name]').click();
   const sorted = await page.evaluate(() => ({ first: document.querySelector('#userRows .u-nm')!.textContent, ic: document.querySelector('[data-usort=name] .sort-ic')!.textContent }));
-  const a = { edit, vocab, susConf, susToast, menuHasForce, forceVerb, exportItem, file: download.suggestedFilename(), first0, sorted };
+  // adjudication 36: users create is async with a simulated first-attempt failure (real UserCreate
+  // createError); retry succeeds. Route-page detail shares the modal builder.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.evaluate(() => (document.querySelector('[data-create=users]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  const uCreate = await page.evaluate(async () => {
+    const set = (k: string, v: string) => { const e = document.querySelector('#formBody [data-field="' + k + '"]') as HTMLInputElement; e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
+    set('name', 'Async Probe'); set('email', 'async.probe@globex.com'); set('password', 'Str0ng!Passw0rd');
+    const rows0 = eval('USERS.length');
+    (document.getElementById('formSave') as HTMLElement).click();
+    await new Promise(r => setTimeout(r, 600));
+    const failBanner = (document.getElementById('formErr') || {}).textContent || '';
+    const rowsFail = eval('USERS.length');
+    (document.getElementById('formSave') as HTMLElement).click();
+    await new Promise(r => setTimeout(r, 600));
+    return { failBanner, rowsFail, rows0, rowsOk: eval('USERS.length'), toast: document.getElementById('protoToast')!.textContent };
+  });
+  const uCreateOk = uCreate.failBanner.includes('user service timeout') && uCreate.failBanner.includes('prototype simulation') && uCreate.rowsFail === uCreate.rows0 && uCreate.rowsOk === uCreate.rows0 + 1 && uCreate.toast === 'User created';
+  const a = { edit, vocab, susConf, susToast, menuHasForce, forceVerb, exportItem, file: download.suggestedFilename(), first0, sorted, uCreate, uCreateOk };
   const pass = edit.name && edit.roles >= 2 && edit.emailRo && edit.tenantRo && !edit.statusField
     && vocab && susConf === 'Suspend' && susToast === 'Status updated'
     && menuHasForce && forceVerb === 'Force logout' && exportItem && download.suggestedFilename() === 'users.csv'
-    && sorted.first !== first0 && sorted.ic === '▼';
+    && sorted.first !== first0 && sorted.ic === '▼' && uCreateOk;
   rec('users-model', pass, a);
   expect(pass, 'users-model').toBe(true);
 });
@@ -2300,6 +2318,45 @@ test('control-heights', async ({ page }) => {
   expect(ok, 'control-heights: one height tier per container family').toBe(true);
 });
 
+test('user-detail-page', async ({ page }) => {
+  // adjudication 36: #/users/:id deep-link renders the SAME builder as the quick-view modal;
+  // immediate switch keeps role=switch, shows inline + toast error on first attempt, retry flips.
+  await page.goto(FILE);
+  await page.evaluate(() => { location.hash = '#/users/0'; });
+  await page.waitForTimeout(250);
+  const opened = await page.evaluate(() => ({
+    pageOn: document.getElementById('page-user-detail')!.classList.contains('on'),
+    title: document.getElementById('udTitle')!.textContent,
+    sw: !!document.querySelector('#userDetailBody [data-dstatus]'),
+    role: (document.querySelector('#userDetailBody [data-dstatus]') as HTMLElement).getAttribute('role'),
+    checked: (document.querySelector('#userDetailBody [data-dstatus]') as HTMLElement).getAttribute('aria-checked'),
+    modalClosed: !document.getElementById('detailModal')!.classList.contains('on'),
+  }));
+  await page.evaluate(() => (document.querySelector('#userDetailBody [data-dstatus]') as HTMLElement).click());
+  await page.waitForTimeout(700);
+  const fail = await page.evaluate(() => ({
+    toast: document.getElementById('protoToast')!.textContent,
+    inline: !!document.querySelector('#userDetailBody .field-err'),
+    checked: (document.querySelector('#userDetailBody [data-dstatus]') as HTMLElement).getAttribute('aria-checked'),
+  }));
+  await page.evaluate(() => (document.querySelector('#userDetailBody [data-dstatus]') as HTMLElement).click());
+  await page.waitForTimeout(700);
+  const ok = await page.evaluate(() => ({
+    inline: !!document.querySelector('#userDetailBody .field-err'),
+    checked: (document.querySelector('#userDetailBody [data-dstatus]') as HTMLElement).getAttribute('aria-checked'),
+    toast: document.getElementById('protoToast')!.textContent,
+  }));
+  await page.evaluate(() => (document.querySelector('[data-udback]') as HTMLElement).click());
+  await page.waitForTimeout(200);
+  const back = await page.evaluate(() => document.getElementById('page-users')!.classList.contains('on'));
+  const a = { opened, fail, ok, back };
+  const pass = opened.pageOn && opened.title.includes('Jane Doe') && opened.sw && opened.role === 'switch' && opened.checked === 'true' && opened.modalClosed
+    && fail.toast.includes('Failed to update status') && fail.inline && fail.checked === 'true'
+    && !ok.inline && ok.checked === 'false' && ok.toast === 'Status updated' && back;
+  rec('user-detail-page', pass, a);
+  expect(pass, 'user-detail-page').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);
@@ -2859,6 +2916,10 @@ test('dashboard-model', async ({ page }) => {
   await page.locator('#formBody [data-field=password]').fill('Str0ng!Pass12');
   const users0 = await page.evaluate(() => eval('USERS.length'));
   await page.locator('#formSave').click();
+  await page.waitForTimeout(600); // adjudication 36: async create, simulated first-attempt failure
+  const createFailSim = await page.evaluate(() => (document.getElementById('formErr') || {}).textContent || '');
+  await page.locator('#formSave').click();
+  await page.waitForTimeout(600);
   const created = await page.evaluate(() => ({
     users: eval('USERS.length'),
     stat: document.getElementById('statUsers')!.textContent,
@@ -2868,12 +2929,12 @@ test('dashboard-model', async ({ page }) => {
   await page.evaluate(() => { (document.querySelector('[data-page=dashboard]') as HTMLElement).click(); });
   await page.locator('#viewAllBtn').click();
   const navAudit = await page.evaluate(() => document.getElementById('page-audit')!.classList.contains('on'));
-  const a = { base, spin, err, ok, navRoles, form, dup, policy, users0, created, navAudit };
+  const a = { base, spin, err, ok, navRoles, form, dup, policy, users0, createFailSim, created, navAudit };
   const pass = JSON.stringify(base.stats) === JSON.stringify(base.live) && base.noDelta && base.noTrend
     && base.actTags === 10 && base.actDesc && base.refreshInHead && base.inert === 0
     && spin === 8 && err && ok.banner && ok.items === 5 && navRoles
     && form.on && form.usersPage && JSON.stringify(form.fields) === JSON.stringify(['name', 'email', 'password', 'isActive', 'roles']) && form.pwdType === 'password' && form.activeChecked
-    && dup && policy && created.users === users0 + 1 && created.stat === (users0 + 1).toLocaleString()
+    && dup && policy && createFailSim.includes('user service timeout') && created.users === users0 + 1 && created.stat === (users0 + 1).toLocaleString()
     && created.actFirst === 'user.created' && created.closed && navAudit;
   rec('dashboard-model', pass, a);
   expect(pass, 'dashboard-model').toBe(true);

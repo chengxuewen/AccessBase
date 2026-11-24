@@ -499,7 +499,7 @@
       "pass": true,
       "assertions": {
         "placeholdersLeft": 0,
-        "sections": 12
+        "sections": 13
       }
     },
     "a11y-keyboard": {
@@ -988,7 +988,15 @@
         "sorted": {
           "first": "Kate Bell",
           "ic": "▼"
-        }
+        },
+        "uCreate": {
+          "failBanner": "Create failed: user service timeout (prototype simulation) — retry.",
+          "rowsFail": 12,
+          "rows0": 12,
+          "rowsOk": 13,
+          "toast": "User created"
+        },
+        "uCreateOk": true
       }
     },
     "roles-model": {
@@ -1277,7 +1285,7 @@
         ],
         "zhEdit": true,
         "dict": {
-          "n": 430,
+          "n": 431,
           "allNonEmpty": true,
           "coverage": true
         },
@@ -1314,7 +1322,7 @@
       "assertions": {
         "adminMissing": [],
         "companionMissing": [],
-        "n": 84
+        "n": 85
       }
     },
     "security-states": {
@@ -1523,6 +1531,30 @@
           "wrapped": false,
           "over": false
         }
+      }
+    },
+    "user-detail-page": {
+      "pass": true,
+      "assertions": {
+        "opened": {
+          "pageOn": true,
+          "title": "Jane Doe · User",
+          "sw": true,
+          "role": "switch",
+          "checked": "true",
+          "modalClosed": true
+        },
+        "fail": {
+          "toast": "Failed to update status (prototype simulation) — retry",
+          "inline": true,
+          "checked": "true"
+        },
+        "ok": {
+          "inline": false,
+          "checked": "false",
+          "toast": "Status updated"
+        },
+        "back": true
       }
     },
     "states": {
@@ -1878,6 +1910,7 @@
         "dup": true,
         "policy": true,
         "users0": 12,
+        "createFailSim": "Create failed: user service timeout (prototype simulation) — retry.",
         "created": {
           "users": 13,
           "stat": "13",

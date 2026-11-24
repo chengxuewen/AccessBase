@@ -95,7 +95,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | de-ai-slop | no gradient/emoji/glass template tells | v0.2 |
 | dashboard-render / dashboard-model | live statistics, no chart, activity tags, quick actions, load error | 19 |
 | theme / style-packs | 7 packs × light/dark token switching | v0.3–v0.6, 12 |
-| nav-switch / all-pages-high-fidelity | 12 pages render, nav state | v0.1, v0.8 |
+| nav-switch / all-pages-high-fidelity | 13 pages render (incl #/users/:id detail page), nav state | v0.1, v0.8, 36 |
 | users-table / filter-narrows / search / users-model | users model, vocab, filters, sort, status switch | 6 |
 | users-erasure | RTBF branch, LAST_ADMIN_GUARD, ERASE_LOCK_BUSY, receipt | 9 |
 | roles-matrix / roles-model / roles-edit | partition locks, parent, staged draft, empty-save danger confirm, scope fan-out, mixed disabled, async delete | 7, 25 |
@@ -143,7 +143,7 @@ load** for page-level loads and webhooks actions; retry then succeeds. Every mes
 | Surface | Simulated point(s) | Real counterpart |
 |---|---|---|
 | Dashboard | stats load failure + Retry | `Dashboard.tsx` load error Alert |
-| Users | detail-status first-attempt failure; delete RTBF guard/lock refusals | `Users.tsx` updateError; server guards (createError not simulated — see Not modeled) |
+| Users | create first-attempt failure (async), detail-status first-attempt failure; delete RTBF guard/lock refusals | `Users.tsx`/`UserCreate.tsx` createError/updateError; server guards |
 | Roles | save (role-service timeout), delete | `Roles.tsx` updateError/deleteError |
 | Groups | create, detail load, candidate load, add/remove member, saveRoles, delete | `Groups.tsx` detailError/memberLoadError/memberAddError/memberRemoveError/rolesSaveError/deleteError |
 | Tenants | create/update, status change, delete; init TENANT_PROTECTED | `Tenants.tsx` createError/updateError/statusError/deleteError/initError |
@@ -200,7 +200,9 @@ AntD Transfer picker + modal Save; create-form note that UI sends no scopes and 
 | 32 | kit handoff README (navigation layer + indexes) | 5fe8cc4 | — (doc) |
 | 33 | entry-flows companion (nine surfaces) + auth locks | cc7aab8 | auth-login, auth-register-reset, auth-enroll-consent, auth-setup |
 | 34 | closure: companion motion/i18n/contrast locks + .spin degradation + nav/steps contrast | e154ef1 | reduced-motion, i18n, surfaces-contrast |
-| 35 | contract extension P0: clients caepEndpointUri (url+https inline) + apikeys cidrAllowlist (server-validation echo), field-err mechanism + testids | pending | clients-model, apikeys-model, i18n-dynamic |
+| 35 | contract extension P0: clients caepEndpointUri (url+https inline) + apikeys cidrAllowlist (server-validation echo), field-err mechanism + testids | da8250b | clients-model, apikeys-model, i18n-dynamic |
+| 36 | contract extension P1: users create async+failure; UserDetail #/users/:id page shares modal builder; immediate-switch inline error | pending | users-model, user-detail-page, dashboard-model |
+| user-detail-page | #/users/:id deep-link page: same builder as modal, role=switch immediate toggle, inline+toast error on first attempt, retry flips, back restores list | 36 |
 
 Pre-series rounds (v0.1–v0.9, expert-panel adjudications 1–12 old numbering, revision plans R1–R5,
 user-reported fixes) are indexed by date in `CHANGELOG.md`.
@@ -265,6 +267,8 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   Manual acceptance (not automatable here): real screen-reader announcement pass (NVDA/VoiceOver),
   touch drag, print stylesheet.
 - Not modeled: real network/auth/tenancy enforcement, server-side export, dayjs itself, AntD itself;
-  also the real `Users.tsx` createError and `Profile.tsx` MFA enable/disable failure branches (no
-  simulated counterpart yet — listed here instead of as phantom index rows).
+  also the real `Profile.tsx` MFA enable/disable failure branches (no simulated counterpart yet —
+  listed here instead of as phantom index rows). UserCreate/UserEdit route pages are represented by the
+  shared modal form contract (same fields/validation/failure states); UserDetail exists as both the
+  quick-view modal and the #/users/:id deep-link page, rendered by one builder (adjudication 36).
   Demo data names/emails/ids are fixtures; the zh pass deliberately never translates them.
