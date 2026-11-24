@@ -1339,3 +1339,19 @@ stay aligned); sticky last column gains box-shadow -8px 0 12px -8px var(--bd2) a
 in both themes. responsive-table lock extended with a mid-width pass: seven tables assert no
 horizontal overflow, tag inside its cell, tag clear of the sticky column, and shadow present.
 Full re-run: 64 groups, 0 failures. Screenshot: 940px API Keys with complete status tags. PIT-107.
+
+## Post-seal fix 12 (user-reported): row action icon buttons too small / cramped — icon-button scale unified class-wide — 2026-11-24
+Report: users row View/Edit/More icons looked undersized and cramped. Probe: ghost row buttons 24x24
+with 14px icons and 4px gap, while bordered icon buttons were 30x30/16, inline copy 16x16/12 and
+pagination 26x26 — four families, four invented scales. Comprehensive fix: one icon-button scale
+(ghost row 28x28/16 gap 8; bordered 32x32/16 incl. modal close; inline copy 20x20/14; pagination
+32x32; cbx-clear/chip keep small glyphs with >=24 hit areas per ruling 3A). Two connected defects found
+and fixed: (1) .row-actions flex children shrank under table-layout:fixed when the actions column was
+too narrow (buttons squeezed to 18px and clipped by td overflow:hidden, intercepting clicks) — added
+flex-shrink:0 and per-table actions-column floors sized by button count (users/clients/groups 132,
+webhooks 204 for five buttons, roles/apikeys 96, events 88); (2) the opaque sticky last cell did not
+follow tbody tr:hover, leaving a mismatched patch on hovered rows — added tr:hover td:last-child
+background sync; also removed a duplicate sticky box-shadow rule using raw rgba that overrode fix 11's
+token shadow. shape-scale lock extended (ib metrics + hover sync); responsive-table mid-width pass
+still green for seven tables. Full re-run: 64 groups, 0 failures. Screenshot: hovered users row with
+16px icons, 8px gaps and fully synced row hover. PIT-109 recorded.

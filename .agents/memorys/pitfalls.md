@@ -849,3 +849,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: index 全仓库共享；并行会话执行过宽 add（疑 -A）留下满 index；`git add <own paths>` 不清除他人暂存；普通 `git commit` 提交**整个 index**。C4 的"commit 前核 cached 清单"发现了混入但误判为可接受（当时清单打印在 commit 同命令里、未及拦截）。
 - **解法**: 多会话仓库一律 **pathspec 提交** `git commit -m … -- <own paths>`（只提交指定路径，无视 index 其余暂存）；commit 前 cached 清单发现外来路径立即停止并改用 pathspec；临时探针文件入 .gitignore（.cb-*.js/.cb-*.mjs）防误跟踪。
 - **验证**: `git show --stat <commit>` 文件清单==本轮意图路径；`git ls-files .cb-*` 为空。事故处置：不改写历史（并行活跃），外来改动完整保留于该 commit，向用户披露归属。
+
+## PIT-109: 图标按钮家族刻度漂移 + fixed 布局 actions 列 flex 收缩裁切 + sticky hover 不同步 (2026-11-24, user-reported)
+
+- **症状**: users 行 View/Edit/More 图标显小且拥挤（14px 图标/24px 钮/gap 4）；hover 行时 sticky 末列留下不透明色块；部分表行按钮点击被裁切拦截。
+- **根因**: 四族图标按钮各自发明度量（row 24/14、icon-btn 30/16、copy 16/12、pagination 26）无统一刻度；`.row-actions` flex 子项默认可收缩，fixed 布局 actions 列宽不足时按钮被压到 18px 且 td overflow:hidden 裁切命中区；`td:last-child` 不透明背景不随 `tr:hover` 同步；511 行重复 sticky 阴影用裸 rgba 覆盖 fix11 的 token 阴影。
+- **解法**: 统一刻度 row ghost 28/16/gap8、bordered 32/16、inline copy 20/14、pagination 32；`flex-shrink:0` + **按按钮数**定 actions 列下限（3 钮 132/5 钮 204/2 钮 96/1 钮 88）；`tr:hover td:last-child{background:var(--hover)}`；删重复裸 rgba 阴影保留 token 版。
+- **验证**: shape-scale 锁 ib 段（28/28/16/gap8/32/16/copy14/pag32）+ hoverSync（末列 bg==tr bg）；responsive-table mid 七表不横溢；截图 hover 整行同色。

@@ -1401,7 +1401,20 @@
           "tag": [
             "2px"
           ]
-        }
+        },
+        "ib": {
+          "rowW": 28,
+          "rowH": 28,
+          "rowIc": 16,
+          "gap": "8px",
+          "ibW": 32,
+          "ibIc": 16,
+          "pgW": 32,
+          "pgH": 32
+        },
+        "cpIc": 14,
+        "hoverSync": true,
+        "ibOk": true
       }
     },
     "narrow-nav": {

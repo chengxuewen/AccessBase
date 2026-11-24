@@ -227,6 +227,11 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   `Descriptions` and `Dashboard.tsx` `Statistic` are rendered as definition grids / stat cards.
   Functional filters are NOT simplified: users status/tenant, audit action/actor/days, events
   type/range all mirror the real Select/Input/RangePicker filters.
+- Icon-button scale (post-seal fix 12): one scale across families — ghost row actions 28x28 with
+  16px icons and 8px gap, bordered icon buttons 32x32/16, inline copy 20x20/14, pagination 32x32;
+  cbx-clear/chip keep their small glyphs with >=24 hit areas. Actions columns carry per-table floors
+  sized by button count (flex-shrink:0 prevents fixed-layout squeezing); the sticky last cell follows
+  row hover so no opaque patch remains. Locked by shape-scale ib assertions + hover sync.
 - Table column floors (post-seal fix 11): status/type tag columns carry a 104px floor (switch column
   84px) so tags never overflow under the opaque sticky actions column; prio-3 columns drop at 1100px
   (label() mirrors th prio onto td), the sticky edge carries a --bd2 shadow cue, and chip containers

@@ -2093,10 +2093,39 @@ test('shape-scale', async ({ page }) => {
     if ((m as any).tag.length !== 1) ok = false;
     await page.keyboard.press('Escape');
   }
+  // post-seal fix 12: icon-button families share one scale (row ghost 28/16 gap 8, bordered 32/16,
+  // inline copy 20/14, pagination 32) and the sticky last cell follows row hover (no opaque patch).
+  await page.evaluate(() => { const s = document.getElementById('styleSelect') as HTMLSelectElement; s.value = 'ant'; s.onchange!(new Event('change')); document.documentElement.dataset.theme = 'light'; (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  await page.waitForTimeout(200);
+  const ib = await page.evaluate(() => {
+    const tr = document.querySelector('#userRows tr') as HTMLElement;
+    const ra = tr.querySelector('.row-actions') as HTMLElement;
+    const b = ra.querySelector('button') as HTMLElement;
+    const ic = b.querySelector('.ic') as HTMLElement;
+    const ibtn = document.querySelector('#page-users .icon-btn') as HTMLElement;
+    const iic = ibtn.querySelector('.ic') as HTMLElement;
+    const pg = document.querySelector('#page-users .pagination .pages button') as HTMLElement;
+    return { rowW: b.getBoundingClientRect().width, rowH: b.getBoundingClientRect().height, rowIc: ic.getBoundingClientRect().width, gap: getComputedStyle(ra).gap, ibW: ibtn.getBoundingClientRect().width, ibIc: iic.getBoundingClientRect().width, pgW: pg.getBoundingClientRect().width, pgH: pg.getBoundingClientRect().height };
+  });
+  const cpIc = await page.evaluate(() => {
+    (document.querySelector('[data-page=tenants]') as HTMLElement).click();
+    const cp = document.querySelector('#tenantRows .copyable button .ic') as HTMLElement;
+    return cp.getBoundingClientRect().width;
+  });
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
+  await page.waitForTimeout(150);
+  await page.locator('#userRows tr:first-child').hover();
+  await page.waitForTimeout(120);
+  const hoverSync = await page.evaluate(() => {
+    const tr = document.querySelector('#userRows tr') as HTMLElement;
+    const last = tr.querySelector('td:last-child') as HTMLElement;
+    return getComputedStyle(last).backgroundColor === getComputedStyle(tr).backgroundColor;
+  });
+  const ibOk = ib.rowW === 28 && ib.rowH === 28 && ib.rowIc === 16 && ib.gap === '8px' && ib.ibW === 32 && ib.ibIc === 16 && cpIc === 14 && ib.pgW === 32 && ib.pgH === 32 && hoverSync;
   const cup = (res.cupertino as any).tag[0];
   const ant = (res.ant as any).tag[0];
-  const pass = ok && cup !== ant && parseFloat(cup) > 100;
-  rec('shape-scale', pass, res);
+  const pass = ok && cup !== ant && parseFloat(cup) > 100 && ibOk;
+  rec('shape-scale', pass, Object.assign({}, res, { ib, cpIc, hoverSync, ibOk }));
   expect(pass, 'shape-scale: icon tiers + single pop radius + label-family radius per pack').toBe(true);
 });
 
