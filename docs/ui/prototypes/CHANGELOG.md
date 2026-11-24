@@ -1369,3 +1369,16 @@ into the topbar family rule. New harness group control-heights (65 total) assert
 control-height set is a single value equal to its tier across five pages plus topbar/page-head/
 modal-foot/form/card-head. Full re-run: 65 groups, 0 failures. Screenshot: 860px Events toolbar with
 uniform 32px controls and uniform 24px topbar. PIT-110 recorded.
+
+## Post-seal fix 14 (user-reported): combobox vs refresh button height mismatch — cbx joins the height scale — 2026-11-24
+Report: after fix 13 the users toolbar comboboxes still looked shorter than the search input and the
+refresh button. Root cause: the themed combobox is a DIV control (.cbx-btn with padding-derived
+height ~29) that fix 13's select-height rules never covered; the topbar pack selector (also enhanced)
+was 29 among 24px neighbors. The control-heights lock had a blind spot: it sampled .toolbar select,
+which enhanceSelect hides (height 0 filtered out), instead of the visible .cbx-btn — a tautological
+sample of the same class as PIT-098. Fix: .cbx-btn gets explicit height var(--ctl-h); multi-select
+cbx uses min-height + 4px padding so chips can wrap; compact tier (24) applied to cbx inside
+.top-actions, .scope-box and .panel-head; companion cbx synced. Lock selectors extended with .cbx-btn
+in toolbar/topbar/form plus a new panel-compact probe (scope cbx + matrix Save/Cancel = 24). Full
+re-run: 65 groups, 0 failures, every container single-tier including cbx. Screenshot: users toolbar
+with cbx, search and refresh all 32px; topbar all 24px. PIT-111 recorded.

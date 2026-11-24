@@ -2205,11 +2205,11 @@ test('control-heights', async ({ page }) => {
   for (const pg of ['users', 'events', 'audit', 'apikeys', 'tenants']) {
     await page.evaluate(k => (document.querySelector('[data-page=' + k + ']') as HTMLElement).click(), pg);
     await page.waitForTimeout(150);
-    const h = await heights('#page-' + pg + ' .toolbar input, #page-' + pg + ' .toolbar select, #page-' + pg + ' .toolbar button');
+    const h = await heights('#page-' + pg + ' .toolbar input, #page-' + pg + ' .toolbar select, #page-' + pg + ' .toolbar button, #page-' + pg + ' .toolbar .cbx-btn');
     res[pg + 'Toolbar'] = h;
     if (h.length !== 1 || h[0] !== 32) ok = false;
   }
-  const top = await heights('.top-actions button, .top-actions select, .top-actions .avatar');
+  const top = await heights('.top-actions button, .top-actions select, .top-actions .avatar, .top-actions .cbx-btn');
   res.topbar = top;
   if (top.length !== 1 || top[0] !== 24) ok = false;
   await page.evaluate(() => (document.querySelector('[data-page=users]') as HTMLElement).click());
@@ -2220,7 +2220,7 @@ test('control-heights', async ({ page }) => {
   await page.evaluate(() => (document.querySelector('[data-create=users]') as HTMLElement).click());
   await page.waitForTimeout(150);
   const foot = await heights('#formModal .modal-foot button');
-  const form = await heights('#formBody input:not([type=checkbox]), #formBody select');
+  const form = await heights('#formBody input:not([type=checkbox]), #formBody select, #formBody .cbx-btn');
   res.modalFoot = foot; res.form = form;
   if (foot.length !== 1 || foot[0] !== 32 || form.length !== 1 || form[0] !== 32) ok = false;
   await page.keyboard.press('Escape');
@@ -2229,6 +2229,13 @@ test('control-heights', async ({ page }) => {
   const ch = await heights('#page-dashboard .card-head button');
   res.cardHead = ch;
   if (ch.length !== 1 || ch[0] !== 24) ok = false;
+  await page.evaluate(() => (document.querySelector('[data-page=roles]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  await page.evaluate(() => { const b = document.querySelector('#roleRows [data-perms]') as HTMLElement; if (b) b.click(); });
+  await page.waitForTimeout(250);
+  const panel = await heights('.scope-box .cbx-btn, #mtxSave, #mtxCancel');
+  res.panelCompact = panel;
+  if (panel.length !== 1 || panel[0] !== 24) ok = false;
   rec('control-heights', ok, res);
   expect(ok, 'control-heights: one height tier per container family').toBe(true);
 });

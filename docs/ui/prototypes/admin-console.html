@@ -178,7 +178,7 @@ select option{background:var(--surface);color:var(--tx1)}
    its open list are drawn entirely from design tokens so every pack/theme looks consistent. ==== */
 .cbx-src{display:none}
 .cbx{position:relative;display:inline-block;vertical-align:middle}
-.cbx-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit;line-height:1.4;cursor:pointer}
+.cbx-btn{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs12);font-family:inherit;line-height:1.4;cursor:pointer}
 .cbx-btn:hover{background:var(--sunken)}
 .cbx-btn:focus-visible{outline:2px solid var(--focus,var(--accent));outline-offset:1px}
 .cbx-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -201,6 +201,9 @@ html[data-theme="dark"] .toolbar input[type=date]{color-scheme:dark}
 .cbx-btn:disabled:hover{background:var(--surface)}
 .cbx-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cbx[data-multi] .cbx-val{display:flex;gap:4px;flex-wrap:wrap;align-items:center;white-space:normal}
+.cbx[data-multi] .cbx-btn{height:auto;min-height:var(--ctl-h);padding:4px 8px}
+.top-actions .cbx-btn{height:var(--ctl-h-sm);padding:0 8px}
+.scope-box .cbx-btn,.panel-head .cbx-btn{height:var(--ctl-h-sm);padding:0 8px}
 .cbx-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:var(--r-tag);background:var(--accent-tint);color:var(--accent-text,var(--accent));font-size:var(--fs11)}
 .cbx-chip button{border:none;background:none;padding:0;cursor:pointer;color:inherit;display:inline-flex;position:relative}
 .cbx-chip button::before{content:"";position:absolute;inset:-7px;}

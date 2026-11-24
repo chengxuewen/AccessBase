@@ -863,3 +863,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: 无显式高度刻度，各家族 height 由 padding+font-size+line-height 推导，彼此不等；sm 按钮混入默认档容器；inline style 的 select 绕过家族规则。
 - **解法**: 两档 token --ctl-h:32 / --ctl-h-sm:24 显式 height 覆盖 btn/btn.sm/icon-btn/search input/toolbar select/date/form input-select；**同容器族同档**：toolbar/page-head/modal-foot/form=32，topbar/card-head=24（含其内 icon-btn 与 avatar）；toolbar 内 sm 按钮归默认档；inline style select 收编进家族规则。
 - **验证**: control-heights 锁（65 组之一）：五页 toolbar/topbar/page-head/modal-foot/form/card-head 各容器高度集合单值且等于档位；截图 events toolbar 全控件同高。
+
+## PIT-111: 高度刻度漏了 div 基控件（themed cbx）+ 锁采样隐藏 native select 成盲区 (2026-11-24, user-reported)
+
+- **症状**: fix 13 后 users toolbar 的 combobox 仍比搜索框/刷新钮矮（29 vs 32）；topbar cbx 29 vs 24。
+- **根因**: themed cbx 是 div 控件（.cbx-btn padding 推导高度），fix 13 的 select 高度规则覆盖不到；control-heights 锁采样 `.toolbar select`（enhance 后隐藏、height 0 被滤掉）而非可见 `.cbx-btn` → 恒真盲区（PIT-098 同族）。
+- **解法**: .cbx-btn 显式 height:var(--ctl-h)；multi min-height+padding 4；紧凑档 .top-actions/.scope-box/.panel-head 内 cbx-btn 24；锁 selector 补 `.cbx-btn`（toolbar/topbar/form/panel 四处）。
+- **验证**: control-heights 各容器单值（含 cbx）；截图 users toolbar cbx 与搜索/刷新同高。教训：刻度类锁必须采样**可见渲染控件**而非被替换的原生元素。
