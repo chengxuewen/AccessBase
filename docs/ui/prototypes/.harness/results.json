@@ -1306,7 +1306,7 @@
           "approve": "同意"
         },
         "dictAuth": {
-          "n": 142,
+          "n": 155,
           "allNonEmpty": true,
           "coverage": true
         },
@@ -2044,7 +2044,25 @@
           "suspended",
           "invalid",
           "ok"
-        ]
+        ],
+        "x": {
+          "mfaOpen": "block",
+          "mfaBad": "flex",
+          "mfaOk": {
+            "ok": "flex",
+            "panel": "none",
+            "maxlen": 6
+          },
+          "smsPhoneErr": "block",
+          "smsSent": {
+            "sent": "flex",
+            "codeField": "block",
+            "maxlen": 6
+          },
+          "smsBad": "flex",
+          "smsOk": "flex"
+        },
+        "xPass": true
       }
     },
     "auth-register-reset": {

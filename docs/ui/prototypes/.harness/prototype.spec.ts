@@ -3125,8 +3125,40 @@ test('auth-login', async ({ page }) => {
   const pass = req && authErr && ok && magicOpen && magicSent && oc1 && oc2
     && JSON.stringify(rd) === JSON.stringify(['ok', 'ok', 'no', 'no', 'no'])
     && JSON.stringify(branches) === JSON.stringify(['suspended', 'invalid', 'ok']);
-  rec('auth-login', pass, a);
-  expect(pass, 'auth-login').toBe(true);
+  // adjudication 38: MFA arm (TOTP 6-digit) + SMS section mirror real MfaArm/SmsSection.
+  await page.evaluate(() => (document.querySelector('[data-flow=login]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  await page.locator('#lgEmail').fill('mfa@globex.com');
+  await page.locator('#lgPwd').fill('whatever');
+  await page.locator('#lgSubmit').click();
+  await page.waitForTimeout(600);
+  const mfaOpen = await page.evaluate(() => document.getElementById('lgMfaPanel')!.style.display);
+  await page.locator('#mfaCode').fill('000000');
+  await page.locator('#mfaVerify').click();
+  const mfaBad = await page.evaluate(() => document.getElementById('mfaErr')!.style.display);
+  await page.locator('#mfaCode').fill('123456');
+  await page.locator('#mfaVerify').click();
+  const mfaOk = await page.evaluate(() => ({ ok: document.getElementById('lgOk')!.style.display, panel: document.getElementById('lgMfaPanel')!.style.display, maxlen: (document.getElementById('mfaCode') as HTMLInputElement).maxLength }));
+  await page.locator('#smsTrigger').click();
+  await page.locator('#smsPhone').fill('abc');
+  await page.locator('#smsSend').click();
+  const smsPhoneErr = await page.evaluate(() => document.getElementById('smsPhoneErr')!.style.display);
+  await page.locator('#smsPhone').fill('+8613800000000');
+  await page.locator('#smsSend').click();
+  await page.waitForTimeout(600);
+  const smsSent = await page.evaluate(() => ({ sent: document.getElementById('smsSent')!.style.display, codeField: document.getElementById('smsCodeField')!.style.display, maxlen: (document.getElementById('smsCode') as HTMLInputElement).maxLength }));
+  await page.locator('#smsCode').fill('999999');
+  await page.locator('#smsSubmit').click();
+  const smsBad = await page.evaluate(() => document.getElementById('smsErr')!.style.display);
+  await page.locator('#smsCode').fill('123456');
+  await page.locator('#smsSubmit').click();
+  const smsOk = await page.evaluate(() => document.getElementById('lgOk')!.style.display);
+  const x = { mfaOpen, mfaBad, mfaOk, smsPhoneErr, smsSent, smsBad, smsOk };
+  const xPass = mfaOpen === 'block' && mfaBad === 'flex' && mfaOk.ok === 'flex' && mfaOk.panel === 'none' && mfaOk.maxlen === 6
+    && smsPhoneErr === 'block' && smsSent.sent === 'flex' && smsSent.codeField === 'block' && smsSent.maxlen === 6
+    && smsBad === 'flex' && smsOk === 'flex';
+  rec('auth-login', pass && xPass, Object.assign({}, a, { x, xPass }));
+  expect(pass && xPass, 'auth-login').toBe(true);
 });
 
 test('auth-register-reset', async ({ page }) => {

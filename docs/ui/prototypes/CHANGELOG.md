@@ -1478,3 +1478,14 @@ Testids mirror real: import-users-open/import-input/import-csv-limitation/import
 import-report. Modal lives with the other overlays (outside the inert background containers). zh keys
 for all new literals incl. busy states; i18n-dynamic scan covers them. New import-users lock group.
 README simulation index + lock row + adjudication 37. 67 groups, 0 failures.
+
+## Adjudication 38 — contract extension P2 (login MFA arm + SMS section, 2026-11-24)
+auth-flows login gains the two real extension arms: (1) MFA arm — signing in as mfa@globex.com opens
+a TOTP card (6-digit input maxlength=6 inputmode=numeric autocomplete=one-time-code, testid
+mfa-code-input; mfa-error alert on wrong code; Verify/Cancel) mirroring login/MfaArm.tsx; (2) SMS
+section — sms-trigger toggles phone input (sms-phone, 6-15 digits optional +, inline field error),
+sms-send busy -> sms-sent alert + sms-code (maxlength 6) + sms-submit; wrong code shows sms-error,
+correct code signs in. Demo codes fixed at 123456 (disclosed in-page + simulation index); error
+branches deterministic. zh keys for all new literals (duplicate Sending…/Register/Create account keys
+deduped). auth-login lock extended (mfa open/bad/ok+maxlen, sms phone err/sent/code maxlen/bad/ok).
+67 groups, 0 failures.
