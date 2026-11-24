@@ -2467,8 +2467,36 @@ test('states', async ({ page }) => {
     && okState.banner && okState.errGone && okState.toastRole === 'status' && okState.live === 'polite'
     && s403.on && s403.crumb === 'Forbidden' && s403.pages === 0 && back403 && s404 && sErr
     && retryBack.dash && retryBack.toast.includes('info');
-  rec('states', pass, a);
-  expect(pass, 'states').toBe(true);
+  // adjudication 40: 403/404 are standalone full pages — chrome hidden, viewport-filling, back restores.
+  await page.evaluate(() => { location.hash = '#/403'; });
+  await page.waitForTimeout(200);
+  const st403 = await page.evaluate(() => ({
+    on: document.getElementById('state-403')!.classList.contains('on'),
+    sider: getComputedStyle(document.querySelector('#app .sidebar')!).display,
+    topbar: getComputedStyle(document.querySelector('.topbar')!).display,
+    full: document.getElementById('state-403')!.getBoundingClientRect().height >= window.innerHeight - 1,
+    primary: !!document.querySelector('#state-403 .btn.primary'),
+  }));
+  await page.evaluate(() => { location.hash = '#/404'; });
+  await page.waitForTimeout(200);
+  const st404 = await page.evaluate(() => ({
+    on: document.getElementById('state-404')!.classList.contains('on'),
+    sider: getComputedStyle(document.querySelector('#app .sidebar')!).display,
+    full: document.getElementById('state-404')!.getBoundingClientRect().height >= window.innerHeight - 1,
+  }));
+  await page.evaluate(() => (document.querySelector('#state-404 [data-state-back]') as HTMLElement).click());
+  await page.waitForTimeout(200);
+  const stBack = await page.evaluate(() => ({
+    mode: document.getElementById('app')!.classList.contains('state-mode'),
+    sider: getComputedStyle(document.querySelector('#app .sidebar')!).display,
+    page: document.querySelectorAll('.page.on').length,
+  }));
+  const st = { st403, st404, stBack };
+  const stPass = st403.on && st403.sider === 'none' && st403.topbar === 'none' && st403.full && st403.primary
+    && st404.on && st404.sider === 'none' && st404.full
+    && !stBack.mode && stBack.sider !== 'none' && stBack.page === 1;
+  rec('states', pass && stPass, Object.assign({}, a, { st, stPass }));
+  expect(pass && stPass, 'states').toBe(true);
 });
 
 test('confirm-uniform', async ({ page }) => {

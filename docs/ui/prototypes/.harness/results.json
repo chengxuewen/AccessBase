@@ -1644,7 +1644,27 @@
         "retryBack": {
           "dash": true,
           "toast": "proto-toast info"
-        }
+        },
+        "st": {
+          "st403": {
+            "on": true,
+            "sider": "none",
+            "topbar": "none",
+            "full": true,
+            "primary": true
+          },
+          "st404": {
+            "on": true,
+            "sider": "none",
+            "full": true
+          },
+          "stBack": {
+            "mode": false,
+            "sider": "flex",
+            "page": 1
+          }
+        },
+        "stPass": true
       }
     },
     "confirm-uniform": {

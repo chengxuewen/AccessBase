@@ -1501,3 +1501,12 @@ mfaCard* to avoid colliding with the pre-existing adjudication-4 MFA setup modal
 DEL['mfa'] registered for the confirm pipeline. zh keys added (pre-existing duplicates deduped).
 security-states lock extended (card/off-on states, enable error, enabled alert, recovery 8 codes,
 disable confirm restores setup). 67 groups, 0 failures.
+
+## Adjudication 40 — contract extension P2 (standalone 403/404 pages, 2026-11-24)
+Real Forbidden/NotFound routes sit OUTSIDE the ProLayout route (App.tsx:285-287), i.e. full pages
+without sider/topbar; the prototype previously rendered them as in-main state sections with chrome
+visible. Now #/403, #/404 and #/error switch the app into state-mode: sider+topbar hidden, main padding
+zero, state section fills the viewport (min-height:100vh), back-to-dashboard CTA promoted to primary
+(real Result extra Button type=primary); leaving the hash restores chrome, nav highlight and the last
+page. states lock extended (chrome hidden + viewport-filling + primary CTA on 403/404, back restores
+single page + sider). 67 groups, 0 failures.
