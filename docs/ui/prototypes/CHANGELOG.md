@@ -1519,3 +1519,17 @@ no client paging) named audit-logs-<ISO>.csv exactly like the real blob download
 stands in for the server stream and is disclosed as such (README not-modelled truthed). audit-model
 lock extended: busy during job, error testid, filename prefix, csv row count == full filtered count,
 filter-respecting export (POST subset). 67 groups, 0 failures.
+
+## Adjudication 42 — contract extension P2 (forced change + admin reset/invite, 2026-11-24)
+auth-flows login gains the forced password-change handoff mirroring real Login.tsx:344-349
+(passwordChangeToken → /reset-password?mode=force): signing in as force@globex.com opens a force panel
+(new password + confirm, inline policy + mismatch errors) instead of the signed-in state. admin-console
+UserDetail (modal + #/users/:id page, shared builder) gains the real admin actions: Reset password
+(user-admin-reset) opening a modal with policy validation + simulated first-attempt service failure +
+retry (real POST /v1/users/:id/reset-password semantics: sessions revoked, disclosed), and Resend
+invite (user-invite) with busy state, success toast for active accounts and "Invite not eligible" for
+suspended ones (real UserDetail.tsx:120-128). zh keys for all new literals; auth-login and
+user-detail-page locks extended (force open/policy/mismatch/success; reset policy/fail/retry; invite
+dual-branch). Cross-cutting sweep: detail action row unified to the 32 tier; i18n-dynamic covers 91
+admin literals; contrast/a11y/shape locks unchanged-green over the new surfaces. README lock index 67
++ adjudication 42. 67 groups, 0 failures.

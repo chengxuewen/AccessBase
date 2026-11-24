@@ -2373,8 +2373,34 @@ test('user-detail-page', async ({ page }) => {
   const pass = opened.pageOn && opened.title.includes('Jane Doe') && opened.sw && opened.role === 'switch' && opened.checked === 'true' && opened.modalClosed
     && fail.toast.includes('Failed to update status') && fail.inline && fail.checked === 'true'
     && !ok.inline && ok.checked === 'false' && ok.toast === 'Status updated' && back;
-  rec('user-detail-page', pass, a);
-  expect(pass, 'user-detail-page').toBe(true);
+  // adjudication 42: admin reset-password (policy + simulated service failure + retry) and
+  // resend-invite (eligible vs suspended) mirror real UserDetail testids.
+  await page.evaluate(() => { location.hash = '#/users/0'; });
+  await page.waitForTimeout(250);
+  await page.evaluate(() => (document.querySelector('#userDetailBody [data-udreset]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  await page.locator('#adminResetPwd').fill('weak');
+  await page.locator('#adminResetSave').click();
+  const rstPolicy = await page.evaluate(() => document.getElementById('adminResetErr')!.style.display);
+  await page.locator('#adminResetPwd').fill('Str0ng!Passw0rd');
+  await page.locator('#adminResetSave').click();
+  await page.waitForTimeout(600);
+  const rstFail = await page.evaluate(() => document.getElementById('adminResetErr')!.textContent);
+  await page.locator('#adminResetSave').click();
+  await page.waitForTimeout(600);
+  const rstOk = await page.evaluate(() => ({ closed: !document.getElementById('adminResetModal')!.classList.contains('on'), toast: document.getElementById('protoToast')!.textContent }));
+  await page.evaluate(() => (document.querySelector('#userDetailBody [data-udinvite]') as HTMLElement).click());
+  await page.waitForTimeout(600);
+  const invSusp = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
+  await page.evaluate(() => { location.hash = '#/users/1'; });
+  await page.waitForTimeout(250);
+  await page.evaluate(() => (document.querySelector('#userDetailBody [data-udinvite]') as HTMLElement).click());
+  await page.waitForTimeout(600);
+  const invOk = await page.evaluate(() => document.getElementById('protoToast')!.textContent);
+  const adm = { rstPolicy, rstFail, rstOk, invSusp, invOk };
+  const admPass = rstPolicy === 'flex' && rstFail.includes('user service timeout') && rstOk.closed && rstOk.toast === 'Password reset' && invSusp === 'Invite not eligible' && invOk.includes('Invite sent');
+  rec('user-detail-page', pass && admPass, Object.assign({}, a, { adm, admPass }));
+  expect(pass && admPass, 'user-detail-page').toBe(true);
 });
 
 test('import-users', async ({ page }) => {
@@ -3240,8 +3266,28 @@ test('auth-login', async ({ page }) => {
   const xPass = mfaOpen === 'block' && mfaBad === 'flex' && mfaOk.ok === 'flex' && mfaOk.panel === 'none' && mfaOk.maxlen === 6
     && smsPhoneErr === 'block' && smsSent.sent === 'flex' && smsSent.codeField === 'block' && smsSent.maxlen === 6
     && smsBad === 'flex' && smsOk === 'flex';
-  rec('auth-login', pass && xPass, Object.assign({}, a, { x, xPass }));
-  expect(pass && xPass, 'auth-login').toBe(true);
+  // adjudication 42: forced password-change handoff (force@globex.com) with policy + confirm.
+  await page.evaluate(() => (document.querySelector('[data-flow=login]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  await page.locator('#lgEmail').fill('force@globex.com');
+  await page.locator('#lgPwd').fill('whatever');
+  await page.locator('#lgSubmit').click();
+  await page.waitForTimeout(600);
+  const fcOpen = await page.evaluate(() => document.getElementById('lgForcePanel')!.style.display);
+  await page.locator('#fcPwd').fill('weak');
+  await page.locator('#fcSubmit').click();
+  const fcPolicy = await page.evaluate(() => document.getElementById('fcPwdErr')!.style.display);
+  await page.locator('#fcPwd').fill('Str0ng!Passw0rd');
+  await page.locator('#fcPwd2').fill('different');
+  await page.locator('#fcSubmit').click();
+  const fcMatch = await page.evaluate(() => document.getElementById('fcPwd2Err')!.style.display);
+  await page.locator('#fcPwd2').fill('Str0ng!Passw0rd');
+  await page.locator('#fcSubmit').click();
+  const fcOk = await page.evaluate(() => ({ ok: document.getElementById('lgOk')!.style.display, panel: document.getElementById('lgForcePanel')!.style.display }));
+  const fc = { fcOpen, fcPolicy, fcMatch, fcOk };
+  const fcPass = fcOpen === 'block' && fcPolicy === 'block' && fcMatch === 'block' && fcOk.ok === 'flex' && fcOk.panel === 'none';
+  rec('auth-login', pass && xPass && fcPass, Object.assign({}, a, { x, xPass, fc, fcPass }));
+  expect(pass && xPass && fcPass, 'auth-login').toBe(true);
 });
 
 test('auth-register-reset', async ({ page }) => {

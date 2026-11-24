@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 304,
+        "svgIcons": 306,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -1285,7 +1285,7 @@
         ],
         "zhEdit": true,
         "dict": {
-          "n": 447,
+          "n": 455,
           "allNonEmpty": true,
           "coverage": true
         },
@@ -1306,7 +1306,7 @@
           "approve": "同意"
         },
         "dictAuth": {
-          "n": 155,
+          "n": 158,
           "allNonEmpty": true,
           "coverage": true
         },
@@ -1322,7 +1322,7 @@
       "assertions": {
         "adminMissing": [],
         "companionMissing": [],
-        "n": 88
+        "n": 91
       }
     },
     "security-states": {
@@ -1573,7 +1573,18 @@
           "checked": "false",
           "toast": "Status updated"
         },
-        "back": true
+        "back": true,
+        "adm": {
+          "rstPolicy": "flex",
+          "rstFail": "Reset failed: user service timeout (prototype simulation) — retry.",
+          "rstOk": {
+            "closed": true,
+            "toast": "Password reset"
+          },
+          "invSusp": "Invite not eligible",
+          "invOk": "Invite sent to alice@acme.io"
+        },
+        "admPass": true
       }
     },
     "import-users": {
@@ -1920,7 +1931,7 @@
         },
         "expErr": true,
         "expRows": 2,
-        "file": "audit-logs-2026-11-24T08-55-05.csv",
+        "file": "audit-logs-2026-11-24T09-08-34.csv",
         "loadErr": {
           "banner": true,
           "rows": 0
@@ -1936,7 +1947,7 @@
             "disp": "flex",
             "testid": true
           },
-          "fname": "audit-logs-2026-11-24T08-55-08.csv",
+          "fname": "audit-logs-2026-11-24T09-08-37.csv",
           "csvRows": 7,
           "filteredCount": 3,
           "filteredRows": 3,
@@ -2115,7 +2126,17 @@
           "smsBad": "flex",
           "smsOk": "flex"
         },
-        "xPass": true
+        "xPass": true,
+        "fc": {
+          "fcOpen": "block",
+          "fcPolicy": "block",
+          "fcMatch": "block",
+          "fcOk": {
+            "ok": "flex",
+            "panel": "none"
+          }
+        },
+        "fcPass": true
       }
     },
     "auth-register-reset": {
