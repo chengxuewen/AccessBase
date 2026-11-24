@@ -1491,7 +1491,13 @@
           32
         ],
         "cardHead": [
-          24
+          32
+        ],
+        "profileActions": [
+          32
+        ],
+        "retriesCompact": [
+          "24px"
         ],
         "panelEditing": [
           32

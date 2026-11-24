@@ -188,8 +188,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 101 older entries omitted (read the full file)
-- PIT-099: playwright 失败后重启 worker → results.json 只含后半程组，"fail:0" 是假象 (2026-11-23)
+... 102 older entries omitted (read the full file)
 - PIT-100: inert 加在 app 根上会连模态一起禁掉——overlays 在根内时必须只 inert 背景容器 (2026-11-23)
 - PIT-101: forced-colors 下换色技巧不可靠——headless palette 让 Canvas==HighlightText，表单控件回退原生 (2026-11-23)
 - PIT-102: 顶层 init 调用插到 const 定义前 = TDZ 静默中断整段经典脚本，node --check 全绿 (2026-11-23)
@@ -204,6 +203,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-111: 高度刻度漏了 div 基控件（themed cbx）+ 锁采样隐藏 native select 成盲区 (2026-11-24, user-reported)
 - PIT-112: 固定高按钮 + flex 可收缩 + 默认可换行 = 窄屏文字折行溢出 (2026-11-24, user-reported)
 - PIT-113: 两档刻度的"档归属"按容器猜而非按控件语义 → 编辑控件被误归紧凑档 (2026-11-24, user-reported)
+- PIT-114: 语义档归属执行不彻底——banner/card-head/row 动作钮仍挂 sm (2026-11-24, user-reported)
 
 ### status
 - full text: `.agents/memorys/status.md`

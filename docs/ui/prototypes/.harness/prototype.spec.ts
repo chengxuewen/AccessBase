@@ -2228,7 +2228,17 @@ test('control-heights', async ({ page }) => {
   await page.waitForTimeout(150);
   const ch = await heights('#page-dashboard .card-head button');
   res.cardHead = ch;
-  if (ch.length !== 1 || ch[0] !== 24) ok = false;
+  if (ch.length !== 1 || ch[0] !== 32) ok = false;
+  // post-seal fix 17: actions (banner/card-head/row unlink/bind/template) are default tier;
+  // compact 24 remains only for topbar chrome and error-retry buttons.
+  await page.evaluate(() => (document.querySelector('[data-page=profile]') as HTMLElement).click());
+  await page.waitForTimeout(200);
+  const prof = await heights('#sendVerifyBtn, #revokeOthersBtn2, #pwdSubmit, #bindGithub, #bindGoogle, #page-profile [data-unlink]');
+  res.profileActions = prof;
+  if (prof.length !== 1 || prof[0] !== 32) ok = false;
+  const retries = await page.evaluate(() => [...new Set(['dashErrRetry', 'sessLoadRetry', 'pkLoadRetry', 'optLoadRetry', 'tplLoadRetry', 'delivRetry', 'confirmRetry', 'auditRetry'].map(id => getComputedStyle(document.getElementById(id)).height))]);
+  res.retriesCompact = retries;
+  if (retries.length !== 1 || retries[0] !== '24px') ok = false;
   await page.evaluate(() => (document.querySelector('[data-page=roles]') as HTMLElement).click());
   await page.waitForTimeout(150);
   await page.evaluate(() => { const b = document.querySelector('#roleRows [data-perms]') as HTMLElement; if (b) b.click(); });

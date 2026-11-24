@@ -884,3 +884,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: fix 13/14 的档归属按**容器**划（panel-head=紧凑），但 panel 内是**主编辑控件**（清权限/改 scope/保存草稿），真实契约（Roles.tsx scope Select 在 Form.Item 内默认 size）为 32；紧凑档应只给 chrome/次级/retry。
 - **解法**: 档归属改按**控件语义**：编辑类（表单/toolbar/panel 编辑条/page-head/modal-foot）=32；chrome（topbar）+次级（card-head View all）+错误 retry=24；clearPermsBtn/mtxSave/mtxCancel 去 sm、scope cbx 回基档；锁 panelEditing 断言 32。
 - **验证**: control-heights panelEditing=[32]、cardHead/topbar=[24]；截图 roles panel 与 toolbar 同档。教训：刻度档归属问"这是编辑动作还是 chrome"，不问"它在哪个容器"。
+
+## PIT-114: 语义档归属执行不彻底——banner/card-head/row 动作钮仍挂 sm (2026-11-24, user-reported)
+
+- **症状**: profile 的 Send verification / Log out other devices / Unlink 为 24，与同页 Change password 32 参差；card-head View all 32 与同排 icon-btn 24 混档。
+- **根因**: fix 16 定了"编辑动作=32"但只迁移了矩阵 panel；其余动作钮（banner 动作、card-head 安全动作、row unlink/bind、template 预览/测试）仍挂 sm；card-head icon-btn 的紧凑覆盖未随语义更新。
+- **解法**: 全库 sm 清单按语义逐条归位：仅 topbar chrome + 16 个 error-retry 保留 24；其余动作钮去 sm；card-head icon-btn 紧凑覆盖删除；内联 link-btn 图标入 --ic-m 刻度（与 copy 同族 20/14）；锁加 profileActions=[32] / retriesCompact=['24px'] / cardHead=[32]。
+- **验证**: control-heights 全容器单值；截图 profile 全动作钮 32。教训：语义规则落地必须**枚举全部使用点**逐条归位，不能只改被报告的表面。

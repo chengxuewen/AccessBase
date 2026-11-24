@@ -1406,3 +1406,16 @@ sm class; the scope-box/panel-head cbx compact override removed. control-heights
 renamed panelEditing and asserts 32 (scope cbx + Save + Cancel + Clear all), cardHead/topbar stay 24.
 Full re-run: 65 groups, 0 failures. Screenshot: roles matrix panel controls at 32 matching the
 toolbar. PIT-113 recorded; README tier wording updated to semantics-based assignment.
+
+## Post-seal fix 17 (user-reported): profile action buttons on compact tier — semantic tier assignment completed across all usage sites — 2026-11-24
+Report: Profile mixed 24px actions (Send verification, Log out other devices, Unlink) with the 32px
+Change password submit. Root cause: fix 16 defined the semantics rule (editing/actions = 32) but only
+migrated the matrix panel; the remaining sm usage sites were never enumerated. Fix: full sm inventory
+re-classified — only topbar chrome (langBtn) and the 16 error-retry buttons keep 24; every action
+button drops sm (viewAllBtn, sendVerifyBtn, revokeOthersBtn/2, passkeyAdd, tplPreviewBtn, tplTestBtn,
+row Unlink); the card-head icon-btn compact override removed so card-head is uniformly 32; inline
+link-btn (name edit pencil) joins the inline icon scale (20x20 box / 14px glyph, same family as copy).
+control-heights lock extended: profileActions single-tier 32 (sendVerify/revoke/pwdSubmit/bind/unlink),
+retriesCompact computed 24px across eight retry ids, cardHead 32, topbar 24. Full re-run: 65 groups,
+0 failures. Screenshot: profile with uniform 32px actions. PIT-114 recorded; README tier wording
+finalized (compact = topbar chrome + error retries only).
