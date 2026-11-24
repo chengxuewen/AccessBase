@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 34,
-        "svgIcons": 296,
+        "svgIcons": 299,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -1285,7 +1285,7 @@
         ],
         "zhEdit": true,
         "dict": {
-          "n": 431,
+          "n": 440,
           "allNonEmpty": true,
           "coverage": true
         },
@@ -1322,7 +1322,7 @@
       "assertions": {
         "adminMissing": [],
         "companionMissing": [],
-        "n": 85
+        "n": 88
       }
     },
     "security-states": {
@@ -1555,6 +1555,34 @@
           "toast": "Status updated"
         },
         "back": true
+      }
+    },
+    "import-users": {
+      "pass": true,
+      "assertions": {
+        "opened": {
+          "on": true,
+          "limitation": true,
+          "commitDisabled": true
+        },
+        "parseErr": "flex",
+        "users0": 12,
+        "dry": {
+          "report": "block",
+          "text": "Dry-run — 1 valid, 1 skipped, 1 errorsEmailNameResultjane.doe@globex.comDup RowSkippedEMAIL_EXISTSweak@acme.ioWeak RowErrorPassword needs 12+ chars with upper, lower, digit and specialimport.ok@acme.ioImport OkValid",
+          "commitDisabled": false,
+          "users": 12
+        },
+        "fail": {
+          "toast": "Import failed: user service timeout (prototype simulation) — retry.",
+          "users": 12
+        },
+        "done": {
+          "toast": "Imported 1 users",
+          "users": 13,
+          "committed": true,
+          "importedTag": true
+        }
       }
     },
     "states": {

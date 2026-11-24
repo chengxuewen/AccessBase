@@ -143,7 +143,7 @@ load** for page-level loads and webhooks actions; retry then succeeds. Every mes
 | Surface | Simulated point(s) | Real counterpart |
 |---|---|---|
 | Dashboard | stats load failure + Retry | `Dashboard.tsx` load error Alert |
-| Users | create first-attempt failure (async), detail-status first-attempt failure; delete RTBF guard/lock refusals | `Users.tsx`/`UserCreate.tsx` createError/updateError; server guards |
+| Users | create first-attempt failure (async), detail-status first-attempt failure, import commit first-attempt failure; delete RTBF guard/lock refusals | `Users.tsx`/`UserCreate.tsx`/`users/ImportUsersModal.tsx` createError/updateError/import commit error; server guards |
 | Roles | save (role-service timeout), delete | `Roles.tsx` updateError/deleteError |
 | Groups | create, detail load, candidate load, add/remove member, saveRoles, delete | `Groups.tsx` detailError/memberLoadError/memberAddError/memberRemoveError/rolesSaveError/deleteError |
 | Tenants | create/update, status change, delete; init TENANT_PROTECTED | `Tenants.tsx` createError/updateError/statusError/deleteError/initError |
@@ -201,7 +201,9 @@ AntD Transfer picker + modal Save; create-form note that UI sends no scopes and 
 | 33 | entry-flows companion (nine surfaces) + auth locks | cc7aab8 | auth-login, auth-register-reset, auth-enroll-consent, auth-setup |
 | 34 | closure: companion motion/i18n/contrast locks + .spin degradation + nav/steps contrast | e154ef1 | reduced-motion, i18n, surfaces-contrast |
 | 35 | contract extension P0: clients caepEndpointUri (url+https inline) + apikeys cidrAllowlist (server-validation echo), field-err mechanism + testids | da8250b | clients-model, apikeys-model, i18n-dynamic |
-| 36 | contract extension P1: users create async+failure; UserDetail #/users/:id page shares modal builder; immediate-switch inline error | pending | users-model, user-detail-page, dashboard-model |
+| 36 | contract extension P1: users create async+failure; UserDetail #/users/:id page shares modal builder; immediate-switch inline error | dd0266c | users-model, user-detail-page, dashboard-model |
+| 37 | contract extension P1: ImportUsersModal two-phase (paste→Check dry-run→Import commit), strict CSV header/3-col, dup skip + policy error rows, commit failure sim | pending | import-users, i18n-dynamic |
+| import-users | two-phase import: limitation alert, strict-header parse error, dry-run report (valid/skipped/error), commit gated on check, first-attempt commit failure, committed report + USERS growth | 37 |
 | user-detail-page | #/users/:id deep-link page: same builder as modal, role=switch immediate toggle, inline+toast error on first attempt, retry flips, back restores list | 36 |
 
 Pre-series rounds (v0.1–v0.9, expert-panel adjudications 1–12 old numbering, revision plans R1–R5,

@@ -2357,6 +2357,51 @@ test('user-detail-page', async ({ page }) => {
   expect(pass, 'user-detail-page').toBe(true);
 });
 
+test('import-users', async ({ page }) => {
+  // adjudication 37: two-phase import (paste -> Check dry-run -> Import commit) mirrors real
+  // users/ImportUsersModal.tsx: strict header, 3 columns, dup skip, policy error, commit failure sim.
+  await page.goto(FILE);
+  await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); (document.getElementById('importUsersBtn') as HTMLElement).click(); });
+  await page.waitForTimeout(150);
+  const opened = await page.evaluate(() => ({
+    on: document.getElementById('importModal')!.classList.contains('on'),
+    limitation: !!document.querySelector('[data-testid="import-csv-limitation"]'),
+    commitDisabled: (document.getElementById('importCommit') as HTMLButtonElement).disabled,
+  }));
+  await page.locator('#importInput').fill('wrong,header\na@b.c,X,Str0ng!Passw0rd');
+  await page.locator('#importCheck').click();
+  const parseErr = await page.evaluate(() => document.getElementById('importParseErr')!.style.display);
+  const users0 = await page.evaluate(() => eval('USERS.length'));
+  await page.locator('#importInput').fill('email,name,password\njane.doe@globex.com,Dup Row,Str0ng!Passw0rd\nweak@acme.io,Weak Row,weak\nimport.ok@acme.io,Import Ok,Str0ng!Passw0rd');
+  await page.locator('#importCheck').click();
+  await page.waitForTimeout(600);
+  const dry = await page.evaluate(() => ({
+    report: document.getElementById('importReport')!.style.display,
+    text: document.getElementById('importReport')!.textContent,
+    commitDisabled: (document.getElementById('importCommit') as HTMLButtonElement).disabled,
+    users: eval('USERS.length'),
+  }));
+  await page.locator('#importCommit').click();
+  await page.waitForTimeout(600);
+  const fail = await page.evaluate(() => ({ toast: document.getElementById('protoToast')!.textContent, users: eval('USERS.length') }));
+  await page.locator('#importCommit').click();
+  await page.waitForTimeout(600);
+  const done = await page.evaluate(() => ({
+    toast: document.getElementById('protoToast')!.textContent,
+    users: eval('USERS.length'),
+    committed: document.getElementById('importReport')!.textContent!.includes('Committed'),
+    importedTag: document.getElementById('importReport')!.textContent!.includes('Imported'),
+  }));
+  await page.keyboard.press('Escape');
+  const a = { opened, parseErr, users0, dry, fail, done };
+  const pass = opened.on && opened.limitation && opened.commitDisabled && parseErr === 'flex'
+    && dry.report === 'block' && dry.text.includes('1 valid, 1 skipped, 1 errors') && !dry.commitDisabled && dry.users === users0
+    && fail.toast.includes('Import failed') && fail.users === users0
+    && done.users === users0 + 1 && done.committed && done.importedTag && done.toast === 'Imported 1 users';
+  rec('import-users', pass, a);
+  expect(pass, 'import-users').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);

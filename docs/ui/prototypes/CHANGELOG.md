@@ -1466,3 +1466,15 @@ re-timed for async + first-failure, new user-detail-page group (page on/title/sw
 modal closed/inline error/retry flip/back), all-pages-high-fidelity section count 12→13. README
 simulation index + Not-modelled truthed + representation note + lock rows + adjudication 36.
 66 groups, 0 failures.
+
+## Adjudication 37 — contract extension P1 (ImportUsersModal, 2026-11-24)
+The gray proto-inert Import button on Users is now a live two-phase import modal mirroring real
+users/ImportUsersModal.tsx: paste CSV (strict header email,name,password; exactly 3 columns; quoted/
+embedded commas unsupported, disclosed via import-csv-limitation alert) -> Check dry-run report
+(per-row Valid/Skipped(EMAIL_EXISTS)/Error(password policy) + counts) -> Import commit gated on a
+successful check, with a simulated first-attempt commit failure (per-open re-arm, zh key) then retry
+commits valid rows into USERS + activity + stats and re-renders the report as Committed/Imported.
+Testids mirror real: import-users-open/import-input/import-csv-limitation/import-check/import-commit/
+import-report. Modal lives with the other overlays (outside the inert background containers). zh keys
+for all new literals incl. busy states; i18n-dynamic scan covers them. New import-users lock group.
+README simulation index + lock row + adjudication 37. 67 groups, 0 failures.
