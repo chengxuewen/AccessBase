@@ -1510,3 +1510,12 @@ zero, state section fills the viewport (min-height:100vh), back-to-dashboard CTA
 (real Result extra Button type=primary); leaving the hash restores chrome, nav highlight and the last
 page. states lock extended (chrome hidden + viewport-filling + primary CTA on 403/404, back restores
 single page + sider). 67 groups, 0 failures.
+
+## Adjudication 41 — contract extension P2 (audit server-side full export, 2026-11-24)
+The audit export is now modeled as a SERVER job mirroring api/audit.ts exportAuditLogs: busy state on
+the export button (testid audit-export), first-attempt upstream failure with the real error testid
+audit-export-error + Retry, then a download of the FULL filtered set (server params = current filters,
+no client paging) named audit-logs-<ISO>.csv exactly like the real blob download. The client-built blob
+stands in for the server stream and is disclosed as such (README not-modelled truthed). audit-model
+lock extended: busy during job, error testid, filename prefix, csv row count == full filtered count,
+filter-respecting export (POST subset). 67 groups, 0 failures.

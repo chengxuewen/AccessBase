@@ -2958,10 +2958,45 @@ test('audit-model', async ({ page }) => {
   const pass = status.num && status.dash && status.noVocab && fromRows === 5 && dayRows === 2
     && busy && failRep.kind && failRep.day && failRep.seq && failRep.banner
     && okRep.banner && okRep.meta.includes('rowsChecked: 7') && okRep.meta.includes('anchorsChecked: 2')
-    && expErr && expRows === 2 && download.suggestedFilename() === 'audit.csv'
+    && expErr && expRows === 2 && download.suggestedFilename().startsWith('audit-logs-')
     && loadErr.banner && loadErr.rows === 0 && loadOk.banner && loadOk.rows === 7;
-  rec('audit-model', pass, a);
-  expect(pass, 'audit-model').toBe(true);
+  // adjudication 41: server-side full export job (busy -> error banner w/ real testid -> retry downloads
+  // the FULL filtered set, filename mirrors api/audit.ts exportAuditLogs; no client paging).
+  await page.evaluate(() => (document.querySelector('[data-page=audit]') as HTMLElement).click());
+  await page.waitForTimeout(300);
+  await page.evaluate(() => { const b = document.getElementById('auditLoadBanner') as HTMLElement; if (b.style.display !== 'none') (document.getElementById('auditLoadRetry') as HTMLElement).click(); });
+  await page.waitForTimeout(400);
+  const fullCount = await page.evaluate(() => eval('auditFiltered().length'));
+  await page.evaluate(() => { exportTried = false; });
+  await page.locator('#exportBtn').click();
+  const busyDuring = await page.evaluate(() => (document.getElementById('exportBtn') as HTMLButtonElement).disabled);
+  await page.waitForTimeout(600);
+  const exErr = await page.evaluate(() => ({ disp: document.getElementById('auditExportBanner')!.style.display, testid: !!document.querySelector('[data-testid="audit-export-error"]') }));
+  const dlP2 = page.waitForEvent('download');
+  await page.locator('#auditExportRetry').click();
+  const dl2 = await dlP2;
+  const fname = dl2.suggestedFilename();
+  const stream = await dl2.createReadStream();
+  let csv2 = '';
+  for await (const chunk of stream) csv2 += chunk;
+  const csvRows = csv2.trim().split('\n').length - 1;
+  await page.evaluate(() => { const f = document.getElementById('auditActionFilter') as HTMLSelectElement; f.value = 'POST'; f.dispatchEvent(new Event('input', { bubbles: true })); f.dispatchEvent(new Event('change', { bubbles: true })); });
+  await page.waitForTimeout(200);
+  const filteredCount = await page.evaluate(() => eval('auditFiltered().length'));
+  const dlP3 = page.waitForEvent('download');
+  await page.locator('#exportBtn').click();
+  await page.waitForTimeout(600);
+  const dl3 = await dlP3;
+  const stream3 = await dl3.createReadStream();
+  let csv3 = '';
+  for await (const chunk of stream3) csv3 += chunk;
+  const filteredRows = csv3.trim().split('\n').length - 1;
+  const allFiltered = csv3.trim().split('\n').slice(1).every(l => l.includes('POST'));
+  const ex = { fullCount, busyDuring, exErr, fname, csvRows, filteredCount, filteredRows, allFiltered };
+  const exPass = busyDuring && exErr.disp === 'flex' && exErr.testid && fname.startsWith('audit-logs-') && fname.endsWith('.csv')
+    && csvRows === fullCount && filteredRows === filteredCount && allFiltered;
+  rec('audit-model', pass && exPass, Object.assign({}, a, { ex, exPass }));
+  expect(pass && exPass, 'audit-model').toBe(true);
 });
 
 test('dashboard-model', async ({ page }) => {

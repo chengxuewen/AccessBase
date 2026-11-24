@@ -1920,7 +1920,7 @@
         },
         "expErr": true,
         "expRows": 2,
-        "file": "audit.csv",
+        "file": "audit-logs-2026-11-24T08-55-05.csv",
         "loadErr": {
           "banner": true,
           "rows": 0
@@ -1928,7 +1928,21 @@
         "loadOk": {
           "banner": true,
           "rows": 7
-        }
+        },
+        "ex": {
+          "fullCount": 7,
+          "busyDuring": true,
+          "exErr": {
+            "disp": "flex",
+            "testid": true
+          },
+          "fname": "audit-logs-2026-11-24T08-55-08.csv",
+          "csvRows": 7,
+          "filteredCount": 3,
+          "filteredRows": 3,
+          "allFiltered": true
+        },
+        "exPass": true
       }
     },
     "dashboard-model": {
