@@ -1533,3 +1533,15 @@ user-detail-page locks extended (force open/policy/mismatch/success; reset polic
 dual-branch). Cross-cutting sweep: detail action row unified to the 32 tier; i18n-dynamic covers 91
 admin literals; contrast/a11y/shape locks unchanged-green over the new surfaces. README lock index 67
 + adjudication 42. 67 groups, 0 failures.
+
+## Post-seal fix 19 (self-caught during contract-extension evidence): standalone state pages clipped by grid auto-placement — 2026-11-24
+Evidence screenshots for adjudication 40 showed a BLANK 403 page while the states lock reported
+full=true. Root cause: .app uses grid-template-rows var(--top-h) 1fr; in state-mode the topbar and
+sider are display:none, so main becomes the first grid item and is auto-placed into the 52px first
+row; overflow-y:auto then clips the 600px state page into an invisible window. The lock had measured
+the CHILD rect (still 600 while overflowing) instead of the clipping window — a tautological blind
+spot of the PIT-098 family. Fix: .app.state-mode collapses to grid-template-rows:1fr; the states lock
+gains visible-window probes (main.clientHeight >= viewport-1 and elementFromPoint at viewport center
+hits the state page). Double-sample verified: removing the single-row rule reds the group, restoring
+greens it. Full re-run: 67 groups, 0 failures. Screenshot: chrome-less centered 403 with primary back
+CTA. PIT-117 recorded.

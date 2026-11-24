@@ -188,8 +188,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 104 older entries omitted (read the full file)
-- PIT-102: 顶层 init 调用插到 const 定义前 = TDZ 静默中断整段经典脚本，node --check 全绿 (2026-11-23)
+... 105 older entries omitted (read the full file)
 - PIT-103: 响应式断点只改布局不套状态语义 → 裁切 chrome；一个状态两个入口必须同语义 (2026-11-23, user-reported)
 - PIT-104: python 批量 patch 两陷阱——选择器子串碰撞 + 工具回显 JSON 转义误导 old_str (2026-11-23, ≥3 轮失败)
 - PIT-105: overflow-y:auto 把 overflow-x 计算成 auto + visibility:hidden 保留布局宽 = 隐藏间隔造出横滚条 (2026-11-23, user-reported)
@@ -204,6 +203,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-114: 语义档归属执行不彻底——banner/card-head/row 动作钮仍挂 sm (2026-11-24, user-reported)
 - PIT-115: 探针三 guard 缺失 → null throw 或隐藏块 0 值假象（复发 ≥4 次） (2026-11-24)
 - PIT-116: fixed 浮层两陷阱——scrollIntoView 触发祖先 scroll 被外滚守卫误关 + backdrop-filter 祖先改变 fixed 包含块致错位 (2026-11-24, user-reported)
+- PIT-117: 隐藏 chrome 后 grid 自动-placement 把 main 塞进首行 + 锁只测子 rect 不测可见窗 (2026-11-24, 自抓)
 
 ### status
 - full text: `.agents/memorys/status.md`

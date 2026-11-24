@@ -2501,6 +2501,8 @@ test('states', async ({ page }) => {
     sider: getComputedStyle(document.querySelector('#app .sidebar')!).display,
     topbar: getComputedStyle(document.querySelector('.topbar')!).display,
     full: document.getElementById('state-403')!.getBoundingClientRect().height >= window.innerHeight - 1,
+    mainH: (document.querySelector('#app .main') as HTMLElement).clientHeight,
+    centerHit: !!(document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2) as HTMLElement | null)?.closest('#state-403'),
     primary: !!document.querySelector('#state-403 .btn.primary'),
   }));
   await page.evaluate(() => { location.hash = '#/404'; });
@@ -2518,7 +2520,7 @@ test('states', async ({ page }) => {
     page: document.querySelectorAll('.page.on').length,
   }));
   const st = { st403, st404, stBack };
-  const stPass = st403.on && st403.sider === 'none' && st403.topbar === 'none' && st403.full && st403.primary
+  const stPass = st403.on && st403.sider === 'none' && st403.topbar === 'none' && st403.full && st403.mainH >= 599 && st403.centerHit && st403.primary
     && st404.on && st404.sider === 'none' && st404.full
     && !stBack.mode && stBack.sider !== 'none' && stBack.page === 1;
   rec('states', pass && stPass, Object.assign({}, a, { st, stPass }));

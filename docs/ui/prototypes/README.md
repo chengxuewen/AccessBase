@@ -267,7 +267,7 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   The sider never scrolls horizontally: .nav sets overflow-x:hidden and icon-only group spacers take
   width:0 (visibility:hidden alone keeps their nowrap text width, which overflow-y:auto turned into
   a horizontal scrollbar at the sider bottom).
-- Environment baseline (locked by a11y-env): no document-level horizontal overflow at ~200% zoom
+- Standalone state pages (adjudication 40 + fix 19): #/403, #/404 and #/error hide the app chrome and\n  fill the viewport; state-mode collapses the grid to a single row because hiding the topbar would\n  otherwise auto-place main into the 52px first row and clip the page. Locked by states visible-window\n  probes (main clientHeight + viewport-center hit), not child rects.\n- Environment baseline (locked by a11y-env): no document-level horizontal overflow at ~200% zoom
   (640px viewport; data tables scroll inside their focusable regions), modals/drawers fit narrow
   viewports with a working focus trap and `inert` background while open, and forced-colors mode keeps
   checked/switch-on states distinguishable via system Highlight/HighlightText/ButtonText colors.

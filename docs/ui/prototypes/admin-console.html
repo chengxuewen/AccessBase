@@ -594,7 +594,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .state-page{display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:64px 24px;text-align:center}
 /* Adjudication 40: 403/404/500 are standalone full pages (real routes live outside the layout) —
    app chrome (sider+topbar) is hidden and the state fills the viewport. */
-.app.state-mode{grid-template-columns:1fr}
+.app.state-mode{grid-template-columns:1fr;grid-template-rows:1fr}
 .app.state-mode .sidebar,.app.state-mode .topbar{display:none}
 .app.state-mode .main{padding:0}
 .state-page.on{min-height:100vh}

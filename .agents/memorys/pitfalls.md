@@ -905,3 +905,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: ① cbxSetActive 用 opts[ai].scrollIntoView({block:'nearest'})，选中末项时 UA 滚动祖先（fixed 列表在 backdrop-filter 祖先内时滚到 document），capture scroll 守卫 `openCbx.contains(e.target)` 对 document 级 target 判否→cbxClose；首项选中的 pack（broadsheet）不需滚动故"正常"——**样本依赖型缺陷**。② backdrop-filter（cupertino vibrancy topbar）为 fixed 后代建立包含块，cbxPlace 按视口坐标设 left/top 实际相对 topbar 解析→整体偏移。
 - **解法**: ① 列表内手动 scrollTop 数学（offsetTop/offsetHeight vs scrollTop/clientHeight）替代 scrollIntoView，只滚列表不滚祖先；② cbxPlace 设坐标后测量 getBoundingClientRect 与期望差值做一次校正（dx/dy 回加），与包含块无关；锁断言 cupOpen{open,exp,stayOpenOnInternalScroll,activeLast,aligned}。
 - **验证**: shape-scale cupOpen 全真；双样本：还原 scrollIntoView 组红/恢复绿；截图 cupertino 下拉对齐 trigger 完整可见。教训：fixed 浮层定位不能假设包含块=视口（transform/filter/backdrop-filter/contain 都会改）；"开即关"类缺陷先 instrument cbxClose 调用栈定位触发源。
+
+## PIT-117: 隐藏 chrome 后 grid 自动-placement 把 main 塞进首行 + 锁只测子 rect 不测可见窗 (2026-11-24, 自抓)
+
+- **症状**: 403/404 整页模式截图全空白，但 states 锁 full=true（子 state-page rect=600）。
+- **根因**: .app grid-template-rows:var(--top-h) 1fr；state-mode 隐藏 topbar/sidebar 后 main 成为首个 grid item 被自动放置进**首行 52px**，overflow-y:auto 把 600px 内容裁成不可见空窗；锁测的是子元素 rect（溢出仍 600）而非裁剪窗 → 恒真盲区（PIT-098 同族）。
+- **解法**: .app.state-mode{grid-template-rows:1fr} 单行；锁补**可见窗探针**：main.clientHeight>=viewport-1 + elementFromPoint(视口中心).closest(目标页) 非空。
+- **验证**: states st403={mainH:720,centerHit:true}；双样本：去掉单行规则组红/恢复绿；截图 403 居中整页无 chrome。教训：整页/裁切类断言必须测**裁剪容器可见窗+中心命中**，子 rect 不算证据。
