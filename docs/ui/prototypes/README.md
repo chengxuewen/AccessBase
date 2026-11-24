@@ -230,7 +230,9 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
 - Shape scale (design backlog rulings 1-3, locked by shape-scale): icons use three semantic tiers
   (--ic-s:12 inline meta, --ic-m:14 control-adjacent, --ic-l:16 standalone) plus --ic-display:28 for
   empty/placeholder art; control geometry (switch knob, checkbox box, legend swatch, scrollbar) stays
-  px by design. All floating pops (tooltip/cbx-list/menu/modal/toast) share --r-pop = pack r6 (AntD
+  px by design. Composite checkbox labels (ck-field / gate scope-list) keep inline-flex + 8px gap:
+  outer-label rules are scoped to `.field > label:not(.ck-field)` so their display:block cannot kill the
+  composite gap (a descendant label rule outranks the composite class by specificity). All floating pops (tooltip/cbx-list/menu/modal/toast) share --r-pop = pack r6 (AntD
   borderRadiusLG parity); the edge-attached drawer sheet keeps square corners like real AntD Drawer.
   Label-like pieces (.tag/.cbx-chip/.sys-tag) share --r-tag so pack personality (cupertino pill,
   material 8px, carbon 0) applies to the whole family, never one member.

@@ -828,3 +828,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: CSS 规定 overflow 一轴设 auto/scroll/hidden 时另一轴 visible 计算为 auto；.nav overflow-y:auto 故横向溢出必成滚条；icon-only 分组间隔用 visibility:hidden（只隐绘制不移布局宽）+ white-space:nowrap，文字宽 > 56px 侧栏 → 横向溢出。
 - **解法**: 固定宽容器显式 overflow-x:hidden（侧栏永不需要横滚）；隐藏间隔改 width:0;overflow:hidden 保留纵向 spacer；手动与断点两入口同改；锁扩断言 nav.scrollWidth<=clientWidth + overflowX==='hidden'（扩既有 narrow-nav 组而非新建组）。
 - **验证**: `npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --grep narrow-nav` 绿且 assertions.narrow.navOver=false/navOx='hidden'；截图侧栏底部无 thumb。
+
+## PIT-106: 外层标签 descendant 规则以特异性压死复合 label 的 flex/gap → 勾选框贴字 (2026-11-24, user-reported)
+
+- **症状**: Create user 的 Active 勾选框与文字零间距；groups isDepartment、companion recovery gate 同病；grants 组内行却正常。
+- **根因**: `.field label{display:block;…}`（0,1,1）命中**内层复合 label.ck-field**（0,1,0）→ display:block 使 gap:8px 失效；复合 label 本身就是 .field 直接子级，故仅改 `>` 不够，需要 :not(.ck-field) 排除；companion gate 是 label.scope-list 自体，被 .auth-card label 压成 block。grants 行在 .ck-group 内非直接子级故幸免——"部分表面正常"掩盖了规则级缺陷。
+- **解法**: 外层标签规则 scoped 为 `.field > label:not(.ck-field)`（companion 再 :not(.scope-list)）；复合 gate 用自选择器 `label.scope-list{flex-direction:row;gap:8px;…}`；锁断言几何 dist===8（可见面）+ 语义 flex/gap/row（隐藏面，PIT-098：隐藏块 rect=0 不可测几何）。
+- **验证**: boolean-controls 组 editCk.dist/activeCk.dist/grantsCk.dists/scopes.dist===8 + enSaved disp/gap/dir；截图勾选框与标签 8px。

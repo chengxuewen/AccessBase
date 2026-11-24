@@ -1311,3 +1311,16 @@ horizontally) + icon-only group spacers width:0;overflow:hidden (keep the 6px ve
 layout width), in both the manual .app.collapsed rule and the <=760px breakpoint rule. narrow-nav lock
 extended: nav scrollWidth<=clientWidth + overflowX==='hidden' at narrow. Full re-run: 64 groups, 0
 failures. Screenshot: 675px dashboard, sider bottom clean.
+
+## Post-seal fix 10 (user-reported): checkbox label zero gap — descendant label rule specificity — 2026-11-24
+Report: Create user "Active" checkbox touched its text. Root cause: .field label{display:block}
+(0,1,1) also matched the INNER composite label.ck-field (0,1,0), killing its inline-flex gap:8px;
+same for groups isDepartment and the companion recovery gate (label.scope-list self overridden by
+.auth-card label). Grants rows escaped because they sit inside .ck-group (not direct children) —
+partial-surface normality masked the rule-level defect. Fix: outer-label rules scoped to
+.field > label:not(.ck-field) (companion also :not(.scope-list)); gate composite gets a self-selector
+label.scope-list{flex-direction:row;gap:8px}. Comprehensive spacing-family scan found no other
+zero-gap composite (row-actions 4 / tag 5 / copyable 6 / toolbar-modal-top 8 / nav-brand-panel 10 /
+stats 12 / legend 16 all sane). boolean-controls lock extended with geometry dist===8 on visible
+surfaces and semantic flex/gap/row on the hidden gate (hidden-block rects are 0, PIT-098). Full
+re-run: 64 groups, 0 failures. Screenshot: 8px checkbox-label gap. PIT-106 recorded.

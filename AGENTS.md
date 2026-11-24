@@ -188,8 +188,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 93 older entries omitted (read the full file)
-- PIT-092: The local e2e invocation has three environment traps, each eating a 60 s timeout before the real question is even asked (2026-11-05/06, T8)
+... 94 older entries omitted (read the full file)
 - PIT-093: The measuring instrument lies more often than the measurement - three costumes seen in one wave (2026-11-06, panel-folded)
 - PIT-094: A product fetch-surface change without its e2e mock-surface twin silently breaks specs nobody touched (2026-11-06, E10 wave)
 - PIT-095: An imported layer's CLI entry called process.exit() at module scope and swallowed the entire dispatcher
@@ -204,6 +203,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-103: 响应式断点只改布局不套状态语义 → 裁切 chrome；一个状态两个入口必须同语义 (2026-11-23, user-reported)
 - PIT-104: python 批量 patch 两陷阱——选择器子串碰撞 + 工具回显 JSON 转义误导 old_str (2026-11-23, ≥3 轮失败)
 - PIT-105: overflow-y:auto 把 overflow-x 计算成 auto + visibility:hidden 保留布局宽 = 隐藏间隔造出横滚条 (2026-11-23, user-reported)
+- PIT-106: 外层标签 descendant 规则以特异性压死复合 label 的 flex/gap → 勾选框贴字 (2026-11-24, user-reported)
 
 ### status
 - full text: `.agents/memorys/status.md`

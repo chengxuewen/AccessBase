@@ -2715,7 +2715,7 @@ test('boolean-controls', async ({ page }) => {
     const sp = inp.nextElementSibling!.getBoundingClientRect();
     return { type: inp.type, role: inp.getAttribute('role'), w: cs.width, app: cs.appearance,
       checked: inp.checked, centerDiff: Math.abs((r.top + r.height / 2) - (sp.top + sp.height / 2)),
-      label: inp.parentElement!.className };
+      label: inp.parentElement!.className, dist: Math.round(sp.left - r.right) };
   });
   await page.keyboard.press('Escape');
   await page.locator('[data-create=groups]').click();
@@ -2727,7 +2727,7 @@ test('boolean-controls', async ({ page }) => {
   await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); (document.querySelector('[data-create=users]') as HTMLElement).click(); });
   const activeCk = await page.evaluate(() => {
     const inp = document.querySelector('#formBody [data-field=isActive]') as HTMLInputElement;
-    return { present: !!inp, w: getComputedStyle(inp).width, checked: inp.checked, role: inp.getAttribute('role'), label: inp.nextElementSibling!.textContent };
+    return { present: !!inp, w: getComputedStyle(inp).width, checked: inp.checked, role: inp.getAttribute('role'), label: inp.nextElementSibling!.textContent, dist: Math.round(inp.nextElementSibling!.getBoundingClientRect().left - inp.getBoundingClientRect().right) };
   });
   await page.locator('#formBody [data-field=isActive]').uncheck();
   const unchecked = await page.evaluate(() => !(document.querySelector('#formBody [data-field=isActive]') as HTMLInputElement).checked);
@@ -2735,7 +2735,7 @@ test('boolean-controls', async ({ page }) => {
   await page.evaluate(() => { (document.querySelector('[data-page=clients]') as HTMLElement).click(); (document.querySelector('[data-create=clients]') as HTMLElement).click(); });
   const grantsCk = await page.evaluate(() => {
     const ins = [...document.querySelectorAll('#formBody [data-field=grantTypes] input')] as HTMLInputElement[];
-    return { n: ins.length, allCk: ins.every(i => i.type === 'checkbox' && getComputedStyle(i).width === '16px' && !i.getAttribute('role')), labels: ins.map(i => i.nextElementSibling!.textContent) };
+    return { n: ins.length, allCk: ins.every(i => i.type === 'checkbox' && getComputedStyle(i).width === '16px' && !i.getAttribute('role')), labels: ins.map(i => i.nextElementSibling!.textContent), dists: ins.map(i => Math.round(i.nextElementSibling!.getBoundingClientRect().left - i.getBoundingClientRect().right)) };
   });
   await page.keyboard.press('Escape');
   // immediate domain stays Switch: webhooks row toggle is a .wswitch button with a knob
@@ -2765,7 +2765,7 @@ test('boolean-controls', async ({ page }) => {
   const enSaved = await page.evaluate(() => {
     const inp = document.getElementById('enSaved') as HTMLInputElement;
     const cs = getComputedStyle(inp);
-    return { w: cs.width, app: cs.appearance, labelAlign: getComputedStyle(inp.parentElement!).alignItems };
+    return { w: cs.width, app: cs.appearance, labelAlign: getComputedStyle(inp.parentElement!).alignItems, disp: getComputedStyle(inp.parentElement!).display, gap: getComputedStyle(inp.parentElement!).gap, dir: getComputedStyle(inp.parentElement!).flexDirection };
   });
   await page.evaluate(() => { (document.querySelector('[data-flow=consent]') as HTMLElement).click(); });
   await page.waitForTimeout(600);
@@ -2777,19 +2777,19 @@ test('boolean-controls', async ({ page }) => {
     const sp = inp.nextElementSibling!.getBoundingClientRect();
     return { w: r.width, app: cs.appearance, checked: inp.checked,
       tinted: cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent',
-      centerDiff: Math.abs((r.top + r.height / 2) - (sp.top + sp.height / 2)) };
+      centerDiff: Math.abs((r.top + r.height / 2) - (sp.top + sp.height / 2)), dist: Math.round(sp.left - r.right) };
   });
   const a = { editCk, createCk, activeCk, unchecked, grantsCk, imm, gates, rm, enSaved, scopes };
   const pass = editCk.type === 'checkbox' && editCk.role === null && editCk.w === '16px' && editCk.app === 'none'
-    && editCk.checked && editCk.centerDiff < 2 && editCk.label === 'ck-field'
+    && editCk.checked && editCk.centerDiff < 2 && editCk.label === 'ck-field' && editCk.dist === 8
     && createCk.w === '16px' && !createCk.checked && createCk.role === null
-    && activeCk.present && activeCk.w === '16px' && activeCk.checked && activeCk.role === null && activeCk.label === 'Active' && unchecked
-    && grantsCk.n === 2 && grantsCk.allCk && JSON.stringify(grantsCk.labels) === JSON.stringify(['authorization_code', 'client_credentials'])
+    && activeCk.present && activeCk.w === '16px' && activeCk.checked && activeCk.role === null && activeCk.label === 'Active' && activeCk.dist === 8 && unchecked
+    && grantsCk.n === 2 && grantsCk.allCk && JSON.stringify(grantsCk.labels) === JSON.stringify(['authorization_code', 'client_credentials']) && grantsCk.dists.every((d: number) => d === 8)
     && imm.tag === 'BUTTON' && imm.cls && imm.w === 34 && imm.h === 20 && imm.knob && imm.on
     && gates.mfaW === '16px' && gates.mfaApp === 'none' && gates.eraseW === '16px' && gates.eraseApp === 'none'
     && rm.knob === '0s' && rm.ck === '0s'
-    && enSaved.w === '16px' && enSaved.app === 'none' && enSaved.labelAlign === 'center'
-    && scopes.w === 16 && scopes.app === 'none' && scopes.checked && scopes.tinted && scopes.centerDiff < 2;
+    && enSaved.w === '16px' && enSaved.app === 'none' && enSaved.labelAlign === 'center' && enSaved.disp === 'flex' && enSaved.gap === '8px' && enSaved.dir === 'row'
+    && scopes.w === 16 && scopes.app === 'none' && scopes.checked && scopes.tinted && scopes.centerDiff < 2 && scopes.dist === 8;
   rec('boolean-controls', pass, a);
   expect(pass, 'boolean-controls').toBe(true);
 });

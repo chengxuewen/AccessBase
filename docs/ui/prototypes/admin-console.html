@@ -556,7 +556,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .count-pill.dead{color:var(--danger-text,var(--danger))}
 .count-pill.pending{color:var(--warn-text,var(--warn))}
 .field{margin-bottom:var(--sp12)}
-.field label{display:block;font-size:var(--fs12);color:var(--tx2);margin-bottom:4px}
+.field > label:not(.ck-field){display:block;font-size:var(--fs12);color:var(--tx2);margin-bottom:4px}
 .field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea{width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
 .field textarea{resize:vertical;min-height:64px}
 .proto-inert,.btn:disabled{opacity:.5;cursor:not-allowed}

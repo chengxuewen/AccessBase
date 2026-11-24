@@ -1,5 +1,5 @@
 {
-  "when": "2026-11-23",
+  "when": "2026-11-24",
   "prototype": "admin-console.html v0.96 (12 pages incl. Settings; 7 style packs x light/dark)",
   "runner": "playwright (reproducible suite; .harness/prototype.spec.ts)",
   "fail": 0,
@@ -896,7 +896,7 @@
           "expires": true,
           "scopes": false,
           "dateType": "date",
-          "min": "2026-11-23",
+          "min": "2026-11-24",
           "note": true
         },
         "pastErr": true,
@@ -1765,8 +1765,9 @@
           "w": "16px",
           "app": "none",
           "checked": true,
-          "centerDiff": 0.828125,
-          "label": "ck-field"
+          "centerDiff": 0,
+          "label": "ck-field",
+          "dist": 8
         },
         "createCk": {
           "w": "16px",
@@ -1778,7 +1779,8 @@
           "w": "16px",
           "checked": true,
           "role": null,
-          "label": "Active"
+          "label": "Active",
+          "dist": 8
         },
         "unchecked": true,
         "grantsCk": {
@@ -1787,6 +1789,10 @@
           "labels": [
             "authorization_code",
             "client_credentials"
+          ],
+          "dists": [
+            8,
+            8
           ]
         },
         "imm": {
@@ -1810,14 +1816,18 @@
         "enSaved": {
           "w": "16px",
           "app": "none",
-          "labelAlign": "center"
+          "labelAlign": "center",
+          "disp": "flex",
+          "gap": "8px",
+          "dir": "row"
         },
         "scopes": {
           "w": 16,
           "app": "none",
           "checked": true,
           "tinted": true,
-          "centerDiff": 0
+          "centerDiff": 0,
+          "dist": 8
         }
       }
     },

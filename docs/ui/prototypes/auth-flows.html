@@ -550,7 +550,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .count-pill.dead{color:var(--danger-text,var(--danger))}
 .count-pill.pending{color:var(--warn-text,var(--warn))}
 .field{margin-bottom:var(--sp12)}
-.field label{display:block;font-size:var(--fs12);color:var(--tx2);margin-bottom:4px}
+.field > label:not(.ck-field):not(.scope-list){display:block;font-size:var(--fs12);color:var(--tx2);margin-bottom:4px}
 .field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea{width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
 .field textarea{resize:vertical;min-height:64px}
 .proto-inert,.btn:disabled{opacity:.5;cursor:not-allowed}
@@ -638,7 +638,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .auth-card h1{font-size:var(--fs20);margin:0 0 4px;color:var(--tx1)}
 .auth-card .sub{color:var(--tx2);font-size:var(--fs13);margin-bottom:16px}
 .auth-card .field{margin-bottom:12px}
-.auth-card label{display:block;font-size:var(--fs12);color:var(--tx2);margin-bottom:4px}
+.auth-card .field > label:not(.ck-field):not(.scope-list){display:block;font-size:var(--fs12);color:var(--tx2);margin-bottom:4px}
 .auth-card input[type=text],.auth-card input[type=email],.auth-card input[type=password],.auth-card input[type=number],.auth-card select{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--r4);background:var(--surface);color:var(--tx1);font-size:var(--fs13);font-family:inherit}
 .auth-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .auth-note{font-size:var(--fs11);color:var(--tx3);margin-top:10px}
@@ -647,7 +647,7 @@ pre.json-full{font-family:var(--mono);font-size:var(--fs12);color:var(--tx1);bac
 .code-block{font-family:var(--mono);font-size:var(--fs11);word-break:break-all;background:var(--sunken);border:1px solid var(--bd);border-radius:var(--r4);padding:8px;color:var(--tx1)}
 .scope-list{display:flex;flex-direction:column;gap:6px;margin:12px 0}
 div.scope-list{align-items:flex-start}
-label.scope-list{align-items:center}
+label.scope-list{flex-direction:row;align-items:center;gap:8px;margin:0;font-size:var(--fs13);color:var(--tx1)}
 .scope-list label{align-items:center}
 .scope-list input[type=checkbox]{flex-shrink:0}
 .scope-list label{display:flex;gap:8px;align-items:center;font-size:var(--fs13);color:var(--tx1);margin:0}
