@@ -152,7 +152,7 @@ load** for page-level loads and webhooks actions; retry then succeeds. Every mes
 | Webhooks | ping, toggle update, rotate, deliveries load | `Webhooks.tsx` pingError/updateError/rotateError/deliveriesLoadError |
 | Audit | entries load, export, verify failure | `Audit.tsx` load/export/verify errors |
 | Events | load failure + Retry | `Events.tsx` request try/catch loadError |
-| Settings | options/sessions/passkeys/templates load, idle save, template preview, test-send SMTP, session revoke fail-closed | `Settings.tsx`/`EmailTemplatesCard.tsx` error branches |
+| Settings | options/sessions/passkeys/templates load, idle save, template preview, test-send SMTP, session revoke fail-closed; MfaCard enable wrong-code error (deterministic, demo code 123456) | `Settings.tsx`/`EmailTemplatesCard.tsx` error branches |
 | Profile | password change, name save, verification send, OAuth unlink | `Profile.tsx` failure branches (MFA enable/disable failure not simulated — see Not modeled) |
 | Entry flows (auth-flows.html) | login AUTH_002, magic send, register/forgot/reset/confirm/setup create, consent decision; MFA/SMS demo codes fixed at 123456 (wrong-code error branches deterministic) | `Login/MagicLogin/Register/ForgotPassword/ResetPassword/EnrollMfa/Consent/setup` error branches |
 
@@ -203,7 +203,8 @@ AntD Transfer picker + modal Save; create-form note that UI sends no scopes and 
 | 35 | contract extension P0: clients caepEndpointUri (url+https inline) + apikeys cidrAllowlist (server-validation echo), field-err mechanism + testids | da8250b | clients-model, apikeys-model, i18n-dynamic |
 | 36 | contract extension P1: users create async+failure; UserDetail #/users/:id page shares modal builder; immediate-switch inline error | dd0266c | users-model, user-detail-page, dashboard-model |
 | 37 | contract extension P1: ImportUsersModal two-phase (paste→Check dry-run→Import commit), strict CSV header/3-col, dup skip + policy error rows, commit failure sim | 3f878c8 | import-users, i18n-dynamic |
-| 38 | contract extension P2: login MFA arm (TOTP 6-digit, mfa-error alert) + SMS section (phone validation, sent state, 6-digit code, sms-error) mirroring MfaArm/SmsSection testids | pending | auth-login, i18n-dynamic |
+| 38 | contract extension P2: login MFA arm (TOTP 6-digit, mfa-error alert) + SMS section (phone validation, sent state, 6-digit code, sms-error) mirroring MfaArm/SmsSection testids | 01f7da6 | auth-login, i18n-dynamic |
+| 39 | contract extension P2: settings security fourth card MfaCard (setup QR+code+enable error, enabled alert+disable confirm, one-time recovery codes) mirroring settings/MfaCard.tsx | pending | security-states, i18n-dynamic |
 | import-users | two-phase import: limitation alert, strict-header parse error, dry-run report (valid/skipped/error), commit gated on check, first-attempt commit failure, committed report + USERS growth | 37 |
 | user-detail-page | #/users/:id deep-link page: same builder as modal, role=switch immediate toggle, inline+toast error on first attempt, retry flips, back restores list | 36 |
 

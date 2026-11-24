@@ -2051,8 +2051,28 @@ test('security-states', async ({ page }) => {
     && tplGuard.toast.includes('required in both en and zh') && tplGuard.open
     && revFail.toast.includes('sessions kept') && revFail.rows === sessBefore && revOk < sessBefore;
 
-  rec('security-states', secPass, sec);
-  expect(secPass, 'security-states').toBe(true);
+  // adjudication 39: MfaCard fourth security card (setup/enable error/enabled/disabling/recovery once).
+  const mfa0 = await page.evaluate(() => ({ card: !!document.querySelector('[data-testid="mfa-card"]'), off: document.getElementById('mfaCardOff')!.style.display, on: document.getElementById('mfaCardOn')!.style.display }));
+  await page.locator('#mfaCardSetupBtn').click();
+  await page.waitForTimeout(150);
+  await page.locator('#mfaCardCode').fill('000000');
+  await page.locator('#mfaCardEnableBtn').click();
+  const mfaBad = await page.evaluate(() => document.getElementById('mfaCardEnableErr')!.style.display);
+  await page.locator('#mfaCardCode').fill('123456');
+  await page.locator('#mfaCardEnableBtn').click();
+  await page.waitForTimeout(200);
+  const mfaOn = await page.evaluate(() => ({ on: document.getElementById('mfaCardOn')!.style.display, alert: !!document.querySelector('[data-testid="mfa-enabled-alert"]'), rec: document.getElementById('mfaCardRecoveryModal')!.classList.contains('on'), codes: document.querySelectorAll('#mfaCardRecList span').length }));
+  await page.locator('#mfaCardRecoveryModal [data-close=mfaCardRecoveryModal]').first().click();
+  await page.locator('#mfaCardDisableBtn').click();
+  await page.locator('#confirmDelete').click();
+  await page.waitForTimeout(200);
+  const mfaOff = await page.evaluate(() => ({ off: document.getElementById('mfaCardOff')!.style.display, on: document.getElementById('mfaCardOn')!.style.display }));
+  const mfa = { mfa0, mfaBad, mfaOn, mfaOff };
+  const mfaPass = mfa0.card && mfa0.off !== 'none' && mfa0.on === 'none' && mfaBad === 'flex'
+    && mfaOn.on === 'block' && mfaOn.alert && mfaOn.rec && mfaOn.codes === 8
+    && mfaOff.off === 'block' && mfaOff.on === 'none';
+  rec('security-states', secPass && mfaPass, Object.assign({}, sec, { mfa, mfaPass }));
+  expect(secPass && mfaPass, 'security-states').toBe(true);
 });
 
 test('a11y-env', async ({ page }) => {

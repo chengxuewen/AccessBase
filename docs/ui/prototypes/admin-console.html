@@ -946,6 +946,17 @@ html[lang="zh-CN"] body{line-height:1.7}
           <div style="margin-top:var(--sp12);display:flex;align-items:center"><button class="btn primary" id="brandSave">Save branding</button><span class="tag ok" id="brandSaved" style="display:none;margin-left:8px"><span class="dot"></span>Saved</span></div><div class="perm-hint">Branding persists to localStorage only — backend out of scope (real Settings.tsx handleSaveSite).</div>
         </div>
         <div class="tab-pane" id="pane-ssecurity" role="tabpanel" aria-labelledby="tab-ssecurity">
+        <div class="card" style="padding:var(--sp16);margin-bottom:12px" id="mfaCard" data-testid="mfa-card">
+          <div class="card-head" style="padding:0 0 10px"><h3>Multi-factor authentication</h3></div>
+          <div id="mfaCardOff">
+            <div class="perm-hint" style="margin-top:0">Protect this account with a TOTP authenticator app.</div>
+            <div style="margin-top:10px"><button class="btn primary" id="mfaCardSetupBtn" data-testid="mfa-setup-btn">Set up MFA</button></div>
+          </div>
+          <div id="mfaCardOn" style="display:none">
+            <div class="ok-banner" data-testid="mfa-enabled-alert"><svg class="ic"><use href="#i-check"/></svg><span>MFA is enabled for this account.</span></div>
+            <div style="margin-top:10px"><button class="btn danger ghost" id="mfaCardDisableBtn" data-testid="mfa-disable-btn">Disable MFA</button></div>
+          </div>
+        </div>
           <div class="card panel"><div class="panel-head"><h3>Active sessions</h3><button class="btn danger ghost" id="revokeOthersBtn2" style="margin-left:auto">Log out other devices</button></div>
             <div style="padding:var(--sp16)"><div class="error-banner" role="alert" id="sessLoadBanner" style="display:none;margin:0 0 var(--sp12)"><svg class="ic"><use href="#i-alert"/></svg><span id="sessLoadMsg"></span><button class="btn sm" id="sessLoadRetry">Retry</button></div><div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table class="plain" style="width:100%"><thead><tr><th>Device</th><th>IP</th><th>Signed in</th><th style="text-align:right">Session</th></tr></thead><tbody id="sessionRows"></tbody></table></div></div></div>
           <div class="card panel"><div class="panel-head"><h3>Idle timeout</h3></div>
@@ -1014,6 +1025,25 @@ html[lang="zh-CN"] body{line-height:1.7}
   <div class="modal-body"><div class="error-banner" role="alert" id="delivErr" style="display:none;margin-bottom:12px"><svg class="ic"><use href="#i-alert"/></svg><span id="delivErrMsg"></span><button class="btn sm" id="delivRetry">Retry</button></div><div style="overflow-x:auto" tabindex="0" role="region" aria-label="Scrollable table"><table><thead><tr><th>Status</th><th>Attempts</th><th>Response</th><th>Created</th></tr></thead><tbody id="delivRows"></tbody></table></div></div>
   <div class="modal-foot"><button class="btn" data-close="delivModal">Close</button></div>
 </div></div>
+<div class="modal-overlay" id="mfaCardSetupModal" role="dialog" aria-modal="true" aria-labelledby="mfaCardSetupTitle">
+  <div class="modal" style="width:480px">
+    <div class="modal-head"><h3 id="mfaCardSetupTitle">Set up MFA</h3><button class="icon-btn close" aria-label="Close" data-close="mfaCardSetupModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body">
+      <div class="perm-hint" style="margin-top:0">Scan the QR with your authenticator, then enter the 6-digit code. Demo code: 123456.</div>
+      <div style="display:flex;gap:14px;align-items:center;margin:10px 0"><svg class="ic" data-testid="mfa-qr" style="width:96px;height:96px;color:var(--tx1)"><use href="#i-grid"/></svg><div class="mono" style="font-size:var(--fs12);word-break:break-all">JBSWY3DPEHPK3PXP</div></div>
+      <div class="error-banner" role="alert" id="mfaCardEnableErr" data-testid="mfa-enable-error" style="display:none"><svg class="ic"><use href="#i-alert"/></svg><span>Invalid code — the authenticator clock may be out of sync.</span></div>
+      <div class="field"><label>Authenticator code</label><input id="mfaCardCode" data-testid="mfa-code-input" inputmode="numeric" maxlength="6" placeholder="123456"></div>
+    </div>
+    <div class="modal-foot"><div class="spacer"></div><button class="btn primary" id="mfaCardEnableBtn" data-testid="mfa-enable-btn">Enable</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="mfaCardRecoveryModal" role="dialog" aria-modal="true" aria-labelledby="mfaCardRecTitle">
+  <div class="modal" style="width:420px">
+    <div class="modal-head"><h3 id="mfaCardRecTitle">Recovery codes — shown once</h3><button class="icon-btn close" aria-label="Close" data-close="mfaCardRecoveryModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body"><div class="perm-hint" style="margin-top:0">Store these codes safely; each works once if you lose your authenticator.</div><div id="mfaCardRecList" class="mono" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;font-size:var(--fs12)"></div></div>
+    <div class="modal-foot"><div class="spacer"></div><button class="btn" data-close="mfaCardRecoveryModal">Done</button></div>
+  </div>
+</div>
 <div class="modal-overlay" id="importModal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
   <div class="modal" style="width:640px">
     <div class="modal-head"><h3 id="importTitle">Import users</h3><button class="icon-btn close" aria-label="Close" data-close="importModal"><svg class="ic"><use href="#i-x"/></svg></button></div>
@@ -1134,7 +1164,7 @@ const I18N_ZH={
 'Password needs 12+ chars with upper, lower, digit and special':'密码需 12+ 字符，含大写、小写、数字与特殊字符',
 'Passwords need 12+ characters with an uppercase letter, a lowercase letter, a digit and a special character.':'密码需 12+ 字符，含大写字母、小写字母、数字与特殊字符。',
 'Policy: same as user creation — 12+ chars with upper, lower, digit and special.':'策略：与创建用户一致 —— 12+ 字符，含大写、小写、数字与特殊字符。',
-'Copied to clipboard':'已复制到剪贴板','Copy failed':'复制失败','Import failed: user service timeout (prototype simulation) — retry.':'导入失败：用户服务超时（原型模拟）— 重试。','Invalid CSV: expected header email,name,password and exactly 3 columns per row.':'CSV 无效：表头须为 email,name,password 且每行恰好 3 列。','Plain CSV only: header must be email,name,password; quoted/embedded commas are not supported.':'仅支持纯 CSV：表头须为 email,name,password；不支持引号/内嵌逗号。','Check is a dry-run; Import commits valid rows.':'Check 为干跑；Import 提交有效行。','Import users':'导入用户','CSV rows':'CSV 行','Check':'检查','Checking…':'检查中…','Importing…':'导入中…','Create failed: user service timeout (prototype simulation) — retry.':'创建失败：用户服务超时（原型模拟）— 重试。','CAEP endpoint must be a valid URL':'CAEP 端点必须是有效 URL','CAEP endpoint must use https':'CAEP 端点必须使用 https','CAEP endpoint URI (optional, https only)':'CAEP 端点 URI（可选，仅 https）','CIDR allowlist (one per line, blank = unrestricted)':'CIDR 白名单（每行一条，留空=不限制）','Saved':'已保存','Deleted':'已删除',
+'Copied to clipboard':'已复制到剪贴板','Copy failed':'复制失败','Multi-factor authentication':'多因素认证','Protect this account with a TOTP authenticator app.':'使用 TOTP 验证器应用保护此账号。','Set up MFA':'设置 MFA','MFA is enabled for this account.':'此账号已启用 MFA。','Disable MFA':'禁用 MFA','Scan the QR with your authenticator, then enter the 6-digit code. Demo code: 123456.':'用验证器扫描二维码，然后输入 6 位代码。演示代码：123456。','Invalid code — the authenticator clock may be out of sync.':'代码无效 — 验证器时钟可能不同步。','Recovery codes — shown once':'恢复代码 — 仅显示一次','Store these codes safely; each works once if you lose your authenticator.':'请妥善保存这些代码；丢失验证器时每码可用一次。','This account will rely on password only.':'此账号将仅依赖密码。','Import failed: user service timeout (prototype simulation) — retry.':'导入失败：用户服务超时（原型模拟）— 重试。','Invalid CSV: expected header email,name,password and exactly 3 columns per row.':'CSV 无效：表头须为 email,name,password 且每行恰好 3 列。','Plain CSV only: header must be email,name,password; quoted/embedded commas are not supported.':'仅支持纯 CSV：表头须为 email,name,password；不支持引号/内嵌逗号。','Check is a dry-run; Import commits valid rows.':'Check 为干跑；Import 提交有效行。','Import users':'导入用户','CSV rows':'CSV 行','Check':'检查','Checking…':'检查中…','Importing…':'导入中…','Create failed: user service timeout (prototype simulation) — retry.':'创建失败：用户服务超时（原型模拟）— 重试。','CAEP endpoint must be a valid URL':'CAEP 端点必须是有效 URL','CAEP endpoint must use https':'CAEP 端点必须使用 https','CAEP endpoint URI (optional, https only)':'CAEP 端点 URI（可选，仅 https）','CIDR allowlist (one per line, blank = unrestricted)':'CIDR 白名单（每行一条，留空=不限制）','Saved':'已保存','Deleted':'已删除',
 'Group created':'用户组已创建','Tenant created':'租户已创建','Tenant updated':'租户已更新','Tenant suspended':'租户已暂停','Tenant activated':'租户已激活','Tenant deleted':'租户已删除','Client registered':'客户端已注册','Client deleted':'客户端已删除','Client secret rotated':'客户端 secret 已轮换','API key issued':'API 密钥已签发','Member added':'成员已添加','Member removed':'成员已移除','Roles saved':'角色已保存','Initial admin created':'初始管理员已创建','Endpoint updated':'端点已更新','Secret rotated':'Secret 已轮换','Ping queued (webhook.test)':'Ping 已排队（webhook.test）',
 'Rotate failed: upstream timeout (prototype simulation) — retry':'轮换失败：上游超时（原型模拟）— 重试','Update failed: upstream timeout (prototype simulation) — retry':'更新失败：上游超时（原型模拟）— 重试',
 'Create failed: upstream timeout (prototype simulation) — retry.':'创建失败：上游超时（原型模拟）— 重试。','Delete failed: upstream timeout (prototype simulation) — retry.':'删除失败：上游超时（原型模拟）— 重试。','Status change failed: upstream timeout (prototype simulation) — retry.':'状态变更失败：上游超时（原型模拟）— 重试。','Add failed: upstream timeout (prototype simulation) — retry':'添加失败：上游超时（原型模拟）— 重试','Remove failed: upstream timeout (prototype simulation) — retry.':'移除失败：上游超时（原型模拟）— 重试。','Save failed: upstream timeout (prototype simulation) — retry.':'保存失败：上游超时（原型模拟）— 重试。',
@@ -1142,9 +1172,9 @@ const I18N_ZH={
 'Failed to save idle timeout.':'保存空闲超时失败。','Failed to load options.':'加载选项失败。','Failed to load audit entries.':'加载审计条目失败。','Failed to load dashboard stats.':'加载仪表盘统计失败。',
 '403 FORBIDDEN: this tab requires options:read.':'403 FORBIDDEN：此 tab 需要 options:read。','Requires options:write.':'需要 options:write。','Read-only across all resources':'跨所有资源只读',
 'Administrator · options:read+write':'管理员 · options:read+write','Auditor · options:read only':'审计员 · 仅 options:read','Member · no options perms':'成员 · 无 options 权限','Auditor · read-only':'审计员 · 只读','Operator · webhooks:write':'操作员 · webhooks:write','Permission perspective (demo)':'权限视角（演示）','Perspective: ':'视角：',
-'Personal information':'个人信息','Edit name':'编辑姓名','Change password':'修改密码','Reset your password':'重置密码','Two-factor authentication (MFA)':'双因素认证（MFA）','Set up MFA':'设置 MFA','Disable MFA':'禁用 MFA',
+'Personal information':'个人信息','Edit name':'编辑姓名','Change password':'修改密码','Reset your password':'重置密码','Two-factor authentication (MFA)':'双因素认证（MFA）',
 'Scan with your authenticator app, then enter the 6-digit code.':'用认证器 App 扫描，然后输入 6 位代码。','Protect your account with a time-based one-time code (TOTP). Recovery codes are shown once at setup.':'用基于时间的一次性码（TOTP）保护账户。恢复码仅在设置时展示一次。','Disabling removes your authenticator and all recovery codes. Confirm with your current password.':'禁用将移除认证器与所有恢复码。需当前密码确认。',
-'Your recovery codes':'你的恢复码','Recovery codes — shown once':'恢复码 — 仅展示一次','Store these safely. Each code works once if you lose your authenticator. They will not be shown again.':'妥善保存。丢失认证器时每个码可用一次。不会再次展示。',
+'Your recovery codes':'你的恢复码','Store these safely. Each code works once if you lose your authenticator. They will not be shown again.':'妥善保存。丢失认证器时每个码可用一次。不会再次展示。',
 'Passkeys':'通行密钥','Register passkey':'注册通行密钥','Linked accounts':'关联账户','Bind GitHub':'绑定 GitHub','Bind Google':'绑定 Google','Linked as':'已绑定为','Active sessions':'活跃会话','Active Sessions':'活跃会话',
 'You are invited':'你受邀请','Verify your email':'验证你的邮箱','Your email is not verified.':'你的邮箱未验证。','Primary identity sink':'主身份汇聚','Quick actions':'快捷操作','Recent activity':'最近活动','Total Users':'用户总数','Active Roles':'活跃角色','Manage users and groups':'管理用户与组','Manage roles':'管理角色','Back to dashboard':'返回仪表盘',
 'Access denied':'访问被拒绝','Page not found':'页面不存在','Something went wrong':'出现错误','Request access':'申请权限',
@@ -1399,6 +1429,12 @@ function renderImportReport(committed){const rep=importReport;const counts={vali
 $('importUsersBtn').onclick=()=>{importTried=false;importRows=null;importReport=null;$('importInput').value='';$('importParseErr').style.display='none';$('importReport').style.display='none';$('importCommit').disabled=true;openModal('importModal');};
 $('importCheck').onclick=()=>{const rows=parseImportInput($('importInput').value);$('importReport').style.display='none';$('importCommit').disabled=true;if(!rows){$('importParseErr').style.display='flex';return;}$('importParseErr').style.display='none';const b=$('importCheck');btnBusy(b,true,'Checking…');setTimeout(()=>{btnBusy(b,false);importRows=rows;importReport=importEval(rows);renderImportReport(false);$('importCommit').disabled=importReport.every(r=>r.status!=='valid');},400);};
 $('importCommit').onclick=()=>{if(!importRows)return;const b=$('importCommit');btnBusy(b,true,'Importing…');setTimeout(()=>{btnBusy(b,false);if(!importTried){importTried=true;toast('Import failed: user service timeout (prototype simulation) — retry.','error');return;}const good=importReport.filter(r=>r.status==='valid');good.forEach(r=>USERS.push([r.name,r.email,'active','Acme Corp','just now',[]]));acts.unshift({action:'users.imported',resourceType:'user',userId:good.length+' rows',rel:'just now'});renderUsers();renderStats();renderActivity();renderImportReport(true);toast('Imported '+good.length+' users');},400);};
+/* Adjudication 39 (contract extension P2): settings security tab fourth card mirrors real
+   settings/MfaCard.tsx (setup QR+code+enable error, enabled alert+disable, one-time recovery codes). */
+let mfaEnabled=false;
+$('mfaCardSetupBtn').onclick=()=>{$('mfaCardEnableErr').style.display='none';$('mfaCardCode').value='';openModal('mfaCardSetupModal');};
+$('mfaCardEnableBtn').onclick=()=>{const c=$('mfaCardCode').value.trim();if(c!=='123456'){$('mfaCardEnableErr').style.display='flex';return;}mfaEnabled=true;$('mfaCardOff').style.display='none';$('mfaCardOn').style.display='block';closeModal('mfaCardSetupModal');$('mfaCardRecList').innerHTML=Array.from({length:8},(_,i)=>'<span>'+(i+1)+'. '+Math.random().toString(36).slice(2,6)+'-'+Math.random().toString(36).slice(2,6)+'</span>').join('');openModal('mfaCardRecoveryModal');toast('MFA enabled');};
+$('mfaCardDisableBtn').onclick=()=>{openConfirm('mfa',0,{title:'Disable MFA',verb:'Disable',msg:'This account will rely on password only.',toast:'MFA disabled'});};
 function userDetailHtml(idx){const u=USERS[idx];return '<div style="margin-bottom:8px"><button class="btn sm" data-udpage="'+idx+'">Open as full page</button></div>'+'<div class="detail-meta">'+esc(u[1])+'</div><div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:var(--fs12);align-items:center"><span style="color:var(--tx3)">Status</span><span style="display:inline-flex;align-items:center;gap:8px">'+statusTag(u[2])+'<button type="button" role="switch" aria-checked="'+(u[2]==='active')+'" class="wswitch'+(u[2]==='active'?' on':'')+'" data-dstatus="'+idx+'" aria-label="Toggle status"><span class="knob"></span></button></span><span style="color:var(--tx3)">Tenant</span><span>'+esc(u[3])+'</span><span style="color:var(--tx3)">Created</span><span class="mono">'+esc(u[4])+'</span></div>';}
 function openDetail(title,html){$('detailTitle').textContent=title;$('detailBody').innerHTML=html;openModal('detailModal');}
 function toast(msg,kind){kind=kind||'success';const tt=$('protoToast');tt.className='proto-toast '+kind;tt.setAttribute('role',kind==='error'?'alert':'status');tt.setAttribute('aria-live',kind==='error'?'assertive':'polite');tt.innerHTML='<svg class="ic" style="color:'+(kind==='error'?'var(--danger-inv)':kind==='info'?'var(--accent)':'var(--ok)')+'"><use href="#i-'+(kind==='error'?'alert':kind==='info'?'info':'check')+'"/></svg><span>'+esc(msg)+'</span>';tt.style.display='flex';clearTimeout(tt._h);tt._h=setTimeout(()=>{tt.style.display='none';},2200);}
@@ -1702,6 +1738,7 @@ const DEL={
  clients:i=>{CLIENTS.splice(i,1);renderClients();},
  webhooks:i=>{WEBHOOKS.splice(i,1);renderWebhooks();}
 };
+DEL['mfa']=()=>{mfaEnabled=false;$('mfaCardOn').style.display='none';$('mfaCardOff').style.display='block';};
 DEL['apikeys-revoke']=i=>{APIKEYS[i].revoked=true;renderApikeys();};
 DEL['groups-member']=i=>{GROUPS[selGroup].members.splice(i,1);renderMembers();renderGroups();};
 DEL['oauth-unlink']=i=>{OAUTH_LINKS.splice(i,1);renderOAuth();};

@@ -1489,3 +1489,15 @@ correct code signs in. Demo codes fixed at 123456 (disclosed in-page + simulatio
 branches deterministic. zh keys for all new literals (duplicate Sending…/Register/Create account keys
 deduped). auth-login lock extended (mfa open/bad/ok+maxlen, sms phone err/sent/code maxlen/bad/ok).
 67 groups, 0 failures.
+
+## Adjudication 39 — contract extension P2 (settings MfaCard, 2026-11-24)
+Security tab gains the fourth card mirroring real settings/MfaCard.tsx: disabled state offers
+Set up MFA (mfa-setup-btn) opening a setup modal with QR placeholder + secret + 6-digit code
+(mfa-code-input) and Enable (mfa-enable-btn); wrong code shows mfa-enable-error; correct demo code
+123456 flips to the enabled state (mfa-enabled-alert + Disable via confirm) and opens the ONE-TIME
+recovery-codes modal (8 codes, not reopenable). Testids mirror real (mfa-card/mfa-setup-btn/
+mfa-code-input/mfa-enable-btn/mfa-enable-error/mfa-enabled-alert/mfa-disable-btn). New ids namespaced
+mfaCard* to avoid colliding with the pre-existing adjudication-4 MFA setup modal (#mfaCode etc.);
+DEL['mfa'] registered for the confirm pipeline. zh keys added (pre-existing duplicates deduped).
+security-states lock extended (card/off-on states, enable error, enabled alert, recovery 8 codes,
+disable confirm restores setup). 67 groups, 0 failures.
