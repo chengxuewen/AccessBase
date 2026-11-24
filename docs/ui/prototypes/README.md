@@ -102,8 +102,8 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
 | groups-detail | create+isDepartment, detail/candidates/add/remove/saveRoles/delete async | 26 |
 | mgmt-pages | tenants/clients/apikeys/webhooks/audit/events row contracts | 8, 10, 11, 14, 24, 28 |
 | tenants-model | soft-delete, slug validation, init-admin shared 12+ policy, field-level 409, async CRUD; copy feedback (toast + check glyph + revert), clipboard-reject fallback, both-fail error toast, locked-row hover hint, zh row-action routing | 8, 27, post-closure fix 7 |
-| clients-model | immutable clients, server enums, scope required, B5 gate, async create/rotate/delete | 14, 28, post-closure fix 6 |
-| apikeys-model | revoke-only, reveal-once, server-default scopes, expires validation, copy fallback | 5, 24 |
+| clients-model | immutable clients, server enums, scope required, B5 gate, async create/rotate/delete; caepEndpointUri inline url+https rules (clients-caep-input) | 14, 28, 35, post-closure fix 6 |
+| apikeys-model | revoke-only, reveal-once, server-default scopes, expires validation, copy fallback; cidrAllowlist textarea + server-validation echo (api-keys-cidr-input) | 5, 24, 35 |
 | webhooks-model | ping queues pending, toggle/rotate gate+Busy+error, deliveries loading | 10, 23 |
 | events-model / events-load | real catalog/families, date range, async load + loadError + Search/reset | 11, 29 |
 | audit-model | structured verify report, busy, error alerts, range, filtered export | 18 |
@@ -148,7 +148,7 @@ load** for page-level loads and webhooks actions; retry then succeeds. Every mes
 | Groups | create, detail load, candidate load, add/remove member, saveRoles, delete | `Groups.tsx` detailError/memberLoadError/memberAddError/memberRemoveError/rolesSaveError/deleteError |
 | Tenants | create/update, status change, delete; init TENANT_PROTECTED | `Tenants.tsx` createError/updateError/statusError/deleteError/initError |
 | Clients | create, rotate, delete | `Clients.tsx` createError/rotateError/deleteError |
-| API Keys | create (key-service), revoke (key-service); clipboard rejection stub in harness | `ApiKeys.tsx` createError/revokeError/copyFailed |
+| API Keys | create (key-service), revoke (key-service); cidrAllowlist server-side CIDR validation echo (deterministic, marked); clipboard rejection stub in harness | `ApiKeys.tsx` createError/revokeError/copyFailed + server CIDR validation |
 | Webhooks | ping, toggle update, rotate, deliveries load | `Webhooks.tsx` pingError/updateError/rotateError/deliveriesLoadError |
 | Audit | entries load, export, verify failure | `Audit.tsx` load/export/verify errors |
 | Events | load failure + Retry | `Events.tsx` request try/catch loadError |
@@ -162,7 +162,7 @@ Demo-only mechanisms (disclosed in-page): permission perspective switches (Setti
 from/to date inputs stand in for AntD RangePicker (`startDate/endDate`); staged matrix maps to the real
 AntD Transfer picker + modal Save; create-form note that UI sends no scopes and server defaults `['*']`.
 
-## Adjudication index (1–34)
+## Adjudication index (1–42)
 
 | # | Subject | Commit | Primary locks |
 |---|---|---|---|
@@ -200,6 +200,7 @@ AntD Transfer picker + modal Save; create-form note that UI sends no scopes and 
 | 32 | kit handoff README (navigation layer + indexes) | 5fe8cc4 | — (doc) |
 | 33 | entry-flows companion (nine surfaces) + auth locks | cc7aab8 | auth-login, auth-register-reset, auth-enroll-consent, auth-setup |
 | 34 | closure: companion motion/i18n/contrast locks + .spin degradation + nav/steps contrast | e154ef1 | reduced-motion, i18n, surfaces-contrast |
+| 35 | contract extension P0: clients caepEndpointUri (url+https inline) + apikeys cidrAllowlist (server-validation echo), field-err mechanism + testids | pending | clients-model, apikeys-model, i18n-dynamic |
 
 Pre-series rounds (v0.1–v0.9, expert-panel adjudications 1–12 old numbering, revision plans R1–R5,
 user-reported fixes) are indexed by date in `CHANGELOG.md`.

@@ -1437,3 +1437,16 @@ shape-scale lock extended with cupOpen {open, aria-expanded, stays open on inter
 option active, aligned to trigger within viewport}; double-sample verified (restoring scrollIntoView
 reds the group, the fix greens it). Full re-run: 65 groups, 0 failures. Screenshot: cupertino dropdown
 aligned under the trigger, fully visible, current pack checked. PIT-116 recorded.
+
+## Adjudication 35 — contract extension P0 (admin-ui alignment gap list, 2026-11-24)
+Clients create form gains caepEndpointUri (optional, https-only) mirroring real Clients.tsx:338-351
+Form.Item rules (type:url + pattern /^https:\/\//): invalid URL and non-https produce FIELD-LEVEL
+inline errors (.field-err + role=alert + aria-invalid/aria-describedby, cleared on input), testid
+clients-caep-input. ApiKeys create form gains cidrAllowlist textarea (rows=3, one CIDR per line,
+blank = unrestricted, testid api-keys-cidr-input) mirroring ApiKeys.tsx:276-286; because the real
+validation is server-side, the prototype simulates the server deterministically (octet/prefix bounds)
+and echoes "Server rejected CIDR line(s): … (prototype simulation)" as a field error; valid lines pass
+and are stored on the key. New fieldErr/clearFieldErr mechanism is the shared inline-error contract for
+future Form.Item-rule surfaces. zh keys added; i18n-dynamic prefix sample extended; clients-model and
+apikeys-model locks extended (caep url/https/clear/testid/aria; cidr bad/good/testid/rows). README lock
+rows + simulation index + adjudication index 35. 65 groups, 0 failures.

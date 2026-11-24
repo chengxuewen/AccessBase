@@ -1376,12 +1376,29 @@ test('apikeys-model', async ({ page }) => {
   await page.evaluate(() => { Object.defineProperty(document, 'execCommand', { configurable: true, value: () => true }); });
   await page.locator('#revealCopy').click();
   const copyOk = await page.evaluate(() => document.getElementById('protoToast')!.textContent === 'Copied to clipboard');
-  const a = { noCrud, conf, notRevoked, revFail, revoked, form, pastErr, createBusy, createFail, createdScopes, copyFail, copyOk, reveal: { on: reveal.on, prefix: reveal.val.slice(0, 3), len: reveal.val.length, once: reveal.meta.includes('never shown again') } };
+  // adjudication 35: cidrAllowlist server-side validation echo (real ApiKeys.tsx:276-286).
+  await page.evaluate(() => (document.querySelector('[data-create=apikeys]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  const cidr = await page.evaluate(async () => {
+    const set = (k: string, v: string) => { const e = document.querySelector('#formBody [data-field="' + k + '"]') as HTMLInputElement; e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
+    const err = () => { const e = document.getElementById('err-cidrAllowlist'); return e ? e.textContent : null; };
+    const save = () => (document.getElementById('formSave') as HTMLElement).click();
+    set('name', 'cidr-probe'); set('cidrAllowlist', '10.0.0.0/8\n999.1.1.1/32'); save();
+    const badErr = err();
+    set('cidrAllowlist', '10.0.0.0/8\n192.168.1.1/32'); save();
+    const goodErr = err();
+    const testid = !!document.querySelector('[data-testid="api-keys-cidr-input"]');
+    const rows = (document.querySelector('#formBody [data-field="cidrAllowlist"]') as HTMLTextAreaElement).rows;
+    return { badErr, goodErr, testid, rows };
+  });
+  await page.keyboard.press('Escape');
+  const cidrOk = !!cidr.badErr && cidr.badErr.includes('999.1.1.1/32') && cidr.badErr.includes('prototype simulation') && cidr.goodErr === null && cidr.testid && cidr.rows === 3;
+  const a = { noCrud, conf, notRevoked, revFail, revoked, form, pastErr, createBusy, createFail, createdScopes, copyFail, copyOk, cidr, cidrOk, reveal: { on: reveal.on, prefix: reveal.val.slice(0, 3), len: reveal.val.length, once: reveal.meta.includes('never shown again') } };
   const pass = noCrud && conf.on && conf.verb === 'Revoke' && revFail.err && revFail.kept === notRevoked && revoked === notRevoked + 1
     && form.name && form.expires && !form.scopes && form.dateType === 'date' && !!form.min && form.note
     && pastErr && createBusy && createFail && JSON.stringify(createdScopes) === JSON.stringify(['*'])
     && copyFail && copyOk
-    && reveal.on && reveal.val.startsWith('ab_') && reveal.val.length === 35 && reveal.meta.includes('never shown again');
+    && reveal.on && reveal.val.startsWith('ab_') && reveal.val.length === 35 && reveal.meta.includes('never shown again') && cidrOk;
   rec('apikeys-model', pass, a);
   expect(pass, 'apikeys-model').toBe(true);
 });
@@ -1958,6 +1975,7 @@ test('i18n-dynamic', async ({ page }) => {
     'Exported ': 'Exported 3 rows',
     'Slug "': 'Slug "x" already exists',
     'Each event must be * or resource.action (lowercase): ': 'Each event must be * or resource.action (lowercase): bad',
+    'Server rejected CIDR line(s): ': 'Server rejected CIDR line(s): 999.1.1.1/32 (prototype simulation)',
   };
   await page.evaluate(() => { if (!document.documentElement.lang.startsWith('zh')) (document.getElementById('langBtn') as HTMLElement).click(); });
   const adminMissing = await page.evaluate((args: { lits: string[]; prefix: Record<string, string> }) => {
@@ -2440,11 +2458,30 @@ test('clients-model', async ({ page }) => {
   await page.locator('#confirmDelete').click();
   await page.waitForTimeout(600);
   const delOk = await page.evaluate(() => document.querySelectorAll('#clientRows tr').length);
-  const a = { noEdit, form, e002, e003, eB5, eScope, eScopeReq, rows0, createBusy, createErr, created, rotErr, rotOk, delFail, delOk };
+  // adjudication 35: caepEndpointUri inline url+https rules (real Clients.tsx:338-351).
+  await page.evaluate(() => (document.querySelector('[data-create=clients]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  const caep = await page.evaluate(async () => {
+    const set = (k: string, v: string) => { const e = document.querySelector('#formBody [data-field="' + k + '"]') as HTMLInputElement; e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
+    const err = () => { const e = document.getElementById('err-caepEndpointUri'); return e ? e.textContent : null; };
+    const save = () => (document.getElementById('formSave') as HTMLElement).click();
+    set('name', 'caep-probe'); set('caepEndpointUri', 'not a url'); save();
+    const urlErr = err();
+    set('caepEndpointUri', 'http://app.example.com/caep'); save();
+    const httpsErr = err();
+    set('caepEndpointUri', 'https://app.example.com/caep'); save();
+    const cleared = err();
+    const testid = !!document.querySelector('[data-testid="clients-caep-input"]');
+    const aria = (document.querySelector('#formBody [data-field="caepEndpointUri"]') as HTMLElement).getAttribute('aria-invalid');
+    return { urlErr, httpsErr, cleared, testid, ariaAfterClear: aria };
+  });
+  await page.keyboard.press('Escape');
+  const caepOk = caep.urlErr === 'CAEP endpoint must be a valid URL' && caep.httpsErr === 'CAEP endpoint must use https' && caep.cleared === null && caep.testid && caep.ariaAfterClear === null;
+  const a = { noEdit, form, e002, e003, eB5, eScope, eScopeReq, rows0, createBusy, createErr, created, rotErr, rotOk, delFail, delOk, caep, caepOk };
   const pass = noEdit && form.grants === 2 && form.tam === 3 && form.bc
     && e002 && e003 && eB5 && eScope && eScopeReq && createBusy && createErr
     && created.reveal && created.rows === rows0 + 1
-    && rotErr && rotOk && delFail.err && delFail.rows === created.rows && delOk === created.rows - 1;
+    && rotErr && rotOk && delFail.err && delFail.rows === created.rows && delOk === created.rows - 1 && caepOk;
   rec('clients-model', pass, a);
   expect(pass, 'clients-model').toBe(true);
 });

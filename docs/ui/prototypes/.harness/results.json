@@ -952,6 +952,13 @@
         ],
         "copyFail": true,
         "copyOk": true,
+        "cidr": {
+          "badErr": "Server rejected CIDR line(s): 999.1.1.1/32 (prototype simulation)",
+          "goodErr": null,
+          "testid": true,
+          "rows": 3
+        },
+        "cidrOk": true,
         "reveal": {
           "on": true,
           "prefix": "ab_",
@@ -1270,7 +1277,7 @@
         ],
         "zhEdit": true,
         "dict": {
-          "n": 426,
+          "n": 430,
           "allNonEmpty": true,
           "coverage": true
         },
@@ -1618,7 +1625,15 @@
           "err": true,
           "rows": 5
         },
-        "delOk": 4
+        "delOk": 4,
+        "caep": {
+          "urlErr": "CAEP endpoint must be a valid URL",
+          "httpsErr": "CAEP endpoint must use https",
+          "cleared": null,
+          "testid": true,
+          "ariaAfterClear": null
+        },
+        "caepOk": true
       }
     },
     "cbx-capabilities": {
