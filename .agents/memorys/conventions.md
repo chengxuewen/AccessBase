@@ -422,3 +422,15 @@ findings keep their own namespace and are always cited as
 **Source**: 2026-11-23 fix 9 提交后残留 5 项，核 diff 发现 D130（4A 工作流决策）+ 4 个 4a plans/specs/reports 属并行会话；盲 add .agents 曾把 D130 暂存，已撤。
 
 **Check**: `git status --porcelain` 残留项逐条归因；多会话仓库一律 pathspec 提交 `git commit -- <own paths>`（PIT-108：普通 commit 提交整个共享 index，他会话预 stage 会搭便车）；`git show --stat` 清单==意图路径才收尾。
+
+## C5: 刻度/约束变更三清单 + 锁采样可见控件 (2026-11-24, fix 12-17 连锁教训)
+
+**Rule**: 引入或修改任何度量刻度/布局约束（高度、尺寸、圆角、间距、档位）时必须过三清单：
+(1) **可见渲染控件枚举**——被 JS 替换的原生元素（select→cbx div）不在 CSS  selector 覆盖内，锁与规则都要采样可见控件；
+(2) **全部使用点语义归位**——枚举全库该 class/规格的使用点逐条归档（编辑动作 vs chrome vs retry），不能只改被报告的表面；
+(3) **固定高三件套**——height 固定必须同时 white-space:nowrap + flex-shrink:0（容器侧动作组 no-shrink），缺一即折行/收缩溢出。
+锁必须含"会触发缺陷的样本"（窄屏、多按钮行、隐藏 retry 用 computed）。
+
+**Source**: fix 13→15（固定高折行）、13→14（cbx 漏档+锁采样隐藏 select）、16→17（档归属只改矩阵漏全库）连锁；PIT-109/111/112/113/114/115。
+
+**Check**: `grep -n 'cbx-btn' docs/ui/prototypes/.harness/prototype.spec.ts` 刻度锁含可见 cbx；`grep -c 'class="btn[^"]*sm"' docs/ui/prototypes/admin-console.html` 剩余 sm 仅 chrome+retry（当前 17）；control-heights/shape-scale 全绿且含 830px/panel/retries 探针。

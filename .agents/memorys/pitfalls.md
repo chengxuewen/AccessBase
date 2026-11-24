@@ -891,3 +891,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: fix 16 定了"编辑动作=32"但只迁移了矩阵 panel；其余动作钮（banner 动作、card-head 安全动作、row unlink/bind、template 预览/测试）仍挂 sm；card-head icon-btn 的紧凑覆盖未随语义更新。
 - **解法**: 全库 sm 清单按语义逐条归位：仅 topbar chrome + 16 个 error-retry 保留 24；其余动作钮去 sm；card-head icon-btn 紧凑覆盖删除；内联 link-btn 图标入 --ic-m 刻度（与 copy 同族 20/14）；锁加 profileActions=[32] / retriesCompact=['24px'] / cardHead=[32]。
 - **验证**: control-heights 全容器单值；截图 profile 全动作钮 32。教训：语义规则落地必须**枚举全部使用点**逐条归位，不能只改被报告的表面。
+
+## PIT-115: 探针三 guard 缺失 → null throw 或隐藏块 0 值假象（复发 ≥4 次） (2026-11-24)
+
+- **症状**: 探针脚本反复失败/误判：users 行无 copyable 致 querySelector null throw；panel-head 探针命中隐藏模态的同名节点（全 0）；enSaved/mkState 在隐藏子步骤内 rect=0 被当"尺寸缺陷"。
+- **根因**: 测量前未验证三件事：selector 存在、节点可见（rect>0）、所在页面/flow 已激活；同名 class 在多容器存在时取到隐藏实例。
+- **解法**: 探针三 guard：先断言存在（missing 报回而非 throw）、过滤 rect>0、先 click 激活目标 page/flow；隐藏块改测 getComputedStyle（display:none 仍返回 specified 值，可锁档位）；容器探针用最近可见祖先限定 scope。
+- **验证**: control-heights 的 retries 探针用 computed height（隐藏仍 24px）；profile/panel 探针先激活页面；本会话所有探针脚本带 missing/guard 分支。

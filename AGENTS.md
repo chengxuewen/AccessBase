@@ -159,8 +159,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### decisions
 - full text: `.agents/memorys/decisions.md`
-... 105 older entries omitted (read the full file)
-- D106: E2E 测试 Mock vs 真后端策略 (2026-08-27)
+... 106 older entries omitted (read the full file)
 - D110: 安全基座架构（RS256 回退 + DB 权威会话 + 可注入审计存储） (2026-08-31)
 - D111: FlowTokenService 单次用途 token 作为多步认证主干 (2026-08-31)
 - D109: GitHub OAuth 豁免 PKCE（经典 OAuth App 限制） (2026-08-31)
@@ -185,11 +184,11 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - D128: 布尔控件规则统一——Switch=立即生效域 / Checkbox=提交标记+多选+attestation 域，真实与原型联动迁移 (2026-11-23)
 - D129: 形状刻度 token 化——图标三语义档 / 浮层单一圆角 / 标签族圆角 token (2026-11-23)
 - D130: 4A optimization roadmap — eight adjudications ratified one by one (2026-11-23)
+- D131: 控件度量刻度定稿——图标按钮家族刻度 + 高度两档按语义归属 + 内联图标族 (2026-11-24)
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 102 older entries omitted (read the full file)
-- PIT-100: inert 加在 app 根上会连模态一起禁掉——overlays 在根内时必须只 inert 背景容器 (2026-11-23)
+... 103 older entries omitted (read the full file)
 - PIT-101: forced-colors 下换色技巧不可靠——headless palette 让 Canvas==HighlightText，表单控件回退原生 (2026-11-23)
 - PIT-102: 顶层 init 调用插到 const 定义前 = TDZ 静默中断整段经典脚本，node --check 全绿 (2026-11-23)
 - PIT-103: 响应式断点只改布局不套状态语义 → 裁切 chrome；一个状态两个入口必须同语义 (2026-11-23, user-reported)
@@ -204,6 +203,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-112: 固定高按钮 + flex 可收缩 + 默认可换行 = 窄屏文字折行溢出 (2026-11-24, user-reported)
 - PIT-113: 两档刻度的"档归属"按容器猜而非按控件语义 → 编辑控件被误归紧凑档 (2026-11-24, user-reported)
 - PIT-114: 语义档归属执行不彻底——banner/card-head/row 动作钮仍挂 sm (2026-11-24, user-reported)
+- PIT-115: 探针三 guard 缺失 → null throw 或隐藏块 0 值假象（复发 ≥4 次） (2026-11-24)
 
 ### status
 - full text: `.agents/memorys/status.md`
