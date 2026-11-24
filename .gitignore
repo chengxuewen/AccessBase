@@ -138,3 +138,7 @@ build/gate-logs/
 .serena/cache/
 .serena/memories/
 .serena/project.local.yml
+
+# agent transient probe scripts (never track)
+.cb-*.js
+.cb-*.mjs

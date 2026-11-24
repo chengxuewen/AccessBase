@@ -421,4 +421,4 @@ findings keep their own namespace and are always cited as
 
 **Source**: 2026-11-23 fix 9 提交后残留 5 项，核 diff 发现 D130（4A 工作流决策）+ 4 个 4a plans/specs/reports 属并行会话；盲 add .agents 曾把 D130 暂存，已撤。
 
-**Check**: `git status --porcelain` 残留项逐条归因；`git diff --cached --name-only` 与本轮改动路径集合相等才允许 commit。
+**Check**: `git status --porcelain` 残留项逐条归因；多会话仓库一律 pathspec 提交 `git commit -- <own paths>`（PIT-108：普通 commit 提交整个共享 index，他会话预 stage 会搭便车）；`git show --stat` 清单==意图路径才收尾。

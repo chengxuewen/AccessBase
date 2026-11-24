@@ -842,3 +842,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: table-layout:fixed 下 status 列无宽度下限被挤到 < tag 宽；td:has(.tag){overflow:visible} 让 tag 溢出本单元格，恰好溢入**不透明背景的 sticky 末列**绘制区 → 视觉切边。sticky 本身无错，错在"溢出可见 + 邻居不透明 + 无滚动/阴影 cue"三件套。
 - **解法**: tag/status 列给 fit-content 下限（104px，开关列 84px）；过宽固定列收缩 + 新增 1100px 断点隐藏 prio-3（label() 会把 th prio 复制到 td，安全）；sticky 末列加 box-shadow 边缘 cue（--bd2 双主题）；chips 容器 flex-wrap 保证多 chip 换行而非溢出。
 - **验证**: responsive-table 锁 mid 段：940px 七表 wrap 不横溢 + tag.right<=td.right + tag.right<=sticky.left + shadow!=none；chip-columns 锁 1440 下 scopes 双 chip 同行（列宽 170 下限不可再缩）。
+
+## PIT-108: 共享 git index 是进程全局的——他会话预 stage 的改动会搭我的 commit 便车 (2026-11-24, 事故)
+
+- **症状**: fix 11 提交 663e7fe 含 77 文件：本轮 fix 之外混入并行 4A 工作流已 stage 的 apps/server/packages/e2e 批 + 我的临时探针脚本。
+- **根因**: index 全仓库共享；并行会话执行过宽 add（疑 -A）留下满 index；`git add <own paths>` 不清除他人暂存；普通 `git commit` 提交**整个 index**。C4 的"commit 前核 cached 清单"发现了混入但误判为可接受（当时清单打印在 commit 同命令里、未及拦截）。
+- **解法**: 多会话仓库一律 **pathspec 提交** `git commit -m … -- <own paths>`（只提交指定路径，无视 index 其余暂存）；commit 前 cached 清单发现外来路径立即停止并改用 pathspec；临时探针文件入 .gitignore（.cb-*.js/.cb-*.mjs）防误跟踪。
+- **验证**: `git show --stat <commit>` 文件清单==本轮意图路径；`git ls-files .cb-*` 为空。事故处置：不改写历史（并行活跃），外来改动完整保留于该 commit，向用户披露归属。

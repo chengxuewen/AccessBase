@@ -188,8 +188,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 95 older entries omitted (read the full file)
-- PIT-094: A product fetch-surface change without its e2e mock-surface twin silently breaks specs nobody touched (2026-11-06, E10 wave)
+... 96 older entries omitted (read the full file)
 - PIT-095: An imported layer's CLI entry called process.exit() at module scope and swallowed the entire dispatcher
 - PIT-079: REGISTERED VOID — never assigned, number reserved (2026-11-17)
 - PIT-096: A success log line as a function's last statement swallowed real gate failures
@@ -204,6 +203,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-105: overflow-y:auto 把 overflow-x 计算成 auto + visibility:hidden 保留布局宽 = 隐藏间隔造出横滚条 (2026-11-23, user-reported)
 - PIT-106: 外层标签 descendant 规则以特异性压死复合 label 的 flex/gap → 勾选框贴字 (2026-11-24, user-reported)
 - PIT-107: fixed 布局挤压 tag 列 + overflow:visible 溢出被不透明 sticky 列盖住 = "遮挡" (2026-11-24, user-reported)
+- PIT-108: 共享 git index 是进程全局的——他会话预 stage 的改动会搭我的 commit 便车 (2026-11-24, 事故)
 
 ### status
 - full text: `.agents/memorys/status.md`
