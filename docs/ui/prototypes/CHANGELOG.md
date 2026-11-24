@@ -1324,3 +1324,18 @@ zero-gap composite (row-actions 4 / tag 5 / copyable 6 / toolbar-modal-top 8 / n
 stats 12 / legend 16 all sane). boolean-controls lock extended with geometry dist===8 on visible
 surfaces and semantic flex/gap/row on the hidden gate (hidden-block rects are 0, PIT-098). Full
 re-run: 64 groups, 0 failures. Screenshot: 8px checkbox-label gap. PIT-106 recorded.
+
+## Post-seal fix 11 (user-reported): STATUS tag occluded at mid width — column floors + 1100px breakpoint + sticky shadow cue — 2026-11-24
+Report: at ~940px the API Keys STATUS tag appeared cut off behind the actions column. Root cause:
+table-layout:fixed squeezed the status column below tag width; td:has(.tag){overflow:visible} let the
+tag overflow into the OPAQUE sticky last column's paint area (sticky itself was correct; the missing
+pieces were a column floor and an edge cue). Comprehensive scan of all eight tables at 940/1100/700
+confirmed the same class wherever a tag/switch column lacked a floor. Fix: 104px floors for
+users-status/tenants-status/apikeys-status/events-type/audit-status, 84px for webhooks-enabled;
+over-wide fixed columns rebalanced (apikeys prefix 100 / scopes keeps 170 for the inline-chip lock /
+created 80, webhooks events 180, clients grants 160, audit action 180 / time 140, first col 18%,
+generic actions 88); new @media(max-width:1100px) hides prio-3 (label() copies th prio to td so rows
+stay aligned); sticky last column gains box-shadow -8px 0 12px -8px var(--bd2) as the fixed-edge cue
+in both themes. responsive-table lock extended with a mid-width pass: seven tables assert no
+horizontal overflow, tag inside its cell, tag clear of the sticky column, and shadow present.
+Full re-run: 64 groups, 0 failures. Screenshot: 940px API Keys with complete status tags. PIT-107.

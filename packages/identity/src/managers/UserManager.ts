@@ -30,6 +30,7 @@ import { invalidatePermissionCache } from './permission-cache.js';
 import { bumpAuthState, delAuthState } from '../services/token-version.js';
 import { wouldOrphanLastAdmin, LAST_ADMIN_GUARD } from '../services/last-admin-guard.js';
 import { emitEvent } from '../services/events.js';
+import { enqueueCaepRevocations } from '../services/caep.js';
 import { logger } from '@accessbase/logging';
 import type {
   User,
@@ -323,6 +324,9 @@ export class UserManager {
 
     await d.delete(users).where(and(eq(users.id, id), eq(users.tenantId, tenantId)));
     await emitEvent(d, { tenantId, type: 'user.deleted', payload: { id } });
+    // 4A T1 (P-3=B): hard delete → RISC account-purged, same-handle enqueue
+    // (atomic with the delete; client deletion is handled by drainer P-8).
+    await enqueueCaepRevocations(d, { tenantId, subjectId: id, kind: 'deleted' });
   }
 
   /**
@@ -483,6 +487,12 @@ export class UserManager {
       type: status === 'suspended' ? 'user.suspended' : 'user.updated',
       payload: { id: updated.id, email: updated.email, status: updated.status },
     });
+    // 4A T1 (P-3=B): CAEP/RISC revocation enqueue on the SAME handle —
+    // atomic with the mutation (emitEvent discipline). Suspends only:
+    // reactivation/pending carry no signal.
+    if (status === 'suspended') {
+      await enqueueCaepRevocations(d, { tenantId, subjectId: updated.id, kind: 'suspended' });
+    }
     return this.mapToUser(updated);
   }
 

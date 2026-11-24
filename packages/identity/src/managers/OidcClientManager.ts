@@ -129,6 +129,7 @@ const SAFE_COLUMNS = {
   scope: oidcClients.scope,
   tokenAuthMethod: oidcClients.tokenAuthMethod,
   backchannelLogoutUri: oidcClients.backchannelLogoutUri, // URI is operator-visible config, not secret
+  caepEndpointUri: oidcClients.caepEndpointUri, // 4A T1: operator-visible config; attempt trail lives in caep_deliveries (P-8)
   jwks: oidcClients.jwks, // public keys only by construction (CLIENT_011 gate) — operator-visible
   createdAt: oidcClients.createdAt,
   updatedAt: oidcClients.updatedAt,
@@ -144,6 +145,8 @@ export interface OidcClientCreateInput {
   tokenAuthMethod?: string;
   /** Q3D */
   backchannelLogoutUri?: string | null;
+  /** 4A T1: CAEP/RISC SET push endpoint (route-validated https + SSRF; P-8 SET NULL trail). */
+  caepEndpointUri?: string | null;
   /** T-PKJ: public JWKS ({keys:[...]}) for private_key_jwt client auth — route-validated B6. */
   jwks?: { keys: unknown[] } | null;
 }
@@ -178,6 +181,7 @@ export class OidcClientManager {
       scope: input.scope,
       tokenAuthMethod: input.tokenAuthMethod ?? 'client_secret_basic',
       backchannelLogoutUri: input.backchannelLogoutUri ?? null,
+      caepEndpointUri: input.caepEndpointUri ?? null,
       jwks: input.jwks ?? null,
     };
 

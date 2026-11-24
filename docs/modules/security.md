@@ -1458,3 +1458,17 @@ const TOKEN_CONFIG = {
 2. 检查该 token 是否已被使用（`usedAt` 字段）
 3. 若已使用 → **检测到重用攻击** → 撤销该用户**所有**活跃会话
 4. 若未使用 → 标记已使用 → 生成新 token 对 → 撤销旧 token
+
+## Per-key CIDR allowlists + trustProxy hard precondition (4A T4, P-7=B — 2026-11-24)
+
+`api_keys.cidr_allowlist` (null = unrestricted). BOTH lanes gated (authenticate + the SCIM preHandler — F-04; a gate on the front door alone is a side-door invitation). The gate is FAIL-CLOSED: `[]` denies all; a malformed entry denies the KEY (per-key blast radius — deliberately stricter than the login-side fail-open matcher). v4-mapped IPv6 (`::ffff:a.b.c.d`) is normalized on BOTH sides before matching (F-16).
+
+**Hard precondition**: a CIDR gate compares `request.ip` — under `TRUST_PROXY=true` Fastify trusts the ENTIRE X-Forwarded-For chain, so request.ip is CLIENT-CONTROLLED and the gate is security theater. Production boots with allowlisted keys + `TRUST_PROXY=true` are REFUSED (post-migration startup check; auth-integrity class per requireJwtSecret). Runbook: set `TRUST_PROXY` to a hop count or explicit trusted-proxy CIDRs; dev warns instead of failing. Do NOT configure allowlists for keys used from dynamic-egress environments (intermittent self-lockout — Cloudflare runbook lesson).
+
+## SET signing key (4A T1, P-2=B)
+
+Dedicated key pair (`JWT_SET_PRIVATE_KEY_PATH` / `JWT_SET_PUBLIC_KEY_PATH`), distinct kid `set-signing`, published in the SAME JWKS as the auth/id_token keys. Blast radius isolation: SET-key compromise forges account-disabled/purged broadcasts — NOT sessions or id_tokens. Production REFUSES to boot without the pair (P-7 doctrine: a compliance channel that silently downgrades to "no signals" must not boot as healthy). Rotation covers the second key (generate new pair → publish new kid → rotate private path → drop old public member after receiver grace).
+
+## Audit export trust model (4A T2)
+
+Per-destination HMAC secret (v2 envelope at rest, plaintext revealed exactly once at create/rotate) signs the FULL envelope — `row_hash` travels as chain provenance only, never as transport auth. Erasure interplay: the `decision` field is identifier-free provenance and SURVIVES scrub (tamper-evidently); erased rows export in scrubbed form with `erased:true`; receivers may retain pre-erasure copies (erasure-notification channel = ledger). Export is best-effort within the audit retention window — a destination down longer than retention loses those rows silently by design (documented at P-5 acceptance; skipped/gap semantics in integration.md).

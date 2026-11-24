@@ -6,6 +6,13 @@ export interface AppConfig {
   jwtSecret: string;
   jwtPrivateKeyPath: string;
   jwtPublicKeyPath: string;
+  /** 4A T1 (P-2): dedicated CAEP/RISC SET signing key pair — same published
+   * JWKS, distinct kid ('set-signing'); isolates event-signing blast radius
+   * from auth-JWT/id_token signing. Prod fail-fast mirrors the JWT pair. */
+  jwtSetPrivateKeyPath: string;
+  jwtSetPublicKeyPath: string;
+  /** P-1=C: CAEP delivery drainer tick interval (ms), default 5000. */
+  caepDispatchIntervalMs: number;
   /** Q3C: comma-separated EXTRA public key PEMs published in /oidc/jwks (rotation overlap window). */
   oidcJwksExtraPublicPaths: string;
   nodeEnv: 'development' | 'production' | 'test';
@@ -116,6 +123,9 @@ export const config: AppConfig = {
   jwtSecret: requireJwtSecret(process.env),
   jwtPrivateKeyPath: process.env['JWT_PRIVATE_KEY_PATH'] || '',
   jwtPublicKeyPath: process.env['JWT_PUBLIC_KEY_PATH'] || '',
+  jwtSetPrivateKeyPath: process.env['JWT_SET_PRIVATE_KEY_PATH'] || '',
+  jwtSetPublicKeyPath: process.env['JWT_SET_PUBLIC_KEY_PATH'] || '',
+  caepDispatchIntervalMs: Number.parseInt(process.env['CAEP_DISPATCH_INTERVAL_MS'] ?? '5000', 10) || 5000,
   oidcJwksExtraPublicPaths: process.env['JWT_JWKS_EXTRA_PUBLIC_KEY_PATHS'] || '',
   nodeEnv: resolveNodeEnv(process.env),
   auditAnchorIntervalSeconds:

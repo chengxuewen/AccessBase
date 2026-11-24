@@ -86,6 +86,7 @@ const MOCK_KEYS = [
     tenantId: '00000000-0000-0000-0000-000000000001',
     createdAt: '2026-09-10T10:00:00.000Z',
     updatedAt: '2026-09-10T10:00:00.000Z',
+    cidrAllowlist: null, // 4A T4 (PIT-033 mock-truth): route echoes the field
   },
   {
     id: 'k-2',
@@ -98,6 +99,7 @@ const MOCK_KEYS = [
     tenantId: '00000000-0000-0000-0000-000000000001',
     createdAt: '2026-09-09T10:00:00.000Z',
     updatedAt: '2026-09-11T09:00:00.000Z',
+    cidrAllowlist: ['10.0.0.0/8'],
   },
 ];
 
@@ -172,6 +174,7 @@ async function mockApiKeysApis(page: Page, keys: (typeof MOCK_KEYS)[number][]): 
         prefix: PLAINTEXT.slice(0, 8),
         scopes: ['*'],
         expiresAt: (body['expiresAt'] as string | undefined) ?? null,
+        cidrAllowlist: (body['cidrAllowlist'] as string[] | undefined) ?? null,
         lastUsedAt: null,
         revokedAt: null,
         tenantId: '00000000-0000-0000-0000-000000000001',

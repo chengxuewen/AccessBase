@@ -26,6 +26,7 @@ import { and, asc, eq, gte, isNotNull, isNull, lt, lte, sql } from 'drizzle-orm'
 import type { DrizzleDB } from '@accessbase/identity/db';
 import { auditLogs, auditChainAnchors, auditErasures } from '@accessbase/identity/db';
 import { rowHash, foldRoot, receiptHash } from '@accessbase/audit';
+import type { AuditRowFields } from '@accessbase/audit';
 
 /** Default per-request row budget (spec R5: LIMIT + partial flag). */
 export const DEFAULT_MAX_ROWS = 100_000;
@@ -195,6 +196,10 @@ export async function verifyAuditChain(db: DrizzleDB, opts: VerifyOptions): Prom
         ip: row.ip ?? '',
         userAgent: row.userAgent ?? '',
         createdAt: row.createdAt,
+        // 4A T2 (D-2=A): lockstep with seal/backfill — null→undefined keeps
+        // legacy NULL-decision rows on the pre-decision hash (zero version
+        // marker); present decisions are tamper-evident (S2-1 proof).
+        decision: (row as { decision?: unknown }).decision as AuditRowFields['decision'],
       });
       if (recomputed !== row.rowHash) {
         fail({ day: a.day, seq: a.seq, kind: 'row-mismatch', rowId: row.id });

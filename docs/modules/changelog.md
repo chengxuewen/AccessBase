@@ -96,3 +96,5 @@
 - [x] P3 遗漏补充 → **已定：见 §42（APM/版本策略/性能基线/DNS证书/成本监控/报表/API网关/配置管理）**
 - [ ] 生成各包 SDD（接口/生命周期/依赖/错误码）
 - [ ] 实施 L0 包迁移
+
+| 4A | 2026-11-24 | 4A 合规批：CAEP/RISC SET 推送（专用签名钥 kid=set-signing / 独立投递表 / 事务内入队，P-2=B/P-3=B）· 审计 Decision 字段入哈希链（D-2=A，存量零漂移）+ 游标导出器（空洞感知，P-4=A）+ 平台级导出目的地（P-5=A）· AuthZEN PDP（评估/批量/发现，机器专用 fail-closed，D-4=B）· per-key CIDR（双 lane + trustProxy 生产拒启，P-7=B）· OIDC groups claim（租户投影/上限 50/同意披露，D-5=A）· 迁移 0014（分段低锁 seq，P-6=B）。出处：D130 → spec rev.4 → plan rev.2。 |

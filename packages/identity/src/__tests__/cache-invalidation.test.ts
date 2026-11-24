@@ -248,7 +248,8 @@ describe('cache invalidation on write paths', () => {
     // → no active admin holders for this synthetic user, update proceeds.
     db.select
       .mockReturnValueOnce(makeChain([])) // direct leg
-      .mockReturnValueOnce(makeChain([])); // group-via leg
+      .mockReturnValueOnce(makeChain([])) // group-via leg
+      .mockReturnValueOnce(makeChain([])); // 4A T1 (P-3): CAEP opt-in clients — none, no enqueue
 
     const user: User = await userManager.changeStatus('u1', 'suspended', 't1');
 

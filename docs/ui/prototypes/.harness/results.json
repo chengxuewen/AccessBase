@@ -633,7 +633,52 @@
         "cardThead": "none",
         "tdLabel": "Name",
         "tdDisplay": "flex",
-        "prioShownInCard": "flex"
+        "prioShownInCard": "flex",
+        "mid": {
+          "apikeys": {
+            "over": false,
+            "tagInCell": true,
+            "tagClearOfSticky": true,
+            "shadow": true
+          },
+          "users": {
+            "over": false,
+            "tagInCell": true,
+            "tagClearOfSticky": true,
+            "shadow": true
+          },
+          "tenants": {
+            "over": false,
+            "tagInCell": true,
+            "tagClearOfSticky": true,
+            "shadow": true
+          },
+          "clients": {
+            "over": false,
+            "tagInCell": true,
+            "tagClearOfSticky": true,
+            "shadow": true
+          },
+          "webhooks": {
+            "over": false,
+            "tagInCell": true,
+            "tagClearOfSticky": true,
+            "shadow": true
+          },
+          "audit": {
+            "over": false,
+            "tagInCell": true,
+            "tagClearOfSticky": true,
+            "shadow": true
+          },
+          "events": {
+            "over": false,
+            "tagInCell": true,
+            "tagClearOfSticky": true,
+            "shadow": true
+          }
+        },
+        "midOk": true
       }
     },
     "pagehead-overflow": {

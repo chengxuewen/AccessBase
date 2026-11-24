@@ -31,6 +31,7 @@ import type { User, Group } from '@accessbase/identity';
 import { parse as parseFilter } from 'scim2-parse-filter';
 import { getApiKeyManager } from './api-keys.js';
 import { getOptionsManager } from './options.js';
+import { apiKeyAllowedByCidr } from '../utils/apikey-cidr.js';
 
 const SCIM_MEDIA_TYPE = 'application/scim+json';
 
@@ -245,6 +246,19 @@ export async function scimRoutes(app: FastifyInstance): Promise<void> {
     const key: SafeApiKey | null = await getApiKeyManager().findByHash(hashApiKey(bearer));
     if (!key || key.revokedAt !== null || ApiKeyManager.isExpired(key.expiresAt)) {
       scimError(reply, 401, undefined, 'Invalid or revoked token');
+      return;
+    }
+    // 4A T4 (F-04): the SCIM lane bypasses app.authenticate (its own ab_ key
+    // resolution) — the per-key CIDR gate MUST run here too, or a key gated
+    // at the front door walks in through the provisioning side door.
+    if (!apiKeyAllowedByCidr(key.cidrAllowlist, request.ip)) {
+      // F-11 parity (review #7): stash the deny so the audited SCIM write
+      // carries its decision instead of a silent NULL.
+      (request as FastifyRequest & { auditDecision?: unknown }).auditDecision = {
+        decision: 'deny',
+        matchedCode: 'apikey-cidr',
+      };
+      scimError(reply, 401, undefined, 'Request IP is outside this key allowlist');
       return;
     }
     // ApiKeyRow.scopes is an untyped jsonb (unknown) — narrow before use.

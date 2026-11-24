@@ -833,9 +833,29 @@ test('responsive-table', async ({ page }) => {
   const tdLabel = await page.evaluate(() => document.querySelector('#clientRows tr td')!.getAttribute('data-label'));
   const tdDisplay = await page.evaluate(() => getComputedStyle(document.querySelector('#clientRows tr td')!).display);
   const prioShownInCard = await page.evaluate(() => { const td = document.querySelector('#clientRows tr td[data-prio]'); return td ? getComputedStyle(td).display : 'none'; });
-  const a = { stickyPos, prioHidden, prioKept, cardThead, tdLabel, tdDisplay, prioShownInCard };
+  // post-seal fix 11: at mid width no tag may overflow under the opaque sticky column and the
+  // fixed columns must fit without horizontal overflow; sticky edge carries a shadow cue.
+  await page.setViewportSize({ width: 940, height: 600 });
+  await page.waitForTimeout(250);
+  const mid = await page.evaluate(() => {
+    const res: Record<string, unknown> = {};
+    for (const pg of ['apikeys', 'users', 'tenants', 'clients', 'webhooks', 'audit', 'events']) {
+      (document.querySelector('[data-page=' + pg + ']') as HTMLElement).click();
+      const wrap = document.querySelector('#page-' + pg + ' [style*="overflow-x"]') as HTMLElement;
+      const table = wrap.querySelector('table')!;
+      const tag = table.querySelector('tbody td:has(.tag) .tag') as HTMLElement | null;
+      const sticky = table.querySelector('tbody td:last-child') as HTMLElement;
+      const tr = tag ? tag.getBoundingClientRect() : null;
+      const sr = sticky.getBoundingClientRect();
+      const td = tag ? (tag.closest('td') as HTMLElement).getBoundingClientRect() : null;
+      res[pg] = { over: wrap.scrollWidth > wrap.clientWidth, tagInCell: tr && td ? tr.right <= td.right + 1 : true, tagClearOfSticky: tr ? tr.right <= sr.left + 1 : true, shadow: getComputedStyle(sticky).boxShadow !== 'none' };
+    }
+    return res;
+  });
+  const midOk = Object.values(mid).every((m: any) => !m.over && m.tagInCell && m.tagClearOfSticky && m.shadow);
+  const a = { stickyPos, prioHidden, prioKept, cardThead, tdLabel, tdDisplay, prioShownInCard, mid, midOk };
   const pass = stickyPos === 'sticky' && prioHidden === 'none' && prioKept !== 'none'
-    && cardThead === 'none' && tdLabel === 'Name' && tdDisplay === 'flex' && prioShownInCard === 'flex';
+    && cardThead === 'none' && tdLabel === 'Name' && tdDisplay === 'flex' && prioShownInCard === 'flex' && midOk;
   rec('responsive-table', pass, a);
   expect(pass, 'responsive-table').toBe(true);
 });

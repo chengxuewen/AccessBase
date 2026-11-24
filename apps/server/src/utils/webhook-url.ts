@@ -87,6 +87,20 @@ type Classified =
   | { kind: 'hostname' };
 
 /**
+ * 4A T1 (F-05): address-level deny check for CONNECT-time pinning. The
+ * dispatch-time `resolveDeniedIps` gate closes the registration URL leg; this
+ * export lets a custom undici lookup re-check the ACTUAL resolved address at
+ * socket connect — the DNS-rebinding TOCTOU window (self-acknowledged above)
+ * closes only when the connection can only reach a previously-validated IP.
+ */
+export function isDeniedAddress(address: string): boolean {
+  const cls = classifyHost(address);
+  if (cls.kind === 'deny') return true;
+  if (cls.kind === 'literal') return cls.denyIf();
+  return false; // hostnames cannot appear at connect time — addresses only
+}
+
+/**
  * Classify a bare host (brackets already stripped). Every shape we do not
  * positively recognize is DENIED (fail-closed).
  */

@@ -18,6 +18,7 @@ import {
   index,
   uniqueIndex,
   unique,
+  pgSequence,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -189,6 +190,14 @@ export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
 
 /**
+ * 4A T0 (P-4/P-6): owner sequence of audit_logs.seq (monotonic
+ * export-dequeue key). Declared so db:push/generate manage it as a first-class
+ * object; migration 0014 adds the COLUMN staged low-lock (P-6=B) with the
+ * sequence created before the backfill.
+ */
+export const auditLogsSeq = pgSequence('audit_logs_seq');
+
+/**
  * Audit logs table (database.md §22.1, Phase 6a Task 5)
  */
 export const auditLogs = pgTable(
@@ -212,10 +221,23 @@ export const auditLogs = pgTable(
     anchorId: bigint('anchor_id', { mode: 'number' }),
     erasedAt: timestamp('erased_at', { withTimezone: true }),
     erasureId: uuid('erasure_id'),
+    // 4A compliance batch (T0, spec rev.4): authorization provenance —
+    // identifier-free {decision, matchedCode, scope?}; joins the D1 row hash
+    // via the null→undefined convention (D-2=A). Legacy rows NULL →
+    // hash-unchanged (RED-locked in packages/audit hashing tests).
+    decision: jsonb('decision'),
+    // P-4/P-6: monotonic export-dequeue key. The owning sequence + default are
+    // SQL-managed in migration 0014 (staged low-lock add, P-6=B); fresh
+    // databases MUST go through migrate.sh (entrypoint path) — db:push is
+    // reconciliation-only on databases that already ran the chain.
+    seq: bigint('seq', { mode: 'number' })
+      .notNull()
+      .default(sql`nextval('audit_logs_seq')`),
   },
   (table) => ({
     createdIdx: index('idx_audit_logs_created').on(table.createdAt),
     userIdx: index('idx_audit_logs_user').on(table.userId),
+    seqIdx: index('idx_audit_logs_seq').on(table.seq),
   }),
 );
 
@@ -353,6 +375,10 @@ export const oidcClients = pgTable('oidc_clients', {
   backchannelLogoutUri: text('backchannel_logout_uri'),
   /** Logout-coherence batch: public JWKS for private_key_jwt client auth (kty-scoped public members only) */
   jwks: jsonb('jwks'),
+  /** 4A T1 (P-1/P-3/P-8): static CAEP/RISC SET push endpoint. Attempt trail
+   * lives in caep_deliveries whose clientId is ON DELETE SET NULL (P-8) —
+   * deleting a client never destroys the revocation-notification evidence. */
+  caepEndpointUri: text('caep_endpoint_uri'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -486,6 +512,11 @@ export const apiKeys = pgTable(
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     tenantId: uuid('tenant_id').notNull(),
+    /** 4A T4 (P-7): per-key egress CIDR allowlist (null = unrestricted). List
+     * entries are v4/v6 CIDR strings; v4-mapped IPv6 normalized before match.
+     * CRUD validates at write; empty array rejected (never routed through
+     * cidrVerdict's empty=disabled semantics). */
+    cidrAllowlist: jsonb('cidr_allowlist'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -605,6 +636,73 @@ export const webhookDeliveries = pgTable(
       .where(sql`${t.status} = 'pending'`),
   ],
 );
+
+/**
+ * 4A compliance batch (T1): CAEP/RISC SET delivery ledger — deliberately
+ * SEPARATE from webhook_deliveries (P-1=C/P-3=B): destination lives on
+ * oidc_clients.caep_endpoint_uri, body is a signed SET, and the channel must
+ * be independent of the webhook kill-switch and the events age-prune.
+ *
+ * P-3: rows are enqueued by the UserManager funnels on the SAME transaction
+ * handle (emitEvent precedent) — every suspend/delete path is covered by
+ * construction. P-8: clientId is ON DELETE SET NULL; the drainer dead-letters
+ * orphans ('client deleted') so the attempt trail (jti evidence) survives
+ * client deletion. jti is stable across retries (at-least-once, dedup key).
+ */
+export const caepDeliveries = pgTable(
+  'caep_deliveries',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    tenantId: uuid('tenant_id').notNull(),
+    clientId: uuid('client_id').references(() => oidcClients.id, { onDelete: 'set null' }),
+    /** 'risc:account-disabled' | 'risc:account-purged' (session-level CAEP awaits sid — ledger). */
+    eventType: text('event_type').notNull(),
+    subjectId: varchar('subject_id', { length: 64 }).notNull(),
+    jti: varchar('jti', { length: 64 }).notNull().unique(),
+    status: text('status').notNull().default('pending'),
+    attempts: integer('attempts').notNull().default(0),
+    nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).defaultNow().notNull(),
+    lastError: text('last_error'),
+    responseStatus: integer('response_status'),
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    /** Why a row went dead: 'max attempts' | 'client deleted' | ... (P-8). */
+    deadReason: text('dead_reason'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_caep_deliveries_due')
+      .on(t.tenantId, t.nextAttemptAt)
+      .where(sql`${t.status} = 'pending'`),
+  ],
+);
+
+/**
+ * 4A compliance batch (T2): audit export destination — PLATFORM-level by
+ * ruling P-5=A (cross-tenant export leak killed by construction: no tenantId
+ * exists to register against; CRUD is platform-belt + audit_export:write).
+ * The delivery cursor lives ON the destination row (P-1=C queue-less design):
+ * last_delivered_seq advances ONLY through CONTIGUOUS audit_logs.seq
+ * (P-4=A gap-aware; a gap is recorded into skipped_seq on first sighting and
+ * conclusively skipped on the NEXT tick — one-tick grace for in-flight
+ * transactions, see utils/audit-exporter.ts). Delivery auth = per-destination
+ * HMAC secret (F-12); audit row hashes travel as chain provenance, not
+ * transport auth.
+ */
+export const auditExportDestinations = pgTable('audit_export_destinations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  url: text('url').notNull().unique(),
+  description: text('description'),
+  secretEncrypted: text('secret_encrypted').notNull(),
+  active: boolean('active').notNull().default(true),
+  lastDeliveredSeq: bigint('last_delivered_seq', { mode: 'number' }).notNull().default(0),
+  /** seq values skipped on gap-timeout, for forensic replay (P-4=A). */
+  skippedSeq: jsonb('skipped_seq').notNull().default(sql`'[]'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type CaepDeliveryRow = typeof caepDeliveries.$inferSelect;
+export type AuditExportDestinationRow = typeof auditExportDestinations.$inferSelect;
 
 export type EventRow = typeof events.$inferSelect;
 export type NewEventRow = typeof events.$inferInsert;

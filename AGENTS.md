@@ -188,8 +188,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 94 older entries omitted (read the full file)
-- PIT-093: The measuring instrument lies more often than the measurement - three costumes seen in one wave (2026-11-06, panel-folded)
+... 95 older entries omitted (read the full file)
 - PIT-094: A product fetch-surface change without its e2e mock-surface twin silently breaks specs nobody touched (2026-11-06, E10 wave)
 - PIT-095: An imported layer's CLI entry called process.exit() at module scope and swallowed the entire dispatcher
 - PIT-079: REGISTERED VOID — never assigned, number reserved (2026-11-17)
@@ -204,6 +203,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-104: python 批量 patch 两陷阱——选择器子串碰撞 + 工具回显 JSON 转义误导 old_str (2026-11-23, ≥3 轮失败)
 - PIT-105: overflow-y:auto 把 overflow-x 计算成 auto + visibility:hidden 保留布局宽 = 隐藏间隔造出横滚条 (2026-11-23, user-reported)
 - PIT-106: 外层标签 descendant 规则以特异性压死复合 label 的 flex/gap → 勾选框贴字 (2026-11-24, user-reported)
+- PIT-107: fixed 布局挤压 tag 列 + overflow:visible 溢出被不透明 sticky 列盖住 = "遮挡" (2026-11-24, user-reported)
 
 ### status
 - full text: `.agents/memorys/status.md`

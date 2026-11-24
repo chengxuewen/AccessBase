@@ -23,6 +23,8 @@ export interface CreateApiKeyResponse extends ApiKey {
 export interface CreateApiKeyPayload {
   name: string;
   expiresAt?: string;
+  /** 4A T4: per-key egress CIDR allowlist (null/omitted = unrestricted). */
+  cidrAllowlist?: string[] | null;
 }
 
 /** GET /v1/auth/api-keys — list keys (no hash material) */

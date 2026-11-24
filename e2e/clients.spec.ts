@@ -80,6 +80,7 @@ const MOCK_CLIENTS = [
     createdAt: '2026-09-10T10:00:00.000Z',
     updatedAt: '2026-09-10T10:00:00.000Z',
     backchannelLogoutUri: null,
+    caepEndpointUri: null, // 4A T1 (PIT-033 mock-truth): route echoes the field
   },
   {
     id: 'c-2',
@@ -92,6 +93,7 @@ const MOCK_CLIENTS = [
     createdAt: '2026-09-11T10:00:00.000Z',
     updatedAt: '2026-09-11T10:00:00.000Z',
     backchannelLogoutUri: 'https://beta.example.com/backchannel-logout',
+    caepEndpointUri: null,
   },
 ];
 
@@ -177,6 +179,7 @@ async function mockClientsApis(
         tokenAuthMethod: (body['tokenAuthMethod'] as string) ?? 'client_secret_basic',
         // server echoes the optional back-channel URI (dropped server-side unless http(s))
         backchannelLogoutUri: (body['backchannelLogoutUri'] as string | undefined) ?? null,
+        caepEndpointUri: (body['caepEndpointUri'] as string | undefined) ?? null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

@@ -20,6 +20,7 @@ import Provider from 'oidc-provider';
 import type { Configuration, JWKS } from 'oidc-provider';
 import { logger } from '@accessbase/logging';
 import { OidcAdapter } from './adapter.js';
+import { SET_KID } from '../utils/set-signer.js';
 
 export interface BuildOidcProviderOptions {
   issuer: string;
@@ -27,6 +28,10 @@ export interface BuildOidcProviderOptions {
   nodeEnv: string;
   privateKeyPath: string;
   publicKeyPath: string;
+  /** 4A T1 (P-2): dedicated SET signing key pair — private side signs the SETs
+   * (utils/set-signer.ts), public side is published here under kid 'set-signing'. */
+  setPrivateKeyPath?: string;
+  setPublicKeyPath?: string;
   /** comma-separated extra PUBLIC key PEM paths (Q3C rotation overlap) */
   extraPublicKeys?: string;
   /** Q3D: RP-initiated back-channel logout (opt-in until the sid round-trip earns prod flag) */
@@ -42,7 +47,13 @@ interface JwkSet {
 }
 
 /** RS256 JWK set from JWT key files; throws with a generation hint in production. */
-export function loadJwks(opts: BuildOidcProviderOptions): JwkSet | undefined {
+/** Narrow view for tests/direct callers — only the key-path knobs matter. */
+export type LoadJwksOptions = Pick<
+  BuildOidcProviderOptions,
+  'nodeEnv' | 'privateKeyPath' | 'publicKeyPath' | 'setPrivateKeyPath' | 'setPublicKeyPath' | 'extraPublicKeys'
+>;
+
+export function loadJwks(opts: LoadJwksOptions): JwkSet | undefined {
   if (!opts.privateKeyPath || !opts.publicKeyPath) {
     if (opts.nodeEnv === 'production') {
       throw new Error(
@@ -55,6 +66,14 @@ export function loadJwks(opts: BuildOidcProviderOptions): JwkSet | undefined {
       'OIDC provider running without JWT key files — ephemeral signing keys in use (dev only)',
     );
     return undefined; // provider falls back to its dev-only keystore
+  }
+  // 4A T1 (P-2=B): the SET pair is required in production INDEPENDENTLY of the
+  // JWT pair — a compliance revocation channel that silently downgrades to
+  // "no signals" must not boot as if healthy (P-7 doctrine).
+  if (opts.nodeEnv === 'production' && (!opts.setPrivateKeyPath || !opts.setPublicKeyPath)) {
+    throw new Error(
+      'OIDC provider requires SET signing keys in production (JWT_SET_PRIVATE_KEY_PATH / JWT_SET_PUBLIC_KEY_PATH). Generate: openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048',
+    );
   }
   for (const p of [opts.privateKeyPath, opts.publicKeyPath]) {
     if (!existsSync(p)) {
@@ -91,6 +110,26 @@ export function loadJwks(opts: BuildOidcProviderOptions): JwkSet | undefined {
     } catch {
       throw new Error(`OIDC rotation extra key is not a valid public PEM: ${p}`);
     }
+  }
+  // 4A T1 (P-2=B): dedicated SET signing PUBLIC key published under the
+  // stable kid 'set-signing' in the SAME JWKS — receivers verify SETs with
+  // the key that signed them while fetching a single document.
+  if (opts.setPublicKeyPath) {
+    let pem: string;
+    try {
+      pem = readFileSync(opts.setPublicKeyPath, 'utf-8');
+    } catch {
+      throw new Error(
+        `OIDC SET public key unreadable: ${opts.setPublicKeyPath} (JWT_SET_PUBLIC_KEY_PATH)`,
+      );
+    }
+    let setPub: Record<string, unknown>;
+    try {
+      setPub = createPublicKey(pem).export({ format: 'jwk' }) as Record<string, unknown>;
+    } catch {
+      throw new Error('OIDC SET public key is not a valid public PEM (JWT_SET_PUBLIC_KEY_PATH)');
+    }
+    keys.push({ ...setPub, kid: SET_KID, use: 'sig', alg: 'RS256' });
   }
   return { keys };
 }
@@ -190,9 +229,14 @@ export async function buildOidcProvider(opts: BuildOidcProviderOptions): Promise
     // M2: scope + claims mapping — `openid profile email` must be declared or
     // authorize requests requesting those scopes fail with invalid_client_metadata
     // ("scope must only contain Authorization Server supported scope values").
+    // 4A T5 (D-5=A): groups scope registered the same way — per-client opt-in
+    // = the client's own registered scope string (provider rejects requests
+    // for scopes the client never declared); emission is gated in the
+    // adapter's claims(use, scope) and hard-capped (GROUPS_CLAIM_CAP).
     claims: {
       profile: ['name'],
       email: ['email', 'email_verified'],
+      groups: ['groups', 'groups_truncated'],
     },
     // Explicit: the default only forces PKCE for token_endpoint_auth_method=none.
     pkce: { required: () => true },

@@ -19,6 +19,7 @@ export type {
   AuditLogQueryResult,
   IntegrityResult,
   AuditConfig,
+  AuditAuthzDecision,
 } from './types.js';
 
 export { defaultAuditConfig } from './types.js';

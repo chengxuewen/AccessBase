@@ -105,6 +105,10 @@ export function createAuditMiddleware(auditLogger: AuditLogger) {
         success: reply.statusCode < 400,
         errorMessage:
           reply.statusCode >= 400 ? (responseBody as any)?.message || 'Request failed' : undefined,
+        // 4A T2 (D-2=A): authorization provenance stashed by the permission
+        // gate (requirePermission four arms: JWT allow/deny, apikey allow/
+        // deny). Absent on unmapped routes → NULL → legacy-hash parity.
+        decision: (request as { auditDecision?: AuditLogEntry['decision'] }).auditDecision,
       };
 
       try {

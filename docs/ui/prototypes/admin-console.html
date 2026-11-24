@@ -475,7 +475,11 @@ input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:900px){.scope-box{margin-left:0;width:100%}}
 /* R4 wide-table narrow-screen (adjudication R4=A): sticky action column + column priority +
    card view <600px. Scoped to .page list tables; .matrix and modal tables are excluded. */
-.page table:not(.matrix):not(.plain) th:last-child,.page table:not(.matrix):not(.plain) td:last-child{position:sticky;right:0;z-index:2}
+.page table:not(.matrix):not(.plain) th:last-child,.page table:not(.matrix):not(.plain) td:last-child{position:sticky;right:0;z-index:2;box-shadow:-8px 0 12px -8px var(--bd2)}
+/* Post-seal fix 11: status/type tag columns get a fit-content floor so tags never overflow under the
+   opaque sticky actions column; over-wide fixed columns shrink; prio-3 drops at 1100px. */
+#page-users table th:nth-child(2),#page-tenants table th:nth-child(3),#page-apikeys table th:nth-child(6),#page-events table th:nth-child(2),#page-audit table th:last-child{width:104px}
+#page-webhooks table th:nth-child(3){width:84px}
 .page table:not(.matrix):not(.plain) th:last-child{background:var(--sunken)}
 /* R6 phantom-scrollbar fix: auto table layout sizes columns to content min-width, which slightly
    exceeds the container and (masked by the sticky action column) yields an always-on horizontal
@@ -483,27 +487,29 @@ input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed}
    via R3 detail / R4 card view). Scoped >=900px; narrower keeps auto + priority + card view. */
 @media(min-width:900px){
 .page table:not(.matrix):not(.plain){table-layout:fixed}
-.page table:not(.matrix):not(.plain) th:first-child{width:22%}
-.page table:not(.matrix):not(.plain) th:last-child{width:110px}
+.page table:not(.matrix):not(.plain) th:first-child{width:18%}
+.page table:not(.matrix):not(.plain) th:last-child{width:88px}
 .page table:not(.matrix):not(.plain) tbody td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .page table:not(.matrix):not(.plain) tbody td:has(.u-cell),.page table:not(.matrix):not(.plain) tbody td:has(.tag),.page table:not(.matrix):not(.plain) tbody td:has(.row-actions),.page table:not(.matrix):not(.plain) tbody td:has(.copyable){white-space:normal}
 /* Chip columns (Scopes / Events / Action): never wrap INSIDE a chip and never clip a chip with an
    ellipsis; whole chips wrap to the next line instead. Explicit widths give them room to sit inline. */
 .page table:not(.matrix):not(.plain) tbody td:has(.tag){overflow:visible;text-overflow:clip}
-#page-audit table th:nth-child(1){width:150px}
-#page-audit table th:nth-child(3){width:210px}
+#page-audit table th:nth-child(1){width:140px}
+#page-audit table th:nth-child(3){width:180px}
 #page-audit table th:nth-child(5){width:130px}
 #page-audit table th:last-child{width:80px}
-#page-webhooks table th:nth-child(2){width:230px}
+#page-webhooks table th:nth-child(2){width:180px}
 #page-webhooks table th:nth-child(3),#page-webhooks table th:nth-child(4),#page-webhooks table th:nth-child(5){width:70px}
 #page-webhooks table th:last-child{width:170px}
 #page-tenants table th:last-child{width:150px}
-#page-apikeys table th:nth-child(2){width:150px}
+#page-apikeys table th:nth-child(2){width:100px}
 #page-apikeys table th:nth-child(3){width:170px}
-#page-clients table th:nth-child(4){width:180px}
+#page-apikeys table th:nth-child(4){width:80px}
+#page-clients table th:nth-child(4){width:160px}
 }
 .tag{white-space:nowrap}
 .page table:not(.matrix):not(.plain) td:last-child{background:var(--surface);box-shadow:-8px 0 10px -8px rgba(0,0,0,.18)}
+@media(max-width:1100px){.page table:not(.matrix):not(.plain) [data-prio="3"]{display:none}}
 @media(max-width:900px){.page table:not(.matrix):not(.plain) [data-prio="2"]{display:none}}
 @media(max-width:760px){.page table:not(.matrix):not(.plain) [data-prio="3"]{display:none}}
 @media(max-width:600px){

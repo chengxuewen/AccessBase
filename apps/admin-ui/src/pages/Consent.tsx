@@ -9,7 +9,7 @@ import type { OidcInteraction } from '../api/oidc';
 import { apiErrorMessage } from '../api/errors';
 import EmptyState from '../components/EmptyState';
 
-const SCOPE_I18N = ['openid', 'profile', 'email', 'offline_access'] as const;
+const SCOPE_I18N = ['openid', 'profile', 'email', 'offline_access', 'groups'] as const;
 
 export default function Consent() {
   const { t } = useTranslation();

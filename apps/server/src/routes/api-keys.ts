@@ -8,6 +8,7 @@ import type { FastifyInstance } from 'fastify';
 import { ApiKeyManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { requirePermission } from '../utils/permission.js';
+import { validateCidrAllowlistInput } from '../utils/apikey-cidr.js';
 import { DEFAULT_TENANT } from '../utils/constants.js';
 import { parsePageQuery, paginatedReply } from '../utils/pagination.js';
 
@@ -54,14 +55,34 @@ export async function apiKeysRoutes(app: FastifyInstance): Promise<void> {
       const scopes = Array.isArray(body['scopes'])
         ? body['scopes'].filter((s): s is string => typeof s === 'string')
         : ['*'];
+      // Review #5: an explicitly-empty scope list would create a permanently
+      // unusable key (authenticate keeps [], every gate 403s) — reject it
+      // with the same fail-loud posture as the empty CIDR list.
+      if (Array.isArray(body['scopes']) && scopes.length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'APIKEY_002', message: 'scopes must be a non-empty array' },
+        });
+      }
       const expiresAt =
         typeof body['expiresAt'] === 'string' ? new Date(body['expiresAt']) : undefined;
+      // 4A T4 (R5/F-16): per-key egress CIDR allowlist — CRUD-side validation
+      // keeps malformed/empty lists out of the database (the request-time gate
+      // in apikey-cidr.ts is fail-closed on junk). null/absent = unrestricted.
+      const cidrCheck = validateCidrAllowlistInput(body['cidrAllowlist']);
+      if (!cidrCheck.ok) {
+        return reply.status(400).send({
+          success: false,
+          error: { code: 'APIKEY_CIDR_001', message: cidrCheck.reason },
+        });
+      }
       const payload = request.user as { sub: string };
       const created = await getApiKeyManager().create(
         name,
         scopes,
         request.tenantId ?? DEFAULT_TENANT,
         expiresAt,
+        cidrCheck.value,
       );
       return reply.status(201).send({ success: true as const, data: created });
     },

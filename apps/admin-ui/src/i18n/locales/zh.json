@@ -102,7 +102,8 @@
     "openid": "验证您的身份（openid）",
     "profile": "查看您的基本资料（profile）",
     "email": "查看您的邮箱地址（email）",
-    "offline_access": "保持登录状态（offline_access）"
+    "offline_access": "保持登录状态（offline_access）",
+    "groups": "查看您的组成员身份（groups）"
   },
   "oauth": {
     "or": "或",
@@ -541,6 +542,10 @@
     "backchannelLogoutUri": "反向通道注销 URI",
     "backchannelLogoutUriHint": "用于接收 logout_token 实现反向通道注销；必须为 HTTPS。仅对已注册客户端生效。",
     "backchannelLogoutUriInvalid": "请输入合法的 URL",
+    "caepEndpointUri": "CAEP/RISC 端点",
+    "caepEndpointUriHint": "用户被禁用或删除时接收签名的身份撤销事件（SET）；必须为 HTTPS。",
+    "caepEndpointUriInvalid": "请输入合法的 URL",
+    "caepEndpointUriHttps": "CAEP 端点必须使用 HTTPS",
     "actions": "操作",
     "rotateSecret": "轮换密钥",
     "rotateError": "轮换密钥失败",
@@ -702,6 +707,8 @@
     "createTitle": "新建 API 密钥",
     "name": "名称",
     "nameRequired": "请输入密钥名称",
+    "cidrAllowlist": "IP 白名单（CIDR）",
+    "cidrAllowlistHint": "每行一条 CIDR——其他来源 IP 的请求将被拒绝。留空表示不限制。",
     "prefix": "前缀",
     "scopes": "作用域",
     "createdAt": "创建时间",

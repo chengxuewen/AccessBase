@@ -835,3 +835,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: `.field label{display:block;…}`（0,1,1）命中**内层复合 label.ck-field**（0,1,0）→ display:block 使 gap:8px 失效；复合 label 本身就是 .field 直接子级，故仅改 `>` 不够，需要 :not(.ck-field) 排除；companion gate 是 label.scope-list 自体，被 .auth-card label 压成 block。grants 行在 .ck-group 内非直接子级故幸免——"部分表面正常"掩盖了规则级缺陷。
 - **解法**: 外层标签规则 scoped 为 `.field > label:not(.ck-field)`（companion 再 :not(.scope-list)）；复合 gate 用自选择器 `label.scope-list{flex-direction:row;gap:8px;…}`；锁断言几何 dist===8（可见面）+ 语义 flex/gap/row（隐藏面，PIT-098：隐藏块 rect=0 不可测几何）。
 - **验证**: boolean-controls 组 editCk.dist/activeCk.dist/grantsCk.dists/scopes.dist===8 + enSaved disp/gap/dir；截图勾选框与标签 8px。
+
+## PIT-107: fixed 布局挤压 tag 列 + overflow:visible 溢出被不透明 sticky 列盖住 = "遮挡" (2026-11-24, user-reported)
+
+- **症状**: 940px 下 API Keys STATUS tag 被切边（看似 sticky ACTIONS 遮挡）；CREATED/EXPIRES 严重省略。
+- **根因**: table-layout:fixed 下 status 列无宽度下限被挤到 < tag 宽；td:has(.tag){overflow:visible} 让 tag 溢出本单元格，恰好溢入**不透明背景的 sticky 末列**绘制区 → 视觉切边。sticky 本身无错，错在"溢出可见 + 邻居不透明 + 无滚动/阴影 cue"三件套。
+- **解法**: tag/status 列给 fit-content 下限（104px，开关列 84px）；过宽固定列收缩 + 新增 1100px 断点隐藏 prio-3（label() 会把 th prio 复制到 td，安全）；sticky 末列加 box-shadow 边缘 cue（--bd2 双主题）；chips 容器 flex-wrap 保证多 chip 换行而非溢出。
+- **验证**: responsive-table 锁 mid 段：940px 七表 wrap 不横溢 + tag.right<=td.right + tag.right<=sticky.left + shadow!=none；chip-columns 锁 1440 下 scopes 双 chip 同行（列宽 170 下限不可再缩）。

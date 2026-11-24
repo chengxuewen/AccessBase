@@ -9,6 +9,7 @@ import { OidcClientManager } from '@accessbase/identity';
 import { config } from '../config.js';
 import { requirePermission } from '../utils/permission.js';
 import { parsePageQuery, paginatedReply } from '../utils/pagination.js';
+import { assertWebhookUrl } from '../utils/webhook-url.js';
 
 const ALLOWED_GRANT_TYPES = new Set([
   'authorization_code',
@@ -16,7 +17,10 @@ const ALLOWED_GRANT_TYPES = new Set([
   // Q3B (RFC 8628): device flow — provider feature enabled in oidc/provider.ts.
   'urn:ietf:params:oauth:grant-type:device_code',
 ]);
-const ALLOWED_SCOPES = new Set(['openid', 'profile', 'email', 'offline_access']);
+// 4A T5 (PH-1): groups registered as a supported scope — per-client opt-in =
+// the client's own registered scope string (provider enforces requested ⊆
+// client.scope at authorize); emission gated + capped in oidc/adapter.ts.
+const ALLOWED_SCOPES = new Set(['openid', 'profile', 'email', 'offline_access', 'groups']);
 
 // T-PKJ (logout-coherence §3.5): tokenAuthMethod whitelist — oidc-provider's
 // default clientAuthMethods (defaults.js:3119) accept exactly these four.
@@ -115,6 +119,11 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
       const bcRaw = body['backchannelLogoutUri'];
       const backchannelLogoutUri =
         typeof bcRaw === 'string' && /^https?:\/\//.test(bcRaw) ? bcRaw : undefined;
+      // 4A T1: optional CAEP/RISC SET push endpoint — https STRICT + SSRF
+      // gate (F-14/F-05); create-only surface (no edit route exists, R1-T6).
+      const caepRaw = body['caepEndpointUri'];
+      const caepCandidate =
+        typeof caepRaw === 'string' && caepRaw.length > 0 ? caepRaw : undefined;
 
       // Validate required fields
       if (!name || name.trim().length === 0) {
@@ -164,7 +173,7 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
           error: {
             code: 'CLIENT_006',
             message:
-              'scope contains disallowed values; allowed: openid profile email offline_access',
+              'scope contains disallowed values; allowed: openid profile email offline_access groups',
           },
         });
       }
@@ -218,6 +227,30 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
         jwksForCreate = usable;
       }
 
+      let caepEndpointUri: string | undefined;
+      if (caepCandidate) {
+        // F-14: signed identity-lifecycle signals over plaintext http leak
+        // disable/purge events — https is STRICT here (the ^https?://
+        // backchannel precedent predates this gate; do not copy it).
+        if (!caepCandidate.startsWith('https://')) {
+          return reply.status(400).send({
+            success: false,
+            error: { code: 'CLIENT_012', message: 'caepEndpointUri must use https' },
+          });
+        }
+        const caepVerdict = assertWebhookUrl(caepCandidate);
+        if (!caepVerdict.ok) {
+          return reply.status(400).send({
+            success: false,
+            error: {
+              code: 'CLIENT_013',
+              message: `caepEndpointUri rejected: ${caepVerdict.reason}`,
+            },
+          });
+        }
+        caepEndpointUri = caepCandidate;
+      }
+
       const result = await getClientManager().create({
         name: name.trim(),
         redirectUris,
@@ -226,6 +259,7 @@ export async function clientRoutes(app: FastifyInstance): Promise<void> {
         tokenAuthMethod,
         ...(backchannelLogoutUri ? { backchannelLogoutUri } : {}),
         ...(jwksForCreate ? { jwks: jwksForCreate } : {}),
+        ...(caepEndpointUri ? { caepEndpointUri } : {}),
       });
 
       const { secretEncrypted: _secretEncrypted, ...safeClient } = result.client;

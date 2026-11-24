@@ -4,6 +4,24 @@
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'LOGIN_FAILED';
 
 /**
+ * Authorization provenance (4A T2, ruling D-2=A): WHY the action was
+ * allowed/denied — the article's sixth audit field. IDENTIFIER-FREE by
+ * contract: no subject/resource uuids here, because the RTBF erasure
+ * mention-predicate scans only requestBody (panel run 1 S2-3 — a decision
+ * carrying ids would survive erasure). The shape is part of the D1 row hash
+ * via the null→undefined convention: legacy NULL-decision rows hash exactly
+ * as before (canonicalJson drops undefined), present decisions are
+ * tamper-evident.
+ */
+export interface AuditAuthzDecision {
+  decision: 'allow' | 'deny';
+  /** The permission code the gate evaluated (route mapping / apikey scope arm). */
+  matchedCode: string;
+  /** Data-scope binding when the code is scope-governed (users surface, v1). */
+  scope?: string;
+}
+
+/**
  * Audit log entry (without hash fields)
  */
 export interface AuditLogEntry {
@@ -31,7 +49,10 @@ export interface AuditLogEntry {
   responseStatus?: number;
   success: boolean;
   errorMessage?: string;
-}
+
+  /** 4A T2: authorization provenance — identifier-free (AuditAuthzDecision). */
+  decision?: AuditAuthzDecision | undefined;
+  }
 
 /**
  * Full audit log row. Carries NO hash fields from the logger — the write path

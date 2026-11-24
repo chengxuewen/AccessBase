@@ -8,7 +8,21 @@
  */
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { getRequiredPermission, PermissionManager } from '@accessbase/identity';
+import type { AuditAuthzDecision } from '@accessbase/audit';
 import { DEFAULT_TENANT } from './constants.js';
+
+/**
+ * 4A T2 (D-2=A): authorization provenance stash — read by the audit
+ * middleware (packages/audit) at onResponse and sealed into the D1 row hash.
+ * Four gate arms stash: JWT allow/deny, apikey allow/deny (F-11 — the apikey
+ * arms were the pre-fix silent-NULL holes). Identifier-free shape ONLY
+ * ({decision, matchedCode, scope?}) — extra fields would survive RTBF
+ * erasure (S2-3). scope enrichment (users-surface binding) = ledger.
+ */
+type AuditDecisionCarrier = FastifyRequest & { auditDecision?: AuditAuthzDecision };
+function stashDecision(request: FastifyRequest, decision: AuditAuthzDecision): void {
+  (request as AuditDecisionCarrier).auditDecision = decision;
+}
 
 /** JWT access-token payload signed in routes/auth.ts issueTokenPair. */
 interface TokenPayload {
@@ -43,6 +57,7 @@ export function requirePermission() {
           { userId: payload.sub, required },
           'API key denied on key-management route',
         );
+        stashDecision(request, { decision: 'deny', matchedCode: required });
         await reply.status(403).send({
           success: false,
           error: { code: 'PERM_002', message: 'API keys cannot manage API keys' },
@@ -51,12 +66,17 @@ export function requirePermission() {
       }
       const scopes = (payload as { scopes?: string[] }).scopes ?? ['*'];
       if (!scopes.includes('*')) {
+        stashDecision(request, { decision: 'deny', matchedCode: required });
         await reply.status(403).send({
           success: false,
           error: { code: 'PERM_003', message: 'Insufficient token scope' },
         });
         return;
       }
+      // F-11: the apikey ALLOW arm records provenance too — this was the
+      // pre-fix silent-NULL hole (every apikey data-plane write audited with
+      // a NULL decision, indistinguishable from legacy rows).
+      stashDecision(request, { decision: 'allow', matchedCode: required });
       return; // allow on data-plane routes
     }
     const user = request.user as TokenPayload;
@@ -67,10 +87,13 @@ export function requirePermission() {
     );
     if (!ok) {
       request.log.warn({ userId: user.sub, required }, 'Permission denied');
+      stashDecision(request, { decision: 'deny', matchedCode: required });
       await reply.status(403).send({
         success: false,
         error: { code: 'PERM_001', message: 'Insufficient permissions' },
       });
+      return;
     }
+    stashDecision(request, { decision: 'allow', matchedCode: required });
   };
 }

@@ -46,6 +46,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { auditLogs } from '@accessbase/identity/db';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { rowHash, foldRoot, GENESIS } from '@accessbase/audit';
+import type { AuditRowFields } from '@accessbase/audit';
 
 /** B2: shared with the A5 erasure tx's FIRST statement (routes/users.ts). */
 export const AUDIT_ADVISORY_LOCK_KEY = 727242;
@@ -106,6 +107,9 @@ interface LegacyRow {
   ip: string | null;
   user_agent: string | null;
   created_at: Date | string;
+  /** 4A T2 (D-2=A): jsonb object or NULL — ?? undefined normalizes for the
+   * D1 pick so legacy NULL rows hash identically pre/post decision. */
+  decision: unknown;
 }
 
 /** pg int8/bigserial arrives as string through the raw seam — Number() it. */
@@ -155,7 +159,8 @@ export function startAuditAnchor(deps: AuditAnchorDeps): AuditAnchorWorker {
       for (;;) {
         const legacy = (await tx.execute(sql`
           SELECT id, tenant_id, user_id, action, resource_type, resource_id,
-                 request_body, response_status, request_id, ip, user_agent, created_at
+                 request_body, response_status, request_id, ip, user_agent, created_at,
+                 decision
           FROM audit_logs
           WHERE row_hash IS NULL AND erased_at IS NULL
           ORDER BY ${auditLogs.createdAt}, ${auditLogs.id}
@@ -177,6 +182,9 @@ export function startAuditAnchor(deps: AuditAnchorDeps): AuditAnchorWorker {
               ip: r.ip ?? '',
               userAgent: r.user_agent ?? '',
               createdAt: new Date(r.created_at),
+              // 4A T2 (D-2=A/F-02): the backfill IS the production hash point —
+              // this field set must stay in lockstep with seal + verifier.
+              decision: (r.decision ?? undefined) as AuditRowFields['decision'],
             })}
             WHERE id = ${r.id}
           `);

@@ -34,11 +34,13 @@ import { emailTemplateRoutes } from './routes/email-templates.js';
 import { getRedis } from './utils/redis.js';
 import { buildOidcProvider } from './oidc/provider.js';
 import { OidcClientManager, ApiKeyManager, hashApiKey } from '@accessbase/identity';
+import type { GroupManager } from '@accessbase/identity';
 import { apiKeysRoutes, getApiKeyManager } from './routes/api-keys.js';
 import { DEFAULT_TENANT } from './utils/constants.js';
+import { apiKeyAllowedByCidr, proxyGuardVerdict } from './utils/apikey-cidr.js';
 import { registerInteractionRoutes } from './oidc/interaction.js';
 import { createOidcRateGuard } from './oidc/rate-guard.js';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { IncomingMessage } from 'node:http';
 import type { WebhookQuery } from './utils/webhook-dispatcher.js';
@@ -74,6 +76,10 @@ function sealAuditEntries(inner: AuditStorage): AuditStorage {
             ip: e.userIp ?? '',
             userAgent: e.userAgent ?? '',
             createdAt: e.timestamp,
+            // 4A T2 (D-2=A): same ?? undefined normalization as backfill +
+            // verifier (F-11/L4: null-vs-undefined divergence = mass false
+            // positives on legacy invariance).
+            decision: e.decision ?? undefined,
           }),
         })),
       );
@@ -202,6 +208,39 @@ export async function buildApp(options: BuildAppOptions = {}) {
         },
   );
 
+  // --- Boot posture guard (4A T4, P-7=B) ---
+  // CIDR gates compare request.ip, which TRUST_PROXY=true makes client-
+  // controlled (whole XFF chain trusted). Prod refuses the boot (auth-
+  // integrity class, requireJwtSecret precedent); dev warns. DB-dependent,
+  // so it runs HERE at startup — not in the env-only warnDegradedChecks.
+  // Test-gated: no pool spin-up under NODE_ENV=test.
+  if (config.nodeEnv !== 'test') {
+    const { createDb, apiKeys } = await import('@accessbase/identity/db');
+    const { isNotNull } = await import('drizzle-orm');
+    const guardDb = createDb(config.databaseUrl);
+    try {
+      const [hit] = await guardDb
+        .select({ id: apiKeys.id })
+        .from(apiKeys)
+        .where(isNotNull(apiKeys.cidrAllowlist))
+        .limit(1);
+      const verdict = proxyGuardVerdict(config.nodeEnv, config.trustProxy, hit !== undefined);
+      if (verdict === 'fail-fast') {
+        throw new Error(
+          'CIDR allowlists are active but TRUST_PROXY=true trusts the entire X-Forwarded-For chain — request.ip is client-controlled. Set TRUST_PROXY to a hop count or explicit trusted-proxy CIDRs before using per-key IP allowlists.',
+        );
+      }
+      if (verdict === 'warn') {
+        app.log.warn(
+          { trustProxy: true },
+          'per-key CIDR gates are spoofable under TRUST_PROXY=true (dev only) — configure hop-count/trusted-proxy CIDRs',
+        );
+      }
+    } finally {
+      await guardDb.$client.end();
+    }
+  }
+
   // --- Auth decorator ---
 
   app.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -226,6 +265,20 @@ export async function buildApp(options: BuildAppOptions = {}) {
         scopes: key.scopes ?? ['*'],
         tenantId: key.tenantId,
       };
+      // 4A T4 (R5/F-16): per-key egress CIDR gate — BOTH lanes (authenticate
+      // here, SCIM preHandler there, F-04). null=unrestricted; deny is
+      // fail-closed; the stash makes non-GET denial rows carry the decision.
+      if (!apiKeyAllowedByCidr(key.cidrAllowlist, request.ip)) {
+        (request as FastifyRequest & { auditDecision?: unknown }).auditDecision = {
+          decision: 'deny',
+          matchedCode: 'apikey-cidr',
+        };
+        reply.status(401).send({
+          success: false,
+          error: { code: 'APIKEY_IP_001', message: 'Request IP is outside this key allowlist' },
+        });
+        return;
+      }
       // R7: apikey rows carry their own tenant — no DEFAULT fallback.
       request.tenantId = key.tenantId;
       return;
@@ -307,6 +360,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // Adapter getUser seam WIRED (verification-day): unwired it released no email/name
   // claims (userinfo = bare sub) and RPs synthesized @*.oauth.invalid addresses.
   const oidcAdapterDb = createDb(config.databaseUrl);
+  // 4A T5: groups claim projection singleton (lazy-assigned on first use —
+  // narrow identity mocks must not break app build, PIT-082).
+  let oidcGroupsManager: GroupManager | undefined;
   const {
     provider: oidcProvider,
     oidcHandler,
@@ -317,6 +373,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
     nodeEnv: config.nodeEnv,
     privateKeyPath: config.jwtPrivateKeyPath,
     publicKeyPath: config.jwtPublicKeyPath,
+    // 4A T1 (P-2=B): SET signing pair — public side published under kid
+    // 'set-signing'; private side signs caep_deliveries SETs.
+    setPrivateKeyPath: config.jwtSetPrivateKeyPath || undefined,
+    setPublicKeyPath: config.jwtSetPublicKeyPath || undefined,
     extraPublicKeys: config.oidcJwksExtraPublicPaths,
     backchannelLogoutEnabled: config.oidcBackchannelLogout,
     adapterCtorArgs: [
@@ -327,12 +387,22 @@ export async function buildApp(options: BuildAppOptions = {}) {
           // every narrow vi.mock('@accessbase/identity/db') proxy (PIT-082).
           const { users } = await import('@accessbase/identity/db');
           const { eq } = await import('drizzle-orm');
+          // 4A T5 (F-17): tenantId rides the SAME query — the groups claim
+          // projection is tenant-confined by this value (never a default).
           const [row] = await oidcAdapterDb
-            .select({ name: users.name, email: users.email })
+            .select({ name: users.name, email: users.email, tenantId: users.tenantId })
             .from(users)
             .where(eq(users.id, id))
             .limit(1);
           return row ?? null;
+        },
+        // 4A T5 (D-5=A): groups projection for the groups claim — lazy memo
+        // (one GroupManager; never per request, PIT-081) + lazy import (the
+        // same PIT-082 narrow-mock discipline as above).
+        getGroupsForUser: async (userId: string, tenantId: string) => {
+          const { GroupManager } = await import('@accessbase/identity');
+          oidcGroupsManager ??= new GroupManager(config.databaseUrl);
+          return await oidcGroupsManager.getGroupNamesForUser(userId, tenantId);
         },
       },
     ],
@@ -372,6 +442,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
   // registered under NODE_ENV=test (no ticks, no pools, no outbound fetch in
   // suites or against shared DEV PG). Production wiring only; every externality injected.
   let webhookDispatcher: { stop: () => Promise<void> } | undefined;
+  let caepDispatcher: { stop: () => Promise<void> } | undefined;
+  let auditExporter: { stop: () => Promise<void> } | undefined;
   if (config.nodeEnv !== 'test') {
     const pg = (await import('pg')).default;
     const { startWebhookDispatcher } = await import('./utils/webhook-dispatcher.js');
@@ -454,6 +526,41 @@ export async function buildApp(options: BuildAppOptions = {}) {
         }
       },
     });
+    // 4A T1 (P-1=C/P-3=B): CAEP/RISC SET drainer — same hard test gate, same
+    // lazy pool family (getWhDb); channel deliberately INDEPENDENT of
+    // webhooks_enabled and the events age-prune (F-08).
+    const { startCaepDispatcher } = await import('./utils/caep-dispatcher.js');
+    caepDispatcher = startCaepDispatcher({
+      makeDb: getWhDb,
+      issuer: `${config.oauthRedirectBase}/oidc`,
+      signingKeyPem: () => {
+        if (!config.jwtSetPrivateKeyPath) return undefined;
+        // Read per tick: the key file can be provisioned after boot; read
+        // failures surface as retryable 'sign-failed' delivery outcomes.
+        try {
+          return readFileSync(config.jwtSetPrivateKeyPath, 'utf-8');
+        } catch {
+          return undefined;
+        }
+      },
+      intervalMs: config.caepDispatchIntervalMs,
+      fetchImpl: async (url, init) => {
+        const res = await fetch(url, init as RequestInit);
+        return { status: res.status };
+      },
+      logger: app.log,
+    });
+    // 4A T2 (P-1=C/P-4=A): audit export drainer — gap-aware cursor ON the
+    // destination row; platform-only destinations (P-5=A); same lazy pool.
+    const { startAuditExporter } = await import('./utils/audit-exporter.js');
+    auditExporter = startAuditExporter({
+      makeDb: getWhDb,
+      fetchImpl: async (url, init) => {
+        const res = await fetch(url, init as RequestInit);
+        return { status: res.status };
+      },
+      logger: app.log,
+    });
   }
   // R-audit A4: audit anchor worker — same hard test gate as the dispatcher
   // (no ticks, no pools under NODE_ENV=test). Own lazy pool, closed via stop().
@@ -480,6 +587,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
     await optionsCoherence.teardown();
     await retention.stop();
     await webhookDispatcher?.stop();
+    await caepDispatcher?.stop();
+    await auditExporter?.stop();
     await auditAnchor?.stop();
     await resetManagers();
     await closeAuthDb();
@@ -548,6 +657,12 @@ export async function buildApp(options: BuildAppOptions = {}) {
               requestId: e.requestId,
               ip: e.userIp,
               userAgent: e.userAgent,
+              // 4A T2 (F-02): the decision MUST land in the column — the
+              // anchor backfill hashes CURRENT column values, so a missing
+              // insert arm means every gated row hashes decision-less while
+              // the verifier includes it = row-mismatch storm. ?? undefined
+              // keeps NULL-decision rows NULL (legacy-hash parity).
+              decision: e.decision ?? undefined,
             })),
           );
         },
@@ -611,6 +726,12 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(auditRoutes, { prefix: '/api/v1/audit-logs' });
   await app.register(statsRoutes, { prefix: '/api/v1' });
   await app.register(optionsRoutes, { prefix: '/api/v1' });
+  // 4A T2 (P-5=A): audit export destinations — platform-level CRUD.
+  const { auditExportRoutes } = await import('./routes/audit-export.js');
+  await app.register(auditExportRoutes, { prefix: '/api/v1' });
+  // 4A T3 (D-4=B): AuthZEN PDP — machine-to-machine evaluation surface.
+  const { authzenRoutes } = await import('./routes/authzen.js');
+  await app.register(authzenRoutes, { prefix: '/api/v1/authzen' });
   await app.register(clientRoutes, { prefix: '/api/v1' });
   await app.register(oauthRoutes, { prefix: '/api/v1/auth' });
   await app.register(backchannelLogoutRoutes, { prefix: '/api/v1/auth' }); // Q3D

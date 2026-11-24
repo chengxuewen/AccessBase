@@ -154,6 +154,43 @@ describe('POST /api/v1/auth/api-keys', () => {
   });
 });
 
+describe('POST /api/v1/auth/api-keys — cidrAllowlist (4A T4)', () => {
+  it('400 APIKEY_CIDR_001 on empty array (never reaches the gate — F-16)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/api-keys',
+      headers: { ...AUTH(), 'content-type': 'application/json' },
+      payload: { name: 'gated', cidrAllowlist: [] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('APIKEY_CIDR_001');
+    expect(res.json().error.message).toContain('empty');
+  });
+
+  it('400 on malformed entries, offending value named', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/api-keys',
+      headers: { ...AUTH(), 'content-type': 'application/json' },
+      payload: { name: 'gated', cidrAllowlist: ['10.0.0.0/8', 'bogus'] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('APIKEY_CIDR_001');
+    expect(res.json().error.message).toContain('bogus');
+  });
+
+  it('201 with a valid allowlist (v4 CIDR + bare IP)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/api-keys',
+      headers: { ...AUTH(), 'content-type': 'application/json' },
+      payload: { name: 'gated', cidrAllowlist: ['10.0.0.0/8', '192.168.1.1/32'] },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().success).toBe(true);
+  });
+});
+
 describe('GET /api/v1/auth/api-keys', () => {
   it('lists keys without hash material', async () => {
     await app.inject({

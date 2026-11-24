@@ -124,6 +124,43 @@ describe('rowHash', () => {
   });
 });
 
+describe('decision field (4A T2, D-2=A)', () => {
+  const decision = { decision: 'allow' as const, matchedCode: 'users:write' };
+
+  it('a PRESENT decision perturbs the hash (tamper-evident provenance)', () => {
+    expect(rowHash({ ...base, decision })).not.toBe(rowHash(base));
+    expect(rowHash({ ...base, decision: { ...decision, decision: 'deny' as const } })).not.toBe(
+      rowHash({ ...base, decision }),
+    );
+  });
+
+  it('LEGACY INVARIANCE: undefined-decision rows hash identically with and without the field (zero version marker)', () => {
+    // This is the contract that makes migration 0014 safe: old-algorithm rows
+    // (no decision) and new-code rows (decision dropped as undefined) MUST
+    // produce the same canonical input — otherwise every legacy row reads as
+    // tampered after upgrade.
+    const withoutField = rowHash(base);
+    const withUndefined = rowHash({ ...base, decision: undefined });
+    expect(withUndefined).toBe(withoutField);
+  });
+
+  it('null is BANNED — normalized to undefined so jsonb NULL never leaks into the hash', () => {
+    // canonicalJson KEEPS null ('null') and DROPS undefined — a null decision
+    // reaching the pick would break legacy parity (S2-2/L4). rowHash owns the
+    // normalization; this test locks it.
+    expect(rowHash({ ...base, decision: undefined })).toBe(rowHash(base));
+    // And the raw canonical form proves the drop (undefined entries vanish).
+    const withUndefined = rowHash({ ...base, decision: undefined });
+    expect(withUndefined).toBe(rowHash({ ...base }));
+  });
+
+  it('decision key order inside the object is irrelevant (canonicalJson sorts)', () => {
+    const a = { decision: 'allow' as const, matchedCode: 'users:write', scope: 'all' };
+    const b = { scope: 'all', matchedCode: 'users:write', decision: 'allow' as const };
+    expect(rowHash({ ...base, decision: a })).toBe(rowHash({ ...base, decision: b }));
+  });
+});
+
 describe('foldRoot', () => {
   it('is deterministic for a fixed ordered list', () => {
     const hashes = ['aa', 'bb', 'cc'];

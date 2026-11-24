@@ -45,6 +45,8 @@ interface CreateFormValues {
   scope?: string;
   tokenAuthMethod?: string;
   backchannelLogoutUri?: string;
+  /** 4A T1: CAEP/RISC SET push endpoint (create-only). */
+  caepEndpointUri?: string;
 }
 
 export default function Clients() {
@@ -84,6 +86,8 @@ export default function Clients() {
         ...(values.backchannelLogoutUri?.trim()
           ? { backchannelLogoutUri: values.backchannelLogoutUri.trim() }
           : {}),
+        // 4A T1: CAEP/RISC SET push endpoint (create-only; https enforced route-side)
+        ...(values.caepEndpointUri?.trim() ? { caepEndpointUri: values.caepEndpointUri.trim() } : {}),
       });
       setCreateOpen(false);
       setReveal({ clientId: created.clientId, clientSecret: created.clientSecret });
@@ -329,6 +333,20 @@ export default function Clients() {
             <Input
               data-testid="clients-backchannel-input"
               placeholder="https://rp.example.com/backchannel-logout"
+            />
+          </Form.Item>
+          <Form.Item
+            name="caepEndpointUri"
+            label={t('clients.caepEndpointUri')}
+            extra={t('clients.caepEndpointUriHint')}
+            rules={[
+              { type: 'url', message: t('clients.caepEndpointUriInvalid') },
+              { pattern: /^https:\/\//, message: t('clients.caepEndpointUriHttps') },
+            ]}
+          >
+            <Input
+              data-testid="clients-caep-input"
+              placeholder="https://app.example.com/caep"
             />
           </Form.Item>
         </Form>

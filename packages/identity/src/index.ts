@@ -42,6 +42,11 @@ export {
 } from './managers/ApiKeyManager.js';
 export { GroupManager, type Group, type CreateGroupInput } from './managers/GroupManager.js';
 export { emitEvent, type DomainEventType, type EmitEventInput } from './services/events.js';
+export {
+  enqueueCaepRevocations,
+  CAEP_EVENT_TYPES,
+  type CaepEnqueueKind,
+} from './services/caep.js';
 export { FlowTokenService } from './services/FlowTokenService.js';
 export {
   resolveIdleTimeoutSeconds,

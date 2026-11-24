@@ -67,3 +67,19 @@ ROLE_PROTECTED · LAST_ADMIN_GUARD · PERMISSION_NOT_BINDABLE · TENANT_PROTECTE
 ## Spec slots never used (kept for reference, do not renumber)
 
 AUTH_020-028, AUTH_030-031, AUTH_036-038, AUTH_040-047, AUTH_050-053, AUTH_060-062, AUTH_070-072; ADMIN_001-025 (except ADMIN_004) — the admin console surface emits generic + domain codes instead.
+
+## 4A compliance batch (2026-11-24)
+
+| Code | Meaning in code | Where |
+| ---- | --------------- | ----- |
+| APIKEY_IP_001 | Request IP outside the key's CIDR allowlist (authenticate lane; SCIM lane mirrors) | app.ts authenticate / routes/scim.ts |
+| APIKEY_CIDR_001 | cidrAllowlist input invalid (empty array / malformed entry / junk shape) | routes/api-keys.ts create |
+| CLIENT_012 | caepEndpointUri must use https (F-14, create-time strict) | routes/clients.ts |
+| CLIENT_013 | caepEndpointUri rejected by the fail-closed SSRF structural guard | routes/clients.ts |
+| AUTHZEN_001 | JWT bearer on the AuthZEN surface (machine-to-machine only) | routes/authzen.ts gate |
+| AUTHZEN_002 | key scope lacks authzen:evaluate (missing scopes deny — no ['*'] default) | routes/authzen.ts gate |
+| AUTHZEN_003 | per-key evaluation rate limit exceeded (120/min) | routes/authzen.ts gate |
+| AUTHZEN_004 | malformed evaluation request (subject.id / resource.type / action.name required) | routes/authzen.ts |
+| AUTHZEN_005 | evaluations batch exceeds the hard cap of 50 | routes/authzen.ts |
+| AUDIT_EXPORT_INVALID / AUDIT_EXPORT_URL_HTTP / AUDIT_EXPORT_URL_DENIED / AUDIT_EXPORT_EXISTS / AUDIT_EXPORT_NOT_FOUND / AUDIT_EXPORT_CREATE_FAILED | audit export destination CRUD gates (P-5=A: https + SSRF + unique url + platform-only) | routes/audit-export.ts |
+| TENANT_PLATFORM_ONLY | platform-belt 403 (audit-verify precedent; reused by audit-export) | routes/audit-export.ts, routes/audit.ts |

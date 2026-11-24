@@ -112,3 +112,7 @@ class WebhookService {
 | `/api/v1/webhooks/:id/deliveries` | GET    | 交付历史     |
 
 ---
+
+## schemaVersion scope (4A T2, F-10 — 2026-11-24)
+
+The webhook dispatcher body remains `{id, type, createdAt, data}` — UNCHANGED. `schemaVersion` was introduced on the AUDIT EXPORT envelope only (audit rows → `audit_export_destinations`), because audit export deliberately does NOT ride the webhook dispatcher (4A P-1=C split transport). Existing webhook consumers: no action required. See [integration.md](integration.md) §4A compliance surfaces.

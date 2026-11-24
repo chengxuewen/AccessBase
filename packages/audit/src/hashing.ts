@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { AuditAuthzDecision } from './types.js';
 
 /**
  * GENESIS sentinel: foldRoot/receiptHash over an EMPTY ordered hash list.
@@ -7,9 +8,13 @@ import { createHash } from 'node:crypto';
 export const GENESIS = sha256Hex('');
 
 /**
- * The exact field set hashed into a row's content hash (spec D1).
- * createdAt is a Date — serialized via toISOString() (type-aware, NOT the
- * identical ISO string; hash commits to the value's timestamp semantics).
+ * The exact field set hashed into a row's content hash (spec D1; 4A T2 added
+ * `decision` as the twelfth field — D-2=A). createdAt is a Date — serialized
+ * via toISOString() (type-aware, NOT the identical ISO string; hash commits
+ * to the value's timestamp semantics). `decision` is normalized
+ * null→undefined by rowHash so legacy NULL-decision rows hash IDENTICALLY to
+ * the pre-decision algorithm (zero version marker; RED-locked in hashing
+ * tests). NEVER pass null — the type bans it and canonicalJson would keep it.
  */
 export interface AuditRowFields {
   tenantId: string;
@@ -23,6 +28,7 @@ export interface AuditRowFields {
   ip: string;
   userAgent: string;
   createdAt: Date;
+  decision?: AuditAuthzDecision | undefined;
 }
 
 function sha256Hex(input: string): string {
@@ -67,6 +73,11 @@ export function rowHash(entry: AuditRowFields): string {
       ip: entry.ip,
       userAgent: entry.userAgent,
       createdAt: entry.createdAt,
+      // 4A T2 (D-2=A): ?? undefined (never null) — canonicalJson drops
+      // undefined entries, so legacy NULL-decision rows hash bit-identically
+      // to the pre-decision algorithm. `null` would serialize as 'null' and
+      // BREAK the legacy invariance — this normalization is contract.
+      decision: entry.decision ?? undefined,
     }),
   );
 }

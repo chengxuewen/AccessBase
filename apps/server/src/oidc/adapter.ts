@@ -24,11 +24,20 @@ import { oidcAdapterState, oidcClients, type OidcClientRow } from '@accessbase/i
 import { decryptSecret } from '@accessbase/identity';
 import { logger } from '@accessbase/logging';
 
-type GetUserFn = (id: string) => Promise<{ name?: string; email?: string } | null> | null;
+type GetUserFn = (id: string) => Promise<{
+  name?: string;
+  email?: string;
+  /** 4A T5 (F-17): users.tenantId from the SAME query — the groups claim
+   * projection is tenant-confined by THIS value, never a DEFAULT_TENANT
+   * fallback (panel run 2 corr M-5). */
+  tenantId?: string;
+} | null> | null;
+
+type GetGroupsForUserFn = (userId: string, tenantId: string) => Promise<string[]>;
 
 interface OidcAccount {
   accountId: string;
-  claims(): Promise<Record<string, unknown>>;
+  claims(use?: unknown, scope?: unknown): Promise<Record<string, unknown>>;
 }
 
 /** drizzle 0.29 jsonb round-trip differs across seams (PIT jsonb family):
@@ -56,14 +65,39 @@ function notAfterFor(expiresIn: number | undefined, clockTolerance: number): Dat
   return new Date(Date.now() + (expiresIn + clockTolerance) * 1000);
 }
 
+/** 4A T5 (F-18/sec M-4): groups claim hard cap — deterministic sort then
+ * truncate, with an explicit marker. The marker is emitted ALWAYS so
+ * consumers can branch on its presence semantics rather than key absence. */
+export const GROUPS_CLAIM_CAP = 50;
+
+export function buildGroupsClaim(names: string[]): {
+  groups: string[];
+  groups_truncated: boolean;
+} {
+  const sorted = [...names].sort((a, b) => a.localeCompare(b));
+  return {
+    groups: sorted.slice(0, GROUPS_CLAIM_CAP),
+    groups_truncated: sorted.length > GROUPS_CLAIM_CAP,
+  };
+}
+
 export class OidcAdapter {
   private readonly db: DrizzleDB;
   private readonly getUser: GetUserFn;
+  private readonly getGroupsForUser: GetGroupsForUserFn;
   private readonly clockTolerance: number;
 
-  constructor(databaseUrl: DrizzleDB, deps?: { getUser?: GetUserFn; clockTolerance?: number }) {
+  constructor(
+    databaseUrl: DrizzleDB,
+    deps?: {
+      getUser?: GetUserFn;
+      getGroupsForUser?: GetGroupsForUserFn;
+      clockTolerance?: number;
+    },
+  ) {
     this.db = databaseUrl;
     this.getUser = deps?.getUser ?? (async () => null);
+    this.getGroupsForUser = deps?.getGroupsForUser ?? (async () => []);
     this.clockTolerance = deps?.clockTolerance ?? 0;
   }
 
@@ -184,12 +218,27 @@ export class OidcAdapter {
     const user = await Promise.resolve(this.getUser(id));
     return {
       accountId: id,
-      claims: async () => ({
-        sub: id,
-        name: user?.name ?? undefined,
-        email: user?.email ?? undefined,
-        email_verified: false,
-      }),
+      // 4A T5 (D-5=A/F-18): oidc-provider calls claims(use, scope) with the
+      // GRANTED scopes — the groups claim ships ONLY when the client was
+      // granted the `groups` scope (per-client opt-in = the client's own
+      // registered scope string; provider rejects undeclared requests).
+      claims: async (_use?: unknown, scope?: unknown) => {
+        const base: Record<string, unknown> = {
+          sub: id,
+          name: user?.name ?? undefined,
+          email: user?.email ?? undefined,
+          email_verified: false,
+        };
+        const scopes = typeof scope === 'string' ? scope.split(/\s+/) : [];
+        if (!scopes.includes('groups')) return base;
+        const tenantId = user?.tenantId;
+        if (!tenantId) {
+          // F-17: no tenant → no projection (never DEFAULT_TENANT guess).
+          return { ...base, groups: [], groups_truncated: false };
+        }
+        const names = await this.getGroupsForUser(id, tenantId);
+        return { ...base, ...buildGroupsClaim(names) };
+      },
     };
   }
 

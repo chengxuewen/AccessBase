@@ -81,6 +81,9 @@ export class ApiKeyManager {
     scopes: string[],
     tenantId: string,
     expiresAt?: Date,
+    /** 4A T4: optional per-key egress CIDR allowlist (null = unrestricted).
+     * CRUD validates entries; the gate re-checks at request time (apikey-cidr). */
+    cidrAllowlist?: string[] | null,
   ): Promise<SafeApiKey & { plaintext: string }> {
     const { plaintext, hash, prefix } = ApiKeyManager.generateApiKey();
 
@@ -91,6 +94,7 @@ export class ApiKeyManager {
       scopes,
       tenantId,
       ...(expiresAt !== undefined ? { expiresAt } : {}),
+      ...(cidrAllowlist !== undefined ? { cidrAllowlist } : {}),
     };
 
     const [inserted] = (await this.db.insert(apiKeys).values(values).returning()) as ApiKeyRow[];

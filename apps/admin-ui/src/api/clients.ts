@@ -12,6 +12,8 @@ export interface OidcClient {
   tokenAuthMethod: string;
   /** Operator-visible config (routes/clients.ts list/create echo it; null when unset). */
   backchannelLogoutUri?: string | null;
+  /** 4A T1: CAEP/RISC SET push endpoint (create-only; attempt trail lives in caep_deliveries). */
+  caepEndpointUri?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +26,8 @@ export interface CreateClientPayload {
   tokenAuthMethod?: string;
   /** Optional back-channel logout endpoint; server keeps it only when http(s)-prefixed. */
   backchannelLogoutUri?: string;
+  /** 4A T1: optional CAEP/RISC SET receiver; https STRICT + SSRF-gated route-side. */
+  caepEndpointUri?: string;
 }
 
 /** GET /v1/clients — list clients (no secret material) */

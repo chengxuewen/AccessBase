@@ -227,6 +227,10 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   `Descriptions` and `Dashboard.tsx` `Statistic` are rendered as definition grids / stat cards.
   Functional filters are NOT simplified: users status/tenant, audit action/actor/days, events
   type/range all mirror the real Select/Input/RangePicker filters.
+- Table column floors (post-seal fix 11): status/type tag columns carry a 104px floor (switch column
+  84px) so tags never overflow under the opaque sticky actions column; prio-3 columns drop at 1100px
+  (label() mirrors th prio onto td), the sticky edge carries a --bd2 shadow cue, and chip containers
+  wrap instead of overflowing. Locked by responsive-table mid-width assertions across seven tables.
 - Shape scale (design backlog rulings 1-3, locked by shape-scale): icons use three semantic tiers
   (--ic-s:12 inline meta, --ic-m:14 control-adjacent, --ic-l:16 standalone) plus --ic-display:28 for
   empty/placeholder art; control geometry (switch knob, checkbox box, legend swatch, scrollbar) stays

@@ -119,6 +119,12 @@ if printf '%s\n' "$OUT" | grep -qx 'STAMPED'; then
     "0012|SELECT jwks FROM oidc_clients LIMIT 1"
     "0013|SELECT data_scope FROM role_permissions LIMIT 1"
     "0013|SELECT kind FROM \"groups\" LIMIT 1"
+    "0014|SELECT decision FROM audit_logs LIMIT 1"
+    "0014|SELECT seq FROM audit_logs LIMIT 1"
+    "0014|SELECT caep_endpoint_uri FROM oidc_clients LIMIT 1"
+    "0014|SELECT cidr_allowlist FROM api_keys LIMIT 1"
+    "0014|SELECT id FROM caep_deliveries LIMIT 1"
+    "0014|SELECT id FROM audit_export_destinations LIMIT 1"
   )
   for entry in "${SENTINELS[@]}"; do
     ver="${entry%%|*}"

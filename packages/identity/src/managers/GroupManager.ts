@@ -143,6 +143,32 @@ export class GroupManager {
     return (rows as Array<{ groupId: string }>).map((r) => r.groupId);
   }
 
+  /**
+   * 4A T5 (D-5=A): ALL group KINDS the user belongs to, projected as NAMES
+   * (tenant-unique — the string Keycloak/Authentik/oauth2-proxy allowed_group
+   * flows match on), deterministic order, tenant predicates on BOTH tables
+   * (defense-in-depth parity with getDepartmentIdsForUser). No kind filter:
+   * access groups AND departments both ship (departments-only would miss the
+   * oauth2-proxy main use case). Names are in the OIDC groups claim — a group
+   * rename changes claim values downstream (documented trade, mainstream
+   * posture). Claim-side hard cap lives in the adapter (GROUPS_CLAIM_CAP).
+   */
+  async getGroupNamesForUser(userId: string, tenantId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ name: groups.name })
+      .from(groupUsers)
+      .innerJoin(groups, eq(groups.id, groupUsers.groupId))
+      .where(
+        and(
+          eq(groupUsers.userId, userId),
+          eq(groupUsers.tenantId, tenantId),
+          eq(groups.tenantId, tenantId),
+        ),
+      )
+      .orderBy(groups.name);
+    return (rows as Array<{ name: string }>).map((r) => r.name);
+  }
+
   async create(input: CreateGroupInput, tenantId: string): Promise<Group> {
     const kind = clampKind(input.kind ?? 'group');
     const [dup] = await this.db

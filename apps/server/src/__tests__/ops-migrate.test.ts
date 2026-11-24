@@ -165,7 +165,7 @@ describe('migrate.sh argument contract', () => {
 
 describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
   it(
-    'fresh DB: applies full chain — 25 chain tables + 14 tracking rows',
+    'fresh DB: applies full chain — 27 chain tables + 15 tracking rows',
     { timeout: 30_000 },
     async () => {
       const url = await tmpDbUrl();
@@ -177,10 +177,10 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
         url,
         "SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema='public' AND table_name <> 'schema_migrations'",
       );
-      expect((tables[0] as { n: number }).n).toBe(25);
+      expect((tables[0] as { n: number }).n).toBe(27);
 
       const tracked = await query(url, 'SELECT id FROM schema_migrations ORDER BY id');
-      expect(tracked).toHaveLength(14);
+      expect(tracked).toHaveLength(15);
       expect((tracked[0] as { id: string }).id).toMatch(/^0000_/);
     },
   );
@@ -213,11 +213,16 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     // data-scope batch: 0013 also dual-probed (role_permissions + quoted groups).
     const w13 = out.split('\n').filter((l) => l.includes('legacy DB behind chain head (0013)'));
     expect(w13).toHaveLength(2);
+    // 4A compliance batch: 0014 is SIX-probed (audit_logs decision + seq,
+    // oidc_clients caep_endpoint_uri, api_keys cidr_allowlist, and the two new
+    // tables) — a partial legacy stamp must fire all six warns.
+    const w14 = out.split('\n').filter((l) => l.includes('legacy DB behind chain head (0014)'));
+    expect(w14).toHaveLength(6);
 
-    // Stamped, NOT applied: tracking holds 14 note='stamped' rows and the
+    // Stamped, NOT applied: tracking holds 15 note='stamped' rows and the
     // users table is still the legacy ad-hoc one (no phone column, no chain tables).
     const rows = await query(url, 'SELECT note FROM schema_migrations');
-    expect(rows).toHaveLength(14);
+    expect(rows).toHaveLength(15);
     expect(rows.every((x) => (x as { note: string }).note === 'stamped')).toBe(true);
     const cols = await query(
       url,
@@ -244,18 +249,18 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
     }
   });
 
-  it('idempotent: three consecutive runs exit 0, tracking stays 14 rows', async () => {
+  it('idempotent: three consecutive runs exit 0, tracking stays 15 rows', async () => {
     const url = await tmpDbUrl();
     for (let i = 0; i < 3; i += 1) {
       const r = migrate(CHAIN, url);
       expect(r.status).toBe(0);
     }
     const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-    expect((rows[0] as { n: number }).n).toBe(14);
+    expect((rows[0] as { n: number }).n).toBe(15);
   });
 
   it(
-    'concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 14',
+    'concurrent triple-run (Q2a-C advisory lock): all exit 0, ledger exactly 15',
     { timeout: 30_000 },
     async () => {
       const url = await tmpDbUrl();
@@ -270,7 +275,7 @@ describe.skipIf(!pgAvailable)('migrate.sh against real PG', () => {
       const codes = await Promise.all([run(), run(), run()]);
       expect(codes).toEqual([0, 0, 0]);
       const rows = await query(url, 'SELECT count(*)::int AS n FROM schema_migrations');
-      expect((rows[0] as { n: number }).n).toBe(14);
+      expect((rows[0] as { n: number }).n).toBe(15);
       // no duplicate-application evidence: each id appears exactly once
       const ids = await query(
         url,

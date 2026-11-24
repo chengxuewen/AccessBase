@@ -161,6 +161,29 @@ describe('POST /api/v1/clients', () => {
     expect(body.data.name).toBe('Test App');
   });
 
+  it('4A T5 (PH-1): groups scope accepted at registration (per-client opt-in)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/clients',
+      headers: { ...AUTH(), 'content-type': 'application/json' },
+      payload: {
+        name: 'Grouped App',
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['authorization_code'],
+        scope: 'openid profile groups',
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    const im = (await import('@accessbase/identity')).OidcClientManager as unknown as {
+      mock: { results: Array<{ value: { create: ReturnType<typeof vi.fn> } }> };
+    };
+    const inst = im.mock.results[im.mock.results.length - 1]?.value;
+    expect(inst.create).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: 'openid profile groups' }),
+    );
+  });
+
   it('403 without clients:write', async () => {
     allow.value = false;
 

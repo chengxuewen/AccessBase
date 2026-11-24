@@ -165,3 +165,28 @@ describe('getDepartmentIdsForUser', () => {
     expect(sql).toContain('"group_users"."user_id"');
   });
 });
+
+describe('getGroupNamesForUser (4A T5, D-5=A)', () => {
+  it('projects NAMES across ALL kinds — BOTH-table tenants, user_id, NO kind filter', async () => {
+    const chain = captureChain([{ name: 'Eng' }, { name: 'Platform' }]);
+    const db = { select: vi.fn(() => chain), insert: vi.fn(), update: vi.fn(), delete: vi.fn() };
+
+    const names = await new GroupManager(db as never).getGroupNamesForUser('u1', T);
+
+    expect(names).toEqual(['Eng', 'Platform']);
+    const sql = whereSql(chain);
+    expect(sql).toContain('"group_users"."tenant_id"');
+    expect(sql).toContain('"groups"."tenant_id"');
+    expect(sql).toContain('"group_users"."user_id"');
+    // D-5=A: NO kind filter — access groups AND departments both ship.
+    expect(sql).not.toContain('"groups"."kind"');
+  });
+
+  it('deterministic order comes from the SQL (ORDER BY groups.name)', async () => {
+    const chain = captureChain([{ name: 'Eng' }]);
+    const db = { select: vi.fn(() => chain), insert: vi.fn(), update: vi.fn(), delete: vi.fn() };
+    await new GroupManager(db as never).getGroupNamesForUser('u1', T);
+    expect(chain.orderBy).toHaveBeenCalled();
+    expect(whereSql(chain)).toBeDefined();
+  });
+});

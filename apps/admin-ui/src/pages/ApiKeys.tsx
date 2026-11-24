@@ -30,6 +30,8 @@ dayjs.extend(relativeTime);
 interface CreateFormValues {
   name?: string;
   expiresAt?: dayjs.Dayjs | null;
+  /** 4A T4: one CIDR per line; blank = unrestricted. Server validates entries. */
+  cidrAllowlistText?: string;
 }
 
 export default function ApiKeys() {
@@ -60,6 +62,16 @@ export default function ApiKeys() {
       const created = await createApiKey({
         name: (values.name ?? '').trim(),
         ...(values.expiresAt ? { expiresAt: values.expiresAt.toISOString() } : {}),
+        // 4A T4: one CIDR per line → string[]; blank lines dropped; omitted
+        // entirely (blank textarea) = unrestricted. Server validates entries.
+        ...(values.cidrAllowlistText?.trim()
+          ? {
+              cidrAllowlist: values.cidrAllowlistText
+                .split('\n')
+                .map((l) => l.trim())
+                .filter(Boolean),
+            }
+          : {}),
       });
       setCreateOpen(false);
       setReveal({ name: created.name, plaintext: created.plaintext });
@@ -259,6 +271,17 @@ export default function ApiKeys() {
               style={{ width: '100%' }}
               data-testid="api-keys-expires-input"
               disabledDate={(d) => d.isBefore(dayjs().startOf('day'))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="cidrAllowlistText"
+            label={t('apiKeys.cidrAllowlist')}
+            extra={t('apiKeys.cidrAllowlistHint')}
+          >
+            <Input.TextArea
+              rows={3}
+              placeholder={'10.0.0.0/8\n192.168.1.1/32'}
+              data-testid="api-keys-cidr-input"
             />
           </Form.Item>
         </Form>
