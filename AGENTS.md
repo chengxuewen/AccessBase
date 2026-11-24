@@ -188,8 +188,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 100 older entries omitted (read the full file)
-- PIT-098: 恒真锁三 costume——采样不触发缺陷的样本/白名单排除失败面/存在性检查冒充覆盖 (2026-11-23, panel-folded)
+... 101 older entries omitted (read the full file)
 - PIT-099: playwright 失败后重启 worker → results.json 只含后半程组，"fail:0" 是假象 (2026-11-23)
 - PIT-100: inert 加在 app 根上会连模态一起禁掉——overlays 在根内时必须只 inert 背景容器 (2026-11-23)
 - PIT-101: forced-colors 下换色技巧不可靠——headless palette 让 Canvas==HighlightText，表单控件回退原生 (2026-11-23)
@@ -204,6 +203,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-110: 控件高度靠 padding+font 推导 → 同 toolbar 混档参差不齐 (2026-11-24, user-reported)
 - PIT-111: 高度刻度漏了 div 基控件（themed cbx）+ 锁采样隐藏 native select 成盲区 (2026-11-24, user-reported)
 - PIT-112: 固定高按钮 + flex 可收缩 + 默认可换行 = 窄屏文字折行溢出 (2026-11-24, user-reported)
+- PIT-113: 两档刻度的"档归属"按容器猜而非按控件语义 → 编辑控件被误归紧凑档 (2026-11-24, user-reported)
 
 ### status
 - full text: `.agents/memorys/status.md`

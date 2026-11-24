@@ -204,7 +204,6 @@ html[data-theme="dark"] .toolbar input[type=date]{color-scheme:dark}
 .cbx[data-multi] .cbx-val{display:flex;gap:4px;flex-wrap:wrap;align-items:center;white-space:normal}
 .cbx[data-multi] .cbx-btn{height:auto;min-height:var(--ctl-h);padding:4px 8px}
 .top-actions .cbx-btn{height:var(--ctl-h-sm);padding:0 8px}
-.scope-box .cbx-btn,.panel-head .cbx-btn{height:var(--ctl-h-sm);padding:0 8px}
 .cbx-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:var(--r-tag);background:var(--accent-tint);color:var(--accent-text,var(--accent));font-size:var(--fs11)}
 .cbx-chip button{border:none;background:none;padding:0;cursor:pointer;color:inherit;display:inline-flex;position:relative}
 .cbx-chip button::before{content:"";position:absolute;inset:-7px;}
@@ -801,10 +800,10 @@ html[lang="zh-CN"] body{line-height:1.7}
         </table></div>
       </div>
       <div class="card" style="margin-top:12px">
-        <div class="card-head matrix-head"><h3>Permission matrix</h3><span class="sel-role" id="matrixRole"></span><span class="perm-total" id="matrixTotal"></span><span class="perm-total" id="matrixParent"></span><button class="btn danger ghost sm" id="clearPermsBtn" style="margin-left:8px">Clear all</button>
+        <div class="card-head matrix-head"><h3>Permission matrix</h3><span class="sel-role" id="matrixRole"></span><span class="perm-total" id="matrixTotal"></span><span class="perm-total" id="matrixParent"></span><button class="btn danger ghost" id="clearPermsBtn" style="margin-left:8px">Clear all</button>
           <div class="scope-box"><label for="scopeSelect">users:* data scope</label><select id="scopeSelect"><option value="mixed" disabled>Mixed (stored scopes diverge)</option><option value="all">All rows</option><option value="dept">Department</option><option value="self">Self only</option></select><span class="mixed" id="scopeMixed" style="display:none">mixed</span></div>
         </div>
-        <div class="mtx-bar" id="mtxBar" style="display:none"><span>Unsaved permission changes</span><button class="btn primary sm" id="mtxSave">Save</button><button class="btn sm" id="mtxCancel">Cancel</button></div>
+        <div class="mtx-bar" id="mtxBar" style="display:none"><span>Unsaved permission changes</span><button class="btn primary" id="mtxSave">Save</button><button class="btn" id="mtxCancel">Cancel</button></div>
         <div class="error-banner" role="alert" id="mtxErr" style="display:none;margin:0 16px 8px"><svg class="ic"><use href="#i-alert"/></svg><span id="mtxErrMsg"></span><button class="btn sm" id="mtxErrRetry">Retry</button></div>
         <div class="matrix-wrap" tabindex="0" role="region" aria-label="Permission matrix"><table class="matrix">
           <thead><tr><th>Resource</th><th>read</th><th>write</th><th>delete</th></tr></thead>

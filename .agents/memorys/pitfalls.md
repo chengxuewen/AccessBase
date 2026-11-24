@@ -877,3 +877,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: fix 13 给 .btn 固定 height 后，按钮仍是 flex 可收缩项且 white-space 默认 normal：page-head 左标题挤占宽度时右钮被压窄→文字折行→固定高容纳不下溢出绘制。
 - **解法**: .btn{white-space:nowrap;flex-shrink:0}；.page-head > div:last-child{flex-shrink:0}（让左文案换行而非右钮）；tabs/tag 补 nowrap 防同族；锁加 830px 探针（page-head 钮单值 32 + scrollHeight<=clientHeight+1 + 无文档横溢）。
 - **验证**: control-heights pageHeadNarrow={heights:[32],wrapped:false,over:false}；截图 830px Create user 单行。教训：固定高度控件必须同时锁"不换行+不收缩"，三者缺一即溢出。
+
+## PIT-113: 两档刻度的"档归属"按容器猜而非按控件语义 → 编辑控件被误归紧凑档 (2026-11-24, user-reported)
+
+- **症状**: roles 矩阵 panel 的 Clear all / Department scope cbx 为 24，与同页 toolbar/form 的 32 参差；用户判"尺寸不统一"。
+- **根因**: fix 13/14 的档归属按**容器**划（panel-head=紧凑），但 panel 内是**主编辑控件**（清权限/改 scope/保存草稿），真实契约（Roles.tsx scope Select 在 Form.Item 内默认 size）为 32；紧凑档应只给 chrome/次级/retry。
+- **解法**: 档归属改按**控件语义**：编辑类（表单/toolbar/panel 编辑条/page-head/modal-foot）=32；chrome（topbar）+次级（card-head View all）+错误 retry=24；clearPermsBtn/mtxSave/mtxCancel 去 sm、scope cbx 回基档；锁 panelEditing 断言 32。
+- **验证**: control-heights panelEditing=[32]、cardHead/topbar=[24]；截图 roles panel 与 toolbar 同档。教训：刻度档归属问"这是编辑动作还是 chrome"，不问"它在哪个容器"。

@@ -2233,9 +2233,9 @@ test('control-heights', async ({ page }) => {
   await page.waitForTimeout(150);
   await page.evaluate(() => { const b = document.querySelector('#roleRows [data-perms]') as HTMLElement; if (b) b.click(); });
   await page.waitForTimeout(250);
-  const panel = await heights('.scope-box .cbx-btn, #mtxSave, #mtxCancel');
-  res.panelCompact = panel;
-  if (panel.length !== 1 || panel[0] !== 24) ok = false;
+  const panel = await heights('.scope-box .cbx-btn, #mtxSave, #mtxCancel, #clearPermsBtn');
+  res.panelEditing = panel;
+  if (panel.length !== 1 || panel[0] !== 32) ok = false;
   // post-seal fix 15: fixed-height buttons must never wrap or shrink (page-head at mid width).
   await page.setViewportSize({ width: 830, height: 600 });
   await page.evaluate(() => (document.querySelector('[data-page=users]') as HTMLElement).click());

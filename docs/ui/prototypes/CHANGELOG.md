@@ -1392,3 +1392,17 @@ action group gets flex-shrink:0 so the title text wraps instead of the buttons; 
 nowrap as same-family protection. control-heights lock gains an 830px probe asserting page-head
 buttons are single-tier 32, unwrapped (scrollHeight<=clientHeight+1) and no document overflow. Full
 re-run: 65 groups, 0 failures. Screenshot: 830px page-head with single-line Create user. PIT-112.
+
+## Post-seal fix 16 (user-reported): matrix panel editing controls on the compact tier — tier assignment by semantics, not container — 2026-11-24
+Report: on Roles the Clear all button and the Department scope combobox looked smaller than the
+page's other buttons/dropdowns. Probe showed they were internally consistent (24) but sat on the
+compact tier while toolbar/form controls use 32; the real contract (Roles.tsx scope Select inside a
+Form.Item, default size) is 32. Root cause: fix 13/14 assigned tiers by CONTAINER (panel-head =
+compact) instead of by control semantics. Fix: tier assignment now semantic — editing controls
+(forms, toolbars, page-head, modal-foot, and the matrix panel editing bar: Clear all / scope cbx /
+draft Save / Cancel) use the default 32 tier; compact 24 is reserved for chrome (topbar), secondary
+actions (card-head View all) and error-banner retries. clearPermsBtn/mtxSave/mtxCancel dropped their
+sm class; the scope-box/panel-head cbx compact override removed. control-heights lock panel probe
+renamed panelEditing and asserts 32 (scope cbx + Save + Cancel + Clear all), cardHead/topbar stay 24.
+Full re-run: 65 groups, 0 failures. Screenshot: roles matrix panel controls at 32 matching the
+toolbar. PIT-113 recorded; README tier wording updated to semantics-based assignment.
