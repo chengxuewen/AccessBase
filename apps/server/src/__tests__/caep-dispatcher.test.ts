@@ -48,6 +48,8 @@ interface Harness {
   dispatcher: { runOnce: () => Promise<void> };
   bodies: Array<{ url: string; body: string }>;
   stamps: Array<{ text: string; params: unknown[] }>;
+  infos: string[];
+  warns: string[];
 }
 
 function harness(
@@ -55,10 +57,13 @@ function harness(
   opts: {
     fetch?: (url: string, init: Record<string, unknown>) => Promise<{ status: number }>;
     dnsLookup?: CaepDispatcherDeps['dnsLookup'];
+    signingKeyPem?: CaepDispatcherDeps['signingKeyPem'];
   } = {},
 ): Harness {
   const bodies: Array<{ url: string; body: string }> = [];
   const stamps: Array<{ text: string; params: unknown[] }> = [];
+  const infos: string[] = [];
+  const warns: string[] = [];
   let tick = 0;
   const deps: CaepDispatcherDeps = {
     query: {
@@ -73,7 +78,6 @@ function harness(
       },
     },
     issuer: ISSUER,
-    signingKeyPem: () => PRIV_PEM,
     fetchImpl: async (url, init) => {
       const body = String(init['body']);
       bodies.push({ url, body });
@@ -81,14 +85,22 @@ function harness(
       return { status: 200 };
     },
     dnsLookup: opts.dnsLookup,
-    logger: { info: () => undefined, warn: () => undefined },
+    signingKeyPem: opts.signingKeyPem ?? (() => PRIV_PEM),
+    logger: {
+      info: (_o: unknown, m: string) => {
+        infos.push(m);
+      },
+      warn: (_o: unknown, m: string) => {
+        warns.push(m);
+      },
+    },
     // The unref'd timer must NEVER race the direct runOnce() driver — boot far
     // in the future; ticks are driven synchronously by the test.
     bootDelayMs: 60_000,
     intervalMs: 60_000,
   };
   const dispatcher = startCaepDispatcher(deps);
-  return { dispatcher, bodies, stamps };
+  return { dispatcher, bodies, stamps, infos, warns };
 }
 
 const deadStamp = (stamps: Harness['stamps']): { reason: string; detail: string } => {
@@ -150,6 +162,9 @@ describe('CAEP drainer classification (P-8 / F-05 / F-14)', () => {
     const last = h.stamps.at(-1);
     if (!last) throw new Error('expected a delivered stamp');
     expect(last.text).toContain(`"status"='delivered'`);
+    // Item-2 lock (undici dep now installed): the connect-time pin ACTIVATED
+    // — the DNS-rebinding TOCTOU window is closed in this environment.
+    expect(h.infos.some((m) => m.includes('connect-pin ACTIVE'))).toBe(true);
   });
 
   it('retry keeps the SAME jti (at-least-once dedup key never rotates)', async () => {
@@ -198,5 +213,52 @@ describe('mechanism independence (F-08 source lock — runtime dual-table proof 
     expect(src).not.toContain('webhook_deliveries');
     expect(src).not.toContain('webhooks_enabled');
     expect(src).not.toContain('WITH age');
+  });
+});
+
+describe('delivery-failure branches (review #13 — scripted seam)', () => {
+  const retryStamp = (h: Harness): { text: string; params: unknown[] } => {
+    const last = h.stamps.at(-1);
+    if (!last) throw new Error('expected a retry stamp');
+    expect(last.text).toContain('next_attempt_at');
+    return last;
+  };
+
+  it('signing-unconfigured: no SET key → RETRY with the reason recorded (row stays pending)', async () => {
+    const row = claimedRow();
+    const h = harness([[row]], {
+      dnsLookup: async () => [{ address: '93.184.216.34', family: 4 }],
+      signingKeyPem: () => undefined,
+    });
+    await h.dispatcher.runOnce();
+    expect(h.bodies).toHaveLength(0); // nothing signed, nothing sent
+    const st = retryStamp(h);
+    expect(String(st.params[2])).toContain('signing-unconfigured');
+  });
+
+  it('sign-failed: invalid PEM material → RETRY (a late-mounted key file heals next tick)', async () => {
+    const row = claimedRow();
+    const h = harness([[row]], {
+      dnsLookup: async () => [{ address: '93.184.216.34', family: 4 }],
+      signingKeyPem: () => '-----BEGIN NOT A KEY-----\nzz\n-----END NOT A KEY-----',
+    });
+    await h.dispatcher.runOnce();
+    expect(h.bodies).toHaveLength(0);
+    const st = retryStamp(h);
+    expect(String(st.params[2])).toContain('sign-failed');
+  });
+
+  it('non-2xx receiver (incl. redirect:manual 3xx) → RETRY with http status, NOT delivered', async () => {
+    for (const status of [500, 302]) {
+      const row = claimedRow();
+      const h = harness([[row]], {
+        dnsLookup: async () => [{ address: '93.184.216.34', family: 4 }],
+        fetch: async () => ({ status }),
+      });
+      await h.dispatcher.runOnce();
+      expect(h.bodies).toHaveLength(1); // the SET was POSTed...
+      const st = retryStamp(h);
+      expect(String(st.params[2])).toContain(`http ${status}`); // ...and recorded as a failure
+    }
   });
 });

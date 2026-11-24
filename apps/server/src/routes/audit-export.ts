@@ -19,8 +19,8 @@
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { randomBytes } from 'node:crypto';
-import { desc, eq } from 'drizzle-orm';
-import { createDb, auditExportDestinations } from '@accessbase/identity/db';
+import { desc, eq, sql } from 'drizzle-orm';
+import { createDb, auditExportDestinations, auditLogs } from '@accessbase/identity/db';
 import { encryptSecret } from '@accessbase/identity';
 import { config } from '../config.js';
 import { requirePermission } from '../utils/permission.js';
@@ -106,9 +106,21 @@ export async function auditExportRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(409).send(err('AUDIT_EXPORT_EXISTS', 'This destination URL already exists'));
       }
       const secret = randomBytes(32).toString('base64url');
+      // PH-3: a NEW destination starts at the CURRENT max(seq) — pre-existing
+      // history is NOT replayed (backfilled seq order is arbitrary; receivers
+      // that want history negotiate it explicitly). Battery-caught: the plain
+      // column default (0) would replay everything.
+      const [head] = await db
+        .select({ m: sql<number>`coalesce(max(${auditLogs.seq}), 0)` })
+        .from(auditLogs);
       const [row] = await db
         .insert(auditExportDestinations)
-        .values({ url: gated.url, description, secretEncrypted: encryptSecret(secret) })
+        .values({
+          url: gated.url,
+          description,
+          secretEncrypted: encryptSecret(secret),
+          lastDeliveredSeq: head?.m ?? 0,
+        })
         .returning();
       if (!row) {
         return reply

@@ -60,7 +60,12 @@ BEGIN
   END LOOP;
 END
 $$;--> statement-breakpoint
-SELECT setval('audit_logs_seq', GREATEST((SELECT COALESCE(max("seq"), 0) FROM "audit_logs"), 1));--> statement-breakpoint
+-- setval with is_called=false on an EMPTY table so the FIRST row takes seq=1
+-- (battery-caught: a plain setval(1) pre-allocates seq 1 → every fresh
+-- deployment would open with a phantom export gap at [1]).
+SELECT setval('audit_logs_seq',
+              GREATEST((SELECT COALESCE(max("seq"), 0) FROM "audit_logs"), 1),
+              (SELECT COALESCE(max("seq"), 0) FROM "audit_logs") > 0);--> statement-breakpoint
 ALTER TABLE "audit_logs" ALTER COLUMN "seq" SET DEFAULT nextval('audit_logs_seq');--> statement-breakpoint
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_seq_not_null" CHECK ("seq" IS NOT NULL) NOT VALID;--> statement-breakpoint
 ALTER TABLE "audit_logs" VALIDATE CONSTRAINT "audit_logs_seq_not_null";--> statement-breakpoint

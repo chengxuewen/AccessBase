@@ -87,6 +87,8 @@ interface ClaimedSet {
   subject_id: string;
   jti: string;
   url: string | null;
+  /** The receiver's ab_-prefixed client_id (SET aud) — NULL only for orphans. */
+  aud: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,7 +99,9 @@ interface ClaimedSet {
 let denyAgent: unknown;
 let denyAgentTried = false;
 
-async function getDenyDispatcher(): Promise<unknown | undefined> {
+type DrainerLog = { info: (o: unknown, m: string) => void; warn: (o: unknown, m: string) => void };
+
+async function getDenyDispatcher(log: DrainerLog): Promise<unknown | undefined> {
   if (denyAgentTried) return denyAgent;
   denyAgentTried = true;
   try {
@@ -129,10 +133,11 @@ async function getDenyDispatcher(): Promise<unknown | undefined> {
         .catch((e: unknown) => cb(e instanceof Error ? e : new Error('lookup-failed')));
     };
     denyAgent = new mod.Agent({ connect: { lookup } });
-    logger.info('CAEP dispatcher: undici connect-pin ACTIVE (TOCTOU closed)');
+    log.info({}, 'CAEP dispatcher: undici connect-pin ACTIVE (TOCTOU closed)');
   } catch {
     denyAgent = undefined; // undici not a direct dep — dispatch-time gate remains
-    logger.warn(
+    log.warn(
+      {},
       'CAEP dispatcher: undici not importable — connect-pin inactive (dispatch-time SSRF gate only; add undici dependency to close the rebinding window)',
     );
   }
@@ -184,10 +189,11 @@ export function startCaepDispatcher(deps: CaepDispatcherDeps): CaepDispatcher {
                ORDER BY "id" LIMIT $2
                FOR UPDATE SKIP LOCKED
             )
-            RETURNING "id", "attempts"
+            RETURNING "id", "attempts", "tenant_id", "client_id", "event_type", "subject_id", "jti"
          )
          SELECT c."id", c."attempts", c."tenant_id", c."client_id", c."event_type",
-                c."subject_id", c."jti", o."caep_endpoint_uri" AS "url"
+                c."subject_id", c."jti", o."caep_endpoint_uri" AS "url",
+                o."client_id" AS "aud"
            FROM "claimed" c
            LEFT JOIN "oidc_clients" o ON o."id" = c."client_id"
           ORDER BY c."id"`,
@@ -230,7 +236,9 @@ export function startCaepDispatcher(deps: CaepDispatcherDeps): CaepDispatcher {
     try {
       set = await signSet(pem, {
         issuer: deps.issuer,
-        audience: row.client_id,
+        // aud = the RECEIVER'S ab_-prefixed client_id (what it matches on);
+        // the row's client_id is an opaque FK uuid — useless as an aud.
+        audience: row.aud ?? row.client_id ?? 'unknown',
         jti: row.jti,
         txn: String(row.id),
         subjectId: row.subject_id,
@@ -241,7 +249,7 @@ export function startCaepDispatcher(deps: CaepDispatcherDeps): CaepDispatcher {
       return;
     }
     // (e)/(f) deliver.
-    const dispatcher = await getDenyDispatcher();
+    const dispatcher = await getDenyDispatcher(log);
     try {
       const res = await deps.fetchImpl(row.url, {
         method: 'POST',
