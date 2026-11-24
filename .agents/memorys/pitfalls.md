@@ -918,7 +918,7 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **症状**: MfaCard 新增 #mfaSetupModal/#mfaCode 与裁决 4 遗存模态重名（openModal 开错层、settings 组 fill 隐藏 input 超时）；harness 新探针 const s403/expErr/csv/dl 与既有组重名致编译错；DEL['mfa'] 被 TDZ 修复移出改名区后仍用旧 id（null.style 抛错）；admin 误用 companion 的 busy()（admin 只有 btnBusy）ReferenceError。
 - **根因**: 单文件 kit 的 id/顶层 const/函数名是**全局命名空间**，扩展前未枚举既有占用；跨文件复制 handler 时 helper 名不核对定义；批量改名按"区域"切块时，被移动到其他位置的代码块漏改。
 - **解法**: 扩展前 grep 新 id/const/函数名在兩文件的既有占用（含 harness spec 的组内 const）；新表面 id 加命名空间前缀（mfaCard*）；跨文件复用 helper 先 grep 定义（busy vs btnBusy）；改名后对**全文件**再 grep 旧名残留（不只改名区）。
-- **验证**: `grep -c 'id="mfaSetupModal"' docs/ui/prototypes/admin-console.html` ==1；`npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts` 无 SyntaxError/ReferenceError；改名后 `grep -n 'mfaOff\|mfaOn' admin-console.html` 仅余命名空间版。
+- **验证**: harness **id-uniqueness 门禁组**（68 组之一，markup id 逐文件唯一，双样本验过：注入重复 id 红/移除绿）；基线即抓出 verifyMsg 跨表面碰撞（profile 写 audit span）已改名 profVerifyMsg；`npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts` 无 SyntaxError/ReferenceError。
 
 ## PIT-119: 探针值域靠猜 + 同组探针状态耦合 → 断言假失败/假通过 (2026-11-24, 契约扩展批 ≥3 次)
 

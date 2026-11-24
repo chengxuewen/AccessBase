@@ -910,7 +910,7 @@ html[lang="zh-CN"] body{line-height:1.7}
     <section class="page" id="page-profile">
       <div class="page-head"><div><h1>Profile</h1><div class="sub">Your account, security and linked identities</div></div></div>
       <div class="profile-stack">
-        <div class="warn-banner" id="profileVerifyBanner" style="align-items:center"><svg class="ic"><use href="#i-mail"/></svg><div style="flex:1"><div>Your email is not verified.</div><div class="verify-msg" id="verifyMsg" style="display:none"></div></div><button class="btn" id="sendVerifyBtn">Send verification</button></div>
+        <div class="warn-banner" id="profileVerifyBanner" style="align-items:center"><svg class="ic"><use href="#i-mail"/></svg><div style="flex:1"><div>Your email is not verified.</div><div class="verify-msg" id="profVerifyMsg" style="display:none"></div></div><button class="btn" id="sendVerifyBtn">Send verification</button></div>
         <div class="card">
           <div class="p-card-head"><h3>Personal information</h3><button class="btn danger ghost extra" id="revokeOthersBtn"><svg class="ic" style="width:var(--ic-m);height:var(--ic-m)"><use href="#i-logout"/></svg>Log out other devices</button></div>
           <div class="p-card-body">
@@ -1926,7 +1926,7 @@ function renderProfile(){
  $('statusCell').innerHTML=PROFILE.isActive?'<span class="tag ok"><span class="dot"></span>Active</span>':'<span class="tag danger"><span class="dot"></span>Suspended</span>';
  $('profileVerifyBanner').style.display=PROFILE.emailVerified?'none':'flex';
 }
-$('sendVerifyBtn').onclick=()=>{const b=$('sendVerifyBtn');btnBusy(b,true,'Sending…');const m=$('verifyMsg');setTimeout(()=>{btnBusy(b,false);if(!verifySendTried){verifySendTried=true;m.className='verify-msg err';m.textContent='Verification email failed to send: upstream timeout (prototype simulation) — retry.';m.style.display='block';toast('Verification send failed — retry','error');return;}m.className='verify-msg';m.textContent='Verification email sent to '+PROFILE.email+'.';m.style.display='block';toast('Verification email sent');},400);};
+$('sendVerifyBtn').onclick=()=>{const b=$('sendVerifyBtn');btnBusy(b,true,'Sending…');const m=$('profVerifyMsg');setTimeout(()=>{btnBusy(b,false);if(!verifySendTried){verifySendTried=true;m.className='verify-msg err';m.textContent='Verification email failed to send: upstream timeout (prototype simulation) — retry.';m.style.display='block';toast('Verification send failed — retry','error');return;}m.className='verify-msg';m.textContent='Verification email sent to '+PROFILE.email+'.';m.style.display='block';toast('Verification email sent');},400);};
 $('revokeOthersBtn').onclick=()=>{openConfirm('sessions-others',0,{verb:'Sign out',title:'Log out other devices',msg:'Sign out <strong>all other devices</strong>? Their sessions are revoked immediately. This is fail-closed: if revocation fails the sessions are kept and an error is shown.',toast:'Other devices signed out'});};
 /* Password policy — mirrors packages/identity/src/services/password-policy.ts
    password-change callsite defaults: minLength 12 + requireUpper/Lower/Digit/Special

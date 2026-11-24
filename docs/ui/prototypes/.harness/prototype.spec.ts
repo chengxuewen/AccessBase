@@ -385,7 +385,7 @@ test('profile', async ({ page }) => {
   await page.waitForTimeout(600);
   await page.locator('#sendVerifyBtn').click();
   await page.waitForTimeout(600);
-  const sendVerifyMsg = await page.evaluate(() => document.getElementById('verifyMsg')!.textContent);
+  const sendVerifyMsg = await page.evaluate(() => document.getElementById('profVerifyMsg')!.textContent);
   const nameBefore = await page.evaluate(() => document.getElementById('nameCell')!.textContent!.trim());
   await page.locator('#nameEdit').click();
   await page.locator('#nameInput').fill('Jane Admin');
@@ -447,10 +447,10 @@ test('profile-async', async ({ page }) => {
   await page.locator('#sendVerifyBtn').click();
   const vBusy = await page.evaluate(() => (document.getElementById('sendVerifyBtn') as HTMLButtonElement).disabled);
   await page.waitForTimeout(600);
-  const vFail = await page.evaluate(() => ({ msg: document.getElementById('verifyMsg')!.textContent!, err: document.getElementById('verifyMsg')!.className.includes('err') }));
+  const vFail = await page.evaluate(() => ({ msg: document.getElementById('profVerifyMsg')!.textContent!, err: document.getElementById('profVerifyMsg')!.className.includes('err') }));
   await page.locator('#sendVerifyBtn').click();
   await page.waitForTimeout(600);
-  const vOk = await page.evaluate(() => ({ msg: document.getElementById('verifyMsg')!.textContent!, err: document.getElementById('verifyMsg')!.className.includes('err') }));
+  const vOk = await page.evaluate(() => ({ msg: document.getElementById('profVerifyMsg')!.textContent!, err: document.getElementById('profVerifyMsg')!.className.includes('err') }));
   await page.locator('#nameEdit').click();
   await page.locator('#nameInput').fill('');
   await page.locator('#nameSave').click();
@@ -509,7 +509,7 @@ test('surfaces-contrast', async ({ page }) => {
       users: ['#userRows .tag.ok', '#userRows .tag.danger', '#userRows .count-pill', '#page-users .cbx-opt[aria-selected="true"]'],
       roles: ['#roleRows .sys-tag'],
       audit: ['#auditRows .tag', '#auditVerifyBanner span', '#auditVerifyBanner .hash', '#auditErrBanner span'],
-      profile: ['#profileVerifyBanner div', '#verifyMsg', '#statusCell .tag'],
+      profile: ['#profileVerifyBanner div', '#profVerifyMsg', '#statusCell .tag'],
       dashboard: ['#activity .t .tag', '#activity .m'],
       settings: ['#sessionRows .tag', '#optionRows .mono'],
     };
@@ -2446,6 +2446,26 @@ test('import-users', async ({ page }) => {
     && done.users === users0 + 1 && done.committed && done.importedTag && done.toast === 'Imported 1 users';
   rec('import-users', pass, a);
   expect(pass, 'import-users').toBe(true);
+});
+
+test('id-uniqueness', async ({ page }) => {
+  // PIT-118 prevention gate: single-file kits share one global id namespace; a duplicate id makes
+  // getElementById hit the first match cross-surface (verifyMsg incident: profile wrote audit's span).
+  // Source-level markup scan (scripts stripped) so runtime-built ids are out of scope.
+  const scan = (file: string) => {
+    const t = fs.readFileSync(path.resolve(__dirname, '..', file), 'utf8');
+    const markup = t.replace(/<script>[\s\S]*?<\/script>/g, '');
+    const ids = [...markup.matchAll(/id="([^"]+)"/g)].map(m => m[1]);
+    const seen = new Set<string>(); const dups: string[] = [];
+    for (const i of ids) { if (seen.has(i)) dups.push(i); seen.add(i); }
+    return { n: ids.length, dups };
+  };
+  const admin = scan('admin-console.html');
+  const comp = scan('auth-flows.html');
+  const a = { admin, comp };
+  const pass = admin.dups.length === 0 && comp.dups.length === 0 && admin.n > 300 && comp.n > 100;
+  rec('id-uniqueness', pass, a);
+  expect(pass, 'id-uniqueness: no duplicate markup ids in either prototype').toBe(true);
 });
 
 test('states', async ({ page }) => {

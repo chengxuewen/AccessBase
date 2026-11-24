@@ -1545,3 +1545,13 @@ gains visible-window probes (main.clientHeight >= viewport-1 and elementFromPoin
 hits the state page). Double-sample verified: removing the single-row rule reds the group, restoring
 greens it. Full re-run: 67 groups, 0 failures. Screenshot: chrome-less centered 403 with primary back
 CTA. PIT-117 recorded.
+
+## Gate upgrade (lesson-review round 4): id-uniqueness harness group — 2026-11-24
+PIT-118 prevention upgraded to a CI gate: new group id-uniqueness (68 total) scans both prototypes'
+markup (scripts stripped) and asserts the id namespace is unique per file. The baseline scan immediately
+caught a REAL cross-surface collision: verifyMsg existed twice (audit hash-verify banner span + profile
+email-verification div); getElementById first-match meant the profile send-verification handler wrote
+the AUDIT span and profile users saw no message (locks had been reading the wrong element too). Fixed
+by renaming the profile side to profVerifyMsg (markup + handler + four lock references). Double-sample
+verified: injecting a duplicate id reds the group, removing it greens it. Full re-run: 68 groups,
+0 failures. README lock index 68; PIT-118 verify field now cites the gate.

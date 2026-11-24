@@ -4,118 +4,17 @@
   "runner": "playwright (reproducible suite; .harness/prototype.spec.ts)",
   "fail": 0,
   "results": {
-    "security-states": {
+    "id-uniqueness": {
       "pass": true,
       "assertions": {
-        "secLoad": {
-          "sess": "flex",
-          "sessRows": 0,
-          "pk": "flex"
+        "admin": {
+          "n": 349,
+          "dups": []
         },
-        "secOk": {
-          "sess": "none",
-          "sessRows": 3,
-          "pkRows": 2
-        },
-        "tplLoad": "flex",
-        "tplOk": {
-          "banner": "none",
-          "rows": 4
-        },
-        "tplGuard": {
-          "toast": "Template subject is required in both en and zh",
-          "open": true
-        },
-        "revFail": {
-          "toast": "Revocation failed: upstream timeout (prototype simulation) — sessions kept",
-          "rows": 3
-        },
-        "revOk": 1,
-        "sessBefore": 3,
-        "mfa": {
-          "mfa0": {
-            "card": true,
-            "off": "",
-            "on": "none"
-          },
-          "mfaBad": "flex",
-          "mfaOn": {
-            "on": "block",
-            "alert": true,
-            "rec": true,
-            "codes": 8
-          },
-          "mfaOff": {
-            "off": "block",
-            "on": "none"
-          }
-        },
-        "mfaPass": true
-      }
-    },
-    "states": {
-      "pass": true,
-      "assertions": {
-        "loading": {
-          "skel": 24,
-          "rows": 0
-        },
-        "loaded": 8,
-        "emptyFiltered": {
-          "state": true,
-          "clear": true
-        },
-        "cleared": 8,
-        "emptyTrue": {
-          "state": true,
-          "cta": true
-        },
-        "errState": {
-          "banner": true,
-          "retry": true,
-          "toastRole": "alert",
-          "toastCls": "proto-toast error"
-        },
-        "okState": {
-          "banner": true,
-          "errGone": true,
-          "toastRole": "status",
-          "live": "polite"
-        },
-        "s403": {
-          "on": true,
-          "crumb": "Forbidden",
-          "pages": 0
-        },
-        "back403": true,
-        "s404": true,
-        "sErr": true,
-        "retryBack": {
-          "dash": true,
-          "toast": "proto-toast info"
-        },
-        "st": {
-          "st403": {
-            "on": true,
-            "sider": "none",
-            "topbar": "none",
-            "full": true,
-            "mainH": 720,
-            "centerHit": true,
-            "primary": true
-          },
-          "st404": {
-            "on": true,
-            "sider": "none",
-            "full": true
-          },
-          "stBack": {
-            "mode": false,
-            "sider": "flex",
-            "page": 1
-          }
-        },
-        "stPass": true
+        "comp": {
+          "n": 141,
+          "dups": []
+        }
       }
     }
   }

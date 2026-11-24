@@ -80,7 +80,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts
 npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --grep roles-edit
 ```
 
-- 67 groups, all must pass. Per-group assertions are written to
+- 68 groups, all must pass. Per-group assertions are written to
   `docs/ui/prototypes/.harness/results.json` (`results[name].assertions`, `fail` count) for evidence review.
 - The harness loads the same `file://` page; it never mocks the prototype itself except where a test
   deliberately stubs `navigator.clipboard` / `document.execCommand` to prove the copy-failure branch.
@@ -88,7 +88,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
   surface, motion family, tint-bearing color, or locale string requires extending the matching group
   (or adding one) in the same change — never ship a surface the harness cannot see.
 
-## Lock index (67 groups)
+## Lock index (68 groups)
 
 | Group | Locks | Ruling |
 |---|---|---|
@@ -208,6 +208,7 @@ AntD Transfer picker + modal Save; create-form note that UI sends no scopes and 
 | 40 | contract extension P2: 403/404/500 standalone full pages (chrome hidden, viewport-filling, primary back CTA) — real routes live outside the layout (App.tsx:285-287) | b268f53 | states |
 | 41 | contract extension P2: audit export modeled as server job (busy→error w/ audit-export-error testid→retry), full filtered set (no client paging), filename mirrors api/audit.ts exportAuditLogs | 808f3dc | audit-model |
 | 42 | contract extension P2: forced password-change handoff (login → mode=force panel, policy+confirm) + admin reset-password / resend-invite on UserDetail (real testids, eligible vs suspended) | 10a0c8c | auth-login, user-detail-page |
+| id-uniqueness | markup id namespace unique per prototype (PIT-118 gate; caught verifyMsg cross-surface collision) | lesson-review round 4 upgrade |
 | import-users | two-phase import: limitation alert, strict-header parse error, dry-run report (valid/skipped/error), commit gated on check, first-attempt commit failure, committed report + USERS growth | 37 |
 | user-detail-page | #/users/:id deep-link page: same builder as modal, role=switch immediate toggle, inline+toast error on first attempt, retry flips, back restores list | 36 |
 
