@@ -898,3 +898,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: 测量前未验证三件事：selector 存在、节点可见（rect>0）、所在页面/flow 已激活；同名 class 在多容器存在时取到隐藏实例。
 - **解法**: 探针三 guard：先断言存在（missing 报回而非 throw）、过滤 rect>0、先 click 激活目标 page/flow；隐藏块改测 getComputedStyle（display:none 仍返回 specified 值，可锁档位）；容器探针用最近可见祖先限定 scope。
 - **验证**: control-heights 的 retries 探针用 computed height（隐藏仍 24px）；profile/panel 探针先激活页面；本会话所有探针脚本带 missing/guard 分支。
+
+## PIT-116: fixed 浮层两陷阱——scrollIntoView 触发祖先 scroll 被外滚守卫误关 + backdrop-filter 祖先改变 fixed 包含块致错位 (2026-11-24, user-reported)
+
+- **症状**: 选 cupertino 后点风格选择器"打不开"下拉；实为两层：① 开即被关；② 即使打开也右偏被裁（偏移量=侧栏宽）。
+- **根因**: ① cbxSetActive 用 opts[ai].scrollIntoView({block:'nearest'})，选中末项时 UA 滚动祖先（fixed 列表在 backdrop-filter 祖先内时滚到 document），capture scroll 守卫 `openCbx.contains(e.target)` 对 document 级 target 判否→cbxClose；首项选中的 pack（broadsheet）不需滚动故"正常"——**样本依赖型缺陷**。② backdrop-filter（cupertino vibrancy topbar）为 fixed 后代建立包含块，cbxPlace 按视口坐标设 left/top 实际相对 topbar 解析→整体偏移。
+- **解法**: ① 列表内手动 scrollTop 数学（offsetTop/offsetHeight vs scrollTop/clientHeight）替代 scrollIntoView，只滚列表不滚祖先；② cbxPlace 设坐标后测量 getBoundingClientRect 与期望差值做一次校正（dx/dy 回加），与包含块无关；锁断言 cupOpen{open,exp,stayOpenOnInternalScroll,activeLast,aligned}。
+- **验证**: shape-scale cupOpen 全真；双样本：还原 scrollIntoView 组红/恢复绿；截图 cupertino 下拉对齐 trigger 完整可见。教训：fixed 浮层定位不能假设包含块=视口（transform/filter/backdrop-filter/contain 都会改）；"开即关"类缺陷先 instrument cbxClose 调用栈定位触发源。

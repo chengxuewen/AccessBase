@@ -250,6 +250,10 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   semantics as the manual `.app.collapsed` state (group labels hidden to 6px spacers, collapse trigger
   hidden); icon-only nav links keep an aria-label and a hover tip in both icon-only modes, because
   display:none on the visible label would otherwise remove the link name from the accessibility tree.
+  Combobox pops are placed in viewport coordinates with a measure-and-correct pass, because a
+  backdrop-filter/transform ancestor (cupertino vibrancy topbar) changes the containing block of
+  fixed-position descendants; active-option scrolling uses list-local scrollTop math, never
+  scrollIntoView (which scrolls ancestors and tripped the outside-scroll close guard).
   The sider never scrolls horizontally: .nav sets overflow-x:hidden and icon-only group spacers take
   width:0 (visibility:hidden alone keeps their nowrap text width, which overflow-y:auto turned into
   a horizontal scrollbar at the sider bottom).

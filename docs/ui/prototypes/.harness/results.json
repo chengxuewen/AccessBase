@@ -1402,6 +1402,13 @@
             "2px"
           ]
         },
+        "cupOpen": {
+          "open": true,
+          "exp": "true",
+          "stayOpenOnInternalScroll": true,
+          "activeLast": true,
+          "aligned": true
+        },
         "ib": {
           "rowW": 28,
           "rowH": 28,

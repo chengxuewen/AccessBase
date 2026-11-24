@@ -2125,8 +2125,28 @@ test('shape-scale', async ({ page }) => {
   const cup = (res.cupertino as any).tag[0];
   const ant = (res.ant as any).tag[0];
   const pass = ok && cup !== ant && parseFloat(cup) > 100 && ibOk;
-  rec('shape-scale', pass, Object.assign({}, res, { ib, cpIc, hoverSync, ibOk }));
-  expect(pass, 'shape-scale: icon tiers + single pop radius + label-family radius per pack').toBe(true);
+  // post-seal fix 18: opening the pack selector under cupertino (selected = LAST option, list must
+  // scroll) must stay open — scrollIntoView used to bubble an ancestor scroll that the capture
+  // scroll-close listener treated as outside scroll and closed the pop immediately.
+  await page.evaluate(() => { const s = document.getElementById('styleSelect') as HTMLSelectElement; s.value = 'cupertino'; s.onchange!(new Event('change')); });
+  await page.waitForTimeout(150);
+  const cupOpen = await page.evaluate(async () => {
+    const s = document.getElementById('styleSelect') as HTMLSelectElement;
+    const w = s._cbx as HTMLElement;
+    (w.querySelector('.cbx-btn') as HTMLElement).click();
+    await new Promise(r => setTimeout(r, 120));
+    const list = w.querySelector('.cbx-list') as HTMLElement;
+    const before = w.classList.contains('open');
+    list.scrollTop = 40;
+    list.dispatchEvent(new Event('scroll', { bubbles: false }));
+    await new Promise(r => setTimeout(r, 80));
+    const lr2 = list.getBoundingClientRect(); const br2 = (w.querySelector('.cbx-btn') as HTMLElement).getBoundingClientRect();
+    return { open: before, exp: (w.querySelector('.cbx-btn') as HTMLElement).getAttribute('aria-expanded'), stayOpenOnInternalScroll: w.classList.contains('open'), activeLast: !!list.querySelector('.cbx-opt:last-child.active'), aligned: Math.abs(lr2.left - br2.left) <= 2 && lr2.right <= window.innerWidth };
+  });
+  res.cupOpen = cupOpen;
+  const pass2 = pass && cupOpen.open && cupOpen.exp === 'true' && cupOpen.stayOpenOnInternalScroll && cupOpen.activeLast && cupOpen.aligned;
+  rec('shape-scale', pass2, Object.assign({}, res, { ib, cpIc, hoverSync, ibOk }));
+  expect(pass2, 'shape-scale: icon tiers + single pop radius + label-family radius per pack + cupertino pack-selector opens').toBe(true);
 });
 
 test('narrow-nav', async ({ page }) => {

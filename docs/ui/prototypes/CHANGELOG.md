@@ -1419,3 +1419,21 @@ control-heights lock extended: profileActions single-tier 32 (sendVerify/revoke/
 retriesCompact computed 24px across eight retry ids, cardHead 32, topbar 24. Full re-run: 65 groups,
 0 failures. Screenshot: profile with uniform 32px actions. PIT-114 recorded; README tier wording
 finalized (compact = topbar chrome + error retries only).
+
+## Post-seal fix 18 (user-reported): cupertino pack selector would not open — two fixed-pop traps — 2026-11-24
+Report: after choosing the cupertino pack, clicking the topbar style selector did not open the
+dropdown. Instrumenting cbxClose call stacks revealed TWO stacked defects: (1) cbxSetActive used
+opts[ai].scrollIntoView({block:'nearest'}); with the last option selected (cupertino) the UA scrolled
+an ancestor (the fixed list lives inside the backdrop-filter topbar, so the scroll reached document),
+and the capture-phase outside-scroll guard (openCbx.contains(e.target) is false for document-level
+scroll targets) closed the pop immediately — packs whose selected option is first (broadsheet) needed
+no scroll and appeared fine, a sample-dependent defect. (2) Even when open, the pop was shifted right
+by the sidebar width and clipped: backdrop-filter on the cupertino topbar creates a containing block
+for fixed-position descendants, so cbxPlace's viewport coordinates resolved against the topbar box.
+Fix: active-option scrolling now uses list-local scrollTop math (offsetTop/offsetHeight vs
+scrollTop/clientHeight) and never scrolls ancestors; cbxPlace adds a measure-and-correct pass
+(getBoundingClientRect delta re-added to left/top) so placement is containing-block agnostic.
+shape-scale lock extended with cupOpen {open, aria-expanded, stays open on internal scroll, last
+option active, aligned to trigger within viewport}; double-sample verified (restoring scrollIntoView
+reds the group, the fix greens it). Full re-run: 65 groups, 0 failures. Screenshot: cupertino dropdown
+aligned under the trigger, fully visible, current pack checked. PIT-116 recorded.
