@@ -19,10 +19,24 @@ Origin: user challenge "实际页面和原型差距太大…没有使用 MCP 对
 
 - **W1 ring build** ✅ DONE this session: skill + mirror link + capture spec + first run (12 prototype + 12 app shots).
 - **W2 first baseline report** ✅ DONE (users full matrix + cross-cutting G1-G6; 11 pages captured, AI review scheduled next pass — report says so honestly).
-- **W3 route re-ruling (OPEN — user decision)**: the report quantifies the P-1=A cap: **6 cross-cutting CRITICAL + 2 users-page CRITICAL, ALL composition-level**. Options (from the earlier walk): A keep re-skin plan / B full per-page rebuild / C **four global surfaces rebuilt** (sidebar+topbar+table+pagehead — recommended; one-time, every page benefits). S4-S9 page families remain gated on the prototype 13-surface extension (P-7=A) regardless.
-- **W4 per-page AI review pass**: remaining 11 page matrices + Broadsheet-pack color re-check.
-- **W5 constraint landing in governance**: C1/MCP rule need a home in AGENTS.md — **that file belongs to the parallel session** (MM state); land via coordination, not unilateral edit. Interim authority: the skill + this plan + status.md.
+- **W3 route re-ruling — RULED 2026-11-25 (user-adjudicated one by one, 2/2)**:
+  - **Adjudication 1 = C — four global surfaces rebuilt to the prototype** (`ConsoleSider` grouped+brand block / `ConsoleHeader` breadcrumb+right action zone / `TableToolbar` search row+filter chips+meta row / `PageHead` title+subtitle+primary actions). Page interiors keep AntD. Startable immediately — NOT gated on the prototype extension. P-1=A (token re-skin) stays as the THEME layer (S1-S3 kept as foundation); the STRUCTURE layer is now C.
+  - **Adjudication 2 = B — table-cell contract components** (`EntityCell` avatar+name+sub / `StatusPill` dot+tinted tag via tokens / `Chip` role & label chips / `IconActions` eye-pencil-overflow + tooltips). One set, nine list pages benefit. Closes U1-U3 + G6 → C3 gate clears with NO exemption.
+  - Superseded: the report's "A keep / B full rebuild" options. Slice insertion: **S3.5 cell contract components** before S4; S4-S9 scope = adopt the 8 contract components + usage rules (three-states, copy feedback, control tiers). e2e migration: table-toolbar queries + column assertions (~8 specs) move to testids/within-column locators.
+- **W4 per-page AI review pass**: remaining 11 page matrices + Broadsheet-pack color re-check (now also serves as the per-slice CRITICAL ledger for S3.5/S4-S9).
+- **W5 constraint landing in governance**: C1/MCP rule need a home in AGENTS.md — landed via the skill registration (2e067e6); the C1 completion-definition line itself still rides the skill + this plan + status.md (AGENTS.md prose is the parallel session's file).
 - **W6 MCP repair follow-up**: user fixes MCP browser (1200); after repair, first MCP-driven interactive pass over login/pack-switch/collapse with screenshots attached.
+
+## §2.1 Execution order after the W3 ruling (C + B)
+
+```
+S3'  Shell rebuild   G1 sider groups + G2 brand block + G3 topbar composition   (AdminLayout + 2 new components)
+S3.5 Cell components EntityCell / StatusPill / Chip / IconActions (+ contrast/a11y locks + unit tests)
+S4   Page-head + toolbar adoption on the first family (users) — proves the G4/G5 components on a real page
+S4-S9 remaining families adopt the 8 components + usage rules; each slice closes its report rows and re-shoots dual images
+S10   close (visual baseline refresh after the LAST structural change; full regression; divergence ledger)
+```
+Per-slice gate (updated): existing gates + **conformance capture + report rows closed (CRITICAL=0 for the touched surfaces)** + MCP interactive pass (or MCP-down reported).
 
 ## §3 Gates per UI slice (updated definition)
 
