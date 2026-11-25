@@ -1,0 +1,29 @@
+/*
+ * S2 — THE P-5=B EXEMPTION FILE (user ruling A-4/P-5 lineage).
+ *
+ * Boundary doctrine: this is the ONLY hand-written CSS in the app besides
+ * src/index.css. The static lock (__tests__/css-boundary.test.ts) reds any
+ * other file introducing raw CSS or a new stylesheet import outside the
+ * allowlist. Consumption surface = the cssVars injected by PackStyleVars
+ * (theme/packs/*.ts, golden-locked against the prototype).
+ *
+ * Only rules that NO AntD token channel can express live here (everything
+ * else went through components.* in theme/mapping.ts):
+ */
+
+/* r-tag family (adjudication 21 + backlog ruling 2): tags AND combobox
+ * chips share the pack's tag radius (999px cupertino / 8px material /
+ * 0px carbon / var(--r2) ant+broadsheet). No component token exists. */
+.ant-tag,
+.ant-select-selection-item {
+  border-radius: var(--r-tag);
+}
+
+/* Contract focus ring on surfaces antd does NOT expose a focus token for
+ * (menu items, links, table rows). Inputs/buttons keep antd's own focus
+ * treatment — a blanket outline would double-ring with activeShadow. */
+.ant-menu-item:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}

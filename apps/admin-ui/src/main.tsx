@@ -5,7 +5,8 @@ import { LocaleGate } from './components/LocaleGate';
 import App from './App';
 import AppBridge from './components/AppBridge';
 import './i18n';
-import './index.css';
+import './index.css'
+import './theme/pack-vars.css';
 
 const rootEl = document.getElementById('root');
 if (!rootEl) throw new Error('Missing #root element');

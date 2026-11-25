@@ -73,8 +73,31 @@ export function paletteToThemeConfig(p: Palette, mode: 'light' | 'dark'): ThemeC
       // typography
       fontFamily: tok(p, 'sans'),
       fontSize: px(tok(p, 'fs14')),
-      // density (broadsheet/geist table contract rides component tokens in S2;
-      // the global default stays contract-verbatim)
+    },
+    // S2 control primitives — component tokens first; pack-vars.css (the P-5
+    // exemption file) only carries what NO token channel can express
+    // (r-tag family, focus ring on untokened surfaces).
+    components: {
+      // contract switch geometry 34x20 track / 14 knob (run-3: token form —
+      // bare-CSS track sizing skews knob travel; CSS stays as fallback only)
+      Switch: {
+        trackMinWidth: 34,
+        trackHeight: 20,
+        handleSize: 14,
+        innerMinMargin: 3,
+        innerMaxMargin: 17,
+      },
+      // danger two-tier (F-12 family): tint/text tier = colorError; the SOLID
+      // button base = --danger-solid (cross-theme constant in broadsheet)
+      Button: { colorError: tok(p, 'danger-solid') },
+      // shadow family (6 contract values vs 2 global channels — component pins)
+      Card: { boxShadow: tok(p, 'shadow-card') },
+      Popover: { boxShadow: tok(p, 'shadow-pop') },
+      // tooltip = SURFACE bubble + pop radius (prototype floatTip contract,
+      // README:69-73 — NOT the antd dark spotlight)
+      Tooltip: { colorBgSpotlight: surface, borderRadiusLG: px(tok(p, 'r6')) },
+      // combobox selected option = composited accent tint over surface
+      Select: { optionSelectedBg: compositeTintOver(tok(p, 'accent-tint'), surface) },
     },
   };
 }

@@ -137,3 +137,50 @@ describe('themeConfig ↔ cssVars internal consistency (same palette, two shapes
     }
   });
 });
+
+describe('S2 control primitives (component tokens; CSS only where no channel)', () => {
+  it('switch geometry = contract 34x20/14 (token form, run-3)', () => {
+    for (const packId of ['ant', 'broadsheet'] as const) {
+      for (const theme of ['light', 'dark'] as const) {
+        const sw = (PACKS[packId].themes[theme].components?.Switch ?? {}) as Record<string, number>;
+        expect(sw).toEqual({ trackMinWidth: 34, trackHeight: 20, handleSize: 14, innerMinMargin: 3, innerMaxMargin: 17 });
+      }
+    }
+  });
+
+  it('danger two-tier: Button solid base = --danger-solid (cross-theme constant in broadsheet)', () => {
+    const antLight = (PACKS.ant.themes.light.components?.Button ?? {}) as Record<string, string>;
+    const broadsheetLight = (PACKS.broadsheet.themes.light.components?.Button ?? {}) as Record<string, string>;
+    const broadsheetDark = (PACKS.broadsheet.themes.dark.components?.Button ?? {}) as Record<string, string>;
+    expect(antLight['colorError']).toBe('#CF1322'); // ant light --danger-solid
+    expect(broadsheetLight['colorError']).toBe('#B3372F');
+    expect(broadsheetDark['colorError']).toBe('#B3372F'); // solid PINNED across themes (contract)
+  });
+
+  it('tooltip = SURFACE bubble + pop radius (floatTip contract, not dark spotlight)', () => {
+    const tt = (PACKS.broadsheet.themes.light.components?.Tooltip ?? {}) as Record<string, string>;
+    expect(tt['colorBgSpotlight']).toBe('#FFFFFF');
+    expect(tt['borderRadiusLG']).toBe(6);
+  });
+
+  it('select selected option = composited accent tint over surface', () => {
+    const vars = PACKS.ant.cssVars.light;
+    const sel = (PACKS.ant.themes.light.components?.Select ?? {}) as Record<string, string>;
+    expect(sel['optionSelectedBg']).toBe(compositeTintOver(tok(vars, '--accent-tint'), tok(vars, '--surface')));
+  });
+
+  it('table density per pack: ant 12px (block override), broadsheet 6px (row-pad default)', () => {
+    const antT = (PACKS.ant.themes.light.components?.Table ?? {}) as Record<string, number>;
+    const bT = (PACKS.broadsheet.themes.light.components?.Table ?? {}) as Record<string, number>;
+    expect(antT).toEqual({ cellPaddingBlock: 12, cellPaddingInline: 16 });
+    expect(bT).toEqual({ cellPaddingBlock: 6, cellPaddingInline: 16 });
+  });
+
+  it('card/popover shadows ride the contract shadow family', () => {
+    const vars = PACKS.broadsheet.cssVars.light;
+    const card = (PACKS.broadsheet.themes.light.components?.Card ?? {}) as Record<string, string>;
+    const pop = (PACKS.broadsheet.themes.light.components?.Popover ?? {}) as Record<string, string>;
+    expect(card['boxShadow']).toBe(tok(vars, '--shadow-card'));
+    expect(pop['boxShadow']).toBe(tok(vars, '--shadow-pop'));
+  });
+});
