@@ -954,3 +954,15 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: 新增字面量前未查既有 i18n 规则/字典是否已覆盖；zh pass 会翻译 EN 文本节点，builder 再产 zh 即双来源。
 - **解法**: 单一来源——builder 只产 EN，zh 走既有规则/字典；新增 zh 需求先 grep I18N_RULES/I18N_ZH 确认无覆盖再加分支；锁断言以**实际渲染译文**为准（先 diag 读真值）。
 - **验证**: `grep -c "startsWith('zh')" docs/ui/prototypes/admin-console.html` 分页 builder 无 zh 分支；list-grammar pagZh 匹配既有规则译文 /共 \d+ 条$/。
+
+## PIT-124: 真栈车道的"临时库"Helper 实为集群级重置——dev 库被清空 (2026-11-25, 一次，损失 dev 管理员账号)
+
+**症状**：`auth.spec` 无效凭据用例反复"环境偶发"失败；排查发现 dev 库 **0 用户**——dev 管理员账号消失。
+
+**根因**（两层）：(1) W0.7 的 `resetBackendScratch()` 第一行调用 `resetBackend()` = `ACCESSBASE_RESET_CONFIRM=yes bash accessbase.sh reset`，这是**集群级**重置（drop 重建 dev 库），注释却写"dev DB comes back too — untouched"——它回来的是**空库**；(2) 车道的"热路径"：`waitForServer()` 成功就不 `restartServerScratch()`，于是**复用了一个连着别的库的 server**——向导把管理员建进了 dev 库（第二次事故的形态）。
+
+**为什么之前没炸**：真栈车道此前只在 stack 未运行时跑过（冷路径）；S10 时栈已起 → 热路径首次触发。且 helper 的分离启动命令没指定 cwd，从非仓库根调用时 `bash accessbase.sh` 找不到（Playwright 恰好以仓库根为 cwd 掩盖了它）。
+
+**修复**：`resetBackendScratch` 不再调用任何 reset——只 drop/recreate scratch 库 + `db:push` 推 schema（PG/Redis 仅在 down 时 start）；车道**无条件** `restartServerScratch()`（永不信任热 server 的库）；两个 restart helper 显式 `cwd: PROJECT_ROOT`。**证明**：dev 库放哨兵表 → 跑车道 → 哨兵存活、dev 用户集零变化、scratch 出现向导管理员、server 连 scratch。
+
+**规则**：任何名为 scratch/temporary 的测试设施，代码路径上**不得出现** `accessbase.sh reset`/`resetBackend`；热 server 的数据库归属不可假设——需要特定库时**总是**重启到该库。

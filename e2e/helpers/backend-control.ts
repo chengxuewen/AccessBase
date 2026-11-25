@@ -34,21 +34,38 @@ export function resetBackend(): void {
   execSync(redisCmd, { cwd: PROJECT_ROOT, stdio: 'pipe', timeout: 15_000, shell: '/bin/bash' });
 }
 
-/** Scratch-DB reset: reset the CLUSTER (same machinery), then recreate the
- * scratch app DB from the migrated template. Never touches the dev DB. */
+/** Scratch-DB reset — TOUCHES ONLY THE SCRATCH DATABASE.
+ *
+ * INCIDENT 2026-11-25: this used to call `resetBackend()` first (a CLUSTER-level
+ * `accessbase.sh reset`), which WIPED THE DEV DATABASE — the dev admin account
+ * was lost when the real-stack lane ran at S10. Never again: no `accessbase.sh
+ * reset` on this path. The scratch DB is dropped/recreated in place and gets
+ * its schema from the SAME migration chain the dev stack runs at boot (db:push).
+ * PG/Redis are only STARTED if down — never reset. */
 export function resetBackendScratch(): void {
-  resetBackend(); // cluster-level reset (dev DB comes back too — untouched afterwards)
   const psql = '.pixi/envs/native/bin/psql';
+  // infra up (start only) — pg_ctl/redis-server are idempotent when already running
   execSync(
-    `${psql} "postgresql://accessbase:accessbase@localhost:5432/postgres" -c "DROP DATABASE IF EXISTS ${SCRATCH_DB}" -c "CREATE DATABASE ${SCRATCH_DB}"`,
+    'mkdir -p .pixi/data/redis && (.pixi/envs/native/bin/pg_isready -h localhost -p 5432 >/dev/null 2>&1 || ' +
+      '.pixi/envs/native/bin/pg_ctl -D "$PWD/.pixi/data/pg" -l /tmp/opencode/pg-e2e.log start) && ' +
+      '(.pixi/envs/native/bin/redis-cli -p 6379 ping >/dev/null 2>&1 || ' +
+      '.pixi/envs/native/bin/redis-server --daemonize yes --port 6379 --dir "$PWD/.pixi/data/redis")',
     { cwd: PROJECT_ROOT, stdio: 'pipe', timeout: 30_000, shell: '/bin/bash' },
   );
-  // schema: the dev stack runs db:push/migrate at boot for ITS database; the
-  // scratch DB copies the freshly-reset dev schema (same chain, zero drift).
+  // drop + recreate ONLY the scratch DB (terminate its stale connections first)
   execSync(
-    `${psql} "postgresql://accessbase:accessbase@localhost:5432/accessbase" -c "CREATE DATABASE ${SCRATCH_DB} TEMPLATE accessbase" || true`,
+    `${psql} "postgresql://accessbase:accessbase@localhost:5432/postgres" ` +
+      `-c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='${SCRATCH_DB}' AND pid <> pg_backend_pid()" ` +
+      `-c "DROP DATABASE IF EXISTS ${SCRATCH_DB}" -c "CREATE DATABASE ${SCRATCH_DB}"`,
     { cwd: PROJECT_ROOT, stdio: 'pipe', timeout: 30_000, shell: '/bin/bash' },
   );
+  // schema via the canonical migration chain against the scratch URL only
+  execSync(`DATABASE_URL=${SCRATCH_DATABASE_URL} pnpm --filter @accessbase/migration run db:push`, {
+    cwd: PROJECT_ROOT,
+    stdio: 'pipe',
+    timeout: 180_000,
+    shell: '/bin/bash',
+  });
 }
 
 export async function waitForServer(
@@ -79,9 +96,11 @@ export async function restartServer(): Promise<void> {
   execSync('bash accessbase.sh stop', { cwd: PROJECT_ROOT, stdio: 'pipe', timeout: 60_000 });
   execSync(
     // unset npm_config_prefix: nvm.sh in accessbase.sh aborts if it's set (inherited from
-    // pnpm/npm-launched parent chains, e.g. playwright's own webServer)
+    // pnpm/npm-launched parent chains, e.g. playwright's own webServer). cwd = repo root
+    // (the detached script is cwd-relative).
     'unset npm_config_prefix; setsid nohup env DATABASE_URL=postgresql://accessbase:accessbase@localhost:5432/accessbase ' +
       'REDIS_URL=redis://localhost:6379 bash accessbase.sh dev > /tmp/opencode/e2e-dev.log 2>&1 & echo $! > /tmp/opencode/e2e-dev.pid',
+    { cwd: PROJECT_ROOT, shell: '/bin/bash' },
   );
   await waitForServer();
 }
@@ -90,10 +109,14 @@ export async function restartServer(): Promise<void> {
 export async function restartServerScratch(): Promise<void> {
   mkdirSync('/tmp/opencode', { recursive: true });
   execSync('bash accessbase.sh stop', { cwd: PROJECT_ROOT, stdio: 'pipe', timeout: 60_000 });
+  // cwd MUST be the repo root: the detached `bash accessbase.sh dev` is
+  // cwd-relative (incident: run from apps/server -> "accessbase.sh: not found",
+  // the stack stopped and never came back).
   execSync(
     'unset npm_config_prefix; setsid nohup env ' +
       `DATABASE_URL=${SCRATCH_DATABASE_URL} ` +
       'REDIS_URL=redis://localhost:6379 bash accessbase.sh dev > /tmp/opencode/e2e-dev.log 2>&1 & echo $! > /tmp/opencode/e2e-dev.pid',
+    { cwd: PROJECT_ROOT, shell: '/bin/bash' },
   );
   await waitForServer();
 }

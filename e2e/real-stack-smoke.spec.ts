@@ -15,7 +15,7 @@
  * Locators: verbatim from auth-session.spec (input#email/#password +
  * button[type=submit]) and users-crud's zh-form shapes — no invented testids.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import {
   resetBackendScratch,
   waitForServer,
@@ -27,7 +27,7 @@ test.describe.configure({ mode: 'serial' });
 const EMAIL = 'lanes@it.local';
 const PASSWORD = 'LanesReal-123';
 
-async function login(page: import('@playwright/test').Page): Promise<void> {
+async function login(page: Page): Promise<void> {
   await page.goto('/login');
   await page.locator('input#email').fill(EMAIL);
   await page.locator('input#password').fill(PASSWORD);
@@ -41,13 +41,12 @@ test.describe('real-stack smoke (W0.7 — project setup-real)', () => {
   }) => {
     // Scratch DB — the dev database is NEVER touched (rev.5 mandate).
     await resetBackendScratch();
-    try {
-      await waitForServer();
-    } catch {
-      // cold path: stack NOT running — boot the stack pointed AT THE SCRATCH DB.
-      await restartServerScratch();
-      await waitForServer();
-    }
+    // ALWAYS (re)start the stack pointed AT THE SCRATCH DB. The old
+    // "waitForServer, restart only if down" shortcut silently reused a server
+    // that was already running on ANOTHER database (incident 2026-11-25: the
+    // wizard created its admin in the dev DB). Never trust a warm server's DB.
+    await restartServerScratch();
+    await waitForServer();
     // Idempotency guard (serial reruns): an already-initialized scratch DB
     // skips the wizard — log in directly and the round-trip still proves.
     await page.goto('/login');

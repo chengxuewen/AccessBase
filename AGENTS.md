@@ -189,8 +189,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 111 older entries omitted (read the full file)
-- PIT-109: 图标按钮家族刻度漂移 + fixed 布局 actions 列 flex 收缩裁切 + sticky hover 不同步 (2026-11-24, user-reported)
+... 112 older entries omitted (read the full file)
 - PIT-110: 控件高度靠 padding+font 推导 → 同 toolbar 混档参差不齐 (2026-11-24, user-reported)
 - PIT-111: 高度刻度漏了 div 基控件（themed cbx）+ 锁采样隐藏 native select 成盲区 (2026-11-24, user-reported)
 - PIT-112: 固定高按钮 + flex 可收缩 + 默认可换行 = 窄屏文字折行溢出 (2026-11-24, user-reported)
@@ -205,6 +204,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-121: 形态类批量正则转换静默跳过变体 → 跨页混形（用户可见的不统一）(2026-11-25, user-reported)
 - PIT-122: 共享 pre-commit gate 被并行在制品破坏——加性最小修复而非改 gate/提交外来正文 (2026-11-25, 事故)
 - PIT-123: 译文双来源漂移——builder 内 zh 分支与既有 I18N 规则各产一套措辞 (2026-11-25, B2 一次)
+- PIT-124: 真栈车道的"临时库"Helper 实为集群级重置——dev 库被清空 (2026-11-25, 一次，损失 dev 管理员账号)
 
 ### status
 - full text: `.agents/memorys/status.md`
