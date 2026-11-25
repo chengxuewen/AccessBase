@@ -2523,3 +2523,19 @@ fix 12-17 连锁定稿：图标按钮四族统一（ghost 行 28x28/16 gap8、bo
 **验收（全部实跑观察）**：setup exit 0 且记录 mode=playwright/version=153.0.8010.12；status 显示解析行；gate 绿（0 unresolved）；探针 exit 0 + 快照落 `out/local-playwright/mcp`；根目录无污染；strict 模式 setup 仍 exit 0；负证 (a) 空记录留构建 → gate 绿+note、launcher exit 1；(b) 记录与构建双清 → gate `1 unresolved` 红、launcher exit 1——随后恢复并复绿。
 
 **代价/边界**：托管构建 ~394MB（解压，`du` 实测）；记录不含任何机密；pin 不浮动（安装仍走 `pnpm add -wD <pkg>@<pin>`）。
+
+## D137: @types/node 双副本 + 双编译器——选择器 override + TS 统一 5.9.3 (2026-11-25)
+
+**事故形态**：`packages/identity` 的 tsc 红过一次（`Buffer<ArrayBufferLike>` vs `Uint8Array<ArrayBufferLike>`、`[Symbol.dispose]` 缺类），分钟级自愈、不可稳定复现。专家团双镜（构建/工具链 + 证伪）定位出**两个安静的混淆源**：
+
+1. **一个程序里两份 @types/node**（程序级 `tsc --listFiles` 实测）：`@types/pg`（identity devDep）的 d.ts 用 `/// <reference types="node" />` 拖进 **20.19.43**；`@alicloud/tea-typescript@1.8.0`（短信 SDK 传递依赖）硬声明 `@types/node ^12` 拖进 **12.20.55**。三斜线引用**绕开 tsconfig `types` 白名单**（`"types": ["node"]` 因此是安慰剂——证伪镜 HIGH-1），且解析不到时**静默丢弃**（install 态一变，全局类型宇宙就换一套——PIT-059/PIT-090 同族）。
+2. **两个 TypeScript 编译器**：根 `~5.6.3` vs 每个包 `^5.7.0`（实装 5.9.3）。`@types/node@20.19.43` 带 `typesVersions <=5.6` 分支——同一份类型在 5.6/5.9 下产出**不同 Buffer 语义**；错误已在 5.9.3 上发生过 → **升 TS 治不了病**，两个程序对同一批源码给两个判决才是"时红时绿"的载体。
+
+**裁决（用户：两步都做）**：
+- **步骤 1 = 选择器 override**：根 `package.json` `pnpm.overrides = { "@types/node@12": "20.19.43" }`（只杀从 import 图泄漏的 12 世代，不动 20/22/26 各自一致的组合——证伪镜的最小变体；构建镜的全局钉 20 会把根程序借来的 26 与阿里 SDK 的 22 一起降级，作用域过大，**两镜分歧保留在案**）。
+- **步骤 2 = TS 统一 5.9.3**：根 `typescript ~5.6.3 → ^5.9.3`（与全部包同版）；根 typecheck 零新错、全包 build 零错、admin-ui typecheck 零错。
+- **证明检查** `scripts/check-type-duplication.sh`（进 CI typecheck 作业，在 `pnpm build` 之后）：**程序级 census**（`tsc --listFiles` 的每个程序恰好 1 份 @types/node；store 里的孤儿变体目录不作数）+ **编译器单一**（root 与包都 5.9.3）。反向演示已跑：去 override → identity 程序 census = 2（红）→ 恢复 → 1（绿）。
+
+**实测记录**：identity 程序副本 2→1（12.20.55 消失）；lock 声明 8→7；根 tsc 5.6.3→5.9.3 后 `pnpm typecheck` exit 0（0 error）；`pnpm build` exit 0；admin-ui typecheck exit 0；census 脚本 exit 0；agents check exit 0；vitest admin-ui 59/59。
+
+**边界**：`@types/node@12` 目录仍留在 pnpm store（孤儿，无程序引用——census 以程序为准正是为此）；`@types/pg` 的 `"*"` 未来非 frozen 安装仍可能重解到 26——由 census 每次 CI 兜底；测试源代码（`src/__tests__`）两套 tsconfig 都排除、vitest 只转译不查类型（证伪镜 M5，属既有设计，未改）。

@@ -44,8 +44,13 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.4.0",
     "turbo": "^2.3.0",
-    "typescript": "~5.6.3",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.0.0",
     "vitest": "^3.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/node@12": "20.19.43"
+    }
   }
 }
