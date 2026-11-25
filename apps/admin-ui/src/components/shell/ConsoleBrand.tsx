@@ -10,10 +10,14 @@ export function ConsoleBrand({
   name,
   logoUrl,
   collapsed,
+  /** centered = full-width block with centered content (standalone surfaces
+   *  like the setup wizard — the hairline then spans the whole card) */
+  centered = false,
 }: {
   name: string;
   logoUrl?: string | null;
   collapsed: boolean;
+  centered?: boolean;
 }): React.ReactNode {
   const { t } = useTranslation();
   const initials = (name || 'AccessBase')
@@ -35,6 +39,7 @@ export function ConsoleBrand({
         overflow: 'hidden',
         whiteSpace: 'nowrap',
         flexShrink: 0,
+        ...(centered ? { width: '100%', justifyContent: 'center' } : {}),
       }}
     >
       {logoUrl ? (

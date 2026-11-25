@@ -1,4 +1,4 @@
-import { Form, Input, InputNumber, Button, Collapse, Grid } from 'antd';
+import { Form, Input, InputNumber, Button, Collapse } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useSetupStore } from '../../../stores/setup';
 import { saveConfig } from '../../../api/setup';
@@ -23,7 +23,6 @@ interface StepProps {
 
 export default function ConfigStep({ next, prev, stepTitleRef }: StepProps) {
   const { t } = useTranslation();
-  const { md } = Grid.useBreakpoint();
   const { setConfigData, isLoading, setLoading, setError } = useSetupStore();
   const [form] = Form.useForm<ConfigFormData>();
 
@@ -58,9 +57,9 @@ export default function ConfigStep({ next, prev, stepTitleRef }: StepProps) {
       <Form
         form={form}
         onFinish={handleSubmit}
-        layout={md ? 'horizontal' : 'vertical'}
+        layout="vertical" // S10.1: contract form grammar — label above input (horizontal w/o label width misaligned the fields)
         aria-label={t('setup.config.title')}
-        style={{ maxWidth: 600 }}
+        style={{ maxWidth: 480 }}
       >
         <Form.Item
           label={t('setup.config.siteName')}

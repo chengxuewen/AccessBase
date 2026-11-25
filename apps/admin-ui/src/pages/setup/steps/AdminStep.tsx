@@ -1,4 +1,4 @@
-import { Form, Input, Button, Grid } from 'antd';
+import { Form, Input, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useSetupStore } from '../../../stores/setup';
 import { createAdmin } from '../../../api/setup';
@@ -20,7 +20,6 @@ interface StepProps {
 
 export default function AdminStep({ next, prev, stepTitleRef }: StepProps) {
   const { t } = useTranslation();
-  const { md } = Grid.useBreakpoint();
   const { setAdminData, isLoading, setLoading, setError } = useSetupStore();
   const [form] = Form.useForm<AdminFormData>();
 
@@ -59,9 +58,9 @@ export default function AdminStep({ next, prev, stepTitleRef }: StepProps) {
       <Form
         form={form}
         onFinish={handleSubmit}
-        layout={md ? 'horizontal' : 'vertical'}
+        layout="vertical" // S10.1: contract form grammar — label above input (horizontal w/o label width misaligned the fields)
         aria-label={t('setup.admin.title')}
-        style={{ maxWidth: 600 }}
+        style={{ maxWidth: 480 }}
       >
         <Form.Item
           label={t('setup.admin.name')}

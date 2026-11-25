@@ -153,3 +153,28 @@ test('capture: app pages (mocked shell, same viewport)', async ({ page }) => {
     });
   }
 });
+
+// S10.1: the setup wizard is a real first-run surface — captured under an
+// UNINITIALIZED status (its own mocks; the generic app capture assumes done).
+test('capture: setup wizard (uninitialized) admin step', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.addInitScript(() => localStorage.setItem('lng', 'zh'));
+  await page.route('**/api/v1/**', (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [], total: 0 }) })
+      : route.fallback(),
+  );
+  await page.route('**/api/v1/setup/status', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { isInitialized: false, adminExists: false, configComplete: false } }),
+    }),
+  );
+  await page.goto('/setup');
+  await page.getByRole('button', { name: /开始|Start/ }).click();
+  await page.waitForTimeout(1200);
+  await page.getByRole('button', { name: /下一步|Next/ }).click();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(OUT, 'app', 'setup-wizard.png') });
+});

@@ -1,24 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { Steps, Card, Grid, theme } from 'antd';
-import {
-  SmileOutlined,
-  UserOutlined,
-  SettingOutlined,
-  CheckCircleOutlined,
-} from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useSetupStore } from '../../stores/setup';
+import { ConsoleBrand } from '../../components/shell/ConsoleBrand';
 import WelcomeStep from './steps/WelcomeStep';
 import AdminStep from './steps/AdminStep';
 import ConfigStep from './steps/ConfigStep';
 import CompleteStep from './steps/CompleteStep';
-
-const stepIcons = [
-  <SmileOutlined key="welcome" />,
-  <UserOutlined key="admin" />,
-  <SettingOutlined key="config" />,
-  <CheckCircleOutlined key="complete" />,
-];
 
 export default function SetupWizard() {
   const { t } = useTranslation();
@@ -42,10 +30,12 @@ export default function SetupWizard() {
   }, [current]);
 
   const steps = [
-    { title: t('setup.welcome.title'), icon: stepIcons[0] },
-    { title: t('setup.admin.title'), icon: stepIcons[1] },
-    { title: t('setup.config.title'), icon: stepIcons[2] },
-    { title: t('setup.complete.title'), icon: stepIcons[3] },
+    // S10.1: antd's NUMBERED step icons — the custom outlined icons rendered
+    // at step-icon size with inconsistent weight and read as clutter.
+    { title: t('setup.welcome.title') },
+    { title: t('setup.admin.title') },
+    { title: t('setup.config.title') },
+    { title: t('setup.complete.title') },
   ];
 
   const stepProps = { next, prev, stepTitleRef };
@@ -70,18 +60,24 @@ export default function SetupWizard() {
         padding: md ? 0 : 16,
       }}
     >
-      <Card style={{ width: '100%', maxWidth: 800 }}>
-        <Steps
-          current={current}
-          items={steps.map((s, i) => ({
-            ...s,
-            'aria-label': `Step ${i + 1}: ${s.title}`,
-          }))}
-          direction={md ? 'horizontal' : 'vertical'}
-          style={{ marginBottom: 24 }}
-          aria-label={t('setup.welcome.title')}
-        />
-        <div style={{ minHeight: 400 }}>{stepComponents[current]}</div>
+      <Card style={{ width: '100%', maxWidth: 760, boxShadow: 'var(--shadow-card)' }} styles={{ body: { padding: 0 } }}>
+        {/* S10.1: brand block (contract G2) — the wizard is the first surface a
+            fresh install ever sees; it carries the product identity. */}
+        <ConsoleBrand name="AccessBase" collapsed={false} centered />
+        <div style={{ padding: md ? '24px 48px 32px' : '16px' }}>
+          <Steps
+            current={current}
+            items={steps.map((s, i) => ({
+              ...s,
+              'aria-label': `Step ${i + 1}: ${s.title}`,
+            }))}
+            direction={md ? 'horizontal' : 'vertical'}
+            style={{ marginBottom: 32 }}
+            aria-label={t('setup.welcome.title')}
+          />
+          {/* no fixed min-height: a short step must not leave dead space */}
+          <div>{stepComponents[current]}</div>
+        </div>
       </Card>
     </div>
   );

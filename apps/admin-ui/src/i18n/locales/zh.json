@@ -313,7 +313,7 @@
       "skip": "跳过"
     },
     "complete": {
-      "title": "设置完成！",
+      "title": "设置完成",
       "subtitle": "您的 AccessBase 系统已准备就绪",
       "summary": "设置摘要",
       "siteName": "站点名称",

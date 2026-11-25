@@ -5,7 +5,7 @@ auth-session.spec.ts 11
 auth.spec.ts 7
 branding.spec.ts 3
 clients.spec.ts 6
-conformance.spec.ts 2
+conformance.spec.ts 3
 dashboard.spec.ts 5
 deprecation-headers.spec.ts 2
 email-templates.spec.ts 5
