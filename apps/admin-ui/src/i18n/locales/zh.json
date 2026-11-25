@@ -249,7 +249,8 @@
     "dataScopeDept": "本部门",
     "dataScopeSelf": "仅本人",
     "dataScopeMixed": "混合",
-    "dataScopeMixedHint": "当前已选的用户权限存在不一致的数据范围；保存会将它们统一为「全部数据」。"
+    "dataScopeMixedHint": "当前已选的用户权限存在不一致的数据范围；保存会将它们统一为「全部数据」。",
+    "subtitle": "角色定义与权限绑定"
   },
   "setup": {
     "welcome": {
@@ -352,7 +353,8 @@
     "filterType": "按类型过滤",
     "search": "查询",
     "resetFilters": "重置筛选",
-    "loadError": "事件加载失败"
+    "loadError": "事件加载失败",
+    "subtitle": "领域事件流 —— 类型化载荷与扇出状态"
   },
   "audit": {
     "title": "审计日志",
@@ -376,7 +378,8 @@
     "verifyOkTitle": "审计链完整",
     "verifyOkBody": "已校验 {{anchors}} 个锚点、{{rows}} 行哈希——未检测到篡改。",
     "verifyFailTitle": "审计链校验失败",
-    "verifyFailBody": "检测到篡改：{{kind}}，位于 {{day}} 序号 {{seq}}。详见服务端审计文档。"
+    "verifyFailBody": "检测到篡改：{{kind}}，位于 {{day}} 序号 {{seq}}。详见服务端审计文档。",
+    "subtitle": "仅追加、哈希链式的全量变更记录"
   },
   "profile": {
     "title": "个人资料",
@@ -620,7 +623,8 @@
     "initSuccess": "租户管理员已创建",
     "initAlreadyBootstrapped": "管理员已初始化——角色绑定已重新校验",
     "initError": "初始化管理员失败",
-    "ok": "完成"
+    "ok": "完成",
+    "searchPlaceholder": "搜索名称或标识…"
   },
   "groups": {
     "title": "用户组",
@@ -663,7 +667,8 @@
     "kind": "类型",
     "kindGroup": "普通组",
     "kindDepartment": "部门",
-    "isDepartment": "设为部门"
+    "isDepartment": "设为部门",
+    "subtitle": "用户组与部门 —— 成员关系与角色绑定"
   },
   "webhooks": {
     "title": "事件钩子",
@@ -711,7 +716,8 @@
     "copy": "复制",
     "copied": "已复制",
     "copyFailed": "复制失败——请手动选中复制",
-    "ok": "完成"
+    "ok": "完成",
+    "subtitle": "事件端点 —— 订阅与投递健康"
   },
   "apiKeys": {
     "title": "API 密钥",

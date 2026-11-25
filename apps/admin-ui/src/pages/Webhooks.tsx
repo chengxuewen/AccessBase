@@ -39,6 +39,7 @@ import {
   type WebhookDelivery,
 } from '../api/webhooks';
 import EmptyState from '../components/EmptyState';
+import { PageHead } from '../components/shell/PageHead';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
 import { useAuthStore } from '../stores/auth';
@@ -418,8 +419,23 @@ export default function Webhooks() {
           data-testid="webhooks-load-error"
         />
       )}
+      <PageHead
+        title={t('webhooks.title')}
+        subtitle={t('webhooks.subtitle')}
+        actions={
+          canWrite ? (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreate}
+              data-testid="webhooks-create"
+            >
+              {t('webhooks.create')}
+            </Button>
+          ) : undefined
+        }
+      />
       <ProTable<Webhook>
-        headerTitle={t('webhooks.title')}
         actionRef={actionRef}
         rowKey="id"
         scroll={{ x: 'max-content' }}
@@ -435,25 +451,11 @@ export default function Webhooks() {
             return { data: [], success: false };
           }
         }}
-        pagination={{ defaultPageSize: 10 }}
+        pagination={{ defaultPageSize: 10, showTotal: (n, range) => `${range[0]}-${range[1]} / ${n}` }}
         search={false}
+        options={false}
         locale={{ emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} /> }}
         rowClassName={() => 'webhooks-row'}
-        toolBarRender={
-          canWrite
-            ? () => [
-                <Button
-                  key="create"
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={openCreate}
-                  data-testid="webhooks-create"
-                >
-                  {t('webhooks.create')}
-                </Button>,
-              ]
-            : false
-        }
       />
 
       <Modal

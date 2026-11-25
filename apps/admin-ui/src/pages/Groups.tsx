@@ -41,6 +41,7 @@ import {
 import { listRoles, type Role } from '../api/roles';
 import { listUsers, type User } from '../api/users';
 import EmptyState from '../components/EmptyState';
+import { PageHead } from '../components/shell/PageHead';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
 import { useAuthStore } from '../stores/auth';
@@ -344,11 +345,22 @@ export default function Groups() {
           data-testid="groups-load-error"
         />
       )}
+      <PageHead
+        title={t('groups.title')}
+        subtitle={t('groups.subtitle')}
+        actions={
+          canWrite ? (
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} data-testid="groups-create">
+              {t('groups.create')}
+            </Button>
+          ) : undefined
+        }
+      />
       <ProTable<GroupListItem>
-        headerTitle={t('groups.title')}
         actionRef={actionRef}
         rowKey="id"
         scroll={{ x: 'max-content' }}
+        options={false}
         columns={columns}
         data-testid="groups-table"
         request={async (params) => {
@@ -371,21 +383,6 @@ export default function Groups() {
         search={{ labelWidth: 'auto' }}
         locale={{ emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} /> }}
         rowClassName={() => 'groups-row'}
-        toolBarRender={
-          canWrite
-            ? () => [
-                <Button
-                  key="create"
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={openCreate}
-                  data-testid="groups-create"
-                >
-                  {t('groups.create')}
-                </Button>,
-              ]
-            : false
-        }
       />
 
       <Modal

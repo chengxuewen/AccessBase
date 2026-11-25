@@ -344,14 +344,10 @@ test.describe('Tenants admin page', () => {
         .getByText('已停用', { exact: true }),
     ).toHaveCount(0);
 
-    const searchInput = page.locator('input[placeholder]').first();
+    // S4.5: inline search (TableToolbar table-search) replaced the query form —
+    // typing IS the trigger (300ms debounce; no submit button anymore)
+    const searchInput = page.getByTestId('table-search');
     await searchInput.fill('Acme');
-    // AntD renders CJK 2-char labels with a space ("查 询") — allow optional whitespace
-    await page
-      .locator('button')
-      .filter({ hasText: /search|查\s*询|submit/i })
-      .first()
-      .click();
 
     // expect.poll (not sync expect): click → request dispatch is async (K convention)
     await expect.poll(() => stats.searchTerm, { timeout: 5000 }).toBe('Acme');

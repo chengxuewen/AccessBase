@@ -11,6 +11,7 @@ import {
   LockOutlined,
 } from '@ant-design/icons';
 import EmptyState from '../components/EmptyState';
+import { PageHead } from '../components/shell/PageHead';
 import {
   listRoles,
   getRole,
@@ -267,8 +268,16 @@ export default function Roles() {
           style={{ marginBottom: 16 }}
         />
       )}
+      <PageHead
+        title={t('roles.title')}
+        subtitle={t('roles.subtitle')}
+        actions={
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            {t('roles.create')}
+          </Button>
+        }
+      />
       <ProTable<Role>
-        headerTitle={t('roles.title')}
         actionRef={actionRef}
         rowKey="id"
         scroll={{ x: 'max-content' }}
@@ -293,14 +302,13 @@ export default function Roles() {
             return { data: [], total: 0, success: false };
           }
         }}
-        pagination={{ defaultPageSize: 10 }}
+        pagination={{
+          defaultPageSize: 10,
+          showTotal: (n, range) => `${range[0]}-${range[1]} / ${n}`,
+        }}
         search={false}
+        options={false}
         locale={{ emptyText: <EmptyState variant="no-data" /> }}
-        toolBarRender={() => [
-          <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            {t('roles.create')}
-          </Button>,
-        ]}
       />
 
       <Modal

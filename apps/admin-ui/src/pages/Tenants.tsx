@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, Form, Input, Modal, Popconfirm, Tag } from 'antd';
@@ -20,6 +20,8 @@ import {
   type Tenant,
 } from '../api/tenants';
 import EmptyState from '../components/EmptyState';
+import { PageHead } from '../components/shell/PageHead';
+import { TableToolbar } from '../components/shell/TableToolbar';
 import { message } from '../api/feedback';
 import { apiErrorMessage, apiErrorStatus } from '../api/errors';
 import { useAuthStore } from '../stores/auth';
@@ -58,6 +60,12 @@ export default function Tenants() {
   dayjs.locale(resolveLang(i18n.language) === 'zh' ? 'zh-cn' : 'en');
 
   const actionRef = useRef<ActionType>(null);
+  // S4.5: inline search (the ProTable query form was retired)
+  const [keyword, setKeyword] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => actionRef.current?.reload(), 300);
+    return () => clearTimeout(timer);
+  }, [keyword]);
   const [loadError, setLoadError] = useState(false);
 
   // Create / edit modal (name + slug)
@@ -324,8 +332,30 @@ export default function Tenants() {
           data-testid="tenants-load-error"
         />
       )}
+      <PageHead
+        title={t('tenants.title')}
+        subtitle={t('tenants.subtitle')}
+        actions={
+          canWrite ? (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreate}
+              data-testid="tenants-create"
+            >
+              {t('tenants.create')}
+            </Button>
+          ) : undefined
+        }
+      />
+      <TableToolbar
+        search={{
+          value: keyword,
+          placeholder: t('tenants.searchPlaceholder'),
+          onChange: setKeyword,
+        }}
+      />
       <ProTable<Tenant>
-        headerTitle={t('tenants.title')}
         actionRef={actionRef}
         rowKey="id"
         scroll={{ x: 'max-content' }}
@@ -333,8 +363,8 @@ export default function Tenants() {
         data-testid="tenants-table"
         request={async (params) => {
           try {
-            const { current, pageSize, name } = params;
-            const result = await fetchTenants({ page: current, pageSize, search: name });
+            const { current, pageSize } = params;
+            const result = await fetchTenants({ page: current, pageSize, search: keyword || undefined });
             setLoadError(false);
             return { data: result.data, total: result.total, success: true };
           } catch {
@@ -342,24 +372,10 @@ export default function Tenants() {
             return { data: [], total: 0, success: false };
           }
         }}
-        pagination={{ defaultPageSize: 10 }}
-        search={{ labelWidth: 'auto' }}
+        pagination={{ defaultPageSize: 10, showTotal: (n, range) => `${range[0]}-${range[1]} / ${n}` }}
+        search={false}
+        options={false}
         locale={{ emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} /> }}
-        toolBarRender={
-          canWrite
-            ? () => [
-                <Button
-                  key="create"
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={openCreate}
-                  data-testid="tenants-create"
-                >
-                  {t('tenants.create')}
-                </Button>,
-              ]
-            : false
-        }
       />
 
       <Modal

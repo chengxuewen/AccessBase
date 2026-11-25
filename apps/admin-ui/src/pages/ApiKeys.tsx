@@ -16,6 +16,7 @@ import {
 import { PlusOutlined, DeleteOutlined, ReloadOutlined, CopyOutlined } from '@ant-design/icons';
 import { listApiKeys, createApiKey, revokeApiKey, type ApiKey } from '../api/apiKeys';
 import EmptyState from '../components/EmptyState';
+import { PageHead } from '../components/shell/PageHead';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
 import { useAuthStore } from '../stores/auth';
@@ -209,8 +210,23 @@ export default function ApiKeys() {
           data-testid="api-keys-load-error"
         />
       )}
+      <PageHead
+        title={t('apiKeys.title')}
+        subtitle={t('apiKeys.subtitle')}
+        actions={
+          canWrite ? (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreate}
+              data-testid="api-keys-create"
+            >
+              {t('apiKeys.create')}
+            </Button>
+          ) : undefined
+        }
+      />
       <ProTable<ApiKey>
-        headerTitle={t('apiKeys.title')}
         actionRef={actionRef}
         rowKey="id"
         scroll={{ x: 'max-content' }}
@@ -226,24 +242,10 @@ export default function ApiKeys() {
             return { data: [], total: 0, success: false };
           }
         }}
-        pagination={{ defaultPageSize: 10 }}
+        pagination={{ defaultPageSize: 10, showTotal: (n, range) => `${range[0]}-${range[1]} / ${n}` }}
         search={false}
+        options={false}
         locale={{ emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} /> }}
-        toolBarRender={
-          canWrite
-            ? () => [
-                <Button
-                  key="create"
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={openCreate}
-                  data-testid="api-keys-create"
-                >
-                  {t('apiKeys.create')}
-                </Button>,
-              ]
-            : false
-        }
       />
 
       <Modal

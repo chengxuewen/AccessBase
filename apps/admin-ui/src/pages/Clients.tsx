@@ -23,6 +23,7 @@ import {
   type OidcClient,
 } from '../api/clients';
 import EmptyState from '../components/EmptyState';
+import { PageHead } from '../components/shell/PageHead';
 import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
 import { useAuthStore } from '../stores/auth';
@@ -232,8 +233,23 @@ export default function Clients() {
           data-testid="clients-load-error"
         />
       )}
+      <PageHead
+        title={t('clients.title')}
+        subtitle={t('clients.subtitle')}
+        actions={
+          canWrite ? (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreate}
+              data-testid="clients-create"
+            >
+              {t('clients.create')}
+            </Button>
+          ) : undefined
+        }
+      />
       <ProTable<OidcClient>
-        headerTitle={t('clients.title')}
         actionRef={actionRef}
         rowKey="clientId"
         scroll={{ x: 'max-content' }}
@@ -249,24 +265,10 @@ export default function Clients() {
             return { data: [], total: 0, success: false };
           }
         }}
-        pagination={{ defaultPageSize: 10 }}
+        pagination={{ defaultPageSize: 10, showTotal: (n, range) => `${range[0]}-${range[1]} / ${n}` }}
         search={false}
+        options={false}
         locale={{ emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} /> }}
-        toolBarRender={
-          canWrite
-            ? () => [
-                <Button
-                  key="create"
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={openCreate}
-                  data-testid="clients-create"
-                >
-                  {t('clients.create')}
-                </Button>,
-              ]
-            : false
-        }
       />
 
       <Modal

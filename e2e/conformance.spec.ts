@@ -61,6 +61,20 @@ test('capture: app pages (mocked shell, same viewport)', async ({ page }) => {
     );
   });
   // canonical shell mocks (W0.2 discipline: shapes mirror real routes)
+  // Generic GET fallback (registered BEFORE the page-specific mocks below =
+  // lower precedence): any un-mocked page-mount request returns an empty
+  // success instead of a 401 → no mid-capture axios logout (roles details hit
+  // permission endpoints the per-page regex didn't cover).
+  await page.route('**/api/v1/**', (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: [], total: 0 }),
+        })
+      : route.fallback(),
+  );
+
   await page.route('**/api/v1/setup/status', (r) =>
     r.fulfill({
       status: 200,

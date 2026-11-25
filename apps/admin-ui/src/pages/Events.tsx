@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import EmptyState from '../components/EmptyState';
+import { PageHead } from '../components/shell/PageHead';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, DatePicker, Input, Modal, Tag, Tooltip, Typography } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
@@ -140,8 +141,8 @@ export default function Events() {
           />
         </Tooltip>
       </div>
+      <PageHead title={t('events.title')} subtitle={t('events.subtitle')} />
       <ProTable<DomainEvent>
-        headerTitle={t('events.title')}
         actionRef={actionRef}
         rowKey="id"
         scroll={{ x: 'max-content' }}
@@ -162,8 +163,9 @@ export default function Events() {
             return { data: [], total: 0, success: false };
           }
         }}
-        pagination={{ defaultPageSize: 10 }}
+        pagination={{ defaultPageSize: 10, showTotal: (n, range) => `${range[0]}-${range[1]} / ${n}` }}
         search={false}
+        options={false}
         locale={{
           emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} />,
         }}

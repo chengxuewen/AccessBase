@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import EmptyState from '../components/EmptyState';
+import { PageHead } from '../components/shell/PageHead';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
 import { Alert, Button, DatePicker, Input, Select, Tag, Tooltip } from 'antd';
 import {
@@ -235,8 +236,8 @@ export default function Audit() {
           </Button>
         </Tooltip>
       </div>
+      <PageHead title={t('audit.title')} subtitle={t('audit.subtitle')} />
       <ProTable<AuditLog>
-        headerTitle={t('audit.title')}
         actionRef={actionRef}
         rowKey="id"
         scroll={{ x: 'max-content' }}
@@ -258,8 +259,9 @@ export default function Audit() {
             return { data: [], total: 0, success: false };
           }
         }}
-        pagination={{ defaultPageSize: 10 }}
+        pagination={{ defaultPageSize: 10, showTotal: (n, range) => `${range[0]}-${range[1]} / ${n}` }}
         search={false}
+        options={false}
         locale={{
           emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} />,
         }}
