@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ProLayout } from '@ant-design/pro-components';
@@ -114,12 +114,34 @@ export default function AdminLayout() {
     localStorage.setItem('lng', next);
   };
 
+  // S3 (A-2=A): persistence records USER INTENT, responsive collapse is a
+  // viewport fact. ProLayout's onCollapse is single-param (7.22.7 — the antd
+  // Sider type discriminator is stripped upstream), so the carrier is a
+  // capture-phase flag on collapsedButtonRender: the wrapper marks intent
+  // BEFORE the inner trigger's onClick fires onCollapse; the breakpoint's
+  // responsive callback runs with the flag unset → transient.
+  const collapseIntent = useRef(false);
+  // Mount signal: ProLayout's breakpoint fires ONE synthetic onCollapse on
+  // first render. At desktop it emits FALSE (noise that would clobber the
+  // persisted restore — battery-caught: reload with collapsed=true lost the
+  // class); below the breakpoint it emits TRUE (a REAL responsive collapse).
+  // Discriminator: the first signal applies only when it requests COLLAPSE.
+  const firstCollapseSignal = useRef(true);
   const handleCollapse = (next: boolean) => {
+    if (firstCollapseSignal.current) {
+      firstCollapseSignal.current = false;
+      if (!next) return; // desktop-mount noise — never clobbers persisted intent
+      setCollapsed(true); // below-breakpoint mount → responsive collapse, transient
+      return;
+    }
     setCollapsed(next);
-    try {
-      localStorage.setItem('admin-layout-collapsed', String(next));
-    } catch {
-      /* noop */
+    if (collapseIntent.current) {
+      collapseIntent.current = false;
+      try {
+        localStorage.setItem('admin-layout-collapsed', String(next));
+      } catch {
+        /* noop */
+      }
     }
   };
 
@@ -130,6 +152,23 @@ export default function AdminLayout() {
       fixSiderbar
       collapsed={collapsed}
       onCollapse={handleCollapse}
+      // S3 (P-6=A erratum): KEY-name breakpoint ('md' ≈ 768px) — the pixel
+      // form was a phantom (verified ProLayout.d.ts:22 GlobalTypes & SiderMenuProps).
+      // disableMobile: the contract wants a collapsed ICON nav, not a drawer —
+      // recorded in the divergence ledger (drawer mode = ledger).
+      disableMobile={true}
+      breakpoint="md"
+      collapsedButtonRender={(collapsedBtn, defaultDom) => (
+        <span
+          data-testid="sider-collapse-trigger"
+          // capture phase: mark intent BEFORE the inner trigger's own onClick
+          onClickCapture={() => {
+            collapseIntent.current = true;
+          }}
+        >
+          {defaultDom}
+        </span>
+      )}
       location={{ pathname: location.pathname }}
       route={menuRoutes}
       menuItemRender={(item, dom) => (

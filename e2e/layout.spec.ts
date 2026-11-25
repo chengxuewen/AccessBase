@@ -191,6 +191,43 @@ const MENU_ITEMS: Array<[string, string]> = [
 ];
 
 test.describe('Layout', () => {
+  test('S3 (A-2): breakpoint collapse is TRANSIENT, trigger collapse PERSISTS', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('admin-layout-collapsed', 'false');
+      localStorage.setItem('lng', 'en');
+    });
+    await page.setViewportSize({ width: 700, height: 800 }); // below md — responsive territory
+    await login(page);
+    const sider = page.locator('.ant-layout-sider').first();
+    // responsive auto-collapse fires (disableMobile keeps the SIDER, no drawer)
+    await expect(sider).toHaveClass(/ant-layout-sider-collapsed/, { timeout: 10_000 });
+    // ...but it must NOT be persisted (transient — persistence records intent)
+    expect(await page.evaluate(() => localStorage.getItem('admin-layout-collapsed'))).toBe('false');
+    // back above the breakpoint → responsive RESTORE (still not persisted)
+    await page.setViewportSize({ width: 900, height: 800 });
+    await expect(sider).not.toHaveClass(/ant-layout-sider-collapsed/, { timeout: 10_000 });
+    expect(await page.evaluate(() => localStorage.getItem('admin-layout-collapsed'))).toBe('false');
+    // user CLICKS the trigger → intent → persisted. The collapsedButtonRender
+    // wrapper spans ProLayout's transition (unstable/off-viewport for
+    // Playwright actionability) — dispatch a NATIVE click on the inner
+    // trigger: the wrapper's capture handler fires first (intent), then the
+    // inner onClick collapses — the exact real-user event sequence.
+    await page.getByTestId('sider-collapse-trigger').evaluate((el) => {
+      const inner = (el.firstElementChild ?? el) as HTMLElement;
+      inner.click();
+    });
+    await expect(sider).toHaveClass(/ant-layout-sider-collapsed/, { timeout: 10_000 });
+    expect(await page.evaluate(() => localStorage.getItem('admin-layout-collapsed'))).toBe('true');
+    // reload keeps the user's choice
+    await page.reload();
+    await expect(page.locator('.ant-layout-sider').first()).toHaveClass(
+      /ant-layout-sider-collapsed/,
+      { timeout: 10_000 },
+    );
+  });
+
   test('sidebar shows 6 items and each navigates to the correct URL', async ({ page }) => {
     await login(page);
     await mockPageData(page);

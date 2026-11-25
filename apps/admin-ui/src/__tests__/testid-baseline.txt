@@ -185,6 +185,7 @@ secret-reveal-copy
 secret-reveal-value
 sessions-error
 setup-guard-retry
+sider-collapse-trigger
 site-save-success
 sms-code
 sms-error
