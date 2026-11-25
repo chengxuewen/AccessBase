@@ -20,15 +20,16 @@ import {
   FunctionOutlined,
   SunOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Dropdown, Tag, Typography } from 'antd';
+import { Alert, Button, Dropdown, Segmented, Tag, Typography } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import { useUiStore } from '../stores/ui';
+import type { PackPreference } from '../stores/ui';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { fetchBranding } from '../branding';
 
 export default function AdminLayout() {
   const { t, i18n } = useTranslation();
-  const { theme, setTheme } = useUiStore();
+  const { theme, setTheme, pack, setPack } = useUiStore();
   // auto resolves to light/dark; toggling from auto lands on the opposite side
   const resolvedTheme = theme === 'auto' ? 'light' : theme;
   // C7 fix: ProLayout renders route `name` verbatim — labels must go through i18next
@@ -170,6 +171,19 @@ export default function AdminLayout() {
         ),
       }}
       actionsRender={() => [
+        // S1 (P-2=B/A-1=B): pack selector — labeled options (the contract's
+        // selector family), two shipped packs, five ledgered.
+        <Segmented
+          key="pack"
+          data-testid="pack-select"
+          aria-label={t('common.stylePack')}
+          value={pack}
+          onChange={(v) => setPack(v as PackPreference)}
+          options={[
+            { label: 'Ant', value: 'ant' },
+            { label: 'Broadsheet', value: 'broadsheet' },
+          ]}
+        />,
         <Button
           type="text"
           size="small"

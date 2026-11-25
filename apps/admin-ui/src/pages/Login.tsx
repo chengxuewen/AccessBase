@@ -12,6 +12,7 @@ import { fetchSmsStatus, requestSmsOtp, verifySmsOtp } from '../api/auth';
 import { useCaptchaField } from '../components/CaptchaField';
 import { useAuthStore } from '../stores/auth';
 import { useBranding } from '../branding';
+import { useConsoleTheme } from '../theme/useConsoleTheme';
 import { MfaArm } from './login/MfaArm';
 import { SmsSection } from './login/SmsSection';
 import { OAuthButtons } from '../components/OAuthButtons';
@@ -357,9 +358,8 @@ export default function Login() {
   }, [mfaFlowToken, navigate]);
 
   const branding = useBranding();
-  const brandTheme = branding.primaryColor
-    ? { token: { colorPrimary: branding.primaryColor } }
-    : undefined;
+  // S1: pack theme + branding primary override (colorPrimary ONLY)
+  const brandTheme = useConsoleTheme(branding.primaryColor);
 
   if (mfaFlowToken && !sessionStorage.getItem('mfaEnrollToken')) {
     return (

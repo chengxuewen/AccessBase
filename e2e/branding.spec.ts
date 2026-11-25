@@ -105,6 +105,26 @@ test.describe('branding slice', () => {
     expect(consoleErrors).toEqual([]);
   });
 
+  test('B4 (S1-(d)): branding primaryColor overrides the pack accent on the login submit button', async ({
+    page,
+  }) => {
+    const PNG =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    mockShell(page, { logoUrl: PNG, primaryColor: '#ff4400' });
+    await page.goto('/login');
+    await expect(page.getByTestId('branding-logo')).toBeVisible();
+    // branding loads ASYNC (useBranding fetch → re-render → nested provider
+    // regenerates) — poll the settled background; rgb(255,68,0) = #ff4400
+    await expect
+      .poll(async () => {
+        return page
+          .locator('button[type="submit"]')
+          .evaluate((el) => getComputedStyle(el).backgroundColor);
+      })
+      .toBe('rgb(255, 68, 0)');
+    expect(consoleErrors).toEqual([]);
+  });
+
   test('B3: forgot-password page renders the configured logo (self-service reach)', async ({
     page,
   }) => {

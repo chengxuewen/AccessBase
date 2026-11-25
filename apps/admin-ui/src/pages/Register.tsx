@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBranding } from '../branding';
+import { useConsoleTheme } from '../theme/useConsoleTheme';
 import { Form, Input, Button, Card, Alert, theme, ConfigProvider } from 'antd';
 import { LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
 import { registerUser } from '../api/auth';
@@ -16,9 +17,8 @@ import { apiErrorMessage } from '../api/errors';
 export default function Register() {
   const { t } = useTranslation();
   const branding = useBranding();
-  const brandTheme = branding.primaryColor
-    ? { token: { colorPrimary: branding.primaryColor } }
-    : undefined;
+  // S1: pack theme + branding primary override (colorPrimary ONLY)
+  const brandTheme = useConsoleTheme(branding.primaryColor);
   const { token: themeToken } = theme.useToken();
   const [form] = Form.useForm();
   const captcha = useCaptchaField();

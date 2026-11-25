@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBranding } from '../branding';
+import { useConsoleTheme } from '../theme/useConsoleTheme';
 import { Alert, Button, Card, Checkbox, Space, Spin, theme, ConfigProvider } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import { getInteraction, postInteractionDecision } from '../api/oidc';
@@ -14,9 +15,8 @@ const SCOPE_I18N = ['openid', 'profile', 'email', 'offline_access', 'groups'] as
 export default function Consent() {
   const { t } = useTranslation();
   const branding = useBranding();
-  const brandTheme = branding.primaryColor
-    ? { token: { colorPrimary: branding.primaryColor } }
-    : undefined;
+  // S1: pack theme + branding primary override (colorPrimary ONLY)
+  const brandTheme = useConsoleTheme(branding.primaryColor);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = useAuthStore((s) => s.token);

@@ -146,6 +146,8 @@ option-value-input
 options-error
 options-settings
 options-table
+pack-select
+pack-style-vars
 passkey-error
 passkey-login
 passkeys

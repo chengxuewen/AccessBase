@@ -14,7 +14,8 @@
     "language": "Language",
     "theme": "Toggle dark mode",
     "connecting": "Connecting to server…",
-    "errorTitle": "Error"
+    "errorTitle": "Error",
+    "stylePack": "Interface style"
   },
   "errors": {
     "forbidden": {

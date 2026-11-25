@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBranding } from '../branding';
+import { useConsoleTheme } from '../theme/useConsoleTheme';
 import { Card, Alert, Spin, theme, ConfigProvider } from 'antd';
 import { verifyEmailToken } from '../api/auth';
 
@@ -13,9 +14,8 @@ import { verifyEmailToken } from '../api/auth';
 export default function VerifyEmail() {
   const { t } = useTranslation();
   const branding = useBranding();
-  const brandTheme = branding.primaryColor
-    ? { token: { colorPrimary: branding.primaryColor } }
-    : undefined;
+  // S1: pack theme + branding primary override (colorPrimary ONLY)
+  const brandTheme = useConsoleTheme(branding.primaryColor);
   const { token: themeToken } = theme.useToken();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') ?? '';

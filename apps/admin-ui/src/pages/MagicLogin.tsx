@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBranding } from '../branding';
+import { useConsoleTheme } from '../theme/useConsoleTheme';
 import { Card, Alert, Spin, Button, theme, ConfigProvider } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import { landingPath } from '../utils/landing';
@@ -14,9 +15,8 @@ import { landingPath } from '../utils/landing';
 export default function MagicLogin() {
   const { t } = useTranslation();
   const branding = useBranding();
-  const brandTheme = branding.primaryColor
-    ? { token: { colorPrimary: branding.primaryColor } }
-    : undefined;
+  // S1: pack theme + branding primary override (colorPrimary ONLY)
+  const brandTheme = useConsoleTheme(branding.primaryColor);
   const { token: themeToken } = theme.useToken();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
