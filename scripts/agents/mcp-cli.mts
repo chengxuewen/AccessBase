@@ -20,7 +20,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, writeFileSync, renameSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import * as path from "node:path";
 import { ROOT } from "./agent-common.mts";
@@ -57,6 +57,159 @@ function installedVersion(pkg: string): string | null {
   }
 }
 
+
+// ---- Browser resolution (2026-11-25) -----------------------------------
+// Mission: `local-playwright` must launch on this host without any hand-installed
+// Chrome. Measured ground truth (D136 record):
+//  - the pin's playwright REFUSES its managed browser on ubuntu20.04
+//    ("Playwright does not support chromium on ubuntu20.04-x64");
+//  - `@playwright/mcp/cli.js install-browser chromium` WITH
+//    PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu22.04-x64 downloads the SAME
+//    pin-exact build (chromium-1243 / 153.0.8010.12) into the standard cache
+//    and IT RUNS (full MCP browser_navigate verified);
+//  - CLI flags outrank envs (`cliOptions.x ?? env`) — so browser selection
+//    lives in the RECORD + launcher envs, never in the spec args.
+const RECORD_PATH = path.join(ROOT, "out", "mcp-browser.json");
+const RECORD_VERSION = 1;
+
+interface BrowserResolution {
+  /** playwright = the pin's own managed build (version-guaranteed);
+   *  system = a live on-PATH browser (drifts; NOTE printed);
+   *  none   = unresolved (WARN, fatal under MCP_BROWSER_STRICT=1). */
+  mode: "playwright" | "system" | "none";
+  browser: string;
+  version: string | null;
+  /** absolute executable (system mode only — playwright mode is env-selected) */
+  executable: string | null;
+}
+interface BrowserRecord {
+  record_version: number;
+  resolutions: Record<string, BrowserResolution>;
+}
+
+export function readBrowserRecord(): BrowserRecord | null {
+  try {
+    const rec = JSON.parse(readFileSync(RECORD_PATH, "utf8")) as BrowserRecord;
+    return rec && rec.record_version === RECORD_VERSION ? rec : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeBrowserRecord(server: string, res: BrowserResolution): void {
+  const rec: BrowserRecord =
+    readBrowserRecord() ?? { record_version: RECORD_VERSION, resolutions: {} };
+  rec.resolutions[server] = res;
+  mkdirSync(path.dirname(RECORD_PATH), { recursive: true });
+  const tmp = `${RECORD_PATH}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(rec, null, 2) + "\n");
+  renameSync(tmp, RECORD_PATH); // atomic (never half-written)
+}
+
+function mcpPkgDir(pkg: string): string | null {
+  try {
+    return path.dirname(createRequire(path.join(ROOT, "package.json")).resolve(`${pkg}/package.json`));
+  } catch {
+    return null;
+  }
+}
+
+/** The pin's OWN managed chromium build path (read-only; never launches/downloads). */
+export function pinChromiumExecutable(pkgDir: string): string | null {
+  try {
+    const req = createRequire(path.join(pkgDir, "package.json"));
+    return req("playwright").chromium.executablePath() as string;
+  } catch {
+    return null;
+  }
+}
+
+function pinBrowserVersion(pkgDir: string): string | null {
+  try {
+    // playwright-core's "exports" map does NOT expose browsers.json to
+    // require.resolve — read it from the resolved package DIRECTORY instead.
+    const req = createRequire(path.join(pkgDir, "package.json"));
+    const coreDir = path.dirname(req.resolve("playwright-core/package.json"));
+    const meta = JSON.parse(readFileSync(path.join(coreDir, "browsers.json"), "utf8")) as {
+      browsers: Array<{ name: string; browserVersion?: string }>;
+    };
+    return meta.browsers.find((b) => b.name === "chromium")?.browserVersion ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function which(cmd: string): string | null {
+  if (cmd.includes(path.sep)) return existsSync(cmd) ? cmd : null;
+  const suffixes = process.platform === "win32" ? [".exe", ".cmd", ""] : [""];
+  for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+    if (!dir) continue;
+    for (const ext of suffixes) {
+      const p = path.join(dir, cmd + ext);
+      if (existsSync(p)) return p;
+    }
+  }
+  return null;
+}
+
+/** Three-rung ladder. rung1 = pin-exact managed build (platform override for
+ *  dropped hosts); rung2 = live system browser proved by --version (realpath
+ *  only; drift NOTE printed); rung3 = WARN (MCP_BROWSER_STRICT=1 -> fatal). */
+export function resolvePlaywrightBrowser(
+  server: string,
+  pkg: string,
+  family: string,
+): BrowserResolution {
+  const pkgDir = mcpPkgDir(pkg);
+  if (!pkgDir) {
+    throw new Error(`${pkg} is not installed — package install must run FIRST (a clean clone has no cli.js)`);
+  }
+  const cli = path.join(pkgDir, "cli.js");
+  const override =
+    process.env.MCP_BROWSER_PLATFORM_OVERRIDE ??
+    (process.platform === "linux" ? "ubuntu22.04-x64" : undefined);
+  // rung 1 — the pin's own installer + CDN (no hand-fetched artifact)
+  try {
+    console.log(
+      `  $ node ${path.relative(ROOT, cli)} install-browser ${family}${override ? ` (platform override: ${override})` : ""}`,
+    );
+    execSync(`node "${cli}" install-browser ${family}`, {
+      cwd: ROOT,
+      stdio: "inherit",
+      timeout: 900_000,
+      env: { ...process.env, ...(override ? { PLAYWRIGHT_HOST_PLATFORM_OVERRIDE: override } : {}) },
+    });
+    const exe = pinChromiumExecutable(pkgDir);
+    if (exe && existsSync(exe)) {
+      return { mode: "playwright", browser: family, version: pinBrowserVersion(pkgDir), executable: null };
+    }
+    console.warn(`  [browser] rung1: installer ran but the managed build is absent (${exe ?? "no path"})`);
+  } catch (e) {
+    console.warn(`  [browser] rung1 failed: ${String((e as Error).message).split("\n")[0]}`);
+  }
+  // rung 2 — a live system browser, PROVED by --version
+  for (const name of ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]) {
+    const p = which(name);
+    if (!p) continue;
+    try {
+      const raw = execSync(`"${p}" --version`, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+      const version = raw.match(/\d+\.\d+\.\d+[\d.]*/)?.[0] ?? raw;
+      const exe = realpathSync(p);
+      console.warn(
+        `  [browser] rung2: system ${name} ${version} — NOTE: system browsers auto-update; only the pin's own build is version-guaranteed`,
+      );
+      return { mode: "system", browser: name, version, executable: exe };
+    } catch {
+      /* candidate answered nothing — next */
+    }
+  }
+  // rung 3 — nothing usable
+  const msg = `[browser] rung3: no usable browser for ${server} — run: bash accessbase.sh mcp setup`;
+  if (process.env.MCP_BROWSER_STRICT === "1") throw new Error(msg);
+  console.warn(`  ${msg} (WARN; MCP_BROWSER_STRICT=1 makes this fatal)`);
+  return { mode: "none", browser: family, version: null, executable: null };
+}
+
 function sh(cmd: string): void {
   console.log(`  $ ${cmd}`);
   execSync(cmd, { cwd: ROOT, stdio: "inherit" });
@@ -76,6 +229,15 @@ function main(): number {
         : e.pin && e.pin !== "latest-known" && !(e.kind === "pixi" ? ver.startsWith(e.pin) : ver === e.pin) ? `DRIFT (installed ${ver}, pin ${e.pin})` : `ok (${ver ?? "unpinned"})`;
       console.log(`  ${e.name.padEnd(18)} ${e.enabled ? "on " : "off"}  ${state}`);
     }
+    const rec = readBrowserRecord();
+    const lp = rec?.resolutions["local-playwright"];
+    console.log(
+      `  ${"browser(local-playwright)".padEnd(26)} ${
+        lp
+          ? `${lp.mode}${lp.version ? " " + lp.version : ""}${lp.executable ? " " + lp.executable : ""}`
+          : "no record — run: bash accessbase.sh mcp setup"
+      }`,
+    );
     console.log("  (.codegraph index: " + (existsSync(path.join(ROOT, ".codegraph")) ? "present" : "absent — run: bash accessbase.sh mcp index (or: pixi run mcp-index)") + ")");
     return 0;
   }
@@ -92,7 +254,19 @@ function main(): number {
       // does not support chromium on ubuntu20.04-x64"); the launcher therefore
       // binds the MCP to @playwright/test's chromium (protocol-compatible,
       // proven by scripts/agents/mcp-browser-probe.mjs).
-      if (e.name === "local-playwright") sh("pnpm exec playwright install chromium");
+      if (e.name === "local-playwright") {
+        // W2 (2026-11-25): browser resolution AFTER the package install (a clean
+        // clone has no cli.js inside the package) and through the PIN'S OWN
+        // installer (version-exact; the REPO's `pnpm exec playwright install`
+        // installs a different build and cannot satisfy the MCP).
+        const res = resolvePlaywrightBrowser(e.name, e.pkg, "chromium");
+        writeBrowserRecord(e.name, res);
+        console.log(
+          `  ${e.name}: browser -> ${res.mode}${res.version ? " " + res.version : ""}${
+            res.mode === "none" ? " (UNRESOLVED — recorded; see above)" : ""
+          }`,
+        );
+      }
     }
     return 0;
   }
@@ -117,4 +291,6 @@ function main(): number {
   return 2;
 }
 
-process.exit(main());
+// import.meta.main guard (gate-mcp precedent): importing this module must NOT
+// run the CLI — scripts/agents/gate-mcp.mts imports readBrowserRecord().
+if (import.meta.main) process.exit(main());

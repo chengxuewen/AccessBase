@@ -26,6 +26,7 @@ import { execSync } from "node:child_process";
 import { createRequire } from "node:module";
 import * as path from "node:path";
 import { ROOT, EXIT_CLEAN, EXIT_FINDINGS } from "./agent-common.mts";
+import { readBrowserRecord, pinChromiumExecutable } from "./mcp-cli.mts";
 
 const MCP_SOURCE = path.join(ROOT, ".agents", "mcp.json");
 const PIN_REGISTRY = path.join(ROOT, "scripts", "agents", "mcp-servers.json");
@@ -43,6 +44,7 @@ function installedVersion(pkg: string): string | null {
 
 export function run(_mode: "check" | "sync"): { code: number; summary: string } {
   const findings: string[] = [];
+  const notes: string[] = [];
   const src = JSON.parse(readFileSync(MCP_SOURCE, "utf8"));
   const servers = src.servers as Record<string, { enabled: boolean; kind: string }>;
   const pins = (JSON.parse(readFileSync(PIN_REGISTRY, "utf8")).servers ?? {}) as Record<
@@ -145,12 +147,50 @@ export function run(_mode: "check" | "sync"): { code: number; summary: string } 
     }
   }
 
+  // 4. Browser resolution leg (2026-11-25, D136) — READ-ONLY: reads the record
+  //    and stats the pin's managed build path. NEVER downloads or launches a
+  //    browser (that is `mcp setup`'s job; a probe here would false-red CI).
+  {
+    const rec = readBrowserRecord();
+    const lp = rec?.resolutions["local-playwright"];
+    const pkg = pins["local-playwright"]?.package;
+    const pkgDir = (() => {
+      try {
+        return path.dirname(createRequire(path.join(ROOT, "package.json")).resolve(`${pkg}/package.json`));
+      } catch {
+        return null;
+      }
+    })();
+    const managed = pkgDir ? pinChromiumExecutable(pkgDir) : null;
+    const managedPresent = Boolean(managed && existsSync(managed));
+    if (!lp) {
+      // yellow-skip semantics (same convention as missing credentials):
+      // a record-less but INSTALLABLE host is reported, not alarmed.
+      if (managedPresent) {
+        notes.push("browser: managed build present, no record — run: bash accessbase.sh mcp setup");
+      } else {
+        findings.push("browser: local-playwright UNRESOLVED (no record, no managed build) — run: bash accessbase.sh mcp setup");
+      }
+    } else if (lp.mode === "playwright") {
+      if (!managedPresent) {
+        findings.push("browser: record says playwright but the managed build is MISSING — run: bash accessbase.sh mcp setup");
+      }
+    } else if (lp.mode === "system") {
+      if (!lp.executable || !path.isAbsolute(lp.executable) || !existsSync(lp.executable)) {
+        findings.push("browser: system record points at a missing binary — rerun: bash accessbase.sh mcp setup");
+      }
+    } else {
+      findings.push(`browser: local-playwright mode '${lp.mode}' is UNRESOLVED — run: bash accessbase.sh mcp setup`);
+    }
+  }
+
   if (findings.length) {
     console.log(`gate-mcp: ${findings.length} finding(s):`);
     for (const f of findings) console.log(`  ${f}`);
     console.log("  fix: the cause, not the gate (CONSTRAINTS.md)");
     return { code: EXIT_FINDINGS, summary: `gate-mcp: ${findings.length} finding(s)` };
   }
+  for (const n of notes) console.log(`  note: ${n}`);
   const pinCount = Object.values(pins).filter((p) => p.pin && p.pin !== "latest-known").length;
   console.log(`gate-mcp: green (${pinCount} pins ok${reported ? `, ${reported} disabled server(s) reported-not-red` : ""}; latch-pair intact)`);
   return { code: EXIT_CLEAN, summary: "gate-mcp: green" };

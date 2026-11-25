@@ -37,30 +37,62 @@ if (!isWin) {
   try { execSync("pkill -f 'ms-playwright/mcp-chrome'", { stdio: 'ignore' }) } catch {}
 }
 
-// 5. Start MCP server (stdio inherited, opencode communicates via stdin/stdout)
-//    --isolated mode: browser starts on-demand per tool call, no persistent profile
-//    --browser chromium: Playwright's bundled-browser family instead of the
-//    system 'chrome' channel (the default fails on hosts without Google Chrome:
-//    "Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome").
-//    --executable-path: @playwright/mcp's OWN playwright (0.0.80 → 1.63-alpha)
-//    ships NO ubuntu20.04 chromium build ("Playwright does not support chromium
-//    on ubuntu20.04-x64"), so point it at the REPO's bundled chromium
-//    (@playwright/test → chromium.executablePath(), e.g. chromium-1234) —
-//    protocol-compatible, proven by scripts/agents/mcp-browser-probe.mjs.
-//    Installed by `bash accessbase.sh mcp setup`; missing = fatal + explicit
-//    pointer (never a silent fallback to the MCP's own un-installable build).
-const { createRequire } = await import('node:module')
-const repoRequire = createRequire(join(projectRoot, 'package.json'))
-let repoChromium = null
+// 5. Browser + launch contract (2026-11-25, D136)
+//    Resolution lives in the RECORD written by `bash accessbase.sh mcp setup`
+//    (out/mcp-browser.json, atomic write). Browser selection is driven by ENV
+//    here — NEVER by CLI flags: flags outrank envs (`cliOptions.x ?? env`), so
+//    a baked-in `--browser` would block every env-driven fallback.
+//    The record is authoritative: missing/unreadable/mode-less = fatal with a
+//    setup pointer. The launcher must NOT retry the install ladder — on a
+//    dropped host that retry only produces a misleading "unsupported OS" error.
+import { readFileSync } from 'node:fs'
+const recordPath = join(projectRoot, 'out', 'mcp-browser.json')
+let resolution = null
 try {
-  repoChromium = repoRequire('@playwright/test').chromium.executablePath()
+  resolution = JSON.parse(readFileSync(recordPath, 'utf8')).resolutions?.['local-playwright'] ?? null
 } catch {
-  repoChromium = null
+  resolution = null
 }
-if (!repoChromium || !existsSync(repoChromium)) {
-  console.error('[playwright-mcp] bundled chromium missing (' + repoChromium + ') — run: bash accessbase.sh mcp setup')
+if (!resolution || !resolution.mode) {
+  console.error(
+    '[playwright-mcp] browser record missing/unreadable (out/mcp-browser.json) — run: bash accessbase.sh mcp setup',
+  )
   process.exit(1)
 }
-const child = spawn(mcpBin, ['--isolated', '--browser', 'chromium', '--executable-path', repoChromium], { stdio: 'inherit' })
+// Symmetric env handoff: export the record's selector, UNSET the other — a
+// stale shell value must never override the record.
+const childEnv = { ...process.env }
+delete childEnv.PLAYWRIGHT_MCP_BROWSER
+delete childEnv.PLAYWRIGHT_MCP_EXECUTABLE_PATH
+if (resolution.mode === 'playwright') {
+  childEnv.PLAYWRIGHT_MCP_BROWSER = resolution.browser
+} else if (resolution.mode === 'system') {
+  childEnv.PLAYWRIGHT_MCP_EXECUTABLE_PATH = resolution.executable
+} else {
+  console.error(
+    `[playwright-mcp] browser unresolved (mode '${resolution.mode}') — run: bash accessbase.sh mcp setup`,
+  )
+  process.exit(1)
+}
+// PATH prepend: npm bin shims start with `#!/usr/bin/env node` — an ancient
+// GUI-inherited node must never win over the node running this launcher.
+childEnv.PATH = join(process.execPath, '..') + (isWin ? ';' : ':') + (childEnv.PATH ?? '')
+
+const args = [
+  '--isolated',
+  // always absolute: the server's default `./.playwright-mcp` would pollute the
+  // CWD (repo root). The server creates this dir recursively; out/ is gitignored.
+  '--output-dir',
+  join(projectRoot, 'out', 'local-playwright', 'mcp'),
+]
+// Headless rule: the server forces headless only when DISPLAY is unset (it does
+// NOT look at WAYLAND_DISPLAY), so a Wayland-only host needs the explicit flag.
+// Escape hatches: MCP_HEADLESS_FORCE=1 / MCP_HEADED_FORCE=1.
+const wantsHeadless =
+  process.env.MCP_HEADLESS_FORCE === '1' ||
+  (process.env.MCP_HEADED_FORCE !== '1' && !process.env.DISPLAY && !process.env.WAYLAND_DISPLAY)
+if (wantsHeadless) args.push('--headless')
+
+const child = spawn(mcpBin, args, { stdio: 'inherit', env: childEnv })
 child.on('error', (err) => { console.error(err); process.exit(1) })
 child.on('exit', (code) => process.exit(code ?? 1))

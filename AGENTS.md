@@ -160,8 +160,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### decisions
 - full text: `.agents/memorys/decisions.md`
-... 110 older entries omitted (read the full file)
-- D113: Setup 状态以 DB 为准 + env 双变量旁路 (2026-09-01)
+... 111 older entries omitted (read the full file)
 - D114: 已知 bug 用 E2E RED 回归网锁定（test.fail 标注法） (2026-09-03)
 - D115: 授权强制走 requirePermission preHandler（偏离 identity-sdd §3.3 plugin 路线） (2026-09-04)
 - D116: Frontend state-stack review — keep Zustand + declarative react-router v7; TanStack Query deferred (2026-09-10)
@@ -186,6 +185,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - D133: 视觉语法对齐官方语义（裁决 43/44/45）——边框分级/圆角选中/两段式列表/density/文本链接 (2026-11-25)
 - D134: 行操作形态回退图标并全页统一（裁决 46，用户偏好推翻 45）(2026-11-25)
 - D135: 门禁升级——id-uniqueness 与跨页形态普查入 CI（PIT-118/121 预防）(2026-11-25)
+- D136: local-playwright MCP 自带浏览器解析——三阶梯子 + 原子记录 + env 交接 (2026-11-25)
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`

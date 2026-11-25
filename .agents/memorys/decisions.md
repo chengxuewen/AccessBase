@@ -2506,3 +2506,20 @@ fix 12-17 连锁定稿：图标按钮四族统一（ghost 行 28x28/16 gap8、bo
 ## D135: 门禁升级——id-uniqueness 与跨页形态普查入 CI（PIT-118/121 预防）(2026-11-25)
 
 用户裁"升级门禁"：新增 harness 组 id-uniqueness（markup id 逐文件唯一，基线即抓出 verifyMsg 跨表面碰撞并改名 profVerifyMsg）；46 回退时 shape-scale 加 formCensus（八页行操作形态全 icon）。两门禁均**双样本验锁**（注入缺陷红/移除绿）。理由：单文件 kit 的全局命名空间与形态一致性是复发源（PIT-118 ≥5 次、PIT-121 用户可见混形），记忆教训升 CI 才闭环。组数 68→69 无收缩；tag ps21/ps25。
+
+## D136: local-playwright MCP 自带浏览器解析——三阶梯子 + 原子记录 + env 交接 (2026-11-25)
+
+**问题**：`local-playwright`（`@playwright/mcp@0.0.80` → playwright 1.63-alpha）首次工具调用要开浏览器，但 pin 的 Playwright 在本机（ubuntu 20.04）**拒绝其托管构建**（`ERROR: Playwright does not support chromium on ubuntu20.04-x64`；firefox 同），且默认 `--browser` 通道是系统 `chrome`（本机无 Chrome：`Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome`）。
+
+**测量先行的地面真相**（每条都有命令证据）：① 平台覆盖 `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu22.04-x64 node <mcp>/cli.js install-browser chromium` → 下载 **pin 精确构建** chromium-1243 / 153.0.8010.12 到标准缓存，且 MCP `browser_navigate` **真实通**（stdio JSON-RPC 探针）；② CLI 旗标压过 env（`cliOptions.x ?? env`）→ 浏览器选择不能进 spec args；③ 服务器默认输出 `./.playwright-mcp` 在 CWD（污染仓库根）；④ headless 仅看 `DISPLAY`（不看 `WAYLAND_DISPLAY`）；⑤ `playwright-core/browsers.json` 不经 exports 暴露 → 按包目录直读。
+
+**决策**：
+- **三阶梯子**（在 `bash accessbase.sh mcp setup` 内，**包安装之后**执行——干净克隆包内没有 cli.js）：rung1 pin 自带安装器 + 平台覆盖（linux 默认 `ubuntu22.04-x64`，可用 `MCP_BROWSER_PLATFORM_OVERRIDE` 换）；rung2 系统浏览器（`--version` 证明 + realpath，打印漂移 NOTE）；rung3 WARN（`MCP_BROWSER_STRICT=1` 转红）。
+- **原子记录** `out/mcp-browser.json`（gitignored，tmp+renameSync）：`{record_version:1, resolutions:{local-playwright:{mode:'playwright'|'system'|'none', browser, version, executable}}}`。
+- **启动器 env 交接**（`.opencode/init-mcp-playwright.mjs`）：读记录；playwright 模式导出 `PLAYWRIGHT_MCP_BROWSER` 并 **unset** `PLAYWRIGHT_MCP_EXECUTABLE_PATH`（反之亦然——陈旧 shell 值不得覆盖记录）；记录缺失/mode 缺失 → 明确指向 `mcp setup` 并 exit 1（**启动器绝不重试安装阶梯**——在降级平台上重试只会产生误导性错误）；恒传绝对 `--output-dir out/local-playwright/mcp`；`DISPLAY`/`WAYLAND_DISPLAY` 皆无 → `--headless`（逃逸变量 `MCP_HEADLESS_FORCE`/`MCP_HEADED_FORCE`）；PATH 前置启动器自身 node 目录（npm shim 的 `#!/usr/bin/env node` 不得被古老系统 node 劫持）。
+- **门腿（只读）**：gate-mcp 读记录 + stat 托管构建路径，**绝不下载/绝不启动**；记录缺失但构建在 → yellow-note 绿；两样都无 → `1 unresolved` 红。
+- **端到端探针** `scripts/agents/mcp-browser-probe.mjs`：驱动**真实启动链路**（mcp-launch.sh → 包装器 → playwright-mcp）做 `browser_navigate`，断言返回页面段/快照文件（`--version` 不算数），并断言仓库根无 `.playwright-mcp`。
+
+**验收（全部实跑观察）**：setup exit 0 且记录 mode=playwright/version=153.0.8010.12；status 显示解析行；gate 绿（0 unresolved）；探针 exit 0 + 快照落 `out/local-playwright/mcp`；根目录无污染；strict 模式 setup 仍 exit 0；负证 (a) 空记录留构建 → gate 绿+note、launcher exit 1；(b) 记录与构建双清 → gate `1 unresolved` 红、launcher exit 1——随后恢复并复绿。
+
+**代价/边界**：托管构建 ~394MB（解压，`du` 实测）；记录不含任何机密；pin 不浮动（安装仍走 `pnpm add -wD <pkg>@<pin>`）。

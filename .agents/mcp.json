@@ -11,7 +11,8 @@
       "enabled": true,
       "kind": "npm",
       "launcher": ".opencode/init-mcp-playwright.mjs",
-      "note": "browser automation; CodeBuddy track also has a built-in agent-browser — the matrix routes which to use"
+      "note": "browser automation; CodeBuddy track also has a built-in agent-browser — the matrix routes which to use",
+      "browserFamily": "chromium"
     },
     "local-antd": {
       "enabled": false,
@@ -41,8 +42,13 @@
     "local-github": {
       "enabled": false,
       "kind": "remote",
-      "command": ["npx", "@modelcontextprotocol/server-github"],
-      "env": { "GITHUB_TOKEN": "${GITHUB_TOKEN}" },
+      "command": [
+        "npx",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      },
       "note": "disabled, registered so the full rewrite cannot orphan it (RCH D20); needs GITHUB_TOKEN if ever enabled"
     }
   }
