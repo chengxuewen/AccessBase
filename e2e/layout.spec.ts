@@ -195,6 +195,10 @@ test.describe('Layout', () => {
     page,
   }) => {
     await page.addInitScript(() => {
+      // seed ONLY on the first load — addInitScript re-runs on reload and
+      // would reset the persisted collapse the test is proving (S3' catch)
+      if (sessionStorage.getItem('s3-seeded')) return;
+      sessionStorage.setItem('s3-seeded', '1');
       localStorage.setItem('admin-layout-collapsed', 'false');
       localStorage.setItem('lng', 'en');
     });
@@ -235,7 +239,7 @@ test.describe('Layout', () => {
     // DOM integrity: exactly one sider (testing.md mandated flow)
 
     for (const [label, path] of MENU_ITEMS) {
-      const item = page.locator(`.ant-menu li:has-text("${label}")`).first();
+      const item = page.locator(`.ant-menu-item:has-text("${label}")`).first(); // leaf items (S3' groups wrap children in their own li)
       await expect(item).toBeVisible();
       await item.click();
       await expect(page).toHaveURL(new RegExp(path.replace('/', '\\/') + '$'));
@@ -257,7 +261,7 @@ test.describe('Layout', () => {
       await page.goto(path);
       await mockCommonApis(page);
       await page.goto(path);
-      const item = page.locator(`.ant-menu li:has-text("${label}")`).first();
+      const item = page.locator(`.ant-menu-item:has-text("${label}")`).first(); // leaf items (S3' groups wrap children in their own li)
       await expect(item).toBeVisible();
       await expect(page).toHaveURL(new RegExp(path.replace('/', '\\/') + '$'));
     }
@@ -276,8 +280,24 @@ test.describe('Layout', () => {
   // (tenants/settings/clients/api-keys) must render translated breadcrumbs,
   // not the raw URL segment.
   test('breadcrumb translates tenants/settings/clients/api-keys segments', async ({ page }) => {
+    // catch-all FIRST (later-registered specific mocks take precedence): any
+    // page-mount GET without a dedicated mock returns an empty success instead
+    // of a network error → no mid-test axios logout (pre-existing flake family)
+    await page.route('**/api/v1/**', (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: [], total: 0 }),
+          })
+        : route.fallback(),
+    );
     await login(page);
     await mockCommonApis(page);
+    // page data mocks too — without them /api-keys fires an unmocked request
+    // and the axios interceptor logs out mid-test (pre-existing flake family,
+    // closed at S3' while making the crumb real)
+    await mockPageData(page);
     const cases: Array<[string, string]> = [
       ['/tenants', 'Tenants'],
       ['/settings', 'Settings'],

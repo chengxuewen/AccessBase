@@ -6,14 +6,16 @@
 
 ## 跨页全局面（每页都可见——消账最优先）
 
-| # | 维度 | 原型 | 实现 | 级别 | 修复指引 |
-|---|------|------|------|------|---------|
-| G1 | **侧边栏分组** | OVERVIEW/IDENTITY/ACCESS/OPERATIONS/SYSTEM 五组带组标签 | 平铺 13 项无分组 | **CRITICAL** | S3' 壳重构：menu 分组渲染（ProLayout menuData type=group） |
-| G2 | **品牌块** | 左上角 AB 徽标 + AccessBase + Identity & Access 副标 | 纯文字 AccessBase | **CRITICAL** | 壳：logo + 副标组合 |
-| G3 | **顶栏构成** | 面包屑（Admin / Users）+ 右侧中文/Broadsheet 选择/主题/租户标签/头像 | 面包屑缺失；**包切换/主题/语言落在左下页脚**；租户标签在头像内 | **CRITICAL** | 壳：actionsRender 上移回顶栏右侧 + breadcrumbRender |
-| G4 | **页头** | 页标题 + 副标说明 + 右上 Import/Create 实心按钮 | 无页头块；按钮在 ProTable 工具栏 | **CRITICAL** | S4-S9 各页页头组件（新 PageHead 契约件） |
-| G5 | **表格工具栏** | meta 行（刷新/计数/视图切换/密度）+ 搜索框/筛选 chips 独立行 | ProTable 查询表单（重置/查询）+ 卡片工具栏图标组 | **CRITICAL** | S4-S9 表格重构（search form → 行内搜索+chips） |
-| G6 | **行操作** | 图标三件套（眼睛/铅笔/…）带 hover 提示 | 文字按钮（编辑/删除） | MAJOR | 页面族：icon actions + overflow 菜单 |
+| # | 维度 | 原型 | 实现 | 级别 | 状态 |
+|---|------|------|------|------|------|
+| G1 | **侧边栏分组** | OVERVIEW/IDENTITY/ACCESS/OPERATIONS/SYSTEM 五组带组标签 | ✅ 五组分组标签（`menu={{type:'group'}}` + menuDataRender；组标题 11px/tertiary/大写/.08em） | CRITICAL | **CLOSED S3'** (2e067e6→本轮) |
+| G2 | **品牌块** | 左上角 AB 徽标 + AccessBase + Identity & Access 副标 | ✅ `ConsoleBrand`：26px 方标(缩写/logo) + 名 + 副标，折叠只剩方标 | CRITICAL | **CLOSED S3'** |
+| G3 | **顶栏构成** | 面包屑（Admin / Users）+ 右侧中文/Broadsheet 选择/主题/租户标签/头像 | ✅ `ConsoleHeader`：左面包屑 Admin / 页名；右：语言·风格·主题·租户标签·头像（ProLayout side 布局不渲染 header——自渲染进内容列顶部） | CRITICAL | **CLOSED S3'** |
+| G4 | **页头** | 页标题 + 副标说明 + 右上 Import/Create 实心按钮 | 无页头块；按钮在 ProTable 工具栏 | **CRITICAL** | S4 (PageHead) |
+| G5 | **表格工具栏** | meta 行（刷新/计数/视图切换/密度）+ 搜索框/筛选 chips 独立行 | ProTable 查询表单（重置/查询）+ 卡片工具栏图标组 | **CRITICAL** | S4 (TableToolbar) |
+| G6 | **行操作** | 图标三件套（眼睛/铅笔/…）带 hover 提示 | 文字按钮（编辑/删除） | MAJOR | S3.5 (IconActions) |
+
+**S3' 证据**：`app/users.png`（重拍 2026-11-25）——分组标签 概览/身份/访问/运营/系统 + 品牌块 + 顶栏 "Admin / 用户管理" + 右侧动作区 + 底部收起钮；`prototype/users.png` 对照。**MCP 交互验证：MCP 不可用（chromium-1200 vs 1234），已按规则报告用户**——本轮用 conformance spec 双图 + layout.spec 语义矩阵替代。
 
 ## users 页矩阵（AI 双图复核）
 

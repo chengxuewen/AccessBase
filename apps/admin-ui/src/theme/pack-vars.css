@@ -19,6 +19,14 @@
   border-radius: var(--r-tag);
 }
 
+/* S3' (G1) sidebar group titles: prototype `.nav .group` — uppercase with
+ * .08em tracking. Size/color ride components.Menu tokens; these two have NO
+ * token channel. */
+.ant-menu-item-group-title {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 /* Contract focus ring on surfaces antd does NOT expose a focus token for
  * (menu items, links, table rows). Inputs/buttons keep antd's own focus
  * treatment — a blanket outline would double-ring with activeShadow. */

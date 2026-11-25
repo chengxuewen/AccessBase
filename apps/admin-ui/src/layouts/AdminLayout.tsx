@@ -5,9 +5,7 @@ import { ProLayout } from '@ant-design/pro-components';
 import {
   DashboardOutlined,
   UserOutlined,
-  LogoutOutlined,
   SettingOutlined,
-  GlobalOutlined,
   SafetyOutlined,
   FileSearchOutlined,
   HistoryOutlined,
@@ -15,17 +13,24 @@ import {
   TeamOutlined,
   UsergroupAddOutlined,
   ApiOutlined,
-  MoonOutlined,
   KeyOutlined,
   FunctionOutlined,
-  SunOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Dropdown, Segmented, Tag, Typography } from 'antd';
+import { Alert, Button } from 'antd';
 import { useAuthStore } from '../stores/auth';
 import { useUiStore } from '../stores/ui';
-import type { PackPreference } from '../stores/ui';
-import Breadcrumbs from '../components/Breadcrumbs';
+import { ConsoleBrand } from '../components/shell/ConsoleBrand';
+import { ConsoleHeader } from '../components/shell/ConsoleHeader';
 import { fetchBranding } from '../branding';
+
+// S3' (G1): prototype sidebar sections — path membership mirrors admin-console.html:731-747
+const GROUPS: Array<{ key: string; paths: string[] }> = [
+  { key: 'overview', paths: ['/dashboard'] },
+  { key: 'identity', paths: ['/users', '/roles', '/groups'] },
+  { key: 'access', paths: ['/tenants', '/clients', '/api-keys'] },
+  { key: 'operations', paths: ['/webhooks', '/audit', '/events', '/profile'] },
+  { key: 'system', paths: ['/settings'] },
+];
 
 export default function AdminLayout() {
   const { t, i18n } = useTranslation();
@@ -66,8 +71,24 @@ export default function AdminLayout() {
       const code = codeOf[r.path];
       return code === undefined || (permissions?.includes(code) ?? true);
     });
-    return { path: '/', routes };
+    return routes;
   }, [t, permissions]);
+
+  // S3' (adjudication 1=C, G1): prototype sidebar GROUPS — Overview / Identity /
+  // Access / Operations / System — rendered as antd Menu item groups via
+  // menuDataRender. Permission-filtered; an emptied group is dropped.
+  const menuData = useMemo(() => {
+    const byPath = new Map(menuRoutes.map((r) => [r.path, r]));
+    return GROUPS.map((g) => ({
+      type: 'group' as const,
+      key: `g-${g.key}`,
+      name: t(`menu.group.${g.key}`),
+      children: g.paths
+        .map((p) => byPath.get(p))
+        .filter((r): r is NonNullable<typeof r> => r !== undefined)
+        .map((r) => ({ key: r.path, path: r.path, name: r.name, icon: r.icon })),
+    })).filter((g) => g.children.length > 0);
+  }, [menuRoutes, t]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -114,26 +135,26 @@ export default function AdminLayout() {
     localStorage.setItem('lng', next);
   };
 
-  // S3 (A-2=A): persistence records USER INTENT, responsive collapse is a
-  // viewport fact. ProLayout's onCollapse is single-param (7.22.7 — the antd
-  // Sider type discriminator is stripped upstream), so the carrier is a
-  // capture-phase flag on collapsedButtonRender: the wrapper marks intent
-  // BEFORE the inner trigger's onClick fires onCollapse; the breakpoint's
-  // responsive callback runs with the flag unset → transient.
+  // Mount signal: ProLayout's breakpoint fires synthetic onCollapse calls on
+  // first render. Side layout emits TWO expand-noise signals (ProLayout +
+  // antd Sider) — a first-signal-only guard lets the second clobber the
+  // persisted restore (S3' battery-caught). Discriminator: an EXPAND signal
+  // is genuine only when (a) the user clicked the trigger (intent) or (b) the
+  // viewport has actually been below the breakpoint during this mount (a
+  // real narrow→wide restore). Collapse signals always apply.
   const collapseIntent = useRef(false);
-  // Mount signal: ProLayout's breakpoint fires ONE synthetic onCollapse on
-  // first render. At desktop it emits FALSE (noise that would clobber the
-  // persisted restore — battery-caught: reload with collapsed=true lost the
-  // class); below the breakpoint it emits TRUE (a REAL responsive collapse).
-  // Discriminator: the first signal applies only when it requests COLLAPSE.
-  const firstCollapseSignal = useRef(true);
+  const brokenSeen = useRef(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767.98px)'); // antd 'md'
+    const onChange = (): void => {
+      if (mq.matches) brokenSeen.current = true;
+    };
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   const handleCollapse = (next: boolean) => {
-    if (firstCollapseSignal.current) {
-      firstCollapseSignal.current = false;
-      if (!next) return; // desktop-mount noise — never clobbers persisted intent
-      setCollapsed(true); // below-breakpoint mount → responsive collapse, transient
-      return;
-    }
+    if (!next && !collapseIntent.current && !brokenSeen.current) return; // expand noise
     setCollapsed(next);
     if (collapseIntent.current) {
       collapseIntent.current = false;
@@ -147,6 +168,12 @@ export default function AdminLayout() {
 
   return (
     <ProLayout
+      // S3': explicit SIDE layout (the default 'mix' parked the action zone at
+      // the sider foot — conformance G3 catch)
+      layout="side"
+      // groups come from the MENU PROP (BaseMenu.js:105-108), not item fields
+      menu={{ type: 'group' }}
+      contentStyle={{ padding: 0 }}
       title={site.siteName || 'AccessBase'}
       logo={site.logoUrl || null}
       fixSiderbar
@@ -158,105 +185,80 @@ export default function AdminLayout() {
       // recorded in the divergence ledger (drawer mode = ledger).
       disableMobile={true}
       breakpoint="md"
-      collapsedButtonRender={(collapsedBtn, defaultDom) => (
-        <span
+      collapsedButtonRender={(_collapsedBtn, defaultDom) => (
+        <div
           data-testid="sider-collapse-trigger"
           // capture phase: mark intent BEFORE the inner trigger's own onClick
           onClickCapture={() => {
             collapseIntent.current = true;
           }}
+          // prototype .side-foot .collapse-btn: bordered full-width trigger
+          style={{
+            margin: 'var(--sp8)',
+            padding: 6,
+            border: '1px solid var(--bd)',
+            borderRadius: 'var(--r4)',
+            background: 'var(--surface)',
+            color: 'var(--tx2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            fontSize: 'var(--fs12)',
+          }}
         >
           {defaultDom}
-        </span>
+          {!collapsed && <span>{t('common.collapse')}</span>}
+        </div>
       )}
       location={{ pathname: location.pathname }}
-      route={menuRoutes}
+      route={{ path: '/', routes: menuRoutes }}
       menuItemRender={(item, dom) => (
         <div onClick={() => item.path && navigate(item.path)}>{dom}</div>
       )}
-      avatarProps={{
-        src: undefined,
-        // L′ D4: tenant identity is data-driven — Tag renders only for a
-        // non-default tenant whose name resolved (fields absent on legacy /me
-        // payloads = hidden, fail-closed). No UUID literals, no new locale key:
-        // the tag content is the tenant NAME data.
-        title: (
-          <>
-            {user?.name || 'Admin'}
-            {user?.tenantIsDefault === false && user?.tenantName ? (
-              <Tag data-testid="tenant-tag" style={{ marginInlineStart: 8 }}>
-                {user.tenantName}
-              </Tag>
-            ) : null}
-          </>
-        ),
-        size: 'small',
-        render: (_, defaultDom) => (
-          <Dropdown
-            menu={{
-              items: [
-                { key: 'profile', label: t('menu.profile'), icon: <UserOutlined /> },
-                { type: 'divider' },
-                { key: 'logout', label: t('menu.logout'), icon: <LogoutOutlined />, danger: true },
-              ],
-              onClick: ({ key }) => {
-                if (key === 'profile') navigate('/profile');
-                if (key === 'logout') handleLogout();
-              },
-            }}
-          >
-            <span data-testid="user-dropdown">{defaultDom}</span>
-          </Dropdown>
-        ),
-      }}
-      actionsRender={() => [
-        // S1 (P-2=B/A-1=B): pack selector — labeled options (the contract's
-        // selector family), two shipped packs, five ledgered.
-        <Segmented
-          key="pack"
-          data-testid="pack-select"
-          aria-label={t('common.stylePack')}
-          value={pack}
-          onChange={(v) => setPack(v as PackPreference)}
-          options={[
-            { label: 'Ant', value: 'ant' },
-            { label: 'Broadsheet', value: 'broadsheet' },
-          ]}
-        />,
-        <Button
-          type="text"
-          size="small"
-          key="theme"
-          data-testid="theme-toggle"
-          icon={resolvedTheme === 'dark' ? <SunOutlined /> : <MoonOutlined />}
-          title={t('common.theme')}
-          aria-label={t('common.theme')}
-          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-        />,
-        <Button
-          type="text"
-          size="small"
-          icon={<GlobalOutlined />}
-          key="lang"
-          data-testid="lang-toggle"
-          onClick={toggleLanguage}
-          title={t('common.language')}
-          aria-label={t('common.language')}
-        >
-          {i18n.language === 'zh' ? '中文' : 'EN'}
-        </Button>,
-      ]}
-      menuFooterRender={(props) => {
-        if (props?.collapsed) return undefined;
-        return (
-          <div style={{ textAlign: 'center', paddingBlockEnd: 12 }}>
-            <div style={{ fontSize: 12 }}>
-              <Typography.Text type="secondary">AccessBase v0.1.0</Typography.Text>
-            </div>
-          </div>
-        );
-      }}
+      // S3' (adjudication 1=C): the three shell contract slots — brand block
+      // (G2), grouped menu (G1), topbar (G3). Page interiors untouched.
+      menuHeaderRender={(_logo, _title, props) => (
+        <ConsoleBrand
+          name={site.siteName || 'AccessBase'}
+          logoUrl={site.logoUrl || null}
+          collapsed={Boolean(props?.collapsed)}
+        />
+      )}
+      menuDataRender={() => menuData}
+      headerRender={() => (
+        <ConsoleHeader
+          theme={resolvedTheme}
+          onToggleTheme={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+          pack={pack}
+          onPackChange={setPack}
+          language={i18n.language}
+          onToggleLanguage={toggleLanguage}
+          tenantName={user?.tenantIsDefault === false ? user?.tenantName : undefined}
+          userName={user?.name}
+          onNavigate={navigate}
+          onLogout={() => void handleLogout()}
+        />
+      )}
     >
+      {/* S3' (G3): the topbar is rendered HERE — ProLayout's side layout never
+          renders a header (Header/index.js:93), so ConsoleHeader owns the
+          content column's first row (prototype grid: sider full-height,
+          topbar spanning the right column). */}
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <ConsoleHeader
+          theme={resolvedTheme}
+          onToggleTheme={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+          pack={pack}
+          onPackChange={setPack}
+          language={i18n.language}
+          onToggleLanguage={toggleLanguage}
+          tenantName={user?.tenantIsDefault === false ? user?.tenantName : undefined}
+          userName={user?.name}
+          onNavigate={navigate}
+          onLogout={() => void handleLogout()}
+        />
+        <main style={{ padding: 24, flex: 1 }}>
       {error && (
         <Alert
           type="error"
@@ -271,8 +273,9 @@ export default function AdminLayout() {
         />
       )}
 
-      <Breadcrumbs />
       <Outlet />
+        </main>
+      </div>
     </ProLayout>
   );
 }

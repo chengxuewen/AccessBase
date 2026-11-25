@@ -78,7 +78,7 @@ async function seedSession(page: Page, token: string, refreshToken: string): Pro
   }, persisted);
 }
 
-const menuUsersSelector = '.ant-menu li:has-text("Users"), .ant-menu li:has-text("用户")';
+const menuUsersSelector = '.ant-menu-item:has-text("Users"), .ant-menu-item:has-text("用户")'; // leaf items — S3' groups wrap children in their own li
 
 test.describe('Auth session lifecycle (RED regression net)', () => {
   let consoleErrors: string[];

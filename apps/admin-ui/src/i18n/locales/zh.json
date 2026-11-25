@@ -15,7 +15,9 @@
     "theme": "切换深色模式",
     "connecting": "正在连接服务器…",
     "errorTitle": "错误",
-    "stylePack": "界面风格"
+    "stylePack": "界面风格",
+    "collapse": "收起",
+    "expand": "展开"
   },
   "errors": {
     "forbidden": {
@@ -45,7 +47,14 @@
     "tenants": "租户管理",
     "groups": "用户组",
     "webhooks": "事件钩子",
-    "events": "事件流水"
+    "events": "事件流水",
+    "group": {
+      "overview": "概览",
+      "identity": "身份",
+      "access": "访问",
+      "operations": "运营",
+      "system": "系统"
+    }
   },
   "login": {
     "title": "AccessBase 登录",
@@ -785,5 +794,8 @@
     "cancel": "取消并退出",
     "recovery": "恢复码（请妥善保存）",
     "failed": "验证码校验失败，请重试。"
+  },
+  "brand": {
+    "tagline": "身份与访问"
   }
 }

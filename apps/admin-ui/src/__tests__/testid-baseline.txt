@@ -40,6 +40,8 @@ consent-error
 consent-loading
 consent-redirecting
 consent-scopes
+console-brand
+console-header
 dashboard-error
 dashboard-loading
 detail-error

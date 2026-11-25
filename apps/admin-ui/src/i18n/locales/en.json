@@ -15,7 +15,9 @@
     "theme": "Toggle dark mode",
     "connecting": "Connecting to server…",
     "errorTitle": "Error",
-    "stylePack": "Interface style"
+    "stylePack": "Interface style",
+    "collapse": "Collapse",
+    "expand": "Expand"
   },
   "errors": {
     "forbidden": {
@@ -45,7 +47,14 @@
     "tenants": "Tenants",
     "groups": "Groups",
     "webhooks": "Webhooks",
-    "events": "Events"
+    "events": "Events",
+    "group": {
+      "overview": "Overview",
+      "identity": "Identity",
+      "access": "Access",
+      "operations": "Operations",
+      "system": "System"
+    }
   },
   "login": {
     "title": "AccessBase Login",
@@ -785,5 +794,8 @@
     "cancel": "Cancel and sign out",
     "recovery": "Recovery codes (store them somewhere safe)",
     "failed": "Could not verify the code — try again."
+  },
+  "brand": {
+    "tagline": "Identity & Access"
   }
 }

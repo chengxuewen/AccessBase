@@ -125,7 +125,8 @@ test.describe('Authentication', () => {
     await page.locator('button[type="submit"]').click();
 
     await page.waitForURL('/');
-    await expect(page.locator('text=Dashboard')).toBeVisible();
+    // S3': the topbar crumb also says Dashboard — target the leaf menu item
+    await expect(page.locator('.ant-menu-item:has-text("Dashboard")')).toBeVisible();
   });
 
   test('logout clears session', async ({ page }) => {

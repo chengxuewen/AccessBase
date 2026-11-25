@@ -98,6 +98,20 @@ export function paletteToThemeConfig(p: Palette, mode: 'light' | 'dark'): ThemeC
       Tooltip: { colorBgSpotlight: surface, borderRadiusLG: px(tok(p, 'r6')) },
       // combobox selected option = composited accent tint over surface
       Select: { optionSelectedBg: compositeTintOver(tok(p, 'accent-tint'), surface) },
+      // S3' sidebar (G1): group title 11px/tertiary (uppercase + tracking have
+      // NO token channel — they live in pack-vars.css); item geometry per the
+      // prototype `.nav a` (13px, 7px/8px padding, r6 pill, accent-tint selected)
+      Menu: {
+        groupTitleFontSize: px(tok(p, 'fs11')),
+        groupTitleColor: tok(p, 'tx3'),
+        itemHeight: 34,
+        fontSize: px(tok(p, 'fs13')),
+        itemBorderRadius: px(tok(p, 'r6')),
+        itemMarginInline: 8,
+        itemSelectedBg: compositeTintOver(tok(p, 'accent-tint'), surface),
+        itemSelectedColor: tok(p, 'accent-text'),
+        itemColor: tok(p, 'tx2'),
+      },
     },
   };
 }
