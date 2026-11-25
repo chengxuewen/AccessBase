@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 /**
  * Batch F Task 4: SAML sign-in button + exchange wiring + magic link UI.
@@ -13,16 +14,7 @@ import { test, expect, type Page } from '@playwright/test';
 const MOCK_ME = { id: '1', email: 'admin@accessbase.local', name: 'Administrator', roles: [] };
 
 async function mockInitialized(page: Page): Promise<void> {
-  await page.route('**/api/v1/setup/status', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: { isInitialized: true, adminExists: true, configComplete: true },
-      }),
-    });
-  });
+  await mockSetupStatus(page);
   // Login page mounts fetchUser-ish calls only when a session exists; /auth/me
   // is mocked defensively for the dashboard landing after exchange.
   await page.route('**/api/v1/auth/me', async (route) => {

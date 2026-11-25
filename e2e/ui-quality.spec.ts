@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 // Mock response shapes copied from apps/server/src/routes/
 const ADMIN_PERMISSIONS = [
@@ -65,16 +66,7 @@ test.describe('UI quality — language persistence', () => {
     consoleErrors = trackConsoleErrors(page);
 
     // Setup status — isInitialized so the SPA doesn't redirect to /setup
-    await page.route('**/api/v1/setup/status', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: { isInitialized: true, adminExists: true, configComplete: true },
-        }),
-      });
-    });
+    await mockSetupStatus(page);
 
     // Stats — Dashboard calls this on mount
     await page.route('**/api/v1/stats', async (route) => {

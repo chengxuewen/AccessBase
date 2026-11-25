@@ -207,6 +207,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### status
 - full text: `.agents/memorys/status.md`
+... 1 older entries omitted (read the full file)
 - 模块状态
 - 代码结构
 - 设计决策汇总

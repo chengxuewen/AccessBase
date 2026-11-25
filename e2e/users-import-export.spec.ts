@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 /**
  * Users import/export/force-logout e2e (Batch C Task 6 / addendum #5).
@@ -51,16 +52,7 @@ test.describe('Users import/export/force-logout', () => {
   test.beforeEach(async ({ page }) => {
     consoleErrors = trackConsoleErrors(page);
 
-    await page.route('**/api/v1/setup/status', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: { isInitialized: true, adminExists: true, configComplete: true },
-        }),
-      });
-    });
+    await mockSetupStatus(page);
     // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
     await page.route('**/api/v1/auth/saml/status', async (route) => {
       await route.fulfill({

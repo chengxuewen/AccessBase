@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 // Mock-first Groups admin page suite (Q4b). Response shapes copied verbatim
 // from apps/server/src/routes/groups.ts returns + the 409/400 code table
@@ -206,16 +207,7 @@ const MOCK_ROLES = [
 ];
 
 async function mockCommonApis(page: Page): Promise<void> {
-  await page.route('**/api/v1/setup/status', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: { isInitialized: true, adminExists: true, configComplete: true },
-      }),
-    });
-  });
+  await mockSetupStatus(page);
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,
@@ -562,7 +554,7 @@ test.describe('Groups admin page', () => {
     await gotoGroups(page);
     await page.getByTestId('groups-create').click();
     await page.getByTestId('groups-name-input').fill(unique);
-    await page.getByTestId('groups-kind-switch').click();
+    await page.getByTestId('groups-kind-checkbox').check();
     await page
       .getByTestId('groups-form-modal')
       .locator('.ant-modal-footer .ant-btn-primary')
@@ -583,8 +575,8 @@ test.describe('Groups admin page', () => {
       has: page.getByRole('cell', { name: 'Operations', exact: true }),
     });
     await row.getByTestId('groups-edit').click();
-    await expect(page.getByTestId('groups-kind-switch')).toBeChecked();
-    await page.getByTestId('groups-kind-switch').click();
+    await expect(page.getByTestId('groups-kind-checkbox')).toBeChecked();
+    await page.getByTestId('groups-kind-checkbox').uncheck();
     await page
       .getByTestId('groups-form-modal')
       .locator('.ant-modal-footer .ant-btn-primary')

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 /** Seed an authed session the same way dashboard.spec does. */
 async function seedSession(page: Page): Promise<void> {
@@ -23,16 +24,7 @@ async function seedSession(page: Page): Promise<void> {
   });
 
   // GlobalGuard checks this before rendering any authed page
-  await page.route('**/api/v1/setup/status', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: { isInitialized: true, adminExists: true, configComplete: true },
-      }),
-    });
-  });
+  await mockSetupStatus(page);
   await page.route('**/api/v1/auth/me', async (route) => {
     await route.fulfill({
       status: 200,

@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 /**
  * Phase 0 RED regression net (2026-09-03-admin-ui-fix-plan §0.2).
@@ -47,16 +48,7 @@ function trackConsoleErrors(page: Page): string[] {
 }
 
 async function mockInitialized(page: Page): Promise<void> {
-  await page.route('**/api/v1/setup/status', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: { isInitialized: true, adminExists: true, configComplete: true },
-      }),
-    });
-  });
+  await mockSetupStatus(page);
 }
 
 async function mockStats(page: Page): Promise<void> {

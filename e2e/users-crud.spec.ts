@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 interface UserFixture {
   id: string;
@@ -72,16 +73,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     consoleErrors = trackConsoleErrors(page);
 
     // Setup status → initialized (skip setup wizard)
-    await page.route('**/api/v1/setup/status', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: { isInitialized: true, adminExists: true, configComplete: true },
-        }),
-      });
-    });
+    await mockSetupStatus(page);
 
     // Mock login
     await page.route('**/api/v1/auth/login', async (route) => {

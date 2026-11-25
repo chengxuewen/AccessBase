@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 // Mock-first Webhooks admin page suite (Q4c-T5). Response shapes copied
 // verbatim from the Q4c API contract (routes/webhooks.ts, spec §6):
@@ -199,16 +200,7 @@ const MOCK_DELIVERIES = (): DeliveryRow[] => {
 };
 
 async function mockCommonApis(page: Page): Promise<void> {
-  await page.route('**/api/v1/setup/status', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: { isInitialized: true, adminExists: true, configComplete: true },
-      }),
-    });
-  });
+  await mockSetupStatus(page);
   // PIT-080 roster: /login-shell probes mocked in every spec (harness copy).
   await page.route('**/api/v1/auth/saml/status', async (route) => {
     await route.fulfill({

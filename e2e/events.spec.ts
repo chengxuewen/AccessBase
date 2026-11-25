@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 // Q4d events history read surface (mock-first). Response shape copied verbatim
 // from apps/server/src/routes/events.ts view(): {id(number), tenantId, type,
@@ -98,16 +99,7 @@ const NO_AUDIT_ME = {
 };
 
 async function mockCommon(page: Page): Promise<void> {
-  await page.route('**/api/v1/setup/status', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: { isInitialized: true, adminExists: true, configComplete: true },
-      }),
-    });
-  });
+  await mockSetupStatus(page);
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,

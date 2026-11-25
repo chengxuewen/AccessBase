@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 // Mock-first Tenants admin page suite (batch L' T4). Response shapes copied
 // verbatim from apps/server/src/routes/tenants.ts returns + the spec D2
@@ -117,16 +118,7 @@ const MOCK_TENANTS = (): TenantRow[] => [
 ];
 
 async function mockCommonApis(page: Page): Promise<void> {
-  await page.route('**/api/v1/setup/status', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: { isInitialized: true, adminExists: true, configComplete: true },
-      }),
-    });
-  });
+  await mockSetupStatus(page);
   await page.route('**/api/v1/stats', async (route) => {
     await route.fulfill({
       status: 200,

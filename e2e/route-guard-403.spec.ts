@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 // Copied verbatim from auth-rbac-ui.spec.ts (PIT-033: mocks mirror real route returns).
 async function seedSessionWithMe(page: Page, me: Record<string, unknown>): Promise<void> {
@@ -42,16 +43,7 @@ test.describe('Route guard 403 behavior', () => {
   test.beforeEach(async ({ page }) => {
     consoleErrors = trackConsoleErrors(page);
     // setup/status: GlobalGuard checks this before rendering any authed page
-    await page.route('**/api/v1/setup/status', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: { isInitialized: true, adminExists: true, configComplete: true },
-        }),
-      });
-    });
+    await mockSetupStatus(page);
     // stats: Dashboard page mounts GET /api/v1/stats — must be mocked to avoid 401 cascade
     await page.route('**/api/v1/stats', async (route) => {
       await route.fulfill({

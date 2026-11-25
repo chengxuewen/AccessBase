@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 // Mock response shapes copied from apps/server/src/routes/auth.ts:573-745 (MFA endpoints).
 // Chinese locale per task ruling: localStorage 'lng' = 'zh' is read by i18n init.
@@ -22,16 +23,7 @@ async function mockCommonApis(page: Page, state: MfaState): Promise<void> {
     window.localStorage.setItem('lng', 'zh');
   });
 
-  await page.route('**/api/v1/setup/status', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: { isInitialized: true, adminExists: true, configComplete: true },
-      }),
-    });
-  });
+  await mockSetupStatus(page);
   // F/T4: Login mounts a SAML status probe — unmocked → vite proxy 500 → console-error net fails (B2 providers precedent)
   await page.route('**/api/v1/auth/saml/status', async (route) => {
     await route.fulfill({

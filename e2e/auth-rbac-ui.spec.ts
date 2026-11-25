@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 // Task 11 — menu/route permission gates fed by /auth/me permissions (Task 10 contract).
 // The 11 codes mirror BUILTIN_PERMISSIONS in apps/server/src/routes/permissions-seed.ts.
@@ -56,16 +57,7 @@ test.describe('RBAC UI — permission-gated menu and routes', () => {
 
   test.beforeEach(async ({ page }) => {
     consoleErrors = trackConsoleErrors(page);
-    await page.route('**/api/v1/setup/status', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: { isInitialized: true, adminExists: true, configComplete: true },
-        }),
-      });
-    });
+    await mockSetupStatus(page);
     await page.route('**/api/v1/stats', async (route) => {
       await route.fulfill({
         status: 200,

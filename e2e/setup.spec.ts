@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mockSetupStatus } from './fixtures/mocks';
 
 test.describe('Setup Wizard', () => {
   test('completeSetup finds wizard-created admin (not hardcoded email)', async ({ page }) => {
@@ -175,16 +176,7 @@ test.describe('Setup Wizard', () => {
 
   test('setup page redirects away after initialization', async ({ page }) => {
     // Mock status as already initialized
-    await page.route('**/api/v1/setup/status', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          data: { isInitialized: true, adminExists: true, configComplete: true },
-        }),
-      });
-    });
+    await mockSetupStatus(page);
     await page.goto('/setup');
     await page.waitForTimeout(3000);
     expect(page.url()).not.toContain('/setup');
