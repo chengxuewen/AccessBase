@@ -3,7 +3,10 @@
  * mcp-cli — MCP lifecycle CLI (plan Batch 4): setup | status | index | sync.
  * Pixi task `mcp` is a passthrough family (`pixi run mcp-setup` etc., VE D42).
  *
- *   setup — install every pinned package at its exact version. CONTRACT
+ *   setup — install every pinned package at its exact version; for
+ *           local-playwright also download the bundled chromium browser
+ *           (`playwright install chromium` — the wrapper launches with
+ *           `--browser chromium`, never a system Chrome channel). CONTRACT
  *           (RA-1818-3): the init-*.mjs wrappers are NO LONGER unconditional
  *           self-healers — under MCP_NO_INSTALL=1 (exported by
  *           scripts/agents/mcp-launch.sh on the GUI face) they exit fatally
@@ -81,6 +84,15 @@ function main(): number {
       if (e.kind === "pixi" && e.pixiEnv) { sh(`pixi install -e ${e.pixiEnv}`); continue; }
       if (!e.pin || e.pin === "latest-known") { console.log(`  ${e.name}: no pin (${e.pin ?? "remote"}), skip`); continue; }
       sh(`pnpm add -wD ${e.pkg}@${e.pin}`);
+      // local-playwright launches with --browser chromium + --executable-path
+      // pointing at the REPO's bundled chromium (init-mcp-playwright.mjs): the
+      // MCP never depends on a system Chrome install. The REPO's playwright is
+      // the right installer here on purpose — @playwright/mcp's OWN playwright
+      // (0.0.80 → 1.63-alpha) ships no ubuntu20.04 chromium build ("Playwright
+      // does not support chromium on ubuntu20.04-x64"); the launcher therefore
+      // binds the MCP to @playwright/test's chromium (protocol-compatible,
+      // proven by scripts/agents/mcp-browser-probe.mjs).
+      if (e.name === "local-playwright") sh("pnpm exec playwright install chromium");
     }
     return 0;
   }
