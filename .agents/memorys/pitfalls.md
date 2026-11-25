@@ -926,3 +926,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: 探针写值前未读真实 options 值域；themed 控件需走 evaluate+input/change 事件而非 playwright selectOption；**同组内探针共享页面状态**，前序 mutation 污染后序断言样本。
 - **解法**: 写值前读 options/控件类型（hidden select 走 evaluate 派发事件）；受状态影响的断言选**未污染样本**（invite 改测 user 1）或显式重置 sim flag（exportTried=false）；断言失败先打印实际值区分"缺陷"与"样本污染"。
 - **验证**: audit-model ex={filteredCount:3,filteredRows:3,allFiltered:true}（POST 子集）；user-detail-page adm={invSusp:'Invite not eligible',invOk:'Invite sent…'} 双分支；失败明细经临时 expect(true) 诊断跑读取（PIT-099）。
+
+## PIT-120: 字符串外科手术的两类锚错误——切割点取到锚元素自身闭标签 / 属性剥离漏行首无空格形态 (2026-11-25, B2/B3 各一次)
+
+- **症状**: B2 两段式切割后后续 section 掉出 main（403 空白、density 失效、headTools 全 false）；B3 文本链接仍带 data-tip（行首属性未剥掉）。
+- **根因**: ① `find('</div>', sp)` 从 spacer 起点搜闭标签，命中 spacer **自身**的 `</div>`，右段切空、card/section 提前闭合；② 剥离正则 ` data-tip="…"` 要求前导空格，属性位于串首时无空格不匹配。
+- **解法**: 切割点从锚元素**结束之后**搜（sp+len(anchor)）；属性剥离用 `\s*data-tip="[^"]*"` 兼容行首；markup 手术后立即跑结构锁（list-grammar/states）而非只看 JS 语法。
+- **验证**: list-grammar two/headTools 全真 + states centerHit=true；`grep -c 'row-link" data-tip' admin-console.html` ==0；事故处置：markup 从 HEAD 恢复后以修正锚重跑（不手工补洞）。

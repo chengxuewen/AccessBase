@@ -2494,3 +2494,7 @@ fix 12-17 连锁定稿：图标按钮四族统一（ghost 行 28x28/16 gap8、bo
 ## D132: 契约扩展 35–42 决策汇总——双入口同 builder / 服务端 job 建模 / 整页 state-mode / 强制改密交接 (2026-11-24)
 
 重构会话 gap 清单 13 表面落地裁决：35 clients caep(url+https 行内)+apikeys cidr(服务端校验回显)，共享 fieldErr 机制；36 UserCreate/Edit 路由↔弹窗**裁为双入口同 builder**（非二选一删除），UserDetail #/users/:id 页同 builder，即时 switch 行内错；37 ImportUsersModal 两阶段（严格 CSV/干跑/提交门控）；38 login MFA TOTP+SMS 段镜像真实 testid；39 MfaCard 第四卡（一次性恢复码）；40 403/404/500 独立整页（真实路由在 layout 外）；41 审计导出建模为**服务端 job**（client blob stand-in 披露，文件名镜像 exportAuditLogs）；42 强制改密交接面板+管理员 reset/invite（eligible vs suspended）。理由：契约要覆盖真实分支语义而非像素复制；模拟点一律披露+zh+锁。锁 65→67 无收缩。
+
+## D133: 视觉语法对齐官方语义（裁决 43/44/45）——边框分级/圆角选中/两段式列表/density/文本链接 (2026-11-25)
+
+用户问"ant 原型不如真实 web 好看"→ 证据拆解为结构语法差而非令牌差；方案裁为"对齐官方语义而非追像素"（antd 5.29.3 colorBorderSecondary/itemBorderRadius、pro-table 3.21.0 density/setting 默认、M3 active-indicator pill 为据）：43 边框分级 --bd-hair + nav 圆角 tinted（去全 bleed 左条）+ 单标题层核实已合规；44 九列表页过滤卡+表格卡、head reload/density/chooser（chooser 披露演示）、density 三档 44/38/34、分页 zh 走既有 I18N 规则单一来源；45 72 个行图标钮→24px 文本链接（zh 标签可见、overflow 留 28 图标）、列下限按实测链接宽、中宽允许 wrap 内横滚（真实 AntD 语义）+sticky cue。锁 68→69（list-grammar），shape-scale/tooltip/responsive-table 同变更迁移。与重构 P1=A/P-6=A 收敛：re-skin 换令牌值不换结构语义。tag ps22/23/24。
