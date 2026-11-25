@@ -241,10 +241,10 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   `Descriptions` and `Dashboard.tsx` `Statistic` are rendered as definition grids / stat cards.
   Functional filters are NOT simplified: users status/tenant, audit action/actor/days, events
   type/range all mirror the real Select/Input/RangePicker filters.
-- Row actions (adjudication 45): primary row actions are visible text links (AntD option-column
-  type=link semantics, 24px inline tier, zh-translated labels), the overflow menu stays a 28px icon;
-  actions-column floors sized by measured link width; at mid width tables may scroll inside their
-  focusable wrap (real AntD behavior) with the sticky edge + shadow cue retained.
+- Row actions (adjudication 46, reverting 45 per user preference): ONE icon form across every list
+  page — 28x28 ghost buttons with 16px glyphs and 8px gap, tooltips + aria-labels, overflow menu icon;
+  the text-link experiment (45) produced cross-page mixed forms because the bulk conversion skipped
+  builders with dynamic aria-labels; shape-scale now carries a per-page form census gate (all icon).
 - Visual grammar (adjudication 43): border roles are split — controls keep --bd (AntD colorBorder
   semantics) while cards and separators use --bd-hair (colorBorderSecondary semantics, derived per
   pack/theme via color-mix); nav selection is a rounded tinted block using the pack radius (AntD menu

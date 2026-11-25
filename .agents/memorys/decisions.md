@@ -2498,3 +2498,7 @@ fix 12-17 连锁定稿：图标按钮四族统一（ghost 行 28x28/16 gap8、bo
 ## D133: 视觉语法对齐官方语义（裁决 43/44/45）——边框分级/圆角选中/两段式列表/density/文本链接 (2026-11-25)
 
 用户问"ant 原型不如真实 web 好看"→ 证据拆解为结构语法差而非令牌差；方案裁为"对齐官方语义而非追像素"（antd 5.29.3 colorBorderSecondary/itemBorderRadius、pro-table 3.21.0 density/setting 默认、M3 active-indicator pill 为据）：43 边框分级 --bd-hair + nav 圆角 tinted（去全 bleed 左条）+ 单标题层核实已合规；44 九列表页过滤卡+表格卡、head reload/density/chooser（chooser 披露演示）、density 三档 44/38/34、分页 zh 走既有 I18N 规则单一来源；45 72 个行图标钮→24px 文本链接（zh 标签可见、overflow 留 28 图标）、列下限按实测链接宽、中宽允许 wrap 内横滚（真实 AntD 语义）+sticky cue。锁 68→69（list-grammar），shape-scale/tooltip/responsive-table 同变更迁移。与重构 P1=A/P-6=A 收敛：re-skin 换令牌值不换结构语义。tag ps22/23/24。
+
+## D134: 行操作形态回退图标并全页统一（裁决 46，用户偏好推翻 45）(2026-11-25)
+
+用户见 roles 图标/users 链接混形后裁"倾向原来的图标按钮"：45 的文本链接实验回退，八页统一 28/16/gap8 图标+tooltip+aria；列下限回图标 era；mid 恢复严格不溢；shape-scale 加**跨页形态普查门禁**（formCensus 全 icon）防再混。教训入 PIT-121：形态类批量转换必须普查全表面变体（动态 aria-label/tip-wrap 会被正则静默跳过），"部分页正常"掩盖规则级缺口（PIT-114 同族）。文本链接方案保留为已披露的被推翻实验（CHANGELOG 45/46）。

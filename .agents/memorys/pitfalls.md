@@ -933,3 +933,10 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: ① `find('</div>', sp)` 从 spacer 起点搜闭标签，命中 spacer **自身**的 `</div>`，右段切空、card/section 提前闭合；② 剥离正则 ` data-tip="…"` 要求前导空格，属性位于串首时无空格不匹配。
 - **解法**: 切割点从锚元素**结束之后**搜（sp+len(anchor)）；属性剥离用 `\s*data-tip="[^"]*"` 兼容行首；markup 手术后立即跑结构锁（list-grammar/states）而非只看 JS 语法。
 - **验证**: list-grammar two/headTools 全真 + states centerHit=true；`grep -c 'row-link" data-tip' admin-console.html` ==0；事故处置：markup 从 HEAD 恢复后以修正锚重跑（不手工补洞）。
+
+## PIT-121: 形态类批量正则转换静默跳过变体 → 跨页混形（用户可见的不统一）(2026-11-25, user-reported)
+
+- **症状**: B3 后 users/groups/clients/webhooks/events 行操作为文本链接，roles/tenants/apikeys 仍图标——同 kit 两种形态并存。
+- **根因**: 转换正则要求静态 data-tip+aria-label 且无 class；roles/tenants/apikeys 的 builder 用**动态 aria-label 表达式**或 tip-wrap 包裹 → 静默跳过；无跨页形态普查锁，混形直到用户截图才暴露。
+- **解法**: 形态类改动后跑**全表面普查**（每页首行 action 形态分类 icon/link/mixed）并入锁（shape-scale formCensus 全 icon）；回退时按旧版本 aria-label→icon 映射逆向恢复，不手工猜图标。
+- **验证**: `grep -c row-link admin-console.html` ==0；formCensus 八页全 'icon'；69 组绿；截图 roles/users 同形态。

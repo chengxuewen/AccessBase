@@ -1594,3 +1594,15 @@ semantics updated to real AntD behavior: internal horizontal scroll inside the f
 allowed at mid width while tag-in-cell, tag-clear-of-sticky and the shadow cue stay asserted.
 shape-scale ib assertions migrated to the link family (24px, no svg, visible label, overflow icon 16).
 69 groups, 0 failures. Screenshot: ant light users with text-link actions.
+
+## Adjudication 46 — revert 45: uniform icon row actions per user preference (2026-11-25)
+User reported cross-page mixed action forms (roles/tenants/apikeys icons vs users/groups/clients/
+webhooks/events text links) and ruled a preference for the original icon style. Root cause of the mix:
+the 45 bulk conversion regex required static data-tip+aria-label and silently skipped builders with
+dynamic aria-label expressions or tip-wrap wrappers. Reverted all 13 converted templates back to icons
+using the aria-label->glyph map recovered from f73ec77 (no guessed icons); row-link CSS removed;
+actions floors restored to icon-era widths; mid-width lock restored to strict no-overflow; tooltip
+lock hosts restored to row Edit/View icons. shape-scale gains a per-page FORM CENSUS gate (eight pages
+must all be 'icon') so a future partial conversion reds the suite instead of reaching the user.
+69 groups, 0 failures. Screenshot: roles with uniform icon actions. PIT-121 + D134 recorded; 45 kept
+in history as a disclosed reverted experiment.

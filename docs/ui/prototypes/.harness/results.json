@@ -8,7 +8,7 @@
       "pass": true,
       "assertions": {
         "symbolDefs": 35,
-        "svgIcons": 262,
+        "svgIcons": 324,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -518,14 +518,14 @@
     "tooltip": {
       "pass": true,
       "assertions": {
-        "aria": "More actions",
-        "tip": "More actions",
+        "aria": "Edit",
+        "tip": "Edit",
         "hiddenOpacity": "0",
         "contexts": [
           {
             "on": true,
-            "text": "More actions",
-            "want": "More actions",
+            "text": "Edit",
+            "want": "Edit",
             "opacity": "1",
             "onTop": true,
             "inViewport": true,
@@ -570,7 +570,7 @@
         ],
         "focusTip": {
           "on": true,
-          "text": "More actions"
+          "text": "View"
         },
         "wrapTip": "Locked (system role)",
         "btnDisabled": true,
@@ -1443,6 +1443,16 @@
             "2px"
           ]
         },
+        "formCensus": {
+          "users": "icon",
+          "roles": "icon",
+          "groups": "icon",
+          "tenants": "icon",
+          "clients": "icon",
+          "apikeys": "icon",
+          "webhooks": "icon",
+          "events": "icon"
+        },
         "gram": {
           "cardBd": "color(srgb 0.940392 0.940392 0.940392)",
           "inpBd": "rgb(217, 217, 217)",
@@ -1458,11 +1468,9 @@
           "aligned": true
         },
         "ib": {
-          "rowW": 36,
-          "rowH": 24,
+          "rowW": 28,
+          "rowH": 28,
           "rowIc": 16,
-          "rowLabel": "View",
-          "rowNoSvg": true,
           "gap": "8px",
           "ibW": 32,
           "ibIc": 16,
@@ -2017,7 +2025,7 @@
         },
         "expErr": true,
         "expRows": 2,
-        "file": "audit-logs-2026-11-25T02-23-24.csv",
+        "file": "audit-logs-2026-11-25T02-34-27.csv",
         "loadErr": {
           "banner": true,
           "rows": 0
@@ -2033,7 +2041,7 @@
             "disp": "flex",
             "testid": true
           },
-          "fname": "audit-logs-2026-11-25T02-23-27.csv",
+          "fname": "audit-logs-2026-11-25T02-34-30.csv",
           "csvRows": 7,
           "filteredCount": 3,
           "filteredRows": 3,
