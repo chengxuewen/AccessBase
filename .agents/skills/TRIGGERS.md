@@ -24,6 +24,7 @@
 | Execute an already-ruled external mechanism port, 移植/采纳这个机制 | `skill:mechanism-porting` | `rule:evolution-protocol` (ruling citation) |
 | Before building — prove nothing usable exists, 先找现成的/别重复造 | `skill:reuse-first` | `skill:repo-audit` (gap discovery) |
 | UI quality / accessibility / three-states review, 界面质量审查 | `skill:ui-ux-review` | `skill:design-system` (token mechanics) |
+| Prototype-vs-implementation conformance, 原型对齐/双图证据/UI 完成声明 | `skill:ui-conformance` | `skill:design-system` (token mechanics), `skill:ui-ux-review` (quality) |
 | Security audit, OWASP/JWT/RBAC/secret handling | `skill:security-hardening` | `skill:code-review-and-quality` |
 | Create a new skill from SDD/interfaces/manifest | `skill:skill-creator` | `skill:skill-router` (routing check) |
 | "How do I / which skill?", ambiguous intent | `skill:skill-router` | owning skill from this table |
