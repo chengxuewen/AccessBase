@@ -1582,3 +1582,15 @@ Batch incident disclosed: the first split script cut at the spacer's own closing
 closing card/section and pushing later sections out of main (blank 403 + dead density); caught by
 states/list-grammar locks, markup restored from HEAD and the split re-run with the corrected anchor.
 69 groups, 0 failures. Screenshot: ant light users two-card layout.
+
+## Adjudication 45 — visual grammar B3: row actions as visible text links (2026-11-25)
+72 icon-only row action buttons across the render builders became text links (AntD option-column
+type="link" semantics; real Users.tsx:82 grounded): 24px inline tier, accent/danger colors, underline
+hover, zh-translated visible labels (查看/编辑 verified), aria-labels kept; the overflow menu stays a
+28px icon with tooltip. data-tip removed from links (visible labels need no tooltip); tooltip lock row
+hosts migrated to the overflow icon. Actions-column floors re-sized from measured link widths
+(users/clients 156, groups 240, roles 180, webhooks 328, apikeys 150, events 152); responsive-table mid
+semantics updated to real AntD behavior: internal horizontal scroll inside the focusable wrap is
+allowed at mid width while tag-in-cell, tag-clear-of-sticky and the shadow cue stay asserted.
+shape-scale ib assertions migrated to the link family (24px, no svg, visible label, overflow icon 16).
+69 groups, 0 failures. Screenshot: ant light users with text-link actions.

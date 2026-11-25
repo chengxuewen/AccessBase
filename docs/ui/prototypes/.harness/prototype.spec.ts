@@ -677,7 +677,7 @@ test('tooltip', async ({ page }) => {
   // clipped by table/modal scroll containers. Lock the whole class: for hosts in every risky context
   // the bubble must be visible, on top at its own center (elementFromPoint), and inside the viewport.
   await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
-  const edit = page.locator('#userRows button[data-tip="Edit"]').first();
+  const edit = page.locator('#userRows [data-more]').first();
   const aria = await edit.getAttribute('aria-label');
   const tip = await edit.getAttribute('data-tip');
   const hiddenOpacity = await page.evaluate(() => getComputedStyle(document.getElementById('floatTip')!).opacity);
@@ -704,14 +704,14 @@ test('tooltip', async ({ page }) => {
       };
     }, sel);
   };
-  const stickyRow = await probe('#userRows button[data-tip="Edit"]');
+  const stickyRow = await probe('#userRows [data-more]');
   const wrapperEdge = await probe('[data-reload=users]');
   const flipTop = await probe('#themeBtn');
   await page.evaluate(() => { (document.querySelector('[data-page=tenants]') as HTMLElement).click(); });
   const clippedCell = await probe('#tenantRows .copyable button[data-tip="Copy"]');
   await page.evaluate(() => { (document.querySelector('[data-page=users]') as HTMLElement).click(); });
   // focus reveal (keyboard parity)
-  await page.locator('#userRows button[data-tip="View"]').first().focus();
+  await page.locator('#userRows [data-more]').first().focus();
   await page.waitForTimeout(200);
   const focusTip = await page.evaluate(() => ({ on: document.getElementById('floatTip')!.classList.contains('on'), text: document.getElementById('floatTip')!.textContent }));
   // modal-internal host: bubble must escape the modal scroll container
@@ -754,9 +754,9 @@ test('tooltip', async ({ page }) => {
   const hiddenAfter = await page.evaluate(() => !document.getElementById('floatTip')!.classList.contains('on'));
   const contexts = [stickyRow, clippedCell, wrapperEdge, flipTop, modalTip];
   const a = { aria, tip, hiddenOpacity, contexts, focusTip, wrapTip, btnDisabled, btnAria, wrapOn, hiddenAfter, dStatus, dFail, dOk };
-  const pass = aria === 'Edit' && tip === 'Edit' && hiddenOpacity === '0'
+  const pass = aria === 'More actions' && tip === 'More actions' && hiddenOpacity === '0'
     && contexts.every(c => c.on && c.text === c.want && c.opacity === '1' && c.onTop && c.inViewport && c.described)
-    && focusTip.on && focusTip.text === 'View' && btnDisabled && btnAria === wrapTip && wrapOn && hiddenAfter
+    && focusTip.on && focusTip.text === 'More actions' && btnDisabled && btnAria === wrapTip && wrapOn && hiddenAfter
     && dStatus.present && dStatus.cls && dStatus.w === 34 && dStatus.h === 20 && dStatus.on && dStatus.knob
     && dFail && dOk.toast === 'Status updated' && !dOk.on && dOk.row;
   rec('tooltip', pass, a);
@@ -848,11 +848,11 @@ test('responsive-table', async ({ page }) => {
       const tr = tag ? tag.getBoundingClientRect() : null;
       const sr = sticky.getBoundingClientRect();
       const td = tag ? (tag.closest('td') as HTMLElement).getBoundingClientRect() : null;
-      res[pg] = { over: wrap.scrollWidth > wrap.clientWidth, tagInCell: tr && td ? tr.right <= td.right + 1 : true, tagClearOfSticky: tr ? tr.right <= sr.left + 1 : true, shadow: getComputedStyle(sticky).boxShadow !== 'none' };
+      res[pg] = { over: wrap.scrollWidth > wrap.clientWidth, scrollable: wrap.scrollWidth > wrap.clientWidth ? wrap.tabIndex >= 0 : true, tagInCell: tr && td ? tr.right <= td.right + 1 : true, tagClearOfSticky: tr ? tr.right <= sr.left + 1 : true, shadow: getComputedStyle(sticky).boxShadow !== 'none' };
     }
     return res;
   });
-  const midOk = Object.values(mid).every((m: any) => !m.over && m.tagInCell && m.tagClearOfSticky && m.shadow);
+  const midOk = Object.values(mid).every((m: any) => (!m.over || m.scrollable) && m.tagInCell && m.tagClearOfSticky && m.shadow);
   const a = { stickyPos, prioHidden, prioKept, cardThead, tdLabel, tdDisplay, prioShownInCard, mid, midOk };
   const pass = stickyPos === 'sticky' && prioHidden === 'none' && prioKept !== 'none'
     && cardThead === 'none' && tdLabel === 'Name' && tdDisplay === 'flex' && prioShownInCard === 'flex' && midOk;
@@ -2156,12 +2156,12 @@ test('shape-scale', async ({ page }) => {
   const ib = await page.evaluate(() => {
     const tr = document.querySelector('#userRows tr') as HTMLElement;
     const ra = tr.querySelector('.row-actions') as HTMLElement;
-    const b = ra.querySelector('button') as HTMLElement;
-    const ic = b.querySelector('.ic') as HTMLElement;
+    const b = ra.querySelector('button.row-link') as HTMLElement;
+    const ic = (ra.querySelector('[data-more] .ic') || ra.querySelector('.ic')) as HTMLElement;
     const ibtn = document.querySelector('#page-users .icon-btn') as HTMLElement;
     const iic = ibtn.querySelector('.ic') as HTMLElement;
     const pg = document.querySelector('#page-users .pagination .pages button') as HTMLElement;
-    return { rowW: b.getBoundingClientRect().width, rowH: b.getBoundingClientRect().height, rowIc: ic.getBoundingClientRect().width, gap: getComputedStyle(ra).gap, ibW: ibtn.getBoundingClientRect().width, ibIc: iic.getBoundingClientRect().width, pgW: pg.getBoundingClientRect().width, pgH: pg.getBoundingClientRect().height };
+    return { rowW: b.getBoundingClientRect().width, rowH: b.getBoundingClientRect().height, rowIc: ic.getBoundingClientRect().width, rowLabel: b.textContent, rowNoSvg: !b.querySelector('svg'), gap: getComputedStyle(ra).gap, ibW: ibtn.getBoundingClientRect().width, ibIc: iic.getBoundingClientRect().width, pgW: pg.getBoundingClientRect().width, pgH: pg.getBoundingClientRect().height };
   });
   const cpIc = await page.evaluate(() => {
     (document.querySelector('[data-page=tenants]') as HTMLElement).click();
@@ -2188,7 +2188,7 @@ test('shape-scale', async ({ page }) => {
   });
   const gramOk = gram.cardBd !== gram.inpBd && gram.navRadius === gram.r6 + 'px' || gram.navRadius === gram.r6;
   res.gram = gram;
-  const ibOk = ib.rowW === 28 && ib.rowH === 28 && ib.rowIc === 16 && ib.gap === '8px' && ib.ibW === 32 && ib.ibIc === 16 && cpIc === 14 && ib.pgW === 32 && ib.pgH === 32 && hoverSync;
+  const ibOk = ib.rowH === 24 && ib.rowNoSvg && !!ib.rowLabel && ib.rowIc === 16 && ib.gap === '8px' && ib.ibW === 32 && ib.ibIc === 16 && cpIc === 14 && ib.pgW === 32 && ib.pgH === 32 && hoverSync;
   const cup = (res.cupertino as any).tag[0];
   const ant = (res.ant as any).tag[0];
   const pass = ok && cup !== ant && parseFloat(cup) > 100 && ibOk && gramOk;
