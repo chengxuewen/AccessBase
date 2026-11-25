@@ -7,8 +7,8 @@
     "de-ai-slop": {
       "pass": true,
       "assertions": {
-        "symbolDefs": 34,
-        "svgIcons": 306,
+        "symbolDefs": 35,
+        "svgIcons": 324,
         "emojiInUI": false,
         "logoGradient": "none"
       }
@@ -1285,7 +1285,7 @@
         ],
         "zhEdit": true,
         "dict": {
-          "n": 455,
+          "n": 461,
           "allNonEmpty": true,
           "coverage": true
         },
@@ -1322,7 +1322,7 @@
       "assertions": {
         "adminMissing": [],
         "companionMissing": [],
-        "n": 91
+        "n": 92
       }
     },
     "security-states": {
@@ -1437,7 +1437,7 @@
           ]
         },
         "gram": {
-          "cardBd": "color(srgb 0.932941 0.932941 0.932941)",
+          "cardBd": "color(srgb 0.940392 0.940392 0.940392)",
           "inpBd": "rgb(217, 217, 217)",
           "navRadius": "8px",
           "r6": "8px",
@@ -1626,12 +1626,67 @@
       "pass": true,
       "assertions": {
         "admin": {
-          "n": 349,
+          "n": 350,
           "dups": []
         },
         "comp": {
           "n": 141,
           "dups": []
+        }
+      }
+    },
+    "list-grammar": {
+      "pass": true,
+      "assertions": {
+        "users": {
+          "two": true,
+          "filterHasTable": false,
+          "headTools": true
+        },
+        "roles": {
+          "two": true,
+          "filterHasTable": false,
+          "headTools": true
+        },
+        "tenants": {
+          "two": true,
+          "filterHasTable": false,
+          "headTools": true
+        },
+        "clients": {
+          "two": true,
+          "filterHasTable": false,
+          "headTools": true
+        },
+        "apikeys": {
+          "two": true,
+          "filterHasTable": false,
+          "headTools": true
+        },
+        "webhooks": {
+          "two": true,
+          "filterHasTable": false,
+          "headTools": true
+        },
+        "audit": {
+          "two": true,
+          "filterHasTable": false,
+          "headTools": true
+        },
+        "events": {
+          "two": true,
+          "filterHasTable": false,
+          "headTools": true
+        },
+        "dens": {
+          "h0": 44,
+          "h1": 38,
+          "h2": 34,
+          "h3": 44
+        },
+        "pag": {
+          "pagEn": "1–8 of 12",
+          "pagZh": "第 1–8 条，共 12 条"
         }
       }
     },
@@ -1953,7 +2008,7 @@
         },
         "expErr": true,
         "expRows": 2,
-        "file": "audit-logs-2026-11-25T01-45-00.csv",
+        "file": "audit-logs-2026-11-25T02-06-30.csv",
         "loadErr": {
           "banner": true,
           "rows": 0
@@ -1969,7 +2024,7 @@
             "disp": "flex",
             "testid": true
           },
-          "fname": "audit-logs-2026-11-25T01-45-02.csv",
+          "fname": "audit-logs-2026-11-25T02-06-33.csv",
           "csvRows": 7,
           "filteredCount": 3,
           "filteredRows": 3,

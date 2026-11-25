@@ -80,7 +80,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts
 npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --grep roles-edit
 ```
 
-- 68 groups, all must pass. Per-group assertions are written to
+- 69 groups, all must pass. Per-group assertions are written to
   `docs/ui/prototypes/.harness/results.json` (`results[name].assertions`, `fail` count) for evidence review.
 - The harness loads the same `file://` page; it never mocks the prototype itself except where a test
   deliberately stubs `navigator.clipboard` / `document.execCommand` to prove the copy-failure branch.
@@ -88,7 +88,7 @@ npx playwright test --config=docs/ui/prototypes/.harness/playwright.config.ts --
   surface, motion family, tint-bearing color, or locale string requires extending the matching group
   (or adding one) in the same change — never ship a surface the harness cannot see.
 
-## Lock index (68 groups)
+## Lock index (69 groups)
 
 | Group | Locks | Ruling |
 |---|---|---|
@@ -156,7 +156,8 @@ load** for page-level loads and webhooks actions; retry then succeeds. Every mes
 | Profile | password change, name save, verification send, OAuth unlink | `Profile.tsx` failure branches (MFA enable/disable failure not simulated — see Not modeled) |
 | Entry flows (auth-flows.html) | login AUTH_002, magic send, register/forgot/reset/confirm/setup create, consent decision; MFA/SMS demo codes fixed at 123456 (wrong-code error branches deterministic) | `Login/MagicLogin/Register/ForgotPassword/ResetPassword/EnrollMfa/Consent/setup` error branches |
 
-Demo-only mechanisms (disclosed in-page): permission perspective switches (Settings/Webhooks);
+Demo-only mechanisms (disclosed in-page): column chooser (ProTable setting) toast-disclosed;
+ permission perspective switches (Settings/Webhooks);
 `localStorage`-only branding; zh translation pass over chrome (real uses `i18n/locales` + parity test);
 `relFrom(iso)` relative forms (real sets `dayjs.locale` per render — register ≠ activate);
 from/to date inputs stand in for AntD RangePicker (`startDate/endDate`); staged matrix maps to the real
@@ -208,6 +209,7 @@ AntD Transfer picker + modal Save; create-form note that UI sends no scopes and 
 | 40 | contract extension P2: 403/404/500 standalone full pages (chrome hidden, viewport-filling, primary back CTA) — real routes live outside the layout (App.tsx:285-287) | b268f53 | states |
 | 41 | contract extension P2: audit export modeled as server job (busy→error w/ audit-export-error testid→retry), full filtered set (no client paging), filename mirrors api/audit.ts exportAuditLogs | 808f3dc | audit-model |
 | 42 | contract extension P2: forced password-change handoff (login → mode=force panel, policy+confirm) + admin reset-password / resend-invite on UserDetail (real testids, eligible vs suspended) | 10a0c8c | auth-login, user-detail-page |
+| list-grammar | ProTable list grammar: filter card + table card, head reload/density/chooser, density tiers monotonic (default<=58px), showTotal pagination wording zh/EN | adjudication 44 |
 | id-uniqueness | markup id namespace unique per prototype (PIT-118 gate; caught verifyMsg cross-surface collision) | lesson-review round 4 upgrade |
 | import-users | two-phase import: limitation alert, strict-header parse error, dry-run report (valid/skipped/error), commit gated on check, first-attempt commit failure, committed report + USERS growth | 37 |
 | user-detail-page | #/users/:id deep-link page: same builder as modal, role=switch immediate toggle, inline+toast error on first attempt, retry flips, back restores list | 36 |

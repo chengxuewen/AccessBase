@@ -1568,3 +1568,17 @@ verified already compliant on all nine list pages (page-head h1 only; card heads
 — no change needed, disclosed. shape-scale lock extended: card border != control border, nav radius ==
 pack r6, left bar content none. 68 groups, 0 failures. Screenshot: ant light users with hairline cards
 and pill nav selection.
+
+## Adjudication 44 — visual grammar B2: ProTable list grammar + density + showTotal (2026-11-25)
+Nine list pages split into filter card + table card (ProTable two-card grammar); the table card head
+carries reload + row-density + column-chooser icons (pro-table 3.21.0 defaultOptions density/setting
+grounded the pair). Row density is functional: default/middle/small tiers via --row-pad on the card
+(44/38/34px measured, monotonic, cycles back); column chooser is a toast-disclosed demo (real ProTable
+setting), added to the README demo-only list. Pagination keeps the EN builder as single source and the
+existing zh I18N rule supplies 第 x–y 条，共 n 条 (a redundant zh branch introduced mid-batch was removed
+after the diag showed the rule already owned the wording). New list-grammar lock (69 total): two-card
+structure + head tools on eight pages, density monotonic <=58px default, showTotal wording zh/EN.
+Batch incident disclosed: the first split script cut at the spacer's own closing tag, prematurely
+closing card/section and pushing later sections out of main (blank 403 + dead density); caught by
+states/list-grammar locks, markup restored from HEAD and the split re-run with the corrected anchor.
+69 groups, 0 failures. Screenshot: ant light users two-card layout.

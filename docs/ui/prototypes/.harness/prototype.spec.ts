@@ -2479,6 +2479,55 @@ test('id-uniqueness', async ({ page }) => {
   expect(pass, 'id-uniqueness: no duplicate markup ids in either prototype').toBe(true);
 });
 
+test('list-grammar', async ({ page }) => {
+  // adjudication 44: ProTable list grammar — filter card separate from table card, table head carries
+  // reload+density+chooser, density tiers shrink rows monotonically, pagination uses showTotal wording.
+  await page.goto(FILE);
+  const res: Record<string, unknown> = {};
+  let ok = true;
+  for (const pg of ['users', 'roles', 'tenants', 'clients', 'apikeys', 'webhooks', 'audit', 'events']) {
+    await page.evaluate(k => (document.querySelector('[data-page=' + k + ']') as HTMLElement).click(), pg);
+    await page.waitForTimeout(120);
+    const g = await page.evaluate(k => {
+      const sec = document.getElementById('page-' + k)!;
+      const cards = [...sec.querySelectorAll(':scope > .card')] as HTMLElement[];
+      const filter = cards[0], tableCard = cards[1];
+      const head = tableCard.querySelector('.table-head') as HTMLElement;
+      return {
+        two: !!filter && filter.classList.contains('filter-card') && !!tableCard && !tableCard.classList.contains('filter-card'),
+        filterHasTable: !!filter.querySelector('table'),
+        headTools: !!head.querySelector('[data-reload]') && !!head.querySelector('[data-density]') && !!head.querySelector('[data-colsel]'),
+      };
+    }, pg);
+    res[pg] = g;
+    if (!g.two || g.filterHasTable || !g.headTools) ok = false;
+  }
+  await page.evaluate(() => (document.querySelector('[data-page=users]') as HTMLElement).click());
+  await page.waitForTimeout(150);
+  const rowH = () => page.evaluate(() => Math.round((document.querySelector('#userRows tr') as HTMLElement).getBoundingClientRect().height));
+  const h0 = await rowH();
+  await page.evaluate(() => (document.querySelector('#page-users [data-density]') as HTMLElement).click());
+  await page.waitForTimeout(120);
+  const h1 = await rowH();
+  await page.evaluate(() => (document.querySelector('#page-users [data-density]') as HTMLElement).click());
+  await page.waitForTimeout(120);
+  const h2 = await rowH();
+  await page.evaluate(() => (document.querySelector('#page-users [data-density]') as HTMLElement).click());
+  await page.waitForTimeout(120);
+  const h3 = await rowH();
+  const dens = { h0, h1, h2, h3 };
+  res.dens = dens;
+  if (!(h0 <= 58 && h0 > h1 && h1 > h2 && h3 === h0)) ok = false;
+  const pagEn = await page.evaluate(() => document.getElementById('pageInfo')!.textContent);
+  await page.evaluate(() => { if (!document.documentElement.lang.startsWith('zh')) (document.getElementById('langBtn') as HTMLElement).click(); });
+  await page.waitForTimeout(200);
+  const pagZh = await page.evaluate(() => document.getElementById('pageInfo')!.textContent);
+  res.pag = { pagEn, pagZh };
+  if (!/of \d+$/.test(pagEn || '') || !/共 \d+ 条$/.test(pagZh || '')) ok = false;
+  rec('list-grammar', ok, res);
+  expect(ok, 'list-grammar: two-card lists + head tools + density tiers + showTotal wording').toBe(true);
+});
+
 test('states', async ({ page }) => {
   await page.goto(FILE);
   // Adjudication 12 (A): loading skeleton via reload; unified EmptyState (clear-filters / create CTA);
