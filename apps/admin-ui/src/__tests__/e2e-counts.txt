@@ -1,4 +1,3 @@
-# FROZEN W0.5 e2e per-file test counts (census 2026-11-24).
 api-keys.spec.ts 5
 audit-viewer.spec.ts 8
 auth-rbac-ui.spec.ts 4
@@ -6,6 +5,7 @@ auth-session.spec.ts 11
 auth.spec.ts 7
 branding.spec.ts 3
 clients.spec.ts 6
+conformance.spec.ts 2
 dashboard.spec.ts 5
 deprecation-headers.spec.ts 2
 email-templates.spec.ts 5
@@ -18,11 +18,13 @@ mfa-panel.spec.ts 3
 oauth-login.spec.ts 7
 oidc-consent.spec.ts 8
 options.spec.ts 6
+pack.spec.ts 3
 pagination.spec.ts 3
 profile.spec.ts 5
 q1-self-service.spec.ts 7
 q3e-policy.spec.ts 3
 q4a-helpdesk.spec.ts 2
+responsive-tables.spec.ts 2
 roles-crud.spec.ts 10
 route-guard-403.spec.ts 2
 saml.spec.ts 7

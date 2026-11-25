@@ -208,7 +208,7 @@ export default function Tenants() {
 
   const columns: ProColumns<Tenant>[] = [
     { title: t('tenants.name'), dataIndex: 'name' },
-    { title: t('tenants.slug'), dataIndex: 'slug', search: false, copyable: true },
+    { title: t('tenants.slug'), dataIndex: 'slug', search: false, copyable: true, responsive: ['xl'] },
     {
       title: t('tenants.status'),
       dataIndex: 'status',
@@ -223,6 +223,8 @@ export default function Tenants() {
     {
       title: t('tenants.createdAt'),
       dataIndex: 'createdAt',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['lg'],
       search: false,
       render: (_, record) => dayjs(record.createdAt).fromNow(),
     },

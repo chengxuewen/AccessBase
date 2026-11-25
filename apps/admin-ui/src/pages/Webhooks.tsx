@@ -244,6 +244,8 @@ export default function Webhooks() {
     {
       title: t('webhooks.events'),
       dataIndex: 'subscribedEvents',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['lg'],
       search: false,
       render: (_, record) => (
         <Space size={4} wrap>
@@ -270,6 +272,8 @@ export default function Webhooks() {
     {
       title: t('webhooks.pending'),
       dataIndex: 'pending',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['xl'],
       search: false,
       render: (_, record) => (
         <Tag color={record.pending > 0 ? 'orange' : 'default'}>{record.pending}</Tag>
@@ -278,12 +282,16 @@ export default function Webhooks() {
     {
       title: t('webhooks.dead'),
       dataIndex: 'dead',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['xl'],
       search: false,
       render: (_, record) => <Tag color={record.dead > 0 ? 'red' : 'default'}>{record.dead}</Tag>,
     },
     {
       title: t('webhooks.createdAt'),
       dataIndex: 'createdAt',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['lg'],
       search: false,
       render: (_, record) => dayjs(record.createdAt).fromNow(),
     },

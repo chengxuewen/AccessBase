@@ -153,7 +153,7 @@ export default function Clients() {
 
   const columns: ProColumns<OidcClient>[] = [
     { title: t('clients.name'), dataIndex: 'name' },
-    { title: t('clients.clientId'), dataIndex: 'clientId', copyable: true },
+    { title: t('clients.clientId'), dataIndex: 'clientId', copyable: true, responsive: ['lg'] },
     {
       title: t('clients.redirectUris'),
       dataIndex: 'redirectUris',
@@ -164,6 +164,8 @@ export default function Clients() {
     {
       title: t('clients.grantTypes'),
       dataIndex: 'grantTypes',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['lg'],
       search: false,
       render: (_, record) => record.grantTypes.map((g) => <Tag key={g}>{g}</Tag>),
     },
@@ -178,6 +180,8 @@ export default function Clients() {
     {
       title: t('clients.createdAt'),
       dataIndex: 'createdAt',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['xl'],
       render: (_, record) => dayjs(record.createdAt).fromNow(),
       search: false,
     },

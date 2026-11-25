@@ -126,22 +126,28 @@ export default function ApiKeys() {
 
   const columns: ProColumns<ApiKey>[] = [
     { title: t('apiKeys.name'), dataIndex: 'name' },
-    { title: t('apiKeys.prefix'), dataIndex: 'prefix', copyable: true },
+    { title: t('apiKeys.prefix'), dataIndex: 'prefix', copyable: true, responsive: ['xl'] },
     {
       title: t('apiKeys.scopes'),
       dataIndex: 'scopes',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['lg'],
       search: false,
       render: (_, record) => record.scopes.map((s) => <Tag key={s}>{s}</Tag>),
     },
     {
       title: t('apiKeys.createdAt'),
       dataIndex: 'createdAt',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['lg'],
       render: (_, record) => dayjs(record.createdAt).fromNow(),
       search: false,
     },
     {
       title: t('apiKeys.expiresAt'),
       dataIndex: 'expiresAt',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['xl'],
       search: false,
       render: (_, record) =>
         record.expiresAt ? (

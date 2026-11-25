@@ -234,6 +234,8 @@ export default function Groups() {
     {
       title: t('groups.kind'),
       dataIndex: 'kind',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['xl'],
       search: false,
       // antd preset tag colors are theme-token derived (dark-mode safe; Events/Tenants precedent)
       render: (_, record) =>
@@ -245,7 +247,7 @@ export default function Groups() {
           <Tag data-testid={`groups-kind-${record.id}`}>{t('groups.kindGroup')}</Tag>
         ),
     },
-    { title: t('groups.description'), dataIndex: 'description', search: false, ellipsis: true },
+    { title: t('groups.description'), dataIndex: 'description', search: false, ellipsis: true, responsive: ['lg'] },
     {
       title: t('groups.memberCount'),
       dataIndex: 'memberCount',
@@ -255,12 +257,16 @@ export default function Groups() {
     {
       title: t('groups.roleCount'),
       dataIndex: 'roleCount',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['xl'],
       search: false,
       render: (_, record) => String(record.roleCount),
     },
     {
       title: t('groups.createdAt'),
       dataIndex: 'createdAt',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['lg'],
       search: false,
       render: (_, record) => dayjs(record.createdAt).fromNow(),
     },

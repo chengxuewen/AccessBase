@@ -170,7 +170,7 @@ export default function Roles() {
 
   const columns: ProColumns<Role>[] = [
     { title: t('roles.name'), dataIndex: 'name' },
-    { title: t('roles.description'), dataIndex: 'description', search: false },
+    { title: t('roles.description'), dataIndex: 'description', search: false, responsive: ['lg'] },
     {
       // L'-T5: findAll batch-resolves permissions[] server-side — pure client count.
       title: t('roles.permissions'),
@@ -182,12 +182,16 @@ export default function Roles() {
       // Batch G5: read-only tenant column — slug via cached lookup, '—' on failure
       title: t('roles.tenant'),
       dataIndex: 'tenantId',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['lg'],
       search: false,
       render: (_, record) => (record.tenantId ? <TenantCell tenantId={record.tenantId} /> : '—'),
     },
     {
       title: t('roles.createdAt'),
       dataIndex: 'createdAt',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['xl'],
       valueType: 'dateTime',
       search: false,
     },

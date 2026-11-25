@@ -32,6 +32,18 @@ test.describe.configure({ mode: 'serial' });
 
 for (const p of PAGES) {
   test(`visual baseline: ${p.name} (light)`, async ({ page }) => {
+    // LOWEST-precedence GET fallback (registered first): unmocked page-mount
+    // requests (branding/options/audit-recent…) must NEVER hit a live backend —
+    // environment drift showed up as a 4% dashboard diff (S10 determinism).
+    await page.route('**/api/v1/**', (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: [], total: 0 }),
+          })
+        : route.fallback(),
+    );
     await mockSetupStatus(page);
     await mockMe(page);
     await mockStats(page, { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] });
@@ -52,6 +64,18 @@ for (const p of PAGES) {
   });
 
   test(`visual baseline: ${p.name} (dark)`, async ({ page }) => {
+    // LOWEST-precedence GET fallback (registered first): unmocked page-mount
+    // requests (branding/options/audit-recent…) must NEVER hit a live backend —
+    // environment drift showed up as a 4% dashboard diff (S10 determinism).
+    await page.route('**/api/v1/**', (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: [], total: 0 }),
+          })
+        : route.fallback(),
+    );
     await mockSetupStatus(page);
     await mockMe(page);
     await mockStats(page, { users: 0, roles: 0, activeSessions: 0, audits: 0, recentActivity: [] });

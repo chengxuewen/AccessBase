@@ -91,6 +91,8 @@ export default function Users() {
     {
       title: t('users.tenant'),
       dataIndex: 'tenantId',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['lg'],
       search: false,
       // Batch G5: read-only tenant slug via cached lookup; '—' when lookup
       // failed (cached failure, no retry) or tenant not in first page.
@@ -99,6 +101,8 @@ export default function Users() {
     {
       title: t('users.createdAt'),
       dataIndex: 'createdAt',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['xl'],
       valueType: 'dateTime',
       sorter: true,
       search: false,

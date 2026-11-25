@@ -58,6 +58,8 @@ export default function Events() {
     {
       title: t('events.resource'),
       dataIndex: 'payload',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['xl'],
       ellipsis: true,
       render: (_, record) => (
         <Typography.Text code className="events-payload-cell">
@@ -68,6 +70,8 @@ export default function Events() {
     {
       title: t('events.fanout'),
       dataIndex: 'fanoutComplete',
+      // S10 B-lite: contract data-prio — hidden on narrow screens
+      responsive: ['lg'],
       width: 140,
       render: (_, record) =>
         record.fanoutComplete ? (

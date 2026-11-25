@@ -84,8 +84,8 @@ export default function Audit() {
         return <Tag color={METHOD_COLORS[method] ?? 'default'}>{record.action}</Tag>;
       },
     },
-    { title: t('audit.resource'), dataIndex: 'resource' },
-    { title: t('audit.ipAddress'), dataIndex: 'ipAddress' },
+    { title: t('audit.resource'), dataIndex: 'resource', responsive: ['lg'] },
+    { title: t('audit.ipAddress'), dataIndex: 'ipAddress', responsive: ['xl'] },
     {
       title: t('audit.status'),
       dataIndex: 'status',

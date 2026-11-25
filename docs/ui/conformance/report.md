@@ -61,3 +61,10 @@ dashboard / roles / groups / tenants / clients / apikeys / webhooks / audit / ev
 - **错误整页**（403/404/500）：antd `Result` 形态，属原型无契约面（P-7 挂账，等扩展）——本次仅核对，不改。
 - **全量回归**：dev 库栈下 settings/mfa/conformance 家族 12/12（此前 196/204 的 8 败 = 真栈车道把栈留在 scratch 库导致设置页未 mock 调用吃到真实后端状态——**环境伪影，非回归**；恢复 dev 库后复绿）。
 - **仍未消账（明示）**：U3 角色列数据缺口（列表接口不 join roles，服务端项）· 租户筛选（需租户 options API）· 响应式表格（9 页横滚 vs 契约优先级列+卡片模式，唯一 DIVERGENT 特性，**S10 检查点待裁**）。
+
+## S10 B-lite（用户裁决 2026-11-25）：响应式表格 DIVERGENT 项消账
+
+- **契约 `data-prio` 列映射**逐字落地：26 列打上 antd 原生 `responsive`（prio2 → `['lg']` <992px 隐藏；prio3 → `['xl']` <1200px 隐藏）——users(2) roles(3) groups(4) tenants(2) clients(3) apikeys(4) webhooks(4) audit(2) events(2)。
+- **e2e 证明** `e2e/responsive-tables.spec.ts` 2/2：桌面全列可见 → 900px 下 prio 列消失、关键列保留。
+- **仍挂账**：窄屏卡片模式（契约的“行变卡片”），有平板用户诉求时作独立增量。
+- **顺手修正视觉确定性**：visual spec 加 GET 兜底（此前 dashboard 的“最近活动”读真后端，环境漂移造成 4% diff）；基线重拍 24 + 幂等 24。
