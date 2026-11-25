@@ -26,8 +26,6 @@ if (!existsSync(mcpBin)) {
   console.error('[playwright-mcp] Installing @playwright/mcp... (self-heal mutates the pnpm tree — see PIT-090; use mcp setup for reproducible installs)')
   const usePnpm = existsSync(join(projectRoot, 'pnpm-lock.yaml'))
   const installCmd = usePnpm
-  const usePnpm = existsSync(join(projectRoot, 'pnpm-lock.yaml'))
-  const installCmd = usePnpm
     ? 'pnpm add -wD @playwright/mcp'
     : 'npm install -D @playwright/mcp'
   execSync(installCmd, { cwd: projectRoot, stdio: 'inherit' })
