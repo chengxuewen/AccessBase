@@ -305,20 +305,22 @@ test.describe('UI quality — language persistence', () => {
     await page.goto('/users');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
-    // Focus the row's name link, then Tab through: name → Edit → Force Logout → Delete
+    // S3.5: row actions are ICON buttons (contract form) — accessible names ride
+    // aria-label, not text. Assert each of the three actions is Tab-reachable.
     await page.locator('tbody tr.ant-table-row').first().locator('a').first().focus();
-    const tabTargets = ['Edit', '编辑', 'Force Logout', '强制下线', 'Delete', '删除'];
-    for (const label of tabTargets) {
+    const actionLabels = ['Edit', '编辑', 'Force Logout', '强制下线', 'Delete', '删除'];
+    const reached: string[] = [];
+    for (let i = 0; i < 4; i++) {
       await page.keyboard.press('Tab');
-      const focused = await page.evaluate(() => {
-        const el = document.activeElement as HTMLElement;
-        return el?.textContent ?? '';
+      const name = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        return el?.getAttribute('aria-label') ?? el?.textContent ?? '';
       });
-      expect(
-        tabTargets.some((l) => focused.includes(l)),
-        `expected an action button (Edit/Force Logout/Delete), focused: "${focused}"`,
-      ).toBe(true);
-      if (focused.includes(label)) break;
+      if (actionLabels.some((l) => name.includes(l))) reached.push(name);
     }
+    expect(
+      reached.length,
+      `row action buttons reachable by Tab: ${JSON.stringify(reached)}`,
+    ).toBeGreaterThanOrEqual(3);
   });
 });

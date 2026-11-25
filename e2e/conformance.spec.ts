@@ -104,6 +104,26 @@ test('capture: app pages (mocked shell, same viewport)', async ({ page }) => {
       body: JSON.stringify({ success: true, data: [], total: 0 }),
     }),
   );
+  // S3.5: rows so the cell components are actually visible in the capture
+  // (registered AFTER the catch-all = takes precedence)
+  await page.route('**/api/v1/users**', (r) =>
+    r.request().method() === 'GET'
+      ? r.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            total: 3,
+            data: [
+              { id: 'u1', name: 'Ada Lovelace', email: 'ada@accessbase.local', status: 'active', isActive: true, tenantId: '00000000-0000-0000-0000-000000000001', createdAt: '2026-11-01T10:00:00Z', roles: [{ id: 'r1', name: 'admin' }, { id: 'r2', name: 'editor' }] },
+              { id: 'u2', name: 'Grace Hopper', email: 'grace@accessbase.local', status: 'suspended', isActive: false, tenantId: '00000000-0000-0000-0000-000000000001', createdAt: '2026-11-03T09:30:00Z', roles: [{ id: 'r3', name: 'viewer' }] },
+              { id: 'u3', name: 'Alan Turing', email: 'alan@accessbase.local', status: 'pending', isActive: false, tenantId: '00000000-0000-0000-0000-000000000001', createdAt: '2026-11-05T14:12:00Z', roles: [] },
+            ],
+          }),
+        })
+      : r.fallback(),
+  );
+
   // login → shell
   await page.goto('/login');
   await page.locator('input#email').fill('admin@accessbase.local');

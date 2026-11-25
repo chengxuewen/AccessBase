@@ -13,7 +13,21 @@
 | G3 | **顶栏构成** | 面包屑（Admin / Users）+ 右侧中文/Broadsheet 选择/主题/租户标签/头像 | ✅ `ConsoleHeader`：左面包屑 Admin / 页名；右：语言·风格·主题·租户标签·头像（ProLayout side 布局不渲染 header——自渲染进内容列顶部） | CRITICAL | **CLOSED S3'** |
 | G4 | **页头** | 页标题 + 副标说明 + 右上 Import/Create 实心按钮 | 无页头块；按钮在 ProTable 工具栏 | **CRITICAL** | S4 (PageHead) |
 | G5 | **表格工具栏** | meta 行（刷新/计数/视图切换/密度）+ 搜索框/筛选 chips 独立行 | ProTable 查询表单（重置/查询）+ 卡片工具栏图标组 | **CRITICAL** | S4 (TableToolbar) |
-| G6 | **行操作** | 图标三件套（眼睛/铅笔/…）带 hover 提示 | 文字按钮（编辑/删除） | MAJOR | S3.5 (IconActions) |
+| G6 | **行操作** | 图标三件套（眼睛/铅笔/…）带 hover 提示 | ✅ `IconActions`：28px ghost 图标 + 悬浮提示 + 破坏性动作保留 Popconfirm | MAJOR | **CLOSED S3.5** |
+
+## S3.5 cells (adjudication 2=B) — 双图证据
+
+**证据**：`app/users.png`（mock 三行，重拍 2026-11-25）+ **MCP 真栈实录** `out/local-playwright/mcp/s35-users-live.png`（真登录→真库→users 页）。
+
+| # | 维度 | 契约 | 实现 | 状态 |
+|---|------|------|------|------|
+| U1 | 实体格 | 26px 缩写块 + 主名 + mono 副标（`.u-cell`） | ✅ `EntityCell`（姓名列合一，email 列合并） | **CLOSED** |
+| U2 | 状态 | 5px 圆点 + tinted 胶囊（`.tag.ok/.danger/.warn`） | ✅ `StatusPill`（ok/danger/warn/info/neutral 五档，色走 cssVars） | **CLOSED** |
+| U3 | 角色 | 灰芯片（`tags()`） | ⚠️ `Chip` 组件就绪、有则渲染；**列表 payload 无 roles**（服务端缺口：`/users` 列表不 join 角色，仅详情返回） | 组件 CLOSED / **数据缺口记账** |
+| G6 | 行操作 | `.row-actions` 28px 图标 | ✅ `IconActions` | **CLOSED** |
+
+**e2e 迁移**（组件形态变化 → 定位器跟随，断言强度不降）：users-crud ×3 与 import-export ×1 由 `button:has-text()` 改 `button[aria-label=]`；ui-quality AC-1 改为 aria-label Tab 可达 ≥3。users 族 24/24 绿。
+**仍未消账**：U4 行密度 / U5 分页 / U6 筛选条 / U7 空态（S4 的页头+工具栏片；G4/G5 同片）。
 
 **S3' 证据**：`app/users.png`（重拍 2026-11-25）——分组标签 概览/身份/访问/运营/系统 + 品牌块 + 顶栏 "Admin / 用户管理" + 右侧动作区 + 底部收起钮；`prototype/users.png` 对照。**MCP 交互验证：MCP 不可用（chromium-1200 vs 1234），已按规则报告用户**——本轮用 conformance spec 双图 + layout.spec 语义矩阵替代。
 

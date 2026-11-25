@@ -2,9 +2,10 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
-import { Alert, Button, Popconfirm, Select, Tag } from 'antd';
+import { Alert, Button, Select } from 'antd';
 import {
   PlusOutlined,
+  EditOutlined,
   DeleteOutlined,
   ReloadOutlined,
   ImportOutlined,
@@ -18,6 +19,7 @@ import { message } from '../api/feedback';
 import { apiErrorMessage } from '../api/errors';
 import { mapSort } from './users/sortParams';
 import TenantCell from '../components/TenantCell';
+import { EntityCell, StatusPill, Chip, IconActions } from '../components/cells';
 
 export default function Users() {
   const { t } = useTranslation();
@@ -31,14 +33,18 @@ export default function Users() {
 
   const columns: ProColumns<User>[] = [
     {
+      // S3.5 (U1): composite entity cell — initials tile + name link + mono email
+      // (the prototype's `u-cell`; the standalone email column is merged in).
       title: t('users.name'),
       dataIndex: 'name',
       sorter: true,
-      render: (_, record) => <Link to={`/users/${record.id}`}>{record.name}</Link>,
-    },
-    {
-      title: t('users.email'),
-      dataIndex: 'email',
+      render: (_, record) => (
+        <EntityCell
+          title={record.name}
+          subtitle={record.email}
+          titleLink={<Link to={`/users/${record.id}`}>{record.name}</Link>}
+        />
+      ),
     },
     {
       // Q1-f7: the old client-side onFilter only saw the loaded page (half-wired).
@@ -49,15 +55,27 @@ export default function Users() {
       search: false,
       render: (_, record) => {
         const status = record.status ?? (record.isActive ? 'active' : 'suspended');
-        const color = status === 'active' ? 'green' : status === 'pending' ? 'orange' : 'red';
+        const tone = status === 'active' ? 'ok' : status === 'pending' ? 'warn' : 'danger';
         const label =
           status === 'active'
             ? t('users.statusActive')
             : status === 'pending'
               ? t('users.statusPending')
               : t('users.statusSuspended');
-        return <Tag color={color}>{label}</Tag>;
+        return <StatusPill tone={tone} label={label} />;
       },
+    },
+    {
+      // S3.5 (U3): role chips (prototype `tags()` family). The LIST payload does
+      // not carry roles today (server gap — see conformance report U3 note);
+      // rows that have them render chips, others stay empty.
+      title: t('users.roles'),
+      dataIndex: 'roles',
+      search: false,
+      render: (_, record) =>
+        record.roles?.length
+          ? record.roles.map((r) => <Chip key={r.id} label={r.name} />)
+          : null,
     },
     {
       title: t('users.tenant'),
@@ -75,56 +93,61 @@ export default function Users() {
       search: false,
     },
     {
+      // S3.5 (G6): icon trio with tooltips (prototype .row-actions) — destructive
+      // arms keep their Popconfirm; aria-labels keep the e2e names intact.
       title: t('users.actions'),
       valueType: 'option',
-      width: 160,
-      render: (_, record) => [
-        <Button
-          type="link"
-          size="small"
-          key="edit"
-          onClick={() => navigate(`/users/${record.id}/edit`)}
-        >
-          {t('common.edit')}
-        </Button>,
-        <Popconfirm
-          key="force-logout"
-          title={t('users.forceLogoutConfirm')}
-          onConfirm={async () => {
-            try {
-              await forceLogoutUser(record.id);
-              message.success(t('users.forceLogoutSuccess'));
-            } catch (err) {
-              message.error(apiErrorMessage(err, t('users.forceLogoutError')));
-            }
-          }}
-          okText={t('common.confirm')}
-          cancelText={t('common.cancel')}
-        >
-          <Button type="link" size="small">
-            <LogoutOutlined /> {t('users.forceLogout')}
-          </Button>
-        </Popconfirm>,
-        <Popconfirm
-          key="delete"
-          title={t('users.deleteConfirm')}
-          onConfirm={async () => {
-            try {
-              await deleteUser(record.id);
-              message.success(t('users.deleteSuccess'));
-              actionRef.current?.reload();
-            } catch (err) {
-              message.error(apiErrorMessage(err, t('users.deleteError')));
-            }
-          }}
-          okText={t('common.confirm')}
-          cancelText={t('common.cancel')}
-        >
-          <Button type="link" size="small" danger>
-            <DeleteOutlined /> {t('common.delete')}
-          </Button>
-        </Popconfirm>,
-      ],
+      width: 120,
+      render: (_, record) => (
+        <IconActions
+          actions={[
+            {
+              key: 'edit',
+              icon: <EditOutlined />,
+              label: t('common.edit'),
+              onClick: () => navigate(`/users/${record.id}/edit`),
+            },
+            {
+              key: 'force-logout',
+              icon: <LogoutOutlined />,
+              label: t('users.forceLogout'),
+              popconfirm: {
+                title: t('users.forceLogoutConfirm'),
+                okText: t('common.confirm'),
+                cancelText: t('common.cancel'),
+                onConfirm: async () => {
+                  try {
+                    await forceLogoutUser(record.id);
+                    message.success(t('users.forceLogoutSuccess'));
+                  } catch (err) {
+                    message.error(apiErrorMessage(err, t('users.forceLogoutError')));
+                  }
+                },
+              },
+            },
+            {
+              key: 'delete',
+              icon: <DeleteOutlined />,
+              label: t('common.delete'),
+              danger: true,
+              popconfirm: {
+                title: t('users.deleteConfirm'),
+                okText: t('common.confirm'),
+                cancelText: t('common.cancel'),
+                onConfirm: async () => {
+                  try {
+                    await deleteUser(record.id);
+                    message.success(t('users.deleteSuccess'));
+                    actionRef.current?.reload();
+                  } catch (err) {
+                    message.error(apiErrorMessage(err, t('users.deleteError')));
+                  }
+                },
+              },
+            },
+          ]}
+        />
+      ),
     },
   ];
 

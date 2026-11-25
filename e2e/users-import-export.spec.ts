@@ -186,7 +186,7 @@ test.describe('Users import/export/force-logout', () => {
     await page
       .locator('tbody tr.ant-table-row')
       .first()
-      .locator('button:has-text("Force Logout"), button:has-text("强制下线")')
+      .locator('button[aria-label="Force Logout"], button[aria-label="强制下线"]')
       .click();
     await page
       .locator(

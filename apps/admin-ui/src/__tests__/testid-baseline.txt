@@ -20,6 +20,7 @@ branding-logo
 captcha-answer
 captcha-field
 captcha-image
+chip
 clients-backchannel-input
 clients-caep-input
 clients-create
@@ -74,6 +75,7 @@ enroll-error
 enroll-loading
 enroll-qr
 enroll-recovery
+entity-cell
 events-detail-modal
 events-load-error
 forgot-back
@@ -101,6 +103,7 @@ groups-remove-member
 groups-roles
 groups-save-roles
 groups-table
+icon-actions
 idle-timeout
 idle-timeout-select
 import-check
@@ -196,6 +199,7 @@ sms-send
 sms-sent
 sms-submit
 sms-trigger
+status-pill
 tenant-tag
 tenants-create
 tenants-form-modal

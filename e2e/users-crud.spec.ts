@@ -370,7 +370,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await page
       .locator('tbody tr.ant-table-row')
       .first()
-      .locator('button:has-text("Delete"), button:has-text("删除")')
+      .locator('button[aria-label="Delete"], button[aria-label="删除"]')
       .click();
     await page
       .locator(
@@ -478,7 +478,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await page
       .locator('tbody tr.ant-table-row')
       .first()
-      .locator('button:has-text("Edit"), button:has-text("编辑")')
+      .locator('button[aria-label="Edit"], button[aria-label="编辑"]')
       .first()
       .click();
     await expect(page).toHaveURL(/\/users\/1\/edit/);
@@ -553,7 +553,7 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await page
       .locator('tbody tr.ant-table-row')
       .first()
-      .locator('button:has-text("Delete"), button:has-text("删除")')
+      .locator('button[aria-label="Delete"], button[aria-label="删除"]')
       .click();
     await page
       .locator(
