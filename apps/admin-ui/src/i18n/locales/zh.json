@@ -213,7 +213,9 @@
       "statusToggleError": "状态更新失败",
       "roles": "角色",
       "noRoles": "未分配角色"
-    }
+    },
+    "subtitle": "管理账号、状态与角色",
+    "searchPlaceholder": "搜索姓名或邮箱…"
   },
   "roles": {
     "title": "角色管理",

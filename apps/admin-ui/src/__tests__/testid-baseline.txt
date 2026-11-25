@@ -78,6 +78,7 @@ enroll-recovery
 entity-cell
 events-detail-modal
 events-load-error
+filter-bar
 forgot-back
 forgot-email
 forgot-error
@@ -153,6 +154,7 @@ options-settings
 options-table
 pack-select
 pack-style-vars
+page-head
 passkey-error
 passkey-login
 passkeys
@@ -200,6 +202,8 @@ sms-sent
 sms-submit
 sms-trigger
 status-pill
+table-meta
+table-search
 tenant-tag
 tenants-create
 tenants-form-modal
@@ -219,6 +223,7 @@ users-export
 users-import
 users-load-error
 users-load-retry
+users-reload
 users-status-filter
 verify-busy
 verify-fail

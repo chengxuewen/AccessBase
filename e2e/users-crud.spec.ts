@@ -509,14 +509,10 @@ test.describe('Users CRUD (dedicated routes)', () => {
     await page.goto('/users');
     await expect(page.locator('.ant-table-tbody tr.ant-table-row')).toHaveCount(1);
 
-    const searchInput = page.locator('input[placeholder]').first();
+    // S4: the ProTable query form was replaced by the inline search
+    // (TableToolbar `table-search`) — typing IS the trigger (debounced).
+    const searchInput = page.getByTestId('table-search');
     await searchInput.fill('admin');
-    // AntD renders CJK 2-char labels with a space ("查 询") — allow optional whitespace
-    await page
-      .locator('button')
-      .filter({ hasText: /search|查\s*询|submit/i })
-      .first()
-      .click();
 
     // Search param reached the API and table still renders.
     // expect.poll (not sync expect): the click → request dispatch is async —

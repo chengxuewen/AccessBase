@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components';
@@ -20,6 +20,8 @@ import { apiErrorMessage } from '../api/errors';
 import { mapSort } from './users/sortParams';
 import TenantCell from '../components/TenantCell';
 import { EntityCell, StatusPill, Chip, IconActions } from '../components/cells';
+import { PageHead } from '../components/shell/PageHead';
+import { TableToolbar } from '../components/shell/TableToolbar';
 
 export default function Users() {
   const { t } = useTranslation();
@@ -27,6 +29,15 @@ export default function Users() {
   const actionRef = useRef<ActionType>(null);
   const [loadError, setLoadError] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  // S4 (G5/U6): inline search + meta count replace ProTable's query form/toolbar
+  const [keyword, setKeyword] = useState('');
+  const [total, setTotal] = useState<number>(0);
+  // S4: debounce keyword → one list request per settling window (the inline
+  // search replaces ProTable's submit-button form; typing must not fire N calls)
+  useEffect(() => {
+    const timer = setTimeout(() => actionRef.current?.reload(), 300);
+    return () => clearTimeout(timer);
+  }, [keyword]);
   const [statusFilter, setStatusFilter] = useState<
     'active' | 'suspended' | 'pending' | undefined
   >();
@@ -178,40 +189,40 @@ export default function Users() {
           data-testid="users-load-error"
         />
       )}
-      <ProTable<User>
-        headerTitle={t('users.title')}
-        actionRef={actionRef}
-        rowKey="id"
-        scroll={{ x: 'max-content' }}
-        columns={columns}
-        request={async (params, sort) => {
-          try {
-            const { current, pageSize, name, sort: _paramsSort, ...rest } = params;
-            const result = await listUsers({
-              page: current,
-              pageSize,
-              search: name,
-              ...(statusFilter ? { status: statusFilter } : {}),
-              ...mapSort(sort as Record<string, 'ascend' | 'descend' | undefined>),
-              ...rest,
-            });
-            setLoadError(false);
-            return {
-              data: result.data,
-              total: result.total,
-              success: true,
-            };
-          } catch {
-            setLoadError(true);
-            return { data: [], total: 0, success: false };
-          }
+      {/* S4 (G4): page head — title + subtitle + primary actions */}
+      <PageHead
+        title={t('users.title')}
+        subtitle={t('users.subtitle')}
+        actions={
+          <>
+            <Button
+              key="import"
+              icon={<ImportOutlined />}
+              onClick={() => setImportOpen(true)}
+              data-testid="users-import"
+            >
+              {t('users.import')}
+            </Button>
+            <Button
+              key="create"
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/users/create')}
+            >
+              {t('users.create')}
+            </Button>
+          </>
+        }
+      />
+      {/* S4 (G5/U6): filter card (inline search + status) + meta row */}
+      <TableToolbar
+        search={{
+          value: keyword,
+          placeholder: t('users.searchPlaceholder'),
+          onChange: setKeyword,
         }}
-        pagination={{ defaultPageSize: 10 }}
-        search={{ labelWidth: 'auto' }}
-        locale={{ emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} /> }}
-        toolBarRender={() => [
+        filters={
           <Select
-            key="status-filter"
             allowClear
             placeholder={t('users.status')}
             style={{ width: 160 }}
@@ -226,32 +237,66 @@ export default function Users() {
               { value: 'suspended', label: t('users.statusSuspended') },
             ]}
             data-testid="users-status-filter"
-          />,
-          <Button
-            key="import"
-            icon={<ImportOutlined />}
-            onClick={() => setImportOpen(true)}
-            data-testid="users-import"
-          >
-            {t('users.import')}
-          </Button>,
-          <Button
-            key="export"
-            icon={<ExportOutlined />}
-            onClick={() => void exportUsersCsv()}
-            data-testid="users-export"
-          >
-            {t('users.export')}
-          </Button>,
-          <Button
-            key="create"
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/users/create')}
-          >
-            {t('users.create')}
-          </Button>,
-        ]}
+          />
+        }
+        meta={`${total}`}
+        actions={
+          <>
+            <Button
+              size="small"
+              data-testid="users-reload"
+              icon={<ReloadOutlined />}
+              onClick={() => actionRef.current?.reload()}
+            />
+            <Button
+              size="small"
+              key="export"
+              icon={<ExportOutlined />}
+              onClick={() => void exportUsersCsv()}
+              data-testid="users-export"
+            >
+              {t('users.export')}
+            </Button>
+          </>
+        }
+      />
+      <ProTable<User>
+        actionRef={actionRef}
+        rowKey="id"
+        scroll={{ x: 'max-content' }}
+        columns={columns}
+        request={async (params, sort) => {
+          try {
+            const { current, pageSize, sort: _paramsSort, ...rest } = params;
+            const result = await listUsers({
+              page: current,
+              pageSize,
+              search: keyword || undefined,
+              ...(statusFilter ? { status: statusFilter } : {}),
+              ...mapSort(sort as Record<string, 'ascend' | 'descend' | undefined>),
+              ...rest,
+            });
+            setLoadError(false);
+            setTotal(result.total ?? 0);
+            return {
+              data: result.data,
+              total: result.total,
+              success: true,
+            };
+          } catch {
+            setLoadError(true);
+            return { data: [], total: 0, success: false };
+          }
+        }}
+        pagination={{
+          defaultPageSize: 10,
+          // S4 (U5): prototype `.pagination .info` — "1-10 of N" mono info
+          showTotal: (n, range) => `${range[0]}-${range[1]} / ${n}`,
+        }}
+        search={false}
+        options={false}
+        toolBarRender={false}
+        locale={{ emptyText: <EmptyState variant={loadError ? 'error' : 'no-data'} /> }}
       />
       <ImportUsersModal
         open={importOpen}

@@ -11,8 +11,8 @@
 | G1 | **侧边栏分组** | OVERVIEW/IDENTITY/ACCESS/OPERATIONS/SYSTEM 五组带组标签 | ✅ 五组分组标签（`menu={{type:'group'}}` + menuDataRender；组标题 11px/tertiary/大写/.08em） | CRITICAL | **CLOSED S3'** (2e067e6→本轮) |
 | G2 | **品牌块** | 左上角 AB 徽标 + AccessBase + Identity & Access 副标 | ✅ `ConsoleBrand`：26px 方标(缩写/logo) + 名 + 副标，折叠只剩方标 | CRITICAL | **CLOSED S3'** |
 | G3 | **顶栏构成** | 面包屑（Admin / Users）+ 右侧中文/Broadsheet 选择/主题/租户标签/头像 | ✅ `ConsoleHeader`：左面包屑 Admin / 页名；右：语言·风格·主题·租户标签·头像（ProLayout side 布局不渲染 header——自渲染进内容列顶部） | CRITICAL | **CLOSED S3'** |
-| G4 | **页头** | 页标题 + 副标说明 + 右上 Import/Create 实心按钮 | 无页头块；按钮在 ProTable 工具栏 | **CRITICAL** | S4 (PageHead) |
-| G5 | **表格工具栏** | meta 行（刷新/计数/视图切换/密度）+ 搜索框/筛选 chips 独立行 | ProTable 查询表单（重置/查询）+ 卡片工具栏图标组 | **CRITICAL** | S4 (TableToolbar) |
+| G4 | **页头** | 页标题 + 副标说明 + 右上 Import/Create 实心按钮 | ✅ `PageHead`（h1 fs20/600 + 副标 tx3/fs12 + 右动作区） | CRITICAL | **CLOSED S4** |
+| G5 | **表格工具栏** | meta 行（刷新/计数/…）+ 搜索框/筛选独立行 | ✅ `TableToolbar`（过滤卡：内联搜索+状态；元行：mono 计数+图标动作）；ProTable 查询表单/内置工具栏关闭；关键字 300ms 防抖 | CRITICAL | **CLOSED S4** |
 | G6 | **行操作** | 图标三件套（眼睛/铅笔/…）带 hover 提示 | ✅ `IconActions`：28px ghost 图标 + 悬浮提示 + 破坏性动作保留 Popconfirm | MAJOR | **CLOSED S3.5** |
 
 ## S3.5 cells (adjudication 2=B) — 双图证据
@@ -27,7 +27,7 @@
 | G6 | 行操作 | `.row-actions` 28px 图标 | ✅ `IconActions` | **CLOSED** |
 
 **e2e 迁移**（组件形态变化 → 定位器跟随，断言强度不降）：users-crud ×3 与 import-export ×1 由 `button:has-text()` 改 `button[aria-label=]`；ui-quality AC-1 改为 aria-label Tab 可达 ≥3。users 族 24/24 绿。
-**仍未消账**：U4 行密度 / U5 分页 / U6 筛选条 / U7 空态（S4 的页头+工具栏片；G4/G5 同片）。
+**S4 消账（证据 `app/users.png` 重拍 2026-11-25）**：U4 表头语法（太阳ken 底/11px tx3/大写+.06em，令牌+豁免文件）· U5 分页 info（"1-3 / 3" showTotal）· U6 筛选条（内联搜索+状态选择，租户筛选挂账）· U7 空态沿用 EmptyState。users 族 e2e 24/24（搜索测试迁移为内联输入；查询表单已移除）。
 
 **S3' 证据**：`app/users.png`（重拍 2026-11-25）——分组标签 概览/身份/访问/运营/系统 + 品牌块 + 顶栏 "Admin / 用户管理" + 右侧动作区 + 底部收起钮；`prototype/users.png` 对照。**MCP 交互验证：MCP 不可用（chromium-1200 vs 1234），已按规则报告用户**——本轮用 conformance spec 双图 + layout.spec 语义矩阵替代。
 

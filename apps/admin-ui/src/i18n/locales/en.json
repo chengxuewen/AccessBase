@@ -213,7 +213,9 @@
       "statusToggleError": "Failed to update status",
       "roles": "Roles",
       "noRoles": "No roles assigned"
-    }
+    },
+    "subtitle": "Manage accounts, status and roles",
+    "searchPlaceholder": "Search name or email…"
   },
   "roles": {
     "title": "Role Management",

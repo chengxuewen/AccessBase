@@ -170,10 +170,30 @@ describe('S2 control primitives (component tokens; CSS only where no channel)', 
   });
 
   it('table density per pack: ant 12px (block override), broadsheet 6px (row-pad default)', () => {
-    const antT = (PACKS.ant.themes.light.components?.Table ?? {}) as Record<string, number>;
-    const bT = (PACKS.broadsheet.themes.light.components?.Table ?? {}) as Record<string, number>;
-    expect(antT).toEqual({ cellPaddingBlock: 12, cellPaddingInline: 16 });
-    expect(bT).toEqual({ cellPaddingBlock: 6, cellPaddingInline: 16 });
+    // S4: Table now ALSO carries header-grammar tokens — assert the density
+    // subset exactly and the header tokens separately (shape grew, semantics locked).
+    const antT = (PACKS.ant.themes.light.components?.Table ?? {}) as Record<string, number | string>;
+    const bT = (PACKS.broadsheet.themes.light.components?.Table ?? {}) as Record<string, number | string>;
+    expect({ cellPaddingBlock: antT['cellPaddingBlock'], cellPaddingInline: antT['cellPaddingInline'] }).toEqual({
+      cellPaddingBlock: 12,
+      cellPaddingInline: 16,
+    });
+    expect({ cellPaddingBlock: bT['cellPaddingBlock'], cellPaddingInline: bT['cellPaddingInline'] }).toEqual({
+      cellPaddingBlock: 6,
+      cellPaddingInline: 16,
+    });
+  });
+
+  it('S4 table header grammar: sunken bg + tertiary uppercase-scale text + hairline split', () => {
+    for (const packId of ['ant', 'broadsheet'] as const) {
+      for (const theme of ['light', 'dark'] as const) {
+        const vars = PACKS[packId].cssVars[theme];
+        const t = (PACKS[packId].themes[theme].components?.Table ?? {}) as Record<string, string>;
+        expect(t['headerBg']).toBe(tok(vars, '--sunken'));
+        expect(t['headerColor']).toBe(tok(vars, '--tx3'));
+        expect(t['headerSplitColor']).toBe(tok(vars, '--bd-hair'));
+      }
+    }
   });
 
   it('card/popover shadows ride the contract shadow family', () => {

@@ -6,7 +6,15 @@ import { BASE, BROADSHEET_TEXT, ROOT_DARK, ROOT_LIGHT, SEMANTIC_ROOT } from './c
 /** broadsheet table density: :root `tbody td{padding:var(--row-pad,6px) …}`
  * (adjudication 43) — NO [data-style="broadsheet"] override exists. */
 function withTableDensity(theme: ThemeConfig, block: number): ThemeConfig {
-  return { ...theme, components: { ...theme.components, Table: { cellPaddingBlock: block, cellPaddingInline: 16 } } };
+  return {
+    ...theme,
+    components: {
+      ...theme.components,
+      // MERGE with the mapper's base Table tokens (S4 header grammar) — a
+      // bare replace would silently drop headerBg/headerColor.
+      Table: { ...theme.components?.Table, cellPaddingBlock: block, cellPaddingInline: 16 },
+    },
+  };
 }
 
 /**

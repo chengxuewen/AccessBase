@@ -98,6 +98,14 @@ export function paletteToThemeConfig(p: Palette, mode: 'light' | 'dark'): ThemeC
       Tooltip: { colorBgSpotlight: surface, borderRadiusLG: px(tok(p, 'r6')) },
       // combobox selected option = composited accent tint over surface
       Select: { optionSelectedBg: compositeTintOver(tok(p, 'accent-tint'), surface) },
+      // S4 (G5/U4): table header grammar — prototype thead th (sunken bg,
+      // 11px tx3, bd-hair underline; uppercase+tracking have no token channel
+      // and live in pack-vars.css)
+      Table: {
+        headerBg: tok(p, 'sunken'),
+        headerColor: tok(p, 'tx3'),
+        headerSplitColor: tok(p, 'bd-hair'),
+      },
       // S3' sidebar (G1): group title 11px/tertiary (uppercase + tracking have
       // NO token channel — they live in pack-vars.css); item geometry per the
       // prototype `.nav a` (13px, 7px/8px padding, r6 pill, accent-tint selected)

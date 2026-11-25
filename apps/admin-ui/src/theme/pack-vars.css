@@ -35,3 +35,11 @@ a:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
+
+/* S4 (G5/U4) table header grammar: uppercase + .06em tracking (prototype
+ * thead th). Size/color ride components.Table tokens; these two have no
+ * token channel. */
+.ant-table-thead > tr > th {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

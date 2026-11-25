@@ -5,7 +5,15 @@ import { ANT_DARK, ANT_LIGHT, BASE, ROOT_DARK, ROOT_LIGHT, SEMANTIC_ROOT } from 
 
 /** ant pack table density: `[data-style="ant"] tbody td{padding:12px 16px}` (:349). */
 function withTableDensity(theme: ThemeConfig, block: number): ThemeConfig {
-  return { ...theme, components: { ...theme.components, Table: { cellPaddingBlock: block, cellPaddingInline: 16 } } };
+  return {
+    ...theme,
+    components: {
+      ...theme.components,
+      // MERGE with the mapper's base Table tokens (S4 header grammar) — a
+      // bare replace would silently drop headerBg/headerColor.
+      Table: { ...theme.components?.Table, cellPaddingBlock: block, cellPaddingInline: 16 },
+    },
+  };
 }
 
 /**
