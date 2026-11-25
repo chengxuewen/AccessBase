@@ -940,3 +940,17 @@ intentional void so the gap is machine-visible and the number is never reused.
 - **根因**: 转换正则要求静态 data-tip+aria-label 且无 class；roles/tenants/apikeys 的 builder 用**动态 aria-label 表达式**或 tip-wrap 包裹 → 静默跳过；无跨页形态普查锁，混形直到用户截图才暴露。
 - **解法**: 形态类改动后跑**全表面普查**（每页首行 action 形态分类 icon/link/mixed）并入锁（shape-scale formCensus 全 icon）；回退时按旧版本 aria-label→icon 映射逆向恢复，不手工猜图标。
 - **验证**: `grep -c row-link admin-console.html` ==0；formCensus 八页全 'icon'；69 组绿；截图 roles/users 同形态。
+
+## PIT-122: 共享 pre-commit gate 被并行在制品破坏——加性最小修复而非改 gate/提交外来正文 (2026-11-25, 事故)
+
+- **症状**: 本会话 memory 提交被 skill-lint 红挡住：并行会话 W0.4 重造 design-system/SKILL.md 时丢掉 frontmatter（文件以 # 开头），name/description 缺失 → 全仓任何提交都过不了 gate。
+- **根因**: gate 扫描全仓 skills 目录，不区分归属；并行在制品破坏了门禁必需元数据；C4 禁止提交/回滚外来在制品，形成"不能修又不能提交"的死锁表象。
+- **解法**: 加性最小修复——从 HEAD 逐字恢复 frontmatter（门禁必需元数据），**正文一字不动、该文件不提交**（留 worktree 待并行随其批次提交）；sync 转绿后 pathspec 提交自己的路径；向用户披露事故与处置。不改 gate 阈值、不 bypass hook。
+- **验证**: `node scripts/agents/agent-links.mts check` skill-lint clean；`git status --porcelain -- .agents/skills/design-system` 仍 M（外来正文未提交）；提交 stat 不含该文件。
+
+## PIT-123: 译文双来源漂移——builder 内 zh 分支与既有 I18N 规则各产一套措辞 (2026-11-25, B2 一次)
+
+- **症状**: 分页措辞加了 builder 内 zh 分支（'第 x-y 条/总共 n 条'），实测 zh 显示却是 '第 x–y 条，共 n 条'——既有 I18N_RULES 的 /^(\d+)–(\d+) of (\d+)$/ 规则已覆盖该文本节点，双来源产出不一致且锁断言写错目标。
+- **根因**: 新增字面量前未查既有 i18n 规则/字典是否已覆盖；zh pass 会翻译 EN 文本节点，builder 再产 zh 即双来源。
+- **解法**: 单一来源——builder 只产 EN，zh 走既有规则/字典；新增 zh 需求先 grep I18N_RULES/I18N_ZH 确认无覆盖再加分支；锁断言以**实际渲染译文**为准（先 diag 读真值）。
+- **验证**: `grep -c "startsWith('zh')" docs/ui/prototypes/admin-console.html` 分页 builder 无 zh 分支；list-grammar pagZh 匹配既有规则译文 /共 \d+ 条$/。

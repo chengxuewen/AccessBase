@@ -159,8 +159,7 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 
 ### decisions
 - full text: `.agents/memorys/decisions.md`
-... 109 older entries omitted (read the full file)
-- D112: 用户名无发现 WebAuthn Passkey 作为主登录因子 (2026-08-31)
+... 110 older entries omitted (read the full file)
 - D113: Setup 状态以 DB 为准 + env 双变量旁路 (2026-09-01)
 - D114: 已知 bug 用 E2E RED 回归网锁定（test.fail 标注法） (2026-09-03)
 - D115: 授权强制走 requirePermission preHandler（偏离 identity-sdd §3.3 plugin 路线） (2026-09-04)
@@ -185,12 +184,11 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - D132: 契约扩展 35–42 决策汇总——双入口同 builder / 服务端 job 建模 / 整页 state-mode / 强制改密交接 (2026-11-24)
 - D133: 视觉语法对齐官方语义（裁决 43/44/45）——边框分级/圆角选中/两段式列表/density/文本链接 (2026-11-25)
 - D134: 行操作形态回退图标并全页统一（裁决 46，用户偏好推翻 45）(2026-11-25)
+- D135: 门禁升级——id-uniqueness 与跨页形态普查入 CI（PIT-118/121 预防）(2026-11-25)
 
 ### pitfalls
 - full text: `.agents/memorys/pitfalls.md`
-... 109 older entries omitted (read the full file)
-- PIT-107: fixed 布局挤压 tag 列 + overflow:visible 溢出被不透明 sticky 列盖住 = "遮挡" (2026-11-24, user-reported)
-- PIT-108: 共享 git index 是进程全局的——他会话预 stage 的改动会搭我的 commit 便车 (2026-11-24, 事故)
+... 111 older entries omitted (read the full file)
 - PIT-109: 图标按钮家族刻度漂移 + fixed 布局 actions 列 flex 收缩裁切 + sticky hover 不同步 (2026-11-24, user-reported)
 - PIT-110: 控件高度靠 padding+font 推导 → 同 toolbar 混档参差不齐 (2026-11-24, user-reported)
 - PIT-111: 高度刻度漏了 div 基控件（themed cbx）+ 锁采样隐藏 native select 成盲区 (2026-11-24, user-reported)
@@ -204,6 +202,8 @@ read on demand. Maintained by `agents sync`; do not hand-edit this region.
 - PIT-119: 探针值域靠猜 + 同组探针状态耦合 → 断言假失败/假通过 (2026-11-24, 契约扩展批 ≥3 次)
 - PIT-120: 字符串外科手术的两类锚错误——切割点取到锚元素自身闭标签 / 属性剥离漏行首无空格形态 (2026-11-25, B2/B3 各一次)
 - PIT-121: 形态类批量正则转换静默跳过变体 → 跨页混形（用户可见的不统一）(2026-11-25, user-reported)
+- PIT-122: 共享 pre-commit gate 被并行在制品破坏——加性最小修复而非改 gate/提交外来正文 (2026-11-25, 事故)
+- PIT-123: 译文双来源漂移——builder 内 zh 分支与既有 I18N 规则各产一套措辞 (2026-11-25, B2 一次)
 
 ### status
 - full text: `.agents/memorys/status.md`

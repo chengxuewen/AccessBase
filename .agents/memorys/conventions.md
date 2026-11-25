@@ -442,3 +442,11 @@ findings keep their own namespace and are always cited as
 **Source**: 2026-11-24 契约扩展清单（13 表面/9 项，裁决 35–42，八批提交 da8250b…10a0c8c，tag ps19/ps20）。
 
 **Check**: `grep -c '^test(' docs/ui/prototypes/.harness/prototype.spec.ts` >= 上期；README `## Lock index (N groups)` 与 results.json 组数相等；`git tag | tail -1` 为最新 psN；CHANGELOG 含本期裁决号段。
+
+## C7: 设计争议证据链 + 审美裁决可回退性 (2026-11-25, 视觉语法 43-46 段)
+
+**Rule**: (1) 设计语言争议（"哪个更好看/更对"）以**版本锁定的本地依赖源码**为权威证据（node_modules 内 antd/pro-components 的 default token/组件默认值），网搜次之、印象禁止；Firecrawl 等外部检索不可用时降级 web_search，但本地源码优先。(2) 审美/形态类裁决执行须**可回退**：保留旧版映射（如 aria-label→glyph）供逆向恢复；批量形态改动后跑**全表面普查锁**防跨页混形；被推翻的实验保留 CHANGELOG 双段（执行+回退）不抹历史。(3) 用户审美偏好优先于"官方语义"论证——论证服务于提案，不服务于否决用户。
+
+**Source**: 43/44/45 以 antd 5.29.3 alias.js/menu style、pro-table 3.21.0 defaultOptions、M3 spec 为据；46 用户偏好推翻 45 后按 f73ec77 映射逆向恢复+formCensus 门禁。
+
+**Check**: 争议提案引用含本地依赖路径+版本（grep CHANGELOG 'antd 5\|pro-table 3'）；`grep -c formCensus docs/ui/prototypes/.harness/prototype.spec.ts` >=1；回退提交含 recovered-map 说明。

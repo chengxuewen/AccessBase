@@ -2502,3 +2502,7 @@ fix 12-17 连锁定稿：图标按钮四族统一（ghost 行 28x28/16 gap8、bo
 ## D134: 行操作形态回退图标并全页统一（裁决 46，用户偏好推翻 45）(2026-11-25)
 
 用户见 roles 图标/users 链接混形后裁"倾向原来的图标按钮"：45 的文本链接实验回退，八页统一 28/16/gap8 图标+tooltip+aria；列下限回图标 era；mid 恢复严格不溢；shape-scale 加**跨页形态普查门禁**（formCensus 全 icon）防再混。教训入 PIT-121：形态类批量转换必须普查全表面变体（动态 aria-label/tip-wrap 会被正则静默跳过），"部分页正常"掩盖规则级缺口（PIT-114 同族）。文本链接方案保留为已披露的被推翻实验（CHANGELOG 45/46）。
+
+## D135: 门禁升级——id-uniqueness 与跨页形态普查入 CI（PIT-118/121 预防）(2026-11-25)
+
+用户裁"升级门禁"：新增 harness 组 id-uniqueness（markup id 逐文件唯一，基线即抓出 verifyMsg 跨表面碰撞并改名 profVerifyMsg）；46 回退时 shape-scale 加 formCensus（八页行操作形态全 icon）。两门禁均**双样本验锁**（注入缺陷红/移除绿）。理由：单文件 kit 的全局命名空间与形态一致性是复发源（PIT-118 ≥5 次、PIT-121 用户可见混形），记忆教训升 CI 才闭环。组数 68→69 无收缩；tag ps21/ps25。
