@@ -239,6 +239,11 @@ user-reported fixes) are indexed by date in `CHANGELOG.md`.
   `Descriptions` and `Dashboard.tsx` `Statistic` are rendered as definition grids / stat cards.
   Functional filters are NOT simplified: users status/tenant, audit action/actor/days, events
   type/range all mirror the real Select/Input/RangePicker filters.
+- Visual grammar (adjudication 43): border roles are split — controls keep --bd (AntD colorBorder
+  semantics) while cards and separators use --bd-hair (colorBorderSecondary semantics, derived per
+  pack/theme via color-mix); nav selection is a rounded tinted block using the pack radius (AntD menu
+  itemBorderRadius = borderRadiusLG; M3 active-indicator pill consensus), the full-bleed left bar is
+  retired; list pages keep a single title layer (page-head), card heads belong to sub-panels.
 - Icon-button scale (post-seal fix 12): one scale across families — ghost row actions 28x28 with
   16px icons and 8px gap, bordered icon buttons 32x32/16, inline copy 20x20/14, pagination 32x32;
   cbx-clear/chip keep their small glyphs with >=24 hit areas. Actions columns carry per-table floors

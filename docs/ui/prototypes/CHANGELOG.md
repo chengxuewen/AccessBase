@@ -1555,3 +1555,16 @@ the AUDIT span and profile users saw no message (locks had been reading the wron
 by renaming the profile side to profVerifyMsg (markup + handler + four lock references). Double-sample
 verified: injecting a duplicate id reds the group, removing it greens it. Full re-run: 68 groups,
 0 failures. README lock index 68; PIT-118 verify field now cites the gate.
+
+## Adjudication 43 — visual grammar B1: border roles + rounded nav selection (2026-11-25)
+Grounded in version-pinned official semantics (antd 5.29.3 alias.js colorSplit derived from
+colorBorderSecondary; menu itemBorderRadius = borderRadiusLG; M3 active indicator pill): the prototype
+had been using the CONTROL border color (--bd, #d9d9d9 in ant) for cards and separators, producing the
+"boxed" look versus the real web's hairline cards. Fix: new --bd-hair token (color-mix 40% of --bd into
+--surface, per pack/theme) applied to 20 admin + 27 companion structural separators and card borders;
+inputs/buttons keep --bd. Nav selection becomes a rounded tinted block (margin 8px inset, radius =
+pack --r6; ant 8px) and the Carbon-style full-bleed left bar (::before) is retired. Title single-layer
+verified already compliant on all nine list pages (page-head h1 only; card heads belong to sub-panels)
+— no change needed, disclosed. shape-scale lock extended: card border != control border, nav radius ==
+pack r6, left bar content none. 68 groups, 0 failures. Screenshot: ant light users with hairline cards
+and pill nav selection.

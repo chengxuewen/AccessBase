@@ -2177,10 +2177,21 @@ test('shape-scale', async ({ page }) => {
     const last = tr.querySelector('td:last-child') as HTMLElement;
     return getComputedStyle(last).backgroundColor === getComputedStyle(tr).backgroundColor;
   });
+  // adjudication 43: border roles split (card/separator hairline vs control border) and nav
+  // selection is a rounded tinted block (pack radius), no full-bleed left bar.
+  const gram = await page.evaluate(() => {
+    const card = document.querySelector('#page-users .card') as HTMLElement;
+    const inp = document.querySelector('#page-users .search input') as HTMLElement;
+    const nav = document.querySelector('.nav a.on') as HTMLElement;
+    const r6 = getComputedStyle(document.documentElement).getPropertyValue('--r6').trim();
+    return { cardBd: getComputedStyle(card).borderTopColor, inpBd: getComputedStyle(inp).borderTopColor, navRadius: getComputedStyle(nav).borderTopLeftRadius, r6, bar: getComputedStyle(nav, '::before').content };
+  });
+  const gramOk = gram.cardBd !== gram.inpBd && gram.navRadius === gram.r6 + 'px' || gram.navRadius === gram.r6;
+  res.gram = gram;
   const ibOk = ib.rowW === 28 && ib.rowH === 28 && ib.rowIc === 16 && ib.gap === '8px' && ib.ibW === 32 && ib.ibIc === 16 && cpIc === 14 && ib.pgW === 32 && ib.pgH === 32 && hoverSync;
   const cup = (res.cupertino as any).tag[0];
   const ant = (res.ant as any).tag[0];
-  const pass = ok && cup !== ant && parseFloat(cup) > 100 && ibOk;
+  const pass = ok && cup !== ant && parseFloat(cup) > 100 && ibOk && gramOk;
   // post-seal fix 18: opening the pack selector under cupertino (selected = LAST option, list must
   // scroll) must stay open — scrollIntoView used to bubble an ancestor scroll that the capture
   // scroll-close listener treated as outside scroll and closed the pop immediately.
